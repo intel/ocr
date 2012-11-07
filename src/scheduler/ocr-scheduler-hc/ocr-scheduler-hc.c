@@ -1,0 +1,170 @@
+/* Copyright (c) 2012, Rice University
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1.  Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+2.  Redistributions in binary form must reproduce the above
+     copyright notice, this list of conditions and the following
+     disclaimer in the documentation and/or other materials provided
+     with the distribution.
+3.  Neither the name of Intel Corporation
+     nor the names of its contributors may be used to endorse or
+     promote products derived from this software without specific
+     prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
+#include "hc.h"
+
+
+/******************************************************/
+/* OCR-HC WorkPool iterator                           */
+/******************************************************/
+
+bool workpile_iterator_hasNext (workpile_iterator_t * base) {
+    return base->id != base->curr;
+}
+
+ocr_workpile_t * workpile_iterator_next (workpile_iterator_t * base) {
+    int next = (base->curr+1) % base->mod;
+    ocr_workpile_t * to_be_returned = base->array[base->curr];
+    base->curr = next;
+    return to_be_returned;
+}
+
+workpile_iterator_t* workpile_iterator_constructor ( int i, size_t n_pools, ocr_workpile_t ** pools ) {
+    workpile_iterator_t* it = (workpile_iterator_t *) malloc(sizeof(workpile_iterator_t));
+    it->array = pools;
+    it->id = i;
+    it->curr = (i+1)%n_pools;
+    it->mod = n_pools;
+    it->hasNext = workpile_iterator_hasNext;
+    it->next = workpile_iterator_next;
+    return it;
+}
+
+void workpile_iterator_destructor (workpile_iterator_t* base) {
+    free(base);
+}
+
+/******************************************************/
+/* OCR-HC SCHEDULER                                   */
+/******************************************************/
+
+void hc_scheduler_create(ocr_scheduler_t * scheduler, void * configuration, size_t n_pools, ocr_workpile_t ** pools) {
+    hc_scheduler_t* derived = (hc_scheduler_t*) scheduler;
+    derived->n_pools = n_pools;
+    derived->pools = pools;
+}
+
+void hc_scheduler_destruct(ocr_scheduler_t * scheduler) {
+    // just free, workpiles are not allocated here
+    free(scheduler);
+}
+
+ocr_workpile_t * hc_scheduler_pop_mapping_one_to_one (ocr_scheduler_t* base, ocr_worker_t* w ) {
+    hc_scheduler_t* derived = (hc_scheduler_t*) base;
+    return derived->pools[get_worker_id(w)];
+}
+
+ocr_workpile_t * hc_scheduler_push_mapping_one_to_one (ocr_scheduler_t* base, ocr_worker_t* w ) {
+    hc_scheduler_t* derived = (hc_scheduler_t*) base;
+    return derived->pools[get_worker_id(w)];
+}
+
+workpile_iterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocr_scheduler_t* base, ocr_worker_t* w ) {
+    hc_scheduler_t* derived = (hc_scheduler_t*) base;
+    return workpile_iterator_constructor(get_worker_id(w), derived->n_pools, derived->pools);
+}
+
+ocrGuid_t hc_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
+    ocr_worker_t* w = (ocr_worker_t*) deguidify(wid);
+    ocr_workpile_t * wp_to_pop = base->pop_mapping(base, w);
+    ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
+    if ( NULL_GUID == popped ) {
+        workpile_iterator_t* it = base->steal_mapping(base, w);
+        while ( it->hasNext(it) && (NULL_GUID == popped)) {
+            ocr_workpile_t * next = it->next(it);
+            popped = next->steal(next);
+        }
+        workpile_iterator_destructor(it);
+    }
+    return popped;
+}
+
+void hc_scheduler_give (ocr_scheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
+    ocr_worker_t* w = (ocr_worker_t*) deguidify(wid);
+    ocr_workpile_t * wp_to_push = base->push_mapping(base, w);
+    wp_to_push->push(wp_to_push,tid);
+}
+
+ocr_scheduler_t* hc_scheduler_constructor() {
+    hc_scheduler_t* derived = (hc_scheduler_t*) malloc(sizeof(hc_scheduler_t));
+    ocr_scheduler_t* base = (ocr_scheduler_t*)derived;
+    base -> create = hc_scheduler_create;
+    base -> destruct = hc_scheduler_destruct;
+    base -> pop_mapping = hc_scheduler_pop_mapping_one_to_one;
+    base -> push_mapping = hc_scheduler_push_mapping_one_to_one;
+    base -> steal_mapping = hc_scheduler_steal_mapping_one_to_all_but_self;
+    base -> take = hc_scheduler_take;
+    base -> give = hc_scheduler_give;
+    return base;
+}
+
+
+/******************************************************/
+/* OCR-HC WorkPool                                    */
+/******************************************************/
+
+static void hc_workpile_create ( ocr_workpile_t * base, void * configuration) {
+    hc_workpile* derived = (hc_workpile*) base;
+    derived->deque = (deque_t *) malloc(sizeof(deque_t));
+    deque_init(derived->deque, (void *) NULL_GUID);
+}
+
+static void hc_workpile_destruct ( ocr_workpile_t * base ) {
+    hc_workpile* derived = (hc_workpile*) base;
+    free(derived->deque);
+    free(derived);
+}
+
+static ocrGuid_t hc_workpile_pop ( ocr_workpile_t * base ) {
+    hc_workpile* derived = (hc_workpile*) base;
+    return (ocrGuid_t) deque_pop(derived->deque);
+}
+
+static void hc_workpile_push (ocr_workpile_t * base, ocrGuid_t g ) {
+    hc_workpile* derived = (hc_workpile*) base;
+    deque_push(derived->deque, (void *)g);
+}
+
+static ocrGuid_t hc_workpile_steal ( ocr_workpile_t * base ) {
+    hc_workpile* derived = (hc_workpile*) base;
+    return (ocrGuid_t) deque_steal(derived->deque);
+}
+
+ocr_workpile_t * hc_workpile_constructor(void) {
+    hc_workpile* derived = (hc_workpile*) malloc(sizeof(hc_workpile));
+    ocr_workpile_t * base = (ocr_workpile_t *) derived;
+    base->create = hc_workpile_create;
+    base->destruct = hc_workpile_destruct;
+    base->pop = hc_workpile_pop;
+    base->push = hc_workpile_push;
+    base->steal = hc_workpile_steal;
+    return base;
+}
