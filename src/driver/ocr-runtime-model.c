@@ -154,11 +154,8 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
 
     size_t workpile_head = 0;
     size_t workpile_tail = 0;
-    size_t executor_head = 0;
     size_t executor_tail = 0;
-    size_t worker_head = 0;
     size_t worker_tail = 0;
-    size_t scheduler_head = 0;
     size_t scheduler_tail = 0;
 
     /* For each scheduler type, create the specified number of instances  */
