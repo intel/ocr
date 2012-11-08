@@ -58,7 +58,14 @@ check_error "$?" "Bootstrap failed";
 #
 echo "[${PROJECT_NAME}]] Configure..."
 
-./configure ${INSTALL_ROOT} ${HCR_OPTS}
+COMPTREE=$PWD/compileTree
+if [ ! -d "${COMPTREE}" ]; then
+    mkdir ${COMPTREE}
+fi
+
+cd ${COMPTREE}
+
+../configure ${INSTALL_ROOT} ${HCR_OPTS}
 check_error "$?" "Configure failed";
 
 

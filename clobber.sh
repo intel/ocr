@@ -4,6 +4,8 @@
 # Cleanup the project 
 #
 
+rm -Rf compileTree
+
 rm -Rf config/* autom4te.cache aclocal.m4 configure COPYING INSTALL depcomp config.log config.status libtool
 
 for file in `find src -name Makefile.in`; do
