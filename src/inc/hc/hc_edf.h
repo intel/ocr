@@ -38,6 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UNINITIALIZED_EVENT_WAITLIST_PTR ((ocr::Task*) -1)
 
 #include "ocr-runtime.h"
+#include "ocr-types.h"
+#include "ocr-utils.h"
 
 /******************************************************/
 /* OCR-HC Event Factory                               */
@@ -85,7 +87,7 @@ typedef struct {
 hc_await_list_t* hc_await_list_constructor( size_t al_size );
 void hc_await_list_destructor(hc_await_list_t*);
 
-struct hc_task_base_struct_t; 
+struct hc_task_base_struct_t;
 struct hc_comm_task_struct_t;
 typedef struct hc_comm_task_struct_t* (*task_cast_to_comm_fct) ( struct hc_task_base_struct_t* base );
 
@@ -106,6 +108,7 @@ typedef struct hc_task_struct_t {
     size_t nbdeps;
     ocrEdtDep_t * depv;
     ocrEdt_t p_function;
+    ocrGuidTracker_t dbAcquiredTracker;
 } hc_task_t;
 
 hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, event_list_t* al);
@@ -116,5 +119,7 @@ bool hc_task_iterate_waiting_frontier ( ocr_task_t* base );
 void hc_task_execute ( ocr_task_t* base );
 void hc_task_schedule( ocr_task_t* base, ocrGuid_t wid);
 void hc_task_add_dependency ( ocr_task_t* base, ocr_event_t* dep, size_t index );
+u64 hc_task_add_acquired(ocr_task_t* base, u64 edtId, ocrGuid_t db);
+void hc_task_remove_acquired(ocr_task_t* base, ocrGuid_t db, u64 dbId);
 
 #endif

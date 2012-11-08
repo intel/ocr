@@ -104,6 +104,6 @@ extern ocrLowMemoryKind ocrLowMemoryDefaultKind;
  * @param type              Type of the low-memory allocator to return
  * @return A pointer to the meta-data for the low-memory allocator
  */
-ocrLowMemory_t* newLowMemory(ocrLowMemoryKind type = OCR_LOWMEMORY_DEFAULT);
+ocrLowMemory_t* newLowMemory(ocrLowMemoryKind type);
 
 #endif /* __OCR_LOW_MEMORY_H__ */

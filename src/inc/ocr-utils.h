@@ -32,6 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __OCR_UTILS_H__
 #define __OCR_UTILS_H__
 
+#include "ocr-types.h"
+
 /******************************************************/
 /* LOGGING FACILITY                                   */
 /******************************************************/
@@ -65,11 +67,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define log_worker(level, fmt, ...) ocr_log(WORKER, level, fmt, __VA_ARGS__)
 
-/**
- * @brief Bit operations used to manipulate bit
- * vectors. Currently used in the regular
- * implementation of data-blocks
- */
+/******************************************************/
+/* BITVECTOR OPERATIONS                               */
+/******************************************************/
 
 /**
  * @brief Finds the position of the MSB that
@@ -98,5 +98,55 @@ u32 fls32(u32 val);
  */
 u32 fls64(u64 val);
 
+typedef struct _ocrGuidInt_t {
+    ocrGuid_t guid;
+    u64 id;
+} ocrGuidInt_t;
 
+/**
+ * @brief Convenient structure to keep track
+ * of GUIDs in a way that is indexable.
+ *
+ * This is basically a 64 entry vector (at most)
+ * with an associated bit vector keeping track of
+ * available slots (to reuse them)
+ * @todo Extend to have a different number than 64 entries
+ */
+typedef struct _ocrGuidTracker_t {
+    u64 slotsStatus; /**< Bit vector. A 0 indicates the slot is *used* (1 = available slot) */
+    ocrGuidInt_t slots[64]; /**< Slots */
+} ocrGuidTracker_t;
+
+/**
+ * @brief Initialize an ocrGuidTracker
+ *
+ * @param self              GUID tracker to initialize
+ */
+void ocrGuidTrackerInit(ocrGuidTracker_t *self);
+
+/**
+ * @brief Adds a GUID to an ocrGuidTracker
+ *
+ * @param self              GUID tracker to use
+ * @param toTrack           GUID to add to the tracker
+ * @param associatedId      ID to associate with the GUID
+ * @return ID for the slot used in the tracker. Used for ocrGuidTrackerRemove.
+ *         Returns 64 if no slot is found (failure)
+ *
+ * @warning This method is not thread safe. Use your own locking mechanism around
+ * these calls
+ */
+u32 ocrGuidTrackerTrack(ocrGuidTracker_t *self, ocrGuid_t toTrack, u64 associatedId);
+
+/**
+ * @brief Removes a GUID from an ocrGuidTracker
+ *
+ * @param self              GUID tracker to use
+ * @param toTrack           GUID to remove from the tracker (used to verify that ID is correct)
+ * @param id                ID of the GUID to remove (returned by ocrGuidTrackerTrack)
+ * @return True on success and false on failure
+ *
+ * @warning This method is not thread safe
+ */
+bool ocrGuidTrackerRemove(ocrGuidTracker_t *self, ocrGuid_t toTrack, u32 id);
 #endif /* __OCR_UTILS_H__ */

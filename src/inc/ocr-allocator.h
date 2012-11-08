@@ -63,12 +63,12 @@ typedef struct _ocrAllocator_t {
      * @param config            An optional configuration (not currently used)
      */
     void (*create)(struct _ocrAllocator_t* self, void* startAddress, u64 size,
-                   void* config = NULL);
+                   void* config);
 
     /**
      * @brief Destructor equivalent
      *
-     * Cleans up the allocator. Calls free on self
+     * Cleans up the allocator. Does not call free.
      *
      * @param self              Pointer to this allocator
      */
@@ -108,7 +108,7 @@ typedef struct _ocrAllocator_t {
      *   - if address is NULL, equivalent to malloc
      *   - if size is 0, equivalent to free
      */
-    void* reallocate(struct _ocrAllocator_t *self, void* address, u64 size);
+    void* (*reallocate)(struct _ocrAllocator_t *self, void* address, u64 size);
 
 } ocrAllocator_t;
 
@@ -130,6 +130,6 @@ extern ocrAllocatorKind ocrAllocatorDefaultKind;
  *                          Defaults to the default allocator if not specified
  * @return A pointer to the meta-data for the allocator
  */
-ocrAllocator_t* newAllocator(ocrAllocatorKind type = OCR_ALLOCATOR_DEFAULT);
+ocrAllocator_t* newAllocator(ocrAllocatorKind type);
 
 #endif /* __OCR_ALLOCATOR_H__ */

@@ -47,7 +47,7 @@
  *
  **/
 typedef struct _ocrDataBlock_t {
-    ocrGuidElement_t guidBase;
+    ocrGuid_t guid;
     /**
      * @brief Creates a data-block to represent the memory of size 'size'
      * at address 'address'
@@ -95,13 +95,15 @@ typedef struct _ocrDataBlock_t {
      * @brief Releases a data-block previously acquired
      *
      * @param self          Pointer for this data-block
-     * @param edt           EDT seeking to de-register from the data-block
+     * @param edt           EDT seeking to de-register from the data-block.
+     *                      If NULL_GUID, will not call remove_acquired on the EDT
+     * @param id            Optional ID identifying the EDT if known ((u64)-1 if not known)
      * @return 0 on success and an error code on failure (see ocr-db.h)
      *
      * @note No need to match one-to-one with acquires. One release
      * releases any and all previous acquires
      */
-    u8 (*release)(struct _ocrDataBlock_t *self, ocrGuid_t edt);
+    u8 (*release)(struct _ocrDataBlock_t *self, ocrGuid_t edt, u64 edtId);
 
     /**
      * @brief Requests that the block be freed when possible
@@ -117,7 +119,6 @@ typedef struct _ocrDataBlock_t {
      */
     u8 (*free)(struct _ocrDataBlock_t *self, ocrGuid_t edt);
 } ocrDataBlock_t;
-
 
 /**
  * @brief Enum defining the type of data-blocks supported

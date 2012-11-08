@@ -43,5 +43,5 @@ typedef struct {
     u64 addr, totalSize, poolAddr, poolSize;
 } ocrAllocatorTlsf_t;
 
-ocrAllocator_t* newAllocatorTlsf()
+ocrAllocator_t* newAllocatorTlsf();
 #endif /* __TLSF_ALLOCATOR_H__ */

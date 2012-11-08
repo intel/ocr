@@ -38,5 +38,54 @@
 
 #include "ocr-types.h"
 
-// TODO: Add a simple lock for now
+/**
+ * @brief A model for a very simple lock that
+ * can be used in the runtime
+ *
+ * Locks are not exposed to the user as the EDT
+ * model does not require them
+ */
+typedef struct _ocrLock_t {
+    /**
+     * @brief Constructor equivalent
+     *
+     * Constructs a lock
+     *
+     * @param self          Pointer to this lock
+     * @param config        An optional configuration (not currently used)
+     */
+    void (*create)(struct _ocrLock_t* self, void* config);
+
+    /**
+     * @brief Destructor equivalent
+     *
+     * Cleans up the lock if needed. Does not call free
+     *
+     * @param self          Pointer to this lock
+     */
+    void (*destruct)(struct _ocrLock_t* self);
+
+    void (*lock)(struct _ocrLock_t* self);
+
+    void (*unlock)(struct _ocrLock_t* self);
+} ocrLock_t;
+
+typedef enum _ocrLockKind {
+    OCR_LOCK_DEFAULT = 0,
+    OCR_LOCK_X86 = 1
+} ocrLockKind;
+
+extern ocrLockKind ocrLockDefaultKind;
+
+/**
+ * @brief Allocates a lock
+ *
+ * The user will need to call "create" on the
+ * lock returned to properly initialize it
+ *
+ * @param type              Type of the lock
+ * @return A pointer to the meta-data for the lock
+ */
+ocrLock_t *newLock(ocrLockKind type);
+
 #endif /* __OCR_SYNC_H__ */

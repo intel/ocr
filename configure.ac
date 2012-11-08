@@ -34,14 +34,14 @@ PKG_CHECK_MODULES(XML, libxml-2.0 >= 2.4)
 # BEGIN MPI support
 
 # Specify which MPI installation should be used
-AC_ARG_WITH([mpi], [AS_HELP_STRING([--with-mpi=PATH], [ Specify the MPI installation to use. ])], 
+AC_ARG_WITH([mpi], [AS_HELP_STRING([--with-mpi=PATH], [ Specify the MPI installation to use. ])],
 [with_mpi=yes;
 MPI_HOME=$withval;
 MPI_LIB=mpi;
 ], [with_mpi=no])
 
 # Allows to specify the name of the mpi library to link with
-AC_ARG_WITH([mpi-lib], [AS_HELP_STRING([--with-mpi-lib=libname], [ Specify the MPI library to use. ])], 
+AC_ARG_WITH([mpi-lib], [AS_HELP_STRING([--with-mpi-lib=libname], [ Specify the MPI library to use. ])],
 [MPI_LIB=$withval;
 ], [])
 
@@ -59,8 +59,8 @@ AC_SUBST([MPI_LDFLAGS])
 
 # If any of the supported communication layer is set, turn communication support on
 AS_IF([test "x$with_mpi" != xno],
-      [ AC_DEFINE([HAVE_COMM], [1], [Have communication support]) ], 
-      [ AC_MSG_NOTICE([No communication support built for OCR]) ]) 
+      [ AC_DEFINE([HAVE_COMM], [1], [Have communication support]) ],
+      [ AC_MSG_NOTICE([No communication support built for OCR]) ])
 
 #
 # Config file to process
@@ -70,22 +70,24 @@ Makefile
 src/allocator/Makefile
 src/allocator/tlsf/Makefile
 src/driver/Makefile
+src/driver/ocr-driver-hc/Makefile
 src/executor/Makefile
+src/executor/ocr-executor-pthread/Makefile
 src/guid/Makefile
 src/low-memory/Makefile
+src/low-memory/malloc/Makefile
 src/low-workers/Makefile
+src/low-workers/ocr-low-workers-hc/Makefile
 src/machine/Makefile
 src/policy/Makefile
 src/scheduler/Makefile
+src/scheduler/ocr-scheduler-hc/Makefile
 src/sync/Makefile
+src/sync/x86/Makefile
 src/utils/Makefile
 src/Makefile
-src/executor/ocr-executor-pthread/Makefile
-src/driver/ocr-driver-hc/Makefile
-src/low-workers/ocr-low-workers-hc/Makefile
-src/scheduler/ocr-scheduler-hc/Makefile
 ])
 
-# Generates and runs config.status, which in turn creates the makefiles 
+# Generates and runs config.status, which in turn creates the makefiles
 # and any other files resulting from configuration
 AC_OUTPUT

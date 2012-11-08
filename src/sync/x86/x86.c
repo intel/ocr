@@ -1,5 +1,5 @@
 /**
- * @brief Simple data-block implementation.
+ * @brief Simple basic x86 implementation of synchronization primitives
  * @authors Romain Cledat, Intel Corporation
  * @date 2012-09-21
  * Copyright (c) 2012, Intel Corporation
@@ -31,37 +31,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#ifndef __DATABLOCK_REGULAR_H__
-#define __DATABLOCK_REGULAR_H__
 
 #include "ocr-types.h"
-#include "ocr-datablock.h"
-#include "ocr-allocator.h"
-#include "ocr-sync.h"
-#include "ocr-utils.h"
+#include "x86.h"
 
-typedef union {
-    struct {
-        volatile u64 flags : 16;
-        volatile numUsers : 15;
-        volatile freeRequested: 1;
-        volatile _padding : 16;
-    };
-    u64 data;
-} ocrDataBlockRegularAttr_t;
+void createX86(ocrLock_t* self, void* config) {
+    ocrLockX86_t *rself = (ocrLockX86_t*)self;
+    rself->val = 0;
+}
 
-typedef struct _ocrDataBlockRegular_t {
-    ocrDataBlock_t base;
+void destructX86(ocrLock_t* self) {
+    return;
+}
 
-    /* Data for the data-block */
-    void* ptr; /**< Current address for this data-block */
-    ocrAllocator_t* allocator; /**< Current allocator that this data-block belongs to. */
-    u32 size; /**< Current size for this data-block */
-    ocrLock_t* lock; /**< Lock for this data-block */
-    ocrDataBlockRegularAttr_t attributes; /**< Attributes for this data-block */
+void lockX86(ocrLock_t* self) {
+    ocrLockX86_t *rself = (ocrLockX86_t*)self;
+    while(!__sync_bool_compare_and_swap(&(rself->val), 0, 1)) ;
+}
 
-    ocrGuidTracker_t usersTracker;
-} ocrDataBlockRegular_t;
+void unlockX86(ocrLock_t* self) {
+    ocrLockX86_t *rself = (ocrLockX86_t*)self;
+    asm volatile ("mfence");
+    ASSERT(rself->val == 1);
+    rself->val = 0;
+}
 
-ocrDataBlock_t* newDataBlockRegular();
-#endif /* __DATABLOCK_REGULAR_H__ */
+ocrLock_t* newLockX86() {
+    ocrLockX86_t *result = (ocrLockX86_t*)malloc(sizeof(ocrLockX86_t));
+
+    result->base.create = &createX86;
+    result->base.destruct = &destructX86;
+    result->base.lock = &lockX86;
+    result->base.unlock = &unlockX86;
+
+    return (ocrLock_t*)result;
+}

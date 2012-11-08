@@ -2,8 +2,8 @@ SUBDIRS =
 
 AM_CFLAGS = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -Werror -Wall -g
 
-noinst_LTLIBRARIES = libocr_allocator_tlsf.la
+noinst_LTLIBRARIES = libocr_sync_x86.la
 
-libocr_allocator_tlsf_la_SOURCES = tlsf-allocator.c
+libocr_sync_x86_la_SOURCES = x86.c
 
 MAINTAINERCLEANFILES = Makefile.in

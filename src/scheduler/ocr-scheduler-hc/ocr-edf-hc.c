@@ -185,7 +185,7 @@ hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, event_list_t* el
     derived->nbdeps = 0;
     derived->depv = NULL;
     derived->p_function = funcPtr;
-    
+
     hc_task_base_t* hc_base = (hc_task_base_t*) &(derived->hc_base);
     hc_base->cast_to_comm = hc_task_cast_to_comm;
 
@@ -195,6 +195,8 @@ hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, event_list_t* el
     base->execute = hc_task_execute;
     base->schedule = hc_task_schedule;
     base->add_dependency = hc_task_add_dependency;
+    base->add_acquired = hc_task_add_acquired;
+    base->remove_acquired = hc_task_remove_acquired;
     return derived;
 }
 
@@ -204,7 +206,7 @@ hc_task_t* hc_task_construct (ocrEdt_t funcPtr, size_t dep_list_size) {
     derived->nbdeps = 0;
     derived->depv = NULL;
     derived->p_function = funcPtr;
-    
+
     hc_task_base_t* hc_base = (hc_task_base_t*) &(derived->hc_base);
     hc_base->cast_to_comm = hc_task_cast_to_comm;
 
@@ -214,6 +216,8 @@ hc_task_t* hc_task_construct (ocrEdt_t funcPtr, size_t dep_list_size) {
     base->execute = hc_task_execute;
     base->schedule = hc_task_schedule;
     base->add_dependency = hc_task_add_dependency;
+    base->add_acquired = hc_task_add_acquired;
+    base->remove_acquired = hc_task_remove_acquired;
     return derived;
 }
 
@@ -229,7 +233,7 @@ hc_comm_task_t* hc_comm_task_construct ( ) {
 
     hc_task_base_t* hc_base = (hc_task_base_t*) &(derived->hc_base);
     hc_base->cast_to_comm = hc_comm_task_cast_to_comm;
-    
+
     ocr_task_t* base = (ocr_task_t*) &(derived->hc_base);
     base->destruct = NULL;
     base->iterate_waiting_frontier = NULL;
@@ -269,6 +273,8 @@ void hc_task_schedule( ocr_task_t* base, ocrGuid_t wid ) {
 void hc_task_execute ( ocr_task_t* base ) {
     hc_task_t* derived = (hc_task_t*)base;
     ocr_event_t* curr = derived->awaitList->array[0];
+    ocrDataBlock_t *db = NULL;
+    ocrGuid_t dbGuid = NULL_GUID;
     size_t i = 0;
     //TODO this is computed for now but when we'll support slots
     //we will have to have the size when constructing the edt
@@ -276,14 +282,33 @@ void hc_task_execute ( ocr_task_t* base ) {
     while ( NULL != ptr ) {
         ptr = derived->awaitList->array[++i];
     };
+    // Initialize what we need to track the GUIDs of the DBs
+    // TODO: For now, we only allow 64 DBs to be acquired in an EDT
+    ocrGuidTrackerInit(&(derived->dbAcquiredTracker));
     derived->nbdeps = i; i = 0;
+    ASSERT(i <= 64);
     derived->depv = (ocrEdtDep_t *) malloc(sizeof(ocrEdtDep_t) * derived->nbdeps);
     while ( NULL != curr ) {
-        derived->depv[i].guid = curr->get(curr);
-        derived->depv[i].ptr = deguidify(curr->get(curr));
+        dbGuid = curr->get(curr);
+        derived->depv[i].guid = dbGuid;
+        if(dbGuid != NULL_GUID) {
+            db = (ocrDataBlock_t*)deguidify(dbGuid);
+            derived->depv[i].ptr = db->acquire(db, guidify(derived));
+        } else
+            derived->depv[i].ptr = NULL;
+
         curr = derived->awaitList->array[++i];
     };
     derived->p_function(0, NULL, derived->nbdeps, derived->depv);
+    // Now we clean up and release the GUIDs that we have to release
+    u64 rSlotsStatus = ~(derived->dbAcquiredTracker.slotsStatus);
+    while(rSlotsStatus) {
+        u32 slot = fls64(rSlotsStatus);
+        rSlotsStatus &= ~(1ULL << slot);
+        db = (ocrDataBlock_t*)deguidify(derived->dbAcquiredTracker.slots[63 - slot].guid);
+        db->release(db, NULL_GUID, derived->dbAcquiredTracker.slots[63 - slot].id);
+    }
+    derived->dbAcquiredTracker.slots = 0xFFFFFFFFFFFFFFFFULL;
 }
 
 void hc_task_add_dependency ( ocr_task_t* base, ocr_event_t* dep, size_t index ) {
@@ -291,3 +316,12 @@ void hc_task_add_dependency ( ocr_task_t* base, ocr_event_t* dep, size_t index )
     derived->awaitList->array[index] = dep;
 }
 
+u64 hc_task_add_acquired(ocr_task_t* base, u64 edtId, ocrGuid_t db) {
+    hc_task_t *derived = (hc_task_t*)base;
+    return (u64)ocrGuidTrackerTrack(&(derived->dbAcquiredTracker), db, edtId);
+}
+
+void hc_task_remove_acquired(ocr_task_t* base, ocrGuid_t db, u64 dbId) {
+    hc_task_t *derived = (hc_task_t*)base;
+    RESULT_TRUE(ocrGuidTrackerRemove(&(derived->dbAcquiredTracker), db, dbId));
+}

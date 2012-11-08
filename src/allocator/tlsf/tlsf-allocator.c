@@ -31,10 +31,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include "allocator/tlsf/tlsf-allocator.h"
+#include "tlsf-allocator.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 #include "debug.h"
+
+#include <string.h>
+#include <stdlib.h>
 
 /**
  * @todo A lot of the weird notations here are remnants of an older
@@ -126,12 +129,12 @@ typedef u32 tlsf_size_t;
 // ST_SIZE/LD_SIZE will be used to st/ld values of type tlsf_size_t
 #if SIZE_TLSF_SIZE == 16
 #define FLS fls16
-#define ST_SIZE(addr, value) ((u16)(*(addr)) = (u16)(value))
-#define LD_SIZE(var, addr)   ((u32)(var) = (u32)(*(addr)))
+#define ST_SIZE(addr, value) (*((u16*)(addr)) = (u16)(value))
+#define LD_SIZE(var, addr)   ((var) = *((u16*)(addr)))
 #elif SIZE_TLSF_SIZE == 32
 #define FLS fls32
-#define ST_SIZE(addr, value) ((u32)(*(addr)) = (u32)(value))
-#define LD_SIZE(var, addr)   ((u32)(var) = (u32)(*(addr)))
+#define ST_SIZE(addr, value) (*((u32*)(addr)) = (u32)(value))
+#define LD_SIZE(var, addr)   ((var) = *((u32*)(addr)))
 #else
 #error "Unknown size for tlsf_size_t"
 #endif
@@ -141,6 +144,34 @@ typedef u32 tlsf_size_t;
 // Usually no need of any fences on x86 for this
 #define FENCE_LOAD
 #define FENCE_STORE
+
+/**
+ * @brief Function to compute the address of a field
+ *
+ * Usage: ADDR_OF(type, ptr, field) <=> &(ptr->field)
+ * where 'type' is the type of 'ptr'
+ */
+#define ADDR_OF(type, ptr, field) (ptr + offsetof(type, field))
+
+/**
+ * @brief Function to compute the address of an element of a field that
+ * is an array
+ *
+ * Usage: ADDR_OF_1(type, ptr, fieldtype, field, idx) <=> &(ptr->field[idx])
+ * where 'type' is the type of 'ptr' and 'field' is of type 'fieldtype[]'
+ */
+#define ADDR_OF_1(type, ptr, fieldtype, field, idx) (ADDR_OF(type, ptr, field) + sizeof(fieldtype)*idx)
+
+/**
+ * @brief Function to compute the address of an element of a field
+ * that is a 2D array
+ *
+ * Usage: ADDR_OF_2(type, ptr, fieldtype, field, idx, dim2, idx2) <=> &(ptr->field[idx][idx2])
+ * where 'type' is the type of 'ptr' and 'field' is of type 'fieldtype[][dim2]'
+ */
+#define ADDR_OF_2(type, ptr, fieldtype, field, idx, dim2, idx2)         \
+    (ADDR_OF(type, ptr, field) + sizeof(fieldtype)*(idx*dim2 + idx2))
+
 
 
 // A whole bunch of internal methods used only in this file.
@@ -270,7 +301,7 @@ static const tlsf_size_t GminBlockRealSize   = (sizeof(header_t) + sizeof(tlsf_s
     >> ELEMENT_SIZE_LOG2;
 static const tlsf_size_t GmaxBlockRealSize   = (tlsf_size_t)((1<<FL_MAX_LOG2) - 1);
 
-static int ffs(tlsf_size_t val) {
+static int myffs(tlsf_size_t val) {
     return FLS(val & (~val + 1));
 }
 
@@ -513,7 +544,7 @@ static header_addr_t findFreeBlockForRealSize(u64 pg_start, tlsf_size_t realSize
         }
 
         // Look for the first bit that is a one
-        tf = ffs(flBitMap);
+        tf = myffs(flBitMap);
         ASSERT(tf > *flIndex);
         *flIndex = tf;
 
@@ -524,7 +555,7 @@ static header_addr_t findFreeBlockForRealSize(u64 pg_start, tlsf_size_t realSize
 
     ASSERT(slBitMap != 0);
 
-    ts = ffs(slBitMap);
+    ts = myffs(slBitMap);
     *slIndex = ts;
 
     LD_SIZE(res.value, ADDR_OF_2(pool_t, pg_start, tlsf_size_t, blocks, tf, SL_COUNT, ts));
@@ -742,9 +773,10 @@ static void initializePool(u64 pg_start, tlsf_size_t poolRealSize) {
     // Initialize the bitmaps to 0
 
     ST_SIZE(ADDR_OF(pool_t, pg_start, flAvailOrNot), 0);
-    for(int i=0; i<FL_COUNT; ++i) {
+    int i, j;
+    for(i=0; i<FL_COUNT; ++i) {
         ST_SIZE(ADDR_OF_1(pool_t, pg_start, tlsf_size_t, slAvailOrNot, i), 0);
-        for(int j=0; j<SL_COUNT; ++j) {
+        for(j=0; j<SL_COUNT; ++j) {
             ST_SIZE(ADDR_OF_2(pool_t, pg_start, tlsf_size_t, blocks, i, SL_COUNT, j), nullBlockAddr.value);
         }
     }
@@ -777,9 +809,9 @@ static void initializePool(u64 pg_start, tlsf_size_t poolRealSize) {
 
     // Initialize the nullBlock properly
     ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pg_start, nullBlock), sizeBlock), 0);
-    ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pg_start, nullBlock), prevFreeBlock), nullBlockAddr.value)
-        ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pg_start, nullBlock), nextFreeBlock), nullBlockAddr.value)
-        FENCE_STORE;
+    ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pg_start, nullBlock), prevFreeBlock), nullBlockAddr.value);
+    ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pg_start, nullBlock), nextFreeBlock), nullBlockAddr.value);
+    FENCE_STORE;
 
     // Add the big free block
     addFreeBlock(pg_start, mainBlockAddr);
@@ -909,7 +941,7 @@ u64 tlsf_realloc(u64 pg_start, u64 ptr, u64 size) {
         result = tlsf_malloc(pg_start, size);
         if(result) {
             u64 sizeToCopy = tempSz<realReqSize?tempSz:realReqSize;
-            MALLOC_COPY(result, ptr, sizeToCopy << ELEMENT_SIZE_LOG2);
+            MALLOC_COPY((void*)result, (void*)ptr, sizeToCopy << ELEMENT_SIZE_LOG2);
 
             tlsf_free(pg_start, ptr); // Free the original block
         }
@@ -936,11 +968,11 @@ u64 tlsf_realloc(u64 pg_start, u64 ptr, u64 size) {
 }
 
 // Helper methods
-void tlsfCreate(ocrAllocator_t *self, void* startAdress, u64 size, void* config) {
+void tlsfCreate(ocrAllocator_t *self, void* startAddress, u64 size, void* config) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     rself->addr = rself->poolAddr = (u64)startAddress;
     rself->totalSize = rself->poolSize = size;
-    RESULT_ASSERT(tlsf_init(rself->addr, rself->size), ==, 0);
+    RESULT_ASSERT(tlsf_init(rself->addr, rself->totalSize), ==, 0);
 }
 
 void tlsfDestruct(ocrAllocator_t *self) {

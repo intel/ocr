@@ -79,6 +79,6 @@ typedef struct {
 typedef enum {
     NO_ALLOC = 0
     /* Add others */
-} ocrAllocator_t;
+} ocrInDbAllocator_t;
 
 #endif /* __OCR_TYPES_H__ */

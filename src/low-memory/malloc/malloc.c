@@ -28,7 +28,7 @@
  **/
 
 #include <stdlib.h>
-#include "low-memory/malloc/malloc.h"
+#include "malloc.h"
 
 /* Methods used for this allocation method */
 void mallocCreate(ocrLowMemory_t *self, void* config) {

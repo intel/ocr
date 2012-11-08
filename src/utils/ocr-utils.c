@@ -69,3 +69,26 @@ u32 fls64(u64 val) {
 
     return bit;
 }
+
+void ocrGuidTrackerInit(ocrGuidTracker_t *self) {
+    self->slotsStatus = 0xFFFFFFFFFFFFFFFFULL;
+}
+
+u32 ocrGuidTrackerTrack(ocrGuidTracker_t *self, ocrGuid_t toTrack, u64 associatedId) {
+    u32 slot = 64;
+    if(self->slotsStatus == 0) return slot;
+    slot = fls64(self->slotsStatus);
+    self->slotsStatus &= ~(1ULL<<slot);
+    ASSERT(slot <= 63);
+    self->slots[63 - slot].guid = toTrack;
+    self->slots[63 - slot].id = associatedId;
+    return 63 - slot;
+}
+
+bool ocrGuidTrackerRemove(ocrGuidTracker_t *self, ocrGuid_t toTrack, u32 id) {
+    if(id > 63) return false;
+    if(self-slots[id].guid != toTrack) return false;
+
+    self->slotsStatus |= (1ULL<<(63 - slot));
+    return true;
+}
