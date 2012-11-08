@@ -1,1 +1,1 @@
-This is where the HabC implementation of the scheduler goes. It must declare and define a SchedulerInternal class
+This is where the Habanero-C implementation of the scheduler goes.

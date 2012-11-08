@@ -76,9 +76,16 @@ typedef struct ocr_policy_domain_struct {
 
 } ocr_policy_domain_t;
 
-typedef enum ocr_workpile_kind_enum {
-    OCR_DEQUE = 1
-} ocr_workpile_kind;
+
+/******************************************************/
+/* OCR POLICY DOMAIN FACTORY                          */
+/******************************************************/
+
+ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
+        size_t nb_workpiles,
+        size_t nb_workers,
+        size_t nb_executors,
+        size_t nb_scheduler);
 
 /**
  * Default values are set in ocrInit

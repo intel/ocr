@@ -31,8 +31,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 
+#include "ocr-executor.h"
+#include "ocr-low-workers.h"
+#include "ocr-scheduler.h"
+#include "ocr-policy.h"
 #include "ocr-runtime-model.h"
-#include "ocr-factory.h"
 
 ocr_executor_kind ocr_executor_default_kind;
 ocr_worker_kind ocr_worker_default_kind;

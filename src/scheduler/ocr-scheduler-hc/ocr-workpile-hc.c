@@ -29,26 +29,47 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef OCR_FACTORY_H_
-#define OCR_FACTORY_H_
+#include "hc.h"
 
-#include "ocr-low-workers.h"
-#include "ocr-scheduler.h"
-#include "ocr-policy.h"
-#include "ocr-task-event.h"
 
-ocr_workpile_t * newWorkpile(ocr_workpile_kind workpileType);
-ocr_executor_t * newExecutor(ocr_executor_kind executorType);
-ocr_worker_t * newWorker(ocr_worker_kind workerType);
-ocr_scheduler_t * newScheduler(ocr_scheduler_kind schedulerType);
-ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
-        int nb_workpiles,
-        int nb_workers,
-        int nb_executors,
-        int nb_scheduler);
+/******************************************************/
+/* OCR-HC WorkPool                                    */
+/******************************************************/
 
-//TODO old style factories
-extern ocr_task_factory* taskFactory;
-extern ocr_event_factory* eventFactory;
+static void hc_workpile_create ( ocr_workpile_t * base, void * configuration) {
+    hc_workpile* derived = (hc_workpile*) base;
+    derived->deque = (deque_t *) malloc(sizeof(deque_t));
+    deque_init(derived->deque, (void *) NULL_GUID);
+}
 
-#endif /* OCR_FACTORY_H_ */
+static void hc_workpile_destruct ( ocr_workpile_t * base ) {
+    hc_workpile* derived = (hc_workpile*) base;
+    free(derived->deque);
+    free(derived);
+}
+
+static ocrGuid_t hc_workpile_pop ( ocr_workpile_t * base ) {
+    hc_workpile* derived = (hc_workpile*) base;
+    return (ocrGuid_t) deque_pop(derived->deque);
+}
+
+static void hc_workpile_push (ocr_workpile_t * base, ocrGuid_t g ) {
+    hc_workpile* derived = (hc_workpile*) base;
+    deque_push(derived->deque, (void *)g);
+}
+
+static ocrGuid_t hc_workpile_steal ( ocr_workpile_t * base ) {
+    hc_workpile* derived = (hc_workpile*) base;
+    return (ocrGuid_t) deque_steal(derived->deque);
+}
+
+ocr_workpile_t * hc_workpile_constructor(void) {
+    hc_workpile* derived = (hc_workpile*) malloc(sizeof(hc_workpile));
+    ocr_workpile_t * base = (ocr_workpile_t *) derived;
+    base->create = hc_workpile_create;
+    base->destruct = hc_workpile_destruct;
+    base->pop = hc_workpile_pop;
+    base->push = hc_workpile_push;
+    base->steal = hc_workpile_steal;
+    return base;
+}

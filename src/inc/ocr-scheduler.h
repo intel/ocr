@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-guid.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
+#include "ocr-workpile.h"
 
 /****************************************************/
 /* OCR SCHEDULER KINDS                              */
@@ -43,64 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef enum ocr_scheduler_kind_enum {
     OCR_SCHEDULER_WST = 1
 } ocr_scheduler_kind;
-
-/****************************************************/
-/* OCR WORKPILE API                                 */
-/****************************************************/
-
-//Forward declaration
-struct ocr_workpile_struct;
-
-typedef void (*workpile_create_fct) ( struct ocr_workpile_struct* workpile, void * configuration );
-typedef void (*workpile_destruct_fct)(struct ocr_workpile_struct* base);
-typedef ocrGuid_t (*workpile_pop_fct) ( struct ocr_workpile_struct* base );
-typedef void (*workpile_push_fct) ( struct ocr_workpile_struct* base, ocrGuid_t g );
-typedef ocrGuid_t (*workpile_steal_fct) ( struct ocr_workpile_struct* base );
-
-/*! \brief Abstract class to represent OCR task pool data structures.
- *
- *  This class provides the interface for the underlying implementation to conform.
- *  As we want to support work stealing, we current have pop, push and steal interfaces
- */
-//TODO We may be influenced by how STL resolves this issue as in push_back, push_front, pop_back, pop_front
-typedef struct ocr_workpile_struct {
-    /*! \brief Creates an concrete implementation of a WorkPool
-     *  \return Pointer to the concrete WorkPool that is created by this call
-     */
-    workpile_create_fct create;
-    /*! \brief Virtual destructor for the WorkPool interface
-     *  As this class does not have any state, the virtual destructor does not do anything
-     */
-    workpile_destruct_fct destruct;
-    /*! \brief Interface to extract a task from this pool
-     *  \return GUID of the task that is extracted from this task pool
-     */
-    workpile_pop_fct pop;
-    /*! \brief Interface to enlist a task 
-     *  \param[in]  task_guid   GUID of the task that is to be pushed into this task pool.
-     */
-    workpile_push_fct push;
-    /*! \brief Interface to alternative extract a task from this pool
-     *  \return GUID of the task that is extracted from this task pool
-     */
-    workpile_steal_fct steal;
-} ocr_workpile_t;
-
-/* Forward declaration */
-struct workpile_iterator_struct;
-
-typedef bool (*workpile_iterator_hasNext_fct) (struct workpile_iterator_struct*);
-typedef ocr_workpile_t * (*workpile_iterator_next_fct) (struct workpile_iterator_struct*);
-
-typedef struct workpile_iterator_struct {
-    workpile_iterator_hasNext_fct hasNext;
-    workpile_iterator_next_fct next;
-    ocr_workpile_t ** array;
-    int id;
-    int curr;
-    int mod;
-} workpile_iterator_t;
-
 
 /****************************************************/
 /* OCR SCHEDULER API                                */

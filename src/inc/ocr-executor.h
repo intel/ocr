@@ -87,4 +87,11 @@ void associate_executor_and_worker(ocr_worker_t * worker);
 
 ocrGuid_t ocr_get_current_worker_guid();
 
+
+/******************************************************/
+/* OCR EXECUTOR FACTORY                               */
+/******************************************************/
+
+ocr_executor_t * newExecutor(ocr_executor_kind executorType);
+
 #endif /* __OCR_EXECUTOR_H__ */
