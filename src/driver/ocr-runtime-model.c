@@ -211,9 +211,6 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
             }
             scheduler_tail++;
             workpile_head = workpile_tail;
-            worker_head = worker_tail;
-            executor_head = executor_tail;
-            scheduler_head = scheduler_tail;
         }
     }
     policyDomain->create(policyDomain, NULL, schedulers,
