@@ -27,7 +27,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-*/
+ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -35,17 +35,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-types.h"
 #include "ocr-executor.h"
 
-extern ocr_executor_t * ocr_executor_pthread_constructor();
-
 ocr_executor_t * newExecutor(ocr_executor_kind executorType) {
     switch(executorType) {
     //TODO this could be transformed as iterating over some
     //array and return an instance to minimize code to be added
     case OCR_EXECUTOR_PTHREAD:
         return ocr_executor_pthread_constructor();
+    case OCR_EXECUTOR_HC:
+        return ocr_executor_hc_constructor();
+    default:
+        assert(false && "Unrecognized executor kind");
+        break;
     }
-    assert(false && "Unrecognized executor kind");
     return NULL;
 }
-
-

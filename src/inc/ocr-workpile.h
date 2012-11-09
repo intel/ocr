@@ -32,14 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __OCR_WORKPILE_H_
 #define __OCR_WORKPILE_H_
 
-
-/******************************************************/
-/* OCR-HC Workpile kinds                              */
-/******************************************************/
-
-typedef enum ocr_workpile_kind_enum {
-    OCR_DEQUE = 1
-} ocr_workpile_kind;
+#include "ocr-runtime-def.h"
 
 
 /****************************************************/
@@ -62,6 +55,8 @@ typedef ocrGuid_t (*workpile_steal_fct) ( struct ocr_workpile_struct* base );
  */
 //TODO We may be influenced by how STL resolves this issue as in push_back, push_front, pop_back, pop_front
 typedef struct ocr_workpile_struct {
+    ocr_module_t module;
+
     /*! \brief Creates an concrete implementation of a WorkPool
      *  \return Pointer to the concrete WorkPool that is created by this call
      */
@@ -85,11 +80,17 @@ typedef struct ocr_workpile_struct {
 } ocr_workpile_t;
 
 
-/******************************************************/
-/* OCR WORKPILE FACTORY                               */
-/******************************************************/
+/****************************************************/
+/* OCR WORKPILE KINDS AND CONSTRUCTORS              */
+/****************************************************/
+
+typedef enum ocr_workpile_kind_enum {
+    OCR_DEQUE = 1
+} ocr_workpile_kind;
 
 ocr_workpile_t * newWorkpile(ocr_workpile_kind workpileType);
+
+ocr_workpile_t * hc_workpile_constructor(void);
 
 
 /****************************************************/
@@ -115,6 +116,7 @@ bool workpile_iterator_hasNext (workpile_iterator_t * base);
 ocr_workpile_t * workpile_iterator_next (workpile_iterator_t * base);
 workpile_iterator_t* workpile_iterator_constructor ( int i, size_t n_pools, ocr_workpile_t ** pools );
 void workpile_iterator_destructor (workpile_iterator_t* base);
+
 
 
 #endif /* __OCR_WORKPILE_H_ */

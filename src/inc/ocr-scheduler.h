@@ -36,14 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-types.h"
 #include "ocr-utils.h"
 #include "ocr-workpile.h"
+#include "ocr-runtime-def.h"
 
-/****************************************************/
-/* OCR SCHEDULER KINDS                              */
-/****************************************************/
-
-typedef enum ocr_scheduler_kind_enum {
-    OCR_SCHEDULER_WST = 1
-} ocr_scheduler_kind;
 
 /****************************************************/
 /* OCR SCHEDULER API                                */
@@ -53,7 +47,7 @@ typedef enum ocr_scheduler_kind_enum {
 struct ocr_worker_struct;
 struct ocr_scheduler_struct;
 
-typedef void (*scheduler_create_fct) (struct ocr_scheduler_struct*, void * configuration, size_t n_pools, ocr_workpile_t ** pools);
+typedef void (*scheduler_create_fct) (struct ocr_scheduler_struct*, void * configuration);
 typedef void (*scheduler_destruct_fct) (struct ocr_scheduler_struct*);
 
 typedef ocr_workpile_t * (*scheduler_pop_mapping_fct) (struct ocr_scheduler_struct*, struct ocr_worker_struct*);
@@ -77,6 +71,7 @@ typedef void (*scheduler_give_fct) (struct ocr_scheduler_struct * , ocrGuid_t wi
  *  Currently, we allow scheduler interface to have work taken from them or given to them
  */
 typedef struct ocr_scheduler_struct {
+    ocr_module_t module;
     scheduler_create_fct create;
     scheduler_destruct_fct destruct;
     scheduler_pop_mapping_fct pop_mapping;
@@ -84,8 +79,20 @@ typedef struct ocr_scheduler_struct {
     scheduler_steal_mapping_fct steal_mapping;
     scheduler_take_fct take;
     scheduler_give_fct give;
+    ocr_module_map_fct map;
 } ocr_scheduler_t;
 
+
+/****************************************************/
+/* OCR SCHEDULER KINDS AND CONSTRUCTORS             */
+/****************************************************/
+
+typedef enum ocr_scheduler_kind_enum {
+    OCR_SCHEDULER_WST = 1
+} ocr_scheduler_kind;
+
 ocr_scheduler_t * newScheduler(ocr_scheduler_kind schedulerType);
+
+ocr_scheduler_t * hc_scheduler_constructor(void);
 
 #endif /* __OCR_SCHEDULER_H__ */

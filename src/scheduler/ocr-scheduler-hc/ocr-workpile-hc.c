@@ -66,6 +66,8 @@ static ocrGuid_t hc_workpile_steal ( ocr_workpile_t * base ) {
 ocr_workpile_t * hc_workpile_constructor(void) {
     hc_workpile* derived = (hc_workpile*) malloc(sizeof(hc_workpile));
     ocr_workpile_t * base = (ocr_workpile_t *) derived;
+    ocr_module_t * module_base = (ocr_module_t *) base;
+    module_base->map_fct = NULL;
     base->create = hc_workpile_create;
     base->destruct = hc_workpile_destruct;
     base->pop = hc_workpile_pop;

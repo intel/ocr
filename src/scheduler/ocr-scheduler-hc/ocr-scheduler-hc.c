@@ -38,14 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* OCR-HC SCHEDULER                                   */
 /******************************************************/
 
-void hc_scheduler_create(ocr_scheduler_t * scheduler, void * configuration, size_t n_pools, ocr_workpile_t ** pools) {
-    hc_scheduler_t* derived = (hc_scheduler_t*) scheduler;
-    derived->n_pools = n_pools;
-    derived->pools = pools;
+void hc_scheduler_create(ocr_scheduler_t * scheduler, void * configuration) {
 }
 
 void hc_scheduler_destruct(ocr_scheduler_t * scheduler) {
-    // just free, workpiles are not allocated here
+    // just free self, workpiles are not allocated by the scheduler
     free(scheduler);
 }
 
@@ -85,9 +82,23 @@ void hc_scheduler_give (ocr_scheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
     wp_to_push->push(wp_to_push,tid);
 }
 
+/**!
+ * Mapping function many-to-one to map a set of workpiles to a scheduler instance
+ */
+void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocr_module_kind kind,
+        size_t nb_instances, void ** ptr_instances) {
+    // Checking mapping conforms to what we're expecting in this implementation
+    assert(kind == OCR_WORKPILE);
+    hc_scheduler_t * scheduler = (hc_scheduler_t *) self_module;
+    scheduler->n_pools = nb_instances;
+    scheduler->pools = (ocr_workpile_t **)ptr_instances;
+}
+
 ocr_scheduler_t* hc_scheduler_constructor() {
     hc_scheduler_t* derived = (hc_scheduler_t*) malloc(sizeof(hc_scheduler_t));
     ocr_scheduler_t* base = (ocr_scheduler_t*)derived;
+    ocr_module_t * module_base = (ocr_module_t *) base;
+    module_base->map_fct = hc_ocr_module_map_workpiles_to_schedulers;
     base -> create = hc_scheduler_create;
     base -> destruct = hc_scheduler_destruct;
     base -> pop_mapping = hc_scheduler_pop_mapping_one_to_one;

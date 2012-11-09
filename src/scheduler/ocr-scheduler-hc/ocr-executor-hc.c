@@ -29,52 +29,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdlib.h>
 #include <assert.h>
 
-#include "ocr-runtime.h"
+#include "ocr-executor.h"
 
-ocr_policy_domain_t * root_policy;
-
-void ocrInit() {
-    //TODO this is to be obtained from some configuration file or command line
-    ocr_worker_default_kind = OCR_WORKER_HC;
-    ocr_executor_default_kind = OCR_EXECUTOR_HC;
-    ocr_workpile_default_kind = OCR_DEQUE;
-    ocr_scheduler_default_kind = OCR_SCHEDULER_WST;
-    ocr_policy_default_kind = OCR_POLICY_HC;
-
-    //TODO this is to be obtained from some configuration file or command line
-    size_t nb_workers = 8;
-    size_t nb_workpiles = 8;
-    size_t nb_executors = 8;
-    size_t nb_schedulers = 1;
-
-    ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_schedulers, nb_workers,
-            nb_executors, nb_workpiles);
-
-    //TODO LIMITATION for now support only on policy
-    root_policy = instantiateModel(policy_model);
-
-    root_policy->start(root_policy);
+void hc_ocr_module_map_worker_to_executors(void * self_module, ocr_module_kind kind,
+        size_t nb_instances, void ** ptr_instances) {
+    // Checking mapping conforms to what we're expecting in this implementation
+    assert(kind == OCR_WORKER);
+    assert(nb_instances == 1);
+    ocr_worker_t * worker = (ocr_worker_t *) ptr_instances;
+    ocr_executor_t * executor = (ocr_executor_t *) self_module;
+    //TODO the routine thing is a hack. Threads should pick workers from a worker pool
+    executor->routine = worker->routine;
+    executor->routine_arg = worker;
 }
 
-void ocrFinish() {
-    //TODO this is specific to how policies are stopped so it should
-    //go in ocr-policy.c, need to think about naming here
-
-    // Note: As soon as worker '0' is stopped its thread is
-    // free to fall-through in ocr_finalize() (see warning there)
-    size_t i;
-    for ( i = 0; i < root_policy->nb_workers; ++i ) {
-        root_policy->workers[i]->stop(root_policy->workers[i]);
-    }
-}
-
-void ocrCleanup() {
-    // Stop the root policy
-    root_policy->stop(root_policy);
-
-    // Now on, there is only thread '0'
-    root_policy->destroy(root_policy);
+ocr_executor_t * ocr_executor_hc_constructor() {
+    ocr_executor_t * executor = ocr_executor_pthread_constructor();
+    ((ocr_module_t *) executor)->map_fct = hc_ocr_module_map_worker_to_executors;
+    return executor;
 }

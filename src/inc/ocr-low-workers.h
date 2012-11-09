@@ -33,15 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __OCR_LOW_WORKERS_H__
 
 #include "ocr-guid.h"
+#include "ocr-runtime-def.h"
 #include "ocr-scheduler.h"
 
 /******************************************************/
 /* OCR WORKER                                         */
 /******************************************************/
-
-typedef enum ocr_worker_kind_enum {
-    OCR_WORKER_HC = 1
-} ocr_worker_kind;
 
 // Forward declaration
 struct ocr_worker_struct;
@@ -49,7 +46,7 @@ struct ocr_worker_struct;
 typedef void * (*worker_routine)(void *);
 
 //TODO deal with worker id
-typedef void (*ocr_worker_create_fct) (struct ocr_worker_struct * base, void * configuration, int id, ocr_scheduler_t * scheduler);
+typedef void (*ocr_worker_create_fct) (struct ocr_worker_struct * base, void * configuration, int id);
 
 typedef void (*ocr_worker_destroy_fct) (struct ocr_worker_struct * base);
 
@@ -67,6 +64,7 @@ typedef void (*ocr_worker_stop_fct) (struct ocr_worker_struct * base);
 typedef bool (*ocr_worker_is_running) (struct ocr_worker_struct * base);
 
 typedef struct ocr_worker_struct {
+    ocr_module_t module;
     ocr_scheduler_t * scheduler;
     worker_routine routine;
     ocr_worker_create_fct create;
@@ -83,10 +81,7 @@ int get_worker_id (ocr_worker_t * worker);
 /*! \brief Getter for worker id member field
  */
 ocrGuid_t get_worker_guid(ocr_worker_t * worker);
-/*! \brief Setter for the scheduler on which this Worker works
- *  \param[in] scheduler_ scheduler this Worker is working on
- */
-void set_worker_scheduler(ocr_worker_t * worker, ocr_scheduler_t * scheduler_);
+
 /*! \brief Getter for the scheduler, where this Worker works on
  *  \return Scheduler member field for Worker, the one this Worker works on
  */
@@ -105,9 +100,15 @@ ocrGuid_t ocr_get_current_worker_guid();
 
 
 /******************************************************/
-/* OCR WORKER FACTORY                                 */
+/* OCR WORKER KINDS AND CONSTRUCTORS                  */
 /******************************************************/
 
+typedef enum ocr_worker_kind_enum {
+    OCR_WORKER_HC = 1
+} ocr_worker_kind;
+
 ocr_worker_t * newWorker(ocr_worker_kind workerType);
+
+ocr_worker_t* hc_worker_constructor(void);
 
 #endif /* __OCR_LOW_WORKERS_H__ */

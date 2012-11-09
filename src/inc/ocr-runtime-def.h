@@ -29,52 +29,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdlib.h>
-#include <assert.h>
+#ifndef OCR_RUNTIME_DEF_H_
+#define OCR_RUNTIME_DEF_H_
 
-#include "ocr-runtime.h"
+typedef enum ocr_module_kind_enum {
+    OCR_WORKER = 0,
+    OCR_EXECUTOR = 1,
+    OCR_WORKPILE = 2,
+    OCR_SCHEDULER = 3,
+    OCR_POLICY = 4
+} ocr_module_kind;
 
-ocr_policy_domain_t * root_policy;
 
-void ocrInit() {
-    //TODO this is to be obtained from some configuration file or command line
-    ocr_worker_default_kind = OCR_WORKER_HC;
-    ocr_executor_default_kind = OCR_EXECUTOR_HC;
-    ocr_workpile_default_kind = OCR_DEQUE;
-    ocr_scheduler_default_kind = OCR_SCHEDULER_WST;
-    ocr_policy_default_kind = OCR_POLICY_HC;
+typedef enum ocr_module_mapping_kind_enum {
+    ONE_TO_ONE_MAPPING = 0,
+    MANY_TO_ONE_MAPPING = 1,
+    ONE_TO_MANY_MAPPING = 2
+} ocr_mapping_kind;
 
-    //TODO this is to be obtained from some configuration file or command line
-    size_t nb_workers = 8;
-    size_t nb_workpiles = 8;
-    size_t nb_executors = 8;
-    size_t nb_schedulers = 1;
+typedef struct struct_ocr_module_mapping_t {
+    ocr_mapping_kind kind;
+    ocr_module_kind from;
+    ocr_module_kind to;
+} ocr_module_mapping_t;
 
-    ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_schedulers, nb_workers,
-            nb_executors, nb_workpiles);
+typedef void (*ocr_module_map_fct) (void * self_module, ocr_module_kind kind, size_t nb_instances, void ** ptr_instances);
 
-    //TODO LIMITATION for now support only on policy
-    root_policy = instantiateModel(policy_model);
+typedef struct struct_ocr_module_t {
+    ocr_module_map_fct map_fct;
+} ocr_module_t;
 
-    root_policy->start(root_policy);
-}
 
-void ocrFinish() {
-    //TODO this is specific to how policies are stopped so it should
-    //go in ocr-policy.c, need to think about naming here
-
-    // Note: As soon as worker '0' is stopped its thread is
-    // free to fall-through in ocr_finalize() (see warning there)
-    size_t i;
-    for ( i = 0; i < root_policy->nb_workers; ++i ) {
-        root_policy->workers[i]->stop(root_policy->workers[i]);
-    }
-}
-
-void ocrCleanup() {
-    // Stop the root policy
-    root_policy->stop(root_policy);
-
-    // Now on, there is only thread '0'
-    root_policy->destroy(root_policy);
-}
+#endif /* OCR_RUNTIME_DEF_H_ */
