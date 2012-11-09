@@ -36,10 +36,6 @@
 #ifndef __OCR_H__
 #define __OCR_H__
 
-//TODO include that when stable
-//#include "ocr-tuning.h"
-//#include "ocr-db.h"
-
 #include "ocr-edt.h"
 
 /**

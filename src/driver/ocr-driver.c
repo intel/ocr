@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ocr_policy_domain_t * root_policy;
 
+//TODO add argc, argv
 void ocrInit() {
     //TODO this is to be obtained from some configuration file or command line
     ocr_worker_default_kind = OCR_WORKER_HC;
@@ -53,7 +54,7 @@ void ocrInit() {
     ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_schedulers, nb_workers,
             nb_executors, nb_workpiles);
 
-    //TODO LIMITATION for now support only on policy
+    //TODO LIMITATION for now support only one policy
     root_policy = instantiateModel(policy_model);
 
     root_policy->start(root_policy);
