@@ -35,6 +35,7 @@
 #define __OCR_ALLOCATOR_H__
 
 #include "ocr-types.h"
+#include "ocr-low-memory.h"
 
 /**
  * @brief Allocator is the interface to the allocator to a zone
@@ -49,27 +50,33 @@ typedef struct _ocrAllocator_t {
     /**
      * @brief Constructor equivalent
      *
-     * Constructs an allocator to manage the
-     * memory from startAddress to startAddress+size
+     * Constructs an allocator to manage a chunk of memory of size
+     * size
      *
      * @param self              Pointer to this allocator
-     * @param startAddress      Starting point for the range
-     *                          of memory managed by this
-     *                          allocator
+     * @param numMemories       Number of underlying low memory allocators
+     *                          that this allocator will rely on
+     * @param memories          Pointer to an array of ocrLowMemory_t*
+     *                          describing the numMemories this allocator
+     *                          will use
      * @param size              Size managed. Note that the
      *                          size will be reduced by whatever
      *                          space is required for the allocator's
      *                          tracking data-structures
      * @param config            An optional configuration (not currently used)
+     *
+     * @warning Currently, only one underlying low-memory is supported by the TLSF
+     * allocator. The option to provide multiple low memories may be taken out in the
+     * future if it is found to be not useful
     */
-    // TODO: ADD LOWMEMORY TO THIS. REMOVE STARTADDRESS BUT LEAVE SIZE
-    void (*create)(struct _ocrAllocator_t* self, void* startAddress, u64 size,
+    void (*create)(struct _ocrAllocator_t* self, u64 numMemories, ocrLowMemory_t **memories, u64 size,
                    void* config);
 
     /**
      * @brief Destructor equivalent
      *
-     * Cleans up the allocator. Does not call free.
+     * Cleans up the allocator. Calls free on self as well as
+     * any memory allocated from the low-memory allocators
      *
      * @param self              Pointer to this allocator
      */
@@ -117,7 +124,6 @@ typedef enum _ocrAllocatorKind {
     OCR_ALLOCATOR_DEFAULT = 0,
     OCR_ALLOCATOR_TLSF = 1
 } ocrAllocatorKind;
-
 
 extern ocrAllocatorKind ocrAllocatorDefaultKind;
 

@@ -36,12 +36,12 @@
 #include "debug.h"
 #include "ocr-task-event.h"
 
-void regularCreate(ocrDataBlock_t *self, ocrAllocator_t* allocator, void* address, u64 size,
+void regularCreate(ocrDataBlock_t *self, ocrAllocator_t* allocator, u64 size,
                    u16 flags, void* configuration) {
 
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
     rself->base.guid = guidify(self);
-    rself->ptr = address;
+    rself->ptr = allocator->allocate(allocator, size);
     rself->allocator = allocator;
     rself->size = size;
     rself->attributes.flags = flags;
@@ -59,6 +59,8 @@ void regularDestruct(ocrDataBlock_t *self) {
 
     // Tell the allocator to free the data-block
     rself->allocator->free(rself->allocator, rself->ptr);
+
+    free(rself);
 }
 
 void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt) {

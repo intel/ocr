@@ -507,6 +507,7 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
     size_t worker_tail = 0;
     size_t scheduler_tail = 0;
     u64 allocatorsTail = 0;
+    u64 memoriesHead = 0;
     u64 memoriesTail = 0;
 
     /* For each scheduler type, create the specified number of instances  */
@@ -581,7 +582,15 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
                     ++memoriesTail;
                 }
             }
-        }}
+            allocators[allocatorsTail] = newAllocator(currentAllocator->model.kind);
+            allocators[allocatorsTail]->create(allocators[allocatorsTail], (memoriesTail - memoriesHead),
+                                               &memories[memoriesHead],
+                                               currentAllocator->size, currentAllocator->model.configuration);
+            ++allocatorsTails;
+            memoriesHead = memoriesTail;
+        }
+    }
+    ASSERT(total_nb_workpiles = )
     policyDomain->create(policyDomain, NULL, schedulers,
                          workers, executors, workpiles, allocators, memories);
 

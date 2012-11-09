@@ -40,7 +40,8 @@
 
 typedef struct {
     ocrAllocator_t base;
-    u64 addr, totalSize, poolAddr, poolSize;
+    ocrLowMemory_t **memories;
+    u64 numMemories, addr, totalSize, poolAddr, poolSize;
 } ocrAllocatorTlsf_t;
 
 ocrAllocator_t* newAllocatorTlsf();
