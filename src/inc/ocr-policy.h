@@ -56,7 +56,7 @@ typedef void (*ocr_policy_create_fct) (struct ocr_policy_domain_struct * policy,
         ocr_executor_t ** executors, ocr_workpile_t ** workpiles);
 typedef void (*ocr_policy_start_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_stop_fct) (struct ocr_policy_domain_struct * policy);
-typedef void (*ocr_policy_destroy_fct) (struct ocr_policy_domain_struct * policy);
+typedef void (*ocr_policy_destruct_fct) (struct ocr_policy_domain_struct * policy);
 
 typedef struct ocr_policy_domain_struct {
     int nb_schedulers;
@@ -72,7 +72,7 @@ typedef struct ocr_policy_domain_struct {
     ocr_policy_create_fct create;
     ocr_policy_start_fct start;
     ocr_policy_stop_fct stop;
-    ocr_policy_destroy_fct destroy;
+    ocr_policy_destruct_fct destruct;
 
 } ocr_policy_domain_t;
 

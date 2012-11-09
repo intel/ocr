@@ -48,7 +48,7 @@ typedef void * (*executor_routine)(void *);
 
 typedef void (*ocr_executor_create_fct) (struct ocr_executor_struct * base, void * configuration);
 
-typedef void (*ocr_executor_destroy_fct) (struct ocr_executor_struct * base);
+typedef void (*ocr_executor_destruct_fct) (struct ocr_executor_struct * base);
 
 /*! \brief Starts a thread of execution with a function pointer and and argument for a given stack size
  *  \param[in]  routine A function that represents the computation this thread runs as it starts
@@ -76,7 +76,7 @@ typedef struct ocr_executor_struct {
     void * routine_arg;
 
     ocr_executor_create_fct create;
-    ocr_executor_destroy_fct destroy;
+    ocr_executor_destruct_fct destruct;
     ocr_executor_start_fct start;
     ocr_executor_stop_fct stop;
 } ocr_executor_t;

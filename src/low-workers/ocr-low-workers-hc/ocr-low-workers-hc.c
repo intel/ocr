@@ -53,7 +53,7 @@ void hc_worker_create ( ocr_worker_t * base, void * configuration, int id) {
     hc_worker->id = id;
 }
 
-void hc_worker_destroy ( ocr_worker_t * base ) {
+void hc_worker_destruct ( ocr_worker_t * base ) {
     free(base);
 }
 
@@ -96,7 +96,7 @@ ocr_worker_t* hc_worker_constructor () {
     base->scheduler = NULL;
     base->routine = worker_computation_routine;
     base->create = hc_worker_create;
-    base->destroy = hc_worker_destroy;
+    base->destruct = hc_worker_destruct;
     base->start = hc_start_worker;
     base->stop = hc_stop_worker;
     base->is_running = hc_is_running_worker;

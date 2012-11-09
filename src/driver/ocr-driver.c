@@ -77,5 +77,5 @@ void ocrCleanup() {
     root_policy->stop(root_policy);
 
     // Now on, there is only thread '0'
-    root_policy->destroy(root_policy);
+    root_policy->destruct(root_policy);
 }

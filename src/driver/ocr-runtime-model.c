@@ -232,7 +232,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
     return defaultPolicy;
 }
 
-void destroyOcrModelPolicy(ocr_model_policy_t * model) {
+void destructOcrModelPolicy(ocr_model_policy_t * model) {
     if (model->schedulers != NULL) {
         free(model->schedulers);
     }

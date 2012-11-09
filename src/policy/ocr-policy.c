@@ -115,15 +115,15 @@ void hc_policy_domain_stop(ocr_policy_domain_t * policy) {
     }
 }
 
-void hc_policy_domain_destroy(ocr_policy_domain_t * policy) {
+void hc_policy_domain_destruct(ocr_policy_domain_t * policy) {
     size_t i;
     for(i = 0; i < policy->nb_workers; i++) {
-        policy->workers[i]->destroy(policy->workers[i]);
+        policy->workers[i]->destruct(policy->workers[i]);
     }
     free(policy->workers);
 
     for(i = 0; i < policy->nb_executors; i++) {
-        policy->executors[i]->destroy(policy->executors[i]);
+        policy->executors[i]->destruct(policy->executors[i]);
     }
     free(policy->executors);
 
@@ -155,6 +155,6 @@ ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
     policy->create = hc_policy_domain_create;
     policy->start = hc_policy_domain_start;
     policy->stop = hc_policy_domain_stop;
-    policy->destroy = hc_policy_domain_destroy;
+    policy->destruct = hc_policy_domain_destruct;
     return policy;
 }

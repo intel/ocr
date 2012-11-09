@@ -89,7 +89,7 @@ void ocr_executor_pthread_create ( ocr_executor_t * base, void * configuration) 
     }
 }
 
-void ocr_executor_pthread_destroy (ocr_executor_t * base) {
+void ocr_executor_pthread_destruct (ocr_executor_t * base) {
     free(base);
 }
 
@@ -103,7 +103,7 @@ ocr_executor_t * ocr_executor_pthread_constructor () {
     executor->routine = NULL;
     executor->routine_arg = NULL;
     executor->create = ocr_executor_pthread_create;
-    executor->destroy = ocr_executor_pthread_destroy;
+    executor->destruct = ocr_executor_pthread_destruct;
     executor->start = ocr_executor_pthread_start;
     executor->stop = ocr_executor_pthread_stop;
     return executor;

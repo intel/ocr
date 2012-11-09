@@ -48,7 +48,7 @@ typedef void * (*worker_routine)(void *);
 //TODO deal with worker id
 typedef void (*ocr_worker_create_fct) (struct ocr_worker_struct * base, void * configuration, int id);
 
-typedef void (*ocr_worker_destroy_fct) (struct ocr_worker_struct * base);
+typedef void (*ocr_worker_destruct_fct) (struct ocr_worker_struct * base);
 
 /*! \brief Start Worker
  */
@@ -68,7 +68,7 @@ typedef struct ocr_worker_struct {
     ocr_scheduler_t * scheduler;
     worker_routine routine;
     ocr_worker_create_fct create;
-    ocr_worker_destroy_fct destroy;
+    ocr_worker_destruct_fct destruct;
     ocr_worker_start_fct start;
     ocr_worker_stop_fct stop;
     ocr_worker_is_running is_running;
