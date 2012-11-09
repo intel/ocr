@@ -44,20 +44,10 @@ ocr_scheduler_kind ocr_scheduler_default_kind;
 ocr_policy_kind ocr_policy_default_kind;
 ocr_workpile_kind ocr_workpile_default_kind;
 
-
 /**!
- * Data-structure that stores ocr modules instances of a policy domain.
- * Used as an internal data-structure when building policy domains so
- * that generic code can be written when there's a need to find a particular
- * module's instance backing array.
+ * Helper function to build a module mapping
  */
-typedef struct {
-    ocr_module_kind kind;
-    size_t nb_instances;
-    void ** instances;
-} ocr_module_instance;
-
-ocr_module_mapping_t build_ocr_module_mapping(ocr_mapping_kind kind, ocr_module_kind from, ocr_module_kind to) {
+static ocr_module_mapping_t build_ocr_module_mapping(ocr_mapping_kind kind, ocr_module_kind from, ocr_module_kind to) {
     ocr_module_mapping_t res;
     res.kind = kind;
     res.from = from;
@@ -65,13 +55,21 @@ ocr_module_mapping_t build_ocr_module_mapping(ocr_mapping_kind kind, ocr_module_
     return res;
 }
 
+/**!
+ * Function pointer type to define ocr modules mapping functions
+ */
 typedef void (*ocr_map_module_fct) (ocr_module_kind from, ocr_module_kind to,
         size_t nb_instances_from,
         ocr_module_t ** instances_from,
         size_t nb_instances_to,
         ocr_module_t ** instances_to);
 
-void map_modules_one_to_many(ocr_module_kind from, ocr_module_kind to,
+/**!
+ * One-to-many mapping function.
+ * Maps a single instance of kind 'from' to 'n' instances of kind 'to'.
+ * ex: maps a single scheduler to several workers.
+ */
+static void map_modules_one_to_many(ocr_module_kind from, ocr_module_kind to,
         size_t nb_instances_from,
         ocr_module_t ** instances_from,
         size_t nb_instances_to,
@@ -83,7 +81,12 @@ void map_modules_one_to_many(ocr_module_kind from, ocr_module_kind to,
     }
 }
 
-void map_modules_one_to_one(ocr_module_kind from, ocr_module_kind to,
+/**!
+ * One-to-one mapping function.
+ * Maps each instance of kind 'from' to each instance of kind 'to' one to one.
+ * ex: maps each executor to each worker in a one-one fashion.
+ */
+static void map_modules_one_to_one(ocr_module_kind from, ocr_module_kind to,
         size_t nb_instances_from,
         ocr_module_t ** instances_from,
         size_t nb_instances_to,
@@ -95,7 +98,13 @@ void map_modules_one_to_one(ocr_module_kind from, ocr_module_kind to,
     }
 }
 
-void map_modules_many_to_one(ocr_module_kind from, ocr_module_kind to,
+/**!
+ * Many-to-one mapping function.
+ * Maps all instance of kind 'from' to each instance of kind 'to'.
+ * ex: maps all workpiles to each individual scheduler available.
+ */
+
+static void map_modules_many_to_one(ocr_module_kind from, ocr_module_kind to,
         size_t nb_instances_from,
         ocr_module_t ** instances_from,
         size_t nb_instances_to,
@@ -106,7 +115,11 @@ void map_modules_many_to_one(ocr_module_kind from, ocr_module_kind to,
     }
 }
 
-ocr_map_module_fct get_module_mapping_function (ocr_mapping_kind mapping_kind) {
+/**!
+ * Given a mapping kind, returns a function pointer
+ * to the implementation of the mapping kind.
+ */
+static ocr_map_module_fct get_module_mapping_function (ocr_mapping_kind mapping_kind) {
     switch(mapping_kind) {
     case MANY_TO_ONE_MAPPING:
         return map_modules_many_to_one;
@@ -121,7 +134,25 @@ ocr_map_module_fct get_module_mapping_function (ocr_mapping_kind mapping_kind) {
     return NULL;
 }
 
-void resolve_module_instances(ocr_module_kind kind, size_t nb_module_kind,
+
+/**!
+ * Data-structure that stores ocr modules instances of a policy domain.
+ * Used as an internal data-structure when building policy domains so
+ * that generic code can be written when there's a need to find a particular
+ * module's instance backing array.
+ */
+typedef struct {
+    ocr_module_kind kind;
+    size_t nb_instances;
+    void ** instances;
+} ocr_module_instance;
+
+/**!
+ * Utility function that goes over modules_kinds and looks for
+ * a particular 'kind' of module. Sets pointers to its
+ * number of instances and instances backing array.
+ */
+static void resolve_module_instances(ocr_module_kind kind, size_t nb_module_kind,
         ocr_module_instance * modules_kinds, size_t * nb_instances, void *** instances) {
     size_t i;
     for(i=0; i < nb_module_kind; i++) {
@@ -202,23 +233,27 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
 }
 
 void destroyOcrModelPolicy(ocr_model_policy_t * model) {
-    size_t i;
-    for(i=0; i < model->nb_scheduler_types; i++) {
-        free(model->schedulers+i);
+    if (model->schedulers != NULL) {
+        free(model->schedulers);
     }
-    for(i=0; i < model->nb_worker_types; i++) {
-        free(model->workers+i);
+    if (model->workers != NULL) {
+        free(model->workers);
     }
-    for(i=0; i < model->nb_executor_types; i++) {
-        free(model->executors+i);
+    if (model->executors != NULL) {
+        free(model->executors);
     }
-    for(i=0; i < model->nb_workpile_types; i++) {
-        free(model->workpiles+i);
+    if (model->workpiles != NULL) {
+        free(model->workpiles);
     }
-    //TODO destroy allocated global arrays
+    if (model->mappings != NULL) {
+        free(model->mappings);
+    }
     free(model);
 }
 
+/**!
+ * Given a policy domain model, go over its modules and instantiate them.
+ */
 ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
     // Create an instance of the policy domain
     ocr_policy_domain_t * policyDomain = newPolicy(model->model.kind,

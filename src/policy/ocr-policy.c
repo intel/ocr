@@ -53,9 +53,6 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
     return NULL;
 }
 
-//
-//TODO Remaining code is ocr-hc specific, one-one policy
-//
 void hc_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
         ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
         ocr_executor_t ** executors, ocr_workpile_t ** workpiles) {
