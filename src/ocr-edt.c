@@ -39,8 +39,9 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     return 0;
 }
 
-u8 ocrEventDestroy(ocrGuid_t guid) {
-    assert(false);
+u8 ocrEventDestroy(ocrGuid_t eventGuid) {
+    ocr_event_t * event = (ocr_event_t *) deguidify(eventGuid);
+    event->destruct(event);
     return 0;
 }
 
@@ -65,8 +66,9 @@ u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
     return 0;
 }
 
-u8 ocrEdtDestroy(ocrGuid_t guid) {
-    assert(false);
+u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
+    ocr_task_t * task = (ocr_task_t *) deguidify(edtGuid);
+    task->destruct(task);
     return 0;
 }
 
