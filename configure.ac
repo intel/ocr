@@ -69,6 +69,8 @@ AC_CONFIG_FILES([
 Makefile
 src/allocator/Makefile
 src/allocator/tlsf/Makefile
+src/datablock/Makefile
+src/datablock/regular/Makefile
 src/driver/Makefile
 src/driver/ocr-driver-hc/Makefile
 src/executor/Makefile

@@ -44,6 +44,10 @@ void ocrInit() {
     ocr_workpile_default_kind = OCR_DEQUE;
     ocr_scheduler_default_kind = OCR_SCHEDULER_WST;
     ocr_policy_default_kind = OCR_POLICY_HC;
+    ocrAllocatorDefaultKind = OCR_ALLOCATOR_TLSF;
+    ocrLowMemoryDefaultKind = OCR_LOWMEMORY_MALLOC;
+    ocrDataBlockDefaultKind = OCR_DATABLOCK_REGULAR;
+    ocrLockDefaultKind = OCR_LOCK_X86;
 
     //TODO this is to be obtained from some configuration file or command line
     size_t nb_workers = 8;

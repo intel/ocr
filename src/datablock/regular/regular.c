@@ -31,7 +31,10 @@
  **/
 
 #include <stdlib.h>
-#include "datablock/regular/regular.h"
+#include <errno.h>
+#include "regular.h"
+#include "debug.h"
+#include "ocr-task-event.h"
 
 void regularCreate(ocrDataBlock_t *self, ocrAllocator_t* allocator, void* address, u64 size,
                    u16 flags, void* configuration) {
@@ -41,17 +44,21 @@ void regularCreate(ocrDataBlock_t *self, ocrAllocator_t* allocator, void* addres
     rself->ptr = address;
     rself->allocator = allocator;
     rself->size = size;
-    rself->attributess.flags = flags;
-    rself->attribute.numUsers = 0;
+    rself->attributes.flags = flags;
+    rself->attributes.numUsers = 0;
     rself->attributes.freeRequested = 0;
     ocrGuidTrackerInit(&(rself->usersTracker));
 }
 
 void regularDestruct(ocrDataBlock_t *self) {
+    // We don't use a lock here. Maybe we should
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
     ASSERT(rself->attributes.numUsers == 0);
     ASSERT(rself->attributes.freeRequested == 0);
     // TODO: Inform destruction of GUID
+
+    // Tell the allocator to free the data-block
+    rself->allocator->free(rself->allocator, rself->ptr);
 }
 
 void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt) {
@@ -85,8 +92,64 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
 
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
-    // TODO: don't forget special case if edt is NULL_GUID
-    // Call remove_acquired if not NULL_GUID
+    if(edtId == (u64)-1) {
+        edtId = ocrGuidTrackerFind(&(rself->usersTracker), edt);
+    }
+    if(edtId > 63 ||
+       (edt != INVALID_GUID && rself->usersTracker.slots[edtId].guid != edt)) {
+
+        return (u8)EACCES;
+    }
+    // Critical section
+    rself->lock->lock(rself->lock);
+    u64 id = rself->usersTracker.slots[edtId].id;
+    ocrGuidTrackerRemove(&(rself->usersTracker), edtId, rself->usersTracker.slots[edtId].guid);
+
+    rself->attributes.numUsers -= 1;
+    if(rself->attributes.numUsers == 0 && rself->attributes.freeRequested == 1) {
+        // We need to actually free the data-block
+        rself->lock->unlock(rself->lock);
+        regularDestruct(self);
+    } else {
+        rself->lock->unlock(rself->lock);
+    }
+    // End critical section
+
+    // Inform the EDT that this data-block is no longer acquired
+    if(edt != INVALID_GUID) {
+        ((ocr_task_t*)deguidify(edt))->remove_acquired((ocr_task_t*)deguidify(edt),
+                                                       rself->base.guid, id);
+    }
+
+    return 0;
+}
+
+u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
+    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
+
+    u32 id = ocrGuidTrackerFind(&(rself->usersTracker), edt);
+    // Begin critical section
+    rself->lock->lock(rself->lock);
+    if(rself->attributes.freeRequested) {
+        rself->lock->unlock(rself->lock);
+        return EPERM;
+    }
+    rself->attributes.freeRequested = 1;
+    rself->lock->unlock(rself->lock);
+    // End critical section
+
+    if(id < 64) {
+        regularRelease(self, edt, id);
+    } else {
+        rself->lock->lock(rself->lock);
+        if(rself->attributes.numUsers == 0) {
+            rself->lock->unlock(rself->lock);
+            regularDestruct(self);
+        } else {
+            rself->lock->unlock(rself->lock);
+        }
+    }
+
     return 0;
 }
 
@@ -94,9 +157,9 @@ ocrDataBlock_t* newDataBlockRegular() {
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)malloc(sizeof(ocrDataBlockRegular_t));
     result->base.create = &regularCreate;
     result->base.destruct = &regularDestruct;
-    result->base.allocate = &regularAcquire;
+    result->base.acquire = &regularAcquire;
     result->base.release = &regularRelease;
     result->base.free = &regularFree;
 
-    return (ocrLowMemory_t*)result;
+    return (ocrDataBlock_t*)result;
 }

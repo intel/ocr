@@ -37,6 +37,7 @@
 
 #include "ocr-types.h"
 #include "ocr-guid.h"
+#include "ocr-allocator.h"
 
 /**
  * @brief Internal description of a data-block.
@@ -129,7 +130,7 @@ typedef struct _ocrDataBlock_t {
  */
 typedef enum _ocrDataBlockKind {
     OCR_DATABLOCK_DEFAULT = 0,
-    OCR_DATABLOCK_REG = 1
+    OCR_DATABLOCK_REGULAR = 1
 } ocrDataBlockKind;
 
 extern ocrDataBlockKind ocrDataBlockDefaultKind;
@@ -143,6 +144,6 @@ extern ocrDataBlockKind ocrDataBlockDefaultKind;
  * @param type              Type of the data-block to return
  * @return A pointer to the meta-data for the data-block
  */
-ocrDataBlock_t* newDataBlock(ocrDataBlockKind type = OCR_DATABLOCK_DEFAULT);
+ocrDataBlock_t* newDataBlock(ocrDataBlockKind type);
 
 #endif /* __OCR_DATABLOCK_H__ */

@@ -149,4 +149,25 @@ u32 ocrGuidTrackerTrack(ocrGuidTracker_t *self, ocrGuid_t toTrack, u64 associate
  * @warning This method is not thread safe
  */
 bool ocrGuidTrackerRemove(ocrGuidTracker_t *self, ocrGuid_t toTrack, u32 id);
+
+/**
+ * @brief Finds the "next" used slot in the ocrGuidTracker, returns
+ * it and marks the slot as unused
+ *
+ * This function is useful to iterate over all the GUIDs that are stored
+ * in the tracker
+ *
+ * @param self              ocrGuidTracker used
+ * @return The slot ID of the next valid GUID or 64 if none are found
+ */
+u32 ocrGuidTrackerIterateAndClear(ocrGuidTracker_t *self);
+
+/**
+ * @brief Searches for the GUID toFind in the ocrGuidTracker
+ *
+ * @param self              GUID tracker to use
+ * @param toFind            GUID to find
+ * @return ID for the slot in the tracker or 64 if the GUID is not found
+ */
+u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind);
 #endif /* __OCR_UTILS_H__ */

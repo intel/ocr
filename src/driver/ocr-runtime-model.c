@@ -217,7 +217,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
     defaultPolicy->workpiles = defaultWorkpile;
 
     // Defines how ocr modules are bound together
-    size_t nb_module_mappings = 3;
+    size_t nb_module_mappings = 4;
     ocr_module_mapping_t * defaultMapping =
             (ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
     // Note: this doesn't bind modules magically. You need to have a mapping function defined
@@ -226,8 +226,29 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
     defaultMapping[0] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_WORKPILE, OCR_SCHEDULER);
     defaultMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_EXECUTOR);
     defaultMapping[2] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_SCHEDULER, OCR_WORKER);
+    defaultMapping[3] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_ALLOCATOR, OCR_MEMORY);
     defaultPolicy->nb_mappings = nb_module_mappings;
     defaultPolicy->mappings = defaultMapping;
+
+    // Default memory
+    ocr_model_t *defaultMemory =
+        (ocr_model_t*)malloc(sizeof(ocr_model_t));
+    defaultMemory->configuration = NULL;
+    defaultMemory->kind = OCR_LOWMEMORY_DEFAULT;
+    defaultMemory->nb_instances = 1;
+    defaultPolicy->numMemTypes = 1;
+    defaultPolicy->memories = defaultMemory;
+
+    // Default allocator
+    ocr_model_t *defaultAllocator =
+        (ocr_model_t*)malloc(sizeof(ocr_model_t));
+    defaultAllocator->model.configuration = NULL;
+    defaultAllocator->model.kind = OCR_ALLOCATOR_DEFAULT;
+    defaultAllocator->model.nb_instances = 1;
+
+    defaultPolicy->numAllocTypes = 1;
+    defaultPolicy->allocators = defaultAllocator;
+
 
     return defaultPolicy;
 }
@@ -248,6 +269,12 @@ void destructOcrModelPolicy(ocr_model_policy_t * model) {
     if (model->mappings != NULL) {
         free(model->mappings);
     }
+    if(model->memories != NULL) {
+        free(model->memories);
+    }
+    if(model->allocators != NULL) {
+        free(model->allocators);
+    }
     free(model);
 }
 
@@ -260,11 +287,13 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
             model->nb_workpile_types, model->nb_worker_types,
             model->nb_executor_types, model->nb_scheduler_types);
 
-    // Compute total number of workers, executors and workpiles
+    // Compute total number of workers, executors and workpiles, allocators and memories
     int total_nb_schedulers = 0;
     int total_nb_workers = 0;
     int total_nb_executors = 0;
     int total_nb_workpiles = 0;
+    u64 totalNumMemories = 0;
+    u64 totalNumAllocators = 0;
     size_t j = 0;
     for(j=0; j < model->nb_scheduler_types; j++) {
         total_nb_schedulers += model->schedulers[j].nb_instances;
@@ -278,30 +307,49 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
     for(j=0; j < model->nb_workpile_types; j++) {
         total_nb_workpiles += model->workpiles[j].nb_instances;
     }
+    for(j=0; j < model->numAllocTypes; ++j) {
+        totalNumAllocators += model->allocators[j].nb_instances;
+    }
+    for(j=0; j < model->numMemTypes; ++j) {
+        totalNumMemories += model->memories[j].nb_instances;
+    }
     // Allocate memory for ocr components
     // Components instances are grouped into one big chunk of memory
     ocr_scheduler_t ** all_schedulers = (ocr_scheduler_t **) malloc(sizeof(ocr_scheduler_t *) * total_nb_schedulers);
     ocr_worker_t ** all_workers = (ocr_worker_t **) malloc(sizeof(ocr_worker_t *) * total_nb_workers);
     ocr_executor_t ** all_executors = (ocr_executor_t **) malloc(sizeof(ocr_executor_t *) * total_nb_executors);
     ocr_workpile_t ** all_workpiles = (ocr_workpile_t **) malloc(sizeof(ocr_workpile_t *) * total_nb_workpiles);
+    ocrAllocator_t ** all_allocators = (ocrAllocator_t **) malloc(sizeof(ocrAllocator_t*) * totalNumAllocators);
+    ocrLowMemory_t ** all_memories = (ocrLowMemory_t **) malloc(sizeof(ocrLowMemory_t*) * totalNumMemories);
 
     // This is only needed because we want to be able to
     // write generic code to find instances' backing arrays
     // given a module kind.
-    size_t nb_ocr_modules = 4;
+    size_t nb_ocr_modules = 6;
     ocr_module_instance modules_kinds[nb_ocr_modules];
     modules_kinds[0].kind = OCR_WORKER;
     modules_kinds[0].nb_instances = total_nb_workers;
     modules_kinds[0].instances = (void **) all_workers;
+
     modules_kinds[1].kind = OCR_EXECUTOR;
     modules_kinds[1].nb_instances = total_nb_executors;
     modules_kinds[1].instances = (void **) all_executors;
+
     modules_kinds[2].kind = OCR_WORKPILE;
     modules_kinds[2].nb_instances = total_nb_workpiles;
     modules_kinds[2].instances = (void **) all_workpiles;
+
     modules_kinds[3].kind = OCR_SCHEDULER;
     modules_kinds[3].nb_instances = total_nb_schedulers;
     modules_kinds[3].instances = (void **) all_schedulers;
+
+    modules_kinds[4].kind = OCR_ALLOCATOR;
+    modules_kinds[4].nb_instances = totalNumAllocators;
+    modules_kinds[4].instances = (void**)all_allocators;
+
+    modules_kinds[5].kind = OCR_MEMORY;
+    modules_kinds[5].nb_instances = totalNumMemories;
+    modules_kinds[5].instances = (void**)all_memories;
 
     int nb_workpile_types = model->nb_workpile_types;
     int nb_worker_types = model->nb_worker_types;
@@ -354,6 +402,23 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
             idx++;
         }
     }
+    // Create allocators
+    for(type=0, idx=0 ; type < model->numAllocTypes; ++type) {
+        u64 nb_instances model->allocators[type].nb_instances;
+        for(instance = 0; instance < nb_instances; ++instance) {
+            all_allocators[idx] = newAllocator(model->allocators[type].kind);
+            ++idx;
+        }
+    }
+
+    // Create memories
+    for(type=0, idx=0 ; type < model->numMemTypes; ++type) {
+        u64 nb_instances model->memories[type].nb_instances;
+        for(instance = 0; instance < nb_instances; ++instance) {
+            all_memories[idx] = newLowMemory(model->memories[type].kind);
+            ++idx;
+        }
+    }
 
     //
     // Configure instances of each ocr components
@@ -389,7 +454,8 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
     }
 
     policyDomain->create(policyDomain, NULL, all_schedulers,
-            all_workers, all_executors, all_workpiles);
+                         all_workers, all_executors, all_workpiles,
+                         all_allocators, all_memories);
 
     //
     // Bind instances of each ocr components through mapping functions
@@ -411,6 +477,113 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
                 nb_instances_from, (ocr_module_t **) from_instances,
                 nb_instances_to, (ocr_module_t **) to_instances);
     }
+
+=======
+    // Create an instance of the policy domain
+    ocr_policy_domain_t * policyDomain = newPolicy(model->model.kind,
+                                                   total_nb_workpiles, total_nb_workers,
+                                                   total_nb_executors, total_nb_schedulers,
+                                                   totalNumAllocators, totalNumMemories);
+
+    // Allocate memory for ocr components
+    // Components instances are grouped on one big chunk of memory
+    ocr_scheduler_t ** schedulers = (ocr_scheduler_t **)
+                        malloc(sizeof(ocr_scheduler_t *) * total_nb_schedulers);
+    ocr_worker_t ** workers = (ocr_worker_t **)
+                        malloc(sizeof(ocr_worker_t *) * total_nb_workers);
+    ocr_executor_t ** executors = (ocr_executor_t **)
+                        malloc(sizeof(ocr_executor_t *) * total_nb_executors);
+    ocr_workpile_t ** workpiles = (ocr_workpile_t **)
+                        malloc(sizeof(ocr_workpile_t *) * total_nb_workpiles);
+
+    ocrAllocator_t ** allocators = (ocrAllocator_t **)malloc(sizeof(ocrAllocator_t*) *
+                                                             totalNumAllocators);
+    ocrLowMemory_t ** memories = (ocrLowMemory_t **)malloc(sizeof(ocrLowMemory_t*) *
+                                                           totalNumMemories);
+
+    size_t workpile_head = 0;
+    size_t workpile_tail = 0;
+    size_t executor_tail = 0;
+    size_t worker_tail = 0;
+    size_t scheduler_tail = 0;
+    u64 allocatorsTail = 0;
+    u64 memoriesTail = 0;
+
+    /* For each scheduler type, create the specified number of instances  */
+    size_t scheduler_type_i;
+    size_t scheduler_instance_i;
+    for(scheduler_type_i=0; scheduler_type_i < nb_scheduler_types; scheduler_type_i++) {
+        ocr_model_scheduler_t * scheduler = model->schedulers + scheduler_type_i;
+        for(scheduler_instance_i=0;
+                scheduler_instance_i < scheduler->model.nb_instances; scheduler_instance_i++) {
+            int nb_workpile_types = scheduler->nb_workpile_types;
+            int nb_worker_types = scheduler->nb_worker_types;
+            int nb_executor_types = scheduler->nb_executor_types;
+            size_t type = 0;
+            // Create Workpiles for this scheduler type
+            for(type=0; type < nb_workpile_types; type++) {
+                size_t nb_instances = scheduler->workpiles[type].nb_instances;
+                size_t instance = 0;
+                for(instance = 0; instance < nb_instances; instance++) {
+                    workpiles[workpile_tail] = newWorkpile(scheduler->workpiles[type].kind);
+                    workpiles[workpile_tail]->create(workpiles[workpile_tail], scheduler->workpiles[type].configuration);
+                    workpile_tail++;
+                }
+            }
+
+            // Create Schedulers
+            schedulers[scheduler_tail] = newScheduler(scheduler->model.kind);
+            schedulers[scheduler_tail]->create(schedulers[scheduler_tail], scheduler->model.configuration,
+                    (workpile_tail - workpile_head), &workpiles[workpile_head]);
+
+            // Create Workers for this scheduler type
+            for(type = 0; type < nb_worker_types; type++) {
+                size_t nb_instances = scheduler->workers[type].nb_instances;
+                size_t instance = 0;
+                for(instance = 0; instance < nb_instances; instance++) {
+                    workers[worker_tail] = newWorker(scheduler->workers[type].kind);
+                    workers[worker_tail]->create(workers[worker_tail], scheduler->workers[type].configuration,
+                            worker_tail /*worker id*/, schedulers[scheduler_tail]);
+                    worker_tail++;
+                }
+            }
+
+            // Create Executors for this scheduler type
+            for(type = 0; type < nb_executor_types; type++) {
+                size_t nb_instances = scheduler->executors[type].nb_instances;
+                size_t instance = 0;
+                for(instance = 0; instance < nb_instances; instance++) {
+                    executors[executor_tail] = newExecutor(scheduler->executors[type].kind);
+                    //TODO the routine thing is a hack. Threads should pick workers from a worker pool
+                    executors[executor_tail]->create(executors[executor_tail], scheduler->executors[type].configuration,
+                            workers[executor_tail]->routine, workers[executor_tail]);
+                    executor_tail++;
+                }
+            }
+            scheduler_tail++;
+            workpile_head = workpile_tail;
+        }
+    }
+
+    u64 allocatorType_i, allocatorInstance_i;
+    for(allocatorType_i = 0; allocatorType_i < model->numAllocatorTypes; ++allocatorType_i) {
+        ocrModelAllocator_t * currentAllocator = model->allocators + allocatorType_i;
+        for(allocatorInstance_i = 0; allocatorInstance_i < currentAllocator->model.nb_instance;
+            ++allocatorInstance_i) {
+
+            u64 mType = 0;
+            for(mType = 0; mType < currentAllocator->numMemTypes; ++mType) {
+                u64 i;
+                for(i = 0; i < currentAllocator->memories[mType].nb_instances; ++i) {
+                    memories[memoriesTail] = newLowMemory(currentAllocator->memories[mType].kind);
+                    memories[memoriesTail]->create(memories[memoriesTail],
+                                                   currentAllocator->memories[mType].configuration);
+                    ++memoriesTail;
+                }
+            }
+        }}
+    policyDomain->create(policyDomain, NULL, schedulers,
+                         workers, executors, workpiles, allocators, memories);
 
     return policyDomain;
 }

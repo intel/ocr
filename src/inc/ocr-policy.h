@@ -35,6 +35,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-scheduler.h"
 #include "ocr-executor.h"
 #include "ocr-low-workers.h"
+#include "ocr-allocator.h"
+#include "ocr-low-memory.h"
+#include "ocr-datablock.h"
+#include "ocr-sync.h"
 
 /******************************************************/
 /* OCR POLICY DOMAIN KINDS                            */
@@ -52,8 +56,9 @@ typedef enum ocr_policy_kind_enum {
 struct ocr_policy_domain_struct;
 
 typedef void (*ocr_policy_create_fct) (struct ocr_policy_domain_struct * policy, void * configuration,
-        ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
-        ocr_executor_t ** executors, ocr_workpile_t ** workpiles);
+                                       ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
+                                       ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
+                                       ocrAllocator_t ** allocators, ocrLowMemory_t ** memories);
 typedef void (*ocr_policy_start_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_stop_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_destruct_fct) (struct ocr_policy_domain_struct * policy);
@@ -63,11 +68,15 @@ typedef struct ocr_policy_domain_struct {
     int nb_workers;
     int nb_executors;
     int nb_workpiles;
+    int nb_allocators;
+    int nb_memories;
 
     ocr_scheduler_t ** schedulers;
     ocr_worker_t ** workers;
     ocr_executor_t ** executors;
     ocr_workpile_t ** workpiles;
+    ocrAllocator_t ** allocators;
+    ocrLowMemory_t ** memories;
 
     ocr_policy_create_fct create;
     ocr_policy_start_fct start;
@@ -95,5 +104,9 @@ extern ocr_worker_kind ocr_worker_default_kind;
 extern ocr_scheduler_kind ocr_scheduler_default_kind;
 extern ocr_policy_kind ocr_policy_default_kind;
 extern ocr_workpile_kind ocr_workpile_default_kind;
+extern ocrAllocatorKind ocrAllocatorDefaultKind;
+extern ocrLowMemoryKind ocrLowMemoryDefaultKind;
+extern ocrDataBlockKind ocrDataBlockDefaultKind;
+extern ocrLockKind ocrLockDefaultKind;
 
 #endif /* OCR_POLICY_H_ */

@@ -33,6 +33,7 @@
 
 #include "ocr-utils.h"
 #include "ocr-types.h"
+#include "debug.h"
 
 u32 fls16(u16 val) {
     u32 bit = 15;
@@ -87,8 +88,32 @@ u32 ocrGuidTrackerTrack(ocrGuidTracker_t *self, ocrGuid_t toTrack, u64 associate
 
 bool ocrGuidTrackerRemove(ocrGuidTracker_t *self, ocrGuid_t toTrack, u32 id) {
     if(id > 63) return false;
-    if(self-slots[id].guid != toTrack) return false;
+    if(self->slots[id].guid != toTrack) return false;
 
-    self->slotsStatus |= (1ULL<<(63 - slot));
+    self->slotsStatus |= (1ULL<<(63 - id));
     return true;
+}
+
+u32 ocrGuidTrackerIterateAndClear(ocrGuidTracker_t *self) {
+    u64 rstatus = ~(self->slotsStatus);
+    u32 slot;
+    if(rstatus) return 64;
+    slot = fls64(rstatus);
+    self->slotsStatus |= (1ULL << slot);
+    return 63 - slot;
+}
+
+u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind) {
+    u32 result = 64, slot;
+    u64 rstatus = ~(self->slotsStatus);
+    while(rstatus) {
+        slot = fls64(rstatus);
+        rstatus &= ~(1ULL << slot);
+        slot = 63 - slot;
+        if(self->slots[slot].guid == toFind) {
+            result = slot;
+            break;
+        }
+    }
+    return result;
 }

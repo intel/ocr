@@ -43,9 +43,9 @@
 typedef union {
     struct {
         volatile u64 flags : 16;
-        volatile numUsers : 15;
-        volatile freeRequested: 1;
-        volatile _padding : 16;
+        volatile u64 numUsers : 15;
+        volatile u64 freeRequested: 1;
+        volatile u64 _padding : 16;
     };
     u64 data;
 } ocrDataBlockRegularAttr_t;

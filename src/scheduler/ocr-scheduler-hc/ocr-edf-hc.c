@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 
 #include "hc_edf.h"
+#include "ocr-datablock.h"
+#include "ocr-utils.h"
+#include "debug.h"
 
 struct ocr_event_factory_struct* hc_event_factory_constructor(void) {
     hc_event_factory* derived = (hc_event_factory*) malloc(sizeof(hc_event_factory));
@@ -301,14 +304,12 @@ void hc_task_execute ( ocr_task_t* base ) {
     };
     derived->p_function(0, NULL, derived->nbdeps, derived->depv);
     // Now we clean up and release the GUIDs that we have to release
-    u64 rSlotsStatus = ~(derived->dbAcquiredTracker.slotsStatus);
-    while(rSlotsStatus) {
-        u32 slot = fls64(rSlotsStatus);
-        rSlotsStatus &= ~(1ULL << slot);
-        db = (ocrDataBlock_t*)deguidify(derived->dbAcquiredTracker.slots[63 - slot].guid);
-        db->release(db, NULL_GUID, derived->dbAcquiredTracker.slots[63 - slot].id);
+    u32 slot;
+    while((slot = ocrGuidTrackerIterateAndClear(&(derived->dbAcquiredTracker))) < 64) {
+        db = (ocrDataBlock_t*)deguidify(derived->dbAcquiredTracker.slots[slot].guid);
+        db->release(db, NULL_GUID, derived->dbAcquiredTracker.slots[slot].id);
     }
-    derived->dbAcquiredTracker.slots = 0xFFFFFFFFFFFFFFFFULL;
+    ASSERT(derived->dbAcquiredTracker.slotsStatus == 0xFFFFFFFFFFFFFFFFULL);
 }
 
 void hc_task_add_dependency ( ocr_task_t* base, ocr_event_t* dep, size_t index ) {

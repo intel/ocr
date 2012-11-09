@@ -61,7 +61,8 @@ typedef struct _ocrAllocator_t {
      *                          space is required for the allocator's
      *                          tracking data-structures
      * @param config            An optional configuration (not currently used)
-     */
+    */
+    // TODO: ADD LOWMEMORY TO THIS. REMOVE STARTADDRESS BUT LEAVE SIZE
     void (*create)(struct _ocrAllocator_t* self, void* startAddress, u64 size,
                    void* config);
 

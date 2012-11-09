@@ -180,7 +180,7 @@ typedef void (*task_execute_fct) ( struct ocr_task_struct_t* base );
 typedef void (*task_schedule_fct) ( struct ocr_task_struct_t* base, ocrGuid_t wid );
 typedef void (*task_add_dependency_fct) ( struct ocr_task_struct_t* base, ocr_event_t* dep, size_t index );
 typedef u64  (*task_add_acquired_fct)( struct ocr_task_struct_t* base, u64 edtId, ocrGuid_t db);
-typedef void (*task_remove_acquired_fct(struct ocr_task_struct_t* base, ocrGuid_t db, u64 dbId));
+typedef void (*task_remove_acquired_fct)(struct ocr_task_struct_t* base, ocrGuid_t db, u64 dbId);
 
 /*! \brief Abstract class to represent OCR tasks.
  *
