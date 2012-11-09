@@ -214,7 +214,7 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
         return 2;
     }
 
-    if (xmlStrcmp(cur->name, (const xmlChar *)"CascabelPD")) {
+    if (xmlStrcmp(cur->name, (const xmlChar *)"PlatformDescription")) {
         printf("Wrong PDL document type.\n");
         xmlFreeDoc(doc);
         return 3;
