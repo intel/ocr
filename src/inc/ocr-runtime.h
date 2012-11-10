@@ -36,9 +36,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-utils.h"
 #include "ocr-executor.h"
 #include "ocr-low-workers.h"
+#include "ocr-machine.h"
 #include "ocr-scheduler.h"
 #include "ocr-policy.h"
 #include "ocr-task-event.h"
 #include "ocr-runtime-model.h"
+
 
 #endif /* __OCR_RUNTIME_H_ */

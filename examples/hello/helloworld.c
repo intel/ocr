@@ -50,7 +50,7 @@ u8 task_for_edt ( u32 paramc, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
 int main (int argc, char ** argv) {
     ocrEdt_t fctPtrArray [1];
     fctPtrArray[0] = &task_for_edt;
-    ocrInit(argc, argv, 1, fctPtrArray);
+    ocrInit(&argc, argv, 1, fctPtrArray);
 
     // Current thread is '0' and goes on with user code.
     ocrGuid_t event_guid;

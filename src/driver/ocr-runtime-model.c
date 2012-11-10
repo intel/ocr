@@ -43,6 +43,7 @@ ocr_worker_kind ocr_worker_default_kind;
 ocr_scheduler_kind ocr_scheduler_default_kind;
 ocr_policy_kind ocr_policy_default_kind;
 ocr_workpile_kind ocr_workpile_default_kind;
+u32 ocr_config_default_nb_hardware_threads;
 
 /**!
  * Helper function to build a module mapping

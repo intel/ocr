@@ -13,6 +13,7 @@ include driver/Makefile.inc
 include executor/Makefile.inc
 include guid/Makefile.inc
 include low-workers/Makefile.inc
+include machine/Makefile.inc
 include policy/Makefile.inc
 include scheduler/Makefile.inc
 include utils/Makefile.inc

@@ -197,7 +197,7 @@ u8 smith_waterman_task ( u32 argc, void** argv, u32 n_dbs, ocrEdtDep_t* dbs ) {
 
 int main ( int argc, char* argv[] ) {
 
-  OCR_INIT(argc, argv, smith_waterman_task );
+  OCR_INIT(&argc, argv, smith_waterman_task );
 
     int i, j;
 

@@ -93,10 +93,12 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
 /**
  * Default values are set in ocrInit
  */
+//TODO set default value in ocr-config.c
 extern ocr_executor_kind ocr_executor_default_kind;
 extern ocr_worker_kind ocr_worker_default_kind;
 extern ocr_scheduler_kind ocr_scheduler_default_kind;
 extern ocr_policy_kind ocr_policy_default_kind;
 extern ocr_workpile_kind ocr_workpile_default_kind;
+extern u32 ocr_config_default_nb_hardware_threads;
 
 #endif /* OCR_POLICY_H_ */
