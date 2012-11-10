@@ -95,6 +95,23 @@ u32 MachineDescription_getNumProcessors(MachineDescription *this) {
 }
 
 /**
+   @brief Get the number of hardware threads in the platform.
+ **/
+u32 MachineDescription_getNumHardwareThreads(MachineDescription *this) {
+    u32 num_proc;
+    u32 i;
+    u32 num_hw = 0;
+
+    num_proc = MachineDescription_getNumProcessors(this);
+    for(i = 0; i < num_proc; ++i) {
+        Processor *proc = MachineDescription_getProcessor(this, i);
+        num_hw += proc->numThreads;
+    }
+
+    return num_hw;
+}
+
+/**
  *    @brief Get the number of distinct memory regions in the platform.
  *     **/
 u32 MachineDescription_getNumMemoryRegions(MachineDescription *this) {
