@@ -7,7 +7,7 @@ AM_CFLAGS = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/
 lib_LTLIBRARIES = libocr.la
 
 # build the ocr runtime library
-libocr_la_SOURCES = ocr-runtime.c ocr-edt.c
+libocr_la_SOURCES = ocr-runtime.c ocr-edt.c ocr-db.c
 libocr_la_CFLAGS = $(AM_CFLAGS)
 libocr_la_LIBADD = \
 allocator/libocr_allocator.la \

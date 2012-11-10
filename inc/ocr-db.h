@@ -84,7 +84,7 @@
  * allocator's management overhead
  */
 u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
-               ocrLocation_t *location = NULL, ocrAllocator_t allocator = NO_ALLOC);
+               ocrLocation_t *location, ocrInDbAllocator_t allocator);
 
 /**
  * @brief Request for the destruction of a data-block
@@ -118,7 +118,6 @@ u8 ocrDbDestroy(ocrGuid_t db);
  *
  * ocrDbAcquire performs this function and returns a pointer to the
  * base of the DB that is valid until either:
- *      - the EDT dies
  *      - the EDT calls ocrDbRelease()
  *      - the EDT calls ocrDbDestroy()
  *
@@ -153,7 +152,7 @@ u8 ocrDbAcquire(ocrGuid_t db, void** addr, u16 flags);
  *
  * The functionality of ocrDbRelease is implicitly contained in:
  *      - ocrDbDestroy()
- *      - EDT exit
+ *      - EDT exit (only for EDTs implicitly acquired on entry)
  *
  * Note that since multiple calls to ocrDbAcquire effectively result
  * in a single call to ocrDbAcquire (ie: ocrDbAcquire is idempotent),

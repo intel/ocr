@@ -72,7 +72,14 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
         rself->lock->unlock(rself->lock);
         return NULL;
     }
-    u32 idForEdt = ocrGuidTrackerTrack(&(rself->usersTracker), edt);
+    u32 idForEdt = ocrGuidTrackerFind(&(rself->usersTracker), edt);
+    if(idForEdt > 63)
+        idForEdt = ocrGuidTrackerTrack(&(rself->usersTracker), edt);
+    else {
+        rself->lock->unlock(rself->lock);
+        return rself->ptr;
+    }
+
     if(idForEdt > 63) {
         rself->lock->unlock(rself->lock);
         return NULL;
@@ -91,7 +98,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
                   bool isInternal) {
 
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
-    u64 edtId = ocrGuidTrackerFind(&(rself->usersTracker), edt);
+    u32 edtId = ocrGuidTrackerFind(&(rself->usersTracker), edt);
     bool isTracked = true;
 
     // Start critical section

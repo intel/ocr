@@ -35,3 +35,55 @@
 #include "ocr-datablock.h"
 #include "ocr-allocator.h"
 #include "debug.h"
+#include <errno.h>
+
+u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
+               ocrLocation_t *location, ocrInDbAllocator_t allocator) {
+
+    // TODO: Currently location and allocator are ignored
+    ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_DEFAULT);
+    // TODO: I need to get the current policy to figure out my allocator.
+    // Replace with allocator that is gotten from policy
+
+    createdDb->create(createdDb, NULL, len, flags, NULL);
+    // Now get the EDT as well
+    *addr = createdDb->acquire(createdDb, INVALID_GUID, false);
+    if(*addr == NULL) return ENOMEM;
+    *db = guidify(createdDb);
+    return 0;
+}
+
+u8 ocrDbDestroy(ocrGuid_t db) {
+    ocrDataBlock_t *dataBlock = (ocrDataBlock_t*)deguidify(db);
+    // Get the current EDT
+    u8 status = dataBlock->free(dataBlock, INVALID_GUID);
+    return status;
+}
+
+u8 ocrDbAcquire(ocrGuid_t db, void** addr, u16 flags) {
+    ocrDataBlock_t *dataBlock = (ocrDataBlock_t*)deguidify(db);
+    *addr = dataBlock->acquire(dataBlock, INVALID_GUID, false);
+    if(*addr == NULL) return EPERM;
+    return 0;
+}
+
+u8 ocrDbRelease(ocrGuid_t db) {
+    ocrDataBlock_t *dataBlock = (ocrDataBlock_t*)deguidify(db);
+    return dataBlock->release(dataBlock, INVALID_GUID, false);
+}
+
+u8 ocrDbMalloc(ocrGuid_t guid, u64 size, void** addr) {
+    return EINVAL; /* not yet implemented */
+}
+
+u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset) {
+    return EINVAL; /* not yet implemented */
+}
+
+u8 ocrDbFree(ocrGuid_t guid, void* addr) {
+    return EINVAL; /* not yet implemented */
+}
+
+u8 ocrDbFreeOffset(ocrGuid_t guid, u64 offset) {
+    return EINVAL; /* not yet implemented */
+}
