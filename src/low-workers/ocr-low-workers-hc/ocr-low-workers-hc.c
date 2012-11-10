@@ -39,11 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* OCR-WORKER                                         */
 /******************************************************/
 
-//TODO is this generic OCR api ??
-void set_worker_scheduler(ocr_worker_t * worker, ocr_scheduler_t * scheduler_) { worker->scheduler = scheduler_; }
-
 ocr_scheduler_t * get_worker_scheduler(ocr_worker_t * worker) { return worker->scheduler; }
-
 
 /******************************************************/
 /* OCR-HC WORKER                                      */
@@ -52,13 +48,12 @@ ocr_scheduler_t * get_worker_scheduler(ocr_worker_t * worker) { return worker->s
 /**
  * Configure the HC worker instance
  */
-void hc_worker_create ( ocr_worker_t * base, void * configuration, int id, ocr_scheduler_t * scheduler ) {
+void hc_worker_create ( ocr_worker_t * base, void * configuration, int id) {
     hc_worker_t * hc_worker = (hc_worker_t *) base;
     hc_worker->id = id;
-    set_worker_scheduler(base, scheduler);
 }
 
-void hc_worker_destroy ( ocr_worker_t * base ) {
+void hc_worker_destruct ( ocr_worker_t * base ) {
     free(base);
 }
 
@@ -78,6 +73,15 @@ bool hc_is_running_worker(ocr_worker_t * base) {
     return hcWorker->run;
 }
 
+void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocr_module_kind kind,
+        size_t nb_instances, void ** ptr_instances) {
+    // Checking mapping conforms to what we're expecting in this implementation
+    assert(kind == OCR_SCHEDULER);
+    assert(nb_instances == 1);
+    ocr_worker_t * worker = (ocr_worker_t *) self_module;
+    worker->scheduler = ((ocr_scheduler_t **) ptr_instances)[0];
+}
+
 /**
  * Builds an instance of a HC worker
  */
@@ -87,10 +91,12 @@ ocr_worker_t* hc_worker_constructor () {
     worker->run = false;
     worker->guid = guidify((void*)worker);
     ocr_worker_t * base = (ocr_worker_t *) worker;
-    set_worker_scheduler(base, NULL);
+    ocr_module_t* module_base = (ocr_module_t*) base;
+    module_base->map_fct = hc_ocr_module_map_scheduler_to_worker;
+    base->scheduler = NULL;
     base->routine = worker_computation_routine;
     base->create = hc_worker_create;
-    base->destroy = hc_worker_destroy;
+    base->destruct = hc_worker_destruct;
     base->start = hc_start_worker;
     base->stop = hc_stop_worker;
     base->is_running = hc_is_running_worker;
@@ -108,6 +114,7 @@ ocrGuid_t get_worker_guid(ocr_worker_t * worker) {
     hc_worker_t * hcWorker = (hc_worker_t *) worker;
     return hcWorker->guid;
 }
+
 
 /******************************************************/
 /* OCR-HC Task Factory                                */
@@ -155,4 +162,3 @@ void * worker_computation_routine(void * arg) {
     }
     return NULL;
 }
-

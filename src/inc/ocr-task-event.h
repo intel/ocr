@@ -201,4 +201,8 @@ typedef struct ocr_task_struct_t {
     task_add_dependency_fct add_dependency;
 } ocr_task_t;
 
+////TODO old style factories
+extern ocr_task_factory* taskFactory;
+extern ocr_event_factory* eventFactory;
+
 #endif /* __OCR_TASK_EVENT_H_ */

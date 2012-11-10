@@ -42,8 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef struct {
     ocr_executor_t executor;
     pthread_t os_thread;
-    void * (*routine)(void *);
-    void * routine_arg;
     size_t stack_size;
 } ocr_executor_pthread_t;
 
@@ -68,9 +66,10 @@ void ocr_executor_pthread_start(ocr_executor_t * executor) {
     pthread_attr_t attr;
     rt = pthread_attr_init(&attr);
     if (rt != 0) { printf("[PTHREAD] - ERROR in pthread_attr_init\n"); exit(1); }
+    //Note this call may fail if the system doesn't like the stack size asked for.
     rt = pthread_attr_setstacksize(&attr, pthreadExecutor->stack_size);
     if (rt != 0) { printf("[PTHREAD] - ERROR in pthread_attr_setstacksize\n"); exit(1); }
-    rt = pthread_create(&(pthreadExecutor->os_thread), &attr, pthreadExecutor->routine, pthreadExecutor->routine_arg);
+    rt = pthread_create(&(pthreadExecutor->os_thread), &attr, pthreadExecutor->executor.routine, pthreadExecutor->executor.routine_arg);
     if (rt != 0) { printf("[PTHREAD] - ERROR in pthread_create\n"); exit(1); }
 }
 
@@ -80,11 +79,8 @@ void ocr_executor_pthread_stop(ocr_executor_t * executor) {
     if (rt != 0) { printf("[PTHREAD] - ERROR in pthread_join\n"); exit(1); }
 }
 
-//TODO here what we should really have is a thread routine that could iterate over a workerpool
-void ocr_executor_pthread_create ( ocr_executor_t * base, void * configuration, executor_routine routine, void * routine_arg) {
+void ocr_executor_pthread_create ( ocr_executor_t * base, void * configuration) {
     ocr_executor_pthread_t * derived = (ocr_executor_pthread_t *) base;
-    derived->routine = routine;
-    derived->routine_arg = routine_arg;
     if (configuration != NULL) {
         //TODO passed in configuration
         //derived->stack_size = stack_size;
@@ -93,7 +89,7 @@ void ocr_executor_pthread_create ( ocr_executor_t * base, void * configuration, 
     }
 }
 
-void ocr_executor_pthread_destroy (ocr_executor_t * base) {
+void ocr_executor_pthread_destruct (ocr_executor_t * base) {
     free(base);
 }
 
@@ -102,8 +98,12 @@ ocr_executor_t * ocr_executor_pthread_constructor () {
     // the current worker the thread is executing.
     pthread_once(&worker_key_initialized, initialize_pthread_worker_key);
     ocr_executor_t * executor = (ocr_executor_t *) malloc(sizeof(ocr_executor_pthread_t));
+    ocr_module_t * module_base = (ocr_module_t *) executor;
+    module_base->map_fct = NULL;
+    executor->routine = NULL;
+    executor->routine_arg = NULL;
     executor->create = ocr_executor_pthread_create;
-    executor->destroy = ocr_executor_pthread_destroy;
+    executor->destruct = ocr_executor_pthread_destruct;
     executor->start = ocr_executor_pthread_start;
     executor->stop = ocr_executor_pthread_stop;
     return executor;

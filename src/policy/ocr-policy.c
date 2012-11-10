@@ -33,15 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 
 #include "ocr-policy.h"
-#include "ocr-factory.h"
+#include "ocr-task-event.h"
 
 extern ocr_policy_domain_t * hc_policy_domain_constructor();
 
 ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
-        int nb_workpiles,
-        int nb_workers,
-        int nb_executors,
-        int nb_schedulers) {
+        size_t nb_workpiles,
+        size_t nb_workers,
+        size_t nb_executors,
+        size_t nb_schedulers) {
     switch(policyType) {
     case OCR_POLICY_HC:
         return hc_policy_domain_constructor(nb_workpiles, nb_workers,
@@ -53,9 +53,6 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
     return NULL;
 }
 
-//
-//TODO Remaining code is ocr-hc specific, one-one policy
-//
 void hc_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
         ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
         ocr_executor_t ** executors, ocr_workpile_t ** workpiles) {
@@ -118,15 +115,15 @@ void hc_policy_domain_stop(ocr_policy_domain_t * policy) {
     }
 }
 
-void hc_policy_domain_destroy(ocr_policy_domain_t * policy) {
+void hc_policy_domain_destruct(ocr_policy_domain_t * policy) {
     size_t i;
     for(i = 0; i < policy->nb_workers; i++) {
-        policy->workers[i]->destroy(policy->workers[i]);
+        policy->workers[i]->destruct(policy->workers[i]);
     }
     free(policy->workers);
 
     for(i = 0; i < policy->nb_executors; i++) {
-        policy->executors[i]->destroy(policy->executors[i]);
+        policy->executors[i]->destruct(policy->executors[i]);
     }
     free(policy->executors);
 
@@ -145,10 +142,10 @@ void hc_policy_domain_destroy(ocr_policy_domain_t * policy) {
     free(policy);
 }
 
-ocr_policy_domain_t * hc_policy_domain_constructor(int nb_workpiles,
-        int nb_workers,
-        int nb_executors,
-        int nb_schedulers) {
+ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
+        size_t nb_workers,
+        size_t nb_executors,
+        size_t nb_schedulers) {
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
     policy->nb_executors = nb_executors;
     policy->nb_workpiles = nb_workpiles;
@@ -158,6 +155,6 @@ ocr_policy_domain_t * hc_policy_domain_constructor(int nb_workpiles,
     policy->create = hc_policy_domain_create;
     policy->start = hc_policy_domain_start;
     policy->stop = hc_policy_domain_stop;
-    policy->destroy = hc_policy_domain_destroy;
+    policy->destruct = hc_policy_domain_destruct;
     return policy;
 }

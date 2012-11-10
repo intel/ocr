@@ -45,21 +45,20 @@ typedef struct {
 
 typedef struct {
     ocr_model_t model;
+    size_t nb_scheduler_types;
     size_t nb_worker_types;
     size_t nb_executor_types;
     size_t nb_workpile_types;
+    size_t nb_mappings;
+    ocr_model_t * schedulers;
     ocr_model_t * workers;
     ocr_model_t * executors;
     ocr_model_t * workpiles;
-} ocr_model_scheduler_t;
-
-typedef struct {
-    ocr_model_t model;
-    size_t nb_scheduler_types;
-    ocr_model_scheduler_t * schedulers;
+    ocr_module_mapping_t * mappings;
 } ocr_model_policy_t;
 
-ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_workers, size_t nb_executors, size_t nb_workpiles);
+ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_workers,
+        size_t nb_executors, size_t nb_workpiles);
 ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model);
 
 #endif /* OCR_RUNTIME_MODEL_H_ */

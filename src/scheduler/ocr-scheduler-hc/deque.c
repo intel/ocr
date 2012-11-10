@@ -53,7 +53,6 @@ void deque_init(deque_t * deq, void * init_value) {
 void deque_push(deque_t* deq, void* entry) {
 	int n = deq->buffer->capacity;
 	int size = deq->tail - deq->head;
-
 	if (size == n) { /* deque looks full */
 		/* may not grow the deque if some interleaving steal occur */
 		assert("DEQUE full, increase deque's size" && 0);
