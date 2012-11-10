@@ -37,7 +37,9 @@ typedef enum ocr_module_kind_enum {
     OCR_EXECUTOR = 1,
     OCR_WORKPILE = 2,
     OCR_SCHEDULER = 3,
-    OCR_POLICY = 4
+    OCR_POLICY = 4,
+    OCR_EDT = 5,
+    OCR_EVENT = 6
 } ocr_module_kind;
 
 

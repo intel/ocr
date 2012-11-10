@@ -67,23 +67,7 @@ AS_IF([test "x$with_mpi" != xno],
 #
 AC_CONFIG_FILES([
 Makefile
-src/allocator/Makefile
-src/allocator/tlsf/Makefile
-src/driver/Makefile
-src/executor/Makefile
-src/guid/Makefile
-src/low-memory/Makefile
-src/low-workers/Makefile
-src/machine/Makefile
-src/policy/Makefile
-src/scheduler/Makefile
-src/sync/Makefile
-src/utils/Makefile
 src/Makefile
-src/executor/ocr-executor-pthread/Makefile
-src/driver/ocr-driver-hc/Makefile
-src/low-workers/ocr-low-workers-hc/Makefile
-src/scheduler/ocr-scheduler-hc/Makefile
 ])
 
 # Generates and runs config.status, which in turn creates the makefiles 
