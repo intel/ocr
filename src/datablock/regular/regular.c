@@ -63,7 +63,7 @@ void regularDestruct(ocrDataBlock_t *self) {
     free(rself);
 }
 
-void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt) {
+void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
     // Critical section
@@ -72,43 +72,55 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt) {
         rself->lock->unlock(rself->lock);
         return NULL;
     }
-    u32 idForEdt = ocrGuidTrackerTrack(&(rself->usersTracker), edt, 0);
+    u32 idForEdt = ocrGuidTrackerTrack(&(rself->usersTracker), edt);
     if(idForEdt > 63) {
         rself->lock->unlock(rself->lock);
         return NULL;
     }
     rself->attributes.numUsers += 1;
+    if(isInternal)
+        rself->attributes.internalUsers += 1;
+
     rself->lock->unlock(rself->lock);
     // End critical section
-
-    // This should be fine as quantity written is full 64 bits
-    rself->usersTracker.slots[idForEdt].id =
-        ((ocr_task_t*)deguidify(edt))->add_acquired((ocr_task_t*)deguidify(edt),
-                                                    rself->base.guid, idForEdt);
 
     return rself->ptr;
 }
 
 u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
-                  u64 edtId) {
+                  bool isInternal) {
 
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
+    u64 edtId = ocrGuidTrackerFind(&(rself->usersTracker), edt);
+    bool isTracked = true;
 
-    if(edtId == (u64)-1) {
-        edtId = ocrGuidTrackerFind(&(rself->usersTracker), edt);
-    }
-    if(edtId > 63 ||
-       (edt != INVALID_GUID && rself->usersTracker.slots[edtId].guid != edt)) {
-
-        return (u8)EACCES;
-    }
-    // Critical section
+    // Start critical section
     rself->lock->lock(rself->lock);
-    u64 id = rself->usersTracker.slots[edtId].id;
-    ocrGuidTrackerRemove(&(rself->usersTracker), edtId, rself->usersTracker.slots[edtId].guid);
+    if(edtId > 63 || rself->usersTracker.slots[edtId] != edt) {
+        // We did not find it. The runtime may be
+        // re-releasing it
+        if(isInternal) {
+            // This is not necessarily an error
+            rself->attributes.internalUsers -= 1;
+            isTracked = false;
+        } else {
+            // Definitely a problem here
+            rself->lock->unlock(rself->lock);
+            return (u8)EACCES;
+        }
+    }
 
-    rself->attributes.numUsers -= 1;
-    if(rself->attributes.numUsers == 0 && rself->attributes.freeRequested == 1) {
+    if(isTracked) {
+        ocrGuidTrackerRemove(&(rself->usersTracker), edt, edtId);
+        rself->attributes.numUsers -= 1;
+        if(isInternal) {
+            rself->attributes.internalUsers -= 1;
+        }
+    }
+    // Check if we need to free the block
+    if(rself->attributes.numUsers == 0  &&
+       rself->attributes.internalUsers == 0 &&
+       rself->attributes.freeRequested == 1) {
         // We need to actually free the data-block
         rself->lock->unlock(rself->lock);
         regularDestruct(self);
@@ -116,12 +128,6 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
         rself->lock->unlock(rself->lock);
     }
     // End critical section
-
-    // Inform the EDT that this data-block is no longer acquired
-    if(edt != INVALID_GUID) {
-        ((ocr_task_t*)deguidify(edt))->remove_acquired((ocr_task_t*)deguidify(edt),
-                                                       rself->base.guid, id);
-    }
 
     return 0;
 }
@@ -140,17 +146,21 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
     rself->lock->unlock(rself->lock);
     // End critical section
 
+    // We can call free without having acquired the block
     if(id < 64) {
-        regularRelease(self, edt, id);
-    } else {
-        rself->lock->lock(rself->lock);
-        if(rself->attributes.numUsers == 0) {
-            rself->lock->unlock(rself->lock);
-            regularDestruct(self);
-        } else {
-            rself->lock->unlock(rself->lock);
-        }
+        regularRelease(self, edt, false);
     }
+    // Now check if we can actually free the block
+
+    // Critical section
+    rself->lock->lock(rself->lock);
+    if(rself->attributes.numUsers == 0) {
+        rself->lock->unlock(rself->lock);
+        regularDestruct(self);
+    } else {
+        rself->lock->unlock(rself->lock);
+    }
+    // End critical section
 
     return 0;
 }

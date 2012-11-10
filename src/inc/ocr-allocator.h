@@ -36,6 +36,7 @@
 
 #include "ocr-types.h"
 #include "ocr-low-memory.h"
+#include "ocr-runtime-def.h"
 
 /**
  * @brief Allocator is the interface to the allocator to a zone
@@ -47,6 +48,8 @@
  * modeling of scratchpads and makes NUMA memory explicit
  */
 typedef struct _ocrAllocator_t {
+    ocr_module_t module; /**< Base "class" for the allocator */
+
     /**
      * @brief Constructor equivalent
      *
@@ -54,11 +57,6 @@ typedef struct _ocrAllocator_t {
      * size
      *
      * @param self              Pointer to this allocator
-     * @param numMemories       Number of underlying low memory allocators
-     *                          that this allocator will rely on
-     * @param memories          Pointer to an array of ocrLowMemory_t*
-     *                          describing the numMemories this allocator
-     *                          will use
      * @param size              Size managed. Note that the
      *                          size will be reduced by whatever
      *                          space is required for the allocator's
@@ -69,7 +67,7 @@ typedef struct _ocrAllocator_t {
      * allocator. The option to provide multiple low memories may be taken out in the
      * future if it is found to be not useful
     */
-    void (*create)(struct _ocrAllocator_t* self, u64 numMemories, ocrLowMemory_t **memories, u64 size,
+    void (*create)(struct _ocrAllocator_t* self, u64 size,
                    void* config);
 
     /**

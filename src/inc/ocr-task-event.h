@@ -179,8 +179,6 @@ typedef bool (*task_iterate_waiting_frontier_fct) ( struct ocr_task_struct_t* ba
 typedef void (*task_execute_fct) ( struct ocr_task_struct_t* base );
 typedef void (*task_schedule_fct) ( struct ocr_task_struct_t* base, ocrGuid_t wid );
 typedef void (*task_add_dependency_fct) ( struct ocr_task_struct_t* base, ocr_event_t* dep, size_t index );
-typedef u64  (*task_add_acquired_fct)( struct ocr_task_struct_t* base, u64 edtId, ocrGuid_t db);
-typedef void (*task_remove_acquired_fct)(struct ocr_task_struct_t* base, ocrGuid_t db, u64 dbId);
 
 /*! \brief Abstract class to represent OCR tasks.
  *
@@ -201,8 +199,6 @@ typedef struct ocr_task_struct_t {
     task_execute_fct execute;
     task_schedule_fct schedule;
     task_add_dependency_fct add_dependency;
-    task_add_acquired_fct add_acquired;
-    task_remove_acquired_fct remove_acquired;
 } ocr_task_t;
 
 ////TODO old style factories

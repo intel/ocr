@@ -43,6 +43,11 @@ typedef struct {
     void * configuration;
 } ocr_model_t;
 
+typedef struct _ocrAllocatorModel_t {
+    ocr_model_t model;
+    u64 sizeManaged;
+} ocrAllocatorModel_t;
+
 typedef struct {
     ocr_model_t model;
     size_t nb_scheduler_types;
@@ -56,7 +61,7 @@ typedef struct {
     ocr_model_t * workers;
     ocr_model_t * executors;
     ocr_model_t * workpiles;
-    ocr_model_t * allocators;
+    ocrAllocatorModel_t * allocators;
     ocr_model_t * memories;
     ocr_module_mapping_t * mappings;
 } ocr_model_policy_t;

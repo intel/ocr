@@ -98,11 +98,6 @@ u32 fls32(u32 val);
  */
 u32 fls64(u64 val);
 
-typedef struct _ocrGuidInt_t {
-    ocrGuid_t guid;
-    u64 id;
-} ocrGuidInt_t;
-
 /**
  * @brief Convenient structure to keep track
  * of GUIDs in a way that is indexable.
@@ -114,7 +109,7 @@ typedef struct _ocrGuidInt_t {
  */
 typedef struct _ocrGuidTracker_t {
     u64 slotsStatus; /**< Bit vector. A 0 indicates the slot is *used* (1 = available slot) */
-    ocrGuidInt_t slots[64]; /**< Slots */
+    ocrGuid_t slots[64]; /**< Slots */
 } ocrGuidTracker_t;
 
 /**
@@ -129,14 +124,13 @@ void ocrGuidTrackerInit(ocrGuidTracker_t *self);
  *
  * @param self              GUID tracker to use
  * @param toTrack           GUID to add to the tracker
- * @param associatedId      ID to associate with the GUID
  * @return ID for the slot used in the tracker. Used for ocrGuidTrackerRemove.
  *         Returns 64 if no slot is found (failure)
  *
  * @warning This method is not thread safe. Use your own locking mechanism around
  * these calls
  */
-u32 ocrGuidTrackerTrack(ocrGuidTracker_t *self, ocrGuid_t toTrack, u64 associatedId);
+u32 ocrGuidTrackerTrack(ocrGuidTracker_t *self, ocrGuid_t toTrack);
 
 /**
  * @brief Removes a GUID from an ocrGuidTracker

@@ -59,13 +59,12 @@ typedef struct _ocrDataBlock_t {
      *
      * @param self          Pointer for this data-block
      * @param allocator     Allocator from where this data-block was created
-     * @param address       Address of the data-block's memory
      * @param size          Size in bytes of the data-block
      * @param flags         Data-block flags (unused)
      */
     void (*create)(struct _ocrDataBlock_t *self,
                    ocrAllocator_t* allocator,
-                   void* address, u64 size, u16 flags, void* configuration);
+                   u64 size, u16 flags, void* configuration);
 
     /**
      * @brief Destroys a data-block
@@ -86,25 +85,26 @@ typedef struct _ocrDataBlock_t {
      *
      * @param self          Pointer for this data-block
      * @param edt           EDT seeking registration
+     * @param isInternal    True if this is an acquire implicitly
+     *                      done by the runtime at EDT launch
      * @return Address of the data-block
      *
      * @note Multiple acquires for the same EDT have no effect
      */
-    void* (*acquire)(struct _ocrDataBlock_t *self, ocrGuid_t edt);
+    void* (*acquire)(struct _ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal);
 
     /**
      * @brief Releases a data-block previously acquired
      *
      * @param self          Pointer for this data-block
      * @param edt           EDT seeking to de-register from the data-block.
-     *                      If NULL_GUID, will not call remove_acquired on the EDT
-     * @param id            Optional ID identifying the EDT if known ((u64)-1 if not known)
+     * @param isInternal    True if matching an internal acquire
      * @return 0 on success and an error code on failure (see ocr-db.h)
      *
      * @note No need to match one-to-one with acquires. One release
      * releases any and all previous acquires
      */
-    u8 (*release)(struct _ocrDataBlock_t *self, ocrGuid_t edt, u64 edtId);
+    u8 (*release)(struct _ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal);
 
     /**
      * @brief Requests that the block be freed when possible

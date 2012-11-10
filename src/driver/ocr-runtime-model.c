@@ -226,7 +226,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
     defaultMapping[0] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_WORKPILE, OCR_SCHEDULER);
     defaultMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_EXECUTOR);
     defaultMapping[2] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_SCHEDULER, OCR_WORKER);
-    defaultMapping[3] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_ALLOCATOR, OCR_MEMORY);
+    defaultMapping[3] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_ALLOCATOR, OCR_MEMORY);
     defaultPolicy->nb_mappings = nb_module_mappings;
     defaultPolicy->mappings = defaultMapping;
 
@@ -240,11 +240,12 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
     defaultPolicy->memories = defaultMemory;
 
     // Default allocator
-    ocr_model_t *defaultAllocator =
-        (ocr_model_t*)malloc(sizeof(ocr_model_t));
+    ocrAllocatorModel_t *defaultAllocator =
+        (ocrAllocatorModel_t*)malloc(sizeof(ocrAllocatorModel_t));
     defaultAllocator->model.configuration = NULL;
     defaultAllocator->model.kind = OCR_ALLOCATOR_DEFAULT;
     defaultAllocator->model.nb_instances = 1;
+    defaultAllocator->sizeManaged = 64*1024*1024; // TODO: FIXME WITH SOME REAL SIZE!!!!
 
     defaultPolicy->numAllocTypes = 1;
     defaultPolicy->allocators = defaultAllocator;
@@ -308,7 +309,7 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
         total_nb_workpiles += model->workpiles[j].nb_instances;
     }
     for(j=0; j < model->numAllocTypes; ++j) {
-        totalNumAllocators += model->allocators[j].nb_instances;
+        totalNumAllocators += model->allocators[j].model.nb_instances;
     }
     for(j=0; j < model->numMemTypes; ++j) {
         totalNumMemories += model->memories[j].nb_instances;
@@ -404,16 +405,16 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
     }
     // Create allocators
     for(type=0, idx=0 ; type < model->numAllocTypes; ++type) {
-        u64 nb_instances model->allocators[type].nb_instances;
+        u64 nb_instances = model->allocators[type].model.nb_instances;
         for(instance = 0; instance < nb_instances; ++instance) {
-            all_allocators[idx] = newAllocator(model->allocators[type].kind);
+            all_allocators[idx] = newAllocator(model->allocators[type].model.kind);
             ++idx;
         }
     }
 
     // Create memories
     for(type=0, idx=0 ; type < model->numMemTypes; ++type) {
-        u64 nb_instances model->memories[type].nb_instances;
+        u64 nb_instances = model->memories[type].nb_instances;
         for(instance = 0; instance < nb_instances; ++instance) {
             all_memories[idx] = newLowMemory(model->memories[type].kind);
             ++idx;
@@ -453,6 +454,24 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
         }
     }
 
+    for(type=0, idx=0; type < model->numAllocTypes; ++type) {
+        u64 nb_instances = model->allocators[type].model.nb_instances;
+        for(instance = 0; instance < nb_instances; ++instance) {
+            all_allocators[idx]->create(all_allocators[idx], model->allocators[type].sizeManaged,
+                                        model->allocators[type].model.configuration);
+            ++idx;
+        }
+    }
+
+    for(type=0, idx=0; type < model->numMemTypes; ++type) {
+        u64 nb_instances = model->memories[type].nb_instances;
+        for(instance = 0; instance < nb_instances; ++instance) {
+            all_memories[idx]->create(all_memories[idx],
+                                      model->allocators[type].model.configuration);
+            ++idx;
+        }
+    }
+
     policyDomain->create(policyDomain, NULL, all_schedulers,
                          all_workers, all_executors, all_workpiles,
                          all_allocators, all_memories);
@@ -477,122 +496,6 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
                 nb_instances_from, (ocr_module_t **) from_instances,
                 nb_instances_to, (ocr_module_t **) to_instances);
     }
-
-=======
-    // Create an instance of the policy domain
-    ocr_policy_domain_t * policyDomain = newPolicy(model->model.kind,
-                                                   total_nb_workpiles, total_nb_workers,
-                                                   total_nb_executors, total_nb_schedulers,
-                                                   totalNumAllocators, totalNumMemories);
-
-    // Allocate memory for ocr components
-    // Components instances are grouped on one big chunk of memory
-    ocr_scheduler_t ** schedulers = (ocr_scheduler_t **)
-                        malloc(sizeof(ocr_scheduler_t *) * total_nb_schedulers);
-    ocr_worker_t ** workers = (ocr_worker_t **)
-                        malloc(sizeof(ocr_worker_t *) * total_nb_workers);
-    ocr_executor_t ** executors = (ocr_executor_t **)
-                        malloc(sizeof(ocr_executor_t *) * total_nb_executors);
-    ocr_workpile_t ** workpiles = (ocr_workpile_t **)
-                        malloc(sizeof(ocr_workpile_t *) * total_nb_workpiles);
-
-    ocrAllocator_t ** allocators = (ocrAllocator_t **)malloc(sizeof(ocrAllocator_t*) *
-                                                             totalNumAllocators);
-    ocrLowMemory_t ** memories = (ocrLowMemory_t **)malloc(sizeof(ocrLowMemory_t*) *
-                                                           totalNumMemories);
-
-    size_t workpile_head = 0;
-    size_t workpile_tail = 0;
-    size_t executor_tail = 0;
-    size_t worker_tail = 0;
-    size_t scheduler_tail = 0;
-    u64 allocatorsTail = 0;
-    u64 memoriesHead = 0;
-    u64 memoriesTail = 0;
-
-    /* For each scheduler type, create the specified number of instances  */
-    size_t scheduler_type_i;
-    size_t scheduler_instance_i;
-    for(scheduler_type_i=0; scheduler_type_i < nb_scheduler_types; scheduler_type_i++) {
-        ocr_model_scheduler_t * scheduler = model->schedulers + scheduler_type_i;
-        for(scheduler_instance_i=0;
-                scheduler_instance_i < scheduler->model.nb_instances; scheduler_instance_i++) {
-            int nb_workpile_types = scheduler->nb_workpile_types;
-            int nb_worker_types = scheduler->nb_worker_types;
-            int nb_executor_types = scheduler->nb_executor_types;
-            size_t type = 0;
-            // Create Workpiles for this scheduler type
-            for(type=0; type < nb_workpile_types; type++) {
-                size_t nb_instances = scheduler->workpiles[type].nb_instances;
-                size_t instance = 0;
-                for(instance = 0; instance < nb_instances; instance++) {
-                    workpiles[workpile_tail] = newWorkpile(scheduler->workpiles[type].kind);
-                    workpiles[workpile_tail]->create(workpiles[workpile_tail], scheduler->workpiles[type].configuration);
-                    workpile_tail++;
-                }
-            }
-
-            // Create Schedulers
-            schedulers[scheduler_tail] = newScheduler(scheduler->model.kind);
-            schedulers[scheduler_tail]->create(schedulers[scheduler_tail], scheduler->model.configuration,
-                    (workpile_tail - workpile_head), &workpiles[workpile_head]);
-
-            // Create Workers for this scheduler type
-            for(type = 0; type < nb_worker_types; type++) {
-                size_t nb_instances = scheduler->workers[type].nb_instances;
-                size_t instance = 0;
-                for(instance = 0; instance < nb_instances; instance++) {
-                    workers[worker_tail] = newWorker(scheduler->workers[type].kind);
-                    workers[worker_tail]->create(workers[worker_tail], scheduler->workers[type].configuration,
-                            worker_tail /*worker id*/, schedulers[scheduler_tail]);
-                    worker_tail++;
-                }
-            }
-
-            // Create Executors for this scheduler type
-            for(type = 0; type < nb_executor_types; type++) {
-                size_t nb_instances = scheduler->executors[type].nb_instances;
-                size_t instance = 0;
-                for(instance = 0; instance < nb_instances; instance++) {
-                    executors[executor_tail] = newExecutor(scheduler->executors[type].kind);
-                    //TODO the routine thing is a hack. Threads should pick workers from a worker pool
-                    executors[executor_tail]->create(executors[executor_tail], scheduler->executors[type].configuration,
-                            workers[executor_tail]->routine, workers[executor_tail]);
-                    executor_tail++;
-                }
-            }
-            scheduler_tail++;
-            workpile_head = workpile_tail;
-        }
-    }
-
-    u64 allocatorType_i, allocatorInstance_i;
-    for(allocatorType_i = 0; allocatorType_i < model->numAllocatorTypes; ++allocatorType_i) {
-        ocrModelAllocator_t * currentAllocator = model->allocators + allocatorType_i;
-        for(allocatorInstance_i = 0; allocatorInstance_i < currentAllocator->model.nb_instance;
-            ++allocatorInstance_i) {
-
-            u64 mType = 0;
-            for(mType = 0; mType < currentAllocator->numMemTypes; ++mType) {
-                u64 i;
-                for(i = 0; i < currentAllocator->memories[mType].nb_instances; ++i) {
-                    memories[memoriesTail] = newLowMemory(currentAllocator->memories[mType].kind);
-                    memories[memoriesTail]->create(memories[memoriesTail],
-                                                   currentAllocator->memories[mType].configuration);
-                    ++memoriesTail;
-                }
-            }
-            allocators[allocatorsTail] = newAllocator(currentAllocator->model.kind);
-            allocators[allocatorsTail]->create(allocators[allocatorsTail], (memoriesTail - memoriesHead),
-                                               &memories[memoriesHead],
-                                               currentAllocator->size, currentAllocator->model.configuration);
-            ++allocatorsTails;
-            memoriesHead = memoriesTail;
-        }
-    }
-    ASSERT(total_nb_workpiles = )
-    policyDomain->create(policyDomain, NULL, schedulers,
-                         workers, executors, workpiles, allocators, memories);
 
     return policyDomain;
 }

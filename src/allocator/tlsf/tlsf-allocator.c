@@ -32,6 +32,7 @@
  **/
 
 #include "tlsf-allocator.h"
+#include "ocr-runtime-def.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 #include "debug.h"
@@ -968,19 +969,31 @@ u64 tlsf_realloc(u64 pg_start, u64 ptr, u64 size) {
 }
 
 // Helper methods
-void tlsfCreate(ocrAllocator_t *self, u64 numMemories, ocrLowMemory_t ** memories, u64 size, void* config) {
+void tlsfMap(void* self, ocr_module_kind kind, size_t nb_instance, void** ptr_instances) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    rself->memories = memories;
-    rself->numMemories = numMemories;
-    ASSERT(numMemories == 1);
-    rself->addr = rself->poolAddr = (u64)memories[0]->allocate(memories[0], size);
-    rself->totalSize = rself->poolSize = size;
+    ASSERT(nb_instance == 1); // Currently only support one underlying memory
+    ASSERT(rself->numMemories == 0 && rself->memories == NULL); // Called only once
+    rself->numMemories = nb_instance;
+    rself->memories = (ocrLowMemory_t**)ptr_instances;
+
+    // Do the allocation
+    rself->addr = rself->poolAddr = (u64)(rself->memories[0]->allocate(
+                                              rself->memories[0], rself->totalSize));
+    ASSERT(rself->addr);
     RESULT_ASSERT(tlsf_init(rself->addr, rself->totalSize), ==, 0);
+}
+
+void tlsfCreate(ocrAllocator_t *self, u64 size, void* config) {
+    ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
+    ASSERT(rself->numMemories == 0ULL && rself->memories == NULL);
+    rself->addr = rself->poolAddr = 0ULL;
+    rself->totalSize = rself->poolSize = size;
 }
 
 void tlsfDestruct(ocrAllocator_t *self) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    rself->memories[0]->free(rself->memories[0], rself->addr);
+    if(rself->numMemories)
+        rself->memories[0]->free(rself->memories[0], (void*)rself->addr);
     free(rself);
 }
 
@@ -1010,6 +1023,7 @@ ocrAllocator_t* newAllocatorTlsf() {
     result->memories = NULL;
     result->numMemories = 0ULL;
     result->addr = result->totalSize = result->poolAddr = result->poolSize = 0ULL;
+    result->base.module.map_fct = &tlsfMap;
 
     return (ocrAllocator_t*)result;
 }

@@ -54,12 +54,15 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
 }
 
 void hc_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
-        ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
-        ocr_executor_t ** executors, ocr_workpile_t ** workpiles) {
+                             ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
+                             ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
+                             ocrAllocator_t ** allocators, ocrLowMemory_t ** memories) {
     policy->schedulers = schedulers;
     policy->workers = workers;
     policy->executors = executors;
     policy->workpiles = workpiles;
+    policy->allocators = allocators;
+    policy->memories = memories;
 }
 
 //TODO should not be declared here

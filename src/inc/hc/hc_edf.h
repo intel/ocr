@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ocr-runtime.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
 
 /******************************************************/
 /* OCR-HC Event Factory                               */
@@ -108,7 +107,6 @@ typedef struct hc_task_struct_t {
     size_t nbdeps;
     ocrEdtDep_t * depv;
     ocrEdt_t p_function;
-    ocrGuidTracker_t dbAcquiredTracker;
 } hc_task_t;
 
 hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, event_list_t* al);

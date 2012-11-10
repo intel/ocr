@@ -75,22 +75,21 @@ void ocrGuidTrackerInit(ocrGuidTracker_t *self) {
     self->slotsStatus = 0xFFFFFFFFFFFFFFFFULL;
 }
 
-u32 ocrGuidTrackerTrack(ocrGuidTracker_t *self, ocrGuid_t toTrack, u64 associatedId) {
+u32 ocrGuidTrackerTrack(ocrGuidTracker_t *self, ocrGuid_t toTrack) {
     u32 slot = 64;
     if(self->slotsStatus == 0) return slot;
     slot = fls64(self->slotsStatus);
     self->slotsStatus &= ~(1ULL<<slot);
     ASSERT(slot <= 63);
-    self->slots[63 - slot].guid = toTrack;
-    self->slots[63 - slot].id = associatedId;
-    return 63 - slot;
+    self->slots[slot] = toTrack;
+    return slot;
 }
 
 bool ocrGuidTrackerRemove(ocrGuidTracker_t *self, ocrGuid_t toTrack, u32 id) {
     if(id > 63) return false;
-    if(self->slots[id].guid != toTrack) return false;
+    if(self->slots[id] != toTrack) return false;
 
-    self->slotsStatus |= (1ULL<<(63 - id));
+    self->slotsStatus |= (1ULL<<(id));
     return true;
 }
 
@@ -100,7 +99,7 @@ u32 ocrGuidTrackerIterateAndClear(ocrGuidTracker_t *self) {
     if(rstatus) return 64;
     slot = fls64(rstatus);
     self->slotsStatus |= (1ULL << slot);
-    return 63 - slot;
+    return slot;
 }
 
 u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind) {
@@ -109,8 +108,8 @@ u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind) {
     while(rstatus) {
         slot = fls64(rstatus);
         rstatus &= ~(1ULL << slot);
-        slot = 63 - slot;
-        if(self->slots[slot].guid == toFind) {
+        slot = slot;
+        if(self->slots[slot] == toFind) {
             result = slot;
             break;
         }
