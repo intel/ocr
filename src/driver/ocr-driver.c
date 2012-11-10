@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "ocr-runtime.h"
+#include "ocr-config.h"
 
 ocr_policy_domain_t * root_policy;
 
@@ -69,13 +70,6 @@ static char * parseOcrOptions_MachineDescription(int * argc, char ** argv) {
 }
 
 void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
-    //TODO this is to be obtained from some configuration file or command line
-    ocr_worker_default_kind = OCR_WORKER_HC;
-    ocr_executor_default_kind = OCR_EXECUTOR_HC;
-    ocr_workpile_default_kind = OCR_DEQUE;
-    ocr_scheduler_default_kind = OCR_SCHEDULER_WST;
-    ocr_policy_default_kind = OCR_POLICY_HC;
-    ocr_config_default_nb_hardware_threads = 8;
 
     u32 nbHardThreads = ocr_config_default_nb_hardware_threads;
     char * md_file = parseOcrOptions_MachineDescription(argc, argv);
@@ -86,7 +80,8 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
         nbHardThreads = MachineDescription_getNumHardwareThreads(md);
     }
 
-    //TODO this is to be obtained from some configuration file or command line
+    // This is the default policy
+    // TODO this should be declared in the default policy model
     size_t nb_workers = nbHardThreads;
     size_t nb_workpiles = nbHardThreads;
     size_t nb_executors = nbHardThreads;

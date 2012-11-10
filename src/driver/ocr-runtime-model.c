@@ -38,13 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-policy.h"
 #include "ocr-runtime-model.h"
 
-ocr_executor_kind ocr_executor_default_kind;
-ocr_worker_kind ocr_worker_default_kind;
-ocr_scheduler_kind ocr_scheduler_default_kind;
-ocr_policy_kind ocr_policy_default_kind;
-ocr_workpile_kind ocr_workpile_default_kind;
-u32 ocr_config_default_nb_hardware_threads;
-
 /**!
  * Helper function to build a module mapping
  */
