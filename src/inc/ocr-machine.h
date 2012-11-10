@@ -87,6 +87,11 @@ typedef struct {
 u32 MachineDescription_getNumProcessors(MachineDescription *this);
 
 /**
+   @brief Get the number of hardware threads in the platform.
+ **/
+u32 MachineDescription_getNumHardwareThreads(MachineDescription *this);
+
+/**
    @brief Get the number of distinct memory regions in the platform.
  **/
 u32 MachineDescription_getNumMemoryRegions(MachineDescription *this);
@@ -129,8 +134,6 @@ u32 * MachineDescription_closestMemoryRegionsToProcessor(MachineDescription *thi
           access each of the N memory regions.
  **/
 CostDescriptor ** MachineDescription_getFullCostMatrix(MachineDescription *this);
-
-int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFilename);
 
 /**
    @brief Get a pointer to the currently loaded machine description.
