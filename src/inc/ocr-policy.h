@@ -36,13 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-executor.h"
 #include "ocr-low-workers.h"
 
-/******************************************************/
-/* OCR POLICY DOMAIN KINDS                            */
-/******************************************************/
-
-typedef enum ocr_policy_kind_enum {
-    OCR_POLICY_HC = 1
-} ocr_policy_kind;
 
 /******************************************************/
 /* OCR POLICY DOMAIN INTERFACE                        */
@@ -76,16 +69,26 @@ typedef struct ocr_policy_domain_struct {
 
 } ocr_policy_domain_t;
 
+/**!
+ * Default destructor for ocr policy domain
+ */
+void ocr_policy_domain_destruct(ocr_policy_domain_t * policy);
 
 /******************************************************/
-/* OCR POLICY DOMAIN FACTORY                          */
+/* OCR POLICY DOMAIN KINDS AND CONSTRUCTORS           */
 /******************************************************/
+
+typedef enum ocr_policy_kind_enum {
+    OCR_POLICY_HC = 1
+} ocr_policy_kind;
 
 ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
         size_t nb_workpiles,
         size_t nb_workers,
         size_t nb_executors,
         size_t nb_scheduler);
+
+ ocr_policy_domain_t * hc_policy_domain_constructor();
 
 /**
  * Default values are set in ocrInit

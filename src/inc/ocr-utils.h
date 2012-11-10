@@ -32,6 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __OCR_UTILS_H__
 #define __OCR_UTILS_H__
 
+#include "ocr-types.h"
+
 /******************************************************/
 /* LOGGING FACILITY                                   */
 /******************************************************/
