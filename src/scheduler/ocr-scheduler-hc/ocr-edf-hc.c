@@ -179,7 +179,7 @@ hc_comm_task_t* hc_comm_task_cast_to_comm ( struct hc_task_base_struct_t* base )
     return (hc_comm_task_t*)base;
 }
 
-hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, event_list_t* el) {
+hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, void** paramv, event_list_t* el) {
     hc_task_t* derived = (hc_task_t*)malloc(sizeof(hc_task_t));
     derived->awaitList = hc_await_list_constructor_with_event_list(el);
     derived->nbdeps = 0;
@@ -198,7 +198,7 @@ hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, event_list_t* el
     return derived;
 }
 
-hc_task_t* hc_task_construct (ocrEdt_t funcPtr, size_t dep_list_size) {
+hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, void** paramv, size_t dep_list_size) {
     hc_task_t* derived = (hc_task_t*)malloc(sizeof(hc_task_t));
     derived->awaitList = hc_await_list_constructor(dep_list_size);
     derived->nbdeps = 0;
@@ -283,7 +283,7 @@ void hc_task_execute ( ocr_task_t* base ) {
         derived->depv[i].ptr = deguidify(curr->get(curr));
         curr = derived->awaitList->array[++i];
     };
-    derived->p_function(0, NULL, derived->nbdeps, derived->depv);
+    derived->p_function(base->paramc, base->paramv, derived->nbdeps, derived->depv);
 }
 
 void hc_task_add_dependency ( ocr_task_t* base, ocr_event_t* dep, size_t index ) {

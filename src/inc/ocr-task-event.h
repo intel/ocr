@@ -144,8 +144,8 @@ typedef struct ocr_event_factory_struct {
 } ocr_event_factory;
 
 struct ocr_task_factory_struct;
-typedef ocrGuid_t (*task_fact_create_with_event_list_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, event_list_t* al);
-typedef ocrGuid_t (*task_fact_create_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, size_t l_size);
+typedef ocrGuid_t (*task_fact_create_with_event_list_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, void** paramv, event_list_t* al);
+typedef ocrGuid_t (*task_fact_create_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, void** paramv, size_t l_size);
 typedef void (*task_fact_destruct_fct)(struct ocr_task_factory_struct* factory);
 
 /*! \brief Abstract factory class to create OCR tasks.
@@ -186,6 +186,9 @@ typedef void (*task_add_dependency_fct) ( struct ocr_task_struct_t* base, ocr_ev
  *  OCR tasks can be executed and can have their synchronization frontier furthered by Events.
  */
 typedef struct ocr_task_struct_t {
+    u32 paramc;
+    void ** paramv;
+
     /*! \brief Virtual destructor for the Task interface
      *  As this class does not have any state, the virtual destructor does not do anything
      */

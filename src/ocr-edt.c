@@ -55,7 +55,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
         u32 paramc, void** paramv,
         u16 properties, u32 depc, ocrGuid_t* depv /*= NULL*/) {
     //TODO LIMITATION handle pre-built dependence vector
-    *edtGuid = taskFactory->create(taskFactory, funcPtr, depc);
+    *edtGuid = taskFactory->create(taskFactory, funcPtr, paramc, paramv, depc);
     return 0;
 }
 
