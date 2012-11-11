@@ -77,7 +77,11 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
         //TODO need a file stat to check
         setMachineDescriptionFromPDL(md_file);
         MachineDescription * md = getMachineDescription();
-        nbHardThreads = MachineDescription_getNumHardwareThreads(md);
+        if (md == NULL) {
+            // Something went wrong when reading the machine description file
+        } else {
+            nbHardThreads = MachineDescription_getNumHardwareThreads(md);
+        }
     }
 
     // This is the default policy
