@@ -97,15 +97,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 }
 
 void ocrFinish() {
-    //TODO this is specific to how policies are stopped so it should
-    //go in ocr-policy.c, need to think about naming here
-
-    // Note: As soon as worker '0' is stopped its thread is
-    // free to fall-through in ocr_finalize() (see warning there)
-    size_t i;
-    for ( i = 0; i < root_policy->nb_workers; ++i ) {
-        root_policy->workers[i]->stop(root_policy->workers[i]);
-    }
+    root_policy->finish(root_policy);
 }
 
 void ocrCleanup() {
