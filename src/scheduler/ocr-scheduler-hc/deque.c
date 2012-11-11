@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hc_sysdep.h"
 
 void deque_init(deque_t * deq, void * init_value) {
+    deq->head = 0;
+    deq->tail = 0;
     deq->buffer = (buffer_t *) malloc(sizeof(buffer_t));
     deq->buffer->capacity = INIT_DEQUE_CAPACITY;
     deq->buffer->data = (volatile void **) malloc(sizeof(void*)*INIT_DEQUE_CAPACITY);
