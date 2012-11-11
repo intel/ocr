@@ -4,8 +4,7 @@ noinst_LTLIBRARIES += libocr_scheduler.la
 libocr_la_LIBADD += libocr_scheduler.la
 
 libocr_scheduler_la_SOURCES = \
-$(OCR_SRC_SCHEDULER)/ocr-scheduler.c \
-$(OCR_SRC_SCHEDULER)/ocr-workpile.c
+$(OCR_SRC_SCHEDULER)/ocr-scheduler.c
 libocr_scheduler_la_CFLAGS = $(AM_CFLAGS)
 
 #
@@ -15,11 +14,7 @@ noinst_LTLIBRARIES += libocr_scheduler_hc.la
 libocr_la_LIBADD += libocr_scheduler_hc.la
 
 libocr_scheduler_hc_la_SOURCES = \
-$(OCR_SRC_SCHEDULER)/ocr-scheduler-hc/ocr-executor-hc.c \ 
 $(OCR_SRC_SCHEDULER)/ocr-scheduler-hc/ocr-scheduler-hc.c \
-$(OCR_SRC_SCHEDULER)/ocr-scheduler-hc/ocr-edf-hc.c \
-$(OCR_SRC_SCHEDULER)/ocr-scheduler-hc/ocr-workpile-hc.c \ 
-$(OCR_SRC_SCHEDULER)/ocr-scheduler-hc/deque.c \
-$(OCR_SRC_SCHEDULER)/ocr-scheduler-hc/ocr-policy-hc.c
+$(OCR_SRC_SCHEDULER)/ocr-scheduler-hc/ocr-edf-hc.c
 
 libocr_scheduler_hc_la_CFLAGS = $(AM_CFLAGS)

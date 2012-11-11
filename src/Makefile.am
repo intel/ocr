@@ -17,6 +17,7 @@ include machine/Makefile.inc
 include policy/Makefile.inc
 include scheduler/Makefile.inc
 include utils/Makefile.inc
+include workpile/Makefile.inc
 
 # build the ocr runtime library
 libocr_la_SOURCES = ocr-runtime.c ocr-edt.c
