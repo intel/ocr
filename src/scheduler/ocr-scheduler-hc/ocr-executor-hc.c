@@ -38,7 +38,7 @@ void hc_ocr_module_map_worker_to_executors(void * self_module, ocr_module_kind k
     // Checking mapping conforms to what we're expecting in this implementation
     assert(kind == OCR_WORKER);
     assert(nb_instances == 1);
-    ocr_worker_t * worker = (ocr_worker_t *) ptr_instances;
+    ocr_worker_t * worker = (ocr_worker_t *) ptr_instances[0];
     ocr_executor_t * executor = (ocr_executor_t *) self_module;
     //TODO the routine thing is a hack. Threads should pick workers from a worker pool
     executor->routine = worker->routine;
