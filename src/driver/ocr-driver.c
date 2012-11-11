@@ -79,6 +79,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
         MachineDescription * md = getMachineDescription();
         if (md == NULL) {
             // Something went wrong when reading the machine description file
+            ocr_abort();
         } else {
             nbHardThreads = MachineDescription_getNumHardwareThreads(md);
         }
