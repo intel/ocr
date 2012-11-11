@@ -58,6 +58,7 @@ typedef struct {
 typedef struct {
     char *name;
     u32   mrIndex;
+    u64   size;
     void *address;  // is valid only if is_cache is false
     int   is_cache;
 } MemoryRegion;
@@ -95,6 +96,11 @@ u32 MachineDescription_getNumHardwareThreads(MachineDescription *this);
    @brief Get the number of distinct memory regions in the platform.
  **/
 u32 MachineDescription_getNumMemoryRegions(MachineDescription *this);
+
+/**
+   @brief Get the number of hardware threads in the platform.
+ **/
+u64 MachineDescription_getDramSize(MachineDescription *this);
 
 /**
    @brief Get information about one of the processors.

@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __OCR_WORKPILE_H_
 #define __OCR_WORKPILE_H_
 
+#include "ocr-guid.h"
 #include "ocr-runtime-def.h"
 
 

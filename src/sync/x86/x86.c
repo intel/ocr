@@ -31,9 +31,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
+#include <stdlib.h>
 
 #include "ocr-types.h"
 #include "x86.h"
+#include "debug.h"
 
 void createX86(ocrLock_t* self, void* config) {
     ocrLockX86_t *rself = (ocrLockX86_t*)self;

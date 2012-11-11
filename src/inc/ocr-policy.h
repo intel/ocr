@@ -40,13 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-datablock.h"
 #include "ocr-sync.h"
 
-/******************************************************/
-/* OCR POLICY DOMAIN KINDS                            */
-/******************************************************/
-
-typedef enum ocr_policy_kind_enum {
-    OCR_POLICY_HC = 1
-} ocr_policy_kind;
 
 /******************************************************/
 /* OCR POLICY DOMAIN INTERFACE                        */
@@ -85,10 +78,18 @@ typedef struct ocr_policy_domain_struct {
 
 } ocr_policy_domain_t;
 
+/**!
+ * Default destructor for ocr policy domain
+ */
+void ocr_policy_domain_destruct(ocr_policy_domain_t * policy);
 
 /******************************************************/
-/* OCR POLICY DOMAIN FACTORY                          */
+/* OCR POLICY DOMAIN KINDS AND CONSTRUCTORS           */
 /******************************************************/
+
+typedef enum ocr_policy_kind_enum {
+    OCR_POLICY_HC = 1
+} ocr_policy_kind;
 
 ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
         size_t nb_workpiles,
@@ -96,17 +97,6 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
         size_t nb_executors,
         size_t nb_scheduler);
 
-/**
- * Default values are set in ocrInit
- */
-extern ocr_executor_kind ocr_executor_default_kind;
-extern ocr_worker_kind ocr_worker_default_kind;
-extern ocr_scheduler_kind ocr_scheduler_default_kind;
-extern ocr_policy_kind ocr_policy_default_kind;
-extern ocr_workpile_kind ocr_workpile_default_kind;
-extern ocrAllocatorKind ocrAllocatorDefaultKind;
-extern ocrLowMemoryKind ocrLowMemoryDefaultKind;
-extern ocrDataBlockKind ocrDataBlockDefaultKind;
-extern ocrLockKind ocrLockDefaultKind;
+ ocr_policy_domain_t * hc_policy_domain_constructor();
 
 #endif /* OCR_POLICY_H_ */

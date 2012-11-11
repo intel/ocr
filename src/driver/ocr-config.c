@@ -29,39 +29,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef OCR_RUNTIME_DEF_H_
-#define OCR_RUNTIME_DEF_H_
+#include "ocr-config.h"
 
-typedef enum ocr_module_kind_enum {
-    OCR_WORKER = 0,
-    OCR_EXECUTOR = 1,
-    OCR_WORKPILE = 2,
-    OCR_SCHEDULER = 3,
-    OCR_ALLOCATOR = 4,
-    OCR_MEMORY = 5,
-    OCR_POLICY = 6,
-    OCR_EDT = 7,
-    OCR_EVENT = 8
-} ocr_module_kind;
+ocr_executor_kind ocr_executor_default_kind = OCR_EXECUTOR_HC;
+ocr_worker_kind ocr_worker_default_kind = OCR_WORKER_HC;
+ocr_scheduler_kind ocr_scheduler_default_kind = OCR_SCHEDULER_WST;
+ocr_policy_kind ocr_policy_default_kind = OCR_POLICY_HC;
+ocr_workpile_kind ocr_workpile_default_kind = OCR_DEQUE;
+ocrAllocatorKind ocrAllocatorDefaultKind = OCR_ALLOCATOR_TLSF;
+ocrLowMemoryKind ocrLowMemoryDefaultKind = OCR_LOWMEMORY_MALLOC;
+ocrDataBlockKind ocrDataBlockDefaultKind = OCR_DATABLOCK_REGULAR;
+ocrLockKind ocrLockDefaultKind = OCR_LOCK_X86;
 
-
-typedef enum ocr_module_mapping_kind_enum {
-    ONE_TO_ONE_MAPPING = 0,
-    MANY_TO_ONE_MAPPING = 1,
-    ONE_TO_MANY_MAPPING = 2
-} ocr_mapping_kind;
-
-typedef struct struct_ocr_module_mapping_t {
-    ocr_mapping_kind kind;
-    ocr_module_kind from;
-    ocr_module_kind to;
-} ocr_module_mapping_t;
-
-typedef void (*ocr_module_map_fct) (void * self_module, ocr_module_kind kind, size_t nb_instances, void ** ptr_instances);
-
-typedef struct struct_ocr_module_t {
-    ocr_module_map_fct map_fct;
-} ocr_module_t;
-
-
-#endif /* OCR_RUNTIME_DEF_H_ */
+u32 ocr_config_default_nb_hardware_threads = 8;
