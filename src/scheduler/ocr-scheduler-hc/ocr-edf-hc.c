@@ -64,7 +64,7 @@ ocrGuid_t hc_event_factory_create ( struct ocr_event_factory_struct* factory, oc
 
 struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool takesArg) {
     hc_event_t* derived = (hc_event_t*) malloc(sizeof(hc_event_t));
-    derived->datum = NULL_GUID;
+    derived->datum = UNINITIALIZED_GUID;
     derived->register_list = UNINITIALIZED_REGISTER_LIST;
     ocr_event_t* base = (ocr_event_t*)derived;
     base->destruct = hc_event_destructor;
@@ -81,13 +81,12 @@ void hc_event_destructor ( struct ocr_event_struct* base ) {
 
 ocrGuid_t hc_event_get (struct ocr_event_struct* event) {
     hc_event_t* derived = (hc_event_t*)event;
-    if ( derived->datum == NULL_GUID ) return ERROR_GUID;
+    if ( derived->datum == UNINITIALIZED_GUID ) return ERROR_GUID;
     return derived->datum;
 }
 
 register_list_node_t* hc_event_compete_for_put ( hc_event_t* derived, ocrGuid_t data_for_put_id ) {
-    assert ( data_for_put_id != NULL_GUID && EMPTY_DATUM_ERROR_MSG);
-    assert ( derived->datum == NULL_GUID && "violated single assignment property for EDFs");
+    assert ( derived->datum == UNINITIALIZED_GUID && "violated single assignment property for EDFs");
 
     volatile register_list_node_t* registerListOfEDF = NULL;
 

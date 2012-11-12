@@ -34,11 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ocr.h"
 
-u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
-    ocrEdtDep_t a = depv[0];
-    void * res = deguidify(a.guid);
-    printf("In the task_for_edt with value %d\n", (*(int*)res));
+int edtCalled = 0;
 
+u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+    edtCalled = 1;
     // This is the last EDT to execute, terminate
     ocrFinish();
     return 0;
@@ -65,6 +64,8 @@ int main (int argc, char ** argv) {
     ocrEdtSchedule(edt_guid);
 
     ocrCleanup();
+
+    assert(edtCalled == 1);
 
     return 0;
 }
