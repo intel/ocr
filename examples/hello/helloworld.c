@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //TODO need this because we don't use the user api yet
 #include "ocr-runtime.h"
 
-u8 task_for_edt ( u32 paramc, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtDep_t a = depv[0];
     void * res = deguidify(a.guid);
     printf("In the task_for_edt with value %d\n", (*(int*)res));
@@ -58,7 +58,7 @@ int main (int argc, char ** argv) {
 
     // Creates the EDT
     ocrGuid_t edt_guid;
-    ocrEdtCreate(&edt_guid, task_for_edt, 0, NULL, 0, 1, NULL);
+    ocrEdtCreate(&edt_guid, task_for_edt, 0, NULL, NULL, 0, 1, NULL);
 
     // Register a dependency between an event and an edt
     ocrAddDependency(event_guid, edt_guid, 0);
