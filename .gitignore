@@ -40,4 +40,11 @@ config
 ###################
 # OCR
 ###################
-ocr-hc-install
+ocr-install
+
+###################
+# Tests
+###################
+*.dSYM
+tests/tests-log
+tests/tests-bin

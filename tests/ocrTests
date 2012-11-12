@@ -59,6 +59,7 @@ fi
 export INCLUDES="-I${OCR_INSTALL}/include"
 export CFLAGS=" -Wall -g -Werror "
 export LDFLAGS="-L${OCR_INSTALL}/lib -locr"
+export OCR_TESTS_BIN_OUTPUT=
 
 #
 #checking options
@@ -210,16 +211,18 @@ function clean () {
 	cd -
 	return 0
 }
-	
+
 function compile () {
 	local FILE=$1
 	local FOLDER=$2
 
 	cd $FOLDER;
-	
-	echo "gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${LDFLAGS} ${FILE}"
-	gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${LDFLAGS} ${FILE}
-	RES=$?
+    NAME=
+    get_name ${FILE}
+    
+    echo "gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${LDFLAGS} ${FILE} -o ${BIN_GEN_DIR}/${NAME}"
+    gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${LDFLAGS} ${FILE} -o ${BIN_GEN_DIR}/${NAME}
+    RES=$?
 
 	rename_binary ${FILE}
 	
@@ -238,8 +241,8 @@ function run () {
 	get_name ${FILE}
 
 	cd $FOLDER;
-	echo "./${NAME} ${OCR_FLAGS}"
-	./${NAME} ${OCR_FLAGS}
+	echo "${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}"
+	${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}
 	RES=$?
 	cd -;
 
@@ -835,6 +838,20 @@ function runTests () {
 		echo "Creating log dir ${LOG_DIR}"
 		mkdir ${LOG_DIR}
 	fi
+	
+	   if [ -z ${BIN_GEN_DIR} ]; then
+        BIN_GEN_DIR=`pwd`/tests-bin
+    fi
+
+    if [ -d ${BIN_GEN_DIR} ]; then
+        echo "Erasing bin dir ${BIN_GEN_DIR}"
+        rm -rf ${BIN_GEN_DIR}
+    fi
+    
+    if [ ! -d ${BIN_GEN_DIR} ]; then
+        echo "Creating bin dir ${BIN_GEN_DIR}"
+        mkdir ${BIN_GEN_DIR}
+    fi
 
 	# If no unstable file is provided as argument
 	# Check if default unstable file exists
