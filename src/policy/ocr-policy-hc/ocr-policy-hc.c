@@ -27,7 +27,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-*/
+ */
 
 #include "hc.h"
 #include "ocr-policy.h"
@@ -74,6 +74,15 @@ void hc_policy_domain_start(ocr_policy_domain_t * policy) {
     associate_executor_and_worker(policy->workers[0]);
 }
 
+void hc_policy_domain_finish(ocr_policy_domain_t * policy) {
+    // Note: As soon as worker '0' is stopped its thread is
+    // free to fall-through in ocr_finalize() (see warning there)
+    size_t i;
+    for ( i = 0; i < policy->nb_workers; ++i ) {
+        policy->workers[i]->stop(policy->workers[i]);
+    }
+}
+
 void hc_policy_domain_stop(ocr_policy_domain_t * policy) {
     // Current thread is thread '0' mapped to worker '0'
     // Now that the thread went through all the user code it
@@ -110,6 +119,7 @@ ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
     policy->nb_schedulers = nb_schedulers;
     policy->create = hc_policy_domain_create;
     policy->start = hc_policy_domain_start;
+    policy->finish = hc_policy_domain_finish;
     policy->stop = hc_policy_domain_stop;
     policy->destruct = hc_policy_domain_destruct;
     return policy;

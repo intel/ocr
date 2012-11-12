@@ -67,9 +67,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define log_worker(level, fmt, ...) ocr_log(WORKER, level, fmt, __VA_ARGS__)
 
+
+/******************************************************/
+/*  ABORT / EXIT OCR                                  */
+/******************************************************/
+
+void ocr_abort();
+
+void ocr_exit();
+
+
 /******************************************************/
 /* BITVECTOR OPERATIONS                               */
 /******************************************************/
+
+/**
+ * @brief Bit operations used to manipulate bit
+ * vectors. Currently used in the regular
+ * implementation of data-blocks
+ */
+
 
 /**
  * @brief Finds the position of the MSB that

@@ -36,6 +36,7 @@
 #include <libxml/parser.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 MachineDescription * g_MachineDescription = NULL;
 
@@ -286,6 +287,13 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
     xmlDocPtr doc;
     xmlNodePtr cur, start;
     unsigned i, j;
+
+    struct stat buf;
+    int file_exists = stat(pdlFilename, &buf);
+    if (file_exists != 0) {
+        printf("Cannot find machine description file '%s'\n", pdlFilename);
+        return 1;
+    }
 
     doc = xmlParseFile(pdlFilename);
     if(doc == NULL) {
@@ -649,7 +657,11 @@ void setMachineDescriptionFromPDL(const char *pdlFilename) {
         exit(-1);
     } else {
         g_MachineDescription = (MachineDescription*)malloc(sizeof(MachineDescription));
-        MachineDescription_loadFromPDL(g_MachineDescription,pdlFilename);
+        int ret = MachineDescription_loadFromPDL(g_MachineDescription,pdlFilename);
+        if (ret != 0) {
+            free(g_MachineDescription);
+            g_MachineDescription = NULL;
+        }
     }
 }
 

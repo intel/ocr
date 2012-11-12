@@ -53,6 +53,7 @@ typedef void (*ocr_policy_create_fct) (struct ocr_policy_domain_struct * policy,
                                        ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
                                        ocrAllocator_t ** allocators, ocrLowMemory_t ** memories);
 typedef void (*ocr_policy_start_fct) (struct ocr_policy_domain_struct * policy);
+typedef void (*ocr_policy_finish_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_stop_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_destruct_fct) (struct ocr_policy_domain_struct * policy);
 
@@ -73,6 +74,7 @@ typedef struct ocr_policy_domain_struct {
 
     ocr_policy_create_fct create;
     ocr_policy_start_fct start;
+    ocr_policy_finish_fct finish;
     ocr_policy_stop_fct stop;
     ocr_policy_destruct_fct destruct;
 

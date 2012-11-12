@@ -31,9 +31,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
+#include <stdlib.h>
+
 #include "ocr-utils.h"
 #include "ocr-types.h"
 #include "debug.h"
+
+
+/******************************************************/
+/*  ABORT / EXIT OCR                                  */
+/******************************************************/
+
+void ocr_abort() {
+    abort();
+}
+
+void ocr_exit() {
+    exit(1);
+}
+
 
 u32 fls16(u16 val) {
     u32 bit = 15;
