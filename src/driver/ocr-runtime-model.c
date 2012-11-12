@@ -160,7 +160,6 @@ static void resolve_module_instances(ocr_module_kind kind, size_t nb_module_kind
     assert(false && "Cannot resolve modules instances");
 }
 
-
 /**
  * Default policy has one scheduler and a configurable
  * number of workers, executors and workpiles
@@ -208,7 +207,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
             (ocr_model_t *) malloc(sizeof(ocr_model_t));
     defaultWorkpile->kind = ocr_workpile_default_kind;
     defaultWorkpile->nb_instances = nb_workpiles;
-    defaultWorker->configuration = NULL;
+    defaultWorkpile->configuration = NULL;
     defaultPolicy->workpiles = defaultWorkpile;
 
     // Defines how ocr modules are bound together
@@ -384,6 +383,7 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
     // Create Workers
     for(type = 0, idx=0; type < nb_worker_types; type++) {
         size_t nb_instances = model->workers[type].nb_instances;
+        model->workers[type].configuration = policyDomain;
         for(instance = 0; instance < nb_instances; instance++) {
             all_workers[idx] = newWorker(model->workers[type].kind);
             idx++;

@@ -81,6 +81,15 @@ typedef ocrGuid_t (*ocr_worker_getCurrentPolicyDomain)(struct ocr_worker_struct 
  */
 typedef ocrGuid_t (*ocr_worker_getCurrentEDT)(struct ocr_worker_struct *base);
 
+/**
+ * @brief Sets the EDT this worker is currently running
+ *
+ * @param base              OCR Worker
+ * @param currEDT           GUID of the EDT this OCR Worker is now running
+ * @return GUID for the currently running EDT
+ */
+typedef void (*ocr_worker_set_currentEDT)(struct ocr_worker_struct *base, ocrGuid_t currEDT);
+
 typedef struct ocr_worker_struct {
     ocr_module_t module;
     ocr_scheduler_t * scheduler;
@@ -92,6 +101,7 @@ typedef struct ocr_worker_struct {
     ocr_worker_is_running is_running;
     ocr_worker_getCurrentPolicyDomain getCurrentPolicyDomain;
     ocr_worker_getCurrentEDT getCurrentEDT;
+    ocr_worker_set_currentEDT setCurrentEDT;
 } ocr_worker_t;
 
 /*! \brief Getter for Worker id member field

@@ -57,7 +57,7 @@ typedef void (*ocr_policy_start_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_finish_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_stop_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_destruct_fct) (struct ocr_policy_domain_struct * policy);
-typedef ocrGuid_t (ocr_policy_getAllocator)(struct ocr_policy_domain_struct *policy, ocrLocation_t location);
+typedef ocrGuid_t (*ocr_policy_getAllocator)(struct ocr_policy_domain_struct *policy, ocrLocation_t* location);
 
 typedef struct ocr_policy_domain_struct {
     int nb_schedulers;
@@ -79,6 +79,7 @@ typedef struct ocr_policy_domain_struct {
     ocr_policy_finish_fct finish;
     ocr_policy_stop_fct stop;
     ocr_policy_destruct_fct destruct;
+    ocr_policy_getAllocator getAllocator;
 
 } ocr_policy_domain_t;
 

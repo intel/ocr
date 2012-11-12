@@ -107,6 +107,10 @@ void hc_policy_domain_destruct(ocr_policy_domain_t * policy) {
     eventFactory->destruct(eventFactory);
 }
 
+ocrGuid_t hc_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* location) {
+    return guidify((ocrAllocator_t *)(policy->allocators[0]));
+}
+
 ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
         size_t nb_workers,
         size_t nb_executors,
@@ -122,5 +126,6 @@ ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
     policy->finish = hc_policy_domain_finish;
     policy->stop = hc_policy_domain_stop;
     policy->destruct = hc_policy_domain_destruct;
+    policy->getAllocator = hc_policy_getAllocator;
     return policy;
 }
