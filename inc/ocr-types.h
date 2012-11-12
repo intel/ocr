@@ -57,7 +57,7 @@ typedef u8 bool;
 typedef intptr_t ocrGuid_t;
 //typedef u64 ocrGuid_t;
 
-#define INVALID_GUID (u64)0x0;
+#define INVALID_GUID (u64)0x0
 
 /**
  * @brief Description of a "location" for OCR
