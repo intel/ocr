@@ -988,7 +988,7 @@ void tlsfCreate(ocrAllocator_t *self, u64 size, void* config) {
     ASSERT(rself->numMemories == 0ULL && rself->memories == NULL);
     rself->addr = rself->poolAddr = 0ULL;
     rself->totalSize = rself->poolSize = size;
-    rself->lock->create(rself->lock);
+    rself->lock->create(rself->lock, NULL); //TODO sagnak NULL is for config?
 }
 
 void tlsfDestruct(ocrAllocator_t *self) {

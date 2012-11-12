@@ -46,7 +46,7 @@ void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
     rself->ptr = allocator->allocate(allocator, size);
     rself->allocatorGuid = allocatorGuid;
     rself->size = size;
-    rself->lock->create(rself->lock);
+    rself->lock->create(rself->lock, NULL); // TODO sagnak NULL is for config?
     rself->attributes.flags = flags;
     rself->attributes.numUsers = 0;
     rself->attributes.freeRequested = 0;
@@ -63,7 +63,7 @@ void regularDestruct(ocrDataBlock_t *self) {
 
     // Tell the allocator to free the data-block
     ocrAllocator_t *allocator = (ocrAllocator_t*)deguidify(rself->allocatorGuid);
-    allocator->free(rself->allocator, rself->ptr);
+    allocator->free(allocator, rself->ptr); // TODO sagnak first argument was rself->allocator
 
     free(rself);
 }
