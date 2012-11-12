@@ -43,7 +43,7 @@ typedef struct {
     ocrAllocator_t base;
     ocrLowMemory_t **memories;
     u64 numMemories, addr, totalSize, poolAddr, poolSize;
-    ocrLock_t lock; /**< Currently needs a lock. The idea is to have multiple allocators but currently only one */
+    ocrLock_t* lock; /**< Currently needs a lock. The idea is to have multiple allocators but currently only one */
 
 } ocrAllocatorTlsf_t;
 
