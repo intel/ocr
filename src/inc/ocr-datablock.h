@@ -58,12 +58,12 @@ typedef struct _ocrDataBlock_t {
      * meta-data associated with the data-block and gets a GUID for it
      *
      * @param self          Pointer for this data-block
-     * @param allocator     Allocator from where this data-block was created
+     * @param allocator     Allocator from where this data-block was created (its GUID)
      * @param size          Size in bytes of the data-block
      * @param flags         Data-block flags (unused)
      */
     void (*create)(struct _ocrDataBlock_t *self,
-                   ocrAllocator_t* allocator,
+                   ocrGuid_t allocator,
                    u64 size, u16 flags, void* configuration);
 
     /**

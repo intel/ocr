@@ -34,6 +34,8 @@
 #include "ocr-db.h"
 #include "ocr-datablock.h"
 #include "ocr-allocator.h"
+#include "ocr-low-workers.h"
+#include "ocr-policy.h"
 #include "debug.h"
 #include <errno.h>
 
@@ -42,12 +44,18 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 
     // TODO: Currently location and allocator are ignored
     ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_DEFAULT);
+
     // TODO: I need to get the current policy to figure out my allocator.
     // Replace with allocator that is gotten from policy
 
-    createdDb->create(createdDb, NULL, len, flags, NULL);
-    // Now get the EDT as well
-    *addr = createdDb->acquire(createdDb, INVALID_GUID, false);
+    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+    ocr_worker_t *worker = (ocr_worker_t*)deguidify(workerGuid);
+
+    ocr_policy_domain_t *policy = (ocr_policy_domain_t*)deguidify(worker->getCurrentPolicyDomain(worker));
+
+    createdDb->create(createdDb, policy->getAllocator(policy, location), len, flags, NULL);
+
+    *addr = createdDb->acquire(createdDb, worker->getCurrentEDT(worker), false);
     if(*addr == NULL) return ENOMEM;
     *db = guidify(createdDb);
     return 0;
@@ -55,21 +63,30 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 
 u8 ocrDbDestroy(ocrGuid_t db) {
     ocrDataBlock_t *dataBlock = (ocrDataBlock_t*)deguidify(db);
-    // Get the current EDT
-    u8 status = dataBlock->free(dataBlock, INVALID_GUID);
+
+    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+    ocr_worker_t *worker = (ocr_worker_t*)deguidify(workerGuid);
+    u8 status = dataBlock->free(dataBlock, worker->getCurrentEDT(worker));
     return status;
 }
 
 u8 ocrDbAcquire(ocrGuid_t db, void** addr, u16 flags) {
     ocrDataBlock_t *dataBlock = (ocrDataBlock_t*)deguidify(db);
-    *addr = dataBlock->acquire(dataBlock, INVALID_GUID, false);
+
+    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+    ocr_worker_t *worker = (ocr_worker_t*)deguidify(workerGuid);
+    *addr = dataBlock->acquire(dataBlock, worker->getCurrentEDT(worker), false);
     if(*addr == NULL) return EPERM;
     return 0;
 }
 
 u8 ocrDbRelease(ocrGuid_t db) {
     ocrDataBlock_t *dataBlock = (ocrDataBlock_t*)deguidify(db);
-    return dataBlock->release(dataBlock, INVALID_GUID, false);
+
+    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+    ocr_worker_t *worker = (ocr_worker_t*)deguidify(workerGuid);
+
+    return dataBlock->release(dataBlock, worker->getCurrentEDT(worker), false);
 }
 
 u8 ocrDbMalloc(ocrGuid_t guid, u64 size, void** addr) {

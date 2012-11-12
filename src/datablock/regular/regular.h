@@ -56,7 +56,7 @@ typedef struct _ocrDataBlockRegular_t {
 
     /* Data for the data-block */
     void* ptr; /**< Current address for this data-block */
-    ocrAllocator_t* allocator; /**< Current allocator that this data-block belongs to. */
+    ocrGuid_t allocatorGuid; /**< Current allocator that this data-block belongs to. */
     u32 size; /**< Current size for this data-block */
     ocrLock_t* lock; /**< Lock for this data-block */
     ocrDataBlockRegularAttr_t attributes; /**< Attributes for this data-block */

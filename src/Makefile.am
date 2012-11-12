@@ -1,10 +1,10 @@
-SUBDIRS = 
+SUBDIRS =
 
-# Includes folder we need when compiling ocr 
+# Includes folder we need when compiling ocr
 OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/hc
 
 # cflags for ocr modules
-OCR_CFLAGS = -Wall -g
+OCR_CFLAGS = -Wall -g -O0
 
 # Standard am options all the submodules can grab
 OCR_AM_CFLAGS = $(OCR_INCLUDES_DIR) $(OCR_CFLAGS)
@@ -12,7 +12,7 @@ OCR_AM_CFLAGS = $(OCR_INCLUDES_DIR) $(OCR_CFLAGS)
 # Add warning treated as errors for standard ocr modules build
 # For modules that do need to bypass this, just use the
 # OCR_AM_CFLAGS variable
-AM_CFLAGS = $(OCR_AM_CFLAGS) -Werror 
+AM_CFLAGS = $(OCR_AM_CFLAGS) -Werror
 
 lib_LTLIBRARIES = libocr.la
 
