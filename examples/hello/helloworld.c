@@ -37,6 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //TODO need this because we don't use the user api yet
 #include "ocr-runtime.h"
 
+#define FLAGS 0xdeadbeef
+
 u8 task_for_edt ( u32 paramc, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtDep_t a = depv[0];
     void * res = deguidify(a.guid);
@@ -63,10 +65,11 @@ int main (int argc, char ** argv) {
     // Register a dependency between an event and an edt
     ocrAddDependency(event_guid, edt_guid, 0);
 
+
     int *k = (int *) malloc(sizeof(int));
     *k = 42;
-    void *db = (void*) k;
-    ocrGuid_t db_guid = guidify(db);
+    ocrGuid_t db_guid;
+    ocrDbCreate( &db_guid, &k, sizeof(int), FLAGS );
     ocrEventSatisfy(event_guid, db_guid);
 
     ocrEdtSchedule(edt_guid);
