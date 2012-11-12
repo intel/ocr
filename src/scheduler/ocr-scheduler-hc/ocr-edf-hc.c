@@ -171,33 +171,32 @@ void hc_await_list_destructor( hc_await_list_t* derived ) {
     free(derived);
 }
 
-hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, void** paramv, event_list_t* el) {
-    hc_task_t* derived = (hc_task_t*)malloc(sizeof(hc_task_t));
-    derived->awaitList = hc_await_list_constructor_with_event_list(el);
+static void hc_task_construct_internal (hc_task_t* derived, ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv) {
     derived->nbdeps = 0;
     derived->depv = NULL;
     derived->p_function = funcPtr;
     ocr_task_t* base = (ocr_task_t*) derived;
+    base->paramc = paramc;
+    base->params = params;
+    base->paramv = paramv;
     base->destruct = hc_task_destruct;
     base->iterate_waiting_frontier = hc_task_iterate_waiting_frontier;
     base->execute = hc_task_execute;
     base->schedule = hc_task_schedule;
     base->add_dependency = hc_task_add_dependency;
+}
+
+hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv, event_list_t* el) {
+    hc_task_t* derived = (hc_task_t*)malloc(sizeof(hc_task_t));
+    derived->awaitList = hc_await_list_constructor_with_event_list(el);
+    hc_task_construct_internal(derived, funcPtr, paramc, params, paramv);
     return derived;
 }
 
-hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, void** paramv, size_t dep_list_size) {
+hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv, size_t dep_list_size) {
     hc_task_t* derived = (hc_task_t*)malloc(sizeof(hc_task_t));
     derived->awaitList = hc_await_list_constructor(dep_list_size);
-    derived->nbdeps = 0;
-    derived->depv = NULL;
-    derived->p_function = funcPtr;
-    ocr_task_t* base = (ocr_task_t*) derived;
-    base->destruct = hc_task_destruct;
-    base->iterate_waiting_frontier = hc_task_iterate_waiting_frontier;
-    base->execute = hc_task_execute;
-    base->schedule = hc_task_schedule;
-    base->add_dependency = hc_task_add_dependency;
+    hc_task_construct_internal(derived, funcPtr, paramc, params, paramv);
     return derived;
 }
 
@@ -247,7 +246,7 @@ void hc_task_execute ( ocr_task_t* base ) {
         derived->depv[i].ptr = deguidify(curr->get(curr));
         curr = derived->awaitList->array[++i];
     };
-    derived->p_function(base->paramc, base->paramv, derived->nbdeps, derived->depv);
+    derived->p_function(base->paramc, base->params, base->paramv, derived->nbdeps, derived->depv);
 }
 
 void hc_task_add_dependency ( ocr_task_t* base, ocr_event_t* dep, size_t index ) {

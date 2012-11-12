@@ -52,10 +52,10 @@ u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
 }
 
 u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
-        u32 paramc, void** paramv,
+        u32 paramc, u64 * params, void** paramv,
         u16 properties, u32 depc, ocrGuid_t* depv /*= NULL*/) {
     //TODO LIMITATION handle pre-built dependence vector
-    *edtGuid = taskFactory->create(taskFactory, funcPtr, paramc, paramv, depc);
+    *edtGuid = taskFactory->create(taskFactory, funcPtr, paramc, params, paramv, depc);
     return 0;
 }
 

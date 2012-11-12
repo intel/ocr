@@ -144,7 +144,7 @@ typedef struct {
  *                        was used as a dependency
  * @return Error code (0 on success)
  **/
-typedef u8 (*ocrEdt_t )( u32 paramc, void* paramv[],
+typedef u8 (*ocrEdt_t )( u32 paramc, u64 * params, void* paramv[],
                          u32 depc, ocrEdtDep_t depv[]);
 
 /**
@@ -161,7 +161,7 @@ typedef u8 (*ocrEdt_t )( u32 paramc, void* paramv[],
  * @return 0 on success and an error code on failure: TODO
  **/
 u8 ocrEdtCreate(ocrGuid_t * guid, ocrEdt_t funcPtr,
-                u32 paramc, void** paramv,
+                u32 paramc, u64 * params, void** paramv,
                 u16 properties, u32 depc, ocrGuid_t * depv);
 
 /**
