@@ -48,3 +48,4 @@ ocr-install
 *.dSYM
 tests/tests-log
 tests/tests-bin
+examples/tests-log
