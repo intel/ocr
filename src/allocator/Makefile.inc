@@ -12,4 +12,7 @@ libocr_la_LIBADD += libocr_allocator_tlsf.la
 
 libocr_allocator_tlsf_la_SOURCES = \
 $(OCR_SRC_ALLOCATOR)/tlsf/tlsf-allocator.c
-libocr_allocator_tlsf_la_CFLAGS = $(AM_CFLAGS)
+
+# bypass -Werror from top-level makefile to pass 
+# compilation on 32 bits systems
+libocr_allocator_tlsf_la_CFLAGS = $(AM_OCR_CFLAGS)
