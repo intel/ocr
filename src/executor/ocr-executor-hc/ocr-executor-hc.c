@@ -29,49 +29,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <assert.h>
 
-#include "ocr.h"
+#include "ocr-executor.h"
 
-//TODO need this because we don't use the user api yet
-#include "ocr-runtime.h"
-
-u8 task_for_edt ( u32 paramc, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
-    ocrEdtDep_t a = depv[0];
-    void * res = deguidify(a.guid);
-    printf("In the task_for_edt with value %d\n", (*(int*)res));
-
-    // This is the last EDT to execute, terminate
-    ocrFinish();
-    return 0;
+void hc_ocr_module_map_worker_to_executors(void * self_module, ocr_module_kind kind,
+        size_t nb_instances, void ** ptr_instances) {
+    // Checking mapping conforms to what we're expecting in this implementation
+    assert(kind == OCR_WORKER);
+    assert(nb_instances == 1);
+    ocr_worker_t * worker = (ocr_worker_t *) ptr_instances[0];
+    ocr_executor_t * executor = (ocr_executor_t *) self_module;
+    //TODO the routine thing is a hack. Threads should pick workers from a worker pool
+    executor->routine = worker->routine;
+    executor->routine_arg = worker;
 }
 
-int main (int argc, char ** argv) {
-    ocrEdt_t fctPtrArray [1];
-    fctPtrArray[0] = &task_for_edt;
-    ocrInit(&argc, argv, 1, fctPtrArray);
-
-    // Current thread is '0' and goes on with user code.
-    ocrGuid_t event_guid;
-    ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true);
-
-    // Creates the EDT
-    ocrGuid_t edt_guid;
-    ocrEdtCreate(&edt_guid, task_for_edt, 0, NULL, 0, 1, NULL);
-
-    // Register a dependency between an event and an edt
-    ocrAddDependency(event_guid, edt_guid, 0);
-
-    int *k = (int *) malloc(sizeof(int));
-    *k = 42;
-    void *db = (void*) k;
-    ocrGuid_t db_guid = guidify(db);
-    ocrEventSatisfy(event_guid, db_guid);
-
-    ocrEdtSchedule(edt_guid);
-
-    ocrCleanup();
-
-    return 0;
+ocr_executor_t * ocr_executor_hc_constructor() {
+    ocr_executor_t * executor = ocr_executor_pthread_constructor();
+    ((ocr_module_t *) executor)->map_fct = hc_ocr_module_map_worker_to_executors;
+    return executor;
 }

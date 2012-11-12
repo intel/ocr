@@ -1,6 +1,18 @@
 SUBDIRS = 
  
-AM_CFLAGS = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/hc -Werror -Wall -g
+# Includes folder we need when compiling ocr 
+OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/hc
+
+# cflags for ocr modules
+OCR_CFLAGS = -Wall -g
+
+# Standard am options all the submodules can grab
+OCR_AM_CFLAGS = $(OCR_INCLUDES_DIR) $(OCR_CFLAGS)
+
+# Add warning treated as errors for standard ocr modules build
+# For modules that do need to bypass this, just use the
+# OCR_AM_CFLAGS variable
+AM_CFLAGS = $(OCR_AM_CFLAGS) -Werror 
 
 lib_LTLIBRARIES = libocr.la
 
@@ -13,9 +25,11 @@ include driver/Makefile.inc
 include executor/Makefile.inc
 include guid/Makefile.inc
 include low-workers/Makefile.inc
+include machine/Makefile.inc
 include policy/Makefile.inc
 include scheduler/Makefile.inc
 include utils/Makefile.inc
+include workpile/Makefile.inc
 
 # build the ocr runtime library
 libocr_la_SOURCES = ocr-runtime.c ocr-edt.c

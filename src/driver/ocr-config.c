@@ -29,24 +29,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <assert.h>
+#include "ocr-config.h"
 
-#include "ocr-executor.h"
+//ocr_executor_kind ocr_executor_default_kind;
+//ocr_worker_kind ocr_worker_default_kind;
+//ocr_scheduler_kind ocr_scheduler_default_kind;
+//ocr_policy_kind ocr_policy_default_kind;
+//ocr_workpile_kind ocr_workpile_default_kind;
+//u32 ocr_config_default_nb_hardware_threads;
 
-void hc_ocr_module_map_worker_to_executors(void * self_module, ocr_module_kind kind,
-        size_t nb_instances, void ** ptr_instances) {
-    // Checking mapping conforms to what we're expecting in this implementation
-    assert(kind == OCR_WORKER);
-    assert(nb_instances == 1);
-    ocr_worker_t * worker = (ocr_worker_t *) ptr_instances;
-    ocr_executor_t * executor = (ocr_executor_t *) self_module;
-    //TODO the routine thing is a hack. Threads should pick workers from a worker pool
-    executor->routine = worker->routine;
-    executor->routine_arg = worker;
-}
-
-ocr_executor_t * ocr_executor_hc_constructor() {
-    ocr_executor_t * executor = ocr_executor_pthread_constructor();
-    ((ocr_module_t *) executor)->map_fct = hc_ocr_module_map_worker_to_executors;
-    return executor;
-}
+ocr_executor_kind ocr_executor_default_kind = OCR_EXECUTOR_HC;
+ocr_worker_kind ocr_worker_default_kind = OCR_WORKER_HC;
+ocr_scheduler_kind ocr_scheduler_default_kind = OCR_SCHEDULER_WST;
+ocr_policy_kind ocr_policy_default_kind = OCR_POLICY_HC;
+ocr_workpile_kind ocr_workpile_default_kind = OCR_DEQUE;
+u32 ocr_config_default_nb_hardware_threads = 8;

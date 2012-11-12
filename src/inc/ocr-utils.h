@@ -67,6 +67,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define log_worker(level, fmt, ...) ocr_log(WORKER, level, fmt, __VA_ARGS__)
 
+/******************************************************/
+/*  ABORT / EXIT OCR                                  */
+/******************************************************/
+
+void ocr_abort();
+
+void ocr_exit();
+
 /**
  * @brief Bit operations used to manipulate bit
  * vectors. Currently used in the regular

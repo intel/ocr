@@ -85,23 +85,10 @@ typedef struct {
 hc_await_list_t* hc_await_list_constructor( size_t al_size );
 void hc_await_list_destructor(hc_await_list_t*);
 
-struct hc_task_base_struct_t; 
-struct hc_comm_task_struct_t;
-typedef struct hc_comm_task_struct_t* (*task_cast_to_comm_fct) ( struct hc_task_base_struct_t* base );
-
-typedef struct hc_task_base_struct_t {
-    ocr_task_t base;
-    task_cast_to_comm_fct cast_to_comm;
-} hc_task_base_t;
-
-typedef struct hc_comm_task_struct_t {
-    hc_task_base_t hc_base;
-} hc_comm_task_t;
-
 /*! \brief Event Driven Task(EDT) implementation for OCR Tasks
 */
 typedef struct hc_task_struct_t {
-    hc_task_base_t hc_base;
+    ocr_task_t base;
     hc_await_list_t* awaitList;
     size_t nbdeps;
     ocrEdtDep_t * depv;

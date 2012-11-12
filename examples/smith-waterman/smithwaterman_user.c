@@ -1,37 +1,5 @@
-/* Copyright (c) 2012, Rice University
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-1.  Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-2.  Redistributions in binary form must reproduce the above
-     copyright notice, this list of conditions and the following
-     disclaimer in the documentation and/or other materials provided
-     with the distribution.
-3.  Neither the name of Intel Corporation
-     nor the names of its contributors may be used to endorse or
-     promote products derived from this software without specific
-     prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
-
 #include "ocr.h"
 
 //TODO need this because we don't use the user api yet
@@ -41,6 +9,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TRANSITION_PENALTY -2
 #define TRANSVERSION_PENALTY -4
 #define MATCH 2
+
+#define FLAGS 0xdeadbeef
+#define PROPERTIES 0xdead
 
 enum Nucleotide {GAP=0, ADENINE, CYTOSINE, GUANINE, THYMINE};
 
@@ -100,16 +71,12 @@ typedef struct {
     ocrGuid_t bottom_row_event_guid;
     ocrGuid_t right_column_event_guid;
     ocrGuid_t bottom_right_event_guid;
-
-    void * bottom_row;
-    void * right_column;
-    void * bottom_right;
 } Tile_t;
 
-
-u8 smith_waterman_task ( u32 argc, void** argv, u32 n_dbs, ocrEdtDep_t* dbs ) {
+u8 smith_waterman_task ( u32 paramc, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     int index, ii, jj;
-    void* func_args_db = (void*)(dbs[3].ptr);
+
+    void* func_args_db = (void*)(depv[3].ptr);
     intptr_t *func_args = (intptr_t *)func_args_db;
     int i = (int) func_args[0];
     int j = (int) func_args[1];
@@ -121,13 +88,21 @@ u8 smith_waterman_task ( u32 argc, void** argv, u32 n_dbs, ocrEdtDep_t* dbs ) {
     int n_tiles_height = (int) func_args[7];
     int n_tiles_width = (int)func_args[8];
 
-    void* left_tile_right_column_db = (void*)(dbs[0].ptr);
-    void* above_tile_bottom_row_db = (void*)(dbs[1].ptr);
-    void* diagonal_tile_bottom_right_db = (void*)(dbs[2].ptr);
+    /* TODO should rather be
+    int i = (int) paramv[0];
+    int j = (int) paramv[1];
+    int tile_width = (int) paramv[2];
+    int tile_height = (int) paramv[3];
+    Tile_t** tile_matrix = (Tile_t**) paramv[4];
+    signed char* string_1 = (signed char* ) paramv[5];
+    signed char* string_2 = (signed char* ) paramv[6];
+    int n_tiles_height = (int) paramv[7];
+    int n_tiles_width = (int)paramv[8];
+    */
 
-    int* left_tile_right_column = (int *) left_tile_right_column_db;
-    int* above_tile_bottom_row = (int *) above_tile_bottom_row_db;
-    int* diagonal_tile_bottom_right = (int *) diagonal_tile_bottom_right_db;
+    int* left_tile_right_column = (int *) depv[0].ptr;
+    int* above_tile_bottom_row = (int *) depv[1].ptr;
+    int* diagonal_tile_bottom_right = (int *) depv[2].ptr;
 
     int  * curr_tile_tmp = (int*)malloc(sizeof(int)*(1+tile_width)*(1+tile_height));
     int ** curr_tile = (int**)malloc(sizeof(int*)*(1+tile_height));
@@ -158,33 +133,37 @@ u8 smith_waterman_task ( u32 argc, void** argv, u32 n_dbs, ocrEdtDep_t* dbs ) {
         }
     }
 
-    int* curr_bottom_right = (int*)malloc(sizeof(int));
+    ocrGuid_t db_guid_i_j_br;
+    void* db_guid_i_j_br_data;
+    ocrDbCreate( &db_guid_i_j_br, &db_guid_i_j_br_data, sizeof(int), FLAGS );
+
+    int* curr_bottom_right = (int*)db_guid_i_j_br_data;
     curr_bottom_right[0] = curr_tile[tile_height][tile_width];
+    ocrEventCreate(&(tile_matrix[i][j].bottom_right_event_guid), OCR_EVENT_STICKY_T, true);
+    ocrEventSatisfy(tile_matrix[i][j].bottom_right_event_guid, db_guid_i_j_br);
 
-    ocr_event_t* t_i_j_br = (ocr_event_t *) deguidify(tile_matrix[i][j].bottom_right_event_guid);
-    void *db_i_j_br = (void*) curr_bottom_right;
-    ocrGuid_t db_guid_i_j_br = guidify(db_i_j_br);
-    t_i_j_br->put(t_i_j_br, db_guid_i_j_br);
+    ocrGuid_t db_guid_i_j_rc;
+    void* db_guid_i_j_rc_data;
+    ocrDbCreate( &db_guid_i_j_rc, &db_guid_i_j_rc_data, sizeof(int)*tile_height, FLAGS );
 
-    int* curr_right_column = (int*)malloc(sizeof(int)*tile_height);
+    int* curr_right_column = (int*)db_guid_i_j_rc_data;
     for ( index = 0; index < tile_height; ++index ) {
         curr_right_column[index] = curr_tile[index+1][tile_width];
     }
+    ocrEventCreate(&(tile_matrix[i][j].right_column_event_guid), OCR_EVENT_STICKY_T, true);
+    ocrEventSatisfy(tile_matrix[i][j].right_column_event_guid, db_guid_i_j_rc);
 
-    ocr_event_t* t_i_j_rc = (ocr_event_t *) deguidify(tile_matrix[i][j].right_column_event_guid);
-    void *db_i_j_rc = (void*) curr_right_column;
-    ocrGuid_t db_guid_i_j_rc = guidify(db_i_j_rc);
-    t_i_j_rc->put(t_i_j_rc, db_guid_i_j_rc);
+    ocrGuid_t db_guid_i_j_brow;
+    void* db_guid_i_j_brow_data;
+    ocrDbCreate( &db_guid_i_j_brow, &db_guid_i_j_brow_data, sizeof(int)*tile_width, FLAGS );
 
-    int* curr_bottom_row = (int*)malloc(sizeof(int)*tile_width);
+    int* curr_bottom_row = (int*)db_guid_i_j_brow_data;
     for ( index = 0; index < tile_width; ++index ) {
         curr_bottom_row[index] = curr_tile[tile_height][index+1];
     }
 
-    ocr_event_t* t_i_j_brow = (ocr_event_t *) deguidify(tile_matrix[i][j].bottom_row_event_guid);
-    void *db_i_j_brow = (void*) curr_bottom_row;
-    ocrGuid_t db_guid_i_j_brow = guidify(db_i_j_brow);
-    t_i_j_brow->put(t_i_j_brow,db_guid_i_j_brow);
+    ocrEventCreate(&(tile_matrix[i][j].bottom_row_event_guid), OCR_EVENT_STICKY_T, true);
+    ocrEventSatisfy(tile_matrix[i][j].bottom_row_event_guid, db_guid_i_j_brow);
 
     free(curr_tile);
     free(curr_tile_tmp);
@@ -192,13 +171,11 @@ u8 smith_waterman_task ( u32 argc, void** argv, u32 n_dbs, ocrEdtDep_t* dbs ) {
         fprintf(stdout, "score: %d\n", curr_bottom_row[tile_width-1]);
         ocrFinish();
     }
-    return 0;
 }
 
 int main ( int argc, char* argv[] ) {
 
-  OCR_INIT(&argc, argv, smith_waterman_task );
-
+    OCR_INIT(&argc, argv, smith_waterman_task );
     int i, j;
 
     int tile_width = (int) atoi (argv[3]);
@@ -252,88 +229,74 @@ int main ( int argc, char* argv[] ) {
     }
 
     fprintf(stdout, "Allocated tile matrix\n");
-
-    int* allocated = (int*)malloc(sizeof(int));
+    ocrGuid_t db_guid_0_0_br;
+    void* db_guid_0_0_br_data;
+    ocrDbCreate( &db_guid_0_0_br, &db_guid_0_0_br_data, sizeof(int), FLAGS );
+    int* allocated = (int*)db_guid_0_0_br_data;
     allocated[0] = 0;
-
-    ocr_event_t* t_0_0_br = (ocr_event_t *) deguidify(tile_matrix[0][0].bottom_right_event_guid);
-    void *db_0_0_br = (void*) allocated;
-    ocrGuid_t db_guid_0_0_br = guidify(db_0_0_br);
-    t_0_0_br->put(t_0_0_br,db_guid_0_0_br);
-
+    ocrEventSatisfy(tile_matrix[0][0].bottom_right_event_guid, db_guid_0_0_br);
+    
     for ( j = 1; j < n_tiles_width + 1; ++j ) {
-        allocated = (int*)malloc(sizeof(int)*tile_width);
+        ocrGuid_t db_guid_0_j_brow;
+        void* db_guid_0_j_brow_data;
+        ocrDbCreate( &db_guid_0_j_brow, &db_guid_0_j_brow_data, sizeof(int)*tile_width, FLAGS );
+
+        allocated = (int*)db_guid_0_j_brow_data;
         for( i = 0; i < tile_width ; ++i ) {
             allocated[i] = GAP_PENALTY*((j-1)*tile_width+i+1);
         }
 
-        ocr_event_t* t_0_j_brow = (ocr_event_t *) deguidify(tile_matrix[0][j].bottom_row_event_guid);
-        void *db_0_j_brow = (void*) allocated;
-        ocrGuid_t db_guid_0_j_brow = guidify(db_0_j_brow);
-        t_0_j_brow->put(t_0_j_brow,db_guid_0_j_brow);
+        ocrEventSatisfy(tile_matrix[0][j].bottom_row_event_guid, db_guid_0_j_brow);
 
-        allocated = (int*)malloc(sizeof(int));
+        ocrGuid_t db_guid_0_j_br;
+        void* db_guid_0_j_br_data;
+        ocrDbCreate( &db_guid_0_j_br, &db_guid_0_j_br_data, sizeof(int), FLAGS );
+        allocated = (int*)db_guid_0_j_br_data;
         allocated[0] = GAP_PENALTY*(j*tile_width); //sagnak: needed to handle tilesize 2
 
-        ocr_event_t* t_0_j_br = (ocr_event_t *) deguidify(tile_matrix[0][j].bottom_right_event_guid);
-        void *db_0_j_br = (void*) allocated;
-        ocrGuid_t db_guid_0_j_br = guidify(db_0_j_br);
-        t_0_j_br->put(t_0_j_br,db_guid_0_j_br);
+        ocrEventSatisfy(tile_matrix[0][j].bottom_right_event_guid, db_guid_0_j_br);
     }
 
     for ( i = 1; i < n_tiles_height + 1; ++i ) {
-        allocated = (int*)malloc(sizeof(int)*tile_height);
+        ocrGuid_t db_guid_i_0_rc;
+        void* db_guid_i_0_rc_data;
+        ocrDbCreate( &db_guid_i_0_rc, &db_guid_i_0_rc_data, sizeof(int)*tile_height, FLAGS );
+        allocated = (int*)db_guid_i_0_rc_data;
         for ( j = 0; j < tile_height ; ++j ) {
             allocated[j] = GAP_PENALTY*((i-1)*tile_height+j+1);
         }
-        ocr_event_t* t_i_0_rc = (ocr_event_t *) deguidify(tile_matrix[i][0].right_column_event_guid);
-        void *db_i_0_rc = (void*) allocated;
-        ocrGuid_t db_guid_i_0_rc = guidify(db_i_0_rc);
-        t_i_0_rc->put(t_i_0_rc,db_guid_i_0_rc);
+        ocrEventSatisfy(tile_matrix[i][0].right_column_event_guid, db_guid_i_0_rc);
 
-        allocated = (int*)malloc(sizeof(int));
+        ocrGuid_t db_guid_i_0_br;
+        void* db_guid_i_0_br_data;
+        ocrDbCreate( &db_guid_i_0_br, &db_guid_i_0_br_data, sizeof(int), FLAGS );
+
+        allocated = (int*)db_guid_i_0_br_data;
         allocated[0] = GAP_PENALTY*(i*tile_height); //sagnak: needed to handle tilesize 2
 
-        ocr_event_t* t_i_0_br = (ocr_event_t *) deguidify(tile_matrix[i][0].bottom_right_event_guid);
-        void *db_i_0_br = (void*) allocated;
-        ocrGuid_t db_guid_i_0_br = guidify(db_i_0_br);
-        t_i_0_br->put(t_i_0_br,db_guid_i_0_br);
+        ocrEventSatisfy(tile_matrix[i][0].bottom_right_event_guid, db_guid_i_0_br);
     }
 
 
     for ( i = 1; i < n_tiles_height+1; ++i ) {
         for ( j = 1; j < n_tiles_width+1; ++j ) {
 
-            ocrGuid_t task_guid = taskFactory->create(taskFactory, smith_waterman_task, 4);
-            ocr_task_t* task = (ocr_task_t*) deguidify(task_guid);
+            intptr_t *paramv = (intptr_t *)malloc(9*sizeof(intptr_t));
+            paramv[0]=(intptr_t)i;
+            paramv[1]=(intptr_t)j;
+            paramv[2]=(intptr_t)tile_width;
+            paramv[3]=(intptr_t)tile_height;
+            paramv[4]=(intptr_t) tile_matrix;
+            paramv[5]=(intptr_t) string_1;
+            paramv[6]=(intptr_t) string_2;
+            paramv[7]=(intptr_t)n_tiles_height;
+            paramv[8]=(intptr_t)n_tiles_width;
+            ocrGuid_t task_guid;
+            ocrEdtCreate(&task_guid, smith_waterman_task, 9, (void*)&paramv, PROPERTIES, 3, NULL);
 
-            ocr_event_t* e_1 = (ocr_event_t *) deguidify(tile_matrix[i][j-1].right_column_event_guid);
-            task->add_dependency(task, e_1, 0);
-
-            ocr_event_t* e_2 = (ocr_event_t *) deguidify(tile_matrix[i-1][j].bottom_row_event_guid);
-            task->add_dependency(task, e_2, 1);
-
-            ocr_event_t* e_3 = (ocr_event_t *) deguidify(tile_matrix[i-1][j-1].bottom_right_event_guid);
-            task->add_dependency(task, e_3, 2);
-
-            ocrGuid_t func_args_event = eventFactory->create(eventFactory, OCR_EVENT_STICKY_T, true);
-            ocr_event_t* func_args_event_p = (ocr_event_t *) deguidify(func_args_event);
-            intptr_t *func_args = (intptr_t *)malloc(9*sizeof(intptr_t));
-            func_args[0]=i;
-            func_args[1]=j;
-            func_args[2]=tile_width;
-            func_args[3]=tile_height;
-            func_args[4]=(intptr_t) tile_matrix;
-            func_args[5]=(intptr_t) string_1;
-            func_args[6]=(intptr_t) string_2;
-            func_args[7]=n_tiles_height;
-            func_args[8]=n_tiles_width;
-            void* func_args_db = (void*) func_args;
-            ocrGuid_t func_args_db_guid = guidify(func_args_db);
-
-            task->add_dependency(task, func_args_event_p, 3);
-
-            func_args_event_p->put(func_args_event_p,func_args_db_guid);
+            ocrAddDependency(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
+            ocrAddDependency(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);
+            ocrAddDependency(tile_matrix[i-1][j-1].bottom_right_event_guid, task_guid, 2);
 
             ocrEdtSchedule(task_guid);
         }
@@ -342,4 +305,3 @@ int main ( int argc, char* argv[] ) {
     ocrCleanup();
     return 0;
 }
-

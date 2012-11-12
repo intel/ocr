@@ -36,10 +36,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
 #ifndef __OCR_CONFIG_H__
 #define __OCR_CONFIG_H__
 
-// TODO: Insert all the default selection for workers, etc. They were extern
-// so we can declare them here and define in ocr-config.c
+#include "ocr-executor.h"
+#include "ocr-low-workers.h"
+#include "ocr-scheduler.h"
+#include "ocr-policy.h"
+#include "ocr-workpile.h"
+
+// Default kinds of ocr modules
+extern ocr_executor_kind ocr_executor_default_kind;
+extern ocr_worker_kind ocr_worker_default_kind;
+extern ocr_scheduler_kind ocr_scheduler_default_kind;
+extern ocr_policy_kind ocr_policy_default_kind;
+extern ocr_workpile_kind ocr_workpile_default_kind;
+
+// Default values to configure ocr
+extern u32 ocr_config_default_nb_hardware_threads;
+
 #endif /* __OCR_CONFIG_H__ */

@@ -48,6 +48,7 @@ typedef void (*ocr_policy_create_fct) (struct ocr_policy_domain_struct * policy,
         ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
         ocr_executor_t ** executors, ocr_workpile_t ** workpiles);
 typedef void (*ocr_policy_start_fct) (struct ocr_policy_domain_struct * policy);
+typedef void (*ocr_policy_finish_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_stop_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_destruct_fct) (struct ocr_policy_domain_struct * policy);
 
@@ -64,6 +65,7 @@ typedef struct ocr_policy_domain_struct {
 
     ocr_policy_create_fct create;
     ocr_policy_start_fct start;
+    ocr_policy_finish_fct finish;
     ocr_policy_stop_fct stop;
     ocr_policy_destruct_fct destruct;
 
@@ -93,10 +95,12 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
 /**
  * Default values are set in ocrInit
  */
+//TODO set default value in ocr-config.c
 extern ocr_executor_kind ocr_executor_default_kind;
 extern ocr_worker_kind ocr_worker_default_kind;
 extern ocr_scheduler_kind ocr_scheduler_default_kind;
 extern ocr_policy_kind ocr_policy_default_kind;
 extern ocr_workpile_kind ocr_workpile_default_kind;
+extern u32 ocr_config_default_nb_hardware_threads;
 
 #endif /* OCR_POLICY_H_ */

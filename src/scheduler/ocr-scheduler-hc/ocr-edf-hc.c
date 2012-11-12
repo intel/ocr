@@ -171,25 +171,13 @@ void hc_await_list_destructor( hc_await_list_t* derived ) {
     free(derived);
 }
 
-hc_comm_task_t* hc_task_cast_to_comm ( struct hc_task_base_struct_t* base ) {
-    return NULL;
-}
-
-hc_comm_task_t* hc_comm_task_cast_to_comm ( struct hc_task_base_struct_t* base ) {
-    return (hc_comm_task_t*)base;
-}
-
 hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, void** paramv, event_list_t* el) {
     hc_task_t* derived = (hc_task_t*)malloc(sizeof(hc_task_t));
     derived->awaitList = hc_await_list_constructor_with_event_list(el);
     derived->nbdeps = 0;
     derived->depv = NULL;
     derived->p_function = funcPtr;
-    
-    hc_task_base_t* hc_base = (hc_task_base_t*) &(derived->hc_base);
-    hc_base->cast_to_comm = hc_task_cast_to_comm;
-
-    ocr_task_t* base = (ocr_task_t*) &(derived->hc_base);
+    ocr_task_t* base = (ocr_task_t*) derived;
     base->destruct = hc_task_destruct;
     base->iterate_waiting_frontier = hc_task_iterate_waiting_frontier;
     base->execute = hc_task_execute;
@@ -204,11 +192,7 @@ hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, void** paramv, size_
     derived->nbdeps = 0;
     derived->depv = NULL;
     derived->p_function = funcPtr;
-    
-    hc_task_base_t* hc_base = (hc_task_base_t*) &(derived->hc_base);
-    hc_base->cast_to_comm = hc_task_cast_to_comm;
-
-    ocr_task_t* base = (ocr_task_t*) &(derived->hc_base);
+    ocr_task_t* base = (ocr_task_t*) derived;
     base->destruct = hc_task_destruct;
     base->iterate_waiting_frontier = hc_task_iterate_waiting_frontier;
     base->execute = hc_task_execute;
@@ -223,26 +207,6 @@ void hc_task_destruct ( ocr_task_t* base ) {
     free(derived);
 }
 
-hc_comm_task_t* hc_comm_task_construct ( ) {
-    hc_comm_task_t* derived = (hc_comm_task_t*)malloc(sizeof(hc_comm_task_t));
-    //TODO
-
-    hc_task_base_t* hc_base = (hc_task_base_t*) &(derived->hc_base);
-    hc_base->cast_to_comm = hc_comm_task_cast_to_comm;
-    
-    ocr_task_t* base = (ocr_task_t*) &(derived->hc_base);
-    base->destruct = NULL;
-    base->iterate_waiting_frontier = NULL;
-    base->execute = NULL;
-    base->schedule = NULL;
-    base->add_dependency = NULL;
-    return derived;
-}
-
-void hc_comm_task_destruct ( ocr_task_t* base ) {
-    hc_comm_task_t* derived = (hc_comm_task_t*)base;
-    free(derived);
-}
 
 bool hc_task_iterate_waiting_frontier ( ocr_task_t* base ) {
     hc_task_t* derived = (hc_task_t*)base;

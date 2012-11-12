@@ -34,8 +34,9 @@
 #include <stdio.h>
 #include <ocr-machine.h>
 #include <libxml/parser.h>
-/* #include <libxml/parserInternals.h> */
 #include <string.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 MachineDescription * g_MachineDescription = NULL;
 
@@ -45,11 +46,12 @@ void Processor_ctor(Processor *this, u32 threads, u32 id, u32 procIndex) {
     this->procIndex = procIndex;
 }
 
-void MemoryRegion_ctor(MemoryRegion *this, char *name, u32 mrIndex) {
+void MemoryRegion_ctor(MemoryRegion *this, char *name, u32 mrIndex, u64 size, int is_cache) {
     this->name = name;
     this->mrIndex = mrIndex;
     this->address = NULL;
-    this->is_cache = 1;
+    this->size = size;
+    this->is_cache = is_cache;
 }
 
 // Returns false if the new cost was higher than some other path found, true otherwise.
@@ -118,6 +120,25 @@ u32 MachineDescription_getNumMemoryRegions(MachineDescription *this) {
     return this->num_memory_regions;
 }
 
+/**
+   @brief Get the number of hardware threads in the platform.
+ **/
+u64 MachineDescription_getDramSize(MachineDescription *this) {
+    u32 num_mr;
+    u32 i;
+    u64 main_memory_size = 0;
+
+    num_mr = MachineDescription_getNumMemoryRegions(this);
+    for(i = 0; i < num_mr; ++i) {
+        MemoryRegion *mr = MachineDescription_getMemoryRegion(this, i);
+        if(!mr->is_cache) {
+            main_memory_size += mr->size;
+        }
+    }
+
+    return main_memory_size;
+}
+
 unsigned getNumMasterMemoryRegions(xmlNodePtr master) {
     xmlNodePtr cur;
     unsigned res = 0;
@@ -172,6 +193,55 @@ xmlNodePtr getNodeByName(xmlNodePtr first_node, const char *name) {
     return res;
 }
 
+int get_mr_size(MachineDescription *this,
+                xmlDocPtr doc,
+                u64 *mr_size,
+                xmlNodePtr mr_node,
+                const char *descriptor_name) {
+    xmlNodePtr MRDescriptor_node;
+    xmlNodePtr Property_node;
+    xmlNodePtr name_node, value_node;
+
+    MRDescriptor_node = getNodeByName(mr_node->xmlChildrenNode, descriptor_name);
+    if(MRDescriptor_node == NULL) {
+        printf("Didn't find %s.\n",descriptor_name);
+        return 0;
+    }
+
+    Property_node = getNodeByName(MRDescriptor_node->xmlChildrenNode, "Property");
+    while(Property_node) {
+        name_node = getNodeByName(Property_node->xmlChildrenNode, "name");
+        if(name_node == NULL) {
+            printf("Name not found in Property.\n");
+            return 0;
+        }
+
+        if(!xmlStrcmp(xmlNodeListGetString(doc, name_node->xmlChildrenNode, 1), (const xmlChar *)"SIZE")) {
+            const char *str;
+            char *end;
+
+            value_node = getNodeByName(Property_node->xmlChildrenNode, "value");
+            if(value_node == NULL) {
+                printf("Value not found in Property.\n");
+                return 0;
+            }
+
+            str = (const char *)xmlNodeListGetString(doc, value_node->xmlChildrenNode, 1);
+            *mr_size = strtoull(str, &end, 10);
+            if(*mr_size == 0 && end == str) {
+                printf("Size value was not a number.\n");
+                return 0;
+            }
+            return 1;
+        }
+
+        Property_node = getNodeByName(Property_node->next, "Property");
+    }
+
+    printf("Didn't find Property.\n");
+    return 0;
+}
+
 int get_access_time(MachineDescription *this,
                     xmlDocPtr doc,
                     double *access_time,
@@ -217,6 +287,13 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
     xmlDocPtr doc;
     xmlNodePtr cur, start;
     unsigned i, j;
+
+    struct stat buf;
+    int file_exists = stat(pdlFilename, &buf);
+    if (file_exists != 0) {
+        printf("Cannot find machine description file '%s'\n", pdlFilename);
+        return 1;
+    }
 
     doc = xmlParseFile(pdlFilename);
     if(doc == NULL) {
@@ -291,17 +368,63 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
             mr_cur = cur->xmlChildrenNode;
             while (mr_cur != NULL) {
                 if(!xmlStrcmp(mr_cur->name, (const xmlChar *)"MemoryRegion")) {
+                    xmlChar * mrtype = NULL;
+                    int is_cache = 0;
+                    u64 mr_size;
+                    int res;
+                    char *mr_name = NULL;
+
                     this->machineMemoryRegions[mr_index] = (MemoryRegion*)malloc(sizeof(MemoryRegion));
+                    mrtype = xmlGetProp(mr_cur,(const xmlChar *)"mrtype");
+                    if(mrtype && !xmlStrcmp(mrtype,(const xmlChar *)"cache")) {
+                        is_cache = 1;
+                    } 
+
+                    mr_name = strdup((const char *)xmlGetProp(mr_cur,(const xmlChar *)"id"));
+
+                    res = get_mr_size(this, doc, &mr_size, mr_cur, "MRDescriptor");
+                    if(!res) {
+                        printf("Did not find size for memory region %s.\n",mr_name);
+                        xmlFreeDoc(doc);
+                        return 7;
+                    }
+
                     MemoryRegion_ctor(this->machineMemoryRegions[mr_index],
-                                      strdup((const char *)xmlGetProp(mr_cur,(const xmlChar *)"id")),
-                                      mr_index);
+                                      mr_name,
+                                      mr_index,
+                                      mr_size,
+                                      is_cache);
                     ++mr_index;
                 }
                 mr_cur = mr_cur->next;
             }
         } else if(!xmlStrcmp(cur->name, (const xmlChar *)"MemoryRegion")) {
+            xmlChar * mrtype = NULL;
+            int is_cache = 0;
+            u64 mr_size;
+            int res;
+            char *mr_name = NULL;
+
             this->machineMemoryRegions[mr_index] = (MemoryRegion*)malloc(sizeof(MemoryRegion));
-            MemoryRegion_ctor(this->machineMemoryRegions[mr_index],strdup((const char *)xmlGetProp(cur,(const xmlChar *)"id")),mr_index);
+            mrtype = xmlGetProp(cur,(const xmlChar *)"mrtype");
+            if(mrtype && !xmlStrcmp(mrtype,(const xmlChar *)"cache")) {
+                is_cache = 1;
+            } 
+
+            mr_name = strdup((const char *)xmlGetProp(cur,(const xmlChar *)"id"));
+
+            res = get_mr_size(this, doc, &mr_size, cur, "MRDescriptor");
+            if(!res) {
+                printf("Did not find size for memory region %s.\n",mr_name);
+                xmlFreeDoc(doc);
+                return 7;
+            }
+
+            MemoryRegion_ctor(this->machineMemoryRegions[mr_index],
+                              mr_name,
+                              mr_index,
+                              mr_size,
+                              is_cache);
             ++mr_index;
         }
         cur = cur->next;
@@ -534,7 +657,11 @@ void setMachineDescriptionFromPDL(const char *pdlFilename) {
         exit(-1);
     } else {
         g_MachineDescription = (MachineDescription*)malloc(sizeof(MachineDescription));
-        MachineDescription_loadFromPDL(g_MachineDescription,pdlFilename);
+        int ret = MachineDescription_loadFromPDL(g_MachineDescription,pdlFilename);
+        if (ret != 0) {
+            free(g_MachineDescription);
+            g_MachineDescription = NULL;
+        }
     }
 }
 

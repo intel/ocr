@@ -27,28 +27,69 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-*/
+ */
 
 #include <stdlib.h>
 #include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "ocr-runtime.h"
+#include "ocr-config.h"
 
 ocr_policy_domain_t * root_policy;
 
-//TODO add argc, argv
-void ocrInit() {
-    //TODO this is to be obtained from some configuration file or command line
-    ocr_worker_default_kind = OCR_WORKER_HC;
-    ocr_executor_default_kind = OCR_EXECUTOR_HC;
-    ocr_workpile_default_kind = OCR_DEQUE;
-    ocr_scheduler_default_kind = OCR_SCHEDULER_WST;
-    ocr_policy_default_kind = OCR_POLICY_HC;
+//TODO we should have an argument option parsing library
+/**!
+ * Utility function to remove ocr arguments before handing argv
+ * over to the user program
+ */
+static void shift_arguments(int * argc, char ** argv, int start_offset, int shift_offset) {
+    int i = start_offset;
+    while (shift_offset < *argc) {
+        argv[i] = argv[shift_offset];
+        shift_offset++; i++;
+    }
+    *argc = (*argc - (shift_offset-start_offset));
+}
 
-    //TODO this is to be obtained from some configuration file or command line
-    size_t nb_workers = 8;
-    size_t nb_workpiles = 8;
-    size_t nb_executors = 8;
+/**!
+ * Check if we have a machine description passed as argument
+ */
+static char * parseOcrOptions_MachineDescription(int * argc, char ** argv) {
+    int i = 0;
+    char * md_file = NULL;
+    while(i < *argc) {
+        if (strcmp(argv[i], "-md") == 0) {
+            md_file = argv[i+1];
+            shift_arguments(argc, argv, i, i+2);
+        }
+        i++;
+    }
+    return md_file;
+}
+
+void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
+
+    u32 nbHardThreads = ocr_config_default_nb_hardware_threads;
+    char * md_file = parseOcrOptions_MachineDescription(argc, argv);
+    if (md_file != NULL) {
+        //TODO need a file stat to check
+        setMachineDescriptionFromPDL(md_file);
+        MachineDescription * md = getMachineDescription();
+        if (md == NULL) {
+            // Something went wrong when reading the machine description file
+            ocr_abort();
+        } else {
+            nbHardThreads = MachineDescription_getNumHardwareThreads(md);
+        }
+    }
+
+    // This is the default policy
+    // TODO this should be declared in the default policy model
+    size_t nb_workers = nbHardThreads;
+    size_t nb_workpiles = nbHardThreads;
+    size_t nb_executors = nbHardThreads;
     size_t nb_schedulers = 1;
 
     ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_schedulers, nb_workers,
@@ -61,15 +102,7 @@ void ocrInit() {
 }
 
 void ocrFinish() {
-    //TODO this is specific to how policies are stopped so it should
-    //go in ocr-policy.c, need to think about naming here
-
-    // Note: As soon as worker '0' is stopped its thread is
-    // free to fall-through in ocr_finalize() (see warning there)
-    size_t i;
-    for ( i = 0; i < root_policy->nb_workers; ++i ) {
-        root_policy->workers[i]->stop(root_policy->workers[i]);
-    }
+    root_policy->finish(root_policy);
 }
 
 void ocrCleanup() {

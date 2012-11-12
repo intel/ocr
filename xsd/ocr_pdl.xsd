@@ -232,6 +232,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
     			<restriction base="string">
     				<enumeration value="main"></enumeration>
     				<enumeration value="local"></enumeration>
+    				<enumeration value="cache"></enumeration>
     			</restriction>
     		</simpleType>
     	</attribute>

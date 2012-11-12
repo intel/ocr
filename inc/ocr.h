@@ -52,7 +52,7 @@
  *
  * This call should be paired with an ocrCleanup call
  */
-void ocrInit(int argc, char ** argv, u32 fnc, ocrEdt_t funcs[] );
+void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[] );
 
 /**
  * @brief Called by an EDT to indicate the end of an OCR
