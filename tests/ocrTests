@@ -1,0 +1,1054 @@
+#!/bin/bash
+
+#
+# WARNING
+#
+# This file is auto-generated, do not edit it or your changes
+# will be lost the next time this script is generated.
+#
+# contact ocr mailing list if you need to make permanent changes.
+#
+# WARNING
+#
+
+#
+# Begin extension specific option parsing and checking
+#
+
+#
+# For now the test folder is current folder
+#
+TEST_DIR=./non-regression-tests
+
+# add default option to handle makefiles under tests 
+ARGS="-makefile ${ARGS}"
+
+# Get default tests options from env
+export OCR_CFLAGS="${OCR_CFLAGS}"
+export OCR_FLAGS="${OCR_FLAGS}"
+
+#
+#handling options
+#
+while [[ $# -gt 0 ]]; do
+	if [[ "$1" = "-testdir"  && $# -ge 2 ]]; then
+		shift
+		TEST_DIR=("$@")
+		shift
+	else
+		# stacking unknown arguments
+  		ARGS="${ARGS} $1"
+  		shift 
+    fi
+done
+		
+# try to lookup for a default ocr install
+if [ -z "${OCR_INSTALL}" ]; then
+	echo "OCR_INSTALL is not set, defaulting to ../ocr-install"
+	OCR_INSTALL_TMP=`pwd`/../ocr-install
+	if [ -x ${OCR_INSTALL_TMP}/lib/libocr.la ]; then
+		export OCR_INSTALL=${OCR_INSTALL_TMP}
+	fi
+fi
+
+
+#
+# Default compilation option for ocr
+#
+
+export INCLUDES="-I${OCR_INSTALL}/include"
+export CFLAGS=" -Wall -g -Werror "
+export LDFLAGS="-L${OCR_INSTALL}/lib -locr"
+
+#
+#checking options
+#
+
+BIN_DIR=${OCR_INSTALL}/bin
+LIB_DIR=${OCR_INSTALL}/lib
+
+if [ ! -x ${LIB_DIR}/libocr.la ]; then
+	echo "ERROR ocr lib not found in the ${OCR_INSTALL}/bin"
+	exit 1
+fi
+
+export PATH=${BIN_DIR}:${PATH}
+
+#update LD_LIBRARY_PATH to find the runtime so
+export LD_LIBRARY_PATH=${LIB_DIR}:${LD_LIBRARY_PATH}
+
+#
+# Ending extension specific option parsing and checking
+#
+
+#
+# The remainings lines are generic and mandatory
+#
+
+#
+# generic runTests will be inlined 
+#
+
+
+
+function ext_usage () {
+	echo "Usage: ocrTests [general-options] [options]"
+	echo "where [options] includes:"
+	echo "	-testdir   : The path to testdir folder (default to .)"
+}
+
+
+function usage () {
+	ext_usage
+	echo "where [general-options] includes:"
+	echo "	     -testdir      : The path to the folder containing tests"
+	echo "	     -all     	   : Execute all tests including those listed in the unstable test file"
+	echo "	     -unstable     : Only run unstable tests specified in the unstable test file"
+	echo "       -unstablefile : Unstable tests list"
+	echo "	(-i) -include 're' : Regular Expression for including tests files"
+	echo "	(-e) -exclude 're' : Regular Expression for excluding tests files"
+	echo "	     -option_sweep : A list of comma separated string to use as option sweeping parameters"
+	echo "	     -logdir       : The path where to output logs"
+	echo "	     -report_error : IF one of the test has failed, returns with exit code != 0"
+	echo "	     -showoutput   : Show test output on console"
+	echo "	-v                 : Prints additionnal information"
+	echo "	(-h) --help        : Prints this message"
+}
+
+#
+# When "-testdir mytestdir" is specified, look for a file mytestdir.opts
+# 
+
+function read_testdir_opts () {
+	local variable=$1
+	local  __resultvar=$2
+	
+	# greping variable def	
+	VALUE=
+	OPT_FILENAME=${TEST_DIR}.opts
+
+	if [ -f ${OPT_FILENAME} ]; then
+		VALUE=`grep "$variable" ${OPT_FILENAME}`
+		
+		# extracting value after the first '='
+		VALUE=${VALUE#"${variable}="}
+	fi
+
+    eval $__resultvar="'$VALUE'"
+}
+#
+# Take a step name as a parameter as well as a list of option sweeping names  
+# Look for environments variables named after a step name
+#
+
+function is_opt_sweep_set() {
+	test "${OPTION_SWEEPING}" == "${OPT_SWEEP_NULL}" 
+}
+
+function find_options () {
+	local STEP_NAME=$1
+	local OPT_SWEEP_NAME=$2
+	local  __resultvar=$3
+	
+	local RES=-1;
+
+	RES=`eval echo "\\\${OPT_${STEP_NAME}_${OPT_SWEEP_NAME}}"`
+
+    eval $__resultvar="'$RES'"
+}
+
+function steps_list () {
+	RES_STEPS_LIST="clean compile run"
+}
+
+
+function get_name() {
+    local FILE=$1
+    NAME=${FILE%%.c}
+}
+
+function clean_binaries() {
+    local FILE=$1
+    # cleaning previously generated binary                                                                                                                                             
+    NAME=
+    get_name ${FILE}
+    if [ -f ${NAME} ]; then
+        rm -Rf ${NAME}
+    fi
+    if [ -f ${NAME}.o ]; then
+        rm -Rf ${NAME}.o
+    fi
+
+}
+
+function clean_rose_sources() {
+    local FILE=$1
+    # cleaning previously generated binary                                                                                                                                             
+    NAME=
+    get_name ${FILE}
+}
+
+function rename_binary() {
+    local FILE=$1                                                                                                                                             
+    NAME=
+    get_name ${FILE}
+    if [ -f ./a.out ]; then
+        mv ./a.out ${NAME}
+    fi
+}
+
+function clean () {
+	local FILE=$1
+	local FOLDER=$2
+
+	cd $FOLDER;
+	
+	# cleaning previously created binaries
+	clean_binaries ${FILE}
+	clean_rose_sources ${FILE}
+
+	cd -
+	return 0
+}
+	
+function compile () {
+	local FILE=$1
+	local FOLDER=$2
+
+	cd $FOLDER;
+	
+	echo "gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${LDFLAGS} ${FILE}"
+	gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${LDFLAGS} ${FILE}
+	RES=$?
+
+	rename_binary ${FILE}
+	
+	cd -;
+
+	return $RES
+}
+
+	
+function run () {
+	local FILE=$1
+	local FOLDER=$2
+	RES=0
+
+	NAME=
+	get_name ${FILE}
+
+	cd $FOLDER;
+	echo "./${NAME} ${OCR_FLAGS}"
+	./${NAME} ${OCR_FLAGS}
+	RES=$?
+	cd -;
+
+	return $RES
+}
+
+
+function find_tests () {
+	local TEST_FOLDER=$1
+	RES_FIND_TESTS=`eval "find ${TEST_FOLDER} -type f '(' -name '*.c' ')' -print | sort"`
+}
+
+
+function test_name () {
+	local FILE=$1
+	local FOLDER=$2
+
+	# test name is the test filename
+
+	RES_TEST_NAME=`echo "${FILE}"` 
+}
+
+OCR_CLEANED=1
+OCR_COMPILED=2
+OCR_RAN=3
+
+# if it could run, it's a success
+SUCCESS_STATUS=${OCR_RAN}
+
+# if it could only compile it's a failed status
+FAILED_STATUS=${OCR_COMPILED}
+
+RUN_STATUS=1
+FAIL_STATUS=2
+ERR_STATUS=3
+
+function get_seconds () {
+	local TIME=$1
+	local  __resultvar=$2
+	
+	local minute=`echo $TIME | cut -d'm' -f1-1`
+	local second=`echo $TIME | cut -d'm' -f2-3 | sed s/s//g`
+	
+	local min_to_sec=`echo "$minute * 60" | bc`
+	local RES=`echo "$minute + $second" | bc`
+
+    eval $__resultvar="'$RES'"
+}
+
+function extract_real_time () {
+	local TIME_OUTPUT="$1"
+	local  __resultvar=$2
+	RES_VAR=-1;
+	
+	TIMER_RES=`echo ${TIME_OUTPUT} | cut -d ' ' -f2-2`
+	get_seconds $TIMER_RES RES_VAR
+    eval $__resultvar="'$RES_VAR'"
+}
+
+function acc_time () {
+	local CURRENT="$1"
+	local NEW="$2"
+	local  __resultvar=$3
+	
+	TIMER_RES=-1;
+		
+	extract_real_time "$NEW" TIMER_RES
+	RES=`echo "${CURRENT} + ${TIMER_RES}" | bc`
+
+    eval $__resultvar="'$RES'"
+}
+RUN_STATUS=1
+FAIL_STATUS=2
+ERR_STATUS=3
+
+function determine_test_status () {
+	local TESTNAME=$1
+	local STATUS=$2
+	local RES=-1;
+	local  __resultvar=$3
+
+	#
+	# for regular tests
+	#
+	if [[ $STATUS -eq $SUCCESS_STATUS ]]; then
+		 RES=${RUN_STATUS};
+	fi
+	
+	if [[ $STATUS -eq $FAILED_STATUS ]]; then
+		RES=${FAIL_STATUS};
+	fi
+
+	if [[ $RES -eq -1 ]]; then
+		RES=${ERR_STATUS}
+	fi
+	
+	#
+	# for 'special' tests
+	#
+	#strip to last '_' and remove file extension
+	OPTION_END=${TESTNAME##*_}
+	OPTION=${OPTION_END%%.*}
+	
+	if [[ "$OPTION" = "MustFailCompile" ]]; then
+		if [[ $STATUS -eq ${OCR_CLEANED} ]]; then
+			# the test couldn't pass the compilation phase
+			# that's what we expect
+		 	RES=${RUN_STATUS};
+		else
+			# it compiled or ran
+		 	RES=${FAIL_STATUS};
+		fi
+	elif [[ "$OPTION" = "MustFailRun" ]]; then
+		if [[ $STATUS -eq $OCR_COMPILED ]]; then
+			# reach status compiled, but did not
+			# pass the run test, that's what we expect
+		 	RES=${RUN_STATUS};
+		else
+		 	RES=${FAIL_STATUS};
+		fi
+	else
+		if [[ $STATUS -eq $OCR_RAN ]]; then
+		 	RES=${RUN_STATUS};
+		fi
+	
+		if [[ $STATUS -le $OCR_COMPILED ]]; then
+		 	RES=${ERR_STATUS};
+		fi	
+	fi
+	
+    eval $__resultvar="'$RES'"
+}
+
+#
+# inherit RUN_STATUS and ERR_STATUS from determine_test_status
+#
+
+function negate_test_status () {
+	local STATUS=$1;
+	local RES=-1;
+	local  __resultvar=$2
+	
+	if [[ $STATUS -eq ${RUN_STATUS} ]]; then
+		RES=${ERR_STATUS};
+	else 
+		RES=${RUN_STATUS}
+	fi
+			
+    eval $__resultvar="'$RES'"
+}
+
+function print_test_status () {
+	local STATUS=$1
+	local OUTPUT=$2
+
+	local RUN=0
+	local FAIL=0
+	local ERR=0
+
+	if [[ $STATUS -eq $RUN_STATUS ]]; then
+		# No pbs
+		RUN=1
+		echo "++++++ Test succeeded." >>$OUTPUT
+	fi
+	
+	if [[ $STATUS -eq $FAIL_STATUS ]]; then
+		# RAN but didn't verified
+		FAIL=1
+	fi
+	
+	if [[ $STATUS -eq $ERR_STATUS ]]; then
+		# didn't compiled
+		ERR=1
+	fi
+
+	echo "Tests run: $RUN, Failures: $FAIL, Errors: $ERR"
+}
+
+
+function select_tests {
+	# IN: LIST_TESTS
+	# IN: PATTERN
+	# IN: DIRECTION (INC|EXC)
+	# OUT: RES_FILTER_TESTS
+	# OUT: RES_FILTER_TESTS_EXCL
+	
+	# Direction indicates if we want to include or exclude the 
+	# files selected with the pattern
+	
+	LIST_TESTS=$1
+	PATTERNS=$2
+	DIRECTION=$3
+	
+	#
+	#Exclude pattern examples
+	#For now pattern support is kind of limited, just get space separated strings
+	#	
+	#PATTERNS='*MKL* *Black*'
+
+    MATCH=0	
+	RES_FILTER_TESTS=
+	for file in `echo $LIST_TESTS`; do
+	    for pattern in `echo ${PATTERNS}`; do
+	        if [[ "$file" == ${pattern} ]]; then
+	            MATCH=1
+	        fi
+	    done
+
+	    if [[ ${MATCH} -ne 1 ]]; then
+	        RES_FILTER_TESTS="${RES_FILTER_TESTS} $file"
+	    else
+	        RES_FILTER_TESTS_EXCL="${RES_FILTER_TESTS_EXCL} $file"
+	    fi
+	    MATCH=0
+	done
+
+
+	if [ $DIRECTION = "INC" ]; then
+		TMP="${RES_FILTER_TESTS}"
+		RES_FILTER_TESTS="${RES_FILTER_TESTS_EXCL}"
+		RES_FILTER_TESTS_EXCL="${RES_FILTER_TESTS}"
+		if [ -n "${VERBOSE}" ]; then
+			echo "INCLUDING tests: $RES_FILTER_TESTS"
+		fi
+	else 
+		if [ -n "${VERBOSE}" ]; then
+			echo "Excluding tests: $RES_FILTER_TESTS_EXCL"
+		fi	
+	fi
+}
+	
+function xunit_print_xml_header () {
+	echo "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"
+}
+
+
+function xunit_print_testsuite_header () {
+	local status=$1;
+	local hostname=$2;
+	local id=$3;
+	local name=$4;	
+	local package=$5
+	local tests=$6;
+	local time="$7";
+	local timestamp="$8";
+	local raw_output_file="$9";
+
+	local errors=0;
+	local failures=0;
+
+	if [[ $status -eq $ERR_STATUS ]]; then
+		errors=1
+	fi
+
+	if [[ $status -eq $FAIL_STATUS ]]; then
+		failures=1
+	fi
+	
+	echo "<testsuite errors=\"${errors}\" failures=\"${failures}\" hostname=\"${hostname}\" id=\"${id}\" name=\"${name}\" package=\"${package}\" tests=\"${tests}\" time=\"${time}\" timestamp=\"${timestamp}\">"
+	echo "<testcase classname=\"${name}\" name=\"run\" time=\"${time}\">";
+
+	if [[ $errors -eq 1 ]]; then
+		echo "<error message=\"Error!\">"
+	  	echo "<![CDATA["
+		more "$raw_output_file"
+		echo "]]>"
+		echo "</error>"
+	fi
+
+	if [[ $failures -eq 1 ]]; then
+		echo "<failure type=\"Failure!\">"
+	  	echo "<![CDATA["
+		more "$raw_output_file"
+		echo "]]>"
+		echo "</failure>"
+	fi	
+	
+	echo "</testcase>"
+}
+
+
+#
+# Read data from file RAW_OUTPUT_FILE
+#
+function xunit_print_sysout_cdata () {
+  local RAW_OUTPUT_FILE="$1"
+  echo "<system-out><![CDATA["
+  more "$RAW_OUTPUT_FILE"
+  echo "]]></system-out>"
+  echo "<system-err />"
+}
+
+function xunit_print_testsuite_footer () {
+	echo "</testsuite>"
+}
+
+function xunit_print_report () {
+	local OUTPUT_DIR=$1
+	xunit_print_xml_header
+	echo "<testsuites>"
+	for file in `ls $OUTPUT_DIR/*.xml`; do 
+		grep -v "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" $file
+	done
+	
+	echo "</testsuites>"
+}
+function is_failing_test_known () {
+	local file=$1;
+	local unstable_file=$2;
+	local  __resultvar=$3;
+	
+	#protecting dots
+	file=`echo $file | sed -e 's/\./\\\./g'`; 
+		
+	RES=1
+	FOUND=`grep ^${file}$ $unstable_file`
+	if [[ -z "$FOUND" ]]; then
+		RES=0
+	fi
+
+	# if RUN_UNSTABLE is on, then we negate the result of is_failing_test_known as we want to
+	# run all tests that are unstable but don't want to run tests that are stables
+	if [[ -n "$RUN_UNSTABLE" ]]; then
+		RES=!${RES}
+	fi 
+		
+    eval $__resultvar="'$RES'"
+}
+
+#!/bin/sh
+
+function find_makefile() {
+	local TEST_FOLDER=$1
+	local TARGET=$2
+	local __res=$3
+	RES=`eval "find ${TEST_FOLDER} -type f '(' -iname 'Makefile*' ')' -print | sort"`
+	ACC=
+	for file in `echo $RES | tr ' ' '\n' `; do 
+        CHECK=`echo $file | grep -v "svn-base"`
+        if [[ -n "$CHECK" ]]; then
+            if [[ -n "$TARGET" ]]; then
+                for targ in `echo $TARGET | tr ' ' '\n' `; do 
+                    CHECK_TARGET=`grep "$targ:" $file`
+                    if [[ -z "$CHECK_TARGET" ]]; then
+                        # one of the target not, found setting check to null
+                        CHECK=""
+                    fi
+                done
+            fi
+            if [[ -n "$CHECK" ]]; then
+                ACC="$ACC $file"
+            fi
+        fi
+	done
+	eval $__res=\"$ACC\"
+}
+
+function is_parent() {
+	local FOLDER=$1
+	local TESTS_FILE=$2
+	local __res=$3
+	local res=${TESTS_FILE##${FOLDER}}
+	test ${#res} == ${#TESTS_FILE}
+	TEST_RES=$?
+	eval $__res="${TEST_RES}"
+}
+
+#
+# Take a list of folder and a list of tests files
+# and removes all test_files located in these folders
+#
+function exclude_path() {
+	local EXCLUDE_FOLDER=$1
+	local TESTS_FILE_LIST=$2
+	local __res=$3
+	
+	local is_p=
+	local res=
+
+	for test_file in `echo $TESTS_FILE_LIST`; do
+		#if one of the excluded folders matches the path 
+		#to the test file we need to remove the test from the list
+		FOUND=0 
+		for excluded_folder in `echo $EXCLUDE_FOLDER`; do
+			is_parent ${excluded_folder} ${test_file} is_p
+			if [[ $is_p -eq 1 ]]; then
+				FOUND=1;
+			fi
+		done
+		if [[ $FOUND -eq 0 ]]; then
+			res="${res} ${test_file}"
+		fi
+	done
+	
+	eval $__res=\"${res}\"
+}
+
+#
+# Does this file is a Makefile
+#
+function is_makefile() {
+    local FILE=$1
+
+    RES=`echo "${FILE}" | grep -i makefile`
+    if [[ -n "$RES" ]]; then
+    	return 1;
+	else
+    	return 0;
+    fi
+}
+
+#
+# extracts a list of unique paths from a list of absolute file names
+#
+function extract_paths() {
+	local TESTS_LIST=$1
+	local __res=$2
+	
+	local res
+	local folder_res
+	local folder_res_list
+	
+	for file in `echo $TESTS_LIST`; do
+		folder_res=`expr $file : '\(.*/\)'`
+		folder_res_list="${folder_res_list} ${folder_res}"
+	done
+	res=`echo ${folder_res_list} | tr ' ' '\n' | sort -u`
+	eval $__res=\"$res\"
+}
+
+#
+# -finds all makefile under the test folder
+# -extracts folders path where Makefiles are located
+# -removes all test files located under these folders from the test list
+#
+function adapt_test_list_to_include_makefile() {
+	local TEST_FOLDER=$1
+	local TESTS_LIST=$2
+    local TARGET=$3
+	local __res=$4
+	
+	find_makefile "$TEST_FOLDER" "$TARGET" MAKEFILE_LIST
+
+	# extract makefiles paths
+	extract_paths "$MAKEFILE_LIST" EXCLUDE_FOLDER
+	
+	# exclude these paths from the built list of tests
+	exclude_path "$EXCLUDE_FOLDER" "$TESTS_LIST" RES_TESTS_LIST
+
+	local FINAL_TEST_LIST=`echo "${RES_TESTS_LIST} ${MAKEFILE_LIST}" | sort` 
+	eval $__res=\"${FINAL_TEST_LIST}\"	
+}
+
+#
+# Execute the target of a makefile located in a specific folder
+#
+function exec_makefile() {
+	local STEP=$1
+	local FILE=$2
+	local FOLDER=$3
+	echo "make -C ${FOLDER} ${MAKE_ARGS} ${STEP}"
+	make -f ${FILE} -C ${FOLDER} ${MAKE_ARGS} ${STEP} 
+}
+
+#RES_FIND_TESTS=
+#hc_find_tests $1
+#echo "Found hc files $RES_FIND_TESTS"
+
+#adapt_test_list_to_include_Makefile $1 "$RES_FIND_TESTS" FINAL_LIST
+
+#for file in `echo $FINAL_LIST`; do
+#	echo "selected: $file"
+#done
+	
+
+
+########################
+# BEGIN GENERIC RUNTESTS
+######################## 
+
+########################
+# GLOBAL OPTIONS
+######################## 
+
+VERBOSE=
+
+function convert_to_absolute() {
+	local  A_PATH=$1
+	local  __resultvar=$2
+
+	if [[ -n "${A_PATH}" && "${A_PATH:0:1}" != "/" ]]; then
+		A_PATH=`pwd`/${A_PATH}
+	fi
+
+    eval $__resultvar="$A_PATH"
+}
+
+function runTests () {
+	##############
+	# Arguments
+	############## 
+	
+	# set the extension folder to use
+	local SCRIPT_NAME=$0
+	local EXT_DIR=
+	local TEST_DIR=
+	local LOG_DIR=
+	local PATTERN=
+	local EXCL_PATTERN=
+	local UNSTABLE_EXT=ignored
+	OPTION_SWEEPING="-"
+	OPT_SWEEP_NULL="-"
+	RUN_UNSTABLE=
+
+	while [[ $# -gt 0 ]]; do
+		if [[ "$1" = "-test"  && $# -ge 2 ]]; then
+			shift
+			PATTERN=("$@")
+			shift
+			echo "-test not yet implemented"
+			exit 1
+		elif [[ "$1" = "-logdir"  && $# -ge 2 ]]; then
+			shift
+			LOG_DIR=("$@")
+			shift
+		elif [[ "$1" = "-v" ]]; then
+			shift
+			VERBOSE=yes
+		elif [[ "$1" = "-testdir"  && $# -ge 2 ]]; then
+			shift
+			TEST_DIR=("$@")
+			shift
+		elif [[ "$1" = "-include" || "$1" = "-i" && $# -ge 2 ]]; then
+			shift
+			INCL_PATTERN=("$@")
+			shift
+		elif [[ "$1" = "-exclude" || "$1" = "-e" && $# -ge 2 ]]; then
+			shift
+			EXCL_PATTERN=("$@")
+			shift
+		elif [[ "$1" = "-showoutput" ]]; then
+			shift
+			SHOW_OUTPUT="yes"
+		elif [[ "$1" = "-makefile" ]]; then
+			shift
+			HANDLE_MAKEFILE="yes"
+		elif [[ "$1" = "-makeargs" && $# -ge 2 ]]; then
+			shift
+			MAKE_ARGS=("$@")
+			shift
+		elif [[ "$1" = "-all" ]]; then
+			shift
+			RUN_ALL="yes"
+		elif [[ "$1" = "-unstable" ]]; then
+			shift
+			RUN_UNSTABLE="yes"
+		elif [[ "$1" = "-unstablefile"  && $# -ge 2 ]]; then
+			shift
+			UNSTABLE_FILE=("$@")
+			shift
+		elif [[ "$1" = "-option_sweep"  && $# -ge 2 ]]; then
+			shift
+			OPTION_SWEEPING=("$@")
+			OPTION_SWEEPING=`echo ${OPTION_SWEEPING} | sed s/,/\ /g`
+			shift
+		elif [[ "$1" = "-report_error" ]]; then
+			shift
+			REPORT_ERROR="yes"			
+		elif [[ "$1" = "-h"  || "$1" = "--help" ]]; then
+			usage
+			exit 0
+		else
+	      echo "unknown argument $1"
+	      exit 1
+	    fi
+	done
+	
+	
+	#################### 
+	# Arguments Checking
+	#################### 
+
+	if [ -z ${LOG_DIR} ]; then
+		LOG_DIR=`pwd`/tests-log
+	fi
+
+	if [ -d ${LOG_DIR} ]; then
+		echo "Erasing log dir ${LOG_DIR}"
+		rm -rf ${LOG_DIR}
+	fi
+	
+	if [ ! -d ${LOG_DIR} ]; then
+		echo "Creating log dir ${LOG_DIR}"
+		mkdir ${LOG_DIR}
+	fi
+
+	# If no unstable file is provided as argument
+	# Check if default unstable file exists
+	if [ -z "$UNSTABLE_FILE" ]; then
+		DEFAULT_UNSTABLE_FILE=${SCRIPT_NAME}.${UNSTABLE_EXT}
+		if [ -f "${DEFAULT_UNSTABLE_FILE}" ]; then
+			UNSTABLE_FILE=${DEFAULT_UNSTABLE_FILE}
+		fi
+	fi
+
+	# converting to absolute path
+	if [ -n "${UNSTABLE_FILE}" ]; then
+		convert_to_absolute ${UNSTABLE_FILE} UNSTABLE_FILE
+	fi
+	convert_to_absolute ${TEST_DIR} TEST_DIR
+				
+	#
+	# We try to get folder specific options
+	#
+	TESTDIR_EXCL_PATTERN=
+	read_testdir_opts "NOT_TESTS" TESTDIR_EXCL_PATTERN
+
+	##############
+	# Run Tests
+	############## 
+	
+	#
+	# Invoke the script responsible for finding test cases
+	#
+	TEST_DIR_UP=${TEST_DIR}
+
+	find_tests $TEST_DIR_UP
+	TEST_LIST=${RES_FIND_TESTS}
+	echo ""
+	
+	#
+	# If the handle makefile option is selected we also look for makefiles.
+	# Note that tests located in folders containing Makefile are removed from the TEST_LIST
+	#
+	if [[ -n "$HANDLE_MAKEFILE" ]]; then
+	    # Looking for makefiles that contain targets named after the steps list
+        steps_list
+        STEPS_LIST=${RES_STEPS_LIST}
+        adapt_test_list_to_include_makefile $TEST_DIR_UP "$TEST_LIST" "${STEPS_LIST}" TEST_LIST
+	fi
+	
+	#
+	# Apply include patterns
+	#
+	if [ -n "${INCL_PATTERN}" ]; then
+		select_tests "${TEST_LIST}" "${INCL_PATTERN}" "INC"
+		TEST_LIST="${RES_FILTER_TESTS}"
+	fi
+
+	#
+	# Apply exclude patterns
+	# By default we don't exclude anything
+	select_tests "${TEST_LIST}" "${EXCL_PATTERN}" "EXC"
+	TEST_LIST="${RES_FILTER_TESTS}"
+
+	#
+	# Take care to exclude files defined in .opts files
+	#
+	if [ -n "${TESTDIR_EXCL_PATTERN}" ]; then
+		select_tests "${TEST_LIST}" "${TESTDIR_EXCL_PATTERN}" "EXC"
+		TEST_LIST="${RES_FILTER_TESTS}"
+	fi
+		
+	#
+	# Invoke the script responsible setting-up the steps list
+	#	
+	steps_list
+	STEPS_LIST=${RES_STEPS_LIST}
+	RET_CODE=0
+
+	let id=0;
+	echo ""
+	# apply tests steps to the list of tests
+	for test in `echo ${TEST_LIST}`; do
+		# get file name
+		local file_=${test##*/}
+		local normalized_name=
+			
+		# get folder name
+		local folder_=${test%/*}
+		
+		#
+		# Invoke the script that generates the test name
+		#
+		test_name $file_ $folder_
+		local TEST_NAME=${RES_TEST_NAME}
+		local TEST_NAME_SWEEP=${TEST_NAME}
+	
+		is_makefile $file_
+		IS_MAKEFILE=$?
+
+		# if we are dealing with a makefile we need to adapt the name as it must include the enclosing folder
+		normalized_name=$file_
+		if [[ $IS_MAKEFILE -eq 1 ]]; then
+			#get parent folder and append Makefile
+			parent_folder=${folder_##*/}
+			normalized_name="${parent_folder}/$file_"
+			TEST_NAME_SWEEP="${parent_folder}_${file_}"
+		fi 
+
+		# we don't want to generate the xml report for tests that are known to be failing
+		TEST_KNOWN_TO_BE_FAILING=0
+		# We filter unstable only if there is an unstable file and -unstable hasn't been provided
+		
+		if [[ -z "$RUN_ALL" ]]; then
+			# Running either default set (i.e. all tests excluding those in the unstable file) or -unstable set
+			# if there is an unstable file
+			if [[ -n "$UNSTABLE_FILE" ]]; then
+				#checking if this test is known to be failing
+				is_failing_test_known $normalized_name $UNSTABLE_FILE TEST_KNOWN_TO_BE_FAILING
+			fi
+		fi
+
+		if [[ $TEST_KNOWN_TO_BE_FAILING -eq 0 ]]; then
+		
+			for OPT_SWEEP_NAME in `echo "${OPTION_SWEEPING}"`; do
+				STEPS_COMPLETED=0
+				START_DATE=`date`
+				ACC_TEST_RUN_TIME=0
+				STEP_OPT=""
+				
+				# if we are applying option sweeping we generate a new test name to be able
+				# to distinguish several different execution of the same program with different options
+				is_opt_sweep_set
+				if [[ $? -eq 1 ]]; then
+					TEST_NAME_SWEEP=${TEST_NAME}_${OPT_SWEEP_NAME}
+				fi
+				
+				# set output
+				local OUTPUT="${LOG_DIR}/test_log_${TEST_NAME_SWEEP}"
+
+				if [[ $IS_MAKEFILE -eq 1 ]]; then
+					run_makefile="exec_makefile"
+					echo "Running ${normalized_name}"
+				else
+					is_opt_sweep_set
+					if [[ $? -eq 1 ]]; then
+						echo "Running ${TEST_NAME} with configuration option ${OPT_SWEEP_NAME}"
+					else
+						echo "Running ${TEST_NAME}"					
+					fi
+				fi
+
+				for step in `echo ${STEPS_LIST}`; do
+
+					is_opt_sweep_set
+					if [[ $? -eq 1 ]]; then 
+						find_options "${step}" "${OPT_SWEEP_NAME}" STEP_OPT
+					fi
+	
+					if [[ "${SHOW_OUTPUT}" = "yes" ]]; then
+						${run_makefile} ${step} $file_ $folder_ "${OPT_SWEEP_NAME}" "${STEP_OPT}" | tee ${OUTPUT}
+						CMD_RES="${PIPESTATUS[0]}"
+					else
+						TEST_RUN_TIME=`( ( time ${run_makefile} ${step} $file_ $folder_ "${OPT_SWEEP_NAME}" "${STEP_OPT}" >>${OUTPUT} 2>&1 ) 2>&1 )`
+						CMD_RES=$?
+						acc_time "${ACC_TEST_RUN_TIME}" "${TEST_RUN_TIME}" ACC_TEST_RUN_TIME
+					fi
+						
+					if [[ $CMD_RES -eq 0 ]]; then
+						# Increment status
+						STEPS_COMPLETED=`expr $STEPS_COMPLETED \+ 1`
+					else
+						RET_CODE=1 
+						break
+					fi
+				done
+
+				# determine test status and stores it in TEST_STATUTS
+				# here it's important to use the original TEST_NAME so that implementations
+				# can pattern match correctly on test names
+				determine_test_status ${TEST_NAME} ${STEPS_COMPLETED} TEST_STATUS
+				if [[ -n "$RUN_UNSTABLE" ]]; then
+					negate_test_status ${TEST_STATUS} TEST_STATUS
+				fi
+				
+				print_test_status ${TEST_STATUS} ${OUTPUT}
+				
+				# here it's important to refer to the test name using the TEST_NAME_SWEEP variable 
+				# (i.e. to be able to distinguish several different execution of the same test but with
+				# different options)
+				XUNIT_OUTPUT=${OUTPUT}.xml				
+				xunit_print_xml_header >> ${XUNIT_OUTPUT}
+				xunit_print_testsuite_header $TEST_STATUS ${HOSTNAME} $id $TEST_NAME_SWEEP "" 1 "${ACC_TEST_RUN_TIME}" "$START_DATE" "${OUTPUT}" >> ${XUNIT_OUTPUT}
+				xunit_print_sysout_cdata ${OUTPUT} >> ${XUNIT_OUTPUT}
+				xunit_print_testsuite_footer >> ${XUNIT_OUTPUT}
+			done
+		else 
+			echo "Skipping test $normalized_name"
+		fi
+
+		let id++;
+	done
+	
+	# Generate main
+	XUNIT_REPORT_OUTPUT="${LOG_DIR}/TESTS-TestSuites"
+	xunit_print_report ${LOG_DIR} >${XUNIT_REPORT_OUTPUT}
+	mv ${XUNIT_REPORT_OUTPUT} ${XUNIT_REPORT_OUTPUT}.xml
+
+	
+	if [[ -n "$REPORT_ERROR" ]]; then	
+		return $RET_CODE
+	else
+		return 0	
+	fi
+}
+
+#
+# calling runTests with extension specific arguments 
+#
+
+runTests -testdir $TEST_DIR ${ARGS}
