@@ -37,6 +37,63 @@
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
+typedef enum {
+    OCR_GUID_NONE = 0
+} ocrGuidKind;
+
+/**
+ * @brief Provider for GUIDs for the system
+ *
+ * GUIDs should be unique and are used to
+ * identify and locate objects (and their associated
+ * metadata mostly). GUIDs serve as a level of indirection
+ * to allow objects to move around in the system and
+ * support different address spaces (in the future)
+ */
+typedef struct _ocrGuidProvider_t {
+    /**
+     * @brief Constructor equivalent
+     *
+     * @param self          Pointer to this GUID provider
+     * @param config        And optional configuration (not currently used)
+     */
+    void (*create)(struct _ocrGuidProvider_t* self, void* config);
+
+    /**
+     * @brief Destructor equivalent
+     *
+     * This will free the GUID provider and any
+     * memory that it uses
+     *
+     * @param self          Pointer to this GUID provider
+     */
+    void (*destruct)(struct _ocrGuidProvider_t* self);
+
+    /**
+     * @brief Returns a GUID for an object of type 'type'
+     * and associates the value val.
+     *
+     * The GUID provider basically associates a value with the
+     * GUID (can be a pointer to the metadata for example). This
+     * creates an association
+     *
+     * @param self          Pointer to this GUID provider
+     * @param guid          GUID returned
+     * @param type          Type of the object that will be associated with the GUID
+     * @param val           Value to be associated
+     * @return 0 on success or an error code
+     */
+    u8 (*getGuid)(struct _ocrGuidProvider_t* self, ocrGuid_t* guid, ocrGuidKind type,
+                  u64 val);
+
+    /**
+     * @brief Returns the associated value for the GUID 'guid'
+     */
+    u8 (*getVal)(struct _ocrGuidProvider_t* self, u64* val, ocrGuid_t guid);
+
+
+} ocrGuidProvider_t;
+
 /*! \brief Globally Unique Identifier utility class
  *
  *  This class provides interfaces to get GUIDs for OCR types, get OCR types from GUID
@@ -56,13 +113,7 @@ ocrGuid_t guidify(void * p);
  */
 void * deguidify(ocrGuid_t id);
 
-/*! GUID for a NULL pointer */
-extern ocrGuid_t NULL_GUID;
 
-/*! GUID for a uninitialized pointer */
-extern ocrGuid_t UNINITIALIZED_GUID;
-
-/*! GUID for an error message */
-extern ocrGuid_t ERROR_GUID;
+#define ERROR_GUID ((ocrGuid_t)-1);
 
 #endif /* __OCR_GUID__H_ */

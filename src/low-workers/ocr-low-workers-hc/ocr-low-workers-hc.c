@@ -84,7 +84,7 @@ ocrGuid_t hc_getCurrentEDT (ocr_worker_t * base) {
     return hcWorker->currentEDT_guid;
 }
 
-void hc_set_currentEDT (ocr_worker_t * base, ocrGuid_t curr_edt_guid) {
+void hc_setCurrentEDT (ocr_worker_t * base, ocrGuid_t curr_edt_guid) {
     hc_worker_t * hcWorker = (hc_worker_t *) base;
     hcWorker->currentEDT_guid = curr_edt_guid;
 }
@@ -106,7 +106,7 @@ ocr_worker_t* hc_worker_constructor () {
     worker->id = -1;
     worker->run = false;
     worker->guid = guidify((void*)worker);
-    worker->currentEDT_guid = UNINITIALIZED_GUID;
+    worker->currentEDT_guid = NULL_GUID;
     ocr_worker_t * base = (ocr_worker_t *) worker;
     ocr_module_t* module_base = (ocr_module_t*) base;
     module_base->map_fct = hc_ocr_module_map_scheduler_to_worker;
@@ -119,6 +119,7 @@ ocr_worker_t* hc_worker_constructor () {
     base->is_running = hc_is_running_worker;
     base->getCurrentPolicyDomain = hc_getCurrentPolicyDomain;
     base->getCurrentEDT = hc_getCurrentEDT;
+    base->setCurrentEDT = hc_setCurrentEDT;
     return base;
 }
 
@@ -178,7 +179,7 @@ void * worker_computation_routine(void * arg) {
             ocr_task_t* curr_task = (ocr_task_t*) deguidify(taskGuid);
             worker->setCurrentEDT(worker,taskGuid);
             curr_task->execute(curr_task);
-            worker->setCurrentEDT(worker,UNINITIALIZED_GUID);
+            worker->setCurrentEDT(worker, NULL_GUID);
         }
     }
     return NULL;

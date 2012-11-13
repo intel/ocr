@@ -220,7 +220,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
     defaultMapping[0] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_WORKPILE, OCR_SCHEDULER);
     defaultMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_EXECUTOR);
     defaultMapping[2] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_SCHEDULER, OCR_WORKER);
-    defaultMapping[3] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_ALLOCATOR, OCR_MEMORY);
+    defaultMapping[3] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_MEMORY, OCR_ALLOCATOR);
     defaultPolicy->nb_mappings = nb_module_mappings;
     defaultPolicy->mappings = defaultMapping;
 

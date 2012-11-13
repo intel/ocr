@@ -118,8 +118,12 @@ typedef u32 tlsf_size_t;
  * For 4096K memory: 20 (if ELEMENT_SIZE_LOG2 == 2)
  * For 16384K memory: 22 (if ELEMENT_SIZE_LOG2 == 2)
  * For 32768K memory: 23 (if ELEMENT_SIZE_LOG2 == 2)
+ * For 65536K memory: 24 (if ELEMENT_SIZE_LOG2 == 2)
+ * For 128MB memory: 25 (if ELEMENT_SIZE_LOG2 == 2)
+ * For 256MB memory: 26 (if ELEMENT_SIZE_LOG2 == 2)
+ * For 512MB memory: 27 (if ELEMENT_SIZE_LOG2 == 2)
  */
-#define FL_MAX_LOG2 23
+#define FL_MAX_LOG2 27
 
 
 /* Size specific functions:
@@ -835,13 +839,13 @@ u32 tlsf_init(u64 pg_start, u64 size) {
         ((poolHeaderSize + ELEMENT_SIZE_BYTES - 1) >> ELEMENT_SIZE_LOG2);
 
     if(poolRealSize < GminBlockRealSize || poolRealSize > GmaxBlockRealSize) {
-        DEBUG(5, "WARN: Space mismatch allocating TLSF pool at 0x%llx of sz %d (user sz: %d)\n",
+        DEBUG(5, "WARN: Space mismatch allocating TLSF pool at 0x%lx of sz %d (user sz: %d)\n",
               pg_start, (u32)poolRealSize, (u32)(poolRealSize << ELEMENT_SIZE_LOG2));
         DEBUG(5, "WARN: Sz must be at least %d and at most %d\n", GminBlockRealSize, GmaxBlockRealSize);
         return -1; // Can't allocate pool
     }
 
-    DEBUG(10, "INFO: Allocating a TLSF pool at 0x%llx of sz %d (user sz: %d)\n",
+    DEBUG(10, "INFO: Allocating a TLSF pool at 0x%lx of sz %d (user sz: %d)\n",
           pg_start, (u32)poolRealSize, (u32)(poolRealSize << ELEMENT_SIZE_LOG2));
 
     initializePool(pg_start, poolRealSize);
@@ -863,13 +867,13 @@ u64 tlsf_malloc(u64 pg_start, u64 size) {
     allocSize = getRealSizeOfRequest(size);
 
     freeBlock = findFreeBlockForRealSize(pg_start, allocSize, &flIndex, &slIndex);
-    DEBUG(15, "tslf_malloc @0x%llx found a free block at 0x%llx\n", pg_start,
+    DEBUG(15, "tslf_malloc @0x%lx found a free block at 0x%lx\n", pg_start,
           addressForBlock(GET_ADDRESS(freeBlock)));
 
     /* header_t * */ u64 freeBlockPtr = GET_ADDRESS(freeBlock);
 
     if(IS_NULL(freeBlockPtr)) {
-        DEBUG(15, "tlsf_malloc @ 0x%llx returning NULL for size %lld\n",
+        DEBUG(15, "tlsf_malloc @ 0x%lx returning NULL for size %ld\n",
               pg_start, size);
         return _NULL;
     }
@@ -879,7 +883,7 @@ u64 tlsf_malloc(u64 pg_start, u64 size) {
 
     if(returnedSize > allocSize + GminBlockRealSize) {
         remainingBlock = splitBlock(pg_start, freeBlock, allocSize);
-        DEBUG(15, "tlsf_malloc @0x%llx split block and re-added to free list 0x%llx\n", pg_start,
+        DEBUG(15, "tlsf_malloc @0x%lx split block and re-added to free list 0x%lx\n", pg_start,
               addressForBlock(GET_ADDRESS(remainingBlock)));
         addFreeBlock(pg_start, remainingBlock);
     }
@@ -887,7 +891,7 @@ u64 tlsf_malloc(u64 pg_start, u64 size) {
     markBlockUsed(pg_start, freeBlockPtr);
 
     result = addressForBlock(freeBlockPtr);
-    DEBUG(15, "tlsf_malloc @ 0x%llx returning 0x%llx for size %lld\n",
+    DEBUG(15, "tlsf_malloc @ 0x%lx returning 0x%lx for size %ld\n",
           pg_start, result, size);
     return result;
 }
@@ -895,7 +899,7 @@ u64 tlsf_malloc(u64 pg_start, u64 size) {
 void tlsf_free(u64 pg_start, u64 ptr) {
     header_addr_t bl;
 
-    DEBUG(15, "tlsf_free @ 0x%llx going to free 0x%llx\n",
+    DEBUG(15, "tlsf_free @ 0x%lx going to free 0x%lx\n",
           pg_start, ptr);
 
     bl = blockForAddress(pg_start, ptr);
@@ -1040,14 +1044,15 @@ ocrAllocator_t* newAllocatorTlsf() {
     return (ocrAllocator_t*)result;
 }
 
-#ifdef OCR_DEBUG
+// Deactivated for now. Need to clean-up
+#if 0 && defined(OCR_DEBUG)
 /* Some debug functions to see what is going on */
 
 
 static void printBlock(void *block_, void* extra) {
     header_t *bl = (header_t*)block_;
     int *count = (int*)extra;
-    fprintf(stderr, "\tBlock %d starts at 0x%x (user: 0x%x) of size %d (user: %d) %s\n",
+    fprintf(stderr, "\tBlock %d starts at 0x%lx (user: 0x%lx) of size %d (user: %d) %s\n",
             *count, bl, (char*)bl + (GusedBlockOverhead << ELEMENT_SIZE_LOG2),
             bl->sizeBlock, (bl->sizeBlock << ELEMENT_SIZE_LOG2),
             isBlockFree(bl)?"free":"used");
