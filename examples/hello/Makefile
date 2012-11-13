@@ -1,6 +1,6 @@
 PROG=helloworld
 CFLAGS=-O0 -g
-OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr -lrt
+OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr
 
 all-test: compile run
 
