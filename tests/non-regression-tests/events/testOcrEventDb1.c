@@ -27,17 +27,20 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-*/
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
 #include "ocr.h"
 
-int edtCalled = 0;
+#define FLAGS 0xdead
 
 u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
-    edtCalled = 1;
+    int* res = (int*)depv[0].ptr;
+    printf("In the task_for_edt with value %d\n", (*res));
+    assert(*res == 42);
     // This is the last EDT to execute, terminate
     ocrFinish();
     return 0;
@@ -54,18 +57,28 @@ int main (int argc, char ** argv) {
 
     // Creates the EDT
     ocrGuid_t edt_guid;
-    ocrEdtCreate(&edt_guid, task_for_edt, 0, NULL, NULL, 0, 1, NULL);
+
+    ocrEdtCreate(&edt_guid, task_for_edt, /*paramc=*/0, /*params=*/ NULL,
+            /*paramv=*/NULL, /*properties=*/0,
+            /*depc=*/1, /*depv=*/NULL);
 
     // Register a dependency between an event and an edt
     ocrAddDependency(event_guid, edt_guid, 0);
 
-    ocrEventSatisfy(event_guid, INVALID_GUID);
+    int *k;
+    ocrGuid_t db_guid;
+    ocrDbCreate(&db_guid,(void **) &k,
+            sizeof(int), /*flags=*/FLAGS,
+            /*location=*/NULL,
+            NO_ALLOC);
+    *k = 42;
 
+    ocrEventSatisfy(event_guid, db_guid);
+
+    // Schedule the EDT (will run when dependencies satisfied)
     ocrEdtSchedule(edt_guid);
 
     ocrCleanup();
-
-    assert(edtCalled == 1);
 
     return 0;
 }

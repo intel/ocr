@@ -37,6 +37,7 @@
 #define __OCR_H__
 
 #include "ocr-types.h"
+#include "ocr-db.h"
 #include "ocr-edt.h"
 
 /**
