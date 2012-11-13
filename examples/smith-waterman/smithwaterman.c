@@ -134,7 +134,7 @@ u8 smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocr
 
     ocrGuid_t db_guid_i_j_br;
     void* db_guid_i_j_br_data;
-    ocrDbCreate( &db_guid_i_j_br, &db_guid_i_j_br_data, sizeof(int), FLAGS );
+    ocrDbCreate( &db_guid_i_j_br, &db_guid_i_j_br_data, sizeof(int), FLAGS, NULL, NO_ALLOC );
 
     int* curr_bottom_right = (int*)db_guid_i_j_br_data;
     curr_bottom_right[0] = curr_tile[tile_height][tile_width];
@@ -142,7 +142,7 @@ u8 smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocr
 
     ocrGuid_t db_guid_i_j_rc;
     void* db_guid_i_j_rc_data;
-    ocrDbCreate( &db_guid_i_j_rc, &db_guid_i_j_rc_data, sizeof(int)*tile_height, FLAGS );
+    ocrDbCreate( &db_guid_i_j_rc, &db_guid_i_j_rc_data, sizeof(int)*tile_height, FLAGS, NULL, NO_ALLOC );
 
     int* curr_right_column = (int*)db_guid_i_j_rc_data;
     for ( index = 0; index < tile_height; ++index ) {
@@ -152,7 +152,7 @@ u8 smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocr
 
     ocrGuid_t db_guid_i_j_brow;
     void* db_guid_i_j_brow_data;
-    ocrDbCreate( &db_guid_i_j_brow, &db_guid_i_j_brow_data, sizeof(int)*tile_width, FLAGS );
+    ocrDbCreate( &db_guid_i_j_brow, &db_guid_i_j_brow_data, sizeof(int)*tile_width, FLAGS, NULL, NO_ALLOC );
 
     int* curr_bottom_row = (int*)db_guid_i_j_brow_data;
     for ( index = 0; index < tile_width; ++index ) {
@@ -227,7 +227,7 @@ int main ( int argc, char* argv[] ) {
     fprintf(stdout, "Allocated tile matrix\n");
     ocrGuid_t db_guid_0_0_br;
     void* db_guid_0_0_br_data;
-    ocrDbCreate( &db_guid_0_0_br, &db_guid_0_0_br_data, sizeof(int), FLAGS );
+    ocrDbCreate( &db_guid_0_0_br, &db_guid_0_0_br_data, sizeof(int), FLAGS, NULL, NO_ALLOC );
     int* allocated = (int*)db_guid_0_0_br_data;
     allocated[0] = 0;
     ocrEventSatisfy(tile_matrix[0][0].bottom_right_event_guid, db_guid_0_0_br);
@@ -235,7 +235,7 @@ int main ( int argc, char* argv[] ) {
     for ( j = 1; j < n_tiles_width + 1; ++j ) {
         ocrGuid_t db_guid_0_j_brow;
         void* db_guid_0_j_brow_data;
-        ocrDbCreate( &db_guid_0_j_brow, &db_guid_0_j_brow_data, sizeof(int)*tile_width, FLAGS );
+        ocrDbCreate( &db_guid_0_j_brow, &db_guid_0_j_brow_data, sizeof(int)*tile_width, FLAGS, NULL, NO_ALLOC );
 
         allocated = (int*)db_guid_0_j_brow_data;
         for( i = 0; i < tile_width ; ++i ) {
@@ -246,7 +246,7 @@ int main ( int argc, char* argv[] ) {
 
         ocrGuid_t db_guid_0_j_br;
         void* db_guid_0_j_br_data;
-        ocrDbCreate( &db_guid_0_j_br, &db_guid_0_j_br_data, sizeof(int), FLAGS );
+        ocrDbCreate( &db_guid_0_j_br, &db_guid_0_j_br_data, sizeof(int), FLAGS, NULL, NO_ALLOC );
         allocated = (int*)db_guid_0_j_br_data;
         allocated[0] = GAP_PENALTY*(j*tile_width); //sagnak: needed to handle tilesize 2
 
@@ -256,7 +256,7 @@ int main ( int argc, char* argv[] ) {
     for ( i = 1; i < n_tiles_height + 1; ++i ) {
         ocrGuid_t db_guid_i_0_rc;
         void* db_guid_i_0_rc_data;
-        ocrDbCreate( &db_guid_i_0_rc, &db_guid_i_0_rc_data, sizeof(int)*tile_height, FLAGS );
+        ocrDbCreate( &db_guid_i_0_rc, &db_guid_i_0_rc_data, sizeof(int)*tile_height, FLAGS, NULL, NO_ALLOC );
         allocated = (int*)db_guid_i_0_rc_data;
         for ( j = 0; j < tile_height ; ++j ) {
             allocated[j] = GAP_PENALTY*((i-1)*tile_height+j+1);
@@ -265,7 +265,7 @@ int main ( int argc, char* argv[] ) {
 
         ocrGuid_t db_guid_i_0_br;
         void* db_guid_i_0_br_data;
-        ocrDbCreate( &db_guid_i_0_br, &db_guid_i_0_br_data, sizeof(int), FLAGS );
+        ocrDbCreate( &db_guid_i_0_br, &db_guid_i_0_br_data, sizeof(int), FLAGS, NULL, NO_ALLOC );
 
         allocated = (int*)db_guid_i_0_br_data;
         allocated[0] = GAP_PENALTY*(i*tile_height); //sagnak: needed to handle tilesize 2
@@ -290,7 +290,10 @@ int main ( int argc, char* argv[] ) {
             paramv[8]=(intptr_t)n_tiles_width;
             *p_paramv = paramv;
             ocrGuid_t task_guid;
-            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, p_paramv, PROPERTIES, 3, NULL);
+            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void **) p_paramv, PROPERTIES, 3, NULL);
+            u8 ocrEdtCreate(ocrGuid_t * guid, ocrEdt_t funcPtr,
+                            u32 paramc, u64 * params, void** paramv,
+                            u16 properties, u32 depc, ocrGuid_t * depv);
 
             ocrAddDependency(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
             ocrAddDependency(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);
