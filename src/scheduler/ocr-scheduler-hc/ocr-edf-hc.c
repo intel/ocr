@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 
 #include "hc_edf.h"
+#include "ocr-datablock.h"
+#include "ocr-utils.h"
+#include "debug.h"
 
 struct ocr_event_factory_struct* hc_event_factory_constructor(void) {
     hc_event_factory* derived = (hc_event_factory*) malloc(sizeof(hc_event_factory));
@@ -205,7 +208,6 @@ void hc_task_destruct ( ocr_task_t* base ) {
     free(derived);
 }
 
-
 bool hc_task_iterate_waiting_frontier ( ocr_task_t* base ) {
     hc_task_t* derived = (hc_task_t*)base;
     ocr_event_t** currEventToWaitOn = derived->awaitList->waitingFrontier;
@@ -231,6 +233,8 @@ void hc_task_schedule( ocr_task_t* base, ocrGuid_t wid ) {
 void hc_task_execute ( ocr_task_t* base ) {
     hc_task_t* derived = (hc_task_t*)base;
     ocr_event_t* curr = derived->awaitList->array[0];
+    ocrDataBlock_t *db = NULL;
+    ocrGuid_t dbGuid = NULL_GUID;
     size_t i = 0;
     //TODO this is computed for now but when we'll support slots
     //we will have to have the size when constructing the edt
@@ -241,15 +245,28 @@ void hc_task_execute ( ocr_task_t* base ) {
     derived->nbdeps = i; i = 0;
     derived->depv = (ocrEdtDep_t *) malloc(sizeof(ocrEdtDep_t) * derived->nbdeps);
     while ( NULL != curr ) {
-        derived->depv[i].guid = curr->get(curr);
-        derived->depv[i].ptr = deguidify(curr->get(curr));
+        dbGuid = curr->get(curr);
+        derived->depv[i].guid = dbGuid;
+        if(dbGuid != NULL_GUID) {
+            db = (ocrDataBlock_t*)deguidify(dbGuid);
+            derived->depv[i].ptr = db->acquire(db, guidify(derived), true);
+        } else
+            derived->depv[i].ptr = NULL;
+
         curr = derived->awaitList->array[++i];
     };
-    derived->p_function(base->paramc, base->params, base->paramv, derived->nbdeps, derived->depv);
+        derived->p_function(base->paramc, base->params, base->paramv, derived->nbdeps, derived->depv);
+
+    // Now we clean up and release the GUIDs that we have to release
+    for(i=0; i<derived->nbdeps; ++i) {
+        if(derived->depv[i].guid != NULL_GUID) {
+            db = (ocrDataBlock_t*)deguidify(derived->depv[i].guid);
+            RESULT_ASSERT(db->release(db, guidify(derived), true), ==, 0);
+        }
+    }
 }
 
 void hc_task_add_dependency ( ocr_task_t* base, ocr_event_t* dep, size_t index ) {
     hc_task_t* derived = (hc_task_t*)base;
     derived->awaitList->array[index] = dep;
 }
-

@@ -31,16 +31,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ocr-config.h"
 
-//ocr_executor_kind ocr_executor_default_kind;
-//ocr_worker_kind ocr_worker_default_kind;
-//ocr_scheduler_kind ocr_scheduler_default_kind;
-//ocr_policy_kind ocr_policy_default_kind;
-//ocr_workpile_kind ocr_workpile_default_kind;
-//u32 ocr_config_default_nb_hardware_threads;
-
 ocr_executor_kind ocr_executor_default_kind = OCR_EXECUTOR_HC;
 ocr_worker_kind ocr_worker_default_kind = OCR_WORKER_HC;
 ocr_scheduler_kind ocr_scheduler_default_kind = OCR_SCHEDULER_WST;
 ocr_policy_kind ocr_policy_default_kind = OCR_POLICY_HC;
 ocr_workpile_kind ocr_workpile_default_kind = OCR_DEQUE;
+ocrAllocatorKind ocrAllocatorDefaultKind = OCR_ALLOCATOR_TLSF;
+ocrLowMemoryKind ocrLowMemoryDefaultKind = OCR_LOWMEMORY_MALLOC;
+ocrDataBlockKind ocrDataBlockDefaultKind = OCR_DATABLOCK_REGULAR;
+ocrLockKind ocrLockDefaultKind = OCR_LOCK_X86;
+
 u32 ocr_config_default_nb_hardware_threads = 8;

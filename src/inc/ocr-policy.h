@@ -32,9 +32,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef OCR_POLICY_H_
 #define OCR_POLICY_H_
 
+#include "ocr-types.h"
 #include "ocr-scheduler.h"
 #include "ocr-executor.h"
 #include "ocr-low-workers.h"
+#include "ocr-allocator.h"
+#include "ocr-low-memory.h"
+#include "ocr-datablock.h"
+#include "ocr-sync.h"
 
 
 /******************************************************/
@@ -45,29 +50,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct ocr_policy_domain_struct;
 
 typedef void (*ocr_policy_create_fct) (struct ocr_policy_domain_struct * policy, void * configuration,
-        ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
-        ocr_executor_t ** executors, ocr_workpile_t ** workpiles);
+                                       ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
+                                       ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
+                                       ocrAllocator_t ** allocators, ocrLowMemory_t ** memories);
 typedef void (*ocr_policy_start_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_finish_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_stop_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_destruct_fct) (struct ocr_policy_domain_struct * policy);
+typedef ocrGuid_t (*ocr_policy_getAllocator)(struct ocr_policy_domain_struct *policy, ocrLocation_t* location);
 
 typedef struct ocr_policy_domain_struct {
     int nb_schedulers;
     int nb_workers;
     int nb_executors;
     int nb_workpiles;
+    int nb_allocators;
+    int nb_memories;
 
     ocr_scheduler_t ** schedulers;
     ocr_worker_t ** workers;
     ocr_executor_t ** executors;
     ocr_workpile_t ** workpiles;
+    ocrAllocator_t ** allocators;
+    ocrLowMemory_t ** memories;
 
     ocr_policy_create_fct create;
     ocr_policy_start_fct start;
     ocr_policy_finish_fct finish;
     ocr_policy_stop_fct stop;
     ocr_policy_destruct_fct destruct;
+    ocr_policy_getAllocator getAllocator;
 
 } ocr_policy_domain_t;
 
@@ -91,16 +103,5 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
         size_t nb_scheduler);
 
  ocr_policy_domain_t * hc_policy_domain_constructor();
-
-/**
- * Default values are set in ocrInit
- */
-//TODO set default value in ocr-config.c
-extern ocr_executor_kind ocr_executor_default_kind;
-extern ocr_worker_kind ocr_worker_default_kind;
-extern ocr_scheduler_kind ocr_scheduler_default_kind;
-extern ocr_policy_kind ocr_policy_default_kind;
-extern ocr_workpile_kind ocr_workpile_default_kind;
-extern u32 ocr_config_default_nb_hardware_threads;
 
 #endif /* OCR_POLICY_H_ */

@@ -33,11 +33,11 @@
 
 #include "debug.h"
 #include "ocr-allocator.h"
-#include "allocator/tlsf/tlsf-allocator.h"
+#include "tlsf/tlsf-allocator.h"
 
 ocrAllocator_t* newAllocator(ocrAllocatorKind type) {
+    if(type == OCR_ALLOCATOR_DEFAULT) type = ocrAllocatorDefaultKind;
     switch(type) {
-    case OCR_ALLOCATOR_DEFAULT:
     case OCR_ALLOCATOR_TLSF:
         return newAllocatorTlsf();
         break;

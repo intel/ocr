@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UNINITIALIZED_EVENT_WAITLIST_PTR ((ocr::Task*) -1)
 
 #include "ocr-runtime.h"
+#include "ocr-types.h"
 
 /******************************************************/
 /* OCR-HC Event Factory                               */
@@ -103,5 +104,7 @@ bool hc_task_iterate_waiting_frontier ( ocr_task_t* base );
 void hc_task_execute ( ocr_task_t* base );
 void hc_task_schedule( ocr_task_t* base, ocrGuid_t wid);
 void hc_task_add_dependency ( ocr_task_t* base, ocr_event_t* dep, size_t index );
+u64 hc_task_add_acquired(ocr_task_t* base, u64 edtId, ocrGuid_t db);
+void hc_task_remove_acquired(ocr_task_t* base, ocrGuid_t db, u64 dbId);
 
 #endif

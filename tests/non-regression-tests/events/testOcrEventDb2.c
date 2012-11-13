@@ -28,48 +28,44 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
 
-#ifndef OCR_RUNTIME_MODEL_H_
-#define OCR_RUNTIME_MODEL_H_
+#include "ocr.h"
 
-#include "ocr-policy.h"
+int edtCalled = 0;
 
-/**
- * This is our base model for components we want instantiate
- */
-typedef struct {
-    int kind;
-    size_t nb_instances;
-    void * configuration;
-} ocr_model_t;
+u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+    edtCalled = 1;
+    // This is the last EDT to execute, terminate
+    ocrFinish();
+    return 0;
+}
 
-typedef struct _ocrAllocatorModel_t {
-    ocr_model_t model;
-    u64 sizeManaged;
-} ocrAllocatorModel_t;
+int main (int argc, char ** argv) {
+    ocrEdt_t fctPtrArray [1];
+    fctPtrArray[0] = &task_for_edt;
+    ocrInit(&argc, argv, 1, fctPtrArray);
 
-typedef struct {
-    ocr_model_t model;
-    size_t nb_scheduler_types;
-    size_t nb_worker_types;
-    size_t nb_executor_types;
-    size_t nb_workpile_types;
-    size_t nb_mappings;
-    u64 numAllocTypes;
-    u64 numMemTypes;
-    ocr_model_t * schedulers;
-    ocr_model_t * workers;
-    ocr_model_t * executors;
-    ocr_model_t * workpiles;
-    ocrAllocatorModel_t * allocators;
-    ocr_model_t * memories;
-    ocr_module_mapping_t * mappings;
-} ocr_model_policy_t;
+    // Current thread is '0' and goes on with user code.
+    ocrGuid_t event_guid;
+    ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true);
 
-ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_workers,
-                                           size_t nb_executors, size_t nb_workpiles);
+    // Creates the EDT
+    ocrGuid_t edt_guid;
+    ocrEdtCreate(&edt_guid, task_for_edt, 0, NULL, NULL, 0, 1, NULL);
 
+    // Register a dependency between an event and an edt
+    ocrAddDependency(event_guid, edt_guid, 0);
 
-ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model);
+    ocrEventSatisfy(event_guid, NULL_GUID);
 
-#endif /* OCR_RUNTIME_MODEL_H_ */
+    ocrEdtSchedule(edt_guid);
+
+    ocrCleanup();
+
+    assert(edtCalled == 1);
+
+    return 0;
+}

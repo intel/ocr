@@ -1,5 +1,5 @@
 PROG=helloworld
-CFLAGS=-O3 -g
+CFLAGS=-O0 -g
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr
 
 all-test: compile run

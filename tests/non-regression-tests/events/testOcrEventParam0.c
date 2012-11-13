@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ocr.h"
 
+#define FLAGS 0xdead
+
 u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     printf("In the task_for_edt with value %d\n", *((int *)(paramv[0])));
     assert(paramc == 1);
@@ -67,10 +69,14 @@ int main (int argc, char ** argv) {
     // Register a dependency between an event and an edt
     ocrAddDependency(event_guid, edt_guid, 0);
 
-    int *k = (int *) malloc(sizeof(int));
+    int *k;
+    ocrGuid_t db_guid;
+    ocrDbCreate(&db_guid,(void **) &k,
+            sizeof(int), /*flags=*/FLAGS,
+            /*location=*/NULL,
+            NO_ALLOC);
     *k = 42;
-    void *db = (void*) k;
-    ocrGuid_t db_guid = guidify(db);
+
     ocrEventSatisfy(event_guid, db_guid);
 
     ocrEdtSchedule(edt_guid);

@@ -28,7 +28,14 @@
  **/
 
 #include <stdlib.h>
-#include "low-memory/malloc/malloc.h"
+#include "malloc.h"
+#include "ocr-runtime-def.h"
+#include "debug.h"
+
+void mallocMap(void* self, ocr_module_kind kind, size_t nb_instances, void** ptr_instances) {
+    ASSERT(0);
+// This should never get called for now
+}
 
 /* Methods used for this allocation method */
 void mallocCreate(ocrLowMemory_t *self, void* config) {
@@ -56,6 +63,7 @@ ocrLowMemory_t* newLowMemoryMalloc() {
     result->base.destruct = &mallocDestruct;
     result->base.allocate = &mallocAllocate;
     result->base.free = &mallocFree;
+    result->base.module.map_fct = &mallocMap;
 
     return (ocrLowMemory_t*)result;
 }

@@ -1,10 +1,5 @@
 /**
- * @brief Configuration for the OCR runtime
- *
- * This file describes the configuration options for OCR
- * to select the different implementations available
- * for the various modules
- *
+ * @brief Simple basic x86 implementation of synchronization primitives
  * @authors Romain Cledat, Intel Corporation
  * @date 2012-09-21
  * Copyright (c) 2012, Intel Corporation
@@ -34,29 +29,19 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ **/
 
-#ifndef __OCR_CONFIG_H__
-#define __OCR_CONFIG_H__
 
-#include "ocr-executor.h"
-#include "ocr-low-workers.h"
-#include "ocr-scheduler.h"
-#include "ocr-policy.h"
-#include "ocr-workpile.h"
+#ifndef __SYNC_X86_H__
+#define __SYNC_X86_H__
 
-// Default kinds of ocr modules
-extern ocr_executor_kind ocr_executor_default_kind;
-extern ocr_worker_kind ocr_worker_default_kind;
-extern ocr_scheduler_kind ocr_scheduler_default_kind;
-extern ocr_policy_kind ocr_policy_default_kind;
-extern ocr_workpile_kind ocr_workpile_default_kind;
-extern ocrAllocatorKind ocrAllocatorDefaultKind;
-extern ocrLowMemoryKind ocrLowMemoryDefaultKind;
-extern ocrDataBlockKind ocrDataBlockDefaultKind;
-extern ocrLockKind ocrLockDefaultKind;
+#include "ocr-types.h"
+#include "ocr-sync.h"
 
-// Default values to configure ocr
-extern u32 ocr_config_default_nb_hardware_threads;
+typedef struct {
+    ocrLock_t base;
+    u32 val;
+} ocrLockX86_t;
 
-#endif /* __OCR_CONFIG_H__ */
+ocrLock_t* newLockX86();
+#endif /* __SYNC_X86_H__ */

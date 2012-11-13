@@ -58,7 +58,7 @@ typedef struct ocr_event_struct {
      */
     event_get_fct get;
 
-    /*! \brief Interface to satisfy the event 
+    /*! \brief Interface to satisfy the event
      *  \param[in]  db  GUID to satisfy this event
      *  \param[in]  w   GUID of the Worker instance satisfying this event
      */
@@ -98,7 +98,7 @@ typedef struct event_list_struct_t {
     /*! \brief Append an Event guid to the linked list
      *  \param[in]  event_guid  GUID of the event to be appended
      *
-     *  This function extracts the Event object from the given guid, creates a linked list node 
+     *  This function extracts the Event object from the given guid, creates a linked list node
      *  wrapper by a Node instance, adds the node object to the tail of the linked list, and
      *  increments the size
      */

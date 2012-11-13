@@ -57,7 +57,7 @@ typedef u8 bool;
 typedef intptr_t ocrGuid_t;
 //typedef u64 ocrGuid_t;
 
-#define INVALID_GUID (u64)0x0
+#define NULL_GUID ((ocrGuid_t)0x0)
 
 /**
  * @brief Description of a "location" for OCR
@@ -79,6 +79,6 @@ typedef struct {
 typedef enum {
     NO_ALLOC = 0
     /* Add others */
-} ocrAllocator_t;
+} ocrInDbAllocator_t;
 
 #endif /* __OCR_TYPES_H__ */

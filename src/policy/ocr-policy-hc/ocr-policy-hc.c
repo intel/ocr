@@ -33,12 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-policy.h"
 
 void hc_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
-        ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
-        ocr_executor_t ** executors, ocr_workpile_t ** workpiles) {
+                             ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
+                             ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
+                             ocrAllocator_t ** allocators, ocrLowMemory_t ** memories) {
     policy->schedulers = schedulers;
     policy->workers = workers;
     policy->executors = executors;
     policy->workpiles = workpiles;
+    policy->allocators = allocators;
+    policy->memories = memories;
 }
 
 void hc_policy_domain_start(ocr_policy_domain_t * policy) {
@@ -104,6 +107,10 @@ void hc_policy_domain_destruct(ocr_policy_domain_t * policy) {
     eventFactory->destruct(eventFactory);
 }
 
+ocrGuid_t hc_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* location) {
+    return guidify((ocrAllocator_t *)(policy->allocators[0]));
+}
+
 ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
         size_t nb_workers,
         size_t nb_executors,
@@ -119,5 +126,6 @@ ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
     policy->finish = hc_policy_domain_finish;
     policy->stop = hc_policy_domain_stop;
     policy->destruct = hc_policy_domain_destruct;
+    policy->getAllocator = hc_policy_getAllocator;
     return policy;
 }

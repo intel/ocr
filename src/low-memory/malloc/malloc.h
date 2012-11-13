@@ -38,5 +38,5 @@ typedef struct _ocrLowMemoryMalloc_t {
     ocrLowMemory_t base;
 } ocrLowMemoryMalloc_t;
 
-ocrLowMemory_t* newLowMemoryMalloc()
+ocrLowMemory_t* newLowMemoryMalloc();
 #endif /* __LOW_MEMORY_MALLOC_H__ */

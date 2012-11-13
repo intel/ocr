@@ -37,6 +37,7 @@
 #define __OCR_LOW_MEMORY_H__
 
 #include "ocr-types.h"
+#include "ocr-runtime-def.h"
 
 /**
  * @brief Low-level memory provider.
@@ -48,6 +49,7 @@
  * architecture comes online. The API may therefore evolve
  */
 typedef struct _ocrLowMemory_t {
+    ocr_module_t module; /**< Base "class" for ocrLowMemory */
     /**
      * @brief Constructor equivalent
      *
@@ -104,6 +106,6 @@ extern ocrLowMemoryKind ocrLowMemoryDefaultKind;
  * @param type              Type of the low-memory allocator to return
  * @return A pointer to the meta-data for the low-memory allocator
  */
-ocrLowMemory_t* newLowMemory(ocrLowMemoryKind type = OCR_LOWMEMORY_DEFAULT);
+ocrLowMemory_t* newLowMemory(ocrLowMemoryKind type);
 
 #endif /* __OCR_LOW_MEMORY_H__ */

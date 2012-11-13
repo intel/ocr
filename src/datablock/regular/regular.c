@@ -31,16 +31,160 @@
  **/
 
 #include <stdlib.h>
-#include "datablock/regular/regular.h"
+#include <errno.h>
+#include "regular.h"
+#include "debug.h"
+#include "ocr-task-event.h"
 
-// TODO: This code needs to be cleaned up. Code from FSim at this point
+void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
+                   u16 flags, void* configuration) {
+
+    ocrAllocator_t *allocator = (ocrAllocator_t*)deguidify(allocatorGuid);
+    ASSERT(allocator);
+    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
+    rself->base.guid = guidify(self);
+    rself->ptr = allocator->allocate(allocator, size);
+    rself->allocatorGuid = allocatorGuid;
+    rself->size = size;
+    rself->lock->create(rself->lock, NULL); // TODO sagnak NULL is for config?
+    rself->attributes.flags = flags;
+    rself->attributes.numUsers = 0;
+    rself->attributes.freeRequested = 0;
+    ocrGuidTrackerInit(&(rself->usersTracker));
+}
+
+void regularDestruct(ocrDataBlock_t *self) {
+    // We don't use a lock here. Maybe we should
+    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
+    ASSERT(rself->attributes.numUsers == 0);
+    ASSERT(rself->attributes.freeRequested == 0);
+    rself->lock->destruct(rself->lock);
+    // TODO: Inform destruction of GUID
+
+    // Tell the allocator to free the data-block
+    ocrAllocator_t *allocator = (ocrAllocator_t*)deguidify(rself->allocatorGuid);
+    allocator->free(allocator, rself->ptr); // TODO sagnak first argument was rself->allocator
+
+    free(rself);
+}
+
+void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
+    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
+
+    // Critical section
+    rself->lock->lock(rself->lock);
+    if(rself->attributes.freeRequested) {
+        rself->lock->unlock(rself->lock);
+        return NULL;
+    }
+    u32 idForEdt = ocrGuidTrackerFind(&(rself->usersTracker), edt);
+    if(idForEdt > 63)
+        idForEdt = ocrGuidTrackerTrack(&(rself->usersTracker), edt);
+    else {
+        rself->lock->unlock(rself->lock);
+        return rself->ptr;
+    }
+
+    if(idForEdt > 63) {
+        rself->lock->unlock(rself->lock);
+        return NULL;
+    }
+    rself->attributes.numUsers += 1;
+    if(isInternal)
+        rself->attributes.internalUsers += 1;
+
+    rself->lock->unlock(rself->lock);
+    // End critical section
+
+    return rself->ptr;
+}
+
+u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
+                  bool isInternal) {
+
+    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
+    u32 edtId = ocrGuidTrackerFind(&(rself->usersTracker), edt);
+    bool isTracked = true;
+
+    // Start critical section
+    rself->lock->lock(rself->lock);
+    if(edtId > 63 || rself->usersTracker.slots[edtId] != edt) {
+        // We did not find it. The runtime may be
+        // re-releasing it
+        if(isInternal) {
+            // This is not necessarily an error
+            rself->attributes.internalUsers -= 1;
+            isTracked = false;
+        } else {
+            // Definitely a problem here
+            rself->lock->unlock(rself->lock);
+            return (u8)EACCES;
+        }
+    }
+
+    if(isTracked) {
+        ocrGuidTrackerRemove(&(rself->usersTracker), edt, edtId);
+        rself->attributes.numUsers -= 1;
+        if(isInternal) {
+            rself->attributes.internalUsers -= 1;
+        }
+    }
+    // Check if we need to free the block
+    if(rself->attributes.numUsers == 0  &&
+       rself->attributes.internalUsers == 0 &&
+       rself->attributes.freeRequested == 1) {
+        // We need to actually free the data-block
+        rself->lock->unlock(rself->lock);
+        regularDestruct(self);
+    } else {
+        rself->lock->unlock(rself->lock);
+    }
+    // End critical section
+
+    return 0;
+}
+
+u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
+    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
+
+    u32 id = ocrGuidTrackerFind(&(rself->usersTracker), edt);
+    // Begin critical section
+    rself->lock->lock(rself->lock);
+    if(rself->attributes.freeRequested) {
+        rself->lock->unlock(rself->lock);
+        return EPERM;
+    }
+    rself->attributes.freeRequested = 1;
+    rself->lock->unlock(rself->lock);
+    // End critical section
+
+    // We can call free without having acquired the block
+    if(id < 64) {
+        regularRelease(self, edt, false);
+    }
+    // Now check if we can actually free the block
+
+    // Critical section
+    rself->lock->lock(rself->lock);
+    if(rself->attributes.numUsers == 0) {
+        rself->lock->unlock(rself->lock);
+        regularDestruct(self);
+    } else {
+        rself->lock->unlock(rself->lock);
+    }
+    // End critical section
+
+    return 0;
+}
 
 ocrDataBlock_t* newDataBlockRegular() {
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)malloc(sizeof(ocrDataBlockRegular_t));
     result->base.create = &regularCreate;
     result->base.destruct = &regularDestruct;
-    result->base.allocate = &regularAcquire;
-    result->base.free = &mallocFree;
+    result->base.acquire = &regularAcquire;
+    result->base.release = &regularRelease;
+    result->base.free = &regularFree;
+    result->lock = newLock(OCR_LOCK_DEFAULT);
 
-    return (ocrLowMemory_t*)result;
+    return (ocrDataBlock_t*)result;
 }

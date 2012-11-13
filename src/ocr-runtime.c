@@ -57,7 +57,7 @@ event_list_t* event_list_constructor () {
     list->size = 0;
     list->head = list->tail = NULL;
     list->enlist = event_list_enlist;
-    return list; 
+    return list;
 }
 
 void event_list_destructor ( event_list_t* list ) {
@@ -68,7 +68,3 @@ void event_list_destructor ( event_list_t* list ) {
         curr = curr->next;
     }
 }
-
-ocrGuid_t NULL_GUID = 0;
-ocrGuid_t ERROR_GUID = -1;
-ocrGuid_t UNINITIALIZED_GUID = -2;

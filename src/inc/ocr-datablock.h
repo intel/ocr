@@ -37,6 +37,7 @@
 
 #include "ocr-types.h"
 #include "ocr-guid.h"
+#include "ocr-allocator.h"
 
 /**
  * @brief Internal description of a data-block.
@@ -47,7 +48,7 @@
  *
  **/
 typedef struct _ocrDataBlock_t {
-    ocrGuidElement_t guidBase;
+    ocrGuid_t guid;
     /**
      * @brief Creates a data-block to represent the memory of size 'size'
      * at address 'address'
@@ -57,14 +58,13 @@ typedef struct _ocrDataBlock_t {
      * meta-data associated with the data-block and gets a GUID for it
      *
      * @param self          Pointer for this data-block
-     * @param allocator     Allocator from where this data-block was created
-     * @param address       Address of the data-block's memory
+     * @param allocator     Allocator from where this data-block was created (its GUID)
      * @param size          Size in bytes of the data-block
      * @param flags         Data-block flags (unused)
      */
     void (*create)(struct _ocrDataBlock_t *self,
-                   ocrAllocator_t* allocator,
-                   void* address, u64 size, u16 flags, void* configuration);
+                   ocrGuid_t allocator,
+                   u64 size, u16 flags, void* configuration);
 
     /**
      * @brief Destroys a data-block
@@ -85,23 +85,26 @@ typedef struct _ocrDataBlock_t {
      *
      * @param self          Pointer for this data-block
      * @param edt           EDT seeking registration
+     * @param isInternal    True if this is an acquire implicitly
+     *                      done by the runtime at EDT launch
      * @return Address of the data-block
      *
      * @note Multiple acquires for the same EDT have no effect
      */
-    void* (*acquire)(struct _ocrDataBlock_t *self, ocrGuid_t edt);
+    void* (*acquire)(struct _ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal);
 
     /**
      * @brief Releases a data-block previously acquired
      *
      * @param self          Pointer for this data-block
-     * @param edt           EDT seeking to de-register from the data-block
+     * @param edt           EDT seeking to de-register from the data-block.
+     * @param isInternal    True if matching an internal acquire
      * @return 0 on success and an error code on failure (see ocr-db.h)
      *
      * @note No need to match one-to-one with acquires. One release
      * releases any and all previous acquires
      */
-    u8 (*release)(struct _ocrDataBlock_t *self, ocrGuid_t edt);
+    u8 (*release)(struct _ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal);
 
     /**
      * @brief Requests that the block be freed when possible
@@ -118,7 +121,6 @@ typedef struct _ocrDataBlock_t {
     u8 (*free)(struct _ocrDataBlock_t *self, ocrGuid_t edt);
 } ocrDataBlock_t;
 
-
 /**
  * @brief Enum defining the type of data-blocks supported
  * by the runtime
@@ -128,7 +130,7 @@ typedef struct _ocrDataBlock_t {
  */
 typedef enum _ocrDataBlockKind {
     OCR_DATABLOCK_DEFAULT = 0,
-    OCR_DATABLOCK_REG = 1
+    OCR_DATABLOCK_REGULAR = 1
 } ocrDataBlockKind;
 
 extern ocrDataBlockKind ocrDataBlockDefaultKind;
@@ -142,6 +144,6 @@ extern ocrDataBlockKind ocrDataBlockDefaultKind;
  * @param type              Type of the data-block to return
  * @return A pointer to the meta-data for the data-block
  */
-ocrDataBlock_t* newDataBlock(ocrDataBlockKind type = OCR_DATABLOCK_DEFAULT);
+ocrDataBlock_t* newDataBlock(ocrDataBlockKind type);
 
 #endif /* __OCR_DATABLOCK_H__ */

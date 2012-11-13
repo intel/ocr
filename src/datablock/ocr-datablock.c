@@ -33,11 +33,11 @@
 
 #include "debug.h"
 #include "ocr-datablock.h"
-#include "datablock/regular/regular.h"
+#include "regular/regular.h"
 
 ocrDataBlock_t* newDataBlock(ocrDataBlockKind type) {
+    if(type == OCR_DATABLOCK_DEFAULT) type = ocrDataBlockDefaultKind;
     switch(type) {
-    case OCR_DATABLOCK_DEFAULT:
     case OCR_DATABLOCK_REGULAR:
         return newDataBlockRegular();
         break;

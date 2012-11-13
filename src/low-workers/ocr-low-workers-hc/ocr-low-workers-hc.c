@@ -50,6 +50,7 @@ ocr_scheduler_t * get_worker_scheduler(ocr_worker_t * worker) { return worker->s
  */
 void hc_worker_create ( ocr_worker_t * base, void * configuration, int id) {
     hc_worker_t * hc_worker = (hc_worker_t *) base;
+    hc_worker->policy_domain_guid = guidify((ocr_model_policy_t*)configuration);
     hc_worker->id = id;
 }
 
@@ -73,6 +74,21 @@ bool hc_is_running_worker(ocr_worker_t * base) {
     return hcWorker->run;
 }
 
+ocrGuid_t hc_getCurrentPolicyDomain (ocr_worker_t * base) {
+    hc_worker_t * hcWorker = (hc_worker_t *) base;
+    return hcWorker->policy_domain_guid;
+}
+
+ocrGuid_t hc_getCurrentEDT (ocr_worker_t * base) {
+    hc_worker_t * hcWorker = (hc_worker_t *) base;
+    return hcWorker->currentEDT_guid;
+}
+
+void hc_setCurrentEDT (ocr_worker_t * base, ocrGuid_t curr_edt_guid) {
+    hc_worker_t * hcWorker = (hc_worker_t *) base;
+    hcWorker->currentEDT_guid = curr_edt_guid;
+}
+
 void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocr_module_kind kind,
         size_t nb_instances, void ** ptr_instances) {
     // Checking mapping conforms to what we're expecting in this implementation
@@ -90,6 +106,7 @@ ocr_worker_t* hc_worker_constructor () {
     worker->id = -1;
     worker->run = false;
     worker->guid = guidify((void*)worker);
+    worker->currentEDT_guid = NULL_GUID;
     ocr_worker_t * base = (ocr_worker_t *) worker;
     ocr_module_t* module_base = (ocr_module_t*) base;
     module_base->map_fct = hc_ocr_module_map_scheduler_to_worker;
@@ -100,6 +117,9 @@ ocr_worker_t* hc_worker_constructor () {
     base->start = hc_start_worker;
     base->stop = hc_stop_worker;
     base->is_running = hc_is_running_worker;
+    base->getCurrentPolicyDomain = hc_getCurrentPolicyDomain;
+    base->getCurrentEDT = hc_getCurrentEDT;
+    base->setCurrentEDT = hc_setCurrentEDT;
     return base;
 }
 
@@ -157,7 +177,9 @@ void * worker_computation_routine(void * arg) {
         ocrGuid_t taskGuid = scheduler->take(scheduler, workerGuid);
         if (taskGuid != NULL_GUID) {
             ocr_task_t* curr_task = (ocr_task_t*) deguidify(taskGuid);
+            worker->setCurrentEDT(worker,taskGuid);
             curr_task->execute(curr_task);
+            worker->setCurrentEDT(worker, NULL_GUID);
         }
     }
     return NULL;

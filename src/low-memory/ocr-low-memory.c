@@ -33,11 +33,11 @@
 
 #include "debug.h"
 #include "ocr-low-memory.h"
-#include "low-memory/malloc/malloc.h"
+#include "malloc/malloc.h"
 
 ocrLowMemory_t* newLowMemory(ocrLowMemoryKind type) {
+    if(type == OCR_LOWMEMORY_DEFAULT) type = ocrLowMemoryDefaultKind;
     switch(type) {
-    case OCR_LOWMEMORY_DEFAULT:
     case OCR_LOWMEMORY_MALLOC:
         return newLowMemoryMalloc();
         break;

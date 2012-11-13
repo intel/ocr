@@ -37,13 +37,16 @@
 #include "ocr-types.h"
 #include "ocr-datablock.h"
 #include "ocr-allocator.h"
+#include "ocr-sync.h"
+#include "ocr-utils.h"
 
 typedef union {
     struct {
         volatile u64 flags : 16;
-        volatile numUsers : 15;
-        volatile freeRequested: 1;
-        volatile _padding : 16;
+        volatile u64 numUsers : 15;
+        volatile u64 internalUsers : 15;
+        volatile u64 freeRequested: 1;
+        volatile u64 _padding : 1;
     };
     u64 data;
 } ocrDataBlockRegularAttr_t;
@@ -53,25 +56,12 @@ typedef struct _ocrDataBlockRegular_t {
 
     /* Data for the data-block */
     void* ptr; /**< Current address for this data-block */
-    ocrAllocator_t* allocator; /**< Current allocator that this data-block belongs to. */
+    ocrGuid_t allocatorGuid; /**< Current allocator that this data-block belongs to. */
     u32 size; /**< Current size for this data-block */
-    volatile u32 lock; /**< Lock for this data-block (used with CAS) */
+    ocrLock_t* lock; /**< Lock for this data-block */
     ocrDataBlockRegularAttr_t attributes; /**< Attributes for this data-block */
 
-    /**
-     * @brief Vector describing the 'slots' available in the following 'users'
-     * vector
-     *
-     * This is a bitvector with the MSB indicating the state of users[0]. A value of 0 for a bit
-     * means that the slot is in-use (not-available) and therefore
-     * contains a valid user. A value of 1 means that the slot is empty (or that
-     * its value is garbage)
-     *
-     * @todo For now, we only support up to 64 concurrent users for a data-block
-     * This restriction will go away in future versions
-     */
-    u64 usersAvailable;
-    ocrGuid_t users[64];
+    ocrGuidTracker_t usersTracker;
 } ocrDataBlockRegular_t;
 
 ocrDataBlock_t* newDataBlockRegular();

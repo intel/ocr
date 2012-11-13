@@ -37,10 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //TODO need this because we don't use the user api yet
 #include "ocr-runtime.h"
 
+#define FLAGS 0xdeadbeef
+
 u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
-    ocrEdtDep_t a = depv[0];
-    void * res = deguidify(a.guid);
-    printf("In the task_for_edt with value %d\n", (*(int*)res));
+    int* res = (int*)depv[0].ptr;
+    printf("In the task_for_edt with value %d\n", (*res));
 
     // This is the last EDT to execute, terminate
     ocrFinish();
@@ -58,18 +59,23 @@ int main (int argc, char ** argv) {
 
     // Creates the EDT
     ocrGuid_t edt_guid;
-    ocrEdtCreate(&edt_guid, task_for_edt, 0, NULL, NULL, 0, 1, NULL);
+
+    ocrEdtCreate(&edt_guid, task_for_edt, /*paramc=*/0, /*params=*/ NULL,
+                 /*paramv=*/NULL, /*properties=*/0,
+                 /*depc=*/1, /*depv=*/NULL);
 
     // Register a dependency between an event and an edt
     ocrAddDependency(event_guid, edt_guid, 0);
-
-    int *k = (int *) malloc(sizeof(int));
-    *k = 42;
-    void *db = (void*) k;
-    ocrGuid_t db_guid = guidify(db);
-    ocrEventSatisfy(event_guid, db_guid);
-
+    // Schedule the EDT (will run when dependencies satisfied)
     ocrEdtSchedule(edt_guid);
+
+    int *k;
+    ocrGuid_t db_guid;
+    ocrDbCreate(&db_guid, &k, sizeof(int), /*flags=*/FLAGS,
+                /*location=*/NULL, NO_ALLOC);
+    *k = 42;
+
+    ocrEventSatisfy(event_guid, db_guid);
 
     ocrCleanup();
 

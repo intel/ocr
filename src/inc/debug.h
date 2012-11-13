@@ -53,6 +53,7 @@
 #define DEBUG_LEVEL 20
 #endif
 
+#define TIMING_CLOCK CLOCK_REALTIME
 
 #define DEBUG(level, format , ...)                                      \
     if(level <= DEBUG_LEVEL) {                                          \

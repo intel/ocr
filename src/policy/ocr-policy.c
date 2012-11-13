@@ -51,7 +51,6 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
     return NULL;
 }
 
-
 void ocr_policy_domain_destruct(ocr_policy_domain_t * policy) {
     size_t i;
     for(i = 0; i < policy->nb_workers; i++) {
