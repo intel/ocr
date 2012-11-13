@@ -78,7 +78,7 @@ u8 autumn(u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]
     /* Destroy the input data-block */
     ocrDbDestroy(depv[0].guid);
 
-    /* Last codelet to execute */
+    /* Last EDT to execute */
     ocrFinish();
     return 0;
 }

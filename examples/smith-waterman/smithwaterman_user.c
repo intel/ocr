@@ -231,7 +231,7 @@ int main ( int argc, char* argv[] ) {
     int* allocated = (int*)db_guid_0_0_br_data;
     allocated[0] = 0;
     ocrEventSatisfy(tile_matrix[0][0].bottom_right_event_guid, db_guid_0_0_br);
-    
+
     for ( j = 1; j < n_tiles_width + 1; ++j ) {
         ocrGuid_t db_guid_0_j_brow;
         void* db_guid_0_j_brow_data;
@@ -290,7 +290,7 @@ int main ( int argc, char* argv[] ) {
             paramv[8]=(intptr_t)n_tiles_width;
             *p_paramv = paramv;
             ocrGuid_t task_guid;
-            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, p_paramv, PROPERTIES, 3, NULL);
+            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void**)p_paramv, PROPERTIES, 3, NULL);
 
             ocrAddDependency(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
             ocrAddDependency(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);
