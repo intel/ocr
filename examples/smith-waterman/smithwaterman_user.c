@@ -138,7 +138,6 @@ u8 smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocr
 
     int* curr_bottom_right = (int*)db_guid_i_j_br_data;
     curr_bottom_right[0] = curr_tile[tile_height][tile_width];
-    ocrEventCreate(&(tile_matrix[i][j].bottom_right_event_guid), OCR_EVENT_STICKY_T, true);
     ocrEventSatisfy(tile_matrix[i][j].bottom_right_event_guid, db_guid_i_j_br);
 
     ocrGuid_t db_guid_i_j_rc;
@@ -149,7 +148,6 @@ u8 smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocr
     for ( index = 0; index < tile_height; ++index ) {
         curr_right_column[index] = curr_tile[index+1][tile_width];
     }
-    ocrEventCreate(&(tile_matrix[i][j].right_column_event_guid), OCR_EVENT_STICKY_T, true);
     ocrEventSatisfy(tile_matrix[i][j].right_column_event_guid, db_guid_i_j_rc);
 
     ocrGuid_t db_guid_i_j_brow;
@@ -161,7 +159,6 @@ u8 smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocr
         curr_bottom_row[index] = curr_tile[tile_height][index+1];
     }
 
-    ocrEventCreate(&(tile_matrix[i][j].bottom_row_event_guid), OCR_EVENT_STICKY_T, true);
     ocrEventSatisfy(tile_matrix[i][j].bottom_row_event_guid, db_guid_i_j_brow);
 
     free(curr_tile);
@@ -280,6 +277,7 @@ int main ( int argc, char* argv[] ) {
     for ( i = 1; i < n_tiles_height+1; ++i ) {
         for ( j = 1; j < n_tiles_width+1; ++j ) {
 
+            intptr_t **p_paramv = (intptr_t **)malloc(sizeof(intptr_t*));
             intptr_t *paramv = (intptr_t *)malloc(9*sizeof(intptr_t));
             paramv[0]=(intptr_t)i;
             paramv[1]=(intptr_t)j;
@@ -290,8 +288,9 @@ int main ( int argc, char* argv[] ) {
             paramv[6]=(intptr_t) string_2;
             paramv[7]=(intptr_t)n_tiles_height;
             paramv[8]=(intptr_t)n_tiles_width;
+            *p_paramv = paramv;
             ocrGuid_t task_guid;
-            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void*)&paramv, PROPERTIES, 3, NULL);
+            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, p_paramv, PROPERTIES, 3, NULL);
 
             ocrAddDependency(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
             ocrAddDependency(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);
