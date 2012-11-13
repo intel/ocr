@@ -153,6 +153,7 @@ typedef u8 (*ocrEdt_t )( u32 paramc, u64 * params, void* paramv[],
  * @param guid              Returned value: GUID of the newly created EDT type
  * @param funcPtr           Function to execute as the EDT
  * @param paramc            Number of non-DB and non-event parameters
+ * @param params            Sizes for these parameters (to allow marshalling)
  * @param paramv            Values for those parameters (copied in)
  * @param properties        Reserved for future use
  * @param depc              Number of dependencies for this EDT
@@ -167,14 +168,21 @@ u8 ocrEdtCreate(ocrGuid_t * guid, ocrEdt_t funcPtr,
 /**
  * @brief Makes the EDT available for scheduling to the runtime
  *
- * This call should be called after ocrEdtCreate and only *after* all
- * the dependencies have been added
+ * This call should be called after ocrEdtCreate to signal to the runtime
+ * that the EDT is ready to be scheduled. Note that this does *not* imply
+ * that its dependencies are satisfied. Instead, the runtime will start
+ * considering the EDT for potential scheduling once its dependencies are
+ * satisfied. This call brings it to the attention of the runtime
  *
  * @param guid              GUID of the EDT to schedule
  * @return Status:
  *      - 0: Successful
  *      - EINVAL: The GUID is not an EDT
  *      - ENOPERM: The EDT does not have all its dependencies known
+ *
+ * @warning In the current implementation, this call should only be called
+ * after all dependencies have been added using ocrAddDependency. This may
+ * be relaxed in future versions
  */
 u8 ocrEdtSchedule(ocrGuid_t guid);
 
