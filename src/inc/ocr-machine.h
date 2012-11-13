@@ -98,7 +98,7 @@ u32 MachineDescription_getNumHardwareThreads(MachineDescription *this);
 u32 MachineDescription_getNumMemoryRegions(MachineDescription *this);
 
 /**
-   @brief Get the number of hardware threads in the platform.
+   @brief Get the total amount of DRAM in the system (in bytes).
  **/
 u64 MachineDescription_getDramSize(MachineDescription *this);
 
