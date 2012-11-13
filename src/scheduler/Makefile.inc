@@ -5,6 +5,7 @@ libocr_la_LIBADD += libocr_scheduler.la
 
 libocr_scheduler_la_SOURCES = \
 $(OCR_SRC_SCHEDULER)/ocr-scheduler.c
+
 libocr_scheduler_la_CFLAGS = $(AM_CFLAGS)
 
 #

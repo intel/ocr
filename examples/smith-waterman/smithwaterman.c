@@ -107,7 +107,7 @@ typedef struct {
 } Tile_t;
 
 
-u8 smith_waterman_task ( u32 argc, void** argv, u32 n_dbs, ocrEdtDep_t* dbs ) {
+u8 smith_waterman_task (u32 paramc, u64 * params, void ** paramv, u32 n_dbs, ocrEdtDep_t* dbs ) {
     int index, ii, jj;
     void* func_args_db = (void*)(dbs[3].ptr);
     intptr_t *func_args = (intptr_t *)func_args_db;
@@ -304,7 +304,7 @@ int main ( int argc, char* argv[] ) {
     for ( i = 1; i < n_tiles_height+1; ++i ) {
         for ( j = 1; j < n_tiles_width+1; ++j ) {
 
-            ocrGuid_t task_guid = taskFactory->create(taskFactory, smith_waterman_task, 4);
+            ocrGuid_t task_guid = taskFactory->create(taskFactory, smith_waterman_task, 0, NULL, NULL, 4);
             ocr_task_t* task = (ocr_task_t*) deguidify(task_guid);
 
             ocr_event_t* e_1 = (ocr_event_t *) deguidify(tile_matrix[i][j-1].right_column_event_guid);

@@ -36,6 +36,7 @@
 #ifndef __OCR_H__
 #define __OCR_H__
 
+#include "ocr-types.h"
 #include "ocr-edt.h"
 
 /**

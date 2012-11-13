@@ -73,22 +73,21 @@ typedef struct {
     ocrGuid_t bottom_right_event_guid;
 } Tile_t;
 
-u8 smith_waterman_task ( u32 paramc, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+u8 smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     int index, ii, jj;
 
-    void* func_args_db = (void*)(depv[3].ptr);
-    intptr_t *func_args = (intptr_t *)func_args_db;
-    int i = (int) func_args[0];
-    int j = (int) func_args[1];
-    int tile_width = (int) func_args[2];
-    int tile_height = (int) func_args[3];
-    Tile_t** tile_matrix = (Tile_t**) func_args[4];
-    signed char* string_1 = (signed char* ) func_args[5];
-    signed char* string_2 = (signed char* ) func_args[6];
-    int n_tiles_height = (int) func_args[7];
-    int n_tiles_width = (int)func_args[8];
+//    void* func_args_db = (void*)(depv[3].ptr);
+//    intptr_t *func_args = (intptr_t *)func_args_db;
+//    int i = (int) func_args[0];
+//    int j = (int) func_args[1];
+//    int tile_width = (int) func_args[2];
+//    int tile_height = (int) func_args[3];
+//    Tile_t** tile_matrix = (Tile_t**) func_args[4];
+//    signed char* string_1 = (signed char* ) func_args[5];
+//    signed char* string_2 = (signed char* ) func_args[6];
+//    int n_tiles_height = (int) func_args[7];
+//    int n_tiles_width = (int)func_args[8];
 
-    /* TODO should rather be
     int i = (int) paramv[0];
     int j = (int) paramv[1];
     int tile_width = (int) paramv[2];
@@ -98,7 +97,6 @@ u8 smith_waterman_task ( u32 paramc, void* paramv[], u32 depc, ocrEdtDep_t depv[
     signed char* string_2 = (signed char* ) paramv[6];
     int n_tiles_height = (int) paramv[7];
     int n_tiles_width = (int)paramv[8];
-    */
 
     int* left_tile_right_column = (int *) depv[0].ptr;
     int* above_tile_bottom_row = (int *) depv[1].ptr;
@@ -292,7 +290,7 @@ int main ( int argc, char* argv[] ) {
             paramv[7]=(intptr_t)n_tiles_height;
             paramv[8]=(intptr_t)n_tiles_width;
             ocrGuid_t task_guid;
-            ocrEdtCreate(&task_guid, smith_waterman_task, 9, (void*)&paramv, PROPERTIES, 3, NULL);
+            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void*)&paramv, PROPERTIES, 3, NULL);
 
             ocrAddDependency(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
             ocrAddDependency(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);

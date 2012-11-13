@@ -153,14 +153,14 @@ void hc_task_factory_destructor ( struct ocr_task_factory_struct* base ) {
     free(derived);
 }
 
-ocrGuid_t hc_task_factory_create_with_event_list (struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, event_list_t* l) {
-    hc_task_t* edt = hc_task_construct_with_event_list(fctPtr,l);
+ocrGuid_t hc_task_factory_create_with_event_list (struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, event_list_t* l) {
+    hc_task_t* edt = hc_task_construct_with_event_list(fctPtr, paramc, params, paramv, l);
     ocr_task_t* base = (ocr_task_t*) edt;
     return guidify(base);
 }
 
-ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, size_t dep_l_size) {
-    hc_task_t* edt = hc_task_construct(fctPtr,dep_l_size);
+ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, size_t dep_l_size) {
+    hc_task_t* edt = hc_task_construct(fctPtr, paramc, params, paramv, dep_l_size);
     ocr_task_t* base = (ocr_task_t*) edt;
     return guidify(base);
 }

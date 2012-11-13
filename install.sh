@@ -5,7 +5,7 @@
 # Defining some variables
 #
 
-PROJECT_NAME=ocr-hc
+PROJECT_NAME=ocr
 
 
 check_error()
@@ -44,7 +44,7 @@ fi
 if [ -n "${INSTALL_ROOT}" ]; then
     INSTALL_ROOT="--prefix=${INSTALL_ROOT}"
 else
-    INSTALL_ROOT="--prefix=${PWD}/ocr-hc-install"
+    INSTALL_ROOT="--prefix=${PWD}/ocr-install"
 fi
 
 echo "[${PROJECT_NAME}] Bootstrap..."

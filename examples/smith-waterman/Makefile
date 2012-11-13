@@ -1,4 +1,4 @@
-PROG=smithwaterman
+PROG=smithwaterman_user
 CFLAGS=-O3 -g
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr
 OCR_INPUT=${OCR_INPUT_HOME}/smith_waterman

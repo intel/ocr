@@ -113,7 +113,8 @@ ocrGuid_t guidify(void * p);
  */
 void * deguidify(ocrGuid_t id);
 
+#define UNINITIALIZED_GUID ((ocrGuid_t)-2)
 
-#define ERROR_GUID ((ocrGuid_t)-1);
+#define ERROR_GUID ((ocrGuid_t)-1)
 
 #endif /* __OCR_GUID__H_ */
