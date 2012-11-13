@@ -36,8 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ocr-runtime.h"
 #include "ocr-config.h"
+#include "ocr-guid.h"
 
 ocr_policy_domain_t * root_policy;
+u64 gHackTotalMemSize;
 
 //TODO we should have an argument option parsing library
 /**!
@@ -71,7 +73,11 @@ static char * parseOcrOptions_MachineDescription(int * argc, char ** argv) {
 
 void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 
+    // Intialize the GUID provider
+    globalGuidProvider = newGuidProvider(OCR_GUIDPROVIDER_DEFAULT);
+
     u32 nbHardThreads = ocr_config_default_nb_hardware_threads;
+    gHackTotalMemSize = 64*1024*1024; /* 64 MB default */
     char * md_file = parseOcrOptions_MachineDescription(argc, argv);
     if (md_file != NULL) {
         //TODO need a file stat to check
@@ -82,6 +88,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
             ocr_abort();
         } else {
             nbHardThreads = MachineDescription_getNumHardwareThreads(md);
+            gHackTotalMemSize = MachineDescription_getDramSize(md);
         }
     }
 
@@ -111,4 +118,5 @@ void ocrCleanup() {
 
     // Now on, there is only thread '0'
     root_policy->destruct(root_policy);
+    globalGuidProvider->destruct(globalGuidProvider);
 }

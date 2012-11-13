@@ -44,6 +44,7 @@
 #include "ocr-scheduler.h"
 #include "ocr-policy.h"
 #include "ocr-workpile.h"
+#include "ocr-guid.h"
 
 // Default kinds of ocr modules
 extern ocr_executor_kind ocr_executor_default_kind;
@@ -55,6 +56,7 @@ extern ocrAllocatorKind ocrAllocatorDefaultKind;
 extern ocrLowMemoryKind ocrLowMemoryDefaultKind;
 extern ocrDataBlockKind ocrDataBlockDefaultKind;
 extern ocrLockKind ocrLockDefaultKind;
+extern ocrGuidProviderKind ocrGuidProviderDefaultKind;
 
 // Default values to configure ocr
 extern u32 ocr_config_default_nb_hardware_threads;
