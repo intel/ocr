@@ -2,7 +2,7 @@
 AC_PREREQ([2.59])
 
 # define distribution properties
-AC_INIT([ocr-hc-impl], [0.1], [maintainer@todo.edu])
+AC_INIT([ocr], [0.7], [ocr-dev@lists.01.org])
 
 # check if srcdir is correct
 AC_CONFIG_SRCDIR([inc/ocr.h])
