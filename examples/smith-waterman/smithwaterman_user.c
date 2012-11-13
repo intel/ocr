@@ -88,15 +88,16 @@ u8 smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocr
 //    int n_tiles_height = (int) func_args[7];
 //    int n_tiles_width = (int)func_args[8];
 
-    int i = (int) paramv[0];
-    int j = (int) paramv[1];
-    int tile_width = (int) paramv[2];
-    int tile_height = (int) paramv[3];
-    Tile_t** tile_matrix = (Tile_t**) paramv[4];
-    signed char* string_1 = (signed char* ) paramv[5];
-    signed char* string_2 = (signed char* ) paramv[6];
-    int n_tiles_height = (int) paramv[7];
-    int n_tiles_width = (int)paramv[8];
+    intptr_t* typed_paramv = *paramv;
+    int i = (int) typed_paramv[0];
+    int j = (int) typed_paramv[1];
+    int tile_width = (int) typed_paramv[2];
+    int tile_height = (int) typed_paramv[3];
+    Tile_t** tile_matrix = (Tile_t**) typed_paramv[4];
+    signed char* string_1 = (signed char* ) typed_paramv[5];
+    signed char* string_2 = (signed char* ) typed_paramv[6];
+    int n_tiles_height = (int) typed_paramv[7];
+    int n_tiles_width = (int)typed_paramv[8];
 
     int* left_tile_right_column = (int *) depv[0].ptr;
     int* above_tile_bottom_row = (int *) depv[1].ptr;
