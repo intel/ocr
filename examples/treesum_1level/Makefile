@@ -8,7 +8,7 @@ compile:
 	gcc -g $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)
 
 run:
-	./$(PROG)
+	./$(PROG) 2012 1
 
 clean:
 	-rm -Rf *.o $(PROG)
