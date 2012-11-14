@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "ocr.h"
 
 //TODO need this because we don't use the user api yet
@@ -75,18 +76,6 @@ typedef struct {
 
 u8 smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     int index, ii, jj;
-
-//    void* func_args_db = (void*)(depv[3].ptr);
-//    intptr_t *func_args = (intptr_t *)func_args_db;
-//    int i = (int) func_args[0];
-//    int j = (int) func_args[1];
-//    int tile_width = (int) func_args[2];
-//    int tile_height = (int) func_args[3];
-//    Tile_t** tile_matrix = (Tile_t**) func_args[4];
-//    signed char* string_1 = (signed char* ) func_args[5];
-//    signed char* string_2 = (signed char* ) func_args[6];
-//    int n_tiles_height = (int) func_args[7];
-//    int n_tiles_width = (int)func_args[8];
 
     intptr_t* typed_paramv = *paramv;
     int i = (int) typed_paramv[0];
@@ -274,6 +263,10 @@ int main ( int argc, char* argv[] ) {
     }
 
 
+    struct timeval a;
+    struct timeval b;
+    gettimeofday(&a, 0);
+
     for ( i = 1; i < n_tiles_height+1; ++i ) {
         for ( j = 1; j < n_tiles_width+1; ++j ) {
 
@@ -291,9 +284,6 @@ int main ( int argc, char* argv[] ) {
             *p_paramv = paramv;
             ocrGuid_t task_guid;
             ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void **) p_paramv, PROPERTIES, 3, NULL);
-            u8 ocrEdtCreate(ocrGuid_t * guid, ocrEdt_t funcPtr,
-                            u32 paramc, u64 * params, void** paramv,
-                            u16 properties, u32 depc, ocrGuid_t * depv);
 
             ocrAddDependency(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
             ocrAddDependency(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);
@@ -304,5 +294,7 @@ int main ( int argc, char* argv[] ) {
     }
 
     ocrCleanup();
+    gettimeofday(&b, 0);
+    printf("The computation took %f seconds\r\n",((b.tv_sec - a.tv_sec)*1000000+(b.tv_usec - a.tv_usec))*1.0/1000000);
     return 0;
 }

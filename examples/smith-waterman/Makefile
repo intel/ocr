@@ -13,7 +13,7 @@ compile:
 
 SIZE=larger
 
-ifeq ($(SIZE),large)
+ifeq ($(SIZE),larger)
 TILE_WIDTH=290
 TILE_HEIGHT=300
 EXPECTED_RESULT=36472
