@@ -6,7 +6,7 @@
 # This file is auto-generated, do not edit it or your changes
 # will be lost the next time this script is generated.
 #
-# contact ocr mailing list if you need to make permanent changes.
+# contact vc8 if you need to make permanent changes.
 #
 # WARNING
 #
@@ -18,65 +18,35 @@
 #
 # For now the test folder is current folder
 #
-TEST_DIR=.
-
-# add default option to handle makefiles under tests 
-ARGS="-makefile ${ARGS}"
-
-# Get default tests options from env
-export OCR_CFLAGS="${OCR_CFLAGS}"
-export OCR_FLAGS="${OCR_FLAGS}"
+TEST_DIR=
+BIN_DIR=
+UNSTABLE_FILE=
+MAKE_ARGS=
+HANDLE_MAKEFILE="yes"
 
 #
 #handling options
 #
 while [[ $# -gt 0 ]]; do
-	if [[ "$1" = "-testdir"  && $# -ge 2 ]]; then
-		shift
-		TEST_DIR=("$@")
-		shift
-	else
-		# stacking unknown arguments
-  		ARGS="${ARGS} $1"
-  		shift 
-    fi
+	# stacking unknown arguments
+  	ARGS="${ARGS} $1"
+  	shift 
 done
-		
-# try to lookup for a default ocr install
-if [ -z "${OCR_INSTALL}" ]; then
-	echo "OCR_INSTALL is not set, defaulting to ../ocr-install"
-	OCR_INSTALL_TMP=`pwd`/../ocr-install
-	if [ -x ${OCR_INSTALL_TMP}/lib/libocr.la ]; then
-		export OCR_INSTALL=${OCR_INSTALL_TMP}
-	fi
+
+#
+# Configuring tests output folder
+#
+
+export OUTPUT_TEST_FOLDER=`pwd`/tests-output
+export OUTPUT_REF_FOLDER=`pwd`/tests-output
+
+if [ ! -d "${OUTPUT_TEST_FOLDER}" ]; then
+	mkdir ${OUTPUT_TEST_FOLDER}
 fi
 
-
-#
-# Default compilation option for ocr
-#
-
-export INCLUDES="-I${OCR_INSTALL}/include"
-export CFLAGS=" -Wall -g -Werror "
-export LDFLAGS="-L${OCR_INSTALL}/lib -locr"
-export OCR_TESTS_BIN_OUTPUT=
-
-#
-#checking options
-#
-
-BIN_DIR=${OCR_INSTALL}/bin
-LIB_DIR=${OCR_INSTALL}/lib
-
-if [ ! -x ${LIB_DIR}/libocr.la ]; then
-	echo "ERROR ocr lib not found in the ${OCR_INSTALL}/bin"
-	exit 1
+if [ ! -d "${OUTPUT_REF_FOLDER}" ]; then
+	mkdir ${OUTPUT_REF_FOLDER}
 fi
-
-export PATH=${BIN_DIR}:${PATH}
-
-#update LD_LIBRARY_PATH to find the runtime so
-export LD_LIBRARY_PATH=${LIB_DIR}:${LD_LIBRARY_PATH}
 
 #
 # Ending extension specific option parsing and checking
@@ -93,9 +63,8 @@ export LD_LIBRARY_PATH=${LIB_DIR}:${LD_LIBRARY_PATH}
 
 
 function ext_usage () {
-	echo "Usage: ocrTests [general-options] [options]"
-	echo "where [options] includes:"
-	echo "	-testdir   : The path to testdir folder (default to .)"
+	# do nothing unless defined in an extension
+	T=""
 }
 
 
@@ -159,120 +128,27 @@ function find_options () {
 }
 
 function steps_list () {
-	RES_STEPS_LIST="clean all-test"
+	RES_STEPS_LIST="all-test"
 }
 
-
-function get_name() {
-    local FILE=$1
-    NAME=${FILE%%.c}
-}
-
-function clean_binaries() {
-    local FILE=$1
-    # cleaning previously generated binary                                                                                                                                             
-    NAME=
-    get_name ${FILE}
-    if [ -f ${NAME} ]; then
-        rm -Rf ${NAME}
-    fi
-    if [ -f ${NAME}.o ]; then
-        rm -Rf ${NAME}.o
-    fi
-
-}
-
-function clean_rose_sources() {
-    local FILE=$1
-    # cleaning previously generated binary                                                                                                                                             
-    NAME=
-    get_name ${FILE}
-}
-
-function rename_binary() {
-    local FILE=$1                                                                                                                                             
-    NAME=
-    get_name ${FILE}
-    if [ -f ./a.out ]; then
-        mv ./a.out ${NAME}
-    fi
-}
-
-function clean () {
-	local FILE=$1
-	local FOLDER=$2
-
-	cd $FOLDER;
-	
-	# cleaning previously created binaries
-	clean_binaries ${FILE}
-	clean_rose_sources ${FILE}
-
-	cd -
-	return 0
-}
-
-function compile () {
-	local FILE=$1
-	local FOLDER=$2
-
-	cd $FOLDER;
-    NAME=
-    get_name ${FILE}
-    
-    echo "gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${LDFLAGS} ${FILE} -o ${BIN_GEN_DIR}/${NAME}"
-    gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${LDFLAGS} ${FILE} -o ${BIN_GEN_DIR}/${NAME}
-    RES=$?
-
-	rename_binary ${FILE}
-	
-	cd -;
-
-	return $RES
-}
-
-	
-function run () {
-	local FILE=$1
-	local FOLDER=$2
-	RES=0
-
-	NAME=
-	get_name ${FILE}
-
-	cd $FOLDER;
-	echo "${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}"
-	${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}
-	RES=$?
-	cd -;
-
-	return $RES
-}
 
 
 function find_tests () {
-	local TEST_FOLDER=$1
-	RES_FIND_TESTS=`eval "find ${TEST_FOLDER} -type f '(' -name '*.c' ')' -print | sort"`
+	RES_FIND_TESTS=
 }
 
 
 function test_name () {
 	local FILE=$1
 	local FOLDER=$2
-
-	# test name is the test filename
-
-	RES_TEST_NAME=`echo "${FILE}"` 
+	RES_TEST_NAME="$FILE"
 }
 
-OCR_CLEANED=1
-OCR_MADE=2
+RAN=1
 
-# if it could run, it's a success
-SUCCESS_STATUS=${OCR_MADE}
+SUCCESS_STATUS=${RAN}
 
-# if it could only compile it's a failed status
-FAILED_STATUS=${OCR_CLEANED}
+FAILED_STATUS=!${RAN}
 
 RUN_STATUS=1
 FAIL_STATUS=2
@@ -323,9 +199,6 @@ function determine_test_status () {
 	local RES=-1;
 	local  __resultvar=$3
 
-	#
-	# for regular tests
-	#
 	if [[ $STATUS -eq $SUCCESS_STATUS ]]; then
 		 RES=${RUN_STATUS};
 	fi
@@ -335,39 +208,9 @@ function determine_test_status () {
 	fi
 
 	if [[ $RES -eq -1 ]]; then
-		RES=${ERR_STATUS}
+		RES=${ERR_STATUS};
 	fi
 	
-	#
-	# for 'special' tests
-	#
-	#strip to last '_' and remove file extension
-	OPTION_END=${TESTNAME##*_}
-	OPTION=${OPTION_END%%.*}
-	
-	if [[ "$OPTION" = "MustFailCompile" ]]; then
-		if [[ $STATUS -eq ${OCR_CLEANED} ]]; then
-			# the test couldn't pass the compilation phase
-			# that's what we expect
-		 	RES=${RUN_STATUS};
-		else
-			# it compiled or ran
-		 	RES=${FAIL_STATUS};
-		fi
-	elif [[ "$OPTION" = "MustFailRun" ]]; then
-		if [[ $STATUS -eq $OCR_MADE ]]; then
-			# reach status compiled, but did not
-			# pass the run test, that's what we expect
-		 	RES=${RUN_STATUS};
-		else
-		 	RES=${FAIL_STATUS};
-		fi
-	else
-		if [[ $STATUS -eq $OCR_MADE ]]; then
-		 	RES=${RUN_STATUS};
-		fi
-	fi
-
     eval $__resultvar="'$RES'"
 }
 
@@ -551,8 +394,9 @@ function is_failing_test_known () {
 	
 	#protecting dots
 	file=`echo $file | sed -e 's/\./\\\./g'`; 
-		
+
 	RES=1
+
 	FOUND=`grep ^${file}$ $unstable_file`
 	if [[ -z "$FOUND" ]]; then
 		RES=0
@@ -833,6 +677,20 @@ function runTests () {
 		echo "Creating log dir ${LOG_DIR}"
 		mkdir ${LOG_DIR}
 	fi
+	
+	   if [ -z ${BIN_GEN_DIR} ]; then
+        BIN_GEN_DIR=`pwd`/tests-bin
+    fi
+
+    if [ -d ${BIN_GEN_DIR} ]; then
+        echo "Erasing bin dir ${BIN_GEN_DIR}"
+        rm -rf ${BIN_GEN_DIR}
+    fi
+    
+    if [ ! -d ${BIN_GEN_DIR} ]; then
+        echo "Creating bin dir ${BIN_GEN_DIR}"
+        mkdir ${BIN_GEN_DIR}
+    fi
 
 	# If no unstable file is provided as argument
 	# Check if default unstable file exists
@@ -874,7 +732,7 @@ function runTests () {
 	#
 	if [[ -n "$HANDLE_MAKEFILE" ]]; then
 	    # Looking for makefiles that contain targets named after the steps list
-            
+        steps_list
         STEPS_LIST=${RES_STEPS_LIST}
         adapt_test_list_to_include_makefile $TEST_DIR_UP "$TEST_LIST" "${STEPS_LIST}" TEST_LIST
 	fi
@@ -1049,4 +907,4 @@ function runTests () {
 # calling runTests with extension specific arguments 
 #
 
-runTests -testdir $TEST_DIR ${ARGS}
+runTests -testdir . ${ARGS}

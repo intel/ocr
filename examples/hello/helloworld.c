@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //TODO need this because we don't use the user api yet
 #include "ocr-runtime.h"
 
-#define FLAGS 0xdeadbeef
+#define FLAGS 0xdead
 
 u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     int* res = (int*)depv[0].ptr;
@@ -71,7 +71,7 @@ int main (int argc, char ** argv) {
 
     int *k;
     ocrGuid_t db_guid;
-    ocrDbCreate(&db_guid, &k, sizeof(int), /*flags=*/FLAGS,
+    ocrDbCreate(&db_guid, (void **) &k, sizeof(int), /*flags=*/FLAGS,
                 /*location=*/NULL, NO_ALLOC);
     *k = 42;
 
