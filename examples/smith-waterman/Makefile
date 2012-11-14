@@ -8,7 +8,7 @@ all-test: compile run
 compile:
 	gcc $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)
 
-compile:
+compile_omp:
 	gcc -fopenmp $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)
 
 SIZE=larger
