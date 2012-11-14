@@ -283,6 +283,7 @@ int main ( int argc, char* argv[] ) {
             paramv[8]=(intptr_t)n_tiles_width;
             *p_paramv = paramv;
             ocrGuid_t task_guid;
+
             ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void **) p_paramv, PROPERTIES, 3, NULL);
 
             ocrAddDependency(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
