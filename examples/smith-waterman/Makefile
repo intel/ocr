@@ -1,4 +1,5 @@
 PROG=smithwaterman
+OMP_PROG=smith_waterman_tiled_omp
 CFLAGS=-O3 -g
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr
 OCR_INPUT=.
@@ -9,7 +10,7 @@ compile:
 	gcc $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)
 
 compile_omp:
-	gcc -fopenmp $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)
+	gcc -fopenmp $(CFLAGS) $(OCR_FLAGS) -I. $(OMP_PROG).c -o $(OMP_PROG)
 
 SIZE=larger
 
@@ -23,7 +24,7 @@ run:
 	./$(PROG) ${OCR_INPUT}/string1-${SIZE}.txt ${OCR_INPUT}/string2-${SIZE}.txt ${TILE_WIDTH} ${TILE_HEIGHT} 
  
 run_omp:
-	./$(PROG) ${OCR_INPUT}/string1-${SIZE}.txt ${OCR_INPUT}/string2-${SIZE}.txt ${TILE_WIDTH} ${TILE_HEIGHT} 
+	./$(OMP_PROG) ${OCR_INPUT}/string1-${SIZE}.txt ${OCR_INPUT}/string2-${SIZE}.txt ${TILE_WIDTH} ${TILE_HEIGHT} 
 
 clean:
-	-rm -Rf *.o $(PROG)
+	-rm -Rf *.o $(PROG) $(OMP_PROG)
