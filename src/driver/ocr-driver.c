@@ -46,9 +46,9 @@ ocr_policy_domain_t * root_policy;
  */
 static void shift_arguments(int * argc, char ** argv, int start_offset, int shift_offset) {
     int i = start_offset;
-    while (shift_offset < *argc) {
-        argv[i] = argv[shift_offset];
-        shift_offset++; i++;
+    int j = shift_offset;
+    while ( j < *argc) {
+        argv[i++] = argv[j++];
     }
     *argc = (*argc - (shift_offset-start_offset));
 }
