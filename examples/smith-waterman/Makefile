@@ -13,11 +13,18 @@ compile_omp:
 	gcc -fopenmp $(CFLAGS) $(OCR_FLAGS) -I. $(OMP_PROG).c -o $(OMP_PROG)
 
 SIZE=larger
+#SIZE=tiny
 
 ifeq ($(SIZE),larger)
 TILE_WIDTH=290
 TILE_HEIGHT=300
 EXPECTED_RESULT=36472
+endif
+
+ifeq ($(SIZE),tiny)
+TILE_WIDTH=2
+TILE_HEIGHT=2
+EXPECTED_RESULT=12
 endif
 
 run:
