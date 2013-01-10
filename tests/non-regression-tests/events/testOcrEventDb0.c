@@ -62,14 +62,14 @@ int main (int argc, char ** argv) {
             /*paramv=*/NULL, /*properties=*/0,
             /*depc=*/1, /*depv=*/NULL);
 
-    // Register a dependency between an event and an edt
-    ocrAddDependency(event_guid, edt_guid, 0);
-    // Schedule the EDT (will run when dependencies satisfied)
+    // Register a dependence between an event and an edt
+    ocrAddDependence(event_guid, edt_guid, 0);
+    // Schedule the EDT (will run when dependences satisfied)
     ocrEdtSchedule(edt_guid);
 
     int *k;
     ocrGuid_t db_guid;
-    ocrDbCreate(&db_guid,(void **) &k, 
+    ocrDbCreate(&db_guid,(void **) &k,
             sizeof(int), /*flags=*/FLAGS,
             /*location=*/NULL,
             NO_ALLOC);

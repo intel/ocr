@@ -92,7 +92,7 @@ typedef void (*event_list_enlist_fct)( struct event_list_struct_t* list, ocrGuid
 /*! \brief A linked list data structure to list OCR events.
  *
  *  The runtime implementer or the end user may utilize this class to build a dynamic
- *  linked list of concrete Event implementation GUIDs to create dependency lists for a Task.
+ *  linked list of concrete Event implementation GUIDs to create dependence lists for a Task.
  */
 typedef struct event_list_struct_t {
     /*! \brief Append an Event guid to the linked list
@@ -162,7 +162,7 @@ typedef struct ocr_task_factory_struct {
      *
      *  The signature of the interface restricts the user computation that can be assigned to a task as follows.
      *  The user defined computation should take a vector of GUIDs and its size as their inputs, which may be
-     *  the GUIDs used to satisfy the Events enlisted in the dependency list.
+     *  the GUIDs used to satisfy the Events enlisted in the dependence list.
      *
      */
     task_fact_create_fct create;
@@ -178,7 +178,7 @@ typedef void (*task_destruct_fct) ( struct ocr_task_struct_t* base );
 typedef bool (*task_iterate_waiting_frontier_fct) ( struct ocr_task_struct_t* base );
 typedef void (*task_execute_fct) ( struct ocr_task_struct_t* base );
 typedef void (*task_schedule_fct) ( struct ocr_task_struct_t* base, ocrGuid_t wid );
-typedef void (*task_add_dependency_fct) ( struct ocr_task_struct_t* base, ocr_event_t* dep, size_t index );
+typedef void (*task_add_dependence_fct) ( struct ocr_task_struct_t* base, ocr_event_t* dep, size_t index );
 
 /*! \brief Abstract class to represent OCR tasks.
  *
@@ -202,7 +202,7 @@ typedef struct ocr_task_struct_t {
     */
     task_execute_fct execute;
     task_schedule_fct schedule;
-    task_add_dependency_fct add_dependency;
+    task_add_dependence_fct add_dependence;
 } ocr_task_t;
 
 ////TODO old style factories

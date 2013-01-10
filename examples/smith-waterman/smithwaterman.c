@@ -293,9 +293,9 @@ int main ( int argc, char* argv[] ) {
 
             ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void **) p_paramv, PROPERTIES, 3, NULL);
 
-            ocrAddDependency(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
-            ocrAddDependency(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);
-            ocrAddDependency(tile_matrix[i-1][j-1].bottom_right_event_guid, task_guid, 2);
+            ocrAddDependence(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
+            ocrAddDependence(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);
+            ocrAddDependence(tile_matrix[i-1][j-1].bottom_right_event_guid, task_guid, 2);
 
             ocrEdtSchedule(task_guid);
         }

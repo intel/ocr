@@ -185,7 +185,7 @@ static void hc_task_construct_internal (hc_task_t* derived, ocrEdt_t funcPtr, u3
     base->iterate_waiting_frontier = hc_task_iterate_waiting_frontier;
     base->execute = hc_task_execute;
     base->schedule = hc_task_schedule;
-    base->add_dependency = hc_task_add_dependency;
+    base->add_dependence = hc_task_add_dependence;
 }
 
 hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv, event_list_t* el) {
@@ -266,7 +266,7 @@ void hc_task_execute ( ocr_task_t* base ) {
     }
 }
 
-void hc_task_add_dependency ( ocr_task_t* base, ocr_event_t* dep, size_t index ) {
+void hc_task_add_dependence ( ocr_task_t* base, ocr_event_t* dep, size_t index ) {
     hc_task_t* derived = (hc_task_t*)base;
     derived->awaitList->array[index] = dep;
 }

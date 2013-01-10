@@ -62,8 +62,8 @@ int main (int argc, char ** argv) {
             /*paramv=*/NULL, /*properties=*/0,
             /*depc=*/1, /*depv=*/NULL);
 
-    // Register a dependency between an event and an edt
-    ocrAddDependency(event_guid, edt_guid, 0);
+    // Register a dependence between an event and an edt
+    ocrAddDependence(event_guid, edt_guid, 0);
 
     int *k;
     ocrGuid_t db_guid;
@@ -75,7 +75,7 @@ int main (int argc, char ** argv) {
 
     ocrEventSatisfy(event_guid, db_guid);
 
-    // Schedule the EDT (will run when dependencies satisfied)
+    // Schedule the EDT (will run when dependences satisfied)
     ocrEdtSchedule(edt_guid);
 
     ocrCleanup();

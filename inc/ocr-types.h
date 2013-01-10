@@ -46,9 +46,11 @@ typedef int32_t  s32;
 typedef int8_t   s8;
 
 /* boolean support in C */
+#ifndef __cplusplus
 #define true 1
 #define false 0
 typedef u8 bool;
+#endif /* __cplusplus */
 
 /**
  * @brief Type describing the unique identifier of most
