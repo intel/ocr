@@ -70,6 +70,15 @@ static char * parseOcrOptions_MachineDescription(int * argc, char ** argv) {
     return md_file;
 }
 
+/**!
+ * Initialize the OCR runtime.
+ * @param argc number of command line options
+ * @param argv Pointer to options
+ * @param fnc Number of function pointers (UNUSED)
+ * @param funcs array of function pointers to be used as edts (UNUSED)
+ *
+ * Note: removes OCR options from argc / argv
+ */
 void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 
     u32 nbHardThreads = ocr_config_default_nb_hardware_threads;
