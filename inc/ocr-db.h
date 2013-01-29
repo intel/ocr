@@ -30,7 +30,7 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ **/
 
 
 #ifndef __OCR_DB_H__
@@ -50,7 +50,9 @@
  *   - non-overlaping
  *   - the pointer to the start of a data-block is only
  *     valid between ocrAcquire and ocrRelease calls
- */
+ *
+ * @{
+ **/
 
 /**
  * @brief Request the creation of a data-block
@@ -82,7 +84,7 @@
  * @note The default allocator (NO_ALLOC) will disallow calls to ocrDbMalloc and ocrDbFree.
  * If an allocator is used, part of the data-block's space will be taken up by the
  * allocator's management overhead
- */
+ **/
 u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
                ocrLocation_t *location, ocrInDbAllocator_t allocator);
 
@@ -232,5 +234,4 @@ u8 ocrDbFreeOffset(ocrGuid_t guid, u64 offset);
 /**
  * @}
  */
-
 #endif /* __OCR_DB_H__ */
