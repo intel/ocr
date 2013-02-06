@@ -81,6 +81,11 @@ typedef struct {
     ocr_scheduler_t scheduler;
     size_t n_pools;
     ocr_workpile_t ** pools;
+    // Note: cache steal iterators in hc's scheduler
+    // Each worker has its own steal iterator instantiated
+    // a sheduler's construction time.
+    workpile_iterator_t ** steal_iterators;
+
 } hc_scheduler_t;
 
 ocr_scheduler_t * hc_scheduler_constructor(void);

@@ -105,6 +105,10 @@ void hc_policy_domain_stop(ocr_policy_domain_t * policy) {
 void hc_policy_domain_destruct(ocr_policy_domain_t * policy) {
     taskFactory->destruct(taskFactory);
     eventFactory->destruct(eventFactory);
+    // Set to NULL to allow several creation/destruction over
+    // the program execution
+    taskFactory = NULL;
+    eventFactory = NULL;
 }
 
 ocrGuid_t hc_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* location) {

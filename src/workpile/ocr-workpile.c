@@ -57,14 +57,18 @@ ocr_workpile_t * newWorkpile(ocr_workpile_kind workpileType) {
 /* OCR Workpile iterator                              */
 /******************************************************/
 
+void workpile_iterator_reset (workpile_iterator_t * base) {
+    base->curr = ((base->id) + 1) % base->mod;
+}
+
 bool workpile_iterator_hasNext (workpile_iterator_t * base) {
     return base->id != base->curr;
 }
 
 ocr_workpile_t * workpile_iterator_next (workpile_iterator_t * base) {
-    int next = (base->curr+1) % base->mod;
-    ocr_workpile_t * to_be_returned = base->array[base->curr];
-    base->curr = next;
+    int current = base->curr;
+    ocr_workpile_t * to_be_returned = base->array[current];
+    base->curr = (current+1) % base->mod;
     return to_be_returned;
 }
 
@@ -72,10 +76,12 @@ workpile_iterator_t* workpile_iterator_constructor ( int i, size_t n_pools, ocr_
     workpile_iterator_t* it = (workpile_iterator_t *) malloc(sizeof(workpile_iterator_t));
     it->array = pools;
     it->id = i;
-    it->curr = (i+1)%n_pools;
     it->mod = n_pools;
     it->hasNext = workpile_iterator_hasNext;
     it->next = workpile_iterator_next;
+    it->reset = workpile_iterator_reset;
+    // The 'curr' field is initialized by reset
+    it->reset(it);
     return it;
 }
 

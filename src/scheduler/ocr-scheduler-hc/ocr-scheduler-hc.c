@@ -42,7 +42,17 @@ void hc_scheduler_create(ocr_scheduler_t * scheduler, void * configuration) {
 }
 
 void hc_scheduler_destruct(ocr_scheduler_t * scheduler) {
-    // just free self, workpiles are not allocated by the scheduler
+    // Free the workpile steal iterator cache
+    hc_scheduler_t * hc_scheduler = (hc_scheduler_t *) scheduler;
+    int nb_instances = hc_scheduler->n_pools;
+    workpile_iterator_t ** steal_iterators = hc_scheduler->steal_iterators;
+    int i = 0;
+    while(i < nb_instances) {
+        workpile_iterator_destructor(steal_iterators[i]);
+        i++;
+    }
+    free(steal_iterators);
+    // free self (workpiles are not allocated by the scheduler)
     free(scheduler);
 }
 
@@ -58,20 +68,25 @@ ocr_workpile_t * hc_scheduler_push_mapping_one_to_one (ocr_scheduler_t* base, oc
 
 workpile_iterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocr_scheduler_t* base, ocr_worker_t* w ) {
     hc_scheduler_t* derived = (hc_scheduler_t*) base;
-    return workpile_iterator_constructor(get_worker_id(w), derived->n_pools, derived->pools);
+    workpile_iterator_t * steal_iterator = derived->steal_iterators[get_worker_id(w)];
+    steal_iterator->reset(steal_iterator);
+    return steal_iterator;
 }
 
 ocrGuid_t hc_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
+    // First try to pop
     ocr_worker_t* w = (ocr_worker_t*) deguidify(wid);
     ocr_workpile_t * wp_to_pop = base->pop_mapping(base, w);
     ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
     if ( NULL_GUID == popped ) {
+        // If popping failed, try to steal
         workpile_iterator_t* it = base->steal_mapping(base, w);
         while ( it->hasNext(it) && (NULL_GUID == popped)) {
             ocr_workpile_t * next = it->next(it);
             popped = next->steal(next);
         }
-        workpile_iterator_destructor(it);
+        // Note that we do not need to destruct the workpile
+        // iterator as the HC implementation caches them.
     }
     return popped;
 }
@@ -89,9 +104,19 @@ void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocr_module_ki
         size_t nb_instances, void ** ptr_instances) {
     // Checking mapping conforms to what we're expecting in this implementation
     assert(kind == OCR_WORKPILE);
+    // allocate steal iterator cache
+    workpile_iterator_t ** steal_iterators_cache = malloc(sizeof(workpile_iterator_t *)*nb_instances);
     hc_scheduler_t * scheduler = (hc_scheduler_t *) self_module;
     scheduler->n_pools = nb_instances;
     scheduler->pools = (ocr_workpile_t **)ptr_instances;
+    // Initialize steal iterator cache
+    int i = 0;
+    while(i < nb_instances) {
+        // Note: here we assume workpile 'i' will match worker 'i' => Not great
+        steal_iterators_cache[i] = workpile_iterator_constructor(i, nb_instances, (ocr_workpile_t **)ptr_instances);
+        i++;
+    }
+    scheduler->steal_iterators = steal_iterators_cache;
 }
 
 ocr_scheduler_t* hc_scheduler_constructor() {
