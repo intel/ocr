@@ -1,5 +1,5 @@
 /**
- * @brief Event Driven Tasks, events and dependencies
+ * @brief Event Driven Tasks, events and dependences
  * API
  * @authors Romain Cledat, Intel Corporation
  * @date 2012-09-21
@@ -50,6 +50,7 @@
  * @brief Types of events supported
  *
  * @todo Re-evaluate the notion of bucket/multiple-satisfaction events (post 0.7)
+ * @warning Currently, only OCR_EVENT_STICKY_T work properly with the HC runtime.
  */
 typedef enum {
     OCR_EVENT_ONCE_T,    /**< The event is automatically destroyed on satisfaction */
@@ -107,7 +108,7 @@ u8 ocrEventDestroy(ocrGuid_t guid);
  * optional attached data-block to all EDTs/Events waiting on it at that time
  * and the event will destroy itself. For OCR_EVENT_IDEM_T and OCR_EVENT_STICKY_T,
  * the event will be satisfied for all EDTs/Events currently waiting on it
- * as well as any future EDT/Event that adds it as a dependency.
+ * as well as any future EDT/Event that adds it as a dependence.
  **/
 u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/);
 
@@ -138,10 +139,11 @@ typedef struct {
  * @brief Type for an EDT
  *
  * @param paramc          Number of non-DB or non-event parameters. Use for simple types
+ * @param params          Sizes for the parameters (to allow marshalling)
  * @param paramv          Values for non-DB and non-event parameters
- * @param depc            Number of dependencies (either DBs or events)
- * @param depv            Values of the dependencies. Can be INVAL_GUID/NULL if a pure control-flow event
- *                        was used as a dependency
+ * @param depc            Number of dependences (either DBs or events)
+ * @param depv            Values of the dependences. Can be INVAL_GUID/NULL if a pure control-flow event
+ *                        was used as a dependence
  * @return Error code (0 on success)
  **/
 typedef u8 (*ocrEdt_t )( u32 paramc, u64 * params, void* paramv[],
@@ -156,9 +158,9 @@ typedef u8 (*ocrEdt_t )( u32 paramc, u64 * params, void* paramv[],
  * @param params            Sizes for these parameters (to allow marshalling)
  * @param paramv            Values for those parameters (copied in)
  * @param properties        Reserved for future use
- * @param depc              Number of dependencies for this EDT
- * @param depv              Values for the GUIDs of the dependencies (if known)
- *                          If NULL, use ocrAddDependency
+ * @param depc              Number of dependences for this EDT
+ * @param depv              Values for the GUIDs of the dependences (if known)
+ *                          If NULL, use ocrAddDependence
  * @return 0 on success and an error code on failure: TODO
  **/
 u8 ocrEdtCreate(ocrGuid_t * guid, ocrEdt_t funcPtr,
@@ -170,18 +172,18 @@ u8 ocrEdtCreate(ocrGuid_t * guid, ocrEdt_t funcPtr,
  *
  * This call should be called after ocrEdtCreate to signal to the runtime
  * that the EDT is ready to be scheduled. Note that this does *not* imply
- * that its dependencies are satisfied. Instead, the runtime will start
- * considering the EDT for potential scheduling once its dependencies are
+ * that its dependences are satisfied. Instead, the runtime will start
+ * considering the EDT for potential scheduling once its dependences are
  * satisfied. This call brings it to the attention of the runtime
  *
  * @param guid              GUID of the EDT to schedule
  * @return Status:
  *      - 0: Successful
  *      - EINVAL: The GUID is not an EDT
- *      - ENOPERM: The EDT does not have all its dependencies known
+ *      - ENOPERM: The EDT does not have all its dependences known
  *
  * @warning In the current implementation, this call should only be called
- * after all dependencies have been added using ocrAddDependency. This may
+ * after all dependences have been added using ocrAddDependence. This may
  * be relaxed in future versions
  */
 u8 ocrEdtSchedule(ocrGuid_t guid);
@@ -204,33 +206,33 @@ u8 ocrEdtDestroy(ocrGuid_t guid);
 
 
 /**
-   @defgroup OCRDependencies OCR Dependencies
-   @brief API to manage OCR dependencies
+   @defgroup OCRDependences OCR Dependences
+   @brief API to manage OCR dependences
 
    @{
 **/
 
 
 /**
- * @brief Adds a dependency from an event or a DB to an EDT
+ * @brief Adds a dependence from an event or a DB to an EDT
  *
  * The source GUID can be either an event or a DB. Giving a DB
- * as the source of a dependency is semantically equivalent to
+ * as the source of a dependence is semantically equivalent to
  * giving a sticky event pre-satisfied with the data-block
  *
  * @param source            GUID of the event/DB for the EDT to depend on
  * @param destination       GUID for the EDT
- * @param slot              Dependency "slot" on the EDT to connect to (up to n-1
- *                          where n is the number of dependencies for the EDT)
+ * @param slot              Dependence "slot" on the EDT to connect to (up to n-1
+ *                          where n is the number of dependences for the EDT)
  *
  * @return Status:
  *      - 0: Success
  *      - EINVAL: The slot number is invalid
  *      - ENOPERM: The source and destination GUIDs cannot be linked with
- *                 a dependency
+ *                 a dependence
  * @todo Re-evaluate the chaining of events to allow for fan-out (post 0.7)
  */
-u8 ocrAddDependency(ocrGuid_t source,
+u8 ocrAddDependence(ocrGuid_t source,
                     ocrGuid_t destination, u32 slot);
 
 /**

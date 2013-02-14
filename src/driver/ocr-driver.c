@@ -52,6 +52,7 @@ static void shift_arguments(int * argc, char ** argv, int start_offset, int shif
     while ( j < *argc) {
         argv[i++] = argv[j++];
     }
+
     *argc = (*argc - (shift_offset-start_offset));
 }
 
@@ -71,6 +72,15 @@ static char * parseOcrOptions_MachineDescription(int * argc, char ** argv) {
     return md_file;
 }
 
+/**!
+ * Initialize the OCR runtime.
+ * @param argc number of command line options
+ * @param argv Pointer to options
+ * @param fnc Number of function pointers (UNUSED)
+ * @param funcs array of function pointers to be used as edts (UNUSED)
+ *
+ * Note: removes OCR options from argc / argv
+ */
 void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 
     // Intialize the GUID provider

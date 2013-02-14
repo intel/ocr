@@ -69,7 +69,7 @@ ocrGuid_t hc_event_get (struct ocr_event_struct* event);
 void hc_event_put (struct ocr_event_struct* event, ocrGuid_t db );
 bool hc_event_register_if_not_ready(struct ocr_event_struct* event, ocrGuid_t polling_task_id );
 
-/*! \brief Dependency list data structure for EDTs
+/*! \brief Dependence list data structure for EDTs
 */
 typedef struct {
     /*! Public member for array head*/
@@ -103,7 +103,7 @@ void hc_task_destruct ( ocr_task_t* base );
 bool hc_task_iterate_waiting_frontier ( ocr_task_t* base );
 void hc_task_execute ( ocr_task_t* base );
 void hc_task_schedule( ocr_task_t* base, ocrGuid_t wid);
-void hc_task_add_dependency ( ocr_task_t* base, ocr_event_t* dep, size_t index );
+void hc_task_add_dependence ( ocr_task_t* base, ocr_event_t* dep, size_t index );
 u64 hc_task_add_acquired(ocr_task_t* base, u64 edtId, ocrGuid_t db);
 void hc_task_remove_acquired(ocr_task_t* base, ocrGuid_t db, u64 dbId);
 

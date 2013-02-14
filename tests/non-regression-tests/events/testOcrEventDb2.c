@@ -56,8 +56,8 @@ int main (int argc, char ** argv) {
     ocrGuid_t edt_guid;
     ocrEdtCreate(&edt_guid, task_for_edt, 0, NULL, NULL, 0, 1, NULL);
 
-    // Register a dependency between an event and an edt
-    ocrAddDependency(event_guid, edt_guid, 0);
+    // Register a dependence between an event and an edt
+    ocrAddDependence(event_guid, edt_guid, 0);
 
     ocrEventSatisfy(event_guid, NULL_GUID);
 

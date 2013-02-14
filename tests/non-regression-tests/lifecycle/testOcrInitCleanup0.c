@@ -27,7 +27,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-*/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,16 +38,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FLAGS 0xdead
 
 u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
-    printf("In the task_for_edt with value %d\n", *((int *)(paramv[0])));
-    assert(paramc == 1);
-    assert(params[0] == sizeof(int));
-    assert(*((int *)(paramv[0])) == 32);
+    int* res = (int*)depv[0].ptr;
+    printf("In the task_for_edt with value %d\n", (*res));
+    assert(*res == 42);
     // This is the last EDT to execute, terminate
     ocrFinish();
     return 0;
 }
 
-int main (int argc, char ** argv) {
+void test (int argc, char ** argv) {
     ocrEdt_t fctPtrArray [1];
     fctPtrArray[0] = &task_for_edt;
     ocrInit(&argc, argv, 1, fctPtrArray);
@@ -57,17 +56,16 @@ int main (int argc, char ** argv) {
     ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true);
 
     // Creates the EDT
-    u32 paramc = 1;
-    u64 params[1];
-    params[0] = sizeof(int);
-    int * paramv = (int *) malloc(sizeof(int));
-    paramv[0] = 32;
-
     ocrGuid_t edt_guid;
-    ocrEdtCreate(&edt_guid, task_for_edt, paramc, params, (void**) &paramv, 0, 1, NULL);
+
+    ocrEdtCreate(&edt_guid, task_for_edt, /*paramc=*/0, /*params=*/ NULL,
+            /*paramv=*/NULL, /*properties=*/0,
+            /*depc=*/1, /*depv=*/NULL);
 
     // Register a dependence between an event and an edt
     ocrAddDependence(event_guid, edt_guid, 0);
+    // Schedule the EDT (will run when dependences satisfied)
+    ocrEdtSchedule(edt_guid);
 
     int *k;
     ocrGuid_t db_guid;
@@ -79,9 +77,12 @@ int main (int argc, char ** argv) {
 
     ocrEventSatisfy(event_guid, db_guid);
 
-    ocrEdtSchedule(edt_guid);
-
     ocrCleanup();
+}
+
+int main (int argc, char ** argv) {
+    test(argc, argv);
+    test(argc, argv);
 
     return 0;
 }

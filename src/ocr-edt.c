@@ -81,13 +81,14 @@ u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     return 0;
 }
 
-u8 ocrAddDependency(ocrGuid_t source, ocrGuid_t destination, u32 slot) {
+u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot) {
     //TODO LIMITATION only support event as a guid source
     ocr_event_t * event = NULL;
     globalGuidProvider->getVal(globalGuidProvider, source, (u64*)&event, NULL);
     ocr_task_t * task = NULL;
     globalGuidProvider->getVal(globalGuidProvider, destination, (u64*)&task, NULL);
 
-    task->add_dependency(task, event, slot);
+    task->add_dependence(task, event, slot);
+
     return 0;
 }

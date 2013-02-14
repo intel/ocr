@@ -244,7 +244,6 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
     defaultPolicy->numAllocTypes = 1;
     defaultPolicy->allocators = defaultAllocator;
 
-
     return defaultPolicy;
 }
 

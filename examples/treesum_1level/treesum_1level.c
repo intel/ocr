@@ -130,12 +130,12 @@ int main (int argc, char ** argv) {
                 /*location=*/NULL, NO_ALLOC);
     *summerEvtDb = autumnEvt;
 
-    /* Link up dependencies */
+    /* Link up dependencees */
     for(i = 0; i < 3; ++i) {
-        ocrAddDependency(summerEvt[i], summerEdt, i);
+        ocrAddDependence(summerEvt[i], summerEdt, i);
     }
 
-    ocrAddDependency(autumnEvt, autumnEdt, 0);
+    ocrAddDependence(autumnEvt, autumnEdt, 0);
 
     /* "Schedule" EDTs (order does not matter) */
     ocrEdtSchedule(autumnEdt);
@@ -143,7 +143,7 @@ int main (int argc, char ** argv) {
 
     printf("Done all scheduling, now going to satisfy\n");
 
-    /* Satisfy dependencies passing data */
+    /* Satisfy dependences passing data */
     ocrEventSatisfy(summerEvt[0], dbs[0]);
     ocrEventSatisfy(summerEvt[1], dbs[1]);
     ocrEventSatisfy(summerEvt[2], summerEvtDbGuid);

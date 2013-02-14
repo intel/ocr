@@ -322,13 +322,13 @@ int main ( int argc, char* argv[] ) {
             ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void **) p_paramv, PROPERTIES, 3, NULL);
 
             /* add dependency to the EDT from the west tile's right column ready event */
-            ocrAddDependency(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
+            ocrAddDependence(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
 
             /* add dependency to the EDT from the north tile's bottom row ready event */
-            ocrAddDependency(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);
+            ocrAddDependence(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);
 
             /* add dependency to the EDT from the northwest tile's bottom right ready event */
-            ocrAddDependency(tile_matrix[i-1][j-1].bottom_right_event_guid, task_guid, 2);
+            ocrAddDependence(tile_matrix[i-1][j-1].bottom_right_event_guid, task_guid, 2);
 
             /* schedule task*/
             ocrEdtSchedule(task_guid);

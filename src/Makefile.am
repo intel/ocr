@@ -3,8 +3,11 @@ SUBDIRS =
 # Includes folder we need when compiling ocr
 OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/hc
 
-# cflags for ocr modules
-OCR_CFLAGS = -Wall -g -O0
+# cflags: important to define that otherwise we inherit default values too
+CFLAGS = -Wall -g -O2
+
+# additional cflags for ocr modules
+OCR_CFLAGS =
 
 # Standard am options all the submodules can grab
 OCR_AM_CFLAGS = $(OCR_INCLUDES_DIR) $(OCR_CFLAGS)
