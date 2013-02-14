@@ -277,10 +277,6 @@ void destructOcrModelPolicy(ocr_model_policy_t * model) {
  * Given a policy domain model, go over its modules and instantiate them.
  */
 ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
-    // Create an instance of the policy domain
-    ocr_policy_domain_t * policyDomain = newPolicy(model->model.kind,
-            model->nb_workpile_types, model->nb_worker_types,
-            model->nb_executor_types, model->nb_scheduler_types);
 
     // Compute total number of workers, executors and workpiles, allocators and memories
     int total_nb_schedulers = 0;
@@ -308,6 +304,12 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
     for(j=0; j < model->numMemTypes; ++j) {
         totalNumMemories += model->memories[j].nb_instances;
     }
+
+    // Create an instance of the policy domain
+    ocr_policy_domain_t * policyDomain = newPolicy(model->model.kind,
+            total_nb_workpiles, total_nb_workers,
+            total_nb_executors, total_nb_schedulers);
+
     // Allocate memory for ocr components
     // Components instances are grouped into one big chunk of memory
     ocr_scheduler_t ** all_schedulers = (ocr_scheduler_t **) malloc(sizeof(ocr_scheduler_t *) * total_nb_schedulers);

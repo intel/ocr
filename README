@@ -1,1 +1,52 @@
-Sample readme file for romain-db.git project.
+****************************
+** Open Community Runtime **
+****************************
+
+
+*************************
+** Directory structure **
+*************************
+
+    - examples/
+        helloworld and alike.
+    - inc/
+        user-level ocr api header files
+    - src/
+        ocr implementation source code
+    - tests/
+        Non-regression tests
+
+
+*******************************
+** Installation instructions **
+*******************************
+ 
+See the 'INSTALL' file
+
+
+******************************
+** Testing the distribution **
+******************************
+
+*** Non-regression tests
+
+The 'tests' folder contains a collection of non-regression tests.
+After installing and setting OCR environment variables, one can
+run non-regression tests running the 'ocrTests' script.
+
+*** examples
+
+After installing and setting OCR environment variables, examples 
+located under the 'examples' folder can be tested for regressions 
+using the 'ocrTestsExamples' script. 
+ 
+
+***********************
+** Known Limitations **
+***********************
+
+- The deque-based workpile does not resize automatically
+    - the macro INC_DEQUE_CAPACITY defined deque.h can be customized
+- Only support events of kind 'sticky'
+- ocrEdtCreate, doesn't handle depv yet (pass a db which is already satisfied)
+

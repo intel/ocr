@@ -51,11 +51,11 @@ u8 summer(u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]
     ocrGuid_t *evt = (ocrGuid_t*)depv[2].ptr;
 
     /* Create data-block to put result */
-    ocrDbCreate(&resultGuid, &result, sizeof(int), /*flags=*/0, /*location=*/NULL, NO_ALLOC);
+    ocrDbCreate(&resultGuid, (void**)&result, sizeof(int), /*flags=*/0, /*location=*/NULL, NO_ALLOC);
     *result = *n1 + *n2;
 
     /* Say hello */
-    printf("I am summing %d (0x%lx) and %d (0x%lx) and passing along %d (0x%lx)\n",
+    printf("I am summing %d (GUID: 0x%lx) and %d (GUID: 0x%lx) and passing along %d (GUID: 0x%lx)\n",
            *n1, (u64)depv[0].guid, *n2, (u64)depv[1].guid,
            *result, (u64)resultGuid);
 
@@ -73,7 +73,7 @@ u8 summer(u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]
 u8 autumn(u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     int * result = (int*)depv[0].ptr;
 
-    printf("Got result: %d (0x%lx)\n", *result, (u64)depv[0].guid);
+    printf("Got result: %d (GUID: 0x%lx)\n", *result, (u64)depv[0].guid);
 
     /* Destroy the input data-block */
     ocrDbDestroy(depv[0].guid);
@@ -86,17 +86,22 @@ u8 autumn(u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]
 
 int main (int argc, char ** argv) {
     ocrEdt_t fctPtrArray[2] = {summer, autumn};
-    ocrInit(&argc, argv, 2, fctPtrArray);
+    ocrInit(&argc, argv, 2, fctPtrArray); /* No machine description */
+
+    if(argc != 3) {
+        printf("Usage %s <num1> <num2>\n", argv[0]);
+        return -1;
+    }
 
     /* Create 2 data-blocks */
     ocrGuid_t dbs[2];
     int *data[2];
     int i;
     for(i = 0; i < 2; ++i) {
-        ocrDbCreate(&dbs[i], &data[i], sizeof(int), /*flags=*/0,
+        ocrDbCreate(&dbs[i], (void**)&data[i], sizeof(int), /*flags=*/0,
                     /*location=*/NULL, NO_ALLOC);
-        *(data[i]) = i;
-        printf("Created a data-block with value %d (0x%lx)\n", i, (u64)dbs[i]);
+        *(data[i]) = atoi(argv[i+1]);
+        printf("Created a data-block with value %d (GUID: 0x%lx)\n", i, (u64)dbs[i]);
     }
 
     ocrGuid_t summerEdt, autumnEdt;
@@ -121,7 +126,7 @@ int main (int argc, char ** argv) {
     }
 
     /* Create data-block containing event */
-    ocrDbCreate(&summerEvtDbGuid, &summerEvtDb, sizeof(ocrGuid_t), /*flags=*/0,
+    ocrDbCreate(&summerEvtDbGuid, (void**)&summerEvtDb, sizeof(ocrGuid_t), /*flags=*/0,
                 /*location=*/NULL, NO_ALLOC);
     *summerEvtDb = autumnEvt;
 
@@ -132,7 +137,7 @@ int main (int argc, char ** argv) {
 
     ocrAddDependency(autumnEvt, autumnEdt, 0);
 
-    /* "Schedule" EDTs */
+    /* "Schedule" EDTs (order does not matter) */
     ocrEdtSchedule(autumnEdt);
     ocrEdtSchedule(summerEdt);
 

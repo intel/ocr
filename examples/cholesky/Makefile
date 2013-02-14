@@ -1,9 +1,10 @@
 PROG=cholesky
+SUFFIX=.exe
 CFLAGS= -g
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr
 OCR_INPUT=${OCR_INPUT_HOME}/cholesky
-	
-all: compile run 
+
+all: compile run
 all-test: compile run verify
 
 MATRIX_SIZE=2000
@@ -13,13 +14,16 @@ INPUT_FILE=m_${MATRIX_SIZE}.in
 OUTPUT_FILE=cholesky_out_${MATRIX_SIZE}.txt
 
 compile:
-	g++ $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).cpp -o $(PROG)
+	gcc $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)$(SUFFIX)
+
+compile_pp:
+	g++ $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).cpp -o $(PROG)$(SUFFIX)
 
 run:
 	./$(PROG) ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
 
 clean:
-	-rm -Rf *.o $(PROG)
+	-rm -Rf *.o $(PROG)$(SUFFIX)
 
 verify:
 	diff -b ${OCR_INPUT}/$(OUTPUT_FILE) cholesky.out
