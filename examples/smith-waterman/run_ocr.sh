@@ -1,4 +1,4 @@
-EXEC=./smithwaterman
+EXEC=./smithwaterman.exe
 INPUT_1=./string1-larger.txt
 INPUT_2=./string2-larger.txt
 TILE_WIDTH=290

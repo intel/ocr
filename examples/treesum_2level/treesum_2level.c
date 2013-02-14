@@ -51,7 +51,7 @@ u8 summer(u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]
     ocrGuid_t *evt = (ocrGuid_t*)depv[2].ptr;
 
     /* Create data-block to put result */
-    ocrDbCreate(&resultGuid, &result, sizeof(int), /*flags=*/0, /*location=*/NULL, NO_ALLOC);
+    ocrDbCreate(&resultGuid, (void**)&result, sizeof(int), /*flags=*/0, /*location=*/NULL, NO_ALLOC);
     *result = *n1 + *n2;
 
     /* Say hello */
@@ -93,7 +93,7 @@ int main (int argc, char ** argv) {
     int *data[4];
     int i;
     for(i = 0; i < 4; ++i) {
-        ocrDbCreate(&dbs[i], &data[i], sizeof(int), /*flags=*/0,
+        ocrDbCreate(&dbs[i], (void**)&data[i], sizeof(int), /*flags=*/0,
                     /*location=*/NULL, NO_ALLOC);
         *(data[i]) = i;
         printf("Created a data-block with value %d (0x%lx)\n", i, (u64)dbs[i]);
@@ -131,13 +131,13 @@ int main (int argc, char ** argv) {
     }
 
     /* Create data-blocks containing events */
-    ocrDbCreate(&summer1EvtDbGuid, &summer1EvtDb, sizeof(ocrGuid_t), /*flags=*/0,
+    ocrDbCreate(&summer1EvtDbGuid, (void**)&summer1EvtDb, sizeof(ocrGuid_t), /*flags=*/0,
                 /*location=*/NULL, NO_ALLOC);
     *summer1EvtDb = summer3Evt[0];
-    ocrDbCreate(&summer2EvtDbGuid, &summer2EvtDb, sizeof(ocrGuid_t), /*flags=*/0,
+    ocrDbCreate(&summer2EvtDbGuid, (void**)&summer2EvtDb, sizeof(ocrGuid_t), /*flags=*/0,
                 /*location=*/NULL, NO_ALLOC);
     *summer2EvtDb = summer3Evt[1];
-    ocrDbCreate(&summer3EvtDbGuid, &summer3EvtDb, sizeof(ocrGuid_t), /*flags=*/0,
+    ocrDbCreate(&summer3EvtDbGuid, (void**)&summer3EvtDb, sizeof(ocrGuid_t), /*flags=*/0,
                 /*location=*/NULL, NO_ALLOC);
     *summer3EvtDb = autumnEvt;
 
