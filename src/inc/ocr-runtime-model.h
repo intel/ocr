@@ -72,4 +72,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
 
 ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model);
 
+// THIS IS A HACK RIGHT NOW TO GET THE MEMORY SIZE IN ONE LARGE CHUNK
+extern u64 gHackTotalMemSize;
+
 #endif /* OCR_RUNTIME_MODEL_H_ */

@@ -48,6 +48,8 @@ typedef bool (*event_register_if_not_ready_fct)(struct ocr_event_struct* event, 
  *  and can be registered to by a task.
  */
 typedef struct ocr_event_struct {
+    ocrGuid_t guid; /**< GUID for this event */
+
     /*! \brief Virtual destructor for the Event interface
      *  As this class does not have any state, the virtual destructor does not do anything
      */
@@ -186,6 +188,7 @@ typedef void (*task_add_dependency_fct) ( struct ocr_task_struct_t* base, ocr_ev
  *  OCR tasks can be executed and can have their synchronization frontier furthered by Events.
  */
 typedef struct ocr_task_struct_t {
+    ocrGuid_t guid; /**< GUID for this task (EDT) */
     u32 paramc;
     u64 * params;
     void ** paramv;

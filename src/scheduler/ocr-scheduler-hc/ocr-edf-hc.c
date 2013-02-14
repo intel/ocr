@@ -59,7 +59,8 @@ ocrGuid_t hc_event_factory_create ( struct ocr_event_factory_struct* factory, oc
     // If not one can provide a more compact implementation
     //This would have to be different for different types of events
     //We can have a switch here and dispatch call to different event constructors
-    return guidify(hc_event_constructor(eventType, takesArg));
+    ocr_event_t * res = hc_event_constructor(eventType, takesArg);
+    return res->guid;
 }
 
 #define UNINITIALIZED_REGISTER_LIST ((register_list_node_t*) -1)
@@ -70,6 +71,9 @@ struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool ta
     derived->datum = UNINITIALIZED_GUID;
     derived->register_list = UNINITIALIZED_REGISTER_LIST;
     ocr_event_t* base = (ocr_event_t*)derived;
+    base->guid = UNINITIALIZED_GUID;
+
+    globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_EVENT);
     base->destruct = hc_event_destructor;
     base->get = hc_event_get;
     base->put = hc_event_put;
@@ -79,6 +83,7 @@ struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool ta
 
 void hc_event_destructor ( struct ocr_event_struct* base ) {
     hc_event_t* derived = (hc_event_t*)base;
+    globalGuidProvider->releaseGuid(globalGuidProvider, base->guid);
     free(derived);
 }
 
@@ -107,9 +112,14 @@ void hc_event_signal_waiters( register_list_node_t* task_id_list ) {
     while ( UNINITIALIZED_REGISTER_LIST != curr ) {
         ocrGuid_t wid = ocr_get_current_worker_guid();
         ocrGuid_t curr_task_guid = curr->task_guid;
-        ocr_task_t* curr_task = (ocr_task_t*) deguidify(curr_task_guid);
+
+        ocr_task_t* curr_task = NULL;
+        globalGuidProvider->getVal(globalGuidProvider, curr_task_guid, (u64*)&curr_task, NULL);
+
         if ( curr_task->iterate_waiting_frontier(curr_task) ) {
-            ocr_worker_t* w = (ocr_worker_t*) deguidify(wid);
+            ocr_worker_t* w = NULL;
+            globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+
             ocr_scheduler_t * scheduler = get_worker_scheduler(w);
             scheduler->give(scheduler, wid, curr_task_guid);
         }
@@ -178,6 +188,8 @@ static void hc_task_construct_internal (hc_task_t* derived, ocrEdt_t funcPtr, u3
     derived->depv = NULL;
     derived->p_function = funcPtr;
     ocr_task_t* base = (ocr_task_t*) derived;
+    base->guid = UNINITIALIZED_GUID;
+    globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_EDT);
     base->paramc = paramc;
     base->params = params;
     base->paramv = paramv;
@@ -205,6 +217,7 @@ hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void**
 void hc_task_destruct ( ocr_task_t* base ) {
     hc_task_t* derived = (hc_task_t*)base;
     hc_await_list_destructor(derived->awaitList);
+    globalGuidProvider->releaseGuid(globalGuidProvider, base->guid);
     free(derived);
 }
 
@@ -212,7 +225,7 @@ bool hc_task_iterate_waiting_frontier ( ocr_task_t* base ) {
     hc_task_t* derived = (hc_task_t*)base;
     ocr_event_t** currEventToWaitOn = derived->awaitList->waitingFrontier;
 
-    ocrGuid_t my_guid = guidify((void*)base);
+    ocrGuid_t my_guid = base->guid;
 
     while (*currEventToWaitOn && !(*currEventToWaitOn)->registerIfNotReady (*currEventToWaitOn, my_guid) ) {
         ++currEventToWaitOn;
@@ -223,8 +236,12 @@ bool hc_task_iterate_waiting_frontier ( ocr_task_t* base ) {
 
 void hc_task_schedule( ocr_task_t* base, ocrGuid_t wid ) {
     if ( base->iterate_waiting_frontier(base) ) {
-        ocrGuid_t this_guid = guidify(base);
-        ocr_worker_t* w = (ocr_worker_t*) deguidify(wid);
+
+        ocrGuid_t this_guid = base->guid;
+
+        ocr_worker_t* w = NULL;
+        globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+
         ocr_scheduler_t * scheduler = get_worker_scheduler(w);
         scheduler->give(scheduler, wid, this_guid);
     }
@@ -234,7 +251,7 @@ void hc_task_execute ( ocr_task_t* base ) {
     hc_task_t* derived = (hc_task_t*)base;
     ocr_event_t* curr = derived->awaitList->array[0];
     ocrDataBlock_t *db = NULL;
-    ocrGuid_t dbGuid = NULL_GUID;
+    ocrGuid_t dbGuid = UNINITIALIZED_GUID;
     size_t i = 0;
     //TODO this is computed for now but when we'll support slots
     //we will have to have the size when constructing the edt
@@ -248,8 +265,9 @@ void hc_task_execute ( ocr_task_t* base ) {
         dbGuid = curr->get(curr);
         derived->depv[i].guid = dbGuid;
         if(dbGuid != NULL_GUID) {
-            db = (ocrDataBlock_t*)deguidify(dbGuid);
-            derived->depv[i].ptr = db->acquire(db, guidify(derived), true);
+            globalGuidProvider->getVal(globalGuidProvider, dbGuid, (u64*)&db, NULL);
+
+            derived->depv[i].ptr = db->acquire(db, base->guid, true);
         } else
             derived->depv[i].ptr = NULL;
 
@@ -260,8 +278,8 @@ void hc_task_execute ( ocr_task_t* base ) {
     // Now we clean up and release the GUIDs that we have to release
     for(i=0; i<derived->nbdeps; ++i) {
         if(derived->depv[i].guid != NULL_GUID) {
-            db = (ocrDataBlock_t*)deguidify(derived->depv[i].guid);
-            RESULT_ASSERT(db->release(db, guidify(derived), true), ==, 0);
+            globalGuidProvider->getVal(globalGuidProvider, derived->depv[i].guid, (u64*)&db, NULL);
+            RESULT_ASSERT(db->release(db, base->guid, true), ==, 0);
         }
     }
 }

@@ -30,11 +30,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ocr-guid.h"
+#include "ptr/ptr.h"
+#include "debug.h"
 
-ocrGuid_t guidify(void * p) {
-    return (ocrGuid_t) p;
-}
+ocrGuidProvider_t *globalGuidProvider = NULL;
 
-void * deguidify(ocrGuid_t id) {
-    return (void*) id;
+
+ocrGuidProvider_t* newGuidProvider(ocrGuidProviderKind type) {
+    if(type == OCR_GUIDPROVIDER_DEFAULT) type = ocrGuidProviderDefaultKind;
+    switch(type) {
+    case OCR_GUIDPROVIDER_PTR:
+        return newGuidProviderPtr();
+    default:
+        ASSERT(0);
+    }
+    return NULL;
 }

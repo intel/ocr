@@ -92,6 +92,7 @@ typedef void (*ocr_worker_set_currentEDT)(struct ocr_worker_struct *base, ocrGui
 
 typedef struct ocr_worker_struct {
     ocr_module_t module;
+    ocrGuid_t guid;
     ocr_scheduler_t * scheduler;
     worker_routine routine;
     ocr_worker_create_fct create;

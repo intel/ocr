@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OCR_POLICY_H_
 
 #include "ocr-types.h"
+#include "ocr-guid.h"
 #include "ocr-scheduler.h"
 #include "ocr-executor.h"
 #include "ocr-low-workers.h"
@@ -60,6 +61,7 @@ typedef void (*ocr_policy_destruct_fct) (struct ocr_policy_domain_struct * polic
 typedef ocrGuid_t (*ocr_policy_getAllocator)(struct ocr_policy_domain_struct *policy, ocrLocation_t* location);
 
 typedef struct ocr_policy_domain_struct {
+    ocrGuid_t guid;
     int nb_schedulers;
     int nb_workers;
     int nb_executors;

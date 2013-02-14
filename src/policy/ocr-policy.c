@@ -72,5 +72,8 @@ void ocr_policy_domain_destruct(ocr_policy_domain_t * policy) {
         policy->schedulers[i]->destruct(policy->schedulers[i]);
     }
     free(policy->schedulers);
+
+    // Destroy the GUID
+    globalGuidProvider->releaseGuid(globalGuidProvider, policy->guid);
     free(policy);
 }

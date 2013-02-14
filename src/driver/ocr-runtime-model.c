@@ -239,7 +239,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
     defaultAllocator->model.configuration = NULL;
     defaultAllocator->model.kind = OCR_ALLOCATOR_DEFAULT;
     defaultAllocator->model.nb_instances = 1;
-    defaultAllocator->sizeManaged = 64*1024*1024; // TODO: FIXME WITH SOME REAL SIZE!!!!
+    defaultAllocator->sizeManaged = gHackTotalMemSize;
 
     defaultPolicy->numAllocTypes = 1;
     defaultPolicy->allocators = defaultAllocator;
