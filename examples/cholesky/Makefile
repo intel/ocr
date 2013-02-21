@@ -1,6 +1,6 @@
 PROG=cholesky
 CFLAGS= -g
-OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr
+OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr -lm
 OCR_INPUT=${OCR_INPUT_HOME}/cholesky
 	
 all: compile run 
@@ -16,10 +16,10 @@ compile:
 	g++ $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).cpp -o $(PROG)
 
 run:
-	./$(PROG) ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
+	./$(PROG)$(SUFFIX) ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
 
 clean:
-	-rm -Rf *.o $(PROG)
+	-rm -Rf *.o $(PROG)$(SUFFIX) cholesky.out
 
 verify:
 	diff -b ${OCR_INPUT}/$(OUTPUT_FILE) cholesky.out
