@@ -1,7 +1,6 @@
 PROG=cholesky
 SUFFIX=.exe
-
-CFLAGS= -g -O2
+CFLAGS= -g
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr -lm
 OCR_INPUT=${OCR_INPUT_HOME}/cholesky
 
@@ -25,9 +24,6 @@ compile_pp:
 
 run:
 	./$(PROG)$(SUFFIX) ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
-
-run.omp.task:
-	./$(PROG).omp.task$(SUFFIX) ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
 
 clean:
 	-rm -Rf *.o $(PROG)$(SUFFIX) cholesky.out
