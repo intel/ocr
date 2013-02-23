@@ -44,6 +44,14 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
     case OCR_POLICY_HC:
         return hc_policy_domain_constructor(nb_workpiles, nb_workers,
                 nb_executors, nb_schedulers);
+/* sagnak begin */
+    case OCR_POLICY_FSIM_XE:
+        return fsim_xe_policy_domain_constructor(nb_workpiles, nb_workers,
+                nb_executors, nb_schedulers);
+    case OCR_POLICY_FSIM_CE:
+        return fsim_ce_policy_domain_constructor(nb_workpiles, nb_workers,
+                nb_executors, nb_schedulers);
+/* sagnak end*/
     default:
         assert(false && "Unrecognized policy domain kind");
         break;

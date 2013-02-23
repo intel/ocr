@@ -89,17 +89,37 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
     u32 nbHardThreads = ocr_config_default_nb_hardware_threads;
     gHackTotalMemSize = 64*1024*1024; /* 64 MB default */
     char * md_file = parseOcrOptions_MachineDescription(argc, argv);
+
+    /* sagnak begin */
+    if ( md_file != NULL && !strncmp(md_file,"fsim",5) ) {
+	// TODO un-hard-code #XEs
+	size_t nXE= 8;
+
+	// there are #XE instances of a model, 
+	ocr_model_policy_t * xePolicyModel = 
+	    (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
+	xePolicyModel->model.kind = OCR_POLICY_FSIM_XE;
+	xePolicyModel->model.nb_instances = nXE;
+	xePolicyModel->model.configuration = NULL;
+	xePolicyModel->nb_scheduler_types = 1;
+	xePolicyModel->nb_worker_types = 1;
+	xePolicyModel->nb_executor_types = 1;
+	xePolicyModel->nb_workpile_types = 1;
+
+	return ;
+    }
+
     if (md_file != NULL) {
-        //TODO need a file stat to check
-        setMachineDescriptionFromPDL(md_file);
-        MachineDescription * md = getMachineDescription();
-        if (md == NULL) {
-            // Something went wrong when reading the machine description file
-            ocr_abort();
-        } else {
-            nbHardThreads = MachineDescription_getNumHardwareThreads(md);
-            gHackTotalMemSize = MachineDescription_getDramSize(md);
-        }
+	//TODO need a file stat to check
+	setMachineDescriptionFromPDL(md_file);
+	MachineDescription * md = getMachineDescription();
+	if (md == NULL) {
+	    // Something went wrong when reading the machine description file
+	    ocr_abort();
+	} else {
+	    nbHardThreads = MachineDescription_getNumHardwareThreads(md);
+	    gHackTotalMemSize = MachineDescription_getDramSize(md);
+	}
     }
 
     // This is the default policy
@@ -110,10 +130,10 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
     size_t nb_schedulers = 1;
 
     ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_schedulers, nb_workers,
-            nb_executors, nb_workpiles);
+	    nb_executors, nb_workpiles);
 
     //TODO LIMITATION for now support only one policy
-    root_policy = instantiateModel(policy_model);
+    root_policy = *(instantiateModel(policy_model));
 
     // Destroy the policy model now (could live longer
     // if the runtime becomes adaptive or something)

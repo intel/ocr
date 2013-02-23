@@ -96,6 +96,11 @@ void ocr_policy_domain_destruct(ocr_policy_domain_t * policy);
 
 typedef enum ocr_policy_kind_enum {
     OCR_POLICY_HC = 1
+/* sagnak begin */
+	,
+    OCR_POLICY_FSIM_XE,
+    OCR_POLICY_FSIM_CE
+/* sagnak end*/
 } ocr_policy_kind;
 
 ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
@@ -105,5 +110,7 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
         size_t nb_scheduler);
 
  ocr_policy_domain_t * hc_policy_domain_constructor();
+ ocr_policy_domain_t * fsim_xe_policy_domain_constructor();
+ ocr_policy_domain_t * fsim_ce_policy_domain_constructor();
 
 #endif /* OCR_POLICY_H_ */

@@ -70,7 +70,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
                                            size_t nb_executors, size_t nb_workpiles);
 
 
-ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model);
+ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model);
 
 
 void destructOcrModelPolicy(ocr_model_policy_t *);
