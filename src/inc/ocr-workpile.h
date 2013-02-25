@@ -101,18 +101,21 @@ ocr_workpile_t * hc_workpile_constructor(void);
 /* Forward declaration */
 struct workpile_iterator_struct;
 
+typedef void (*workpile_iterator_reset_fct) (struct workpile_iterator_struct*);
 typedef bool (*workpile_iterator_hasNext_fct) (struct workpile_iterator_struct*);
 typedef ocr_workpile_t * (*workpile_iterator_next_fct) (struct workpile_iterator_struct*);
 
 typedef struct workpile_iterator_struct {
     workpile_iterator_hasNext_fct hasNext;
     workpile_iterator_next_fct next;
+    workpile_iterator_reset_fct reset;
     ocr_workpile_t ** array;
     int id;
     int curr;
     int mod;
 } workpile_iterator_t;
 
+void workpile_iterator_reset (workpile_iterator_t * base);
 bool workpile_iterator_hasNext (workpile_iterator_t * base);
 ocr_workpile_t * workpile_iterator_next (workpile_iterator_t * base);
 workpile_iterator_t* workpile_iterator_constructor ( int i, size_t n_pools, ocr_workpile_t ** pools );
