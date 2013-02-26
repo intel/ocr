@@ -123,6 +123,7 @@ typedef struct event_list_struct_t {
 event_list_t* event_list_constructor ();
 
 /*! \brief Virtual destructor for the EventList linked list data structure
+ *  \param[inout] list The list to be freed (the 'list' pointer is invalid after this call)
  */
 void event_list_destructor ( event_list_t* list );
 

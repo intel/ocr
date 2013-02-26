@@ -34,6 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-runtime.h"
 #include "ocr-guid.h"
 
+/*
+ * @file This file contains OCR Event list construction public API implementation.
+ */
+
 /*! \brief A linked list data-structure constructor
  * It sets the size to be 0 and head and tail members to be NULL
  * \return  An empty linked list instance
@@ -79,6 +83,7 @@ event_list_t* event_list_constructor () {
 
 /*! \brief free an event list
  * Goes over the list and free each of the node.
+ * Warning: the 'list' parameter is freed too !
  */
 void event_list_destructor ( event_list_t* list ) {
     event_list_node_t* curr = list->head->next;
@@ -87,4 +92,5 @@ void event_list_destructor ( event_list_t* list ) {
         list->head = curr;
         curr = curr->next;
     }
+    free(list);
 }
