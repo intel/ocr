@@ -148,7 +148,6 @@ bool hc_event_register_if_not_ready(struct ocr_event_struct* event, ocrGuid_t po
 
 hc_await_list_t* hc_await_list_constructor( size_t al_size ) {
     hc_await_list_t* derived = (hc_await_list_t*)malloc(sizeof(hc_await_list_t));
-
     derived->array = malloc(sizeof(ocr_event_t*) * (al_size+1));
     derived->array[al_size] = NULL;
     derived->waitingFrontier = &derived->array[0];
@@ -157,7 +156,6 @@ hc_await_list_t* hc_await_list_constructor( size_t al_size ) {
 
 hc_await_list_t* hc_await_list_constructor_with_event_list ( event_list_t* el) {
     hc_await_list_t* derived = (hc_await_list_t*)malloc(sizeof(hc_await_list_t));
-
     derived->array = malloc(sizeof(ocr_event_t*)*(el->size+1));
     derived->waitingFrontier = &derived->array[0];
     size_t i, size = el->size;
@@ -236,13 +234,6 @@ void hc_task_execute ( ocr_task_t* base ) {
     ocrDataBlock_t *db = NULL;
     ocrGuid_t dbGuid = NULL_GUID;
     size_t i = 0;
-    //TODO this is computed for now but when we'll support slots
-    //we will have to have the size when constructing the edt
-    ocr_event_t* ptr = curr;
-    while ( NULL != ptr ) {
-        ptr = derived->awaitList->array[++i];
-    };
-    derived->nbdeps = i; i = 0;
     derived->depv = (ocrEdtDep_t *) malloc(sizeof(ocrEdtDep_t) * derived->nbdeps);
     while ( NULL != curr ) {
         dbGuid = curr->get(curr);
@@ -255,7 +246,8 @@ void hc_task_execute ( ocr_task_t* base ) {
 
         curr = derived->awaitList->array[++i];
     };
-        derived->p_function(base->paramc, base->params, base->paramv, derived->nbdeps, derived->depv);
+
+    derived->p_function(base->paramc, base->params, base->paramv, derived->nbdeps, derived->depv);
 
     // Now we clean up and release the GUIDs that we have to release
     for(i=0; i<derived->nbdeps; ++i) {
@@ -269,4 +261,5 @@ void hc_task_execute ( ocr_task_t* base ) {
 void hc_task_add_dependence ( ocr_task_t* base, ocr_event_t* dep, size_t index ) {
     hc_task_t* derived = (hc_task_t*)base;
     derived->awaitList->array[index] = dep;
+    derived->nbdeps++;
 }
