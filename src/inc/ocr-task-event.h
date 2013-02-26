@@ -35,6 +35,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-guid.h"
 #include "ocr-edt.h"
 
+
+/*******************************************
+ *          OCR Event declarations
+ ******************************************/
+
+/*
+ * Event's function pointers typedef
+ */
 struct ocr_event_struct;
 typedef void (*event_destruct_fct)(struct ocr_event_struct* event);
 typedef ocrGuid_t (*event_get_fct)(struct ocr_event_struct* event);
@@ -49,7 +57,6 @@ typedef bool (*event_register_if_not_ready_fct)(struct ocr_event_struct* event, 
  */
 typedef struct ocr_event_struct {
     /*! \brief Virtual destructor for the Event interface
-     *  As this class does not have any state, the virtual destructor does not do anything
      */
     event_destruct_fct destruct;
 
@@ -70,25 +77,26 @@ typedef struct ocr_event_struct {
     event_register_if_not_ready_fct registerIfNotReady;
 } ocr_event_t;
 
+
+/*******************************************
+ *       OCR Event Lists declarations
+ ******************************************/
+
 /*! \brief A linked list node data structure to wrap an OCR event and a successor.
 */
-/*! \brief EventList linked list's node constructor
- *  \param[in]  pEvent  Event pointer to wrap to a linked list node
- *  \return A Node instance wrapping an Event to a linked list node
- */
-typedef struct event_list_node_t {
-    // TODO Node (ocr_event_t* pEvent) : event(pEvent), next(NULL) {}
+typedef struct event_list_node_struct_t {
     /*! Public Event member of the linked list node wrapper */
     ocr_event_t *event;
     /*! Public next Event member of the linked list node wrapper */
-    struct event_list_node_t *next;
+    struct event_list_node_struct_t *next;
 } event_list_node_t;
 
-event_list_node_t* event_list_node_constructor ();
-void event_list_node_destructor (event_list_node_t* node);
-
+/*
+ * Event list's function pointers typedef
+ */
 struct event_list_struct_t;
 typedef void (*event_list_enlist_fct)( struct event_list_struct_t* list, ocrGuid_t event_guid );
+
 /*! \brief A linked list data structure to list OCR events.
  *
  *  The runtime implementer or the end user may utilize this class to build a dynamic
@@ -109,19 +117,18 @@ typedef struct event_list_struct_t {
     event_list_node_t *head, *tail;
 } event_list_t;
 
-void event_list_enlist ( event_list_t* list, ocrGuid_t event_guid );
-
-/*! \brief A linked list data structure constructor
- * It sets the size to be 0 and head and tail members to be NULL
- * \return  An empty linked list instance
+/*! \brief Default constructor for event list
+ * Initializes an empty list
  */
 event_list_t* event_list_constructor ();
 
 /*! \brief Virtual destructor for the EventList linked list data structure
- *  As this class does not have any state, the virtual destructor does not do anything
  */
 void event_list_destructor ( event_list_t* list );
 
+/*
+ * OCR event factories declarations
+ */
 struct ocr_event_factory_struct;
 typedef ocrGuid_t (*event_fact_create_fct) (struct ocr_event_factory_struct* factory, ocrEventTypes_t eventType, bool takesArg);
 typedef void (*event_fact_destruct_fct)(struct ocr_event_factory_struct* factory);
@@ -138,11 +145,18 @@ typedef struct ocr_event_factory_struct {
     event_fact_create_fct create;
 
     /*! \brief Virtual destructor for the ocr_event_factory interface
-     *  As this class does not have any state, the virtual destructor does not do anything
      */
     event_fact_destruct_fct destruct;
 } ocr_event_factory;
 
+
+/*******************************************
+ *        OCR Tasks declarations
+ ******************************************/
+
+/*
+ * OCR tasks factories declarations
+ */
 struct ocr_task_factory_struct;
 typedef ocrGuid_t (*task_fact_create_with_event_list_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, event_list_t* al);
 typedef ocrGuid_t (*task_fact_create_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, size_t l_size);
@@ -168,11 +182,13 @@ typedef struct ocr_task_factory_struct {
     task_fact_create_fct create;
 
     /*! \brief Virtual destructor for the TaskFactory interface
-     *  As this class does not have any state, the virtual destructor does not do anything
      */
     task_fact_destruct_fct destruct;
 } ocr_task_factory;
 
+/*
+ * OCR tasks function pointers typedefs
+ */
 struct ocr_task_struct_t;
 typedef void (*task_destruct_fct) ( struct ocr_task_struct_t* base );
 typedef bool (*task_iterate_waiting_frontier_fct) ( struct ocr_task_struct_t* base );
@@ -191,7 +207,6 @@ typedef struct ocr_task_struct_t {
     void ** paramv;
 
     /*! \brief Virtual destructor for the Task interface
-     *  As this class does not have any state, the virtual destructor does not do anything
      */
     task_destruct_fct destruct;
     /*! \brief Interface to further synchronization frontier after a registered event satisfaction.
