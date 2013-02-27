@@ -108,6 +108,10 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
     //TODO LIMITATION for now support only one policy
     root_policy = instantiateModel(policy_model);
 
+    // Destroy the policy model now (could live longer
+    // if the runtime becomes adaptive or something)
+    destructOcrModelPolicy(policy_model);
+
     root_policy->start(root_policy);
 }
 

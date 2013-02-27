@@ -72,4 +72,6 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
 
 ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model);
 
+void destructOcrModelPolicy(ocr_model_policy_t *);
+
 #endif /* OCR_RUNTIME_MODEL_H_ */
