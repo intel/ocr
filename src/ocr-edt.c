@@ -34,6 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-edt.h"
 #include "ocr-runtime.h"
 
+/*
+ * @file This file contains OCR EDTs public API implementation.
+ */
+
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     *guid = eventFactory->create(eventFactory, eventType, takesArg);
     return 0;
@@ -54,8 +58,15 @@ u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
 u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
         u32 paramc, u64 * params, void** paramv,
         u16 properties, u32 depc, ocrGuid_t* depv /*= NULL*/) {
-    //TODO LIMITATION handle pre-built dependence vector
     *edtGuid = taskFactory->create(taskFactory, funcPtr, paramc, params, paramv, depc);
+    // If guids dependencies were provided, add them now
+    if(depv != NULL) {
+        u32 i = 0;
+        while(i < depc) {
+            ocrAddDependence(depv[i], *edtGuid, i);
+            i++;
+        }
+    }
     return 0;
 }
 
