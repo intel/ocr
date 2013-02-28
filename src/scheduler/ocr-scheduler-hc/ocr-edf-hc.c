@@ -64,9 +64,9 @@ ocrGuid_t hc_event_factory_create ( struct ocr_event_factory_struct* factory, oc
         assert("LIMITATION: Only sticky events are supported" && false);
     }
     // takesArg indicates whether or not this event carries any data
-    // If not one can provide a more compact implementation
-    //This would have to be different for different types of events
-    //We can have a switch here and dispatch call to different event constructors
+    // If not one can provide a more compact implementation.
+    // This would have to be different for different types of events.
+    // We can have a switch here and dispatch call to different event constructors.
     return guidify(hc_event_constructor(eventType, takesArg, factory->event_fct_ptrs_sticky));
 }
 
@@ -113,6 +113,10 @@ register_list_node_t* hc_event_compete_for_put ( hc_event_t* derived, ocrGuid_t 
     return (register_list_node_t*) registerListOfEDF;
 }
 
+
+// Forward declaration to keep related definitions together
+static void hc_task_schedule( ocrGuid_t this_guid, ocr_task_t* base, ocrGuid_t wid );
+
 /**
  * @brief Signal edts waiting on an event a put has occurred
  */
@@ -129,13 +133,12 @@ void hc_event_signal_waiters( register_list_node_t* task_id_list ) {
             ocr_task_t* curr_task = (ocr_task_t*) deguidify(curr_task_guid);
             // Try to iterate the frontier of the task and schedule it if successful
             if ( curr_task->fct_ptrs->iterate_waiting_frontier(curr_task) ) {
-                hc_task_schedule(curr_task, wid);
+                hc_task_schedule(curr_task_guid, curr_task, wid);
             }
             next = curr->next;
             free(curr); // free the registration node
             curr = next;
         }
-
     }
 }
 
@@ -221,7 +224,7 @@ struct ocr_task_factory_struct* hc_task_factory_constructor(void) {
     base->task_fct_ptrs->destruct = hc_task_destruct;
     base->task_fct_ptrs->iterate_waiting_frontier = hc_task_iterate_waiting_frontier;
     base->task_fct_ptrs->execute = hc_task_execute;
-    base->task_fct_ptrs->schedule = hc_task_schedule;
+    base->task_fct_ptrs->schedule = hc_task_try_schedule;
     base->task_fct_ptrs->add_dependence = hc_task_add_dependence;
     return base;
 }
@@ -292,13 +295,31 @@ bool hc_task_iterate_waiting_frontier ( ocr_task_t* base ) {
     return *currEventToWaitOn == NULL;
 }
 
-void hc_task_schedule( ocr_task_t* base, ocrGuid_t wid ) {
-    if ( base->fct_ptrs->iterate_waiting_frontier(base) ) {
+/**
+ * @brief Schedules a task when we know its guid.
+ * Warning: It does NOT iterate the waiting frontier! The caller
+ *          must ensure the task is ready by calling 'iterate_waiting_frontier'
+ * Note: This implementation is static to the file, it's only meant to factorize code.
+ */
+static void hc_task_schedule( ocrGuid_t this_guid, ocr_task_t* base, ocrGuid_t wid ) {
+    ocr_worker_t* w = (ocr_worker_t*) deguidify(wid);
+    ocr_scheduler_t * scheduler = get_worker_scheduler(w);
+    scheduler->give(scheduler, wid, this_guid);
+}
+
+/**
+ * @brief Tries to schedules a task
+ * Iterates the waiting frontier and schedules the task only if
+ * all dependencies have been satisfied.
+ */
+void hc_task_try_schedule( ocr_task_t* base, ocrGuid_t wid ) {
+    // Eagerly try to walk the waiting frontier
+    if (base->fct_ptrs->iterate_waiting_frontier(base) ) {
         ocrGuid_t this_guid = guidify(base);
-        ocr_worker_t* w = (ocr_worker_t*) deguidify(wid);
-        ocr_scheduler_t * scheduler = get_worker_scheduler(w);
-        scheduler->give(scheduler, wid, this_guid);
+        hc_task_schedule(this_guid, base, wid);
     }
+    // If it's not ready, the task may be enabled at some
+    // point when some of its dependencies arrive.
 }
 
 void hc_task_execute ( ocr_task_t* base ) {

@@ -117,7 +117,16 @@ hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void *
 void hc_task_destruct ( ocr_task_t* base );
 bool hc_task_iterate_waiting_frontier ( ocr_task_t* base );
 void hc_task_execute ( ocr_task_t* base );
-void hc_task_schedule( ocr_task_t* base, ocrGuid_t wid);
+
+/*! \brief Tries to schedule a task by walking its waiting frontier.
+ *  \param[in] base the task to schedule
+ *  \param[in] wid the worker's guid trying to schedule the task
+ *
+ *  If it's not ready, the task may be enabled at some point when
+ *  some of its dependencies arrive.
+ *
+*/
+void hc_task_try_schedule( ocr_task_t* base, ocrGuid_t wid);
 void hc_task_add_dependence ( ocr_task_t* base, ocr_event_t* dep, size_t index );
 u64 hc_task_add_acquired(ocr_task_t* base, u64 edtId, ocrGuid_t db);
 void hc_task_remove_acquired(ocr_task_t* base, ocrGuid_t db, u64 dbId);
