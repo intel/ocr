@@ -90,21 +90,6 @@ typedef struct {
 
 ocr_scheduler_t * hc_scheduler_constructor(void);
 
-
-/******************************************************/
-/* OCR-HC Task Factory                                */
-/******************************************************/
-
-typedef struct hc_task_factory {
-    ocr_task_factory base_factory;
-} hc_task_factory;
-
-struct ocr_task_factory_struct* hc_task_factory_constructor(void);
-void hc_task_factory_destructor ( struct ocr_task_factory_struct* base );
-
-ocrGuid_t hc_task_factory_create_with_event_list ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, event_list_t* l);
-ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, size_t);
-
 /**
  * The computation worker routine that asks work to the scheduler
  */

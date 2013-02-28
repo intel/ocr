@@ -63,7 +63,7 @@ typedef struct hc_event_t {
     volatile register_list_node_t* register_list;
 } hc_event_t;
 
-struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool takesArg);
+struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool takesArg, ocr_event_fcts_t * event_fct_ptrs_sticky);
 void hc_event_destructor ( struct ocr_event_struct* base );
 ocrGuid_t hc_event_get (struct ocr_event_struct* event);
 void hc_event_put (struct ocr_event_struct* event, ocrGuid_t db );
@@ -86,6 +86,21 @@ typedef struct {
 hc_await_list_t* hc_await_list_constructor( size_t al_size );
 void hc_await_list_destructor(hc_await_list_t*);
 
+/******************************************************/
+/* OCR-HC Task Factory                                */
+/******************************************************/
+
+typedef struct hc_task_factory {
+    ocr_task_factory base_factory;
+} hc_task_factory;
+
+struct ocr_task_factory_struct* hc_task_factory_constructor(void);
+void hc_task_factory_destructor ( struct ocr_task_factory_struct* base );
+
+ocrGuid_t hc_task_factory_create_with_event_list ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, event_list_t* l);
+ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, size_t);
+
+
 /*! \brief Event Driven Task(EDT) implementation for OCR Tasks
 */
 typedef struct hc_task_struct_t {
@@ -96,8 +111,8 @@ typedef struct hc_task_struct_t {
     ocrEdt_t p_function;
 } hc_task_t;
 
-hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, event_list_t* al);
-hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, size_t l_size);
+hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, event_list_t* al, ocr_task_fcts_t * task_fct_ptrs);
+hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, size_t l_size, ocr_task_fcts_t * task_fct_ptrs);
 
 void hc_task_destruct ( ocr_task_t* base );
 bool hc_task_iterate_waiting_frontier ( ocr_task_t* base );

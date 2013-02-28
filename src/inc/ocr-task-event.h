@@ -49,13 +49,11 @@ typedef ocrGuid_t (*event_get_fct)(struct ocr_event_struct* event);
 typedef void (*event_put_fct)(struct ocr_event_struct* event, ocrGuid_t db);
 typedef bool (*event_register_if_not_ready_fct)(struct ocr_event_struct* event, ocrGuid_t polling_task_id );
 
-/*! \brief Abstract class to represent OCR events.
+/*! \brief Abstract class to represent OCR events function pointers
  *
  *  This class provides the interface for the underlying implementation to conform.
- *  Events can be satisfied once with a GUID, can be polled for what GUID satisfied the event,
- *  and can be registered to by a task.
  */
-typedef struct ocr_event_struct {
+typedef struct ocr_event_fcts_struct {
     /*! \brief Virtual destructor for the Event interface
      */
     event_destruct_fct destruct;
@@ -75,6 +73,18 @@ typedef struct ocr_event_struct {
      *  \param[in]  polling_task_id GUID to Task that is registering to this event's satisfaction
      */
     event_register_if_not_ready_fct registerIfNotReady;
+} ocr_event_fcts_t;
+
+/*! \brief Abstract class to represent OCR events.
+ *
+ *  This class provides the interface for the underlying implementation to conform.
+ *  Events can be satisfied once with a GUID, can be polled for what GUID satisfied the event,
+ *  and can be registered to by a task.
+ */
+typedef struct ocr_event_struct {
+    /*! \brief Holds function pointer to the event interface
+     */
+    ocr_event_fcts_t * fct_ptrs;
 } ocr_event_t;
 
 
@@ -148,6 +158,8 @@ typedef struct ocr_event_factory_struct {
     /*! \brief Virtual destructor for the ocr_event_factory interface
      */
     event_fact_destruct_fct destruct;
+
+    ocr_event_fcts_t * event_fct_ptrs_sticky;
 } ocr_event_factory;
 
 
@@ -162,6 +174,9 @@ struct ocr_task_factory_struct;
 typedef ocrGuid_t (*task_fact_create_with_event_list_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, event_list_t* al);
 typedef ocrGuid_t (*task_fact_create_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, size_t l_size);
 typedef void (*task_fact_destruct_fct)(struct ocr_task_factory_struct* factory);
+
+// Fwd declaration
+struct ocr_task_fcts_struct_t;
 
 /*! \brief Abstract factory class to create OCR tasks.
  *
@@ -185,6 +200,8 @@ typedef struct ocr_task_factory_struct {
     /*! \brief Virtual destructor for the TaskFactory interface
      */
     task_fact_destruct_fct destruct;
+
+    struct ocr_task_fcts_struct_t * task_fct_ptrs;
 } ocr_task_factory;
 
 /*
@@ -197,15 +214,11 @@ typedef void (*task_execute_fct) ( struct ocr_task_struct_t* base );
 typedef void (*task_schedule_fct) ( struct ocr_task_struct_t* base, ocrGuid_t wid );
 typedef void (*task_add_dependence_fct) ( struct ocr_task_struct_t* base, ocr_event_t* dep, size_t index );
 
-/*! \brief Abstract class to represent OCR tasks.
+/*! \brief Abstract class to represent OCR tasks function pointers
  *
- *  This class provides the interface for the underlying implementation to conform.
- *  OCR tasks can be executed and can have their synchronization frontier furthered by Events.
+ *  This class provides the interface to call operations on task
  */
-typedef struct ocr_task_struct_t {
-    u32 paramc;
-    u64 * params;
-    void ** paramv;
+typedef struct ocr_task_fcts_struct_t {
 
     /*! \brief Virtual destructor for the Task interface
      */
@@ -219,6 +232,21 @@ typedef struct ocr_task_struct_t {
     task_execute_fct execute;
     task_schedule_fct schedule;
     task_add_dependence_fct add_dependence;
+} ocr_task_fcts_t;
+
+/*! \brief Abstract class to represent OCR tasks.
+ *
+ *  This class provides the interface for the underlying implementation to conform.
+ *  OCR tasks can be executed and can have their synchronization frontier furthered by Events.
+ */
+typedef struct ocr_task_struct_t {
+    u32 paramc;
+    u64 * params;
+    void ** paramv;
+
+    /*! \brief Holds function pointer to the task interface
+     */
+    ocr_task_fcts_t * fct_ptrs;
 } ocr_task_t;
 
 ////TODO old style factories

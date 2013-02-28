@@ -45,13 +45,13 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
 
 u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     ocr_event_t * event = (ocr_event_t *) deguidify(eventGuid);
-    event->destruct(event);
+    event->fct_ptrs->destruct(event);
     return 0;
 }
 
 u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
     ocr_event_t * event = (ocr_event_t*) deguidify(eventGuid);
-    event->put(event, dataGuid);
+    event->fct_ptrs->put(event, dataGuid);
     return 0;
 }
 
@@ -73,13 +73,13 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
 u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
     ocrGuid_t worker_guid = ocr_get_current_worker_guid();
     ocr_task_t * task = (ocr_task_t *) deguidify(edtGuid);
-    task->schedule(task, worker_guid);
+    task->fct_ptrs->schedule(task, worker_guid);
     return 0;
 }
 
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     ocr_task_t * task = (ocr_task_t *) deguidify(edtGuid);
-    task->destruct(task);
+    task->fct_ptrs->destruct(task);
     return 0;
 }
 
@@ -87,6 +87,6 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot) {
     //TODO LIMITATION only support event as a guid source
     ocr_event_t* event = (ocr_event_t*) deguidify(source);
     ocr_task_t* task = (ocr_task_t*) deguidify(destination);
-    task->add_dependence(task, event, slot);
+    task->fct_ptrs->add_dependence(task, event, slot);
     return 0;
 }
