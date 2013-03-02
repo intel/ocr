@@ -248,6 +248,201 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
     return defaultPolicy;
 }
 
+/**
+ * FSIM XE policy domain has:
+ * one XE scheduler for all XEs
+ * one worker for each XEs 
+ * one executor for each XEs 
+ * one workpile for each XEs
+ * one memory for all XEs
+ * one allocator for all XEs
+ */
+
+ocr_model_policy_t * createXeModelPolicies ( size_t nb_xes ) {
+    size_t nb_xe_schedulers = 1;
+    size_t nb_xe_workers = 1;
+    size_t nb_xe_executors = 1;
+    size_t nb_xe_workpiles = 1;
+    size_t nb_xe_memories = 1;
+    size_t nb_xe_allocators = 1;
+    
+    // there are #XE instances of a model 
+    ocr_model_policy_t * xePolicyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
+    xePolicyModel->model.kind = OCR_POLICY_XE;
+    xePolicyModel->model.nb_instances = nb_xes;
+    xePolicyModel->model.configuration = NULL;
+    xePolicyModel->nb_scheduler_types = 1;
+    xePolicyModel->nb_worker_types = 1;
+    xePolicyModel->nb_executor_types = 1;
+    xePolicyModel->nb_workpile_types = 1;
+    xePolicyModel->numMemTypes = 1;
+    xePolicyModel->numAllocTypes = 1;
+
+    // XE scheduler
+    ocr_model_t * xeScheduler = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    xeScheduler->kind = ocr_scheduler_xe_kind;
+    xeScheduler->nb_instances = nb_xe_schedulers;
+    xeScheduler->configuration = NULL;
+    xePolicyModel->schedulers = xeScheduler;
+
+    // XE worker
+    ocr_model_t * xeWorker = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    xeWorker->kind = ocr_worker_xe_kind;
+    xeWorker->nb_instances = nb_xe_workers;
+    xeWorker->configuration = NULL;
+    xePolicyModel->workers = xeWorker;
+
+    // XE executor
+    ocr_model_t * xeExecutor = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    xeExecutor->kind = ocr_executor_xe_kind;
+    xeExecutor->nb_instances = nb_xe_executors;
+    xeExecutor->configuration = NULL;
+    xePolicyModel->executors = xeExecutor;
+
+    // XE workpile
+    ocr_model_t * xeWorkpile = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    xeWorkpile->kind = ocr_workpile_xe_kind;
+    xeWorkpile->nb_instances = nb_xe_workpiles;
+    xeWorkpile->configuration = NULL;
+    xePolicyModel->workpiles = xeWorkpile;
+
+    // XE memory
+    ocr_model_t *xeMemory = (ocr_model_t*)malloc(sizeof(ocr_model_t));
+    xeMemory->configuration = NULL;
+    xeMemory->kind = ocrLowMemoryXEKind;
+    xeMemory->nb_instances = nb_xe_memories;
+    xePolicyModel->memories = xeMemory;
+
+    // XE allocator
+    ocrAllocatorModel_t *xeAllocator = (ocrAllocatorModel_t*)malloc(sizeof(ocrAllocatorModel_t));
+    xeAllocator->model.configuration = NULL;
+    xeAllocator->model.kind = ocrAllocatorXEKind;
+    xeAllocator->model.nb_instances = nb_xe_allocators;
+    xeAllocator->sizeManaged = gHackTotalMemSize;
+    xePolicyModel->allocators = xeAllocator;
+
+    // Defines how ocr modules are bound together
+    size_t nb_module_mappings = 4;
+    ocr_module_mapping_t * xeMapping =
+	(ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
+    // Note: this doesn't bind modules magically. You need to have a mapping function defined
+    //       and set in the targeted implementation (see ocr_scheduler_hc implementation for reference).
+    //       These just make sure the mapping functions you have defined are called
+    xeMapping[0] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_WORKPILE, OCR_SCHEDULER);
+    xeMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_EXECUTOR);
+    xeMapping[2] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_SCHEDULER, OCR_WORKER);
+    xeMapping[3] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_MEMORY, OCR_ALLOCATOR);
+    xePolicyModel->nb_mappings = nb_module_mappings;
+    xePolicyModel->mappings = xeMapping;
+
+    return xePolicyModel;
+}
+/**
+ * FSIM CE policy domains has:
+ * one CE scheduler for all CEs
+ * one worker for each CEs 
+ * one executor for each CEs 
+ * one workpile for each CEs
+ * one memory for all CEs
+ * one allocator for all CEs
+ */
+
+void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
+    size_t nb_ce_schedulers = 1;
+    size_t nb_ce_workers = 1;
+    size_t nb_ce_executors = 1;
+    size_t nb_ce_workpiles = 1;
+    size_t nb_ce_memories = 1;
+    size_t nb_ce_allocators = 1;
+    
+    cePolicyModel->nb_scheduler_types = 1;
+    cePolicyModel->nb_worker_types = 1;
+    cePolicyModel->nb_executor_types = 1;
+    cePolicyModel->nb_workpile_types = 1;
+    cePolicyModel->numMemTypes = 1;
+    cePolicyModel->numAllocTypes = 1;
+
+    // CE scheduler
+    ocr_model_t * ceScheduler = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    ceScheduler->kind = ocr_scheduler_ce_kind;
+    ceScheduler->nb_instances = nb_ce_schedulers;
+    ceScheduler->configuration = NULL;
+    cePolicyModel->schedulers = ceScheduler;
+
+    // CE worker
+    ocr_model_t * ceWorker = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    ceWorker->kind = ocr_worker_ce_kind;
+    ceWorker->nb_instances = nb_ce_workers;
+    ceWorker->configuration = NULL;
+    cePolicyModel->workers = ceWorker;
+
+    // CE executor
+    ocr_model_t * ceExecutor = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    ceExecutor->kind = ocr_executor_ce_kind;
+    ceExecutor->nb_instances = nb_ce_executors;
+    ceExecutor->configuration = NULL;
+    cePolicyModel->executors = ceExecutor;
+
+    // CE workpile
+    ocr_model_t * ceWorkpile = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    ceWorkpile->kind = ocr_workpile_ce_kind;
+    ceWorkpile->nb_instances = nb_ce_workpiles;
+    ceWorkpile->configuration = NULL;
+    cePolicyModel->workpiles = ceWorkpile;
+
+    // CE memory
+    ocr_model_t *ceMemory = (ocr_model_t*)malloc(sizeof(ocr_model_t));
+    ceMemory->configuration = NULL;
+    ceMemory->kind = ocrLowMemoryCEKind;
+    ceMemory->nb_instances = nb_ce_memories;
+    cePolicyModel->memories = ceMemory;
+
+    // CE allocator
+    ocrAllocatorModel_t *ceAllocator = (ocrAllocatorModel_t*)malloc(sizeof(ocrAllocatorModel_t));
+    ceAllocator->model.configuration = NULL;
+    ceAllocator->model.kind = ocrAllocatorXEKind;
+    ceAllocator->model.nb_instances = nb_ce_allocators;
+    ceAllocator->sizeManaged = gHackTotalMemSize;
+    cePolicyModel->allocators = ceAllocator;
+
+    // Defines how ocr modules are bound together
+    size_t nb_module_mappings = 4;
+    ocr_module_mapping_t * ceMapping =
+	(ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
+    // Note: this doesn't bind modules magically. You need to have a mapping function defined
+    //       and set in the targeted implementation (see ocr_scheduler_hc implementation for reference).
+    //       These just make sure the mapping functions you have defined are called
+    ceMapping[0] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_WORKPILE, OCR_SCHEDULER);
+    ceMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_EXECUTOR);
+    ceMapping[2] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_SCHEDULER, OCR_WORKER);
+    ceMapping[3] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_MEMORY, OCR_ALLOCATOR);
+    cePolicyModel->nb_mappings = nb_module_mappings;
+    cePolicyModel->mappings = ceMapping;
+
+
+}
+
+ocr_model_policy_t * createCeModelPolicies ( size_t nb_ces ) {
+    ocr_model_policy_t * cePolicyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
+
+    cePolicyModel->model.kind = ocr_policy_ce_kind;
+    cePolicyModel->model.nb_instances = nb_ces;
+    cePolicyModel->model.configuration = NULL;
+    CEModelPoliciesHelper(cePolicyModel); 
+    return cePolicyModel;
+}
+
+ocr_model_policy_t * createCeMasteredModelPolicy ( ) {
+    ocr_model_policy_t * cePolicyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
+
+    cePolicyModel->model.kind = ocr_policy_ce_mastered_kind;
+    cePolicyModel->model.nb_instances = 1;
+    cePolicyModel->model.configuration = NULL;
+    CEModelPoliciesHelper(cePolicyModel); 
+    return cePolicyModel;
+}
+
+
 void destructOcrModelPolicy(ocr_model_policy_t * model) {
     if (model->schedulers != NULL) {
         free(model->schedulers);

@@ -1,7 +1,7 @@
 SUBDIRS =
 
 # Includes folder we need when compiling ocr
-OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/hc
+OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/hc -I$(top_srcdir)/src/inc/fsim
 
 # cflags: important to define that otherwise we inherit default values too
 CFLAGS = -Wall -g -O2

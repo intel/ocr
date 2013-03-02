@@ -89,10 +89,16 @@ typedef struct ocr_scheduler_struct {
 
 typedef enum ocr_scheduler_kind_enum {
     OCR_SCHEDULER_WST = 1
+	, OCR_SCHEDULER_XE = 2
+	, OCR_SCHEDULER_CE = 3
 } ocr_scheduler_kind;
 
 ocr_scheduler_t * newScheduler(ocr_scheduler_kind schedulerType);
 
 ocr_scheduler_t * hc_scheduler_constructor(void);
+
+ocr_scheduler_t * xe_scheduler_constructor(void);
+
+ocr_scheduler_t * ce_scheduler_constructor(void);
 
 #endif /* __OCR_SCHEDULER_H__ */

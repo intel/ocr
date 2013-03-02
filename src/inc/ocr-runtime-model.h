@@ -70,6 +70,10 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
                                            size_t nb_executors, size_t nb_workpiles);
 
 
+ocr_model_policy_t * createXeModelPolicies ( size_t nb_XEs );
+ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs );
+ocr_model_policy_t * createCeMasteredModelPolicy ( );
+
 ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model);
 
 

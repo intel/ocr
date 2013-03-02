@@ -40,6 +40,8 @@ extern ocr_worker_t * hc_worker_constructor();
 
 ocr_worker_t * newWorker(ocr_worker_kind workerType) {
     switch(workerType) {
+    case OCR_WORKER_XE:
+    case OCR_WORKER_CE:
     case OCR_WORKER_HC:
         return hc_worker_constructor();
     }

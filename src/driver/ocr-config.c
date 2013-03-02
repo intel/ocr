@@ -43,3 +43,28 @@ ocrLockKind ocrLockDefaultKind = OCR_LOCK_X86;
 ocrGuidProviderKind ocrGuidProviderDefaultKind = OCR_GUIDPROVIDER_PTR;
 
 u32 ocr_config_default_nb_hardware_threads = 8;
+
+// XE kinds of ocr modules
+ocr_executor_kind	ocr_executor_xe_kind 	= OCR_EXECUTOR_XE;
+ocr_worker_kind		ocr_worker_xe_kind	= OCR_WORKER_XE;
+ocr_scheduler_kind	ocr_scheduler_xe_kind 	= OCR_SCHEDULER_XE;
+ocr_policy_kind		ocr_policy_xe_kind	= OCR_POLICY_XE;
+ocr_workpile_kind	ocr_workpile_xe_kind	= OCR_DEQUE;
+ocrAllocatorKind	ocrAllocatorXEKind	= OCR_ALLOCATOR_TLSF;
+ocrLowMemoryKind	ocrLowMemoryXEKind	= OCR_LOWMEMORY_MALLOC;
+ocrDataBlockKind	ocrDataBlockXEKind	= OCR_DATABLOCK_REGULAR;
+ocrLockKind		ocrLockXEKind		= OCR_LOCK_X86;
+ocrGuidProviderKind	ocrGuidProviderXEKind	= OCR_GUIDPROVIDER_PTR;
+
+// CE kinds of ocr modules
+ocr_executor_kind	ocr_executor_ce_kind	= OCR_EXECUTOR_CE;
+ocr_worker_kind		ocr_worker_ce_kind	= OCR_WORKER_CE;
+ocr_scheduler_kind	ocr_scheduler_ce_kind	= OCR_SCHEDULER_CE;
+ocr_policy_kind		ocr_policy_ce_kind 	= OCR_POLICY_CE;
+ocr_policy_kind		ocr_policy_ce_mastered_kind = OCR_POLICY_MASTERED_CE;
+ocr_workpile_kind	ocr_workpile_ce_kind	= OCR_DEQUE;
+ocrAllocatorKind	ocrAllocatorCEKind	= OCR_ALLOCATOR_TLSF;
+ocrLowMemoryKind	ocrLowMemoryCEKind	= OCR_LOWMEMORY_MALLOC;
+ocrDataBlockKind	ocrDataBlockCEKind	= OCR_DATABLOCK_REGULAR;
+ocrLockKind		ocrLockCEKind		= OCR_LOCK_X86;
+ocrGuidProviderKind	ocrGuidProviderCEKind	= OCR_GUIDPROVIDER_PTR;

@@ -38,7 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-config.h"
 #include "ocr-guid.h"
 
-ocr_policy_domain_t * root_policy;
+size_t n_root_policy_nodes;
+ocr_policy_domain_t ** root_policies;
+
+// the runtime fork/join-er
+ocr_worker_t* master_worker;
 u64 gHackTotalMemSize;
 
 //TODO we should have an argument option parsing library
@@ -92,65 +96,160 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 
     /* sagnak begin */
     if ( md_file != NULL && !strncmp(md_file,"fsim",5) ) {
-	// TODO un-hard-code #XEs
-	size_t nXE= 8;
+	// sagnak TODO handle nb_CEs <= 1 case
+	size_t nb_CEs = 2;
+	size_t nb_XE_per_CEs = 3;
+	size_t nb_XEs = nb_XE_per_CEs * nb_CEs;
 
-	// there are #XE instances of a model, 
-	ocr_model_policy_t * xePolicyModel = 
-	    (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
-	xePolicyModel->model.kind = OCR_POLICY_FSIM_XE;
-	xePolicyModel->model.nb_instances = nXE;
-	xePolicyModel->model.configuration = NULL;
-	xePolicyModel->nb_scheduler_types = 1;
-	xePolicyModel->nb_worker_types = 1;
-	xePolicyModel->nb_executor_types = 1;
-	xePolicyModel->nb_workpile_types = 1;
+	ocr_model_policy_t * xe_policy_models = createXeModelPolicies (nb_XEs);
+	ocr_model_policy_t * ce_policy_models = createCeModelPolicies (nb_CEs-1);
+	ocr_model_policy_t * ce_mastered_policy_model = createCeMasteredModelPolicy();
 
-	return ;
-    }
+	ocr_policy_domain_t ** xe_policy_domains = instantiateModel(xe_policy_models);
+	ocr_policy_domain_t ** ce_policy_domains = instantiateModel(ce_policy_models);
+	ocr_policy_domain_t ** ce_mastered_policy_domain = instantiateModel(ce_mastered_policy_model);
 
-    if (md_file != NULL) {
-	//TODO need a file stat to check
-	setMachineDescriptionFromPDL(md_file);
-	MachineDescription * md = getMachineDescription();
-	if (md == NULL) {
-	    // Something went wrong when reading the machine description file
-	    ocr_abort();
-	} else {
-	    nbHardThreads = MachineDescription_getNumHardwareThreads(md);
-	    gHackTotalMemSize = MachineDescription_getDramSize(md);
+	n_root_policy_nodes = nb_CEs;
+	root_policies = (ocr_policy_domain_t**) malloc(sizeof(ocr_policy_domain_t*)*nb_CEs);
+
+	root_policies[0] = ce_mastered_policy_domain[0];
+
+	size_t idx = 0;
+	for ( idx = 0; idx < nb_CEs-1; ++idx ) {
+	    root_policies[idx+1] = ce_policy_domains[idx];
 	}
+
+	idx = 0;
+	ce_mastered_policy_domain[0]->n_successors = nb_XE_per_CEs;
+	ce_mastered_policy_domain[0]->successors = &(xe_policy_domains[idx*nb_XE_per_CEs]);
+	ce_mastered_policy_domain[0]->n_predecessors = 0;
+	ce_mastered_policy_domain[0]->predecessors = NULL;
+
+	ce_mastered_policy_domain[0]->start(ce_mastered_policy_domain[0]);
+
+	master_worker = ce_mastered_policy_domain[0]->workers[0];
+
+	for ( idx = 1; idx < nb_CEs; ++idx ) {
+	    ocr_policy_domain_t *curr = ce_policy_domains[idx-1];
+
+	    curr->n_successors = nb_XE_per_CEs;
+	    curr->successors = &(xe_policy_domains[idx*nb_XE_per_CEs]);
+	    curr->n_predecessors = 0;
+	    curr->predecessors = NULL;
+
+	    curr->start(curr);
+	}
+
+	// sagnak: should this instead be recursive?
+	for ( idx = 0; idx < nb_XE_per_CEs; ++idx ) {
+	    ocr_policy_domain_t *curr = xe_policy_domains[idx];
+
+	    curr->n_successors = 0;
+	    curr->successors = NULL;
+	    curr->n_predecessors = 1;
+	    curr->predecessors = ce_mastered_policy_domain;
+
+	    curr->start(curr);
+	}
+
+	for ( idx = nb_XE_per_CEs; idx < nb_XEs; ++idx ) {
+	    ocr_policy_domain_t *curr = xe_policy_domains[idx];
+
+	    curr->n_successors = 0;
+	    curr->successors = NULL;
+	    curr->n_predecessors = 1;
+	    curr->predecessors = &(ce_policy_domains[idx/nb_XE_per_CEs]);
+
+	    curr->start(curr);
+	}
+    } else {
+	if (md_file != NULL) {
+	    //TODO need a file stat to check
+	    setMachineDescriptionFromPDL(md_file);
+	    MachineDescription * md = getMachineDescription();
+	    if (md == NULL) {
+		// Something went wrong when reading the machine description file
+		ocr_abort();
+	    } else {
+		nbHardThreads = MachineDescription_getNumHardwareThreads(md);
+		gHackTotalMemSize = MachineDescription_getDramSize(md);
+	    }
+	}
+
+	// This is the default policy
+	// TODO this should be declared in the default policy model
+	size_t nb_workers = nbHardThreads;
+	size_t nb_workpiles = nbHardThreads;
+	size_t nb_executors = nbHardThreads;
+	size_t nb_schedulers = 1;
+
+	ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_schedulers, nb_workers,
+		nb_executors, nb_workpiles);
+
+	//TODO LIMITATION for now support only one policy
+	n_root_policy_nodes = 1;
+	root_policies = instantiateModel(policy_model);
+
+	master_worker = root_policies[0]->workers[0];
+	root_policies[0]->start(root_policies[0]);
     }
+}
 
-    // This is the default policy
-    // TODO this should be declared in the default policy model
-    size_t nb_workers = nbHardThreads;
-    size_t nb_workpiles = nbHardThreads;
-    size_t nb_executors = nbHardThreads;
-    size_t nb_schedulers = 1;
+static void recursive_policy_finish_helper ( ocr_policy_domain_t* curr ) {
+    if ( curr ) {
+	int index = 0; // successor index
+	for ( ; index < curr->n_successors; ++index ) {
+	    recursive_policy_finish_helper(curr->successors[index]);
+	}
+	curr->finish(curr);
+    }
+}
 
-    ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_schedulers, nb_workers,
-	    nb_executors, nb_workpiles);
-
-    //TODO LIMITATION for now support only one policy
-    root_policy = *(instantiateModel(policy_model));
-
-    // Destroy the policy model now (could live longer
-    // if the runtime becomes adaptive or something)
-    destructOcrModelPolicy(policy_model);
-
-    root_policy->start(root_policy);
+static void recursive_policy_stop_helper ( ocr_policy_domain_t* curr ) {
+    if ( curr ) {
+	int index = 0; // successor index
+	for ( ; index < curr->n_successors; ++index ) {
+	    recursive_policy_stop_helper(curr->successors[index]);
+	}
+	curr->stop(curr);
+    }
 }
 
 void ocrFinish() {
-    root_policy->finish(root_policy);
+    master_worker->stop(master_worker);
+}
+
+static void recursive_policy_destruct_helper ( ocr_policy_domain_t* curr ) {
+    if ( curr ) {
+	int index = 0; // successor index
+	for ( ; index < curr->n_successors; ++index ) {
+	    recursive_policy_destruct_helper(curr->successors[index]);
+	}
+	curr->destruct(curr);
+    }
+}
+
+static inline void unravel () {
+    // current root policy index
+    int index = 0;
+
+    for ( index = 0; index < n_root_policy_nodes; ++index ) {
+	recursive_policy_finish_helper(root_policies[index]);
+    }
+
+    for ( index = 0; index < n_root_policy_nodes; ++index ) {
+	recursive_policy_stop_helper(root_policies[index]);
+    }
+
+    for ( index = 0; index < n_root_policy_nodes; ++index ) {
+	recursive_policy_destruct_helper(root_policies[index]);
+    }
+
+    globalGuidProvider->destruct(globalGuidProvider);
 }
 
 void ocrCleanup() {
-    // Stop the root policy
-    root_policy->stop(root_policy);
+    master_worker->routine(master_worker);
 
-    // Now on, there is only thread '0'
-    root_policy->destruct(root_policy);
-    globalGuidProvider->destruct(globalGuidProvider);
+    unravel();
 }

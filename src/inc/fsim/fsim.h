@@ -40,56 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "deque.h"
 
 /******************************************************/
-/* OCR-FSIM WORKERS                                   */
-/******************************************************/
-
-typedef struct {
-    ocr_worker_t worker;
-    //TODO this is a convenience to map workers to workpiles
-    int id;
-    //TODO shall these stay here or go up ?
-    bool run;
-    // reference to the policy domain instance this worker is in
-    ocrGuid_t policy_domain_guid;
-    // reference to the EDT this worker is currently executing
-    ocrGuid_t currentEDT_guid;
-} xe_worker_t;
-
-typedef struct {
-    ocr_worker_t worker;
-    //TODO this is a convenience to map workers to workpiles
-    int id;
-    //TODO shall these stay here or go up ?
-    bool run;
-    // reference to the policy domain instance this worker is in
-    ocrGuid_t policy_domain_guid;
-    // reference to the EDT this worker is currently executing
-    ocrGuid_t currentEDT_guid;
-} ce_worker_t;
-
-ocr_worker_t* xe_worker_constructor(void);
-ocr_worker_t* ce_worker_constructor(void);
-
-
-/******************************************************/
-/* OCR-FSIM WorkPools                                 */
-/******************************************************/
-
-typedef struct xe_workpile {
-    ocr_workpile_t base;
-    deque_t * deque;
-} xe_workpile;
-
-typedef struct ce_workpile {
-    ocr_workpile_t base;
-    deque_t * deque;
-} ce_workpile;
-
-ocr_workpile_t * xe_workpile_constructor(void);
-ocr_workpile_t * ce_workpile_constructor(void);
-
-
-/******************************************************/
 /* OCR-FSIM SCHEDULERS                                */
 /******************************************************/
 

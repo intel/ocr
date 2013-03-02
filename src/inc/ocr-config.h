@@ -61,4 +61,29 @@ extern ocrGuidProviderKind ocrGuidProviderDefaultKind;
 // Default values to configure ocr
 extern u32 ocr_config_default_nb_hardware_threads;
 
+// XE kinds of ocr modules
+extern ocr_executor_kind	ocr_executor_xe_kind;
+extern ocr_worker_kind		ocr_worker_xe_kind;
+extern ocr_scheduler_kind	ocr_scheduler_xe_kind;
+extern ocr_policy_kind		ocr_policy_xe_kind;
+extern ocr_workpile_kind	ocr_workpile_xe_kind;
+extern ocrAllocatorKind		ocrAllocatorXEKind;
+extern ocrLowMemoryKind		ocrLowMemoryXEKind;
+extern ocrDataBlockKind		ocrDataBlockXEKind;
+extern ocrLockKind		ocrLockXEKind;
+extern ocrGuidProviderKind	ocrGuidProviderXEKind;
+
+// CE kinds of ocr modules
+extern ocr_executor_kind	ocr_executor_ce_kind;
+extern ocr_worker_kind		ocr_worker_ce_kind;
+extern ocr_scheduler_kind	ocr_scheduler_ce_kind;
+extern ocr_policy_kind		ocr_policy_ce_kind;
+extern ocr_policy_kind		ocr_policy_ce_mastered_kind;
+extern ocr_workpile_kind	ocr_workpile_ce_kind;
+extern ocrAllocatorKind		ocrAllocatorCEKind;
+extern ocrLowMemoryKind		ocrLowMemoryCEKind;
+extern ocrDataBlockKind		ocrDataBlockCEKind;
+extern ocrLockKind		ocrLockCEKind;
+extern ocrGuidProviderKind	ocrGuidProviderCEKind;
+
 #endif /* __OCR_CONFIG_H__ */

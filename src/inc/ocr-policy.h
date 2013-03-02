@@ -83,6 +83,10 @@ typedef struct ocr_policy_domain_struct {
     ocr_policy_destruct_fct destruct;
     ocr_policy_getAllocator getAllocator;
 
+    struct ocr_policy_domain_struct** successors;
+    struct ocr_policy_domain_struct** predecessors;
+    size_t n_successors;
+    size_t n_predecessors;
 } ocr_policy_domain_t;
 
 /**!
@@ -95,12 +99,10 @@ void ocr_policy_domain_destruct(ocr_policy_domain_t * policy);
 /******************************************************/
 
 typedef enum ocr_policy_kind_enum {
-    OCR_POLICY_HC = 1
-/* sagnak begin */
-	,
-    OCR_POLICY_FSIM_XE,
-    OCR_POLICY_FSIM_CE
-/* sagnak end*/
+    OCR_POLICY_HC = 1,
+    OCR_POLICY_XE = 2,
+    OCR_POLICY_CE = 3,
+    OCR_POLICY_MASTERED_CE = 4
 } ocr_policy_kind;
 
 ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
@@ -110,7 +112,8 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
         size_t nb_scheduler);
 
  ocr_policy_domain_t * hc_policy_domain_constructor();
- ocr_policy_domain_t * fsim_xe_policy_domain_constructor();
- ocr_policy_domain_t * fsim_ce_policy_domain_constructor();
+ ocr_policy_domain_t * xe_policy_domain_constructor();
+ ocr_policy_domain_t * ce_policy_domain_constructor();
+ ocr_policy_domain_t * ce_mastered_policy_domain_constructor();
 
 #endif /* OCR_POLICY_H_ */

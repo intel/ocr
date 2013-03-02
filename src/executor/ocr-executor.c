@@ -41,6 +41,8 @@ ocr_executor_t * newExecutor(ocr_executor_kind executorType) {
     //array and return an instance to minimize code to be added
     case OCR_EXECUTOR_PTHREAD:
         return ocr_executor_pthread_constructor();
+    case OCR_EXECUTOR_XE:
+    case OCR_EXECUTOR_CE:
     case OCR_EXECUTOR_HC:
         return ocr_executor_hc_constructor();
     default:

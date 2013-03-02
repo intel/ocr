@@ -35,11 +35,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-scheduler.h"
 
 extern ocr_scheduler_t * hc_scheduler_constructor();
+extern ocr_scheduler_t * xe_scheduler_constructor();
+extern ocr_scheduler_t * ce_scheduler_constructor();
 
 ocr_scheduler_t * newScheduler(ocr_scheduler_kind schedulerType) {
     switch(schedulerType) {
     case OCR_SCHEDULER_WST:
         return hc_scheduler_constructor();
+    case OCR_SCHEDULER_XE:
+        return xe_scheduler_constructor();
+    case OCR_SCHEDULER_CE:
+        return ce_scheduler_constructor();
     default:
         assert(false && "Unrecognized scheduler kind");
         break;

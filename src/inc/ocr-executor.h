@@ -93,7 +93,9 @@ ocrGuid_t ocr_get_current_worker_guid();
 
 typedef enum ocr_executor_kind_enum {
     OCR_EXECUTOR_PTHREAD = 1,
-    OCR_EXECUTOR_HC = 2
+    OCR_EXECUTOR_HC = 2,
+    OCR_EXECUTOR_XE = 3,
+    OCR_EXECUTOR_CE = 4
 } ocr_executor_kind;
 
 ocr_executor_t * newExecutor(ocr_executor_kind executorType);

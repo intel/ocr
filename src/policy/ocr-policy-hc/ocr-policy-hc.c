@@ -85,12 +85,6 @@ void hc_policy_domain_finish(ocr_policy_domain_t * policy) {
 }
 
 void hc_policy_domain_stop(ocr_policy_domain_t * policy) {
-    // Current thread is thread '0' mapped to worker '0'
-    // Now that the thread went through all the user code it
-    // can begin its worker scheduling routine
-    ocr_worker_t * worker_zero = policy->workers[0];
-    worker_zero->routine(worker_zero);
-
     // WARNING: Do not add code here unless you know what you're doing !!
     // If we are here, it means a codelet called ocrFinish which
     // logically stopped workers and can make thread '0' executes this

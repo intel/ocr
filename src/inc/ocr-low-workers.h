@@ -139,6 +139,8 @@ ocrGuid_t getCurrentEDT();
 
 typedef enum ocr_worker_kind_enum {
     OCR_WORKER_HC = 1
+    ,OCR_WORKER_XE = 2
+    ,OCR_WORKER_CE = 3
 } ocr_worker_kind;
 
 ocr_worker_t * newWorker(ocr_worker_kind workerType);
