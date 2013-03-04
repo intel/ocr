@@ -104,15 +104,25 @@ u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset) {
     return EINVAL; /* not yet implemented */
 }
 
+struct ocrDbCopy_args {
+	ocrGuid_t completionEvt; 
+	ocrGuid_t destination;
+	u64 destinationOffset; 
+	ocrGuid_t source; 
+	u64 sourceOffset; 
+	u64 size;
+} ocrDbCopy_args;
+
 u8 ocrDbCopy_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
 	char *sptr, *dptr;
 
-	ocrGuid_t completionEvt = (ocrGuid_t) paramv[0];
-	ocrGuid_t destination = (ocrGuid_t) paramv[1];
-	u64 destinationOffset = (u64) paramv[2];
-	ocrGuid_t source = (ocrGuid_t) paramv[3];
-	u64 sourceOffset = (u64) paramv[4];
-	u64 size = (u64) paramv[5];
+	struct ocrDbCopy_args * pv = (struct ocrDbCopy_args *) depv[0].ptr;
+	ocrGuid_t completionEvt = pv->completionEvt;
+	ocrGuid_t destination = pv->destination;
+	u64 destinationOffset = pv->destinationOffset;
+	ocrGuid_t source = pv->source;
+	u64 sourceOffset = pv->sourceOffset;
+	u64 size = pv->size;
 
 	ocrDbAcquire(source, (void *) &sptr, 0);
 	ocrDbAcquire(destination, (void *) &dptr, 0);
@@ -140,27 +150,26 @@ u8 ocrDbCopy_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep
 }
 
 u8 ocrDbCopy(ocrGuid_t completionEvt, ocrGuid_t destination,u64 destinationOffset, ocrGuid_t source, u64 sourceOffset, u64 size, u64 copyType) {
-	// Create the EDT params
-	ocrGuid_t param_db_guid;
-	void * db_ptr;
-	ocrDbCreate(&param_db_guid, (void **) &db_ptr, sizeof(void*)*6, 0xdead, NULL, NO_ALLOC);
-
-	void ** paramv = (void **)db_ptr;
-	paramv[0] = (void *) completionEvt;
-	paramv[1] = (void *) destination;
-	paramv[2] = (void *) destinationOffset;
-	paramv[3] = (void *) source;
-	paramv[4] = (void *) sourceOffset;
-	paramv[5] = (void *) size;
-
     // Create the event
 	ocrGuid_t event_guid;
     ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true); /*TODO: Replace with ONCE after that is supported */
 
     // Create the EDT
     ocrGuid_t edt_guid;
-    ocrEdtCreate(&edt_guid, ocrDbCopy_edt, 6, NULL, paramv, 0, 1, &event_guid);
+    ocrEdtCreate(&edt_guid, ocrDbCopy_edt, 0, NULL, NULL, 0, 1, &event_guid);
 	ocrEdtSchedule(edt_guid);
+
+	// Create the copy params
+	ocrGuid_t param_db_guid;
+	struct ocrDbCopy_args * db_args;
+	ocrDbCreate(&param_db_guid, (void **) &db_args, sizeof(ocrDbCopy_args), 0xdead, NULL, NO_ALLOC);
+
+	db_args->completionEvt = completionEvt;
+	db_args->destination = destination;
+	db_args->destinationOffset = destinationOffset;
+	db_args->source = source;
+	db_args->sourceOffset = sourceOffset;
+	db_args->size = size;
 
 	ocrEventSatisfy(event_guid, param_db_guid);
 
