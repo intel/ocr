@@ -38,6 +38,13 @@
 #include "ocr-policy.h"
 #include "debug.h"
 #include <errno.h>
+#if (__STDC_HOSTED__ == 1)
+#include <string.h>
+#endif
+
+#include "ocr.h"
+#include "ocr-runtime.h"
+
 
 u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
                ocrLocation_t *location, ocrInDbAllocator_t allocator) {
@@ -95,6 +102,71 @@ u8 ocrDbMalloc(ocrGuid_t guid, u64 size, void** addr) {
 
 u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset) {
     return EINVAL; /* not yet implemented */
+}
+
+u8 ocrDbCopy_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+	char *sptr, *dptr;
+
+	ocrGuid_t completionEvt = (ocrGuid_t) paramv[0];
+	ocrGuid_t destination = (ocrGuid_t) paramv[1];
+	u64 destinationOffset = (u64) paramv[2];
+	ocrGuid_t source = (ocrGuid_t) paramv[3];
+	u64 sourceOffset = (u64) paramv[4];
+	u64 size = (u64) paramv[5];
+
+	ocrDbAcquire(source, (void *) &sptr, 0);
+	ocrDbAcquire(destination, (void *) &dptr, 0);
+
+	sptr += sourceOffset;
+	dptr += destinationOffset;
+
+#if (__STDC_HOSTED__ == 1)
+	memcpy((void *)dptr, (const void *)sptr, size);
+#else
+	int i;
+	for (i = 0; i < size; i++) {
+		dptr[i] = sptr[i];
+	}
+#endif
+
+	ocrEventSatisfy(completionEvt, destination); 
+	ocrDbRelease(source);
+	ocrDbRelease(destination);
+
+    ocrGuid_t param_db_guid = (ocrGuid_t)depv[0].guid;
+	ocrDbDestroy(param_db_guid);
+
+    return 0;
+}
+
+u8 ocrDbCopy(ocrGuid_t completionEvt, ocrGuid_t destination,u64 destinationOffset, ocrGuid_t source, u64 sourceOffset, u64 size, u64 copyType) {
+	// Create the EDT params
+	ocrGuid_t param_db_guid;
+	void * db_ptr;
+	ocrDbCreate(&param_db_guid, (void **) &db_ptr, sizeof(void*)*6, 0xdead, NULL, NO_ALLOC);
+
+	void ** paramv = (void **)db_ptr;
+	paramv[0] = (void *) completionEvt;
+	paramv[1] = (void *) destination;
+	paramv[2] = (void *) destinationOffset;
+	paramv[3] = (void *) source;
+	paramv[4] = (void *) sourceOffset;
+	paramv[5] = (void *) size;
+
+    // Create the event
+	ocrGuid_t event_guid;
+    ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true); /*TODO: Replace with ONCE after that is supported */
+
+    // Create the EDT
+    ocrGuid_t edt_guid;
+    ocrEdtCreate(&edt_guid, ocrDbCopy_edt, 6, NULL, paramv, 0, 1, &event_guid);
+	ocrEdtSchedule(edt_guid);
+
+	ocrEventSatisfy(event_guid, param_db_guid);
+
+	/* ocrDbRelease(param_db_guid); TODO: BUG: Release tries to free */
+
+	return 0;
 }
 
 u8 ocrDbFree(ocrGuid_t guid, void* addr) {
