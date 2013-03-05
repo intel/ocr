@@ -29,6 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "ocr-macros.h"
 #include "hc.h"
 
 
@@ -38,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static void hc_workpile_create ( ocr_workpile_t * base, void * configuration) {
     hc_workpile* derived = (hc_workpile*) base;
-    derived->deque = (deque_t *) malloc(sizeof(deque_t));
+    derived->deque = (deque_t *) checked_malloc(derived->deque, sizeof(deque_t));
     deque_init(derived->deque, (void *) NULL_GUID);
 }
 
@@ -64,7 +65,7 @@ static ocrGuid_t hc_workpile_steal ( ocr_workpile_t * base ) {
 }
 
 ocr_workpile_t * hc_workpile_constructor(void) {
-    hc_workpile* derived = (hc_workpile*) malloc(sizeof(hc_workpile));
+    hc_workpile* derived = (hc_workpile*) checked_malloc(derived, sizeof(hc_workpile));
     ocr_workpile_t * base = (ocr_workpile_t *) derived;
     ocr_module_t * module_base = (ocr_module_t *) base;
     module_base->map_fct = NULL;

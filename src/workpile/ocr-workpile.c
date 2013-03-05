@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <assert.h>
 
+#include "ocr-macros.h"
 #include "ocr-types.h"
 #include "ocr-workpile.h"
 
@@ -73,7 +74,7 @@ ocr_workpile_t * workpile_iterator_next (workpile_iterator_t * base) {
 }
 
 workpile_iterator_t* workpile_iterator_constructor ( int i, size_t n_pools, ocr_workpile_t ** pools ) {
-    workpile_iterator_t* it = (workpile_iterator_t *) malloc(sizeof(workpile_iterator_t));
+    workpile_iterator_t* it = (workpile_iterator_t *) checked_malloc(it, sizeof(workpile_iterator_t));
     it->array = pools;
     it->id = i;
     it->mod = n_pools;

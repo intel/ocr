@@ -38,6 +38,8 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#include "ocr-macros.h"
+
 MachineDescription * g_MachineDescription = NULL;
 
 void Processor_ctor(Processor *this, u32 threads, u32 id, u32 procIndex) {
@@ -340,15 +342,15 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
     this->num_memory_regions = num_mr;
 
     // Setup the costMatrix with the right number of rows and columns.
-    this->costMatrix = (CostDescriptor**)malloc(num_masters * sizeof(CostDescriptor*));
+    this->costMatrix = (CostDescriptor**)checked_malloc(this->costMatrix, num_masters * sizeof(CostDescriptor*));
 
     for(i = 0; i < num_masters; ++i) {
-        this->costMatrix[i] = (CostDescriptor*)malloc(num_mr * sizeof(CostDescriptor));
+        this->costMatrix[i] = (CostDescriptor*)checked_malloc(this->costMatrix[i], num_mr * sizeof(CostDescriptor));
         memset(this->costMatrix[i],0,num_mr * sizeof(CostDescriptor));
     }
 
-    this->machineProcessors    = (Processor**)   malloc(num_masters * sizeof(Processor*));;
-    this->machineMemoryRegions = (MemoryRegion**)malloc(num_mr      * sizeof(MemoryRegion*));;
+    this->machineProcessors    = (Processor**)   checked_malloc(this->machineProcessors, num_masters * sizeof(Processor*));;
+    this->machineMemoryRegions = (MemoryRegion**)checked_malloc(this->machineMemoryRegions, num_mr      * sizeof(MemoryRegion*));;
 
     cur = start;
 
@@ -357,7 +359,7 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
     while (cur != NULL) {
         //printf("%s\n",cur->name);
         if(!xmlStrcmp(cur->name, (const xmlChar *)"Master")) {
-            this->machineProcessors[master_index] = (Processor*)malloc(sizeof(Processor));
+            this->machineProcessors[master_index] = (Processor*)checked_malloc(this->machineProcessors[master_index], sizeof(Processor));
             Processor_ctor(this->machineProcessors[master_index],
                            atoi((const char *)xmlGetProp(cur,(const xmlChar *)"quantity")),
                            atoi((const char *)xmlGetProp(cur,(const xmlChar *)"id")),
@@ -374,7 +376,7 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
                     int res;
                     char *mr_name = NULL;
 
-                    this->machineMemoryRegions[mr_index] = (MemoryRegion*)malloc(sizeof(MemoryRegion));
+                    this->machineMemoryRegions[mr_index] = (MemoryRegion*)checked_malloc(this->machineMemoryRegions[mr_index], sizeof(MemoryRegion));
                     mrtype = xmlGetProp(mr_cur,(const xmlChar *)"mrtype");
                     if(mrtype && !xmlStrcmp(mrtype,(const xmlChar *)"cache")) {
                         is_cache = 1;
@@ -405,7 +407,7 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
             int res;
             char *mr_name = NULL;
 
-            this->machineMemoryRegions[mr_index] = (MemoryRegion*)malloc(sizeof(MemoryRegion));
+            this->machineMemoryRegions[mr_index] = (MemoryRegion*)checked_malloc(this->machineMemoryRegions[mr_index], sizeof(MemoryRegion));
             mrtype = xmlGetProp(cur,(const xmlChar *)"mrtype");
             if(mrtype && !xmlStrcmp(mrtype,(const xmlChar *)"cache")) {
                 is_cache = 1;
@@ -559,7 +561,7 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
                 return 7;
             }
 
-            from_and_to = (char*)malloc(strlen(from_opt) + strlen(to_opt) + 2);
+            from_and_to = (char*)checked_malloc(from_and_to, strlen(from_opt) + strlen(to_opt) + 2);
             strcpy(from_and_to,from_opt);
             strcat(from_and_to," ");
             strcat(from_and_to,to_opt);
@@ -656,7 +658,7 @@ void setMachineDescriptionFromPDL(const char *pdlFilename) {
         printf("Attempt to load the machine description twice.\n");
         exit(-1);
     } else {
-        g_MachineDescription = (MachineDescription*)malloc(sizeof(MachineDescription));
+        g_MachineDescription = (MachineDescription*)checked_malloc(g_MachineDescription, sizeof(MachineDescription));
         int ret = MachineDescription_loadFromPDL(g_MachineDescription,pdlFilename);
         if (ret != 0) {
             free(g_MachineDescription);
@@ -700,7 +702,7 @@ u32 * MachineDescription_whoElseShares(
     }
 
     if(*num_results) {
-        res = (u32 *)malloc(*num_results * sizeof(u32));
+        res = (u32 *)checked_malloc(res, *num_results * sizeof(u32));
         *num_results = 0;
 
         for(i = 0; i < MachineDescription_getNumProcessors(this); ++i) {
@@ -743,7 +745,7 @@ u32 * MachineDescription_closestProcessorsToMemory(
         *num_results = 0;
         return NULL;
     } else {
-        res = (u32*)malloc(*num_results * sizeof(u32));
+        res = (u32*)checked_malloc(res, *num_results * sizeof(u32));
         *num_results = 0;
 
         for(i = 0; i < MachineDescription_getNumProcessors(this); ++i) {
@@ -783,7 +785,7 @@ u32 * MachineDescription_closestMemoryRegionsToProcessor(
         *num_results = 0;
         return NULL;
     } else {
-        res = (u32*)malloc(*num_results * sizeof(u32));
+        res = (u32*)checked_malloc(res, *num_results * sizeof(u32));
         *num_results = 0;
 
         for(i = 0; i < MachineDescription_getNumMemoryRegions(this); ++i) {

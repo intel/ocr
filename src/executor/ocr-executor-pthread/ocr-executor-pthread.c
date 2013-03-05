@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "ocr-macros.h"
 #include "ocr-executor.h"
 
 /******************************************************/
@@ -97,7 +98,7 @@ ocr_executor_t * ocr_executor_pthread_constructor () {
     // This is it initialize the pthread-local storage that stores
     // the current worker the thread is executing.
     pthread_once(&worker_key_initialized, initialize_pthread_worker_key);
-    ocr_executor_t * executor = (ocr_executor_t *) malloc(sizeof(ocr_executor_pthread_t));
+    ocr_executor_t * executor = checked_malloc(executor, sizeof(ocr_executor_pthread_t));
     ocr_module_t * module_base = (ocr_module_t *) executor;
     module_base->map_fct = NULL;
     executor->routine = NULL;

@@ -32,15 +32,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <assert.h>
 
+#include "ocr-macros.h"
 #include "deque.h"
 #include "hc_sysdep.h"
 
 void deque_init(deque_t * deq, void * init_value) {
     deq->head = 0;
     deq->tail = 0;
-    deq->buffer = (buffer_t *) malloc(sizeof(buffer_t));
+    deq->buffer = (buffer_t *) checked_malloc(deq->buffer, sizeof(buffer_t));
     deq->buffer->capacity = INIT_DEQUE_CAPACITY;
-    deq->buffer->data = (volatile void **) malloc(sizeof(void*)*INIT_DEQUE_CAPACITY);
+    deq->buffer->data = (volatile void **) checked_malloc(deq->buffer->data, sizeof(void*)*INIT_DEQUE_CAPACITY);
     volatile void ** data = deq->buffer->data;
     int i=0;
     while(i < INIT_DEQUE_CAPACITY) {

@@ -29,10 +29,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "ocr-function-id.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "ocr-function-id.h"
+#include "ocr-macros.h"
 
 /**
  * Global variables to store the data for mapping function IDs to function pointers and vice-versa
@@ -40,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 u32 nFuncs;
 ocrEdt_t * id_to_fn;
-ocr_hashtable_entry ** hashtable;
+ocr_hashtable_entry ** hashtable = NULL;
 
 /**
  * Quick and dirty hash function
@@ -88,8 +90,7 @@ void create_function_IDs(u32 numFuncs, ocrEdt_t * funcs) {
   nFuncs = numFuncs;
   id_to_fn = funcs;
   //TODO: implement the creation of the hashmap from function pointers to the function ID's
-  hashtable = (ocr_hashtable_entry **) malloc(nFuncs*sizeof(ocr_hashtable_entry*));
-  assert(hashtable!=NULL);
+  hashtable = checked_malloc(hashtable, nFuncs*sizeof(ocr_hashtable_entry*));
   u32 i; 
   for (i=0; i < numFuncs; i++) hashtable[i] = NULL;
   for (i=0; i < numFuncs; i++){
@@ -100,7 +101,7 @@ void create_function_IDs(u32 numFuncs, ocrEdt_t * funcs) {
     }
     u32 bucket;
     bucket = ocr_function_hash(func);
-    ocr_hashtable_entry *newEntry = (ocr_hashtable_entry *) malloc(sizeof(ocr_hashtable_entry));
+    ocr_hashtable_entry *newEntry = checked_malloc(newEntry, sizeof(ocr_hashtable_entry));
     assert(newEntry != NULL);
     newEntry->nxt = hashtable[bucket];
     newEntry->func = func;

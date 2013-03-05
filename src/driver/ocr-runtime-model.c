@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <assert.h>
 
+#include "ocr-macros.h"
 #include "ocr-executor.h"
 #include "ocr-low-workers.h"
 #include "ocr-scheduler.h"
@@ -169,7 +170,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
 
     // Default policy
     ocr_model_policy_t * defaultPolicy =
-            (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
+            checked_malloc(defaultPolicy, sizeof(ocr_model_policy_t));
     defaultPolicy->model.kind = ocr_policy_default_kind;
     defaultPolicy->model.nb_instances = 1;
     defaultPolicy->model.configuration = NULL;
@@ -180,7 +181,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
 
     // Default scheduler
     ocr_model_t * defaultScheduler =
-            (ocr_model_t *) malloc(sizeof(ocr_model_t));
+            checked_malloc(defaultScheduler, sizeof(ocr_model_t));
     defaultScheduler->kind = ocr_scheduler_default_kind;
     defaultScheduler->nb_instances = nb_schedulers;
     defaultScheduler->configuration = NULL;
@@ -188,7 +189,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
 
     // Default worker
     ocr_model_t * defaultWorker =
-            (ocr_model_t *) malloc(sizeof(ocr_model_t));
+            checked_malloc(defaultWorker, sizeof(ocr_model_t));
     defaultWorker->kind = ocr_worker_default_kind;
     defaultWorker->nb_instances = nb_workers;
     defaultWorker->configuration = NULL;
@@ -196,7 +197,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
 
     // Default executor
     ocr_model_t * defaultExecutor =
-            (ocr_model_t *) malloc(sizeof(ocr_model_t));
+            checked_malloc(defaultExecutor, sizeof(ocr_model_t));
     defaultExecutor->kind = ocr_executor_default_kind;
     defaultExecutor->nb_instances = nb_executors;
     defaultExecutor->configuration = NULL;
@@ -204,7 +205,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
 
     // Default workpile
     ocr_model_t * defaultWorkpile =
-            (ocr_model_t *) malloc(sizeof(ocr_model_t));
+            checked_malloc(defaultWorkpile, sizeof(ocr_model_t));
     defaultWorkpile->kind = ocr_workpile_default_kind;
     defaultWorkpile->nb_instances = nb_workpiles;
     defaultWorkpile->configuration = NULL;
@@ -213,7 +214,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
     // Defines how ocr modules are bound together
     size_t nb_module_mappings = 4;
     ocr_module_mapping_t * defaultMapping =
-            (ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
+            checked_malloc(defaultMapping, sizeof(ocr_module_mapping_t) * nb_module_mappings);
     // Note: this doesn't bind modules magically. You need to have a mapping function defined
     //       and set in the targeted implementation (see ocr_scheduler_hc implementation for reference).
     //       These just make sure the mapping functions you have defined are called
@@ -226,7 +227,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
 
     // Default memory
     ocr_model_t *defaultMemory =
-        (ocr_model_t*)malloc(sizeof(ocr_model_t));
+            checked_malloc(defaultMemory, sizeof(ocr_model_t));
     defaultMemory->configuration = NULL;
     defaultMemory->kind = OCR_LOWMEMORY_DEFAULT;
     defaultMemory->nb_instances = 1;
@@ -235,7 +236,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_worke
 
     // Default allocator
     ocrAllocatorModel_t *defaultAllocator =
-        (ocrAllocatorModel_t*)malloc(sizeof(ocrAllocatorModel_t));
+            checked_malloc(defaultAllocator, sizeof(ocrAllocatorModel_t));
     defaultAllocator->model.configuration = NULL;
     defaultAllocator->model.kind = OCR_ALLOCATOR_DEFAULT;
     defaultAllocator->model.nb_instances = 1;
@@ -311,12 +312,12 @@ ocr_policy_domain_t * instantiateModel(ocr_model_policy_t * model) {
 
     // Allocate memory for ocr components
     // Components instances are grouped into one big chunk of memory
-    ocr_scheduler_t ** all_schedulers = (ocr_scheduler_t **) malloc(sizeof(ocr_scheduler_t *) * total_nb_schedulers);
-    ocr_worker_t ** all_workers = (ocr_worker_t **) malloc(sizeof(ocr_worker_t *) * total_nb_workers);
-    ocr_executor_t ** all_executors = (ocr_executor_t **) malloc(sizeof(ocr_executor_t *) * total_nb_executors);
-    ocr_workpile_t ** all_workpiles = (ocr_workpile_t **) malloc(sizeof(ocr_workpile_t *) * total_nb_workpiles);
-    ocrAllocator_t ** all_allocators = (ocrAllocator_t **) malloc(sizeof(ocrAllocator_t*) * totalNumAllocators);
-    ocrLowMemory_t ** all_memories = (ocrLowMemory_t **) malloc(sizeof(ocrLowMemory_t*) * totalNumMemories);
+    ocr_scheduler_t ** all_schedulers = checked_malloc(all_schedulers, sizeof(ocr_scheduler_t *) * total_nb_schedulers);
+    ocr_worker_t ** all_workers = checked_malloc(all_workers, sizeof(ocr_worker_t *) * total_nb_workers);
+    ocr_executor_t ** all_executors = checked_malloc(all_executors, sizeof(ocr_executor_t *) * total_nb_executors);
+    ocr_workpile_t ** all_workpiles = checked_malloc(all_workpiles, sizeof(ocr_workpile_t *) * total_nb_workpiles);
+    ocrAllocator_t ** all_allocators = checked_malloc(all_allocators, sizeof(ocrAllocator_t*) * totalNumAllocators);
+    ocrLowMemory_t ** all_memories = checked_malloc(all_memories, sizeof(ocrLowMemory_t*) * totalNumMemories);
 
     // This is only needed because we want to be able to
     // write generic code to find instances' backing arrays

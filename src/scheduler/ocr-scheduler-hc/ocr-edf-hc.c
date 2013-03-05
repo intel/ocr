@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 #include <assert.h>
-
+#include "ocr-macros.h"
 #include "hc_edf.h"
 #include "ocr-datablock.h"
 #include "ocr-utils.h"
@@ -39,12 +39,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "debug.h"
 
 struct ocr_event_factory_struct* hc_event_factory_constructor(void) {
-    hc_event_factory* derived = (hc_event_factory*) malloc(sizeof(hc_event_factory));
+    hc_event_factory* derived = (hc_event_factory*) checked_malloc(derived, sizeof(hc_event_factory));
     ocr_event_factory* base = (ocr_event_factory*) derived;
     base->create = hc_event_factory_create;
     base->destruct =  hc_event_factory_destructor;
     // initialize singleton instance that carries hc implementation function pointers
-    base->event_fct_ptrs_sticky = (ocr_event_fcts_t *) malloc(sizeof(ocr_event_fcts_t));
+    base->event_fct_ptrs_sticky = (ocr_event_fcts_t *) checked_malloc(base->event_fct_ptrs_sticky, sizeof(ocr_event_fcts_t));
     base->event_fct_ptrs_sticky->destruct = hc_event_destructor;
     base->event_fct_ptrs_sticky->get = hc_event_get;
     base->event_fct_ptrs_sticky->put = hc_event_put;
@@ -74,7 +74,7 @@ ocrGuid_t hc_event_factory_create ( struct ocr_event_factory_struct* factory, oc
 #define EMPTY_REGISTER_LIST (NULL)
 
 struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool takesArg, ocr_event_fcts_t * event_fct_ptrs_sticky) {
-    hc_event_t* derived = (hc_event_t*) malloc(sizeof(hc_event_t));
+    hc_event_t* derived = (hc_event_t*) checked_malloc(derived, sizeof(hc_event_t));
     derived->datum = UNINITIALIZED_GUID;
     derived->register_list = UNINITIALIZED_REGISTER_LIST;
     ocr_event_t* base = (ocr_event_t*)derived;
@@ -159,7 +159,7 @@ bool hc_event_register_if_not_ready(struct ocr_event_struct* event, ocrGuid_t po
     volatile register_list_node_t* registerListOfEDF = derived -> register_list;
 
     if ( registerListOfEDF != EMPTY_REGISTER_LIST ) {
-        register_list_node_t* new_node = (register_list_node_t*)malloc(sizeof(register_list_node_t));
+        register_list_node_t* new_node = (register_list_node_t*) checked_malloc(new_node, sizeof(register_list_node_t));
         new_node->task_guid = polling_task_id;
 
         // Try to add the polling task registration in front of the event registration list.
@@ -183,16 +183,17 @@ bool hc_event_register_if_not_ready(struct ocr_event_struct* event, ocrGuid_t po
 }
 
 hc_await_list_t* hc_await_list_constructor( size_t al_size ) {
-    hc_await_list_t* derived = (hc_await_list_t*)malloc(sizeof(hc_await_list_t));
-    derived->array = malloc(sizeof(ocr_event_t*) * (al_size+1));
+
+    hc_await_list_t* derived = (hc_await_list_t*) checked_malloc(derived, sizeof(hc_await_list_t));
+    derived->array = checked_malloc(derived->array, sizeof(ocr_event_t*) * (al_size+1));
     derived->array[al_size] = NULL;
     derived->waitingFrontier = &derived->array[0];
     return derived;
 }
 
 hc_await_list_t* hc_await_list_constructor_with_event_list ( event_list_t* el) {
-    hc_await_list_t* derived = (hc_await_list_t*)malloc(sizeof(hc_await_list_t));
-    derived->array = malloc(sizeof(ocr_event_t*)*(el->size+1));
+    hc_await_list_t* derived = (hc_await_list_t*) checked_malloc(derived, sizeof(hc_await_list_t));
+    derived->array = checked_malloc(derived->array, sizeof(ocr_event_t*)*(el->size+1));
     derived->waitingFrontier = &derived->array[0];
     size_t i, size = el->size;
     event_list_node_t* curr = el->head;
@@ -214,13 +215,13 @@ void hc_await_list_destructor( hc_await_list_t* derived ) {
 /******************************************************/
 
 struct ocr_task_factory_struct* hc_task_factory_constructor(void) {
-    hc_task_factory* derived = (hc_task_factory*) malloc(sizeof(hc_task_factory));
+    hc_task_factory* derived = (hc_task_factory*) checked_malloc(derived, sizeof(hc_task_factory));
     ocr_task_factory* base = (ocr_task_factory*) derived;
     base->create = hc_task_factory_create;
     base->destruct =  hc_task_factory_destructor;
 
     // initialize singleton instance that carries hc implementation function pointers
-    base->task_fct_ptrs = (ocr_task_fcts_t *) malloc(sizeof(ocr_task_fcts_t));
+    base->task_fct_ptrs = (ocr_task_fcts_t *) checked_malloc(base->task_fct_ptrs, sizeof(ocr_task_fcts_t));
     base->task_fct_ptrs->destruct = hc_task_destruct;
     base->task_fct_ptrs->iterate_waiting_frontier = hc_task_iterate_waiting_frontier;
     base->task_fct_ptrs->execute = hc_task_execute;
@@ -260,14 +261,14 @@ static void hc_task_construct_internal (hc_task_t* derived, ocrEdt_t funcPtr,
 }
 
 hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv, event_list_t* el, ocr_task_fcts_t * task_fct_ptrs) {
-    hc_task_t* derived = (hc_task_t*)malloc(sizeof(hc_task_t));
+    hc_task_t* derived = (hc_task_t*)checked_malloc(derived, sizeof(hc_task_t));
     derived->awaitList = hc_await_list_constructor_with_event_list(el);
     hc_task_construct_internal(derived, funcPtr, paramc, params, paramv, task_fct_ptrs);
     return derived;
 }
 
 hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv, size_t dep_list_size, ocr_task_fcts_t * task_fct_ptrs) {
-    hc_task_t* derived = (hc_task_t*)malloc(sizeof(hc_task_t));
+    hc_task_t* derived = (hc_task_t*)checked_malloc(derived, sizeof(hc_task_t));
     derived->awaitList = hc_await_list_constructor(dep_list_size);
     hc_task_construct_internal(derived, funcPtr, paramc, params, paramv, task_fct_ptrs);
     return derived;
@@ -332,7 +333,7 @@ void hc_task_execute ( ocr_task_t* base ) {
     ocrEdtDep_t * depv = NULL;
     // If any dependencies, acquire their data-blocks
     if (nbdeps != 0) {
-        depv = (ocrEdtDep_t *) malloc(sizeof(ocrEdtDep_t) * nbdeps);
+        depv = (ocrEdtDep_t *) checked_malloc(depv, sizeof(ocrEdtDep_t) * nbdeps);
         derived->depv = depv;
         while ( NULL != curr ) {
             dbGuid = curr->fct_ptrs->get(curr);

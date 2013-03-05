@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <pthread.h>
 #include <stdio.h>
 
+#include "ocr-macros.h"
 #include "ocr-runtime.h"
 #include "hc.h"
 
@@ -102,7 +103,7 @@ void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocr_module_kind k
  * Builds an instance of a HC worker
  */
 ocr_worker_t* hc_worker_constructor () {
-    hc_worker_t * worker = (hc_worker_t *) malloc(sizeof(hc_worker_t));
+    hc_worker_t * worker = checked_malloc(worker, sizeof(hc_worker_t));
     worker->id = -1;
     worker->run = false;
     worker->guid = guidify((void*)worker);

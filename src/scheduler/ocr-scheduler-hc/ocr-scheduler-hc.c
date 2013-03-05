@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 
+#include "ocr-macros.h"
 #include "ocr-runtime.h"
 #include "hc.h"
 
@@ -105,7 +106,7 @@ void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocr_module_ki
     // Checking mapping conforms to what we're expecting in this implementation
     assert(kind == OCR_WORKPILE);
     // allocate steal iterator cache
-    workpile_iterator_t ** steal_iterators_cache = malloc(sizeof(workpile_iterator_t *)*nb_instances);
+    workpile_iterator_t ** steal_iterators_cache = checked_malloc(steal_iterators_cache, sizeof(workpile_iterator_t *)*nb_instances);
     hc_scheduler_t * scheduler = (hc_scheduler_t *) self_module;
     scheduler->n_pools = nb_instances;
     scheduler->pools = (ocr_workpile_t **)ptr_instances;
@@ -120,7 +121,7 @@ void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocr_module_ki
 }
 
 ocr_scheduler_t* hc_scheduler_constructor() {
-    hc_scheduler_t* derived = (hc_scheduler_t*) malloc(sizeof(hc_scheduler_t));
+    hc_scheduler_t* derived = (hc_scheduler_t*) checked_malloc(derived, sizeof(hc_scheduler_t));
     ocr_scheduler_t* base = (ocr_scheduler_t*)derived;
     ocr_module_t * module_base = (ocr_module_t *) base;
     module_base->map_fct = hc_ocr_module_map_workpiles_to_schedulers;
