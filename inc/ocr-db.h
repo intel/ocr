@@ -211,6 +211,26 @@ u8 ocrDbMalloc(ocrGuid_t guid, u64 size, void** addr);
 u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset);
 
 /**
+ * @brief Copies data between two data-blocks in an asynchronous manner
+ *
+ * This call will trigger the creation of an EDT which will perform a copy from a source data-block
+ * into a destination data-block. Once the copy is complete,
+ * the event with GUID ‘completionEvt’ will be satisfied. That event will carry the destination data-block
+ *
+ * The type of GUID passed in as source also determines the starting point of the copy:
+ *    - if it is an event GUID, the EDT will be available to run when that event is satisfied. The data-block carried by
+ *       that event will be used as the source data-block
+ *    - if it is a data-block GUID, the EDT is immediately available to run.
+ *
+ * @param [TODO: Explain parameters but they should be pretty self-explanatory]
+ * @return 0 on success or the following error codes:
+ *    - EINVAL: Invalid values for one of the arguments
+ *    - EPERM: Overlapping data-blocks
+ *    - ENOMEM: Destination too small to copy into or source too small to copy from
+ */
+u8 ocrDbCopy(ocrGuid_t completionEvt, ocrGuid_t destination,u64 destinationOffset, ocrGuid_t source, u64 sourceOffset, u64 size, u64 copyType);
+
+/**
  * @brief Frees memory allocated through ocrDbMalloc
  *
  * @param guid              DB to free from
