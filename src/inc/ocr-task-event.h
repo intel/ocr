@@ -243,7 +243,10 @@ typedef struct ocr_task_struct_t {
     u32 paramc;
     u64 * params;
     void ** paramv;
-
+#ifdef HAVE_ELS_SUPPORT
+    // Defined by configure
+    ocrGuid_t els[ELS_SIZE];
+#endif
     /*! \brief Holds function pointer to the task interface
      */
     ocr_task_fcts_t * fct_ptrs;

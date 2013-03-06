@@ -61,6 +61,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
     *edtGuid = taskFactory->create(taskFactory, funcPtr, paramc, params, paramv, depc);
     // If guids dependencies were provided, add them now
     if(depv != NULL) {
+        assert(depc != 0);
         u32 i = 0;
         while(i < depc) {
             ocrAddDependence(depv[i], *edtGuid, i);
@@ -89,4 +90,39 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot) {
     ocr_task_t* task = (ocr_task_t*) deguidify(destination);
     task->fct_ptrs->add_dependence(task, event, slot);
     return 0;
+}
+
+/**
+   @brief Get @ offset in the currently running edt's local storage
+   Note: not visible from the ocr user interface
+ **/
+ocrGuid_t ocrElsGet(u8 offset) {
+#ifdef HAVE_ELS_SUPPORT
+    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+    ocr_worker_t * worker = (ocr_worker_t*)deguidify(workerGuid);
+    ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
+    ocr_task_t * edt = (ocr_task_t*)deguidify(edtGuid);
+    return edt->els[offset];
+#else
+    assert("OCR runtime has not been compiled with ELS support" && 0);
+    return NULL_GUID;
+#endif
+}
+
+/**
+   @brief Set data @ offset in the currently running edt's local storage
+   Note: not visible from the ocr user interface
+ **/
+void ocrElsSet(u8 offset, ocrGuid_t data) {
+#ifdef HAVE_ELS_SUPPORT
+    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+    ocr_worker_t * worker = (ocr_worker_t*)deguidify(workerGuid);
+    ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
+    ocr_task_t * edt = (ocr_task_t*)deguidify(edtGuid);
+    edt->els[offset] = data;
+#else
+    assert("OCR runtime has not been compiled with ELS support" && 0);
+#endif
+
+
 }

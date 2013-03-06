@@ -31,10 +31,13 @@ export OCR_FLAGS="${OCR_FLAGS}"
 #handling options
 #
 while [[ $# -gt 0 ]]; do
-	if [[ "$1" = "-testdir"  && $# -ge 2 ]]; then
+	if [[ "$1" = "-testdir" && $# -ge 2 ]]; then
 		shift
 		TEST_DIR=("$@")
 		shift
+    elif [[ "$1" = "-run-itf-ext" ]]; then
+        shift
+        RUNTIME_ITF_EXT=yes
 	else
 		# stacking unknown arguments
   		ARGS="${ARGS} $1"
@@ -58,6 +61,9 @@ fi
 
 export INCLUDES="-I${OCR_INSTALL}/include"
 export CFLAGS=" -Wall -g -Werror "
+if [ -n "${RUNTIME_ITF_EXT}" ]; then
+    CFLAGS="$CFLAGS -DRUNTIME_ITF_EXT=1"
+fi
 export LDFLAGS="-L${OCR_INSTALL}/lib -locr"
 export OCR_TESTS_BIN_OUTPUT=
 
@@ -581,7 +587,7 @@ function find_makefile() {
 	RES=`eval "find ${TEST_FOLDER} -type f '(' -iname 'Makefile*' ')' -print | sort"`
 	ACC=
 	for file in `echo $RES | tr ' ' '\n' `; do 
-        CHECK=`echo $file | grep -v "svn-base"`
+        CHECK=`echo $file | grep -v ".svn"`
         if [[ -n "$CHECK" ]]; then
             if [[ -n "$TARGET" ]]; then
                 for targ in `echo $TARGET | tr ' ' '\n' `; do 
