@@ -31,6 +31,7 @@ export OCR_FLAGS="${OCR_FLAGS}"
 #handling options
 #
 while [[ $# -gt 0 ]]; do
+    echo "Processing $1"
 	if [[ "$1" = "-testdir" && $# -ge 2 ]]; then
 		shift
 		TEST_DIR=("$@")
@@ -38,6 +39,12 @@ while [[ $# -gt 0 ]]; do
     elif [[ "$1" = "-run-itf-ext" ]]; then
         shift
         RUNTIME_ITF_EXT=yes
+    elif [[ "$1" = "-valgrind" && $# -ge 2 ]]; then
+        shift
+        WRAPPER="valgrind"
+        WRAPPER_OPTIONS="$@"
+        shift
+        RUN_WRAPPER="${WRAPPER} ${WRAPPER_OPTIONS}" 
 	else
 		# stacking unknown arguments
   		ARGS="${ARGS} $1"
@@ -248,7 +255,7 @@ function run () {
 
 	cd $FOLDER;
 	echo "${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}"
-	${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}
+	${RUN_WRAPPER} ${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}
 	RES=$?
 	cd -;
 
