@@ -161,8 +161,10 @@ u8 ocrDbCopy(ocrGuid_t completionEvt, ocrGuid_t destination,u64 destinationOffse
 
 	// Create the copy params
 	ocrGuid_t param_db_guid;
-	struct ocrDbCopy_args * db_args;
-	ocrDbCreate(&param_db_guid, (void **) &db_args, sizeof(ocrDbCopy_args), 0xdead, NULL, NO_ALLOC);
+    struct ocrDbCopy_args * db_args = NULL;
+    void * ptr = (void *) db_args;
+    // Warning: directly casting db_args to (void **) causes a type-punning warning with gcc-4.1.2
+    ocrDbCreate(&param_db_guid, &ptr, sizeof(ocrDbCopy_args), 0xdead, NULL, NO_ALLOC);
 
 	db_args->completionEvt = completionEvt;
 	db_args->destination = destination;
