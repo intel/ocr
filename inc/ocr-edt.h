@@ -37,7 +37,6 @@
 #define __OCR_EDT_H__
 
 #include "ocr-types.h"
-#include "ocr-guid.h"
 
 /**
    @defgroup OCREvents Event Management for OCR

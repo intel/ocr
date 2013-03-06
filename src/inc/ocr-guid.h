@@ -35,7 +35,6 @@
 #define __OCR_GUID_H__
 
 #include "ocr-types.h"
-#include "ocr-utils.h"
 
 typedef enum {
     OCR_GUID_NONE = 0
