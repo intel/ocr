@@ -34,10 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 
 #include "ocr.h"
-#include "ocr-runtime-itf.h"
 
-#ifdef RUNTIME_ITF_EXT
 // Only tested when ocr runtime interface is available
+#ifdef RUNTIME_ITF_EXT
+
+#include "ocr-runtime-itf.h"
 
 #define FLAGS 0xdead
 #define ELS_OFFSET 0
@@ -90,6 +91,7 @@ int main (int argc, char ** argv) {
     ocrCleanup();
     return 0;
 }
+
 #else
 
 int main (int argc, char ** argv) {
