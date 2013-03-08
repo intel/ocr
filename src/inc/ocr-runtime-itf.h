@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Rice University
+/* Copyright (c) 2013, Rice University
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -10,7 +10,7 @@ met:
      copyright notice, this list of conditions and the following
      disclaimer in the documentation and/or other materials provided
      with the distribution.
-3.  Neither the name of Intel Corporation
+3.  Neither the name of Rice University
      nor the names of its contributors may be used to endorse or
      promote products derived from this software without specific
      prior written permission.
@@ -29,26 +29,42 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <assert.h>
-#include <stdlib.h>
+#ifndef OCR_RUNTIME_ITF_H_
+#define OCR_RUNTIME_ITF_H_
 
 #include "ocr-types.h"
-#include "ocr-low-workers.h"
 
-extern ocr_worker_t * hc_worker_constructor();
+/**
+ * @file OCR Runtime interface: Defines additional API for runtime implementers.
+ */
 
-ocr_worker_t * newWorker(ocr_worker_kind workerType) {
-    switch(workerType) {
-    case OCR_WORKER_HC:
-        return hc_worker_constructor();
-    }
-    assert(false && "Unrecognized worker kind");
-    return NULL;
-}
+/**
+ *  @brief Get @ offset in the currently running edt's local storage
+ *  \return NULL_GUID if there's no ELS support.
+ *  \attention Must be call from within an edt code.
+ **/
+ocrGuid_t ocrElsGet(u8 offset);
 
-ocrGuid_t getCurrentEdt() {
-    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t * worker = (ocr_worker_t *) deguidify(workerGuid);
-    return worker->getCurrentEDT(worker);
-}
+/**
+ *  @brief Set data @ offset in the currently running edt's local storage
+ *  \remark no-op if there's no ELS support
+ **/
+void ocrElsSet(u8 offset, ocrGuid_t data);
 
+/**
+ *  \relates Part of ocr-guid.h
+ **/
+ocrGuid_t guidify(void * p);
+
+/**
+ *  \relates Part of ocr-guid.h
+ **/
+void * deguidify(ocrGuid_t id);
+
+/**
+ *  @brief Get the currently executing edt.
+ *  \return NULL_GUID if there's no edt running.
+ **/
+ocrGuid_t getCurrentEdt();
+
+#endif /* OCR_RUNTIME_ITF_H_ */
