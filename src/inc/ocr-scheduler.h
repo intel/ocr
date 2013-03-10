@@ -66,6 +66,9 @@ typedef ocrGuid_t (*scheduler_take_fct) (struct ocr_scheduler_struct * , ocrGuid
  */
 typedef void (*scheduler_give_fct) (struct ocr_scheduler_struct * , ocrGuid_t wid, ocrGuid_t tid );
 
+// forward declaration
+struct ocr_policy_domain_struct;
+
 /*! \brief Represents OCR schedulers.
  *
  *  Currently, we allow scheduler interface to have work taken from them or given to them
@@ -80,6 +83,7 @@ typedef struct ocr_scheduler_struct {
     scheduler_take_fct take;
     scheduler_give_fct give;
     ocr_module_map_fct map;
+    struct ocr_policy_domain_struct* domain;
 } ocr_scheduler_t;
 
 

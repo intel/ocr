@@ -38,7 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* OCR-FSIM SCHEDULER                                 */
 /******************************************************/
 
-void xe_scheduler_create(ocr_scheduler_t * scheduler, void * configuration) {
+void xe_scheduler_create(ocr_scheduler_t * base, void * configuration) {
+    xe_scheduler_t* derived = (xe_scheduler_t*) base;
+    derived->n_workers_per_scheduler = *(int*)configuration;
 }
 
 void xe_scheduler_destruct(ocr_scheduler_t * scheduler) {
@@ -48,32 +50,26 @@ void xe_scheduler_destruct(ocr_scheduler_t * scheduler) {
 
 ocr_workpile_t * xe_scheduler_pop_mapping_one_to_one (ocr_scheduler_t* base, ocr_worker_t* w ) {
     xe_scheduler_t* derived = (xe_scheduler_t*) base;
-    return derived->pools[get_worker_id(w)];
+    return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler];
 }
 
 ocr_workpile_t * xe_scheduler_push_mapping_one_to_one (ocr_scheduler_t* base, ocr_worker_t* w ) {
     xe_scheduler_t* derived = (xe_scheduler_t*) base;
-    return derived->pools[get_worker_id(w)];
-}
-
-workpile_iterator_t* xe_scheduler_steal_mapping_one_to_all_but_self (ocr_scheduler_t* base, ocr_worker_t* w ) {
-    xe_scheduler_t* derived = (xe_scheduler_t*) base;
-    return workpile_iterator_constructor(get_worker_id(w), derived->n_pools, derived->pools);
+    return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler];
 }
 
 ocrGuid_t xe_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
     ocr_worker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
+    // try popping 'local'
     ocr_workpile_t * wp_to_pop = base->pop_mapping(base, w);
     ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
+
+    // XEs do not steal from 'local' scheduler
+    // XEs do not take from 'non-local' scheduler from same policy domain
     if ( NULL_GUID == popped ) {
-        workpile_iterator_t* it = base->steal_mapping(base, w);
-        while ( it->hasNext(it) && (NULL_GUID == popped)) {
-            ocr_workpile_t * next = it->next(it);
-            popped = next->steal(next);
-        }
-        workpile_iterator_destructor(it);
+	// try stealing across 'policy domains'
     }
     return popped;
 }
@@ -107,13 +103,16 @@ ocr_scheduler_t* xe_scheduler_constructor() {
     base -> destruct = xe_scheduler_destruct;
     base -> pop_mapping = xe_scheduler_pop_mapping_one_to_one;
     base -> push_mapping = xe_scheduler_push_mapping_one_to_one;
-    base -> steal_mapping = xe_scheduler_steal_mapping_one_to_all_but_self;
+// XEs do not steal
+    base -> steal_mapping = NULL;
     base -> take = xe_scheduler_take;
     base -> give = xe_scheduler_give;
     return base;
 }
 
-void ce_scheduler_create(ocr_scheduler_t * scheduler, void * configuration) {
+void ce_scheduler_create(ocr_scheduler_t * base, void * configuration) {
+    ce_scheduler_t* derived = (ce_scheduler_t*) base;
+    derived->n_workers_per_scheduler = *(int*)configuration;
 }
 
 void ce_scheduler_destruct(ocr_scheduler_t * scheduler) {
@@ -123,17 +122,17 @@ void ce_scheduler_destruct(ocr_scheduler_t * scheduler) {
 
 ocr_workpile_t * ce_scheduler_pop_mapping_one_to_one (ocr_scheduler_t* base, ocr_worker_t* w ) {
     ce_scheduler_t* derived = (ce_scheduler_t*) base;
-    return derived->pools[get_worker_id(w)];
+    return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler];
 }
 
 ocr_workpile_t * ce_scheduler_push_mapping_one_to_one (ocr_scheduler_t* base, ocr_worker_t* w ) {
     ce_scheduler_t* derived = (ce_scheduler_t*) base;
-    return derived->pools[get_worker_id(w)];
+    return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler];
 }
 
 workpile_iterator_t* ce_scheduler_steal_mapping_one_to_all_but_self (ocr_scheduler_t* base, ocr_worker_t* w ) {
     ce_scheduler_t* derived = (ce_scheduler_t*) base;
-    return workpile_iterator_constructor(get_worker_id(w), derived->n_pools, derived->pools);
+    return workpile_iterator_constructor(get_worker_id(w) % derived->n_workers_per_scheduler, derived->n_pools, derived->pools);
 }
 
 ocrGuid_t ce_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {

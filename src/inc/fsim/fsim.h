@@ -47,12 +47,16 @@ typedef struct {
     ocr_scheduler_t scheduler;
     size_t n_pools;
     ocr_workpile_t ** pools;
+/*needed for a naive worker_id to workpile mapping*/
+    int n_workers_per_scheduler;
 } xe_scheduler_t;
 
 typedef struct {
     ocr_scheduler_t scheduler;
     size_t n_pools;
     ocr_workpile_t ** pools;
+/*needed for a naive worker_id to workpile mapping*/
+    int n_workers_per_scheduler;
 } ce_scheduler_t;
 
 ocr_scheduler_t * xe_scheduler_constructor(void);
