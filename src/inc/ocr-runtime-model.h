@@ -66,7 +66,8 @@ typedef struct {
     ocr_module_mapping_t * mappings;
 } ocr_model_policy_t;
 
-ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_schedulers, size_t nb_workers,
+ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domain,
+                                           size_t nb_schedulers, size_t nb_workers,
                                            size_t nb_executors, size_t nb_workpiles);
 
 

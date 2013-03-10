@@ -178,16 +178,18 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 
 	// This is the default policy
 	// TODO this should be declared in the default policy model
-	size_t nb_workers = nbHardThreads;
-	size_t nb_workpiles = nbHardThreads;
-	size_t nb_executors = nbHardThreads;
-	size_t nb_schedulers = 1;
+	size_t nb_policy_domain = 1;
+	size_t nb_workers_per_policy_domain = nbHardThreads;
+	size_t nb_workpiles_per_policy_domain = nbHardThreads;
+	size_t nb_executors_per_policy_domain = nbHardThreads;
+	size_t nb_schedulers_per_policy_domain = 1;
 
-	ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_schedulers, nb_workers,
-		nb_executors, nb_workpiles);
+	ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_policy_domain, 
+		nb_schedulers_per_policy_domain, nb_workers_per_policy_domain,
+		nb_executors_per_policy_domain, nb_workpiles_per_policy_domain);
 
 	//TODO LIMITATION for now support only one policy
-	n_root_policy_nodes = 1;
+	n_root_policy_nodes = nb_policy_domain;
 	root_policies = instantiateModel(policy_model);
 
 	master_worker = root_policies[0]->workers[0];

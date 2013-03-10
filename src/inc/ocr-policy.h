@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-low-memory.h"
 #include "ocr-datablock.h"
 #include "ocr-sync.h"
+#include "ocr-runtime-def.h"
 
 
 /******************************************************/
@@ -61,6 +62,7 @@ typedef void (*ocr_policy_destruct_fct) (struct ocr_policy_domain_struct * polic
 typedef ocrGuid_t (*ocr_policy_getAllocator)(struct ocr_policy_domain_struct *policy, ocrLocation_t* location);
 
 typedef struct ocr_policy_domain_struct {
+    ocr_module_t module;
     ocrGuid_t guid;
     int nb_schedulers;
     int nb_workers;
