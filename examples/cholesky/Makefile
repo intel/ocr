@@ -14,7 +14,7 @@ INPUT_FILE=m_${MATRIX_SIZE}.in
 OUTPUT_FILE=cholesky_out_${MATRIX_SIZE}.txt
 
 compile:
-	gcc $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)$(SUFFIX) -ltcmalloc
+	gcc $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)$(SUFFIX)
 
 compile.omp.task:
 	gcc -fopenmp $(CFLAGS) $(PROG).omp.task.c -o $(PROG).omp.task$(SUFFIX) -lm
