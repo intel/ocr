@@ -7,7 +7,7 @@ OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/s
 CFLAGS = -Wall -g -O2
 
 # additional cflags for ocr modules
-OCR_CFLAGS = -ltcmalloc
+OCR_CFLAGS = 
 
 # Standard am options all the submodules can grab
 OCR_AM_CFLAGS = $(OCR_INCLUDES_DIR) $(OCR_CFLAGS)
