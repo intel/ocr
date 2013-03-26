@@ -35,11 +35,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-runtime.h"
 #include "ocr-guid.h"
 
-/*
- * @file This file contains OCR EDTs public API implementation.
- */
+static inline ocr_policy_domain_t* get_current_policy_domain () {
+    ocrGuid_t worker_guid = ocr_get_current_worker_guid();
+    ocr_worker_t * worker = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, worker_guid, (u64*)&worker, NULL);
+
+    ocrGuid_t policy_domain_guid = worker->getCurrentPolicyDomain(worker);
+    ocr_policy_domain_t* policy_domain = NULL; 
+    globalGuidProvider->getVal(globalGuidProvider, policy_domain_guid, (u64*)&policy_domain, NULL);
+    return policy_domain;
+}
 
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
+    ocr_event_factory * eventFactory = get_current_policy_domain()->eventFactory;
     *guid = eventFactory->create(eventFactory, eventType, takesArg);
     return 0;
 }
@@ -65,18 +73,12 @@ u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
 
 u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
         u32 paramc, u64 * params, void** paramv,
-        u16 properties, u32 depc, ocrGuid_t* depv /*= NULL*/, ocrGuid_t * outputEvent) {
-    *edtGuid = taskFactory->create(taskFactory, funcPtr, paramc, params, paramv, properties, depc, outputEvent);
-    // If guids dependencies were provided, add them now
-    if(depv != NULL) {
-        assert(depc != 0);
-        u32 i = 0;
-        while(i < depc) {
-            // TODO replace with a single runtime call with all dependencies
-            ocrAddDependence(depv[i], *edtGuid, i);
-            i++;
-        }
-    }
+        u16 properties, u32 depc, ocrGuid_t* depv /*= NULL*/) {
+
+    ocr_task_factory* taskFactory = get_current_policy_domain()->taskFactory;
+
+    //TODO LIMITATION handle pre-built dependence vector
+    *edtGuid = taskFactory->create(taskFactory, funcPtr, paramc, params, paramv, depc);
     return 0;
 }
 

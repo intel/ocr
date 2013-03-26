@@ -34,6 +34,3 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hc.h"
 #include "hc_edf.h"
 #include "ocr-function-id.h"
-
-ocr_task_factory* taskFactory;
-ocr_event_factory* eventFactory;

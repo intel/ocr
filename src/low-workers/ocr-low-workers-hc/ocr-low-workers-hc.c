@@ -53,7 +53,6 @@ ocr_scheduler_t * get_worker_scheduler(ocr_worker_t * worker) { return worker->s
 void hc_worker_create ( ocr_worker_t * base, void * configuration, int id) {
     hc_worker_t * hc_worker = (hc_worker_t *) base;
 
-    hc_worker->policy_domain_guid = UNINITIALIZED_GUID;
     hc_worker->policy_domain_guid = ((ocr_policy_domain_t*)configuration)->guid;
     hc_worker->id = id;
 }

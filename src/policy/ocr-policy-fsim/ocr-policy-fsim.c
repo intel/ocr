@@ -46,12 +46,8 @@ void fsim_policy_domain_create(ocr_policy_domain_t * policy, void * configuratio
 
 void xe_policy_domain_start(ocr_policy_domain_t * policy) {
     // Create Task and Event Factories
-    if (taskFactory == NULL) {
-        taskFactory = xe_task_factory_constructor();
-    }
-    if (eventFactory == NULL) {
-        eventFactory = xe_event_factory_constructor();
-    }
+    policy->taskFactory = xe_task_factory_constructor();
+    policy->eventFactory = xe_event_factory_constructor();
 
     // WARNING: Threads start should be the last thing we do here after
     //          all data-structures have been initialized.
@@ -69,12 +65,8 @@ void xe_policy_domain_start(ocr_policy_domain_t * policy) {
 
 void ce_policy_domain_start(ocr_policy_domain_t * policy) {
     // Create Task and Event Factories
-    if (taskFactory == NULL) {
-        taskFactory = ce_task_factory_constructor();
-    }
-    if (eventFactory == NULL) {
-        eventFactory = ce_event_factory_constructor();
-    }
+    policy->taskFactory = ce_task_factory_constructor();
+    policy->eventFactory = ce_event_factory_constructor();
 
     // WARNING: Threads start should be the last thing we do here after
     //          all data-structures have been initialized.
@@ -92,12 +84,8 @@ void ce_policy_domain_start(ocr_policy_domain_t * policy) {
 
 void ce_mastered_policy_domain_start(ocr_policy_domain_t * policy) {
     // Create Task and Event Factories
-    if (taskFactory == NULL) {
-        taskFactory = ce_task_factory_constructor();
-    }
-    if (eventFactory == NULL) {
-        eventFactory = ce_event_factory_constructor();
-    }
+    policy->taskFactory = ce_task_factory_constructor();
+    policy->eventFactory = ce_event_factory_constructor();
 
     // WARNING: Threads start should be the last thing we do here after
     //          all data-structures have been initialized.
@@ -148,8 +136,8 @@ void fsim_policy_domain_stop(ocr_policy_domain_t * policy) {
 }
 
 void fsim_policy_domain_destruct(ocr_policy_domain_t * policy) {
-    taskFactory->destruct(taskFactory);
-    eventFactory->destruct(eventFactory);
+    policy->taskFactory->destruct(policy->taskFactory);
+    policy->eventFactory->destruct(policy->eventFactory);
 }
 
 ocrGuid_t fsim_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* location) {

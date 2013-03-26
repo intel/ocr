@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-datablock.h"
 #include "ocr-sync.h"
 #include "ocr-runtime-def.h"
+#include "ocr-task-event.h"
 
 
 /******************************************************/
@@ -77,6 +78,10 @@ typedef struct ocr_policy_domain_struct {
     ocr_workpile_t ** workpiles;
     ocrAllocator_t ** allocators;
     ocrLowMemory_t ** memories;
+
+    // TODO: sagnak: hardcoded 1-taskFactory, 1-eventFactory per policy domain, make this extensible
+    ocr_task_factory* taskFactory;
+    ocr_event_factory* eventFactory;
 
     ocr_policy_create_fct create;
     ocr_policy_start_fct start;
