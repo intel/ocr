@@ -44,11 +44,14 @@ void fsim_policy_domain_create(ocr_policy_domain_t * policy, void * configuratio
     policy->memories = memories;
 }
 
-void xe_policy_domain_start(ocr_policy_domain_t * policy) {
+static inline void start_task_event_factories ( ocr_policy_domain_t * policy ) {
     // Create Task and Event Factories
-    policy->taskFactory = xe_task_factory_constructor();
-    policy->eventFactory = xe_event_factory_constructor();
+    policy->taskFactory = fsim_task_factory_constructor();
+    policy->eventFactory = fsim_event_factory_constructor();
+}
 
+void xe_policy_domain_start(ocr_policy_domain_t * policy) {
+    start_task_event_factories(policy);
     // WARNING: Threads start should be the last thing we do here after
     //          all data-structures have been initialized.
     size_t i = 0;
@@ -64,9 +67,7 @@ void xe_policy_domain_start(ocr_policy_domain_t * policy) {
 }
 
 void ce_policy_domain_start(ocr_policy_domain_t * policy) {
-    // Create Task and Event Factories
-    policy->taskFactory = ce_task_factory_constructor();
-    policy->eventFactory = ce_event_factory_constructor();
+    start_task_event_factories(policy);
 
     // WARNING: Threads start should be the last thing we do here after
     //          all data-structures have been initialized.
@@ -83,15 +84,15 @@ void ce_policy_domain_start(ocr_policy_domain_t * policy) {
 }
 
 void ce_mastered_policy_domain_start(ocr_policy_domain_t * policy) {
-    // Create Task and Event Factories
-    policy->taskFactory = ce_task_factory_constructor();
-    policy->eventFactory = ce_event_factory_constructor();
+    start_task_event_factories(policy);
 
     // WARNING: Threads start should be the last thing we do here after
     //          all data-structures have been initialized.
     size_t i = 0;
     size_t nb_workers = policy->nb_workers;
     size_t nb_executors = policy->nb_executors;
+
+    // DIFFERENT FROM OTHER POLICY DOMAINS
     // Only start (N-1) workers as worker '0' is the current thread.
     for(i = 1; i < nb_workers; i++) {
         policy->workers[i]->start(policy->workers[i]);
@@ -100,6 +101,7 @@ void ce_mastered_policy_domain_start(ocr_policy_domain_t * policy) {
     for(i = 1; i < nb_executors; i++) {
         policy->executors[i]->start(policy->executors[i]);
     }
+
     // Handle thread '0'
     policy->workers[0]->start(policy->workers[0]);
     // Need to associate thread and worker here, as current thread fall-through
@@ -136,8 +138,11 @@ void fsim_policy_domain_stop(ocr_policy_domain_t * policy) {
 }
 
 void fsim_policy_domain_destruct(ocr_policy_domain_t * policy) {
-    policy->taskFactory->destruct(policy->taskFactory);
-    policy->eventFactory->destruct(policy->eventFactory);
+    ocr_task_factory* taskFactory = policy->taskFactory;
+    taskFactory->destruct(taskFactory);
+
+    ocr_event_factory* eventFactory = policy->eventFactory;
+    eventFactory->destruct(eventFactory);
 }
 
 ocrGuid_t fsim_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* location) {

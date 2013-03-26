@@ -62,24 +62,6 @@ typedef struct {
 ocr_scheduler_t * xe_scheduler_constructor(void);
 ocr_scheduler_t * ce_scheduler_constructor(void);
 
-/******************************************************/
-/* OCR-FSIM Task Factory                              */
-/******************************************************/
-
-typedef struct xe_task_factory {
-    ocr_task_factory base_factory;
-} xe_task_factory;
-
-struct ocr_task_factory_struct* xe_task_factory_constructor(void);
-void xe_task_factory_destructor ( struct ocr_task_factory_struct* base );
-
-typedef struct ce_task_factory {
-    ocr_task_factory base_factory;
-} ce_task_factory;
-
-struct ocr_task_factory_struct* ce_task_factory_constructor(void);
-void ce_task_factory_destructor ( struct ocr_task_factory_struct* base );
-
 /**
  * The computation worker routine that asks work to the scheduler
  */
@@ -87,77 +69,55 @@ extern void * xe_worker_computation_routine(void * arg);
 extern void * ce_worker_computation_routine(void * arg);
 
 /******************************************************/
+/* OCR-FSIM Task Factory                              */
+/******************************************************/
+
+typedef struct fsim_task_factory {
+    ocr_task_factory base_factory;
+} fsim_task_factory;
+
+struct ocr_task_factory_struct* fsim_task_factory_constructor(void);
+void fsim_task_factory_destructor ( struct ocr_task_factory_struct* base );
+
+/******************************************************/
 /* OCR-FSIM Event Factory                             */
 /******************************************************/
 
-typedef struct xe_event_factory {
+typedef struct fsim_event_factory {
     ocr_event_factory base_factory;
-} xe_event_factory;
+} fsim_event_factory;
 
-struct ocr_event_factory_struct* xe_event_factory_constructor(void);
-void xe_event_factory_destructor ( struct ocr_event_factory_struct* base );
-ocrGuid_t xe_event_factory_create ( struct ocr_event_factory_struct* factory, ocrEventTypes_t eventType, bool takesArg );
-
-typedef struct ce_event_factory {
-    ocr_event_factory base_factory;
-} ce_event_factory;
-
-struct ocr_event_factory_struct* ce_event_factory_constructor(void);
-void ce_event_factory_destructor ( struct ocr_event_factory_struct* base );
-ocrGuid_t ce_event_factory_create ( struct ocr_event_factory_struct* factory, ocrEventTypes_t eventType, bool takesArg );
+struct ocr_event_factory_struct* fsim_event_factory_constructor(void);
+void fsim_event_factory_destructor ( struct ocr_event_factory_struct* base );
+ocrGuid_t fsim_event_factory_create ( struct ocr_event_factory_struct* factory, ocrEventTypes_t eventType, bool takesArg );
 
 typedef struct {
     ocr_event_t** array;
     ocr_event_t** waitingFrontier;
-} xe_await_list_t;
+} fsim_await_list_t;
 
-xe_await_list_t* xe_await_list_constructor( size_t al_size );
-void xe_await_list_destructor(xe_await_list_t*);
+fsim_await_list_t* fsim_await_list_constructor( size_t al_size );
+void fsim_await_list_destructor(fsim_await_list_t*);
 
-typedef struct xe_task_struct_t {
+typedef struct fsim_task_struct_t {
     ocr_task_t base;
-    xe_await_list_t* awaitList;
+    fsim_await_list_t* awaitList;
     size_t nbdeps;
     ocrEdtDep_t * depv;
     ocrEdt_t p_function;
-} xe_task_t;
+} fsim_task_t;
 
-xe_task_t* xe_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, size_t l_size);
-
-typedef struct {
-    ocr_event_t** array;
-    ocr_event_t** waitingFrontier;
-} ce_await_list_t;
-
-ce_await_list_t* ce_await_list_constructor( size_t al_size );
-void ce_await_list_destructor(ce_await_list_t*);
-
-typedef struct ce_task_struct_t {
-    ocr_task_t base;
-    ce_await_list_t* awaitList;
-    size_t nbdeps;
-    ocrEdtDep_t * depv;
-    ocrEdt_t p_function;
-} ce_task_t;
-
-ce_task_t* ce_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, size_t l_size);
+fsim_task_t* fsim_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, size_t l_size);
 
 typedef struct register_list_node_t {
     ocrGuid_t task_guid;
     struct register_list_node_t* next ;
 } register_list_node_t;
 
-typedef struct xe_event_t {
+typedef struct fsim_event_t {
     ocr_event_t base;
     ocrGuid_t datum;
     volatile register_list_node_t* register_list;
-} xe_event_t;
-
-typedef struct ce_event_t {
-    ocr_event_t base;
-    ocrGuid_t datum;
-    volatile register_list_node_t* register_list;
-} ce_event_t;
-
+} fsim_event_t;
 
 #endif /* FSIM_H_ */
