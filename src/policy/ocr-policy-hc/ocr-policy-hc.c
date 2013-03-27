@@ -102,9 +102,7 @@ ocrGuid_t hc_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* lo
     return policy->allocators[0]->guid;
 }
 
-/**!
- * Mapping function many-to-one to map a set of workpiles to a scheduler instance
- */
+// Mapping function many-to-one to map a set of schedulers to a policy instance
 void hc_ocr_module_map_schedulers_to_policy (void * self_module, ocr_module_kind kind,
         size_t nb_instances, void ** ptr_instances) {
     // Checking mapping conforms to what we're expecting in this implementation

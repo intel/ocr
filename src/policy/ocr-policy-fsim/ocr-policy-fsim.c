@@ -149,6 +149,19 @@ ocrGuid_t fsim_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* 
     return policy->allocators[0]->guid;
 }
 
+// Mapping function one-to-one to map a scheduler to a policy instance
+void fsim_ocr_module_map_schedulers_to_policy (void * self_module, ocr_module_kind kind,
+        size_t nb_instances, void ** ptr_instances) {
+    // Checking mapping conforms to what we're expecting in this implementation
+    assert(kind == OCR_SCHEDULER);
+    assert(nb_instances == 1);
+
+    ocr_policy_domain_t * policy = (ocr_policy_domain_t *) self_module;
+	ocr_scheduler_t* scheduler = ptr_instances[0];
+	scheduler->domain = policy;
+}
+
+
 static inline void fsim_policy_domain_constructor_helper ( ocr_policy_domain_t * policy, size_t nb_workpiles,
         size_t nb_workers,
         size_t nb_executors,
@@ -156,6 +169,9 @@ static inline void fsim_policy_domain_constructor_helper ( ocr_policy_domain_t *
     // Get a GUID
     policy->guid = UNINITIALIZED_GUID;
     globalGuidProvider->getGuid(globalGuidProvider, &(policy->guid), (u64)policy, OCR_GUID_POLICY);
+
+    ocr_module_t * module_base = (ocr_module_t *) policy;
+    module_base->map_fct = fsim_ocr_module_map_schedulers_to_policy;
 
     policy->nb_workpiles = nb_workpiles;
     policy->nb_workers = nb_workers;

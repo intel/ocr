@@ -67,9 +67,21 @@ ocrGuid_t xe_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
     ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
 
     // XEs do not steal from 'local' scheduler
+    // TODO sagnak: do not 'hardcode' not-stealing from 'local' scheduler by omitting this part
+    // it bakes in the assumption that there is only one workpile per XE scheduler, which may not be true
+    
     // XEs do not take from 'non-local' scheduler from same policy domain
-    if ( NULL_GUID == popped ) {
+    // TODO sagnak: do not 'hardcode' not-stealing from 'non-local' scheduler by omitting this part
+    // it bakes in the assumption that there is only one scheduler per XE policy domain, which may not be true
+
 	// try stealing across 'policy domains'
+    if ( NULL_GUID == popped ) {
+        /*
+        ocrGuid_t policy_domain_guid = base->domain;
+        ocr_policy_domain_t* policy_domain = NULL; 
+        globalGuidProvider->getVal(globalGuidProvider, policy_domain_guid, (u64*)&policy_domain, NULL);
+        popped = policy_domain->take(policy_domain);
+        */
     }
     return popped;
 }
@@ -103,7 +115,7 @@ ocr_scheduler_t* xe_scheduler_constructor() {
     base -> destruct = xe_scheduler_destruct;
     base -> pop_mapping = xe_scheduler_pop_mapping_one_to_one;
     base -> push_mapping = xe_scheduler_push_mapping_one_to_one;
-// XEs do not steal
+// XEs do not steal on this configuration, this is not necessarily hardcoding
     base -> steal_mapping = NULL;
     base -> take = xe_scheduler_take;
     base -> give = xe_scheduler_give;

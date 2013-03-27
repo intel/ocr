@@ -326,7 +326,7 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_xes ) {
     xePolicyModel->allocators = xeAllocator;
 
     // Defines how ocr modules are bound together
-    size_t nb_module_mappings = 4;
+    size_t nb_module_mappings = 5;
     ocr_module_mapping_t * xeMapping =
 	(ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
     // Note: this doesn't bind modules magically. You need to have a mapping function defined
@@ -336,6 +336,7 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_xes ) {
     xeMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_EXECUTOR);
     xeMapping[2] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_SCHEDULER, OCR_WORKER);
     xeMapping[3] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_MEMORY, OCR_ALLOCATOR);
+    xeMapping[4] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_SCHEDULER, OCR_POLICY);
     xePolicyModel->nb_mappings = nb_module_mappings;
     xePolicyModel->mappings = xeMapping;
 
@@ -413,7 +414,7 @@ void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
     cePolicyModel->allocators = ceAllocator;
 
     // Defines how ocr modules are bound together
-    size_t nb_module_mappings = 4;
+    size_t nb_module_mappings = 5;
     ocr_module_mapping_t * ceMapping =
 	(ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
     // Note: this doesn't bind modules magically. You need to have a mapping function defined
@@ -423,6 +424,7 @@ void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
     ceMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_EXECUTOR);
     ceMapping[2] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_SCHEDULER, OCR_WORKER);
     ceMapping[3] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_MEMORY, OCR_ALLOCATOR);
+    ceMapping[4] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_SCHEDULER, OCR_POLICY);
     cePolicyModel->nb_mappings = nb_module_mappings;
     cePolicyModel->mappings = ceMapping;
 
