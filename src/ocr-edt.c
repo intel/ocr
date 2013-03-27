@@ -35,14 +35,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-runtime.h"
 #include "ocr-guid.h"
 
+// sagnak: I had to replicate this is in two files, we may need to expose this
 static inline ocr_policy_domain_t* get_current_policy_domain () {
     ocrGuid_t worker_guid = ocr_get_current_worker_guid();
     ocr_worker_t * worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, worker_guid, (u64*)&worker, NULL);
 
-    ocrGuid_t policy_domain_guid = worker->getCurrentPolicyDomain(worker);
-    ocr_policy_domain_t* policy_domain = NULL; 
-    globalGuidProvider->getVal(globalGuidProvider, policy_domain_guid, (u64*)&policy_domain, NULL);
+    ocr_scheduler_t * scheduler = get_worker_scheduler(worker);
+    ocr_policy_domain_t* policy_domain = scheduler -> domain; 
+
     return policy_domain;
 }
 

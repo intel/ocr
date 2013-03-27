@@ -503,12 +503,11 @@ static inline void create_configure_all_workpiles ( ocr_workpile_t ** all_workpi
     }
 }
 
-static inline void create_configure_all_workers ( ocr_worker_t** all_workers, int nb_component_types, ocr_model_t* components, ocr_policy_domain_t* policyDomain ) {
+static inline void create_configure_all_workers ( ocr_worker_t** all_workers, int nb_component_types, ocr_model_t* components ) {
     size_t type = 0, idx = 0, instance = 0;
     for (; type < nb_component_types; ++type) {
         // For each type, create the number of instances asked for.
 	ocr_model_t curr_component_model = components[type];
-	curr_component_model.configuration = policyDomain;
 	for ( instance = 0; instance < curr_component_model.nb_instances; ++instance, ++idx ) {
             // Call the factory method based on the model's type kind.
             all_workers[idx] = newWorker(curr_component_model.kind);
@@ -614,7 +613,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
 	//TODO would be nice to make creation more generic
 
 	create_configure_all_schedulers ( all_schedulers, model->nb_scheduler_types, model->schedulers);
-	create_configure_all_workers ( all_workers, model->nb_worker_types, model->workers, policyDomains[idx]);
+	create_configure_all_workers ( all_workers, model->nb_worker_types, model->workers );
 	create_configure_all_executors ( all_executors, model->nb_executor_types, model->executors);
 	create_configure_all_workpiles ( all_workpiles, model->nb_workpile_types, model->workpiles);
 	create_configure_all_allocators ( all_allocators, model->numAllocTypes, model->allocators);

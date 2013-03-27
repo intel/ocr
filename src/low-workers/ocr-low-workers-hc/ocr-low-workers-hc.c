@@ -52,8 +52,6 @@ ocr_scheduler_t * get_worker_scheduler(ocr_worker_t * worker) { return worker->s
  */
 void hc_worker_create ( ocr_worker_t * base, void * configuration, int id) {
     hc_worker_t * hc_worker = (hc_worker_t *) base;
-
-    hc_worker->policy_domain_guid = ((ocr_policy_domain_t*)configuration)->guid;
     hc_worker->id = id;
 }
 
@@ -76,11 +74,6 @@ void hc_stop_worker(ocr_worker_t * base) {
 bool hc_is_running_worker(ocr_worker_t * base) {
     hc_worker_t * hcWorker = (hc_worker_t *) base;
     return hcWorker->run;
-}
-
-ocrGuid_t hc_getCurrentPolicyDomain (ocr_worker_t * base) {
-    hc_worker_t * hcWorker = (hc_worker_t *) base;
-    return hcWorker->policy_domain_guid;
 }
 
 ocrGuid_t hc_getCurrentEDT (ocr_worker_t * base) {
@@ -133,7 +126,6 @@ ocr_worker_t* hc_worker_constructor () {
     base->start = hc_start_worker;
     base->stop = hc_stop_worker;
     base->is_running = hc_is_running_worker;
-    base->getCurrentPolicyDomain = hc_getCurrentPolicyDomain;
     base->getCurrentEDT = hc_getCurrentEDT;
     base->setCurrentEDT = hc_setCurrentEDT;
     return base;

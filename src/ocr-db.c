@@ -47,6 +47,7 @@
 #include "ocr-runtime.h"
 
 
+
 u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
                ocrLocation_t *location, ocrInDbAllocator_t allocator) {
 
@@ -56,12 +57,12 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     // TODO: I need to get the current policy to figure out my allocator.
     // Replace with allocator that is gotten from policy
 
-    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t *worker = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&worker, NULL);
+    ocrGuid_t worker_guid = ocr_get_current_worker_guid();
+    ocr_worker_t * worker = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, worker_guid, (u64*)&worker, NULL);
 
-    ocr_policy_domain_t *policy = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, worker->getCurrentPolicyDomain(worker), (u64*)&policy, NULL);
+    ocr_scheduler_t * scheduler = get_worker_scheduler(worker);
+    ocr_policy_domain_t* policy = scheduler -> domain; 
 
     createdDb->create(createdDb, policy->getAllocator(policy, location), len, flags, NULL);
 

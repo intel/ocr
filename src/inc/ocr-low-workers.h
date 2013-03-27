@@ -64,15 +64,6 @@ typedef void (*ocr_worker_stop_fct) (struct ocr_worker_struct * base);
 typedef bool (*ocr_worker_is_running) (struct ocr_worker_struct * base);
 
 /**
- * @brief Returns the policy domain this worker is attached to
- *
- * This returns the GUID for the policy domain
- * @param base              OCR Worker
- * @return GUID for the policy domain
- */
-typedef ocrGuid_t (*ocr_worker_getCurrentPolicyDomain)(struct ocr_worker_struct *base);
-
-/**
  * @brief Returns the EDT this worker is currently running
  *
  * This returns the GUID for the EDT
@@ -100,7 +91,6 @@ typedef struct ocr_worker_struct {
     ocr_worker_start_fct start;
     ocr_worker_stop_fct stop;
     ocr_worker_is_running is_running;
-    ocr_worker_getCurrentPolicyDomain getCurrentPolicyDomain;
     ocr_worker_getCurrentEDT getCurrentEDT;
     ocr_worker_set_currentEDT setCurrentEDT;
 } ocr_worker_t;

@@ -50,8 +50,6 @@ typedef struct {
     int id;
     //TODO shall these stay here or go up ?
     bool run;
-    // reference to the policy domain instance this worker is in
-    ocrGuid_t policy_domain_guid;
     // reference to the EDT this worker is currently executing
     ocrGuid_t currentEDT_guid;
 } hc_worker_t;
