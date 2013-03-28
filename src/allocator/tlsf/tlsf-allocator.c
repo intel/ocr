@@ -35,6 +35,7 @@
 #include "ocr-runtime-def.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
+#include "ocr-guid.h"
 #include "debug.h"
 
 #include <string.h>
@@ -1000,6 +1001,7 @@ void tlsfDestruct(ocrAllocator_t *self) {
     if(rself->numMemories)
         rself->memories[0]->free(rself->memories[0], (void*)rself->addr);
     rself->lock->destruct(rself->lock);
+    globalGuidProvider->releaseGuid(globalGuidProvider, self->guid);
     free(rself);
 }
 
@@ -1029,6 +1031,9 @@ void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
 // Method to create the TLSF allocator
 ocrAllocator_t* newAllocatorTlsf() {
     ocrAllocatorTlsf_t *result = (ocrAllocatorTlsf_t*)malloc(sizeof(ocrAllocatorTlsf_t));
+    result->base.guid = UNINITIALIZED_GUID;
+    globalGuidProvider->getGuid(globalGuidProvider, &(result->base.guid), (u64)result, OCR_GUID_ALLOCATOR);
+
     result->base.create = &tlsfCreate;
     result->base.destruct = &tlsfDestruct;
     result->base.allocate = &tlsfAllocate;

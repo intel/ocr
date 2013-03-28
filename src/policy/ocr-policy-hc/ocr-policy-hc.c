@@ -113,14 +113,19 @@ void hc_policy_domain_destruct(ocr_policy_domain_t * policy) {
 }
 
 ocrGuid_t hc_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* location) {
-    return guidify((ocrAllocator_t *)(policy->allocators[0]));
+    return policy->allocators[0]->guid;
 }
 
 ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
         size_t nb_workers,
         size_t nb_executors,
         size_t nb_schedulers) {
+
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) checked_malloc(policy, sizeof(ocr_policy_domain_t));
+    // Get a GUID
+    policy->guid = UNINITIALIZED_GUID;
+    globalGuidProvider->getGuid(globalGuidProvider, &(policy->guid), (u64)policy, OCR_GUID_POLICY);
+
     policy->nb_executors = nb_executors;
     policy->nb_workpiles = nb_workpiles;
     policy->nb_workers = nb_workers;

@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-macros.h"
 #include "ocr-runtime.h"
 #include "hc.h"
+#include "ocr-guid.h"
 
 /******************************************************/
 /* OCR-WORKER                                         */
@@ -51,11 +52,14 @@ ocr_scheduler_t * get_worker_scheduler(ocr_worker_t * worker) { return worker->s
  */
 void hc_worker_create ( ocr_worker_t * base, void * configuration, int id) {
     hc_worker_t * hc_worker = (hc_worker_t *) base;
-    hc_worker->policy_domain_guid = guidify((ocr_model_policy_t*)configuration);
+
+    hc_worker->policy_domain_guid = UNINITIALIZED_GUID;
+    hc_worker->policy_domain_guid = ((ocr_policy_domain_t*)configuration)->guid;
     hc_worker->id = id;
 }
 
 void hc_worker_destruct ( ocr_worker_t * base ) {
+    globalGuidProvider->releaseGuid(globalGuidProvider, base->guid);
     free(base);
 }
 
@@ -106,11 +110,16 @@ ocr_worker_t* hc_worker_constructor () {
     hc_worker_t * worker = checked_malloc(worker, sizeof(hc_worker_t));
     worker->id = -1;
     worker->run = false;
-    worker->guid = guidify((void*)worker);
+
     worker->currentEDT_guid = NULL_GUID;
+
     ocr_worker_t * base = (ocr_worker_t *) worker;
     ocr_module_t* module_base = (ocr_module_t*) base;
     module_base->map_fct = hc_ocr_module_map_scheduler_to_worker;
+
+    base->guid = UNINITIALIZED_GUID;
+    globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_WORKER);
+
     base->scheduler = NULL;
     base->routine = worker_computation_routine;
     base->create = hc_worker_create;
@@ -132,9 +141,37 @@ int get_worker_id(ocr_worker_t * worker) {
 }
 
 ocrGuid_t get_worker_guid(ocr_worker_t * worker) {
-    hc_worker_t * hcWorker = (hc_worker_t *) worker;
-    return hcWorker->guid;
+    return worker->guid;
 }
+
+/******************************************************/
+/* OCR-HC Task Factory                                */
+/******************************************************/
+
+// struct ocr_task_factory_struct* hc_task_factory_constructor(void) {
+//     hc_task_factory* derived = (hc_task_factory*) malloc(sizeof(hc_task_factory));
+//     ocr_task_factory* base = (ocr_task_factory*) derived;
+//     base->create = hc_task_factory_create;
+//     base->destruct =  hc_task_factory_destructor;
+//     return base;
+// }
+
+// void hc_task_factory_destructor ( struct ocr_task_factory_struct* base ) {
+//     hc_task_factory* derived = (hc_task_factory*) base;
+//     free(derived);
+// }
+
+// ocrGuid_t hc_task_factory_create_with_event_list (struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, event_list_t* l) {
+//     hc_task_t* edt = hc_task_construct_with_event_list(fctPtr, paramc, params, paramv, l);
+//     ocr_task_t* base = (ocr_task_t*) edt;
+//     return base->guid;
+// }
+
+// ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, size_t dep_l_size) {
+//     hc_task_t* edt = hc_task_construct(fctPtr, paramc, params, paramv, dep_l_size);
+//     ocr_task_t* base = (ocr_task_t*) edt;
+//     return base->guid;
+// }
 
 //TODO shall this be in namespace ocr-hc ?
 void * worker_computation_routine(void * arg) {
@@ -147,7 +184,8 @@ void * worker_computation_routine(void * arg) {
     while(worker->is_running(worker)) {
         ocrGuid_t taskGuid = scheduler->take(scheduler, workerGuid);
         if (taskGuid != NULL_GUID) {
-            ocr_task_t* curr_task = (ocr_task_t*) deguidify(taskGuid);
+            ocr_task_t* curr_task = NULL;
+            globalGuidProvider->getVal(globalGuidProvider, taskGuid, (u64*)&(curr_task), NULL);
             worker->setCurrentEDT(worker,taskGuid);
             curr_task->fct_ptrs->execute(curr_task);
             worker->setCurrentEDT(worker, NULL_GUID);

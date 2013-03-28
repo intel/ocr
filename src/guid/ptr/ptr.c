@@ -1,12 +1,7 @@
 /**
- * @brief Configuration for the OCR runtime
- *
- * This file describes the configuration options for OCR
- * to select the different implementations available
- * for the various modules
- *
+ * @brief Trivial implementation of GUIDs
  * @authors Romain Cledat, Intel Corporation
- * @date 2012-09-21
+ * @date 2012-11-13
  * Copyright (c) 2012, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,31 +29,50 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ */
 
-#ifndef __OCR_CONFIG_H__
-#define __OCR_CONFIG_H__
+#include "ptr.h"
+#include "stdlib.h"
 
-#include "ocr-executor.h"
-#include "ocr-low-workers.h"
-#include "ocr-scheduler.h"
-#include "ocr-policy.h"
-#include "ocr-workpile.h"
-#include "ocr-guid.h"
 
-// Default kinds of ocr modules
-extern ocr_executor_kind ocr_executor_default_kind;
-extern ocr_worker_kind ocr_worker_default_kind;
-extern ocr_scheduler_kind ocr_scheduler_default_kind;
-extern ocr_policy_kind ocr_policy_default_kind;
-extern ocr_workpile_kind ocr_workpile_default_kind;
-extern ocrAllocatorKind ocrAllocatorDefaultKind;
-extern ocrLowMemoryKind ocrLowMemoryDefaultKind;
-extern ocrDataBlockKind ocrDataBlockDefaultKind;
-extern ocrLockKind ocrLockDefaultKind;
-extern ocrGuidProviderKind ocrGuidProviderDefaultKind;
+void ptrCreate(ocrGuidProvider_t* self, void* config) {
+    return;
+}
 
-// Default values to configure ocr
-extern u32 ocr_config_default_nb_hardware_threads;
+void ptrDestruct(ocrGuidProvider_t* self) {
+    free(self);
+    return;
+}
 
-#endif /* __OCR_CONFIG_H__ */
+u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind type) {
+    *guid = (ocrGuid_t)val;
+    return 0;
+}
+
+u8 ptrGetVal(ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKind* kind) {
+    *val = (u64)guid;
+    if(kind)
+        *kind = OCR_GUID_NONE;
+    return 0;
+}
+
+u8 ptrGetKind(ocrGuidProvider_t* self, ocrGuid_t guid, ocrGuidKind* kind) {
+    *kind = OCR_GUID_NONE;
+    return 0;
+}
+
+u8 ptrReleaseGuid(ocrGuidProvider_t *self, ocrGuid_t guid) {
+    return 0;
+}
+
+ocrGuidProvider_t* newGuidProviderPtr() {
+    ocrGuidProviderPtr_t *result = (ocrGuidProviderPtr_t*)malloc(sizeof(ocrGuidProviderPtr_t));
+    result->base.create = &ptrCreate;
+    result->base.destruct = &ptrDestruct;
+    result->base.getGuid = &ptrGetGuid;
+    result->base.getVal = &ptrGetVal;
+    result->base.getKind = &ptrGetKind;
+    result->base.releaseGuid = &ptrReleaseGuid;
+
+    return (ocrGuidProvider_t*)result;
+}

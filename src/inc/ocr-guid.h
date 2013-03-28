@@ -37,7 +37,13 @@
 #include "ocr-types.h"
 
 typedef enum {
-    OCR_GUID_NONE = 0
+    OCR_GUID_NONE = 0,
+    OCR_GUID_ALLOCATOR = 1,
+    OCR_GUID_DB = 2,
+    OCR_GUID_EDT = 3,
+    OCR_GUID_EVENT = 4,
+    OCR_GUID_POLICY = 5,
+    OCR_GUID_WORKER = 6
 } ocrGuidKind;
 
 /**
@@ -78,39 +84,58 @@ typedef struct _ocrGuidProvider_t {
      *
      * @param self          Pointer to this GUID provider
      * @param guid          GUID returned
-     * @param type          Type of the object that will be associated with the GUID
      * @param val           Value to be associated
+     * @param type          Type of the object that will be associated with the GUID
      * @return 0 on success or an error code
      */
-    u8 (*getGuid)(struct _ocrGuidProvider_t* self, ocrGuid_t* guid, ocrGuidKind type,
-                  u64 val);
+    u8 (*getGuid)(struct _ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val,
+                  ocrGuidKind type);
 
     /**
      * @brief Returns the associated value for the GUID 'guid'
+     *
+     * @param self          Pointer to this GUID provider
+     * @param guid          GUID to "translate"
+     * @param val           Value to return
+     * @param kind          Kind to return
+     *
+     * @return 0 on success or an error code
      */
-    u8 (*getVal)(struct _ocrGuidProvider_t* self, u64* val, ocrGuid_t guid);
+    u8 (*getVal)(struct _ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKind* kind);
 
+    /**
+     * @brief Returns the kind of a GUID
+     *
+     * @param self          Pointer to this GUID provider
+     * @param guid          GUID to get the type of
+     * @param kind          Kind returned. Can be NULL if the user does not care about the kind
+     * @return 0 on success or an error code
+     */
+    u8 (*getKind)(struct _ocrGuidProvider_t* self, ocrGuid_t guid, ocrGuidKind* kind);
 
+    /**
+     * @brief Releases the GUID
+     *
+     * This potentially allows the GUID provider to re-issue this same GUID
+     * for a different object
+     *
+     * @param self          Pointer to this GUID provider
+     * @param guid          GUID to release
+     * @return 0 on success or an error code
+     */
+    u8 (*releaseGuid)(struct _ocrGuidProvider_t *self, ocrGuid_t guid);
 } ocrGuidProvider_t;
 
-/*! \brief Globally Unique Identifier utility class
- *
- *  This class provides interfaces to get GUIDs for OCR types, get OCR types from GUID
- *  and set static sentinel values for GUIDs
- */
-/*! \brief Gets the GUID for an OCR entity instance
- *  \param[in] p OCR entity instance pointer
- *  \return GUID for OCR entity instance
- *  Our current implementation just wraps the pointer value to a primitive type
- */
-ocrGuid_t guidify(void * p);
+typedef enum _ocrGuidProviderKind {
+    OCR_GUIDPROVIDER_DEFAULT = 0,
+    OCR_GUIDPROVIDER_PTR = 1
+} ocrGuidProviderKind;
 
-/*! \brief Gets an OCR entity instance pointer from a GUID
- *  \param[in] id GUID for OCR entity instance
- *  \return OCR entity instance pointer
- *  Our current implementation just wraps the pointer value to a primitive type
- */
-void * deguidify(ocrGuid_t id);
+extern ocrGuidProviderKind ocrGuidProviderDefaultKind;
+
+extern ocrGuidProvider_t *globalGuidProvider;
+
+ocrGuidProvider_t* newGuidProvider(ocrGuidProviderKind type);
 
 #define UNINITIALIZED_GUID ((ocrGuid_t)-2)
 

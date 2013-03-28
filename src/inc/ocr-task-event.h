@@ -53,6 +53,7 @@ typedef bool (*event_register_if_not_ready_fct)(struct ocr_event_struct* event, 
  *
  *  This class provides the interface for the underlying implementation to conform.
  */
+
 typedef struct ocr_event_fcts_struct {
     /*! \brief Virtual destructor for the Event interface
      */
@@ -82,6 +83,8 @@ typedef struct ocr_event_fcts_struct {
  *  and can be registered to by a task.
  */
 typedef struct ocr_event_struct {
+
+    ocrGuid_t guid; /**< GUID for this event */
     /*! \brief Holds function pointer to the event interface
      */
     ocr_event_fcts_t * fct_ptrs;
@@ -218,6 +221,7 @@ typedef void (*task_add_dependence_fct) ( struct ocr_task_struct_t* base, ocr_ev
  *
  *  This class provides the interface to call operations on task
  */
+
 typedef struct ocr_task_fcts_struct_t {
 
     /*! \brief Virtual destructor for the Task interface
@@ -240,6 +244,7 @@ typedef struct ocr_task_fcts_struct_t {
  *  OCR tasks can be executed and can have their synchronization frontier furthered by Events.
  */
 typedef struct ocr_task_struct_t {
+    ocrGuid_t guid; /**< GUID for this task (EDT) */
     u32 paramc;
     u64 * params;
     void ** paramv;

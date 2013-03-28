@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ocr-edt.h"
 #include "ocr-runtime.h"
+#include "ocr-guid.h"
 
 /*
  * @file This file contains OCR EDTs public API implementation.
@@ -44,13 +45,17 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
 }
 
 u8 ocrEventDestroy(ocrGuid_t eventGuid) {
-    ocr_event_t * event = (ocr_event_t *) deguidify(eventGuid);
+    ocr_event_t * event = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
+
     event->fct_ptrs->destruct(event);
     return 0;
 }
 
 u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
-    ocr_event_t * event = (ocr_event_t*) deguidify(eventGuid);
+    ocr_event_t * event = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
+
     event->fct_ptrs->put(event, dataGuid);
     return 0;
 }
@@ -73,22 +78,32 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
 
 u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
     ocrGuid_t worker_guid = ocr_get_current_worker_guid();
-    ocr_task_t * task = (ocr_task_t *) deguidify(edtGuid);
+    ocr_task_t * task = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
+
     task->fct_ptrs->schedule(task, worker_guid);
     return 0;
 }
 
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
-    ocr_task_t * task = (ocr_task_t *) deguidify(edtGuid);
+
+    ocr_task_t * task = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
+
     task->fct_ptrs->destruct(task);
     return 0;
 }
 
 u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot) {
     //TODO LIMITATION only support event as a guid source
-    ocr_event_t* event = (ocr_event_t*) deguidify(source);
-    ocr_task_t* task = (ocr_task_t*) deguidify(destination);
+
+    ocr_event_t * event = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, source, (u64*)&event, NULL);
+    ocr_task_t * task = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, destination, (u64*)&task, NULL);
+
     task->fct_ptrs->add_dependence(task, event, slot);
+
     return 0;
 }
 
@@ -99,9 +114,11 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot) {
 ocrGuid_t ocrElsGet(u8 offset) {
 #ifdef HAVE_ELS_SUPPORT
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t * worker = (ocr_worker_t*)deguidify(workerGuid);
+    ocr_worker_t * worker = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL)
     ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
-    ocr_task_t * edt = (ocr_task_t*)deguidify(edtGuid);
+    ocr_task_t * edt = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL)
     return edt->els[offset];
 #else
     assert("OCR runtime has not been compiled with ELS support" && 0);
@@ -116,9 +133,11 @@ ocrGuid_t ocrElsGet(u8 offset) {
 void ocrElsSet(u8 offset, ocrGuid_t data) {
 #ifdef HAVE_ELS_SUPPORT
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t * worker = (ocr_worker_t*)deguidify(workerGuid);
+    ocr_worker_t * worker = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL)
     ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
-    ocr_task_t * edt = (ocr_task_t*)deguidify(edtGuid);
+    ocr_task_t * edt = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL)
     edt->els[offset] = data;
 #else
     assert("OCR runtime has not been compiled with ELS support" && 0);

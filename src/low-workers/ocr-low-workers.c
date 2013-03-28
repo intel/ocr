@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 #include "ocr-types.h"
+#include "ocr-guid.h"
 #include "ocr-low-workers.h"
 
 extern ocr_worker_t * hc_worker_constructor();
@@ -48,7 +49,7 @@ ocr_worker_t * newWorker(ocr_worker_kind workerType) {
 
 ocrGuid_t getCurrentEdt() {
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t * worker = (ocr_worker_t *) deguidify(workerGuid);
+    ocr_worker_t *worker = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
     return worker->getCurrentEDT(worker);
 }
-

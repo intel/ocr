@@ -1,6 +1,7 @@
 PROG=cholesky
 SUFFIX=.exe
-CFLAGS= -O2
+
+CFLAGS= -g -O2
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr -lm
 OCR_INPUT=${OCR_INPUT_HOME}/cholesky
 

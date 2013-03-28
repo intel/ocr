@@ -40,5 +40,6 @@ ocrAllocatorKind ocrAllocatorDefaultKind = OCR_ALLOCATOR_TLSF;
 ocrLowMemoryKind ocrLowMemoryDefaultKind = OCR_LOWMEMORY_MALLOC;
 ocrDataBlockKind ocrDataBlockDefaultKind = OCR_DATABLOCK_REGULAR;
 ocrLockKind ocrLockDefaultKind = OCR_LOCK_X86;
+ocrGuidProviderKind ocrGuidProviderDefaultKind = OCR_GUIDPROVIDER_PTR;
 
 u32 ocr_config_default_nb_hardware_threads = 8;

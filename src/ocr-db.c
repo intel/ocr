@@ -37,6 +37,7 @@
 #include "ocr-low-workers.h"
 #include "ocr-policy.h"
 #include "debug.h"
+#include "ocr-guid.h"
 #include <errno.h>
 #if (__STDC_HOSTED__ == 1)
 #include <string.h>
@@ -56,42 +57,53 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     // Replace with allocator that is gotten from policy
 
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t *worker = (ocr_worker_t*)deguidify(workerGuid);
+    ocr_worker_t *worker = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&worker, NULL);
 
-    ocr_policy_domain_t *policy = (ocr_policy_domain_t*)deguidify(worker->getCurrentPolicyDomain(worker));
+    ocr_policy_domain_t *policy = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, worker->getCurrentPolicyDomain(worker), (u64*)&policy, NULL);
 
     createdDb->create(createdDb, policy->getAllocator(policy, location), len, flags, NULL);
 
     *addr = createdDb->acquire(createdDb, worker->getCurrentEDT(worker), false);
     if(*addr == NULL) return ENOMEM;
-    *db = guidify(createdDb);
+
+    *db = createdDb->guid;
     return 0;
 }
 
 u8 ocrDbDestroy(ocrGuid_t db) {
-    ocrDataBlock_t *dataBlock = (ocrDataBlock_t*)deguidify(db);
+    ocrDataBlock_t *dataBlock = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, db, (u64*)&dataBlock, NULL);
 
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t *worker = (ocr_worker_t*)deguidify(workerGuid);
+    ocr_worker_t *worker = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&worker, NULL);
+
     u8 status = dataBlock->free(dataBlock, worker->getCurrentEDT(worker));
     return status;
 }
 
 u8 ocrDbAcquire(ocrGuid_t db, void** addr, u16 flags) {
-    ocrDataBlock_t *dataBlock = (ocrDataBlock_t*)deguidify(db);
+    ocrDataBlock_t *dataBlock = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, db, (u64*)&dataBlock, NULL);
 
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t *worker = (ocr_worker_t*)deguidify(workerGuid);
+    ocr_worker_t *worker = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&worker, NULL);
+
     *addr = dataBlock->acquire(dataBlock, worker->getCurrentEDT(worker), false);
     if(*addr == NULL) return EPERM;
     return 0;
 }
 
 u8 ocrDbRelease(ocrGuid_t db) {
-    ocrDataBlock_t *dataBlock = (ocrDataBlock_t*)deguidify(db);
+    ocrDataBlock_t *dataBlock = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, db, (u64*)&dataBlock, NULL);
 
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t *worker = (ocr_worker_t*)deguidify(workerGuid);
+    ocr_worker_t *worker = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&worker, NULL);
 
     return dataBlock->release(dataBlock, worker->getCurrentEDT(worker), false);
 }

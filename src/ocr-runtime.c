@@ -62,7 +62,9 @@ static void event_list_node_destructor (event_list_node_t* node) {
  *  \param[in]  event_guid  GUID of the event to be appended
  */
 void event_list_enlist ( event_list_t* list, ocrGuid_t event_guid ) {
-    ocr_event_t* event = (ocr_event_t*) deguidify(event_guid);
+    ocr_event_t * event = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, event_guid, (u64*)&event, NULL);
+
     ++list->size;
     event_list_node_t* node = event_list_node_constructor();
     node->event = event;

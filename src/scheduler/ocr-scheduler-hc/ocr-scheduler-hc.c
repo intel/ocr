@@ -76,7 +76,9 @@ workpile_iterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocr_schedul
 
 ocrGuid_t hc_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
     // First try to pop
-    ocr_worker_t* w = (ocr_worker_t*) deguidify(wid);
+    ocr_worker_t* w = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+
     ocr_workpile_t * wp_to_pop = base->pop_mapping(base, w);
     ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
     if ( NULL_GUID == popped ) {
@@ -93,7 +95,9 @@ ocrGuid_t hc_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
 }
 
 void hc_scheduler_give (ocr_scheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
-    ocr_worker_t* w = (ocr_worker_t*) deguidify(wid);
+    ocr_worker_t* w = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+
     ocr_workpile_t * wp_to_push = base->push_mapping(base, w);
     wp_to_push->push(wp_to_push,tid);
 }

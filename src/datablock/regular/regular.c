@@ -35,14 +35,16 @@
 #include "regular.h"
 #include "debug.h"
 #include "ocr-task-event.h"
+#include "ocr-guid.h"
 
 void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
                    u16 flags, void* configuration) {
 
-    ocrAllocator_t *allocator = (ocrAllocator_t*)deguidify(allocatorGuid);
+    ocrAllocator_t *allocator = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, allocatorGuid, (u64*)&allocator, NULL);
     ASSERT(allocator);
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
-    rself->base.guid = guidify(self);
+
     rself->ptr = allocator->allocate(allocator, size);
     rself->allocatorGuid = allocatorGuid;
     rself->size = size;
@@ -59,12 +61,14 @@ void regularDestruct(ocrDataBlock_t *self) {
     ASSERT(rself->attributes.numUsers == 0);
     ASSERT(rself->attributes.freeRequested == 0);
     rself->lock->destruct(rself->lock);
-    // TODO: Inform destruction of GUID
 
     // Tell the allocator to free the data-block
-    ocrAllocator_t *allocator = (ocrAllocator_t*)deguidify(rself->allocatorGuid);
+    ocrAllocator_t *allocator = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, rself->allocatorGuid, (u64*)&allocator, NULL);
+
     allocator->free(allocator, rself->ptr); // TODO sagnak first argument was rself->allocator
 
+    globalGuidProvider->releaseGuid(globalGuidProvider, self->guid);
     free(rself);
 }
 
@@ -179,6 +183,9 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
 
 ocrDataBlock_t* newDataBlockRegular() {
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)malloc(sizeof(ocrDataBlockRegular_t));
+    result->base.guid = UNINITIALIZED_GUID;
+    globalGuidProvider->getGuid(globalGuidProvider, &(result->base.guid), (u64)result, OCR_GUID_DB);
+
     result->base.create = &regularCreate;
     result->base.destruct = &regularDestruct;
     result->base.acquire = &regularAcquire;
