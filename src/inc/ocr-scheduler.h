@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct ocr_worker_struct;
 struct ocr_scheduler_struct;
 
-typedef void (*scheduler_create_fct) (struct ocr_scheduler_struct*, void * configuration);
+typedef void (*scheduler_create_fct) (struct ocr_scheduler_struct*, void * per_type_configuration, void * per_instance_configuration);
 typedef void (*scheduler_destruct_fct) (struct ocr_scheduler_struct*);
 
 typedef ocr_workpile_t * (*scheduler_pop_mapping_fct) (struct ocr_scheduler_struct*, struct ocr_worker_struct*);
@@ -104,5 +104,13 @@ ocr_scheduler_t * hc_scheduler_constructor(void);
 ocr_scheduler_t * xe_scheduler_constructor(void);
 
 ocr_scheduler_t * ce_scheduler_constructor(void);
+
+/* we have to end up exposing the configuration declarations too for the runtime model
+ * I do not know if abstract factories may help with this situation */
+typedef struct fsim_scheduler_configuration {
+    size_t worker_id_begin;
+    size_t worker_id_end;
+} fsim_scheduler_configuration;
+
 
 #endif /* __OCR_SCHEDULER_H__ */

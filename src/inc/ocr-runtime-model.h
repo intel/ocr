@@ -40,7 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef struct {
     int kind;
     size_t nb_instances;
-    void * configuration;
+    void * per_type_configuration;
+    void ** per_instance_configuration;
 } ocr_model_t;
 
 typedef struct _ocrAllocatorModel_t {
@@ -71,9 +72,9 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domain,
                                            size_t nb_executors, size_t nb_workpiles);
 
 
-ocr_model_policy_t * createXeModelPolicies ( size_t nb_XEs );
-ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs );
-ocr_model_policy_t * createCeMasteredModelPolicy ( );
+ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XE_per_CEs );
+ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XE_per_CEs );
+ocr_model_policy_t * createCeMasteredModelPolicy ( size_t nb_XE_per_CEs );
 
 ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model);
 

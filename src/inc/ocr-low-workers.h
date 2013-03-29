@@ -46,7 +46,7 @@ struct ocr_worker_struct;
 typedef void * (*worker_routine)(void *);
 
 //TODO deal with worker id
-typedef void (*ocr_worker_create_fct) (struct ocr_worker_struct * base, void * configuration, int id);
+typedef void (*ocr_worker_create_fct) (struct ocr_worker_struct * base, void * per_type_configuration, void * per_instance_configuration);
 
 typedef void (*ocr_worker_destruct_fct) (struct ocr_worker_struct * base);
 
@@ -136,5 +136,11 @@ typedef enum ocr_worker_kind_enum {
 ocr_worker_t * newWorker(ocr_worker_kind workerType);
 
 ocr_worker_t* hc_worker_constructor(void);
+
+/* we have to end up exposing the configuration declarations too for the runtime model
+ * I do not know if abstract factories may help with this situation */
+typedef struct worker_configuration {
+    size_t worker_id;
+} worker_configuration;
 
 #endif /* __OCR_LOW_WORKERS_H__ */

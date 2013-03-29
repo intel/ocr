@@ -101,9 +101,9 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 	size_t nb_XE_per_CEs = 3;
 	size_t nb_XEs = nb_XE_per_CEs * nb_CEs;
 
-	ocr_model_policy_t * xe_policy_models = createXeModelPolicies (nb_XEs);
-	ocr_model_policy_t * ce_policy_models = createCeModelPolicies (nb_CEs-1);
-	ocr_model_policy_t * ce_mastered_policy_model = createCeMasteredModelPolicy();
+	ocr_model_policy_t * xe_policy_models = createXeModelPolicies ( nb_CEs, nb_XE_per_CEs );
+	ocr_model_policy_t * ce_policy_models = createCeModelPolicies ( nb_CEs, nb_XE_per_CEs );
+	ocr_model_policy_t * ce_mastered_policy_model = createCeMasteredModelPolicy( nb_XE_per_CEs );
 
 	ocr_policy_domain_t ** xe_policy_domains = instantiateModel(xe_policy_models);
 	ocr_policy_domain_t ** ce_policy_domains = instantiateModel(ce_policy_models);

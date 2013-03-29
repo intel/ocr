@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* OCR-HC SCHEDULER                                   */
 /******************************************************/
 
-void hc_scheduler_create(ocr_scheduler_t * scheduler, void * configuration) {
+void hc_scheduler_create(ocr_scheduler_t * scheduler, void * per_type_configuration, void * per_instance_configuration) {
 }
 
 void hc_scheduler_destruct(ocr_scheduler_t * scheduler) {

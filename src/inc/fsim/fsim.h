@@ -49,6 +49,8 @@ typedef struct {
     ocr_workpile_t ** pools;
 /*needed for a naive worker_id to workpile mapping*/
     int n_workers_per_scheduler;
+    size_t worker_id_begin;
+    size_t worker_id_end;
 } xe_scheduler_t;
 
 typedef struct {
@@ -57,6 +59,8 @@ typedef struct {
     ocr_workpile_t ** pools;
 /*needed for a naive worker_id to workpile mapping*/
     int n_workers_per_scheduler;
+    size_t worker_id_begin;
+    size_t worker_id_end;
 } ce_scheduler_t;
 
 ocr_scheduler_t * xe_scheduler_constructor(void);

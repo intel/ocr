@@ -34,13 +34,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-runtime.h"
 #include "fsim.h"
 
+
 /******************************************************/
 /* OCR-FSIM SCHEDULER                                 */
 /******************************************************/
 
-void xe_scheduler_create(ocr_scheduler_t * base, void * configuration) {
+void xe_scheduler_create(ocr_scheduler_t * base, void * per_type_configuration, void * per_instance_configuration) {
     xe_scheduler_t* derived = (xe_scheduler_t*) base;
-    derived->n_workers_per_scheduler = *(int*)configuration;
+    fsim_scheduler_configuration *mapper = (fsim_scheduler_configuration*)per_instance_configuration;
+
+    derived->worker_id_begin = mapper->worker_id_begin;
+    derived->worker_id_end = mapper->worker_id_end;
+    derived->n_workers_per_scheduler = 1 + derived->worker_id_end - derived->worker_id_begin;
 }
 
 void xe_scheduler_destruct(ocr_scheduler_t * scheduler) {
@@ -122,9 +127,13 @@ ocr_scheduler_t* xe_scheduler_constructor() {
     return base;
 }
 
-void ce_scheduler_create(ocr_scheduler_t * base, void * configuration) {
+void ce_scheduler_create(ocr_scheduler_t * base, void * per_type_configuration, void * per_instance_configuration) {
     ce_scheduler_t* derived = (ce_scheduler_t*) base;
-    derived->n_workers_per_scheduler = *(int*)configuration;
+    fsim_scheduler_configuration *mapper = (fsim_scheduler_configuration*)per_instance_configuration;
+
+    derived->worker_id_begin = mapper->worker_id_begin;
+    derived->worker_id_end = mapper->worker_id_end;
+    derived->n_workers_per_scheduler = 1 + derived->worker_id_end - derived->worker_id_begin;
 }
 
 void ce_scheduler_destruct(ocr_scheduler_t * scheduler) {

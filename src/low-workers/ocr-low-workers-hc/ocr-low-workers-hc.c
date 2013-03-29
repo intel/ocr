@@ -50,9 +50,9 @@ ocr_scheduler_t * get_worker_scheduler(ocr_worker_t * worker) { return worker->s
 /**
  * Configure the HC worker instance
  */
-void hc_worker_create ( ocr_worker_t * base, void * configuration, int id) {
+void hc_worker_create ( ocr_worker_t * base, void * per_type_configuration, void * per_instance_configuration) {
     hc_worker_t * hc_worker = (hc_worker_t *) base;
-    hc_worker->id = id;
+    hc_worker->id = ((worker_configuration*)per_instance_configuration)->worker_id;
 }
 
 void hc_worker_destruct ( ocr_worker_t * base ) {

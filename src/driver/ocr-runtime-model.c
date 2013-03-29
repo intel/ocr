@@ -173,7 +173,8 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
             checked_malloc(defaultPolicy, sizeof(ocr_model_policy_t));
     defaultPolicy->model.kind = ocr_policy_default_kind;
     defaultPolicy->model.nb_instances = nb_policy_domains;
-    defaultPolicy->model.configuration = NULL;
+    defaultPolicy->model.per_type_configuration = NULL;
+    defaultPolicy->model.per_instance_configuration = NULL;
     defaultPolicy->nb_scheduler_types = 1;
     defaultPolicy->nb_worker_types = 1;
     defaultPolicy->nb_executor_types = 1;
@@ -184,7 +185,8 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
             checked_malloc(defaultScheduler, sizeof(ocr_model_t));
     defaultScheduler->kind = ocr_scheduler_default_kind;
     defaultScheduler->nb_instances = nb_schedulers;
-    defaultScheduler->configuration = NULL;
+    defaultScheduler->per_type_configuration = NULL;
+    defaultScheduler->per_instance_configuration = NULL;
     defaultPolicy->schedulers = defaultScheduler;
 
     // Default worker
@@ -192,7 +194,17 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
             checked_malloc(defaultWorker, sizeof(ocr_model_t));
     defaultWorker->kind = ocr_worker_default_kind;
     defaultWorker->nb_instances = nb_workers;
-    defaultWorker->configuration = NULL;
+    defaultWorker->per_type_configuration = NULL;
+
+    size_t index_config = 0, n_all_workers = nb_workers*nb_policy_domains;
+    void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
+    for ( index_config = 0; index_config < n_all_workers; ++index_config ) {
+        worker_configurations[index_config] = (worker_configuration*) malloc(sizeof(worker_configuration));
+        worker_configuration* curr_config = (worker_configuration*)worker_configurations[index_config];
+        curr_config->worker_id = index_config;
+    }
+
+    defaultWorker->per_instance_configuration = worker_configurations;
     defaultPolicy->workers = defaultWorker;
 
     // Default executor
@@ -200,7 +212,8 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
             checked_malloc(defaultExecutor, sizeof(ocr_model_t));
     defaultExecutor->kind = ocr_executor_default_kind;
     defaultExecutor->nb_instances = nb_executors;
-    defaultExecutor->configuration = NULL;
+    defaultExecutor->per_type_configuration = NULL;
+    defaultExecutor->per_instance_configuration = NULL;
     defaultPolicy->executors = defaultExecutor;
 
     // Default workpile
@@ -208,7 +221,8 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
             checked_malloc(defaultWorkpile, sizeof(ocr_model_t));
     defaultWorkpile->kind = ocr_workpile_default_kind;
     defaultWorkpile->nb_instances = nb_workpiles;
-    defaultWorkpile->configuration = NULL;
+    defaultWorkpile->per_type_configuration = NULL;
+    defaultWorkpile->per_instance_configuration = NULL;
     defaultPolicy->workpiles = defaultWorkpile;
 
     // Defines how ocr modules are bound together
@@ -228,8 +242,9 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
 
     // Default memory
     ocr_model_t *defaultMemory =
-            checked_malloc(defaultMemory, sizeof(ocr_model_t));
-    defaultMemory->configuration = NULL;
+        (ocr_model_t*)malloc(sizeof(ocr_model_t));
+    defaultMemory->per_type_configuration = NULL;
+    defaultMemory->per_instance_configuration = NULL;
     defaultMemory->kind = OCR_LOWMEMORY_DEFAULT;
     defaultMemory->nb_instances = 1;
     defaultPolicy->numMemTypes = 1;
@@ -237,8 +252,9 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
 
     // Default allocator
     ocrAllocatorModel_t *defaultAllocator =
-            checked_malloc(defaultAllocator, sizeof(ocrAllocatorModel_t));
-    defaultAllocator->model.configuration = NULL;
+        (ocrAllocatorModel_t*)malloc(sizeof(ocrAllocatorModel_t));
+    defaultAllocator->model.per_type_configuration = NULL;
+    defaultAllocator->model.per_instance_configuration = NULL;
     defaultAllocator->model.kind = OCR_ALLOCATOR_DEFAULT;
     defaultAllocator->model.nb_instances = 1;
     defaultAllocator->sizeManaged = gHackTotalMemSize;
@@ -257,24 +273,27 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
  * one workpile for each XEs
  * one memory for all XEs
  * one allocator for all XEs
+ *
+ * configures workers to have IDs of (#CE..#CE+#XE]
+ *
  */
 
-ocr_model_policy_t * createXeModelPolicies ( size_t nb_xes ) {
-    size_t nb_xe_schedulers = 1;
-    size_t nb_xe_workers = 1;
-    size_t nb_xe_executors = 1;
-    size_t nb_xe_workpiles = 1;
-    size_t nb_xe_memories = 1;
-    size_t nb_xe_allocators = 1;
+ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE ) {
+    size_t nb_per_xe_schedulers = 1;
+    size_t nb_per_xe_workers = 1;
+    size_t nb_per_xe_executors = 1;
+    size_t nb_per_xe_workpiles = 1;
+    size_t nb_per_xe_memories = 1;
+    size_t nb_per_xe_allocators = 1;
 
-    int * n_workers_per_scheduler = (int*)malloc(sizeof(int));
-    *n_workers_per_scheduler = 1;
-    
+    size_t nb_XEs = nb_CEs * nb_XEs_per_CE;
+
     // there are #XE instances of a model 
     ocr_model_policy_t * xePolicyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
     xePolicyModel->model.kind = OCR_POLICY_XE;
-    xePolicyModel->model.nb_instances = nb_xes;
-    xePolicyModel->model.configuration = NULL;
+    xePolicyModel->model.nb_instances = nb_XEs;
+    xePolicyModel->model.per_type_configuration = NULL;
+    xePolicyModel->model.per_instance_configuration = NULL;
     xePolicyModel->nb_scheduler_types = 1;
     xePolicyModel->nb_worker_types = 1;
     xePolicyModel->nb_executor_types = 1;
@@ -283,45 +302,86 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_xes ) {
     xePolicyModel->numAllocTypes = 1;
 
     // XE scheduler
+    size_t index_ce, index_xe;
+    size_t index_config = 0;
+    size_t worker_id_offset = 1;
+    void** scheduler_configurations = malloc(sizeof(fsim_scheduler_configuration*)*nb_XEs*nb_per_xe_schedulers);
+    for ( index_config = 0; index_config < nb_XEs; ++index_config ) {
+        scheduler_configurations[index_config] = (fsim_scheduler_configuration*) malloc(sizeof(fsim_scheduler_configuration));
+    }
+
+    index_config = 0;
+    for ( index_ce = 0; index_ce < nb_CEs; ++index_ce ) {
+        for ( index_xe = 0; index_xe < nb_XEs_per_CE; ++index_xe, ++index_config ) {
+            fsim_scheduler_configuration* curr_config = (fsim_scheduler_configuration*)scheduler_configurations[index_config];
+            curr_config->worker_id_begin = index_xe + worker_id_offset;
+            curr_config->worker_id_end = index_xe + worker_id_offset;
+        }
+        worker_id_offset += (1 + nb_XEs_per_CE); // because nothing says nasty code like your own strength reduction
+    }
+    
     ocr_model_t * xeScheduler = (ocr_model_t *) malloc(sizeof(ocr_model_t));
     xeScheduler->kind = ocr_scheduler_xe_kind;
-    xeScheduler->nb_instances = nb_xe_schedulers;
-    xeScheduler->configuration = n_workers_per_scheduler;
+    xeScheduler->nb_instances = nb_per_xe_schedulers;
+    xeScheduler->per_type_configuration = NULL;
+    xeScheduler->per_instance_configuration = scheduler_configurations;
     xePolicyModel->schedulers = xeScheduler;
 
     // XE worker
+    index_config = 0;
+    worker_id_offset = 1;
+    size_t n_all_workers = nb_XEs*nb_per_xe_workers;
+    void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
+    for ( index_config = 0; index_config < n_all_workers; ++index_config ) {
+        worker_configurations[index_config] = (worker_configuration*) malloc(sizeof(worker_configuration));
+    }
+
+    index_config = 0;
+    for ( index_ce = 0; index_ce < nb_CEs; ++index_ce ) {
+        for ( index_xe = 0; index_xe < nb_XEs_per_CE; ++index_xe, ++index_config ) {
+            worker_configuration* curr_config = (worker_configuration*)worker_configurations[index_config];
+            curr_config->worker_id = index_xe + worker_id_offset;
+        }
+        worker_id_offset += (1 + nb_XEs_per_CE); // because nothing says nasty code like your own strength reduction
+    }
+    
     ocr_model_t * xeWorker = (ocr_model_t *) malloc(sizeof(ocr_model_t));
     xeWorker->kind = ocr_worker_xe_kind;
-    xeWorker->nb_instances = nb_xe_workers;
-    xeWorker->configuration = NULL;
+    xeWorker->nb_instances = nb_per_xe_workers;
+    xeWorker->per_type_configuration = NULL;
+    xeWorker->per_instance_configuration = worker_configurations;
     xePolicyModel->workers = xeWorker;
 
     // XE executor
     ocr_model_t * xeExecutor = (ocr_model_t *) malloc(sizeof(ocr_model_t));
     xeExecutor->kind = ocr_executor_xe_kind;
-    xeExecutor->nb_instances = nb_xe_executors;
-    xeExecutor->configuration = NULL;
+    xeExecutor->nb_instances = nb_per_xe_executors;
+    xeExecutor->per_type_configuration = NULL;
+    xeExecutor->per_instance_configuration = NULL;
     xePolicyModel->executors = xeExecutor;
 
     // XE workpile
     ocr_model_t * xeWorkpile = (ocr_model_t *) malloc(sizeof(ocr_model_t));
     xeWorkpile->kind = ocr_workpile_xe_kind;
-    xeWorkpile->nb_instances = nb_xe_workpiles;
-    xeWorkpile->configuration = NULL;
+    xeWorkpile->nb_instances = nb_per_xe_workpiles;
+    xeWorkpile->per_type_configuration = NULL;
+    xeWorkpile->per_instance_configuration = NULL;
     xePolicyModel->workpiles = xeWorkpile;
 
     // XE memory
     ocr_model_t *xeMemory = (ocr_model_t*)malloc(sizeof(ocr_model_t));
-    xeMemory->configuration = NULL;
+    xeMemory->per_type_configuration = NULL;
+    xeMemory->per_instance_configuration = NULL;
     xeMemory->kind = ocrLowMemoryXEKind;
-    xeMemory->nb_instances = nb_xe_memories;
+    xeMemory->nb_instances = nb_per_xe_memories;
     xePolicyModel->memories = xeMemory;
 
     // XE allocator
     ocrAllocatorModel_t *xeAllocator = (ocrAllocatorModel_t*)malloc(sizeof(ocrAllocatorModel_t));
-    xeAllocator->model.configuration = NULL;
+    xeAllocator->model.per_type_configuration = NULL;
+    xeAllocator->model.per_instance_configuration = NULL;
     xeAllocator->model.kind = ocrAllocatorXEKind;
-    xeAllocator->model.nb_instances = nb_xe_allocators;
+    xeAllocator->model.nb_instances = nb_per_xe_allocators;
     xeAllocator->sizeManaged = gHackTotalMemSize;
     xePolicyModel->allocators = xeAllocator;
 
@@ -353,15 +413,10 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_xes ) {
  */
 
 void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
-    size_t nb_ce_schedulers = 1;
-    size_t nb_ce_workers = 1;
     size_t nb_ce_executors = 1;
     size_t nb_ce_workpiles = 1;
     size_t nb_ce_memories = 1;
     size_t nb_ce_allocators = 1;
-    
-    int * n_workers_per_scheduler = (int*)malloc(sizeof(int));
-    *n_workers_per_scheduler = 1;
     
     cePolicyModel->nb_scheduler_types = 1;
     cePolicyModel->nb_worker_types = 1;
@@ -370,44 +425,34 @@ void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
     cePolicyModel->numMemTypes = 1;
     cePolicyModel->numAllocTypes = 1;
 
-    // CE scheduler
-    ocr_model_t * ceScheduler = (ocr_model_t *) malloc(sizeof(ocr_model_t));
-    ceScheduler->kind = ocr_scheduler_ce_kind;
-    ceScheduler->nb_instances = nb_ce_schedulers;
-    ceScheduler->configuration = n_workers_per_scheduler;
-    cePolicyModel->schedulers = ceScheduler;
-
-    // CE worker
-    ocr_model_t * ceWorker = (ocr_model_t *) malloc(sizeof(ocr_model_t));
-    ceWorker->kind = ocr_worker_ce_kind;
-    ceWorker->nb_instances = nb_ce_workers;
-    ceWorker->configuration = NULL;
-    cePolicyModel->workers = ceWorker;
-
     // CE executor
     ocr_model_t * ceExecutor = (ocr_model_t *) malloc(sizeof(ocr_model_t));
     ceExecutor->kind = ocr_executor_ce_kind;
     ceExecutor->nb_instances = nb_ce_executors;
-    ceExecutor->configuration = NULL;
+    ceExecutor->per_type_configuration = NULL;
+    ceExecutor->per_instance_configuration = NULL;
     cePolicyModel->executors = ceExecutor;
 
     // CE workpile
     ocr_model_t * ceWorkpile = (ocr_model_t *) malloc(sizeof(ocr_model_t));
     ceWorkpile->kind = ocr_workpile_ce_kind;
     ceWorkpile->nb_instances = nb_ce_workpiles;
-    ceWorkpile->configuration = NULL;
+    ceWorkpile->per_type_configuration = NULL;
+    ceWorkpile->per_instance_configuration = NULL;
     cePolicyModel->workpiles = ceWorkpile;
 
     // CE memory
     ocr_model_t *ceMemory = (ocr_model_t*)malloc(sizeof(ocr_model_t));
-    ceMemory->configuration = NULL;
+    ceMemory->per_type_configuration = NULL;
+    ceMemory->per_instance_configuration = NULL;
     ceMemory->kind = ocrLowMemoryCEKind;
     ceMemory->nb_instances = nb_ce_memories;
     cePolicyModel->memories = ceMemory;
 
     // CE allocator
     ocrAllocatorModel_t *ceAllocator = (ocrAllocatorModel_t*)malloc(sizeof(ocrAllocatorModel_t));
-    ceAllocator->model.configuration = NULL;
+    ceAllocator->model.per_type_configuration = NULL;
+    ceAllocator->model.per_instance_configuration = NULL;
     ceAllocator->model.kind = ocrAllocatorXEKind;
     ceAllocator->model.nb_instances = nb_ce_allocators;
     ceAllocator->sizeManaged = gHackTotalMemSize;
@@ -431,22 +476,100 @@ void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
 
 }
 
-ocr_model_policy_t * createCeModelPolicies ( size_t nb_ces ) {
+ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE ) {
     ocr_model_policy_t * cePolicyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
 
+    size_t nb_ce_schedulers = 1;
+    size_t nb_ce_workers = 1;
+
     cePolicyModel->model.kind = ocr_policy_ce_kind;
-    cePolicyModel->model.nb_instances = nb_ces;
-    cePolicyModel->model.configuration = NULL;
+    cePolicyModel->model.per_type_configuration = NULL;
+    cePolicyModel->model.per_instance_configuration = NULL;
+    cePolicyModel->model.nb_instances = nb_CEs;
+    
+    // CE scheduler
+    ocr_model_t * ceScheduler = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    ceScheduler->kind = ocr_scheduler_ce_kind;
+    ceScheduler->nb_instances = nb_ce_schedulers;
+    ceScheduler->per_type_configuration = NULL;
+
+    size_t index_config = 0, n_all_schedulers = nb_ce_schedulers*nb_CEs;
+    void** scheduler_configurations = malloc(sizeof(fsim_scheduler_configuration*)*n_all_schedulers);
+    for ( index_config = 0; index_config < n_all_schedulers; ++index_config ) {
+        scheduler_configurations[index_config] = (fsim_scheduler_configuration*) malloc(sizeof(fsim_scheduler_configuration));
+        fsim_scheduler_configuration* curr_config = (fsim_scheduler_configuration*)scheduler_configurations[index_config];
+        curr_config->worker_id_begin = (1+nb_XEs_per_CE) * (1+index_config);
+        curr_config->worker_id_end = (1+nb_XEs_per_CE) * (1+index_config) + nb_ce_workers - 1 ;
+    }
+    ceScheduler->per_instance_configuration = scheduler_configurations;
+    cePolicyModel->schedulers = ceScheduler;
+
+    // CE worker
+    ocr_model_t * ceWorker = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    ceWorker->kind = ocr_worker_ce_kind;
+    ceWorker->nb_instances = nb_ce_workers;
+    ceWorker->per_type_configuration = NULL;
+
+    index_config = 0; 
+    size_t n_all_workers = nb_ce_workers*nb_CEs;
+    void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
+    for ( index_config = 0; index_config < n_all_workers; ++index_config ) {
+        worker_configurations[index_config] = (worker_configuration*) malloc(sizeof(worker_configuration));
+        worker_configuration* curr_config = (worker_configuration*)worker_configurations[index_config];
+        curr_config->worker_id = (1+nb_XEs_per_CE) * (1+index_config);
+    }
+    ceWorker->per_instance_configuration = worker_configurations;
+    cePolicyModel->workers = ceWorker;
+
     CEModelPoliciesHelper(cePolicyModel); 
     return cePolicyModel;
 }
 
-ocr_model_policy_t * createCeMasteredModelPolicy ( ) {
+ocr_model_policy_t * createCeMasteredModelPolicy ( size_t nb_XEs_per_CE ) {
     ocr_model_policy_t * cePolicyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
 
+    size_t nb_ce_schedulers = 1;
+    size_t nb_ce_workers = 1;
+
     cePolicyModel->model.kind = ocr_policy_ce_mastered_kind;
+    cePolicyModel->model.per_type_configuration = NULL;
+    cePolicyModel->model.per_instance_configuration = NULL;
     cePolicyModel->model.nb_instances = 1;
-    cePolicyModel->model.configuration = NULL;
+    
+    // Mastered-CE scheduler
+    ocr_model_t * ceScheduler = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    ceScheduler->kind = ocr_scheduler_ce_kind;
+    ceScheduler->nb_instances = nb_ce_schedulers;
+    ceScheduler->per_type_configuration = NULL;
+
+    size_t index_config = 0, n_all_schedulers = nb_ce_schedulers;
+    void** scheduler_configurations = malloc(sizeof(fsim_scheduler_configuration*)*n_all_schedulers);
+    for ( index_config = 0; index_config < n_all_schedulers; ++index_config ) {
+        scheduler_configurations[index_config] = (fsim_scheduler_configuration*) malloc(sizeof(fsim_scheduler_configuration));
+        fsim_scheduler_configuration* curr_config = (fsim_scheduler_configuration*)scheduler_configurations[index_config];
+        curr_config->worker_id_begin = 0;
+        curr_config->worker_id_end = curr_config->worker_id_begin + nb_ce_workers - 1;
+    }
+    ceScheduler->per_instance_configuration = scheduler_configurations;
+    cePolicyModel->schedulers = ceScheduler;
+
+    // CE worker
+    ocr_model_t * ceWorker = (ocr_model_t *) malloc(sizeof(ocr_model_t));
+    ceWorker->kind = ocr_worker_ce_kind;
+    ceWorker->nb_instances = nb_ce_workers;
+    ceWorker->per_type_configuration = NULL;
+
+    index_config = 0; 
+    size_t n_all_workers = nb_ce_workers;
+    void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
+    for ( index_config = 0; index_config < n_all_workers; ++index_config ) {
+        worker_configurations[index_config] = (worker_configuration*) malloc(sizeof(worker_configuration));
+        worker_configuration* curr_config = (worker_configuration*)worker_configurations[index_config];
+        curr_config->worker_id = index_config;
+    }
+    ceWorker->per_instance_configuration = worker_configurations;
+    cePolicyModel->workers = ceWorker;
+
     CEModelPoliciesHelper(cePolicyModel); 
     return cePolicyModel;
 }
@@ -477,81 +600,100 @@ void destructOcrModelPolicy(ocr_model_policy_t * model) {
     free(model);
 }
 
-static inline void create_configure_all_schedulers ( ocr_scheduler_t ** all_schedulers, int nb_component_types, ocr_model_t* components ) {
-    size_t type = 0, idx = 0, instance = 0;
-    for (; type < nb_component_types; ++type) {
-        // For each type, create the number of instances asked for.
-	ocr_model_t curr_component_model = components[type];
-        for ( instance = 0; instance < curr_component_model.nb_instances; ++instance, ++idx ) {
-            // Call the factory method based on the model's type kind.
-            all_schedulers[idx] = newScheduler(curr_component_model.kind);
-            all_schedulers[idx]->create(all_schedulers[idx], curr_component_model.configuration);
+static  void create_configure_all_schedulers ( ocr_scheduler_t ** all_schedulers, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
+    size_t idx = 0, index_policy_domain = 0;
+    for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
+        size_t type = 0, instance = 0; 
+        for (; type < nb_component_types; ++type) {
+            // For each type, create the number of instances asked for.
+            ocr_model_t curr_model = components[type];
+            for ( instance = 0; instance < curr_model.nb_instances; ++instance, ++idx ) {
+                // Call the factory method based on the model's type kind.
+                all_schedulers[idx] = newScheduler(curr_model.kind);
+                all_schedulers[idx]->create(all_schedulers[idx], curr_model.per_type_configuration,
+                        (curr_model.per_instance_configuration) ? curr_model.per_instance_configuration[idx]: NULL );
+            }
         }
     }
 }
 
-static inline void create_configure_all_workpiles ( ocr_workpile_t ** all_workpiles, int nb_component_types, ocr_model_t* components ) {
-    size_t type = 0, idx = 0, instance = 0;
-    for (; type < nb_component_types; ++type) {
-        // For each type, create the number of instances asked for.
-	ocr_model_t curr_component_model = components[type];
-        for ( instance = 0; instance < curr_component_model.nb_instances; ++instance, ++idx ) {
-            // Call the factory method based on the model's type kind.
-            all_workpiles[idx] = newWorkpile(curr_component_model.kind);
-            all_workpiles[idx]->create(all_workpiles[idx], curr_component_model.configuration);
+static  void create_configure_all_workpiles ( ocr_workpile_t ** all_workpiles, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
+    size_t idx = 0, index_policy_domain = 0;
+    for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
+        size_t type = 0, instance = 0; 
+        for (; type < nb_component_types; ++type) {
+            // For each type, create the number of instances asked for.
+            ocr_model_t curr_model = components[type];
+            for ( instance = 0; instance < curr_model.nb_instances; ++instance, ++idx ) {
+                // Call the factory method based on the model's type kind.
+                all_workpiles[idx] = newWorkpile(curr_model.kind);
+                all_workpiles[idx]->create(all_workpiles[idx], curr_model.per_type_configuration);
+            }
         }
     }
 }
 
-static inline void create_configure_all_workers ( ocr_worker_t** all_workers, int nb_component_types, ocr_model_t* components ) {
-    size_t type = 0, idx = 0, instance = 0;
-    for (; type < nb_component_types; ++type) {
-        // For each type, create the number of instances asked for.
-	ocr_model_t curr_component_model = components[type];
-	for ( instance = 0; instance < curr_component_model.nb_instances; ++instance, ++idx ) {
-            // Call the factory method based on the model's type kind.
-            all_workers[idx] = newWorker(curr_component_model.kind);
-            //TODO handle worker index
-            all_workers[idx]->create(all_workers[idx], curr_component_model.configuration, idx);
+static  void create_configure_all_workers ( ocr_worker_t** all_workers, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
+    size_t idx = 0, index_policy_domain = 0;
+    for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
+        size_t type = 0, instance = 0; 
+        for (; type < nb_component_types; ++type) {
+            // For each type, create the number of instances asked for.
+            ocr_model_t curr_model = components[type];
+            for ( instance = 0; instance < curr_model.nb_instances; ++instance, ++idx ) {
+                // Call the factory method based on the model's type kind.
+                all_workers[idx] = newWorker(curr_model.kind);
+                all_workers[idx]->create(all_workers[idx], curr_model.per_type_configuration,
+                        (curr_model.per_instance_configuration) ? curr_model.per_instance_configuration[idx]: NULL );
+            }
         }
     }
 }
 
-static inline void create_configure_all_executors ( ocr_executor_t ** all_executors, int nb_component_types, ocr_model_t* components ) {
-    size_t type = 0, idx = 0, instance = 0;
-    for (; type < nb_component_types; ++type) {
-        // For each type, create the number of instances asked for.
-	ocr_model_t curr_component_model = components[type];
-        for ( instance = 0; instance < curr_component_model.nb_instances; ++instance, ++idx ) {
-            // Call the factory method based on the model's type kind.
-            all_executors[idx] = newExecutor(curr_component_model.kind);
-            all_executors[idx]->create(all_executors[idx], curr_component_model.configuration);
+static  void create_configure_all_executors ( ocr_executor_t ** all_executors, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
+    size_t idx = 0, index_policy_domain = 0;
+    for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
+        size_t type = 0, instance = 0; 
+        for (; type < nb_component_types; ++type) {
+            // For each type, create the number of instances asked for.
+            ocr_model_t curr_component_model = components[type];
+            for ( instance = 0; instance < curr_component_model.nb_instances; ++instance, ++idx ) {
+                // Call the factory method based on the model's type kind.
+                all_executors[idx] = newExecutor(curr_component_model.kind);
+                all_executors[idx]->create(all_executors[idx], curr_component_model.per_type_configuration);
+            }
         }
     }
 }
 
-static inline void create_configure_all_allocators ( ocrAllocator_t ** all_allocators, int nb_component_types, ocrAllocatorModel_t* components ) {
-    size_t type = 0, idx = 0, instance = 0;
-    for (; type < nb_component_types; ++type) {
-        // For each type, create the number of instances asked for.
-	ocrAllocatorModel_t curr_component_model = components[type];
-        for ( instance = 0; instance < curr_component_model.model.nb_instances; ++instance, ++idx ) {
-            // Call the factory method based on the model's type kind.
-            all_allocators[idx] = newAllocator(curr_component_model.model.kind);
-            all_allocators[idx]->create(all_allocators[idx], curr_component_model.sizeManaged, curr_component_model.model.configuration);
+static  void create_configure_all_allocators ( ocrAllocator_t ** all_allocators, int n_policy_domains, int nb_component_types, ocrAllocatorModel_t* components ) {
+    size_t idx = 0, index_policy_domain = 0;
+    for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
+        size_t type = 0, instance = 0; 
+        for (; type < nb_component_types; ++type) {
+            // For each type, create the number of instances asked for.
+            ocrAllocatorModel_t curr_component_model = components[type];
+            for ( instance = 0; instance < curr_component_model.model.nb_instances; ++instance, ++idx ) {
+                // Call the factory method based on the model's type kind.
+                all_allocators[idx] = newAllocator(curr_component_model.model.kind);
+                all_allocators[idx]->create(all_allocators[idx], curr_component_model.sizeManaged, curr_component_model.model.per_type_configuration);
+            }
         }
     }
 }
 
-static inline void create_configure_all_memories ( ocrLowMemory_t ** all_memories, int nb_component_types, ocr_model_t* components ) {
-    size_t type = 0, idx = 0, instance = 0;
-    for (; type < nb_component_types; ++type) {
-        // For each type, create the number of instances asked for.
-	ocr_model_t curr_component_model = components[type];
-        for ( instance = 0; instance < curr_component_model.nb_instances; ++instance, ++idx ) {
-            // Call the factory method based on the model's type kind.
-            all_memories[idx] = newLowMemory(curr_component_model.kind);
-            all_memories[idx]->create(all_memories[idx],curr_component_model.configuration);
+static  void create_configure_all_memories ( ocrLowMemory_t ** all_memories, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
+    size_t idx = 0, index_policy_domain = 0;
+    for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
+        size_t type = 0, instance = 0; 
+        for (; type < nb_component_types; ++type) {
+            // For each type, create the number of instances asked for.
+            ocr_model_t curr_component_model = components[type];
+            for ( instance = 0; instance < curr_component_model.nb_instances; ++instance, ++idx ) {
+                // Call the factory method based on the model's type kind.
+                all_memories[idx] = newLowMemory(curr_component_model.kind);
+                all_memories[idx]->create(all_memories[idx],curr_component_model.per_type_configuration);
+            }
         }
     }
 }
@@ -591,50 +733,57 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
     int n_policy_domains = model->model.nb_instances;
     ocr_policy_domain_t ** policyDomains = (ocr_policy_domain_t **) malloc( sizeof(ocr_policy_domain_t*) * n_policy_domains );
 
-    int idx;
-    for ( idx = 0; idx < n_policy_domains; ++idx ) {
-	// Create an instance of the policy domain
-	policyDomains[idx] = newPolicy(model->model.kind,
-		per_policy_domain_total_nb_workpiles, per_policy_domain_total_nb_workers,
-		per_policy_domain_total_nb_executors, per_policy_domain_total_nb_schedulers);
-
 	// Allocate memory for ocr components
 	// Components instances are grouped into one big chunk of memory
-	ocr_scheduler_t ** all_schedulers = (ocr_scheduler_t **) malloc(sizeof(ocr_scheduler_t *) * per_policy_domain_total_nb_schedulers);
-	ocr_worker_t ** all_workers = (ocr_worker_t **) malloc(sizeof(ocr_worker_t *) * per_policy_domain_total_nb_workers);
-	ocr_executor_t ** all_executors = (ocr_executor_t **) malloc(sizeof(ocr_executor_t *) * per_policy_domain_total_nb_executors);
-	ocr_workpile_t ** all_workpiles = (ocr_workpile_t **) malloc(sizeof(ocr_workpile_t *) * per_policy_domain_total_nb_workpiles);
-	ocrAllocator_t ** all_allocators = (ocrAllocator_t **) malloc(sizeof(ocrAllocator_t*) * totalNumAllocators);
-	ocrLowMemory_t ** all_memories = (ocrLowMemory_t **) malloc(sizeof(ocrLowMemory_t*) * totalNumMemories);
+	ocr_scheduler_t** all_schedulers = (ocr_scheduler_t**) malloc(sizeof(ocr_scheduler_t*) * per_policy_domain_total_nb_schedulers * n_policy_domains );
+	ocr_worker_t   ** all_workers    = (ocr_worker_t   **) malloc(sizeof(ocr_worker_t   *) * per_policy_domain_total_nb_workers    * n_policy_domains );
+	ocr_executor_t ** all_executors  = (ocr_executor_t **) malloc(sizeof(ocr_executor_t *) * per_policy_domain_total_nb_executors  * n_policy_domains );
+	ocr_workpile_t ** all_workpiles  = (ocr_workpile_t **) malloc(sizeof(ocr_workpile_t *) * per_policy_domain_total_nb_workpiles  * n_policy_domains );
+	ocrAllocator_t ** all_allocators = (ocrAllocator_t **) malloc(sizeof(ocrAllocator_t *) * totalNumAllocators * n_policy_domains );
+	ocrLowMemory_t ** all_memories   = (ocrLowMemory_t **) malloc(sizeof(ocrLowMemory_t *) * totalNumMemories * n_policy_domains );
 
 	//
 	// Build instances of each ocr modules
 	//
 	//TODO would be nice to make creation more generic
 
-	create_configure_all_schedulers ( all_schedulers, model->nb_scheduler_types, model->schedulers);
-	create_configure_all_workers ( all_workers, model->nb_worker_types, model->workers );
-	create_configure_all_executors ( all_executors, model->nb_executor_types, model->executors);
-	create_configure_all_workpiles ( all_workpiles, model->nb_workpile_types, model->workpiles);
-	create_configure_all_allocators ( all_allocators, model->numAllocTypes, model->allocators);
-	create_configure_all_memories ( all_memories, model->numMemTypes, model->memories);
+	create_configure_all_schedulers ( all_schedulers, n_policy_domains, model->nb_scheduler_types, model->schedulers);
+	create_configure_all_workers ( all_workers, n_policy_domains, model->nb_worker_types, model->workers );
+	create_configure_all_executors ( all_executors, n_policy_domains, model->nb_executor_types, model->executors);
+	create_configure_all_workpiles ( all_workpiles, n_policy_domains, model->nb_workpile_types, model->workpiles);
+	create_configure_all_allocators ( all_allocators, n_policy_domains, model->numAllocTypes, model->allocators);
+	create_configure_all_memories ( all_memories, n_policy_domains, model->numMemTypes, model->memories);
 
 
-	policyDomains[idx]->create(policyDomains[idx], NULL, all_schedulers,
-		all_workers, all_executors, all_workpiles,
-		all_allocators, all_memories);
+    int idx;
+    for ( idx = 0; idx < n_policy_domains; ++idx ) {
+
+	ocr_scheduler_t** schedulers = (ocr_scheduler_t**) &(all_schedulers[ idx * per_policy_domain_total_nb_schedulers ]);
+	ocr_worker_t   ** workers    = (ocr_worker_t   **) &(all_workers   [ idx * per_policy_domain_total_nb_workers    ]);
+	ocr_executor_t ** executors  = (ocr_executor_t **) &(all_executors [ idx * per_policy_domain_total_nb_executors  ]);
+	ocr_workpile_t ** workpiles  = (ocr_workpile_t **) &(all_workpiles [ idx * per_policy_domain_total_nb_workpiles  ]);
+	ocrAllocator_t ** allocators = (ocrAllocator_t **) &(all_allocators[ idx * totalNumAllocators                    ]);
+	ocrLowMemory_t ** memories   = (ocrLowMemory_t **) &(all_memories  [ idx * totalNumMemories                      ]);
+
+	// Create an instance of the policy domain
+	policyDomains[idx] = newPolicy(model->model.kind,
+		per_policy_domain_total_nb_workpiles, per_policy_domain_total_nb_workers,
+		per_policy_domain_total_nb_executors, per_policy_domain_total_nb_schedulers);
+
+	policyDomains[idx]->create(policyDomains[idx], NULL, schedulers,
+		workers, executors, workpiles, allocators, memories);
 
 	// This is only needed because we want to be able to
 	// write generic code to find instances' backing arrays
 	// given a module kind.
 	size_t nb_ocr_modules = 7;
 	ocr_module_instance modules_kinds[nb_ocr_modules];
-	modules_kinds[0] = (ocr_module_instance){.kind = OCR_WORKER,	.nb_instances = per_policy_domain_total_nb_workers,	.instances = (void **) all_workers};
-	modules_kinds[1] = (ocr_module_instance){.kind = OCR_EXECUTOR,	.nb_instances = per_policy_domain_total_nb_executors,	.instances = (void **) all_executors};
-	modules_kinds[2] = (ocr_module_instance){.kind = OCR_WORKPILE,	.nb_instances = per_policy_domain_total_nb_workpiles,	.instances = (void **) all_workpiles};
-	modules_kinds[3] = (ocr_module_instance){.kind = OCR_SCHEDULER,	.nb_instances = per_policy_domain_total_nb_schedulers,	.instances = (void **) all_schedulers};
-	modules_kinds[4] = (ocr_module_instance){.kind = OCR_ALLOCATOR,	.nb_instances = totalNumAllocators,	.instances = (void **) all_allocators};
-	modules_kinds[5] = (ocr_module_instance){.kind = OCR_MEMORY,	.nb_instances = totalNumMemories,	.instances = (void **) all_memories};
+	modules_kinds[0] = (ocr_module_instance){.kind = OCR_WORKER,	.nb_instances = per_policy_domain_total_nb_workers,	.instances = (void **) workers};
+	modules_kinds[1] = (ocr_module_instance){.kind = OCR_EXECUTOR,	.nb_instances = per_policy_domain_total_nb_executors,	.instances = (void **) executors};
+	modules_kinds[2] = (ocr_module_instance){.kind = OCR_WORKPILE,	.nb_instances = per_policy_domain_total_nb_workpiles,	.instances = (void **) workpiles};
+	modules_kinds[3] = (ocr_module_instance){.kind = OCR_SCHEDULER,	.nb_instances = per_policy_domain_total_nb_schedulers,	.instances = (void **) schedulers};
+	modules_kinds[4] = (ocr_module_instance){.kind = OCR_ALLOCATOR,	.nb_instances = totalNumAllocators,	.instances = (void **) allocators};
+	modules_kinds[5] = (ocr_module_instance){.kind = OCR_MEMORY,	.nb_instances = totalNumMemories,	.instances = (void **) memories};
 	modules_kinds[6] = (ocr_module_instance){.kind = OCR_POLICY,	.nb_instances = 1,			.instances = (void **) &(policyDomains[idx])};
 
 	//
