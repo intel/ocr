@@ -47,8 +47,11 @@ void hc_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
 
 void hc_policy_domain_start(ocr_policy_domain_t * policy) {
     // Create Task and Event Factories
-    policy->taskFactory = hc_task_factory_constructor();
-    policy->eventFactory = hc_event_factory_constructor();
+    policy->taskFactories = (ocr_task_factory**) malloc(sizeof(ocr_task_factory*));
+    policy->eventFactories = (ocr_event_factory**) malloc(sizeof(ocr_event_factory*));
+
+    policy->taskFactories[0] = hc_task_factory_constructor();
+    policy->eventFactories[0] = hc_event_factory_constructor();
 
     // WARNING: Threads start should be the last thing we do here after
     //          all data-structures have been initialized.
@@ -94,8 +97,14 @@ void hc_policy_domain_stop(ocr_policy_domain_t * policy) {
 }
 
 void hc_policy_domain_destruct(ocr_policy_domain_t * policy) {
-    policy->taskFactory->destruct(policy->taskFactory);
-    policy->eventFactory->destruct(policy->eventFactory);
+    ocr_task_factory** taskFactories = policy->taskFactories;
+    taskFactories[0]->destruct(taskFactories[0]);
+    free(taskFactories);
+
+    ocr_event_factory** eventFactories = policy->eventFactories;
+    eventFactories[0]->destruct(eventFactories[0]);
+    free(eventFactories);
+
 }
 
 ocrGuid_t hc_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* location) {
@@ -116,6 +125,13 @@ void hc_ocr_module_map_schedulers_to_policy (void * self_module, ocr_module_kind
     }
 }
 
+ocr_task_factory* hc_policy_getTaskFactoryForUserTasks (ocr_policy_domain_t * policy) {
+    return policy->taskFactories[0];
+}
+
+ocr_event_factory* hc_policy_getEventFactoryForUserEvents(ocr_policy_domain_t * policy) {
+    return policy->eventFactories[0];
+}
 
 ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
         size_t nb_workers,
@@ -141,5 +157,15 @@ ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
     policy->stop = hc_policy_domain_stop;
     policy->destruct = hc_policy_domain_destruct;
     policy->getAllocator = hc_policy_getAllocator;
+    // no inter-policy domain for HC for now
+    policy->take    = NULL;
+    policy->give    = NULL;
+    policy->handOut = NULL;
+    policy->handIn  = NULL;
+    policy->receive = NULL;
+
+    policy->getTaskFactoryForUserTasks = hc_policy_getTaskFactoryForUserTasks;
+    policy->getEventFactoryForUserEvents = hc_policy_getEventFactoryForUserEvents;
     return policy;
 }
+

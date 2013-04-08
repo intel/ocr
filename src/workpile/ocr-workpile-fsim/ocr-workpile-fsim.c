@@ -29,38 +29,40 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef DEQUE_H_
-#define DEQUE_H_
+#include "fsim.h"
 
-typedef struct buffer {
-	int capacity;
-	volatile void ** data;
-} buffer_t;
 
-typedef struct deque {
-	volatile int head;
-	volatile int tail;
-	buffer_t * buffer;
-} deque_t;
+static void ce_message_workpile_create ( ocr_workpile_t * base, void * configuration) {
+    ce_message_workpile* derived = (ce_message_workpile*) base;
+    derived->deque = (mpsc_deque_t *) malloc(sizeof(mpsc_deque_t));
+    mpsc_deque_init(derived->deque, (void *) NULL_GUID);
+}
 
-#define INIT_DEQUE_CAPACITY 128
-#define SLOW_EXPAND_THRESHOLD 128
-#define INC_DEQUE_CAPACITY 64
+static void ce_message_workpile_destruct ( ocr_workpile_t * base ) {
+    ce_message_workpile* derived = (ce_message_workpile*) base;
+    free(derived->deque);
+    free(derived);
+}
 
-void deque_init(deque_t * deq, void * init_value);
-void * deque_steal(deque_t * deq);
-void deque_push(deque_t* deq, void* entry);
-void * deque_pop(deque_t * deq);
+static ocrGuid_t ce_message_workpile_pop ( ocr_workpile_t * base ) {
+    ce_message_workpile* derived = (ce_message_workpile*) base;
+    return (ocrGuid_t) deque_non_competing_pop_head(derived->deque);
+}
 
-typedef struct locked_deque {
-	volatile int head;
-	volatile int tail;
-	volatile int push;
-	buffer_t * buffer;
-} mpsc_deque_t;
+static void ce_message_workpile_push (ocr_workpile_t * base, ocrGuid_t g ) {
+    ce_message_workpile* derived = (ce_message_workpile*) base;
+    deque_locked_push(derived->deque, (void *)g);
+}
 
-void mpsc_deque_init(mpsc_deque_t* deq, void * init_value);
-void* deque_non_competing_pop_head (mpsc_deque_t* deq );
-void deque_locked_push(mpsc_deque_t* deq, void* entry);
-
-#endif /* DEQUE_H_ */
+ocr_workpile_t * ce_message_workpile_constructor(void) {
+    ce_message_workpile* derived = (ce_message_workpile*) malloc(sizeof(ce_message_workpile));
+    ocr_workpile_t * base = (ocr_workpile_t *) derived;
+    ocr_module_t * module_base = (ocr_module_t *) base;
+    module_base->map_fct = NULL;
+    base->create = ce_message_workpile_create;
+    base->destruct = ce_message_workpile_destruct;
+    base->pop = ce_message_workpile_pop;
+    base->push = ce_message_workpile_push;
+    base->steal = ce_message_workpile_pop;
+    return base;
+}

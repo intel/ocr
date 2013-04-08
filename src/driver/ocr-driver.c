@@ -102,11 +102,13 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 	size_t nb_XEs = nb_XE_per_CEs * nb_CEs;
 
 	ocr_model_policy_t * xe_policy_models = createXeModelPolicies ( nb_CEs, nb_XE_per_CEs );
-	ocr_model_policy_t * ce_policy_models = createCeModelPolicies ( nb_CEs, nb_XE_per_CEs );
+	ocr_model_policy_t * ce_policy_models = NULL;
+    if ( nb_CEs > 1 ) ce_policy_models = createCeModelPolicies ( nb_CEs-1, nb_XE_per_CEs );
 	ocr_model_policy_t * ce_mastered_policy_model = createCeMasteredModelPolicy( nb_XE_per_CEs );
 
 	ocr_policy_domain_t ** xe_policy_domains = instantiateModel(xe_policy_models);
-	ocr_policy_domain_t ** ce_policy_domains = instantiateModel(ce_policy_models);
+	ocr_policy_domain_t ** ce_policy_domains = NULL;
+    if ( nb_CEs > 1 ) ce_policy_domains = instantiateModel(ce_policy_models);
 	ocr_policy_domain_t ** ce_mastered_policy_domain = instantiateModel(ce_mastered_policy_model);
 
 	n_root_policy_nodes = nb_CEs;
@@ -125,10 +127,6 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 	ce_mastered_policy_domain[0]->n_predecessors = 0;
 	ce_mastered_policy_domain[0]->predecessors = NULL;
 
-	ce_mastered_policy_domain[0]->start(ce_mastered_policy_domain[0]);
-
-	master_worker = ce_mastered_policy_domain[0]->workers[0];
-
 	for ( idx = 1; idx < nb_CEs; ++idx ) {
 	    ocr_policy_domain_t *curr = ce_policy_domains[idx-1];
 
@@ -136,8 +134,6 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 	    curr->successors = &(xe_policy_domains[idx*nb_XE_per_CEs]);
 	    curr->n_predecessors = 0;
 	    curr->predecessors = NULL;
-
-	    curr->start(curr);
 	}
 
 	// sagnak: should this instead be recursive?
@@ -148,8 +144,6 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 	    curr->successors = NULL;
 	    curr->n_predecessors = 1;
 	    curr->predecessors = ce_mastered_policy_domain;
-
-	    curr->start(curr);
 	}
 
 	for ( idx = nb_XE_per_CEs; idx < nb_XEs; ++idx ) {
@@ -158,10 +152,22 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 	    curr->n_successors = 0;
 	    curr->successors = NULL;
 	    curr->n_predecessors = 1;
-	    curr->predecessors = &(ce_policy_domains[idx/nb_XE_per_CEs]);
-
-	    curr->start(curr);
+	    curr->predecessors = &(ce_policy_domains[idx/nb_XE_per_CEs-1]);
 	}
+
+	ce_mastered_policy_domain[0]->start(ce_mastered_policy_domain[0]);
+
+	for ( idx = 1; idx < nb_CEs; ++idx ) {
+	    ocr_policy_domain_t *curr = ce_policy_domains[idx-1];
+	    curr->start(curr);
+    }
+	for ( idx = 0; idx < nb_XEs; ++idx ) {
+	    ocr_policy_domain_t *curr = xe_policy_domains[idx];
+	    curr->start(curr);
+    }
+
+	master_worker = ce_mastered_policy_domain[0]->workers[0];
+
     } else {
 	if (md_file != NULL) {
 	    //TODO need a file stat to check

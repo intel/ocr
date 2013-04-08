@@ -482,30 +482,9 @@ void hc_event_factory_destructor ( struct ocr_event_factory_struct* base ) {
     free(derived);
 }
 
-// takesArg indicates whether or not this event carries any data
-ocrGuid_t hcEventFactoryCreate ( struct ocr_event_factory_struct* factory, ocrEventTypes_t eventType, bool takesArg ) {
-    ocr_event_t * res = eventConstructor(factory, eventType, takesArg);
-    return res->guid;
-}
-
-
-/******************************************************/
-/* OCR-HC Task Implementation                         */
-/******************************************************/
-
-// Forward declaration to keep related definitions together
-static void taskSchedule( ocrGuid_t this_guid, ocr_task_t* base, ocrGuid_t wid );
-
-static void hcTaskConstructInternal (hc_task_t* derived, ocrEdt_t funcPtr,
-        u32 paramc, u64 * params, void** paramv, size_t nbDeps, ocrGuid_t outputEvent, ocr_task_fcts_t * taskFctPtrs) {
-    if (nbDeps == 0) {
-        derived->signalers = END_OF_LIST;
-    } else {
-        // Since we know how many dependences we have, preallocate signalers
-        derived->signalers = checked_malloc(derived->signalers, sizeof(reg_node_t)*nbDeps);
-    }
-    derived->waiters = END_OF_LIST;
-    derived->nbdeps = nbDeps;
+void hc_task_construct_internal (hc_task_t* derived, ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv) {
+    derived->nbdeps = 0;
+    derived->depv = NULL;
     derived->p_function = funcPtr;
     // Initialize base
     ocr_task_t* base = (ocr_task_t*) derived;

@@ -270,7 +270,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
  * one XE scheduler for all XEs
  * one worker for each XEs 
  * one executor for each XEs 
- * one workpile for each XEs
+ * two workpile for each XEs, one for real work, one for CE messages
  * one memory for all XEs
  * one allocator for all XEs
  *
@@ -282,7 +282,7 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
     size_t nb_per_xe_schedulers = 1;
     size_t nb_per_xe_workers = 1;
     size_t nb_per_xe_executors = 1;
-    size_t nb_per_xe_workpiles = 1;
+    size_t nb_per_xe_workpiles = 2;
     size_t nb_per_xe_memories = 1;
     size_t nb_per_xe_allocators = 1;
 
@@ -329,7 +329,6 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
 
     // XE worker
     index_config = 0;
-    worker_id_offset = 1;
     size_t n_all_workers = nb_XEs*nb_per_xe_workers;
     void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
     for ( index_config = 0; index_config < n_all_workers; ++index_config ) {
@@ -337,6 +336,7 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
     }
 
     index_config = 0;
+    worker_id_offset = 1;
     for ( index_ce = 0; index_ce < nb_CEs; ++index_ce ) {
         for ( index_xe = 0; index_xe < nb_XEs_per_CE; ++index_xe, ++index_config ) {
             worker_configuration* curr_config = (worker_configuration*)worker_configurations[index_config];
@@ -407,21 +407,20 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
  * one CE scheduler for all CEs
  * one worker for each CEs 
  * one executor for each CEs 
- * one workpile for each CEs
+ * two workpile for each CEs, one for real work, one for XE messages
  * one memory for all CEs
  * one allocator for all CEs
  */
 
 void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
     size_t nb_ce_executors = 1;
-    size_t nb_ce_workpiles = 1;
     size_t nb_ce_memories = 1;
     size_t nb_ce_allocators = 1;
     
     cePolicyModel->nb_scheduler_types = 1;
     cePolicyModel->nb_worker_types = 1;
     cePolicyModel->nb_executor_types = 1;
-    cePolicyModel->nb_workpile_types = 1;
+    cePolicyModel->nb_workpile_types = 2;
     cePolicyModel->numMemTypes = 1;
     cePolicyModel->numAllocTypes = 1;
 
@@ -434,12 +433,10 @@ void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
     cePolicyModel->executors = ceExecutor;
 
     // CE workpile
-    ocr_model_t * ceWorkpile = (ocr_model_t *) malloc(sizeof(ocr_model_t));
-    ceWorkpile->kind = ocr_workpile_ce_kind;
-    ceWorkpile->nb_instances = nb_ce_workpiles;
-    ceWorkpile->per_type_configuration = NULL;
-    ceWorkpile->per_instance_configuration = NULL;
-    cePolicyModel->workpiles = ceWorkpile;
+    ocr_model_t * ceWorkpiles = (ocr_model_t *) malloc(sizeof(ocr_model_t)*2);
+    ceWorkpiles[0] = (ocr_model_t){.kind =    ocr_workpile_ce_work_kind, .nb_instances = 1, .per_type_configuration = NULL, .per_instance_configuration = NULL };
+    ceWorkpiles[1] = (ocr_model_t){.kind = ocr_workpile_ce_message_kind, .nb_instances = 1, .per_type_configuration = NULL, .per_instance_configuration = NULL };
+    cePolicyModel->workpiles = ceWorkpiles;
 
     // CE memory
     ocr_model_t *ceMemory = (ocr_model_t*)malloc(sizeof(ocr_model_t));

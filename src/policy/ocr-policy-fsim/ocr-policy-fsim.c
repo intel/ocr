@@ -46,8 +46,12 @@ void fsim_policy_domain_create(ocr_policy_domain_t * policy, void * configuratio
 
 static inline void start_task_event_factories ( ocr_policy_domain_t * policy ) {
     // Create Task and Event Factories
-    policy->taskFactory = fsim_task_factory_constructor();
-    policy->eventFactory = fsim_event_factory_constructor();
+    policy->taskFactories = (ocr_task_factory**) malloc(sizeof(ocr_task_factory*)*2);
+    policy->eventFactories = (ocr_event_factory**) malloc(sizeof(ocr_event_factory*));
+
+    policy->taskFactories[0] = fsim_task_factory_constructor();
+    policy->taskFactories[1] = fsim_message_task_factory_constructor();
+    policy->eventFactories[0] = hc_event_factory_constructor();
 }
 
 void xe_policy_domain_start(ocr_policy_domain_t * policy) {
@@ -138,11 +142,16 @@ void fsim_policy_domain_stop(ocr_policy_domain_t * policy) {
 }
 
 void fsim_policy_domain_destruct(ocr_policy_domain_t * policy) {
-    ocr_task_factory* taskFactory = policy->taskFactory;
-    taskFactory->destruct(taskFactory);
+    ocr_task_factory** taskFactories = policy->taskFactories;
+    // TODO: sagnak should be OK to hardcode
+    // there is 2 task factories and a single event factory by type/design 
+    taskFactories[0]->destruct(taskFactories[0]);
+    taskFactories[1]->destruct(taskFactories[1]);
+    free(taskFactories);
 
-    ocr_event_factory* eventFactory = policy->eventFactory;
-    eventFactory->destruct(eventFactory);
+    ocr_event_factory** eventFactories = policy->eventFactories;
+    eventFactories[0]->destruct(eventFactories[0]);
+    free(eventFactories);
 }
 
 ocrGuid_t fsim_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* location) {
@@ -161,6 +170,21 @@ void fsim_ocr_module_map_schedulers_to_policy (void * self_module, ocr_module_ki
 	scheduler->domain = policy;
 }
 
+ocr_task_factory* fsim_policy_getTaskFactoryForUserTasks (ocr_policy_domain_t * policy) {
+    return policy->taskFactories[0];
+}
+
+ocr_event_factory* fsim_policy_getEventFactoryForUserEvents(ocr_policy_domain_t * policy) {
+    return policy->eventFactories[0];
+}
+
+ocrGuid_t policy_domain_take_assert ( ocr_policy_domain_t * thisPolicy, ocr_policy_domain_t * policyTakenFrom, ocrGuid_t takingWorkerGuid ) {
+    assert(0 && "postponed xe policy take implementation");
+}
+
+void policy_domain_give_assert ( ocr_policy_domain_t * thisPolicy, ocr_policy_domain_t * policyToGiveTo, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
+    assert(0 && "postponed xe policy take implementation");
+}
 
 static inline void fsim_policy_domain_constructor_helper ( ocr_policy_domain_t * policy, size_t nb_workpiles,
         size_t nb_workers,
@@ -181,6 +205,26 @@ static inline void fsim_policy_domain_constructor_helper ( ocr_policy_domain_t *
     policy->create = fsim_policy_domain_create;
     policy->destruct = fsim_policy_domain_destruct;
     policy->getAllocator = fsim_policy_getAllocator;
+
+    policy->getTaskFactoryForUserTasks = fsim_policy_getTaskFactoryForUserTasks;
+    policy->getEventFactoryForUserEvents = fsim_policy_getEventFactoryForUserEvents;
+
+    policy->take = policy_domain_take_assert;
+    policy->give = policy_domain_give_assert;
+    policy->handIn = NULL;
+}
+
+void xe_policy_domain_hand_out ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
+    ocr_policy_domain_t* ceDomain = thisPolicy->predecessors[0];
+    ceDomain->receive (ceDomain, giverWorkerGuid, givenTaskGuid);
+}
+
+void ce_policy_domain_receive ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
+    ocr_policy_domain_t* ceDomain = (ocr_policy_domain_t *) thisPolicy;
+    
+    // TODO sagnak, oooh nasty hardcoding
+    ocr_scheduler_t* ceScheduler = ceDomain->schedulers[0];
+    ceScheduler->give(ceScheduler, giverWorkerGuid, givenTaskGuid);
 }
 
 ocr_policy_domain_t * xe_policy_domain_constructor (size_t nb_workpiles,
@@ -195,6 +239,10 @@ ocr_policy_domain_t * xe_policy_domain_constructor (size_t nb_workpiles,
     policy->start = xe_policy_domain_start;
     policy->finish = fsim_policy_domain_finish;
     policy->stop = fsim_policy_domain_stop;
+
+    policy->handOut = xe_policy_domain_hand_out;
+    policy->receive = NULL;
+
     return policy;
 }
 
@@ -210,6 +258,10 @@ ocr_policy_domain_t * ce_policy_domain_constructor (size_t nb_workpiles,
     policy->start = ce_policy_domain_start;
     policy->finish = fsim_policy_domain_finish;
     policy->stop = fsim_policy_domain_stop;
+
+    policy->handOut = NULL;
+    policy->receive = ce_policy_domain_receive;
+
     return policy;
 }
 
@@ -225,5 +277,9 @@ ocr_policy_domain_t * ce_mastered_policy_domain_constructor (size_t nb_workpiles
     policy->start = ce_mastered_policy_domain_start;
     policy->finish = fsim_mastered_policy_domain_finish;
     policy->stop = fsim_mastered_policy_domain_stop;
+
+    policy->handOut = NULL;
+    policy->receive = ce_policy_domain_receive;
+
     return policy;
 }

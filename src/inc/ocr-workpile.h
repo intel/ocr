@@ -86,7 +86,8 @@ typedef struct ocr_workpile_struct {
 /****************************************************/
 
 typedef enum ocr_workpile_kind_enum {
-    OCR_DEQUE = 1
+    OCR_DEQUE = 1,
+    OCR_MESSAGE_QUEUE = 2
 } ocr_workpile_kind;
 
 ocr_workpile_t * newWorkpile(ocr_workpile_kind workpileType);

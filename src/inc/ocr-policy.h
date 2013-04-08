@@ -79,9 +79,8 @@ typedef struct ocr_policy_domain_struct {
     ocrAllocator_t ** allocators;
     ocrLowMemory_t ** memories;
 
-    // TODO: sagnak: hardcoded 1-taskFactory, 1-eventFactory per policy domain, make this extensible
-    ocr_task_factory* taskFactory;
-    ocr_event_factory* eventFactory;
+    ocr_task_factory** taskFactories;
+    ocr_event_factory** eventFactories;
 
     ocr_policy_create_fct create;
     ocr_policy_start_fct start;
@@ -90,6 +89,16 @@ typedef struct ocr_policy_domain_struct {
     ocr_policy_destruct_fct destruct;
     ocr_policy_getAllocator getAllocator;
 
+    void (*give) (struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * policyToGiveTo, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid);
+    void (*receive) (struct ocr_policy_domain_struct * this, ocrGuid_t workerGuid, ocrGuid_t taskGuid);
+    void (*handOut) (struct ocr_policy_domain_struct * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid);
+
+    ocrGuid_t (*take) (struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * policyTakenFrom, ocrGuid_t takingWorkerGuid);
+    ocrGuid_t (*handIn) (struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * takingPolicy, ocrGuid_t takingWorkerGuid);
+
+    ocr_task_factory* (*getTaskFactoryForUserTasks) (struct ocr_policy_domain_struct * policy);
+    ocr_event_factory* (*getEventFactoryForUserEvents) (struct ocr_policy_domain_struct * policy);
+    
     struct ocr_policy_domain_struct** successors;
     struct ocr_policy_domain_struct** predecessors;
     size_t n_successors;

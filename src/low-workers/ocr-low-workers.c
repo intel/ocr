@@ -37,11 +37,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-low-workers.h"
 
 extern ocr_worker_t * hc_worker_constructor();
+extern ocr_worker_t * xe_worker_constructor();
+extern ocr_worker_t * ce_worker_constructor();
 
 ocr_worker_t * newWorker(ocr_worker_kind workerType) {
     switch(workerType) {
     case OCR_WORKER_XE:
+        return xe_worker_constructor();
     case OCR_WORKER_CE:
+        return ce_worker_constructor();
     case OCR_WORKER_HC:
         return hc_worker_constructor();
     }

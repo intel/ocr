@@ -69,6 +69,54 @@ void deque_push(deque_t* deq, void* entry) {
 	deq->tail++;
 }
 
+void mpsc_deque_init(mpsc_deque_t* deq, void * init_value) {
+    deq->head = 0;
+    deq->tail = 0;
+    deq->push = 0;
+    deq->buffer = (buffer_t *) malloc(sizeof(buffer_t));
+    deq->buffer->capacity = INIT_DEQUE_CAPACITY;
+    deq->buffer->data = (volatile void **) malloc(sizeof(void*)*INIT_DEQUE_CAPACITY);
+    volatile void ** data = deq->buffer->data;
+    int i=0;
+    while(i < INIT_DEQUE_CAPACITY) {
+        data[i] = init_value;
+        i++;
+    }
+}
+
+void deque_locked_push(mpsc_deque_t* deq, void* entry) {
+    int success = 0;
+    int capacity = deq->buffer->capacity;
+
+    while (!success) { 
+        int size = deq->tail - deq->head;
+        if (capacity == size) { 
+            assert("DEQUE full, increase deque's size" && 0);
+        }
+
+        if ( hc_cas(&deq->push, 0, 1) ) { 
+            success = 1;
+            deq->buffer->data[ deq->tail % capacity ] = entry;
+            hc_mfence();
+            ++deq->tail;
+            deq->push= 0;
+        }
+    }
+}
+
+void * deque_non_competing_pop_head (mpsc_deque_t* deq ) {
+    int head = deq->head;
+    int tail = deq->tail;
+    void * rt = NULL;
+
+    if ((tail - head) > 0) {
+        rt = (void *) ((void **) deq->buffer->data)[head % deq->buffer->capacity];
+        ++deq->head;
+    }
+
+    return rt;
+}
+
 /*
  * the steal protocol
  */

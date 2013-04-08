@@ -128,9 +128,9 @@ ocrGuid_t getCurrentEDT();
 /******************************************************/
 
 typedef enum ocr_worker_kind_enum {
-    OCR_WORKER_HC = 1
-    ,OCR_WORKER_XE = 2
-    ,OCR_WORKER_CE = 3
+    OCR_WORKER_HC = 1,
+    OCR_WORKER_XE = 2,
+    OCR_WORKER_CE = 3
 } ocr_worker_kind;
 
 ocr_worker_t * newWorker(ocr_worker_kind workerType);
@@ -142,5 +142,18 @@ ocr_worker_t* hc_worker_constructor(void);
 typedef struct worker_configuration {
     size_t worker_id;
 } worker_configuration;
+
+
+
+/* TODO sagnak restructure code in a more pleasant manner than this
+ * exposing some HC worker implementations to be reused for the FSIM-like implementations */
+void hc_worker_create ( ocr_worker_t * base, void * per_type_configuration, void * per_instance_configuration);
+void hc_worker_destruct ( ocr_worker_t * base );
+void hc_start_worker(ocr_worker_t * base);
+void hc_stop_worker(ocr_worker_t * base);
+bool hc_is_running_worker(ocr_worker_t * base);
+ocrGuid_t hc_getCurrentEDT (ocr_worker_t * base);
+void hc_setCurrentEDT (ocr_worker_t * base, ocrGuid_t curr_edt_guid);
+void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocr_module_kind kind, size_t nb_instances, void ** ptr_instances);
 
 #endif /* __OCR_LOW_WORKERS_H__ */

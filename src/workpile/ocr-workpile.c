@@ -40,11 +40,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // mechanism where an implementation can associate its string to a function pointer.
 // i.e HC_WORKPOOL -> hc_workpile_constructor
 extern ocr_workpile_t * hc_workpile_constructor();
+extern ocr_workpile_t * ce_message_workpile_constructor();
 
 ocr_workpile_t * newWorkpile(ocr_workpile_kind workpileType) {
     switch(workpileType) {
     case OCR_DEQUE:
         return hc_workpile_constructor();
+    case OCR_MESSAGE_QUEUE:
+        return ce_message_workpile_constructor();
     default:
         assert(false && "Unrecognized workpile kind");
         break;

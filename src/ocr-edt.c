@@ -48,7 +48,8 @@ static inline ocr_policy_domain_t* get_current_policy_domain () {
 }
 
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
-    ocr_event_factory * eventFactory = get_current_policy_domain()->eventFactory;
+    ocr_policy_domain_t* policy_domain = get_current_policy_domain();
+    ocr_event_factory * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
     *guid = eventFactory->create(eventFactory, eventType, takesArg);
     return 0;
 }
@@ -76,7 +77,8 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
         u32 paramc, u64 * params, void** paramv,
         u16 properties, u32 depc, ocrGuid_t* depv /*= NULL*/) {
 
-    ocr_task_factory* taskFactory = get_current_policy_domain()->taskFactory;
+    ocr_policy_domain_t* policy_domain = get_current_policy_domain();
+    ocr_task_factory* taskFactory = policy_domain->getTaskFactoryForUserTasks(policy_domain);
 
     //TODO LIMITATION handle pre-built dependence vector
     *edtGuid = taskFactory->create(taskFactory, funcPtr, paramc, params, paramv, depc);

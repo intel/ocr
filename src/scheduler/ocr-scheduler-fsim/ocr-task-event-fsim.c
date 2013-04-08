@@ -37,267 +37,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-utils.h"
 #include "debug.h"
 
-struct ocr_event_factory_struct* fsim_event_factory_constructor(void) {
-    fsim_event_factory* derived = (fsim_event_factory*) malloc(sizeof(fsim_event_factory));
-    ocr_event_factory* base = (ocr_event_factory*) derived;
-    base->create = fsim_event_factory_create;
-    base->destruct =  fsim_event_factory_destructor;
-    return base;
-}
-
-void fsim_event_factory_destructor ( struct ocr_event_factory_struct* base ) {
-    fsim_event_factory* derived = (fsim_event_factory*) base;
-    free(derived);
-}
-
-#define UNINITIALIZED_REGISTER_LIST ((register_list_node_t*) -1)
-#define EMPTY_REGISTER_LIST (NULL)
-
-void fsim_event_destructor ( struct ocr_event_struct* base ) {
-    fsim_event_t* derived = (fsim_event_t*)base;
-    globalGuidProvider->releaseGuid(globalGuidProvider, base->guid);
-    free(derived);
-}
-
-ocrGuid_t fsim_event_get (struct ocr_event_struct* event) {
-    fsim_event_t* derived = (fsim_event_t*)event;
-    if ( derived->datum == UNINITIALIZED_GUID ) return ERROR_GUID;
-    return derived->datum;
-}
-
-register_list_node_t* fsim_event_compete_for_put ( fsim_event_t* derived, ocrGuid_t data_for_put_id ) {
-    assert ( derived->datum == UNINITIALIZED_GUID && "violated single assignment property for EDFs");
-
-    volatile register_list_node_t* registerListOfEDF = NULL;
-
-    derived->datum = data_for_put_id;
-    registerListOfEDF = derived->register_list;
-    while ( !__sync_bool_compare_and_swap( &(derived->register_list), registerListOfEDF, EMPTY_REGISTER_LIST)) {
-        registerListOfEDF = derived->register_list;
-    }
-    return (register_list_node_t*) registerListOfEDF;
-}
-
-void fsim_event_signal_waiters( register_list_node_t* task_id_list ) {
-    register_list_node_t* curr = task_id_list;
-
-    while ( UNINITIALIZED_REGISTER_LIST != curr ) {
-        ocrGuid_t wid = ocr_get_current_worker_guid();
-        ocrGuid_t curr_task_guid = curr->task_guid;
-
-        ocr_task_t* curr_task = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, curr_task_guid, (u64*)&curr_task, NULL);
-
-        if ( curr_task->iterate_waiting_frontier(curr_task) ) {
-            ocr_worker_t* w = NULL;
-            globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
-
-            ocr_scheduler_t * scheduler = get_worker_scheduler(w);
-            scheduler->give(scheduler, wid, curr_task_guid);
-        }
-        curr = curr->next;
-    }
-}
-
-void fsim_event_put (struct ocr_event_struct* event, ocrGuid_t db) {
-    fsim_event_t* derived = (fsim_event_t*)event;
-    register_list_node_t* task_list = fsim_event_compete_for_put(derived, db);
-    fsim_event_signal_waiters(task_list);
-}
-
-bool fsim_event_register_if_not_ready(struct ocr_event_struct* event, ocrGuid_t polling_task_id ) {
-    fsim_event_t* derived = (fsim_event_t*)event;
-    bool success = false;
-    volatile register_list_node_t* registerListOfEDF = derived -> register_list;
-
-    if ( registerListOfEDF != EMPTY_REGISTER_LIST ) {
-        register_list_node_t* new_node = (register_list_node_t*)malloc(sizeof(register_list_node_t));
-        new_node->task_guid = polling_task_id;
-
-        while ( registerListOfEDF != EMPTY_REGISTER_LIST && !success ) {
-            new_node -> next = (register_list_node_t*) registerListOfEDF;
-
-            success = __sync_bool_compare_and_swap(&(derived -> register_list), registerListOfEDF, new_node);
-
-            if ( !success ) {
-                registerListOfEDF = derived -> register_list;
-            }
-        }
-
-    }
-    return success;
-}
-
-struct ocr_event_struct* fsim_event_constructor(ocrEventTypes_t eventType, bool takesArg) {
-    fsim_event_t* derived = (fsim_event_t*) malloc(sizeof(fsim_event_t));
-    derived->datum = UNINITIALIZED_GUID;
-    derived->register_list = UNINITIALIZED_REGISTER_LIST;
-    ocr_event_t* base = (ocr_event_t*)derived;
-    base->guid = UNINITIALIZED_GUID;
-
-    globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_EVENT);
-    base->destruct = fsim_event_destructor;
-    base->get = fsim_event_get;
-    base->put = fsim_event_put;
-    base->registerIfNotReady = fsim_event_register_if_not_ready;
-    return base;
-}
-
-ocrGuid_t fsim_event_factory_create ( struct ocr_event_factory_struct* factory, ocrEventTypes_t eventType, bool takesArg ) {
-    //TODO LIMITATION Support other events types
-    if (eventType != OCR_EVENT_STICKY_T) {
-        assert("LIMITATION: Only sticky events are supported" && false);
-    }
-    // takesArg indicates whether or not this event carries any data
-    // If not one can provide a more compact implementation
-    //This would have to be different for different types of events
-    //We can have a switch here and dispatch call to different event constructors
-    ocr_event_t * res = fsim_event_constructor(eventType, takesArg);
-    return res->guid;
-}
-
-fsim_await_list_t* fsim_await_list_constructor( size_t al_size ) {
-    fsim_await_list_t* derived = (fsim_await_list_t*)malloc(sizeof(fsim_await_list_t));
-
-    derived->array = malloc(sizeof(ocr_event_t*) * (al_size+1));
-    derived->array[al_size] = NULL;
-    derived->waitingFrontier = &derived->array[0];
-    return derived;
-}
-
-fsim_await_list_t* fsim_await_list_constructor_with_event_list ( event_list_t* el) {
-    fsim_await_list_t* derived = (fsim_await_list_t*)malloc(sizeof(fsim_await_list_t));
-
-    derived->array = malloc(sizeof(ocr_event_t*)*(el->size+1));
-    derived->waitingFrontier = &derived->array[0];
-    size_t i, size = el->size;
-    event_list_node_t* curr = el->head;
-    for ( i = 0; i < size; ++i, curr = curr -> next ) {
-        derived->array[i] = curr->event;
-    }
-    derived->array[el->size] = NULL;
-    return derived;
-}
-
-void fsim_await_list_destructor( fsim_await_list_t* derived ) {
-    free(derived);
+int fsim_task_is_message ( fsim_message_interface_t* fsim_base ) {
+    return 0;
 }
 
 void fsim_task_destruct ( ocr_task_t* base ) {
-    fsim_task_t* derived = (fsim_task_t*)base;
-    fsim_await_list_destructor(derived->awaitList);
-    globalGuidProvider->releaseGuid(globalGuidProvider, base->guid);
+    fsim_task_t* derived = (fsim_task_t*) base;
     free(derived);
 }
 
-bool fsim_task_iterate_waiting_frontier ( ocr_task_t* base ) {
-    fsim_task_t* derived = (fsim_task_t*)base;
-    ocr_event_t** currEventToWaitOn = derived->awaitList->waitingFrontier;
-
-    ocrGuid_t my_guid = base->guid;
-
-    while (*currEventToWaitOn && !(*currEventToWaitOn)->registerIfNotReady (*currEventToWaitOn, my_guid) ) {
-        ++currEventToWaitOn;
-    }
-    derived->awaitList->waitingFrontier = currEventToWaitOn;
-    return *currEventToWaitOn == NULL;
-}
-
-void fsim_task_schedule( ocr_task_t* base, ocrGuid_t wid ) {
-    if ( base->iterate_waiting_frontier(base) ) {
-
-        ocrGuid_t this_guid = base->guid;
-
-        ocr_worker_t* w = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
-
-        ocr_scheduler_t * scheduler = get_worker_scheduler(w);
-        scheduler->give(scheduler, wid, this_guid);
-    }
-}
-
-void fsim_task_execute ( ocr_task_t* base ) {
-    fsim_task_t* derived = (fsim_task_t*)base;
-    ocr_event_t* curr = derived->awaitList->array[0];
-    ocrDataBlock_t *db = NULL;
-    ocrGuid_t dbGuid = UNINITIALIZED_GUID;
-    size_t i = 0;
-    //TODO this is computed for now but when we'll support slots
-    //we will have to have the size when constructing the edt
-    ocr_event_t* ptr = curr;
-    while ( NULL != ptr ) {
-        ptr = derived->awaitList->array[++i];
-    };
-    derived->nbdeps = i; i = 0;
-    derived->depv = (ocrEdtDep_t *) malloc(sizeof(ocrEdtDep_t) * derived->nbdeps);
-    while ( NULL != curr ) {
-        dbGuid = curr->get(curr);
-        derived->depv[i].guid = dbGuid;
-        if(dbGuid != NULL_GUID) {
-            globalGuidProvider->getVal(globalGuidProvider, dbGuid, (u64*)&db, NULL);
-
-            derived->depv[i].ptr = db->acquire(db, base->guid, true);
-        } else
-            derived->depv[i].ptr = NULL;
-
-        curr = derived->awaitList->array[++i];
-    };
-        derived->p_function(base->paramc, base->params, base->paramv, derived->nbdeps, derived->depv);
-
-    // Now we clean up and release the GUIDs that we have to release
-    for(i=0; i<derived->nbdeps; ++i) {
-        if(derived->depv[i].guid != NULL_GUID) {
-            globalGuidProvider->getVal(globalGuidProvider, derived->depv[i].guid, (u64*)&db, NULL);
-            RESULT_ASSERT(db->release(db, base->guid, true), ==, 0);
-        }
-    }
-}
-
-void fsim_task_add_dependence ( ocr_task_t* base, ocr_event_t* dep, size_t index ) {
-    fsim_task_t* derived = (fsim_task_t*)base;
-    derived->awaitList->array[index] = dep;
-}
-
-static void fsim_task_construct_internal (fsim_task_t* derived, ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv) {
-    derived->nbdeps = 0;
-    derived->depv = NULL;
-    derived->p_function = funcPtr;
-    ocr_task_t* base = (ocr_task_t*) derived;
-    base->guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_EDT);
-    base->paramc = paramc;
-    base->params = params;
-    base->paramv = paramv;
-    base->destruct = fsim_task_destruct;
-    base->iterate_waiting_frontier = fsim_task_iterate_waiting_frontier;
-    base->execute = fsim_task_execute;
-    base->schedule = fsim_task_schedule;
-    base->add_dependence = fsim_task_add_dependence;
-}
-
-fsim_task_t* fsim_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv, event_list_t* el) {
-    fsim_task_t* derived = (fsim_task_t*)malloc(sizeof(fsim_task_t));
-    derived->awaitList = fsim_await_list_constructor_with_event_list(el);
-    fsim_task_construct_internal(derived, funcPtr, paramc, params, paramv);
-    return derived;
-}
-
 fsim_task_t* fsim_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv, size_t dep_list_size) {
-    fsim_task_t* derived = (fsim_task_t*)malloc(sizeof(fsim_task_t));
-    derived->awaitList = fsim_await_list_constructor(dep_list_size);
-    fsim_task_construct_internal(derived, funcPtr, paramc, params, paramv);
+    fsim_task_t* derived = (fsim_task_t*) malloc(sizeof(fsim_task_t));
+    hc_task_t* hcTaskBase = &(derived->fsimBase.base);
+
+    hcTaskBase->awaitList = hc_await_list_constructor(dep_list_size);
+    hc_task_construct_internal(hcTaskBase, funcPtr, paramc, params, paramv);
+
+    fsim_message_interface_t* fsimMessage = &(derived->fsimBase.message_interface);
+    fsimMessage->is_message = fsim_task_is_message;
+
+    ocr_task_t* ocrTaskBase = (ocr_task_t*) hcTaskBase;
+    ocrTaskBase->destruct = fsim_task_destruct;
     return derived;
 }
 
 void fsim_task_factory_destructor ( struct ocr_task_factory_struct* base ) {
     fsim_task_factory* derived = (fsim_task_factory*) base;
     free(derived);
-}
-
-ocrGuid_t fsim_task_factory_create_with_event_list (struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, event_list_t* l) {
-    fsim_task_t* edt = fsim_task_construct_with_event_list(fctPtr, paramc, params, paramv, l);
-    ocr_task_t* base = (ocr_task_t*) edt;
-    return base->guid;
 }
 
 ocrGuid_t fsim_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, size_t dep_l_size) {
@@ -314,41 +80,183 @@ struct ocr_task_factory_struct* fsim_task_factory_constructor(void) {
     return base;
 }
 
-void * xe_worker_computation_routine(void * arg) {
-    ocr_worker_t * worker = (ocr_worker_t *) arg;
+void fsim_message_task_factory_destructor ( struct ocr_task_factory_struct* base ) {
+    fsim_message_task_factory* derived = (fsim_message_task_factory*) base;
+    free(derived);
+}
+
+int fsim_message_task_is_message ( fsim_message_interface_t* fsim_base ) {
+    return 1;
+}
+
+void fsim_message_task_destruct ( ocr_task_t* base ) {
+    fsim_task_t* derived = (fsim_task_t*) base;
+    free(derived);
+}
+
+fsim_message_task_t* fsim_message_task_construct (ocrEdt_t funcPtr) {
+    fsim_message_task_t* derived = (fsim_message_task_t*) malloc(sizeof(fsim_message_task_t));
+    hc_task_t* hcTaskBase = &(derived->fsimBase.base);
+
+    hcTaskBase->awaitList = NULL;
+    hc_task_construct_internal(hcTaskBase, NULL, 0, NULL, NULL);
+
+    fsim_message_interface_t* fsimMessage = &(derived->fsimBase.message_interface);
+    fsimMessage->is_message = fsim_message_task_is_message;
+
+    ocr_task_t* ocrTaskBase = (ocr_task_t*) hcTaskBase;
+    ocrTaskBase->destruct = fsim_message_task_destruct;
+
+    return derived;
+}
+
+ocrGuid_t fsim_message_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, size_t dep_l_size) {
+    fsim_message_task_t* edt = fsim_message_task_construct(fctPtr);
+    ocr_task_t* base = (ocr_task_t*) edt;
+    return base->guid;
+}
+
+struct ocr_task_factory_struct* fsim_message_task_factory_constructor(void) {
+    fsim_message_task_factory* derived = (fsim_message_task_factory*) malloc(sizeof(fsim_message_task_factory));
+    ocr_task_factory* base = (ocr_task_factory*) derived;
+    base->create = fsim_message_task_factory_create;
+    base->destruct =  fsim_message_task_factory_destructor;
+    return base;
+}
+
+void * xe_worker_computation_routine (void * arg) {
+    ocr_worker_t * baseWorker = (ocr_worker_t *) arg;
+
     /* associate current thread with the worker */
-    associate_executor_and_worker(worker);
-    ocrGuid_t workerGuid = get_worker_guid(worker);
-    ocr_scheduler_t * scheduler = get_worker_scheduler(worker);
-    log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(worker));
-    while(worker->is_running(worker)) {
-        ocrGuid_t taskGuid = scheduler->take(scheduler, workerGuid);
-        if (taskGuid != NULL_GUID) {
-            ocr_task_t* curr_task = NULL;
-            globalGuidProvider->getVal(globalGuidProvider, taskGuid, (u64*)&(curr_task), NULL);
-            worker->setCurrentEDT(worker,taskGuid);
-            curr_task->execute(curr_task);
-            worker->setCurrentEDT(worker, NULL_GUID);
+    associate_executor_and_worker(baseWorker);
+
+    ocrGuid_t workerGuid = get_worker_guid(baseWorker);
+    ocr_scheduler_t * xeScheduler = get_worker_scheduler(baseWorker);
+
+    log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(baseWorker));
+
+    while ( baseWorker->is_running(baseWorker) ) {
+        //
+        // try to extract work from an XE's workpile of assigned-by-CE-tasks
+        // as of now always of size 1
+        ocrGuid_t taskGuid = xeScheduler->take(xeScheduler, workerGuid);
+
+        if ( NULL_GUID != taskGuid ) {
+            // if managed to find work that was assigned by CE, execute it
+            ocr_task_t* currTask = NULL;
+            globalGuidProvider->getVal(globalGuidProvider, taskGuid, (u64*)&(currTask), NULL);
+            baseWorker->setCurrentEDT(baseWorker,taskGuid);
+            currTask->execute(currTask);
+            baseWorker->setCurrentEDT(baseWorker, NULL_GUID);
+        } else {
+            // TODO sagnak, this assumes (*A LOT*) the structure below, is this fair?
+            // no assigned work found, now we have to create a 'message task'
+            // by using our policy domain's message task factory
+            ocr_policy_domain_t* policy_domain = xeScheduler->domain;
+            ocr_task_factory* message_task_factory = policy_domain->taskFactories[1];
+
+            // the message to the CE says 'give me work' and notes who is asking for it
+            ocrGuid_t messageTaskGuid = message_task_factory->create(message_task_factory, NULL, 0, NULL, NULL, 0);
+            fsim_message_task_t* derived = NULL;
+            globalGuidProvider->getVal(globalGuidProvider, messageTaskGuid, (u64*)&(derived), NULL);
+            derived -> type = GIVE_ME_WORK;
+            derived -> from_worker_guid = workerGuid;
+
+            // there is no work left and the message has been sent, so turn of the worker
+            // baseWorker->stop(baseWorker);
+            xe_worker_t* derivedWorker = (xe_worker_t*)baseWorker;
+            pthread_mutex_lock(&derivedWorker->isRunningMutex);
+            if ( baseWorker->is_running(baseWorker) ) {
+                // give the work to the XE scheduler, which in turn should give it to the CE
+                // through policy domain hand out and the scheduler differentiates tasks by type (RTTI) like
+                xeScheduler->give(xeScheduler, workerGuid, messageTaskGuid);
+                pthread_cond_wait(&derivedWorker->isRunningCond, &derivedWorker->isRunningMutex);
+            }
+            pthread_mutex_unlock(&derivedWorker->isRunningMutex);
         }
     }
     return NULL;
 }
 
 void * ce_worker_computation_routine(void * arg) {
-    ocr_worker_t * worker = (ocr_worker_t *) arg;
+    ocr_worker_t * ceWorker = (ocr_worker_t *) arg;
+    ocr_scheduler_t * ceScheduler = get_worker_scheduler(ceWorker);
+
     /* associate current thread with the worker */
-    associate_executor_and_worker(worker);
-    ocrGuid_t workerGuid = get_worker_guid(worker);
-    ocr_scheduler_t * scheduler = get_worker_scheduler(worker);
-    log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(worker));
-    while(worker->is_running(worker)) {
-        ocrGuid_t taskGuid = scheduler->take(scheduler, workerGuid);
-        if (taskGuid != NULL_GUID) {
-            ocr_task_t* curr_task = NULL;
-            globalGuidProvider->getVal(globalGuidProvider, taskGuid, (u64*)&(curr_task), NULL);
-            worker->setCurrentEDT(worker,taskGuid);
-            curr_task->execute(curr_task);
-            worker->setCurrentEDT(worker, NULL_GUID);
+    associate_executor_and_worker(ceWorker);
+
+    ocrGuid_t ceWorkerGuid = get_worker_guid(ceWorker);
+    log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(ceWorker));
+    while(ceWorker->is_running(ceWorker)) {
+
+        // pop a 'message task' to handle messaging
+        // the 'state' of the scheduler should point to the message workpile
+        ocrGuid_t messageTaskGuid = ceScheduler->take(ceScheduler, ceWorkerGuid);
+
+        // TODO sagnak, oh the assumptions, clean below
+        if ( NULL_GUID != messageTaskGuid ) {
+
+            // check if the popped task is of 'message task' type
+            fsim_task_base_t* currTask = NULL;
+            globalGuidProvider->getVal(globalGuidProvider, messageTaskGuid, (u64*)&(currTask), NULL);
+
+            fsim_message_interface_t* taskAsMessage = &(currTask->message_interface);
+            assert(taskAsMessage->is_message(taskAsMessage) && "hoping to pop a message-task; popped non-message task");
+
+            // TODO sagnak, we seem to 'know' the underlying task type, not sure if this is a good idea
+            fsim_message_task_t* currMessageTask = (fsim_message_task_t*) currTask;
+
+            // TODO sagnak, we seem to 'know' the underlying scheduler type, not sure if this is a good idea
+            ce_scheduler_t* derivedCeScheduler = (ce_scheduler_t*) ceScheduler;
+
+            // find the worker, scheduler the message originated from
+            ocrGuid_t targetWorkerGuid = currMessageTask->from_worker_guid;
+            ocr_worker_t* targetWorker= NULL;
+            globalGuidProvider->getVal(globalGuidProvider, targetWorkerGuid, (u64*)&(targetWorker), NULL);
+            ocr_scheduler_t* targetScheduler = get_worker_scheduler(targetWorker);
+
+            switch (currMessageTask->type) {
+                case GIVE_ME_WORK:
+                    {
+                        // if the XE is asking for work
+                        // change the scheduler 'state' to 'executable task' popping
+                        derivedCeScheduler -> in_message_popping_mode = 0;
+                        // pop an 'executable task'
+                        ocrGuid_t toXeTaskGuid = ceScheduler->take(ceScheduler, ceWorkerGuid);
+                        // change the scheduler 'state' back to 'message task' popping
+                        derivedCeScheduler -> in_message_popping_mode = 1;
+
+                        if ( NULL_GUID != toXeTaskGuid ) {
+                            targetScheduler->give(targetScheduler, ceWorkerGuid, toXeTaskGuid);
+                            // now that the XE has work, it may be restarted
+                            // targetWorker->start(targetWorker);
+                            //
+                            xe_worker_t* derivedWorker = (xe_worker_t*)targetWorker;
+                            pthread_mutex_lock(&derivedWorker->isRunningMutex);
+                            pthread_cond_signal(&derivedWorker->isRunningCond);
+                            pthread_mutex_unlock(&derivedWorker->isRunningMutex);
+                        } else {
+                            // if there was no successful task handing to XE, do not lose the message
+                            ceScheduler->give(ceScheduler, ceWorkerGuid, messageTaskGuid);
+                        }
+                    }
+                    break;
+                case PICK_MY_WORK_UP:
+                    {
+                        ocrGuid_t taskFromXe = targetScheduler->take( targetScheduler, ceWorkerGuid );
+                        if ( NULL_GUID != taskFromXe ) {
+                            ceScheduler->give(ceScheduler, ceWorkerGuid, taskFromXe);
+                        } else {
+                            // if there was no successful task picking from XE, do not lose the message
+                            ceScheduler->give(ceScheduler, ceWorkerGuid, messageTaskGuid);
+                        }
+                    }
+                    break;
+            };
+
+            // ceWorker->setCurrentEDT(ceWorker,messageTaskGuid);
+            // curr_task->execute(curr_task);
+            // ceWorker->setCurrentEDT(ceWorker, NULL_GUID);
         }
     }
     return NULL;
