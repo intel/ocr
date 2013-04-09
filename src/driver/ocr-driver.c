@@ -96,30 +96,32 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 
     /* sagnak begin */
     if ( md_file != NULL && !strncmp(md_file,"fsim",5) ) {
-	// sagnak TODO handle nb_CEs <= 1 case
-	size_t nb_CEs = 2;
-	size_t nb_XE_per_CEs = 3;
-	size_t nb_XEs = nb_XE_per_CEs * nb_CEs;
+        // sagnak TODO handle nb_CEs <= 1 case
+        size_t nb_CEs = 2;
+        size_t nb_XE_per_CEs = 3;
+        size_t nb_XEs = nb_XE_per_CEs * nb_CEs;
 
 	ocr_model_policy_t * xe_policy_models = createXeModelPolicies ( nb_CEs, nb_XE_per_CEs );
 	ocr_model_policy_t * ce_policy_models = NULL;
-    if ( nb_CEs > 1 ) ce_policy_models = createCeModelPolicies ( nb_CEs-1, nb_XE_per_CEs );
+        if ( nb_CEs > 1 )
+            ce_policy_models = createCeModelPolicies ( nb_CEs-1, nb_XE_per_CEs );
 	ocr_model_policy_t * ce_mastered_policy_model = createCeMasteredModelPolicy( nb_XE_per_CEs );
 
 	ocr_policy_domain_t ** xe_policy_domains = instantiateModel(xe_policy_models);
 	ocr_policy_domain_t ** ce_policy_domains = NULL;
-    if ( nb_CEs > 1 ) ce_policy_domains = instantiateModel(ce_policy_models);
+        if ( nb_CEs > 1 )
+            ce_policy_domains = instantiateModel(ce_policy_models);
 	ocr_policy_domain_t ** ce_mastered_policy_domain = instantiateModel(ce_mastered_policy_model);
 
-	n_root_policy_nodes = nb_CEs;
-	root_policies = (ocr_policy_domain_t**) malloc(sizeof(ocr_policy_domain_t*)*nb_CEs);
+        n_root_policy_nodes = nb_CEs;
+        root_policies = (ocr_policy_domain_t**) malloc(sizeof(ocr_policy_domain_t*)*nb_CEs);
 
-	root_policies[0] = ce_mastered_policy_domain[0];
+        root_policies[0] = ce_mastered_policy_domain[0];
 
-	size_t idx = 0;
-	for ( idx = 0; idx < nb_CEs-1; ++idx ) {
-	    root_policies[idx+1] = ce_policy_domains[idx];
-	}
+        size_t idx = 0;
+        for ( idx = 0; idx < nb_CEs-1; ++idx ) {
+            root_policies[idx+1] = ce_policy_domains[idx];
+        }
 
 	idx = 0;
 	ce_mastered_policy_domain[0]->n_successors = nb_XE_per_CEs;
@@ -178,7 +180,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 		ocr_abort();
 	    } else {
 		nbHardThreads = MachineDescription_getNumHardwareThreads(md);
-		gHackTotalMemSize = MachineDescription_getDramSize(md);
+                //	gHackTotalMemSize = MachineDescription_getDramSize(md);
 	    }
 	}
 
@@ -190,7 +192,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 	size_t nb_executors_per_policy_domain = nbHardThreads;
 	size_t nb_schedulers_per_policy_domain = 1;
 
-	ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_policy_domain, 
+	ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_policy_domain,
 		nb_schedulers_per_policy_domain, nb_workers_per_policy_domain,
 		nb_executors_per_policy_domain, nb_workpiles_per_policy_domain);
 

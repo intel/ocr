@@ -1,8 +1,9 @@
+OCR_INPUT_HOME=.
 PROG=cholesky
 SUFFIX=.exe
 CFLAGS= -g
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr -lm
-OCR_INPUT=${OCR_INPUT_HOME}/cholesky
+OCR_INPUT=${OCR_INPUT_HOME}
 
 all: compile run
 all-test: compile run verify
