@@ -115,10 +115,10 @@ ocrGuid_t ocrElsGet(u8 offset) {
 #ifdef HAVE_ELS_SUPPORT
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
     ocr_worker_t * worker = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL)
+    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
     ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
     ocr_task_t * edt = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL)
+    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL);
     return edt->els[offset];
 #else
     assert("OCR runtime has not been compiled with ELS support" && 0);
@@ -134,10 +134,10 @@ void ocrElsSet(u8 offset, ocrGuid_t data) {
 #ifdef HAVE_ELS_SUPPORT
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
     ocr_worker_t * worker = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL)
+    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
     ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
     ocr_task_t * edt = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL)
+    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL);
     edt->els[offset] = data;
 #else
     assert("OCR runtime has not been compiled with ELS support" && 0);
