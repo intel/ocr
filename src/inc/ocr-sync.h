@@ -47,16 +47,6 @@
  */
 typedef struct _ocrLock_t {
     /**
-     * @brief Constructor equivalent
-     *
-     * Constructs a lock
-     *
-     * @param self          Pointer to this lock
-     * @param config        An optional configuration (not currently used)
-     */
-    void (*create)(struct _ocrLock_t* self, void* config);
-
-    /**
      * @brief Destructor equivalent
      *
      * Cleans up the lock if needed. Does not call free
@@ -70,22 +60,101 @@ typedef struct _ocrLock_t {
     void (*unlock)(struct _ocrLock_t* self);
 } ocrLock_t;
 
-typedef enum _ocrLockKind {
-    OCR_LOCK_DEFAULT = 0,
-    OCR_LOCK_X86 = 1
-} ocrLockKind;
+/**
+ * @brief Factory for locks
+ */
+typedef struct _ocrLockFactory_t {
+    // I don't think we need create. Encapsulated in newLockFactoryXXX
+//    void (*create)(struct _ocrLockFactory_t *self, void* config);
+    void (*destruct)(struct _ocrLockFactory_t *self);
 
-extern ocrLockKind ocrLockDefaultKind;
+    ocrLock_t* (*instantiate)(struct _ocrLockFactory_t* self, void* config);
+} ocrLockFactory_t;
 
 /**
- * @brief Allocates a lock
+ * @brief A model for a simple atomic 64 bit value
  *
- * The user will need to call "create" on the
- * lock returned to properly initialize it
+ * You can increment the atomic or perform a compare-and-swap
  *
- * @param type              Type of the lock
- * @return A pointer to the meta-data for the lock
+ * @todo See if we need 32 bit, etc.
  */
-ocrLock_t *newLock(ocrLockKind type);
+typedef struct _ocrAtomic64_t {
+    void (*destruct)(struct _ocrAtomic64_t *self);
+
+    /**
+     * @brief Compare and swap
+     *
+     * The semantics are as follows (all operations performed atomically):
+     *     - if location is cmpValue, atomically replace with
+     *       newValue and return cmpValue
+     *     - if location is *not* cmpValue, return value at location
+     */
+    u64 (*cmpswap)(struct _ocrAtomic64_t *self, u64 cmpValue, u64 newValue);
+
+    /**
+     * @brief Atomic add
+     *
+     * The semantics are as follows (all operations performed atomically):
+     *     - atomically increment location by addValue
+     *     - return new value (after addition)
+     *
+     * @param self      This atomic
+     * @param addValue  Value to add to location
+     * @return New value of the location
+     */
+    u64 (*xadd)(struct _ocrAtomic64_t *self, u64 addValue);
+
+    /**
+     * @brief Return the current value
+     *
+     * This may return an "old" value if a concurrent
+     * atomic change is happening.
+     * @param self      This atomic
+     * @return Value of the atomic
+     */
+    u64 (*val)(struct _ocrAtomic64_t *self);
+} ocrAtomic64_t;
+
+/**
+ * @brief Factory for atomics
+ */
+typedef struct _ocrAtomic64Factory_t {
+//    void (*create)(struct _ocrAtomics64Factory_t *self, void* config);
+    void (*destruct)(struct _ocrAtomics64Factory_t *self);
+
+    ocrAtomic64_t* (*instantiate)(struct _ocrAtomic64Factory_t* self, void* config);
+} ocrAtomic64Factory_t;
+
+/**
+ * @brief Queue implementation.
+ *
+ * @todo Do we need to have multiple interfaces for different
+ * types of queues
+ */
+typedef struct _ocrQueue_t {
+    void (*destruct)(struct _ocrQueue_t *self);
+
+    u64 popHead(struct _ocrQueue_t *self);
+    u64 popTail(struct _ocrQueue_t *self);
+
+    u64 pushHead(struct _ocrQueue_t *self, u64 val);
+    u64 pushTail(struct _ocrQueue_t *self, u64 val);
+} ocrQueue_t;
+
+/**
+ * @brief Factory for queues
+ */
+typedef struct _ocrQueueFactory_t {
+    void (*destruct)(struct _ocrQueueFactory_t *self);
+
+    ocrQueue_t* (*instantiate)(struct _ocrQueueFactory_t *self, void* config);
+} ocrQueueFactory_t;
+
+// typedef enum _ocrLockKind {
+//     OCR_LOCK_DEFAULT = 0,
+//     OCR_LOCK_X86 = 1
+// } ocrLockKind;
+
+// extern ocrLockKind ocrLockDefaultKind;
 
 #endif /* __OCR_SYNC_H__ */

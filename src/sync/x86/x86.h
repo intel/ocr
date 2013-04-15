@@ -43,5 +43,32 @@ typedef struct {
     u32 val;
 } ocrLockX86_t;
 
-ocrLock_t* newLockX86();
+typedef struct {
+    ocrLockFactory_t base;
+} ocrLockFactoryX86_t;
+
+typedef struct {
+    ocrAtomic64_t base;
+    volatile u64 val;
+} ocrAtomic64X86_t;
+
+typedef struct {
+    ocrAtomic64Factory_t base;
+} ocrAtomic64FactoryX86_t;
+
+typedef struct {
+    ocrQueue_t base;
+    volatile u64 head, tail, size;
+    u64 *content;
+    volatile u32 lock;
+} ocrQueueX86_t;
+
+typedef struct {
+    ocrQueueFactory_t base;
+} ocrQueueFactoryX86_t;
+
+ocrLockFactory_t *newLockFactoryX86(void* config);
+ocrAtomic64Factory_t *newAtomic64FactoryX86(void* config);
+ocrQueueFactory_t *newQueueFactoryX86(void* config);
+
 #endif /* __SYNC_X86_H__ */
