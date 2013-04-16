@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OCR_RUNTIME_ITF_H_
 
 #include "ocr-types.h"
+#include "ocr-guid.h"
 
 /**
  * @file OCR Runtime interface: Defines additional API for runtime implementers.
