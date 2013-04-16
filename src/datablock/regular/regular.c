@@ -36,6 +36,7 @@
 #include "debug.h"
 #include "ocr-task-event.h"
 #include "ocr-guid.h"
+#include "ocr-config.h"
 
 void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
                    u16 flags, void* configuration) {
@@ -48,7 +49,7 @@ void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
     rself->ptr = allocator->allocate(allocator, size);
     rself->allocatorGuid = allocatorGuid;
     rself->size = size;
-    rself->lock->create(rself->lock, NULL); // TODO sagnak NULL is for config?
+    rself->lock = GocrLockFactory->instantiate(GocrLockFactory, NULL);
     rself->attributes.flags = flags;
     rself->attributes.numUsers = 0;
     rself->attributes.freeRequested = 0;
@@ -191,7 +192,7 @@ ocrDataBlock_t* newDataBlockRegular() {
     result->base.acquire = &regularAcquire;
     result->base.release = &regularRelease;
     result->base.free = &regularFree;
-    result->lock = newLock(OCR_LOCK_DEFAULT);
+    result->lock = NULL;
 
     return (ocrDataBlock_t*)result;
 }

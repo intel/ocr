@@ -55,6 +55,13 @@ static void unlockX86(ocrLock_t* self) {
     rself->val = 0;
 }
 
+static u8 tryLockX86(ocrLock_t* self) {
+    ocrLockX86_t *rself = (ocrLockX86_t*)self;
+    if(__sync_bool_compare_and_swap(&(rself->val), 0, 1))
+        return 1;
+    return 0;
+}
+
 /* x86 lock factory */
 static ocrLock_t* newLockX86(ocrLockFactory_t *self, void* config) {
     ocrLockX86_t *result = (ocrLockX86_t*)malloc(sizeof(ocrLockX86_t));
@@ -62,6 +69,7 @@ static ocrLock_t* newLockX86(ocrLockFactory_t *self, void* config) {
     result->base.destruct = &destructLockX86;
     result->base.lock = &lockX86;
     result->base.unlock = &unlockX86;
+    result->base.trylock = &tryLockX86;
 
     result->val = 0;
 
@@ -88,19 +96,19 @@ static void destructAtomic64X86(ocrAtomic64_t *self) {
 
 static u64 xadd64X86(ocrAtomic64_t *self, u64 addValue) {
     ocrAtomic64X86_t *rself = (ocrAtomic64X86_t*)(self);
-    return __sync_add_and_fetch(&(rself->val), addValue)
+    return __sync_add_and_fetch(&(rself->val), addValue);
 }
 
 static u64 cmpswap64X86(ocrAtomic64_t *self, u64 cmpValue, u64 newValue) {
     ocrAtomic64X86_t *rself = (ocrAtomic64X86_t*)(self);
-    return __sync_val_compare_and_swap(&(rself->val), cmpValue, newVal);
+    return __sync_val_compare_and_swap(&(rself->val), cmpValue, newValue);
 }
 
 /* x86 atomic factory */
-static ocrAtomic64_t* newAtomic64X86(ocrAtomicFactory64_t *self, void* config) {
+static ocrAtomic64_t* newAtomic64X86(ocrAtomic64Factory_t *self, void* config) {
     ocrAtomic64X86_t *result = (ocrAtomic64X86_t*)malloc(sizeof(ocrAtomic64X86_t));
 
-    result->base.destruct = &destructAtomicX86;
+    result->base.destruct = &destructAtomic64X86;
     result->base.xadd = &xadd64X86;
     result->base.cmpswap = &cmpswap64X86;
 
@@ -109,60 +117,59 @@ static ocrAtomic64_t* newAtomic64X86(ocrAtomicFactory64_t *self, void* config) {
     return (ocrAtomic64_t*)result;
 }
 
-static void destructAtomic64FactoryX86(ocrAtomicFactory_t *self) {
+static void destructAtomic64FactoryX86(ocrAtomic64Factory_t *self) {
     free(self);
     return;
 }
 
-ocrAtomicFactory_t* newAtomic64FactoryX86(void* config) {
-    ocrAtomicFactoryX86_t *result = (ocrAtomicFactoryX86_t*)malloc(sizeof(ocrAtomicFactoryX86_t*));
+ocrAtomic64Factory_t* newAtomic64FactoryX86(void* config) {
+    ocrAtomic64FactoryX86_t *result = (ocrAtomic64FactoryX86_t*)malloc(sizeof(ocrAtomic64FactoryX86_t*));
     result->base.destruct = &destructAtomic64FactoryX86;
     result->base.instantiate = &newAtomic64X86;
-    return (ocrAtomicFactory_t*)result;
+    return (ocrAtomic64Factory_t*)result;
 }
 
 /* x86 queue */
 
-void destructQueueX86(ocrQueue_t *self) {
+static void destructQueueX86(ocrQueue_t *self) {
     ocrQueueX86_t *rself = (ocrQueueX86_t*)self;
     free(rself->content);
     free(rself);
 }
 
-u64 popHeadX86(ocrQueue_t *self) {
+static u64 popHeadX86(ocrQueue_t *self) {
     ocrQueueX86_t *rself = (ocrQueueX86_t*)self;
     u64 head = rself->head, tail = rself->tail;
     u64 val = 0ULL;
     if((tail - head) > 0) {
-        val = rself->content[head];
-        rself->head = (rself->head + 1) % rself->size;
+        val = rself->content[head % rself->size];
+        rself->head = rself->head + 1;
     }
     return val;
 }
 
-u64 popTailX86(ocrQueue_t *self) {
+static u64 popTailX86(ocrQueue_t *self) {
     return 0;
 }
 
-u64 pushHeadX86(ocrQueue_t *self, u64 val) {
+static u64 pushHeadX86(ocrQueue_t *self, u64 val) {
     return 0;
 }
 
-u64 pushTailX86(ocrQueue_t *self, u64 val) {
+static u64 pushTailX86(ocrQueue_t *self, u64 val) {
     ocrQueueX86_t *rself = (ocrQueueX86_t*)self;
     u8 success = 0;
     s32 size;
     while(!success) {
         size = rself->tail - rself->head;
-        if(size < 0) size += rself->size;
         if(size == rself->size) {
             ASSERT(0); // Deque full
             return 0;
         }
         if(__sync_bool_compare_and_swap(&(rself->lock), 0, 1)) {
             success = 1;
-            rself->content[rself->tail] = val;
-            rself->tail = (rself->tail + 1) % rself->size;
+            rself->content[rself->tail % rself->size] = val;
+            rself->tail = rself->tail + 1;
             asm volatile("mfence");
             rself->lock = 0;
         }
@@ -190,13 +197,13 @@ static ocrQueue_t* newQueueX86(ocrQueueFactory_t *self, void* config) {
     return (ocrQueue_t*)result;
 }
 
+static void destructQueueFactoryX86(ocrQueueFactory_t *self) {
+    free(self);
+}
+
 ocrQueueFactory_t* newQueueFactoryX86(void* config) {
     ocrQueueFactoryX86_t *result = (ocrQueueFactoryX86_t*)malloc(sizeof(ocrQueueFactoryX86_t*));
     result->base.destruct = &destructQueueFactoryX86;
     result->base.instantiate = &newQueueX86;
     return (ocrQueueFactory_t*)result;
-}
-static void destructQueueFactoryX86(ocrAtomicFactory_t *self) {
-    free(self);
-    return;
 }

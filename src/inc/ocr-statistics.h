@@ -155,6 +155,11 @@ typedef struct _ocrStatsMessage_t {
     u64 tick;
     ocrGuid_t src, dest;
     ocrStatsEvt_t type;
+    volatile u8 state; /**< Internal information used for sync messages:
+                        * 0: delete on processing
+                        * 1: keep after processing and set to 2
+                        * 2: done with processing and tick updated
+                        */
 } ocrStatsMessage_t;
 
 /**
@@ -217,10 +222,19 @@ typedef struct _ocrStatsFilter_t {
  * only data. Use the ocrStatsXXX functions to access
  *
  * @todo See about making the filters structure more space efficient
+ * @warn There is an implicit assumption that 'tick' will only be touched by
+ * one worker at a time (not race free and other considerations). In particular,
+ * this means that a process 'receiving' messages should not tick on its own accord (ie:
+ * actively send messages) and vice-versa (a process sending message should not be receiving
+ * them as well). This is true currently because the only things that 'send messages' are
+ * the running EDTs and they do not receive any messages (apart from sync messages
+ * which they initiate).
  */
 typedef struct _ocrStatsProcess_t {
     ocrGuid_t me;               /**< GUID of this process (GUID of EDT for example, ...) */
-    ocrAtomic64_t *tick;        /**< Tick for this process */
+    ocrLock_t *processing;      /**< Lock will be head when the queue of messages is being processed */
+    ocrQueue_t *messages;       /**< Messages queued up (in tick order) */
+    u64 tick;                   /**< Tick right before processing messages[0] */
     ocrStatsFilter_t ***filters;/**< Filters "listening" to events sent to this process */
     u64 *filterCounts;          /**< Bits [0-31] contain number of filters, bits [32-63] contain allocated filters */
 } ocrStatsProcess_t;

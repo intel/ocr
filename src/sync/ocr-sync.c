@@ -35,14 +35,14 @@
 #include "ocr-sync.h"
 #include "x86/x86.h"
 
-ocrLock_t* newLock(ocrLockKind type) {
-    if(type == OCR_LOCK_DEFAULT) type = ocrLockDefaultKind;
-    switch(type) {
-    case OCR_LOCK_X86:
-        return newLockX86();
-        break;
-    default:
-        ASSERT(0);
-    }
-    return NULL;
-}
+// ocrLock_t* newLock(ocrLockKind type) {
+//     if(type == OCR_LOCK_DEFAULT) type = ocrLockDefaultKind;
+//     switch(type) {
+//     case OCR_LOCK_X86:
+//         return newLockX86();
+//         break;
+//     default:
+//         ASSERT(0);
+//     }
+//     return NULL;
+// }

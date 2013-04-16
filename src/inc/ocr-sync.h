@@ -58,6 +58,17 @@ typedef struct _ocrLock_t {
     void (*lock)(struct _ocrLock_t* self);
 
     void (*unlock)(struct _ocrLock_t* self);
+
+    /**
+     * @brief Tries to grab the lock
+     *
+     * Returns 1 on success or 0 on failure.
+     * Non-blocking in any case
+     *
+     * @param self      This lock
+     * @return 1 if the lock was successfully grabbed, 0 if not
+     */
+    u8 (*trylock)(struct _ocrLock_t* self);
 } ocrLock_t;
 
 /**
@@ -120,7 +131,7 @@ typedef struct _ocrAtomic64_t {
  */
 typedef struct _ocrAtomic64Factory_t {
 //    void (*create)(struct _ocrAtomics64Factory_t *self, void* config);
-    void (*destruct)(struct _ocrAtomics64Factory_t *self);
+    void (*destruct)(struct _ocrAtomic64Factory_t *self);
 
     ocrAtomic64_t* (*instantiate)(struct _ocrAtomic64Factory_t* self, void* config);
 } ocrAtomic64Factory_t;
@@ -134,11 +145,11 @@ typedef struct _ocrAtomic64Factory_t {
 typedef struct _ocrQueue_t {
     void (*destruct)(struct _ocrQueue_t *self);
 
-    u64 popHead(struct _ocrQueue_t *self);
-    u64 popTail(struct _ocrQueue_t *self);
+    u64 (*popHead)(struct _ocrQueue_t *self);
+    u64 (*popTail)(struct _ocrQueue_t *self);
 
-    u64 pushHead(struct _ocrQueue_t *self, u64 val);
-    u64 pushTail(struct _ocrQueue_t *self, u64 val);
+    u64 (*pushHead)(struct _ocrQueue_t *self, u64 val);
+    u64 (*pushTail)(struct _ocrQueue_t *self, u64 val);
 } ocrQueue_t;
 
 /**
