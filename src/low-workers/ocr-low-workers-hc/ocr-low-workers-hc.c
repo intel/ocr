@@ -27,7 +27,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-*/
+ */
 
 #include <pthread.h>
 #include <stdio.h>
@@ -192,4 +192,27 @@ void * worker_computation_routine(void * arg) {
         }
     }
     return NULL;
+}
+
+/**
+ * @brief Executes an edt on top of the current edt stack.
+ * Useful for blocking runtimes built on top of OCR.
+ */
+void worker_blocked_help(ocr_worker_t * worker) {
+    ocrGuid_t workerGuid = get_worker_guid(worker);
+    // Retrieve scheduler and pick up a new task
+    ocr_scheduler_t * scheduler = get_worker_scheduler(worker);
+    ocrGuid_t taskGuid = scheduler->take(scheduler, workerGuid);
+    // Save context
+    ocrGuid_t currentEdt = worker->getCurrentEDT(worker);
+    if (taskGuid != NULL_GUID) {
+        // Execute the task on top of the current edt's stack
+        ocr_task_t* curr_task = NULL;
+        globalGuidProvider->getVal(globalGuidProvider, taskGuid, (u64*)&(curr_task), NULL);
+        worker->setCurrentEDT(worker,taskGuid);
+        curr_task->fct_ptrs->execute(curr_task);
+        worker->setCurrentEDT(worker, NULL_GUID);
+    }
+    // Restore context
+    worker->setCurrentEDT(worker, currentEdt);
 }

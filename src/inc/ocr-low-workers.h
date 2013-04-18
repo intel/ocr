@@ -129,6 +129,11 @@ void associate_executor_and_worker(ocr_worker_t * worker);
  */
 ocrGuid_t ocr_get_current_worker_guid();
 
+/*! \brief Notifies a worker is blocked.
+ * Default implementation is to help by executing another edt
+ * on top to the currently executing one (yes it's dangerous)
+ */
+void worker_blocked_help(ocr_worker_t * worker);
 
 /******************************************************/
 /* OCR WORKER KINDS AND CONSTRUCTORS                  */
