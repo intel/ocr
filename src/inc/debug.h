@@ -79,14 +79,14 @@
  */
 #define DEBUG_LVL_VVERB     4
 
-#ifndef DEBUG_OCR_LEVEL
+#ifndef OCR_DEBUG_LEVEL
 /**
  * @brief Debug level
  *
  * This controls the verbosity of the
  * debug messages in debug mode
  */
-#define DEBUG_OCR_LEVEL DEBUG_LVL_INFO
+#define OCR_DEBUG_LEVEL DEBUG_LVL_INFO
 #endif
 
 // Imply OCR_STATUS
@@ -94,7 +94,7 @@
 // Imply ASSERTs
 #define OCR_ASSERT
 
-#define DO_DEBUG(level) if(level <= DEBUG_OCR_LEVEL)
+#define DO_DEBUG(level) if(level <= OCR_DEBUG_LEVEL)
 
 // #define TIMING_CLOCK CLOCK_REALTIME
 

@@ -39,6 +39,10 @@
 #include "ocr-guid.h"
 #include "ocr-allocator.h"
 
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#endif
+
 /**
  * @brief Internal description of a data-block.
  *
@@ -49,6 +53,9 @@
  **/
 typedef struct _ocrDataBlock_t {
     ocrGuid_t guid;
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcess_t statProcess;
+#endif
     /**
      * @brief Creates a data-block to represent the memory of size 'size'
      * at address 'address'

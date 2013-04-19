@@ -186,6 +186,9 @@ ocrDataBlock_t* newDataBlockRegular() {
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)malloc(sizeof(ocrDataBlockRegular_t));
     result->base.guid = UNINITIALIZED_GUID;
     globalGuidProvider->getGuid(globalGuidProvider, &(result->base.guid), (u64)result, OCR_GUID_DB);
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcessCreate(&(result->base.statProcess), result->base.guid);
+#endif
 
     result->base.create = &regularCreate;
     result->base.destruct = &regularDestruct;

@@ -108,7 +108,7 @@ typedef enum {
 
     /* DB related events */
     STATS_DB_CREATE,   /**< The DB was created */
-    STATS_DB_DESTROY,  /**< The DB was destroyed/freed
+    STATS_DB_DESTROY,  /**< The DB was destroyed/freed */
     STATS_DB_ACQ,      /**< The DB was acquired */
     STATS_DB_REL,      /**< The DB was releaased */
     STATS_DB_MOVE,     /**< The DB was moved */
@@ -128,13 +128,14 @@ typedef enum {
  * @brief Base class for messages sent between ocrStatsProcess_t
  *
  * This class can be extended to provide specific message implementations
+ * @see ocr-stat-messages.h
  */
 typedef struct _ocrStatsMessage_t {
     void (*create)(struct _ocrStatsMessage_t *self, ocrStatsEvt_t
                    type, u64 tick, ocrGuid_t src, ocrGuid_t dest,
                    void* configuration);
 
-    void (*destroy)(struct _ocrStatsMessage_t *self);
+    void (*destruct)(struct _ocrStatsMessage_t *self);
 
     /**
      * @brief Dump the message to a string
@@ -163,18 +164,34 @@ typedef struct _ocrStatsMessage_t {
 } ocrStatsMessage_t;
 
 /**
+ * @brief "Base" message creation function
+ */
+void ocrStatsMessageCreate(ocrStatsMessage_t *self, ocrStatsEvt_t type, u64 tick, ocrGuid_t src,
+                           ocrGuid_t dest, void* configuration);
+
+void ocrStatsMessageDestruct(ocrStatsMessage_t *self);
+
+/**
  * @brief A "filter" on statistics being collected.
  *
  * This is a "base class" for all other filter interfaces which can be
  * implemented to provide just the statistics needed.
+ *
+ * Filters are organized in a tree with each filter having an
+ * optional 'parent' filter. Periodically (depending on how the
+ * filter is defined) or upon the destruction of the filter, it
+ * will merge with its parent filter.
+ *
+ * The leave filters are attached to each process and other filters
+ * aggregate the information from children filters.
  */
 typedef struct _ocrStatsFilter_t {
     // TODO: Do we need a GUID for this, probably not
-    void (*create)(struct _ocrStatsFilter_t *self, void* configuration);
+    void (*create)(struct _ocrStatsFilter_t *self, struct _ocrStatsFilter_t *parent,
+                   void* configuration);
 
     void (*destruct)(struct _ocrStatsFilter_t *self);
 
-    // TODO: I don't like this dump function
     /**
      * @brief "Dump" the information in this filter.
      *
@@ -185,11 +202,16 @@ typedef struct _ocrStatsFilter_t {
      *
      * @param self           Pointer to this ocrStatsFilter
      * @param out            Returned pointer to the output string
+     * @param chunk          ID of the chunk to dump. Always starts at 0 and
+     *                       the caller can then follow the chunk IDs returned
+     *                       by successive calls of the function
      * @param configuration  Optional configuration (implementation specific)
      *
-     * @return 0 if nothing else to dump. Non zero if more to dump
+     * @return 0 if nothing left to dump or a non-zero ID indicating the
+     * next "chunk" ID to pass to the dump function to get the next part
+     * of the output
      */
-    u8 (*dump)(struct _ocrStatsDbFilter_t *self, char** out,
+    u64 (*dump)(struct _ocrStatsFilter_t *self, char** out, u64 chunk,
                void* configuration);
 
     /**
@@ -207,13 +229,31 @@ typedef struct _ocrStatsFilter_t {
      * This is used when information from one filter is combined with that
      * of another. In particular, each EDT will keep track of the loads/stores
      * to a DB in its own filter which is merged back to the DB's global filter
-     * when the EDT releases the DB
+     * when the EDT releases the DB. This is also used when children filter are
+     * merged with their parent
      *
      * @param self      This filter
      * @param other     Filter to merge into this filter
+     * @param toKill    If non-zero, this means the filter is going away after this merge
+     *                  and the assumption is that the caller will not destroy the filter
+     *                  leaving this responsability to the callee (this allows for better
+     *                  parallelism). If 0, the filter will not be destroyed and it
+     *                  can be assumed that on return, this call will have all the
+     *                  information it requires to do the merge.
      */
-    void (*merge)(struct _ocrStatsFilter_t *self, struct _ocrStatsFilter_t *other);
+    void (*merge)(struct _ocrStatsFilter_t *self, struct _ocrStatsFilter_t *other, u8 toKill);
+
+    struct _ocrStatsFilter_t *parent;
 } ocrStatsFilter_t;
+
+/**
+ * @brief "Base" filter creation function
+ */
+void ocrStatsFilterCreate(ocrStatsFilter_t *self, ocrStatsFilter_t *parent,
+                          void* configuration);
+
+void ocrStatsFilterDestruct(ocrStatsFilter_t *self);
+
 
 /**
  * @brief A "process" in the Lamport clock sense of things.

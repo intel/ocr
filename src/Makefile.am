@@ -5,6 +5,8 @@ OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/s
 
 # cflags: important to define that otherwise we inherit default values too
 CFLAGS = -Wall -g -O2
+CFLAGS +=-DOCR_ENABLE_STATISTICS
+CFLAGS +=-DOCR_DEBUG -DOCR_DEBUG_LEVEL=DEBUG_LVL_VVERB
 
 # additional cflags for ocr modules
 OCR_CFLAGS = 

@@ -35,19 +35,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-guid.h"
 #include "ocr-edt.h"
 
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#endif
 
-/*******************************************
- * Dependence Registration
- ******************************************/
-void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
-
-/*******************************************
- *          OCR Event declarations
- ******************************************/
-
-/*
- * Event's function pointers typedef
- */
 struct ocr_event_struct;
 typedef void (*event_destruct_fct)(struct ocr_event_struct* event);
 typedef ocrGuid_t (*event_get_fct)(struct ocr_event_struct* event);
@@ -57,6 +48,11 @@ typedef void (*event_satisfy_fct)(struct ocr_event_struct* event, ocrGuid_t db, 
  *
  *  This class provides the interface for the underlying implementation to conform.
  */
+typedef struct ocr_event_struct {
+    ocrGuid_t guid; /**< GUID for this event */
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcess_t statProcess;
+#endif
 
 typedef struct ocr_event_fcts_struct {
     /*! \brief Virtual destructor for the Event interface
@@ -244,6 +240,9 @@ typedef struct ocr_task_fcts_struct_t {
  */
 typedef struct ocr_task_struct_t {
     ocrGuid_t guid; /**< GUID for this task (EDT) */
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcess_t statProcess;
+#endif
     u32 paramc;
     u64 * params;
     void ** paramv;
