@@ -47,12 +47,26 @@
 #include "ocr-runtime.h"
 
 
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#include "ocr-stat-user.h"
+#include "ocr-config.h"
+#endif
+
 
 u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
                ocrLocation_t *location, ocrInDbAllocator_t allocator) {
 
     // TODO: Currently location and allocator are ignored
     ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_DEFAULT);
+
+#ifdef OCR_ENABLE_STATISTICS
+    // Create the statistics process for this DB.
+    ocrStatsProcessCreate(&(createdDb->statProcess), createdDb->guid);
+    ocrStatsFilter_t *t = NEW_FILTER(simple);
+    t->create(t, GocrFilterAggregator, NULL);
+    ocrStatsProcessRegisterFilter(&(createdDb->statProcess), (0x3F<<STATS_DB_CREATE), t);
+#endif
 
     // TODO: I need to get the current policy to figure out my allocator.
     // Replace with allocator that is gotten from policy
@@ -62,11 +76,28 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     globalGuidProvider->getVal(globalGuidProvider, worker_guid, (u64*)&worker, NULL);
 
     ocr_scheduler_t * scheduler = get_worker_scheduler(worker);
-    ocr_policy_domain_t* policy = scheduler -> domain; 
+    ocr_policy_domain_t* policy = scheduler -> domain;
 
     createdDb->create(createdDb, policy->getAllocator(policy, location), len, flags, NULL);
+#ifdef OCR_ENABLE_STATISTICS
+    {
+        ocr_task_t *task = NULL;
+        ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
+        globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
+        ocrStatsProcess_t *srcProcess = edtGuid==0?&GfakeProcess:&(task->statProcess);
 
+        ocrStatsMessage_t *mess = NEW_MESSAGE(simple);
+        mess->create(mess, STATS_DB_CREATE, 0, edtGuid, createdDb->guid, NULL);
+        ocrStatsAsyncMessage(srcProcess, &(createdDb->statProcess), mess);
+
+        *addr = createdDb->acquire(createdDb, edtGuid, false);
+        ocrStatsMessage_t *mess2 = NEW_MESSAGE(simple);
+        mess2->create(mess2, STATS_DB_ACQ, 0, edtGuid, createdDb->guid, NULL);
+        ocrStatsSyncMessage(srcProcess, &(createdDb->statProcess), mess2);
+    }
+#else
     *addr = createdDb->acquire(createdDb, worker->getCurrentEDT(worker), false);
+#endif
     if(*addr == NULL) return ENOMEM;
 
     *db = createdDb->guid;
@@ -81,6 +112,23 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     ocr_worker_t *worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&worker, NULL);
 
+#ifdef OCR_ENABLE_STATISTICS
+    {
+        ocr_task_t *task = NULL;
+        ocrDataBlock_t *dataBlock = NULL;
+        ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
+        globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
+        globalGuidProvider->getVal(globalGuidProvider, db, (u64*)&dataBlock, NULL);
+
+        ocrStatsProcess_t *srcProcess = edtGuid==0?&GfakeProcess:&(task->statProcess);
+
+        ocrStatsMessage_t *mess = NEW_MESSAGE(simple);
+        mess->create(mess, STATS_DB_DESTROY, 0, edtGuid, db, NULL);
+        ocrStatsAsyncMessage(srcProcess, &(dataBlock->statProcess), mess);
+    }
+#endif
+    // Make sure you do the free *AFTER* sending the message because the free could
+    // destroy the datablock (and the stat process).
     u8 status = dataBlock->free(dataBlock, worker->getCurrentEDT(worker));
     return status;
 }

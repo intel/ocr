@@ -82,7 +82,7 @@ static void destructLockFactoryX86(ocrLockFactory_t *self) {
 }
 
 ocrLockFactory_t* newLockFactoryX86(void* config) {
-    ocrLockFactoryX86_t *result = (ocrLockFactoryX86_t*)malloc(sizeof(ocrLockFactoryX86_t*));
+    ocrLockFactoryX86_t *result = (ocrLockFactoryX86_t*)malloc(sizeof(ocrLockFactoryX86_t));
     result->base.destruct = &destructLockFactoryX86;
     result->base.instantiate = &newLockX86;
     return (ocrLockFactory_t*)result;
@@ -123,7 +123,7 @@ static void destructAtomic64FactoryX86(ocrAtomic64Factory_t *self) {
 }
 
 ocrAtomic64Factory_t* newAtomic64FactoryX86(void* config) {
-    ocrAtomic64FactoryX86_t *result = (ocrAtomic64FactoryX86_t*)malloc(sizeof(ocrAtomic64FactoryX86_t*));
+    ocrAtomic64FactoryX86_t *result = (ocrAtomic64FactoryX86_t*)malloc(sizeof(ocrAtomic64FactoryX86_t));
     result->base.destruct = &destructAtomic64FactoryX86;
     result->base.instantiate = &newAtomic64X86;
     return (ocrAtomic64Factory_t*)result;
@@ -202,7 +202,7 @@ static void destructQueueFactoryX86(ocrQueueFactory_t *self) {
 }
 
 ocrQueueFactory_t* newQueueFactoryX86(void* config) {
-    ocrQueueFactoryX86_t *result = (ocrQueueFactoryX86_t*)malloc(sizeof(ocrQueueFactoryX86_t*));
+    ocrQueueFactoryX86_t *result = (ocrQueueFactoryX86_t*)malloc(sizeof(ocrQueueFactoryX86_t));
     result->base.destruct = &destructQueueFactoryX86;
     result->base.instantiate = &newQueueX86;
     return (ocrQueueFactory_t*)result;

@@ -36,13 +36,14 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
-// #include <pthread.h>
+#include <pthread.h>
 // #include <time.h>
 #include <stdio.h>
 #include <assert.h>
 // #include <stdarg.h>
 
-#define PRINTF printf
+
+#define PRINTF(format, ...) fprintf(stderr, "T %p: " format, (void*)pthread_self(), ## __VA_ARGS__)
 
 #ifdef OCR_DEBUG
 

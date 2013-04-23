@@ -51,8 +51,6 @@
 
 #define END_DEFINE_MESSAGE return (ocrStatsMessage_t*)self; }
 
-#define MESSAGE_TYPE(name) ocrSTMESS_##name##_t
-
 #define DEFINE_FILTER(name, funcCreate, funcDestruct, funcDump, funcNotify, funcMerge)           \
     ocrStatsFilter_t* newStatsFilter_##name() {                                               \
     ocrSTFILT_##name##_t* self = (ocrSTFILT_##name##_t*)malloc(sizeof(ocrSTFILT_##name##_t)); \
@@ -64,8 +62,6 @@
 
 
 #define END_DEFINE_FILTER return (ocrStatsFilter_t*)self; }
-
-#define FILTER_TYPE(name) ocrSTFILT_##name##_t
 
 // Simple message
 static void simpleMessageCreate(ocrStatsMessage_t *self, ocrStatsEvt_t type, u64 tick, ocrGuid_t src,
@@ -93,17 +89,24 @@ static void simpleFilterCreate(ocrStatsFilter_t *self, ocrStatsFilter_t *parent,
     rself->base.parent = parent;
     rself->count = 0;
     rself->maxCount = 8; // Make a configurable number
-
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Created a simple filter @ 0x%lx with parent 0x%lx\n", (u64)self, (u64)parent);
+    }
     rself->messages = (intSimpleMessageNode_t*)malloc(sizeof(intSimpleMessageNode_t)*rself->maxCount);
 }
 
 static void simpleFilterDestruct(ocrStatsFilter_t *self) {
     FILTER_TYPE(simple)* rself = (FILTER_TYPE(simple)*)self;
 
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Destroying simple filter @ 0x%lx\n", (u64)self);
+    }
     // We alert our parent
     if(rself->base.parent) {
-        rself->base.parent->merge(rself->base.parent, self, 1);
-        return;
+        DO_DEBUG(DEBUG_LVL_VVERB) {
+            PRINTF("VVERB: Filter @ 0x%lx merging with parent 0x%lx\n", (u64)self, (u64)(rself->base.parent));
+        }
+        return rself->base.parent->merge(rself->base.parent, self, 1);
     } else {
         // Here, we destroy ourself
         free(rself->messages);
@@ -118,10 +121,10 @@ static u64 simpleFilterDump(ocrStatsFilter_t *self, char** out, u64 chunk, void*
 
     ASSERT(chunk < rself->count);
 
-    *out = (char*)malloc(sizeof(char)*80); // The output message should always fit in 80 chars given the format
+    *out = (char*)malloc(sizeof(char)*82); // The output message should always fit in 80 chars given the format
 
     intSimpleMessageNode_t *tmess = &(rself->messages[chunk]);
-    snprintf(*out, sizeof(char)*80, "@0x%lx: 0x%lx(%d) -> 0x%lx(%d) %d", tmess->tick, tmess->src,
+    snprintf(*out, sizeof(char)*82, "@%ld: 0x%lx(%d) -> 0x%lx(%d) %d", tmess->tick, tmess->src,
              1, tmess->dest, 1, (int)tmess->type); // TODO: put types of GUID instead of 1
 
     if(chunk < rself->count - 1)
@@ -138,7 +141,10 @@ static void simpleFilterNotify(ocrStatsFilter_t *self, const ocrStatsMessage_t *
         memcpy(t, rself->messages, (rself->count - 1)*sizeof(intSimpleMessageNode_t));
         rself->messages = t;
     }
-
+    DO_DEBUG(DEBUG_LVL_VVERB) {
+        PRINTF("VVERB: Filter @ 0x%lx received message (%ld): %ld -> %ld of type %d\n",
+               (u64)self, rself->count, mess->src, mess->dest, (u32)mess->type);
+    }
     intSimpleMessageNode_t* tmess = &(rself->messages[rself->count++]);
     tmess->tick = mess->tick;
     tmess->src = mess->src;
@@ -166,12 +172,18 @@ static void fileDumpFilterCreate(ocrStatsFilter_t *self, ocrStatsFilter_t *paren
         rself->outFile = fopen((char*)configuration, "w");
     else
         rself->outFile = fopen("ocrStats.log", "w");
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Created a file-dump filter @ 0x%lx with file 0x%lx\n", (u64)self, (u64)rself->outFile);
+    }
     ASSERT(rself->outFile);
 }
 
 static void fileDumpFilterDestruct(ocrStatsFilter_t *self) {
     FILTER_TYPE(filedump)* rself = (FILTER_TYPE(filedump)*)self;
 
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Destroying file-dump filter @ 0x%lx\n", (u64)self);
+    }
     // We close out the output file
     if(rself->outFile) {
         fclose(rself->outFile);
@@ -196,6 +208,10 @@ static void fileDumpFilterNotify(ocrStatsFilter_t *self, const ocrStatsMessage_t
 static void fileDumpFilterMerge(ocrStatsFilter_t *self, ocrStatsFilter_t *other, u8 toKill) {
     // This is when we need to basically dump all information from this filter in the file
     FILTER_TYPE(filedump)* rself = (FILTER_TYPE(filedump)*)self;
+
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Filter @ 0x%lx received merging from filter 0x%lx\n", (u64)self, (u64)other);
+    }
 
     if(rself->outFile) {
         char* outString;

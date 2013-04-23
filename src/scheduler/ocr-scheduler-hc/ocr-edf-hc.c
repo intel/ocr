@@ -39,19 +39,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-low-workers.h"
 #include "debug.h"
 
-#define SEALED_LIST ((void *) -1)
-#define END_OF_LIST NULL
-#define UNINITIALIZED_DATA ((ocrGuid_t) -2)
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#endif
 
-
-//
-// Guid-kind checkers for convenience
-//
-
-static bool isDatablockGuid(ocrGuid_t guid) {
-    ocrGuidKind kind;
-    globalGuidProvider->getKind(globalGuidProvider, guid, &kind);
-    return kind == OCR_GUID_DB;
+struct ocr_event_factory_struct* hc_event_factory_constructor(void) {
+    hc_event_factory* derived = (hc_event_factory*) malloc(sizeof(hc_event_factory));
+    ocr_event_factory* base = (ocr_event_factory*) derived;
+    base->create = hc_event_factory_create;
+    base->destruct =  hc_event_factory_destructor;
+    return base;
 }
 
 static bool isEventGuid(ocrGuid_t guid) {
@@ -551,6 +548,10 @@ hc_task_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** 
 
 void hcTaskDestruct ( ocr_task_t* base ) {
     hc_task_t* derived = (hc_task_t*)base;
+    hc_await_list_destructor(derived->awaitList);
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcessDestruct(&(base->statProcess));
+#endif
     globalGuidProvider->releaseGuid(globalGuidProvider, base->guid);
     free(derived);
 }

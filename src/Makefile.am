@@ -4,7 +4,7 @@ SUBDIRS =
 OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/hc -I$(top_srcdir)/src/inc/fsim
 
 # cflags: important to define that otherwise we inherit default values too
-CFLAGS = -Wall -g -O2
+CFLAGS = -Wall -g -O0
 CFLAGS +=-DOCR_ENABLE_STATISTICS
 CFLAGS +=-DOCR_DEBUG -DOCR_DEBUG_LEVEL=DEBUG_LVL_VVERB
 

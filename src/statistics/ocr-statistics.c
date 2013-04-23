@@ -68,12 +68,12 @@ void ocrStatsProcessCreate(ocrStatsProcess_t *self, ocrGuid_t guid) {
     self->processing = GocrLockFactory->instantiate(GocrLockFactory, NULL);
     self->messages = GocrQueueFactory->instantiate(GocrQueueFactory, (void*)32); // TODO: Make size configurable
     self->tick = 0;
-    self->filters = (ocrStatsFilter_t***)malloc(sizeof(ocrStatsFilter_t**)*STATS_EVT_MAX);
-    self->filterCounts = (u64*)malloc(sizeof(u64)*STATS_EVT_MAX);
-    for(i = 0; i < (u64)STATS_EVT_MAX; ++i) self->filterCounts[i] = 0ULL;
+    self->filters = (ocrStatsFilter_t***)malloc(sizeof(ocrStatsFilter_t**)*(STATS_EVT_MAX+1)); // +1 because the first bucket keeps track of all filters uniquely
+    self->filterCounts = (u64*)malloc(sizeof(u64)*(STATS_EVT_MAX+1));
+    for(i = 0; i < (u64)STATS_EVT_MAX + 1; ++i) self->filterCounts[i] = 0ULL;
 
     DO_DEBUG(DEBUG_LVL_INFO) {
-        PRINTF("INFO: Created a StatsProcess (0x%lx) with GUID 0x%lx\n", (u64)self, guid);
+        PRINTF("INFO: Created a StatsProcess (0x%lx) for object with GUID 0x%lx\n", (u64)self, guid);
     }
 }
 
@@ -86,24 +86,30 @@ void ocrStatsProcessDestruct(ocrStatsProcess_t *self) {
     }
 
     // Make sure we process all remaining messages
-    ASSERT(self->processing->trylock(self->processing));
+    while(!self->processing->trylock(self->processing)) ;
 
     while(intProcessMessage(self)) ;
 
     // Free all the filters associated with this process
     // Assumes that the filter is only associated with ONE
     // process
-    for(i = 0; i < (u64)STATS_EVT_MAX; ++i) {
-        u32 maxJ = (u32)(self->filterCounts[i] & 0xFFFFFFFF);
-        for(j = 0; j < maxJ; ++j) {
-            free(self->filters[i][j]);
-        }
-        free(self->filters[i]);
+    u32 maxJ = (u32)(self->filterCounts[0] & 0xFFFFFFFF);
+    for(j = 0; j < maxJ; ++j) {
+        self->filters[0][j]->destruct(self->filters[0][j]);
+    }
+    if(maxJ)
+        free(self->filters[0]);
+    for(i = 1; i < (u64)STATS_EVT_MAX + 1; ++i) {
+        if(self->filterCounts[i])
+            free(self->filters[i]);
     }
 
     free(self->filters);
     free(self->filterCounts);
+
+    self->processing->unlock(self->processing);
     self->processing->destruct(self->processing);
+
     self->messages->destruct(self->messages);
 }
 
@@ -114,21 +120,23 @@ void ocrStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
         PRINTF("VERB: Registering filter 0x%lx with process 0x%lx for mask 0x%lx\n",
                (u64)filter, (u64)self, bitMask);
     }
+    u32 countAlloc, countPresent;
+
     while(bitMask) {
         // Setting some filter up
         u64 bitSet = fls64(bitMask);
         bitMask &= ~(1ULL << bitSet);
 
         ASSERT(bitSet < STATS_EVT_MAX);
+        ++bitSet; // 0 is all filters uniquely
 
         // Check to make sure we have enough room to add this filter
-        u32 countAlloc, countPresent;
         countPresent = (u32)(self->filterCounts[bitSet] & 0xFFFFFFFF);
         countAlloc = (u32)(self->filterCounts[bitSet] >> 32);
-        DO_DEBUG(DEBUG_LVL_VVERB) {
-            PRINTF("VVERB: For type %ld, have %d present and %d allocated (from 0x%lx)\n",
-                   bitSet, countPresent, countAlloc, self->filterCounts[bitSet]);
-        }
+        // DO_DEBUG(DEBUG_LVL_VVERB) {
+        //     PRINTF("VVERB: For type %ld, have %d present and %d allocated (from 0x%lx)\n",
+        //            bitSet, countPresent, countAlloc, self->filterCounts[bitSet]);
+        // }
         if(countAlloc <= countPresent) {
             // Allocate using an exponential model
             if(countAlloc)
@@ -138,18 +146,40 @@ void ocrStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
             ocrStatsFilter_t **newAlloc = (ocrStatsFilter_t**)malloc(sizeof(ocrStatsFilter_t*)*countAlloc);
             // TODO: This memcpy needs to be replaced. The malloc above as well...
             memcpy(newAlloc, self->filters[bitSet], countPresent*sizeof(ocrStatsFilter_t*));
-            free(self->filters[bitSet]);
+            if(countAlloc != 1)
+                free(self->filters[bitSet]);
             self->filters[bitSet] = newAlloc;
         }
         self->filters[bitSet][countPresent++] = filter;
 
         // Set the counter properly again
         self->filterCounts[bitSet] = ((u64)countAlloc << 32) | (countPresent);
-        DO_DEBUG(DEBUG_LVL_VVERB) {
-            PRINTF("VVERB: Setting final counter for %ld to 0x%lx\n",
-                   bitSet, self->filterCounts[bitSet]);
-        }
+        // DO_DEBUG(DEBUG_LVL_VVERB) {
+        //     PRINTF("VVERB: Setting final counter for %ld to 0x%lx\n",
+        //            bitSet, self->filterCounts[bitSet]);
+        // }
     }
+    // Do the same thing for bit 0. Only do it once so we only free things once
+    countPresent = (u32)(self->filterCounts[0] & 0xFFFFFFFF);
+    countAlloc = (u32)(self->filterCounts[0] >> 32);
+    if(countAlloc <= countPresent) {
+        // Allocate using an exponential model
+        if(countAlloc)
+            countAlloc *= 2;
+        else
+            countAlloc = 1;
+        ocrStatsFilter_t **newAlloc = (ocrStatsFilter_t**)malloc(sizeof(ocrStatsFilter_t*)*countAlloc);
+        // TODO: This memcpy needs to be replaced. The malloc above as well...
+        memcpy(newAlloc, self->filters[0], countPresent*sizeof(ocrStatsFilter_t*));
+        if(countAlloc != 1)
+            free(self->filters[0]);
+        self->filters[0] = newAlloc;
+    }
+    self->filters[0][countPresent++] = filter;
+
+    // Set the counter properly again
+    self->filterCounts[0] = ((u64)countAlloc << 32) | (countPresent);
+
 }
 
 void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
@@ -186,6 +216,8 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
         DO_DEBUG(DEBUG_LVL_VERB) {
             PRINTF("VERB: Finished processing messages for 0x%lx\n", dst->me);
         }
+        // Unlock
+        dst->processing->unlock(dst->processing);
     }
 }
 
@@ -230,6 +262,9 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
             DO_DEBUG(DEBUG_LVL_VERB) {
                 PRINTF("VERB: Finished processing messages for 0x%lx\n", dst->me);
             }
+            // Unlock
+            dst->processing->unlock(dst->processing);
+
             break; // Break out of while(1)
         } else {
             // Backoff (TODO, need HW support (abstraction though))

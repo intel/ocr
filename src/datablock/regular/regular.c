@@ -37,6 +37,9 @@
 #include "ocr-task-event.h"
 #include "ocr-guid.h"
 #include "ocr-config.h"
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#endif
 
 void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
                    u16 flags, void* configuration) {
@@ -68,6 +71,14 @@ void regularDestruct(ocrDataBlock_t *self) {
     globalGuidProvider->getVal(globalGuidProvider, rself->allocatorGuid, (u64*)&allocator, NULL);
 
     allocator->free(allocator, rself->ptr); // TODO sagnak first argument was rself->allocator
+
+    // TODO: This is not pretty to be here but I can't put this in the ocrDbFree because
+    // the semantics of ocrDbFree is that it will wait for all acquire/releases to have
+    // completed so I have to release the block when it is really being freed. This current
+    // OCR version does not really implement delayed freeing but may in the future.
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcessDestruct(&(rself->base.statProcess));
+#endif
 
     globalGuidProvider->releaseGuid(globalGuidProvider, self->guid);
     free(rself);
@@ -186,9 +197,6 @@ ocrDataBlock_t* newDataBlockRegular() {
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)malloc(sizeof(ocrDataBlockRegular_t));
     result->base.guid = UNINITIALIZED_GUID;
     globalGuidProvider->getGuid(globalGuidProvider, &(result->base.guid), (u64)result, OCR_GUID_DB);
-#ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcessCreate(&(result->base.statProcess), result->base.guid);
-#endif
 
     result->base.create = &regularCreate;
     result->base.destruct = &regularDestruct;

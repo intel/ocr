@@ -52,6 +52,8 @@
  * @{
  */
 
+#define MESSAGE_TYPE(name) ocrSTMESS_##name##_t
+
 /**
  * @brief Starting part of declaring a message.
  *
@@ -80,6 +82,9 @@ ocrStatsMessage_t* newStatsMessage_##name();
  * code
  */
 #define NEW_MESSAGE(name) newStatsMessage_##name()
+
+
+#define FILTER_TYPE(name) ocrSTFILT_##name##_t
 
 /**
  * @brief Starting part of declaring a filter.

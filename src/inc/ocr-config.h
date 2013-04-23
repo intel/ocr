@@ -47,6 +47,10 @@
 #include "ocr-guid.h"
 #include "ocr-sync.h"
 
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#endif
+
 // Default kinds of ocr modules
 extern ocr_executor_kind ocr_executor_default_kind;
 extern ocr_worker_kind ocr_worker_default_kind;
@@ -92,5 +96,18 @@ extern ocrGuidProviderKind	ocrGuidProviderCEKind;
 ocrLockFactory_t        *GocrLockFactory;
 ocrAtomic64Factory_t    *GocrAtomic64Factory;
 ocrQueueFactory_t       *GocrQueueFactory;
+
+#ifdef OCR_ENABLE_STATISTICS
+// For now have a central statistics aggregator filter
+ocrStatsFilter_t   *GocrFilterAggregator;
+
+// HUGE HUGE HACK: it seems that currently we can run code outside of EDTs
+// which is a big problem since then we don't have a source "process" for Lamport's
+// clock. This should *NEVER* be the case and there should be no non-EDT code
+// except for the bootstrap. For now, and for expediency, this is a hack where I have
+// a fake Lamport process for the initial non-EDT code
+ocrStatsProcess_t GfakeProcess;
+
+#endif
 
 #endif /* __OCR_CONFIG_H__ */
