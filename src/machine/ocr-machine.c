@@ -100,7 +100,7 @@ u32 MachineDescription_getNumProcessors(MachineDescription *this) {
 
 /**
    @brief Get the number of hardware threads in the platform.
- **/
+**/
 u32 MachineDescription_getNumHardwareThreads(MachineDescription *this) {
     u32 num_proc;
     u32 i;
@@ -124,7 +124,7 @@ u32 MachineDescription_getNumMemoryRegions(MachineDescription *this) {
 
 /**
    @brief Get the total amount of DRAM in the system (in bytes).
- **/
+**/
 u64 MachineDescription_getDramSize(MachineDescription *this) {
     u32 num_mr;
     u32 i;
@@ -380,7 +380,7 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
                     mrtype = xmlGetProp(mr_cur,(const xmlChar *)"mrtype");
                     if(mrtype && !xmlStrcmp(mrtype,(const xmlChar *)"cache")) {
                         is_cache = 1;
-                    } 
+                    }
 
                     mr_name = strdup((const char *)xmlGetProp(mr_cur,(const xmlChar *)"id"));
 
@@ -411,7 +411,7 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
             mrtype = xmlGetProp(cur,(const xmlChar *)"mrtype");
             if(mrtype && !xmlStrcmp(mrtype,(const xmlChar *)"cache")) {
                 is_cache = 1;
-            } 
+            }
 
             mr_name = strdup((const char *)xmlGetProp(cur,(const xmlChar *)"id"));
 
@@ -613,8 +613,8 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
             if(!this->costMatrix[i][j].valid) {
 #if 0
                 printf("UnknownCost: Processor=%d, MemoryRegion=%s\n",
-                    MachineDescription_getProcessor(this, i)->id,
-                    MachineDescription_getMemoryRegion(this, j)->name);
+                       MachineDescription_getProcessor(this, i)->id,
+                       MachineDescription_getMemoryRegion(this, j)->name);
 #endif
                 ++unknown_costs;
             }
@@ -622,9 +622,9 @@ int MachineDescription_loadFromPDL(MachineDescription *this, const char *pdlFile
     }
     if(unknown_costs) {
         printf("Number of unknown costs is %d out of %d.\n",
-            unknown_costs,
-            MachineDescription_getNumProcessors(this) *
-            MachineDescription_getNumMemoryRegions(this));
+               unknown_costs,
+               MachineDescription_getNumProcessors(this) *
+               MachineDescription_getNumMemoryRegions(this));
     }
 
     xmlFreeDoc(doc);
@@ -672,17 +672,17 @@ MachineDescription * getMachineDescription() {
 }
 
 CostDescriptor MachineDescription_getProcessorMemoryCost(
-               MachineDescription *this,
-               u32 processor_index,
-               u32 memory_region_index) {
+    MachineDescription *this,
+    u32 processor_index,
+    u32 memory_region_index) {
     return this->costMatrix[processor_index][memory_region_index];
 }
 
 u32 * MachineDescription_whoElseShares(
-               MachineDescription *this,
-               u32 processor_index,
-               u32 memory_region_index,
-               u32 *num_results) {
+    MachineDescription *this,
+    u32 processor_index,
+    u32 memory_region_index,
+    u32 *num_results) {
     u32 *res=NULL;
     CostDescriptor curCD, thisCD;
     unsigned i;
@@ -721,9 +721,9 @@ u32 * MachineDescription_whoElseShares(
 }
 
 u32 * MachineDescription_closestProcessorsToMemory(
-      MachineDescription *this,
-      u32 memory_region_index,
-      u32 *num_results) {
+    MachineDescription *this,
+    u32 memory_region_index,
+    u32 *num_results) {
 
     u32 *res = NULL;
     CostDescriptor minCD = MachineDescription_getProcessorMemoryCost(this, 0, memory_region_index);
@@ -761,9 +761,9 @@ u32 * MachineDescription_closestProcessorsToMemory(
 }
 
 u32 * MachineDescription_closestMemoryRegionsToProcessor(
-      MachineDescription *this,
-      u32 processor_index,
-      u32 *num_results) {
+    MachineDescription *this,
+    u32 processor_index,
+    u32 *num_results) {
 
     u32 *res = NULL;
     CostDescriptor minCD = MachineDescription_getProcessorMemoryCost(this, processor_index, 0);

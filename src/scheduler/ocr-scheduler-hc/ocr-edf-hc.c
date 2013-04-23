@@ -1,31 +1,31 @@
 /* Copyright (c) 2012, Rice University
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are
+   met:
 
-1.  Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-2.  Redistributions in binary form must reproduce the above
-     copyright notice, this list of conditions and the following
-     disclaimer in the documentation and/or other materials provided
-     with the distribution.
-3.  Neither the name of Intel Corporation
-     nor the names of its contributors may be used to endorse or
-     promote products derived from this software without specific
-     prior written permission.
+   1.  Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+   2.  Redistributions in binary form must reproduce the above
+   copyright notice, this list of conditions and the following
+   disclaimer in the documentation and/or other materials provided
+   with the distribution.
+   3.  Neither the name of Intel Corporation
+   nor the names of its contributors may be used to endorse or
+   promote products derived from this software without specific
+   prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
@@ -744,68 +744,39 @@ ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrE
     return base->guid;
 }
 
+void hc_task_execute ( ocr_task_t* base ) {
+    hc_task_t* derived = (hc_task_t*)base;
+    ocr_event_t* curr = derived->awaitList->array[0];
+    ocrDataBlock_t *db = NULL;
+    ocrGuid_t dbGuid = UNINITIALIZED_GUID;
+    size_t i = 0;
+    //TODO this is computed for now but when we'll support slots
+    //we will have to have the size when constructing the edt
+    ocr_event_t* ptr = curr;
+    while ( NULL != ptr ) {
+        ptr = derived->awaitList->array[++i];
+    };
+    derived->nbdeps = i; i = 0;
+    derived->depv = (ocrEdtDep_t *) malloc(sizeof(ocrEdtDep_t) * derived->nbdeps);
+    while ( NULL != curr ) {
+        dbGuid = curr->get(curr);
+        derived->depv[i].guid = dbGuid;
+        if(dbGuid != NULL_GUID) {
+            globalGuidProvider->getVal(globalGuidProvider, dbGuid, (u64*)&db, NULL);
 
-/******************************************************/
-/* Signal/Wait interface implementation               */
-/******************************************************/
+            derived->depv[i].ptr = db->acquire(db, base->guid, true);
+        } else
+            derived->depv[i].ptr = NULL;
 
-//These are essentially switches to dispatch call to the correct implementation
+        curr = derived->awaitList->array[++i];
+    };
+    derived->p_function(base->paramc, base->params, base->paramv, derived->nbdeps, derived->depv);
 
-void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
-    // WAIT MODE: event-to-event registration
-    // Note: do not call 'registerWaiter' here as it triggers event-to-edt 
-    // registration, which should only be done on edtSchedule.
-    if (isEventGuid(signalerGuid) && isEventGuid(waiterGuid)) {
-        hc_event_awaitable_t * target;
-        globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
-        awaitableEventRegisterWaiter(target, waiterGuid, slot);
-        return;
-    }
-
-    // SIGNAL MODE:
-    //  - anything-to-edt registration
-    //  - db-to-event registration
-    registerSignaler(signalerGuid, waiterGuid, slot);
-}
-
-
-// Registers a waiter on a signaler
-static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
-    if (isEventGuid(signalerGuid)) {
-        assert(isEdtGuid(waiterGuid) || isEventGuid(waiterGuid));
-        hc_event_awaitable_t * target;
-        globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
-        awaitableEventRegisterWaiter(target, waiterGuid, slot);
-    } else if(isDatablockGuid(signalerGuid) && isEdtGuid(waiterGuid)) {
-            signalWaiter(waiterGuid, signalerGuid, slot);
-    } else {
-        // Everything else is an error
-        assert("error: Unsupported guid kind in registerWaiter" );
-    }
-}
-
-// register a signaler on a waiter
-static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
-    // anything to edt registration
-    if (isEdtGuid(waiterGuid)) {
-        // edt waiting for a signal from an event or a datablock
-        assert(isEventGuid(signalerGuid) || isDatablockGuid(signalerGuid));
-        ocr_task_t * target = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
-        edtRegisterSignaler(target, signalerGuid, slot);
-        return;
-    // datablock to event registration => satisfy on the spot
-    } else if (isDatablockGuid(signalerGuid)) {
-        assert(isEventGuid(waiterGuid));
-        ocr_event_t * target = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
-        // This looks a duplicate of signalWaiter, however there hasn't
-        // been any signal strictly speaking, hence calling satisfy directly
-        if (isEventSingleGuid(waiterGuid)) {
-            singleEventSatisfy(target, signalerGuid, slot);
-        } else {
-            assert(isEventLatchGuid(waiterGuid));
-            latchEventSatisfy(target, signalerGuid, slot);            
+    // Now we clean up and release the GUIDs that we have to release
+    for(i=0; i<derived->nbdeps; ++i) {
+        if(derived->depv[i].guid != NULL_GUID) {
+            globalGuidProvider->getVal(globalGuidProvider, derived->depv[i].guid, (u64*)&db, NULL);
+            RESULT_ASSERT(db->release(db, base->guid, true), ==, 0);
         }
         return;
     }

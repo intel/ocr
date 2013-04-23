@@ -1,31 +1,31 @@
 /* Copyright (c) 2012, Rice University
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are
+   met:
 
-1.  Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-2.  Redistributions in binary form must reproduce the above
-     copyright notice, this list of conditions and the following
-     disclaimer in the documentation and/or other materials provided
-     with the distribution.
-3.  Neither the name of Intel Corporation
-     nor the names of its contributors may be used to endorse or
-     promote products derived from this software without specific
-     prior written permission.
+   1.  Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+   2.  Redistributions in binary form must reproduce the above
+   copyright notice, this list of conditions and the following
+   disclaimer in the documentation and/or other materials provided
+   with the distribution.
+   3.  Neither the name of Intel Corporation
+   nor the names of its contributors may be used to endorse or
+   promote products derived from this software without specific
+   prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
@@ -87,21 +87,25 @@ typedef struct hc_event_finishlatch_t {
 struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool takesArg, ocr_event_fcts_t * event_fct_ptrs);
 void hc_event_destructor ( struct ocr_event_struct* base );
 
-/******************************************************/
-/* OCR-HC Task Factory                                */
-/******************************************************/
+/*! \brief Dependence list data structure for EDTs
+ */
+typedef struct {
+    /*! Public member for array head*/
+    ocr_event_t** array;
+    /*! Public member for waiting frontier*/
+    ocr_event_t** waitingFrontier;
+} hc_await_list_t;
 
-typedef struct hc_task_factory {
-    ocr_task_factory base_factory;
-} hc_task_factory;
-
-struct ocr_task_factory_struct* hc_task_factory_constructor(void);
-void hc_task_factory_destructor ( struct ocr_task_factory_struct* base );
-
-ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t * outputEvent);
+/*! \brief Gets the GUID for an OCR entity instance
+ *  \param[in] el User provided EventList to build an AwaitList from
+ *  \return AwaitList that is a copy of the EventList
+ *  Our current implementation copies the linked list into an array
+ */
+hc_await_list_t* hc_await_list_constructor( size_t al_size );
+void hc_await_list_destructor(hc_await_list_t*);
 
 /*! \brief Event Driven Task(EDT) implementation for OCR Tasks
-*/
+ */
 typedef struct hc_task_struct_t {
     ocr_task_t base;
     reg_node_t * waiters;

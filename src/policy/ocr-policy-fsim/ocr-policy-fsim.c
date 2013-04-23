@@ -1,41 +1,41 @@
 /* Copyright (c) 2012, Rice University
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are
+   met:
 
-1.  Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-2.  Redistributions in binary form must reproduce the above
-     copyright notice, this list of conditions and the following
-     disclaimer in the documentation and/or other materials provided
-     with the distribution.
-3.  Neither the name of Intel Corporation
-     nor the names of its contributors may be used to endorse or
-     promote products derived from this software without specific
-     prior written permission.
+   1.  Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+   2.  Redistributions in binary form must reproduce the above
+   copyright notice, this list of conditions and the following
+   disclaimer in the documentation and/or other materials provided
+   with the distribution.
+   3.  Neither the name of Intel Corporation
+   nor the names of its contributors may be used to endorse or
+   promote products derived from this software without specific
+   prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
- */
+*/
 
 #include "fsim.h"
 #include "ocr-policy.h"
 
 void fsim_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
-                             ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
-                             ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
-                             ocrAllocator_t ** allocators, ocrLowMemory_t ** memories) {
+                               ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
+                               ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
+                               ocrAllocator_t ** allocators, ocrLowMemory_t ** memories) {
     policy->schedulers = schedulers;
     policy->workers = workers;
     policy->executors = executors;
@@ -116,22 +116,22 @@ void ce_mastered_policy_domain_start(ocr_policy_domain_t * policy) {
 void fsim_policy_domain_finish(ocr_policy_domain_t * policy) {
     size_t i;
     for ( i = 0; i < policy->nb_workers; ++i ) {
-	policy->workers[i]->stop(policy->workers[i]);
+        policy->workers[i]->stop(policy->workers[i]);
     }
 
     for ( i = 0; i < policy->nb_executors; ++i) {
-	policy->executors[i]->stop(policy->executors[i]);
+        policy->executors[i]->stop(policy->executors[i]);
     }
 }
 
 void fsim_mastered_policy_domain_finish(ocr_policy_domain_t * policy) {
     size_t i;
     for ( i = 0; i < policy->nb_workers; ++i ) {
-	policy->workers[i]->stop(policy->workers[i]);
+        policy->workers[i]->stop(policy->workers[i]);
     }
 
     for ( i = 1; i < policy->nb_executors; ++i) {
-	policy->executors[i]->stop(policy->executors[i]);
+        policy->executors[i]->stop(policy->executors[i]);
     }
 }
 
@@ -144,7 +144,7 @@ void fsim_policy_domain_stop(ocr_policy_domain_t * policy) {
 void fsim_policy_domain_destruct(ocr_policy_domain_t * policy) {
     ocr_task_factory** taskFactories = policy->taskFactories;
     // TODO: sagnak should be OK to hardcode
-    // there is 2 task factories and a single event factory by type/design 
+    // there is 2 task factories and a single event factory by type/design
     taskFactories[0]->destruct(taskFactories[0]);
     taskFactories[1]->destruct(taskFactories[1]);
     free(taskFactories);
@@ -160,14 +160,14 @@ ocrGuid_t fsim_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* 
 
 // Mapping function one-to-one to map a scheduler to a policy instance
 void fsim_ocr_module_map_schedulers_to_policy (void * self_module, ocr_module_kind kind,
-        size_t nb_instances, void ** ptr_instances) {
+                                               size_t nb_instances, void ** ptr_instances) {
     // Checking mapping conforms to what we're expecting in this implementation
     assert(kind == OCR_SCHEDULER);
     assert(nb_instances == 1);
 
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) self_module;
-	ocr_scheduler_t* scheduler = ptr_instances[0];
-	scheduler->domain = policy;
+    ocr_scheduler_t* scheduler = ptr_instances[0];
+    scheduler->domain = policy;
 }
 
 ocr_task_factory* fsim_policy_getTaskFactoryForUserTasks (ocr_policy_domain_t * policy) {
@@ -187,9 +187,9 @@ void policy_domain_give_assert ( ocr_policy_domain_t * thisPolicy, ocr_policy_do
 }
 
 static inline void fsim_policy_domain_constructor_helper ( ocr_policy_domain_t * policy, size_t nb_workpiles,
-        size_t nb_workers,
-        size_t nb_executors,
-	size_t nb_schedulers) {
+                                                           size_t nb_workers,
+                                                           size_t nb_executors,
+                                                           size_t nb_schedulers) {
     // Get a GUID
     policy->guid = UNINITIALIZED_GUID;
     globalGuidProvider->getGuid(globalGuidProvider, &(policy->guid), (u64)policy, OCR_GUID_POLICY);
@@ -221,16 +221,16 @@ void xe_policy_domain_hand_out ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giv
 
 void ce_policy_domain_receive ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
     ocr_policy_domain_t* ceDomain = (ocr_policy_domain_t *) thisPolicy;
-    
+
     // TODO sagnak, oooh nasty hardcoding
     ocr_scheduler_t* ceScheduler = ceDomain->schedulers[0];
     ceScheduler->give(ceScheduler, giverWorkerGuid, givenTaskGuid);
 }
 
 ocr_policy_domain_t * xe_policy_domain_constructor (size_t nb_workpiles,
-        size_t nb_workers,
-        size_t nb_executors,
-        size_t nb_schedulers) {
+                                                    size_t nb_workers,
+                                                    size_t nb_executors,
+                                                    size_t nb_schedulers) {
 
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
 
@@ -247,9 +247,9 @@ ocr_policy_domain_t * xe_policy_domain_constructor (size_t nb_workpiles,
 }
 
 ocr_policy_domain_t * ce_policy_domain_constructor (size_t nb_workpiles,
-        size_t nb_workers,
-        size_t nb_executors,
-        size_t nb_schedulers) {
+                                                    size_t nb_workers,
+                                                    size_t nb_executors,
+                                                    size_t nb_schedulers) {
 
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
 
@@ -266,9 +266,9 @@ ocr_policy_domain_t * ce_policy_domain_constructor (size_t nb_workpiles,
 }
 
 ocr_policy_domain_t * ce_mastered_policy_domain_constructor (size_t nb_workpiles,
-        size_t nb_workers,
-        size_t nb_executors,
-        size_t nb_schedulers) {
+                                                             size_t nb_workers,
+                                                             size_t nb_executors,
+                                                             size_t nb_schedulers) {
 
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
 

@@ -68,7 +68,7 @@ typedef struct _ocrAllocator_t {
      * @warning Currently, only one underlying low-memory is supported by the TLSF
      * allocator. The option to provide multiple low memories may be taken out in the
      * future if it is found to be not useful
-    */
+     */
     void (*create)(struct _ocrAllocator_t* self, u64 size,
                    void* config);
 

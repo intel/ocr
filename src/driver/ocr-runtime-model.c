@@ -1,33 +1,33 @@
 /* Copyright (c) 2012, Rice University
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are
+   met:
 
-1.  Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-2.  Redistributions in binary form must reproduce the above
-     copyright notice, this list of conditions and the following
-     disclaimer in the documentation and/or other materials provided
-     with the distribution.
-3.  Neither the name of Intel Corporation
-     nor the names of its contributors may be used to endorse or
-     promote products derived from this software without specific
-     prior written permission.
+   1.  Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+   2.  Redistributions in binary form must reproduce the above
+   copyright notice, this list of conditions and the following
+   disclaimer in the documentation and/or other materials provided
+   with the distribution.
+   3.  Neither the name of Intel Corporation
+   nor the names of its contributors may be used to endorse or
+   promote products derived from this software without specific
+   prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
- */
+*/
 
 #include <stdlib.h>
 #include <assert.h>
@@ -55,10 +55,10 @@ static ocr_module_mapping_t build_ocr_module_mapping(ocr_mapping_kind kind, ocr_
  * Function pointer type to define ocr modules mapping functions
  */
 typedef void (*ocr_map_module_fct) (ocr_module_kind from, ocr_module_kind to,
-        size_t nb_instances_from,
-        ocr_module_t ** instances_from,
-        size_t nb_instances_to,
-        ocr_module_t ** instances_to);
+                                    size_t nb_instances_from,
+                                    ocr_module_t ** instances_from,
+                                    size_t nb_instances_to,
+                                    ocr_module_t ** instances_to);
 
 /**!
  * One-to-many mapping function.
@@ -66,10 +66,10 @@ typedef void (*ocr_map_module_fct) (ocr_module_kind from, ocr_module_kind to,
  * ex: maps a single scheduler to several workers.
  */
 static void map_modules_one_to_many(ocr_module_kind from, ocr_module_kind to,
-        size_t nb_instances_from,
-        ocr_module_t ** instances_from,
-        size_t nb_instances_to,
-        ocr_module_t ** instances_to) {
+                                    size_t nb_instances_from,
+                                    ocr_module_t ** instances_from,
+                                    size_t nb_instances_to,
+                                    ocr_module_t ** instances_to) {
     assert(nb_instances_from == 1);
     size_t i;
     for(i=0; i < nb_instances_to; i++) {
@@ -83,10 +83,10 @@ static void map_modules_one_to_many(ocr_module_kind from, ocr_module_kind to,
  * ex: maps each executor to each worker in a one-one fashion.
  */
 static void map_modules_one_to_one(ocr_module_kind from, ocr_module_kind to,
-        size_t nb_instances_from,
-        ocr_module_t ** instances_from,
-        size_t nb_instances_to,
-        ocr_module_t ** instances_to) {
+                                   size_t nb_instances_from,
+                                   ocr_module_t ** instances_from,
+                                   size_t nb_instances_to,
+                                   ocr_module_t ** instances_to) {
     assert(nb_instances_from == nb_instances_to);
     size_t i;
     for(i=0; i < nb_instances_to; i++) {
@@ -101,10 +101,10 @@ static void map_modules_one_to_one(ocr_module_kind from, ocr_module_kind to,
  */
 
 static void map_modules_many_to_one(ocr_module_kind from, ocr_module_kind to,
-        size_t nb_instances_from,
-        ocr_module_t ** instances_from,
-        size_t nb_instances_to,
-        ocr_module_t ** instances_to) {
+                                    size_t nb_instances_from,
+                                    ocr_module_t ** instances_from,
+                                    size_t nb_instances_to,
+                                    ocr_module_t ** instances_to) {
     size_t i;
     for(i=0; i < nb_instances_to; i++) {
         instances_to[i]->map_fct(instances_to[i], from, nb_instances_from, (void **) instances_from);
@@ -149,7 +149,7 @@ typedef struct {
  * number of instances and instances backing array.
  */
 static void resolve_module_instances(ocr_module_kind kind, size_t nb_module_kind,
-        ocr_module_instance * modules_kinds, size_t * nb_instances, void *** instances) {
+                                     ocr_module_instance * modules_kinds, size_t * nb_instances, void *** instances) {
     size_t i;
     for(i=0; i < nb_module_kind; i++) {
         if (kind == modules_kinds[i].kind) {
@@ -166,11 +166,11 @@ static void resolve_module_instances(ocr_module_kind kind, size_t nb_module_kind
  * number of workers, executors and workpiles
  */
 ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_schedulers,
-         size_t nb_workers, size_t nb_executors, size_t nb_workpiles) {
+                                           size_t nb_workers, size_t nb_executors, size_t nb_workpiles) {
 
     // Default policy
     ocr_model_policy_t * defaultPolicy =
-            checked_malloc(defaultPolicy, sizeof(ocr_model_policy_t));
+        (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
     defaultPolicy->model.kind = ocr_policy_default_kind;
     defaultPolicy->model.nb_instances = nb_policy_domains;
     defaultPolicy->model.per_type_configuration = NULL;
@@ -182,7 +182,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
 
     // Default scheduler
     ocr_model_t * defaultScheduler =
-            checked_malloc(defaultScheduler, sizeof(ocr_model_t));
+        (ocr_model_t *) malloc(sizeof(ocr_model_t));
     defaultScheduler->kind = ocr_scheduler_default_kind;
     defaultScheduler->nb_instances = nb_schedulers;
     defaultScheduler->per_type_configuration = NULL;
@@ -191,7 +191,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
 
     // Default worker
     ocr_model_t * defaultWorker =
-            checked_malloc(defaultWorker, sizeof(ocr_model_t));
+        (ocr_model_t *) malloc(sizeof(ocr_model_t));
     defaultWorker->kind = ocr_worker_default_kind;
     defaultWorker->nb_instances = nb_workers;
     defaultWorker->per_type_configuration = NULL;
@@ -209,7 +209,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
 
     // Default executor
     ocr_model_t * defaultExecutor =
-            checked_malloc(defaultExecutor, sizeof(ocr_model_t));
+        (ocr_model_t *) malloc(sizeof(ocr_model_t));
     defaultExecutor->kind = ocr_executor_default_kind;
     defaultExecutor->nb_instances = nb_executors;
     defaultExecutor->per_type_configuration = NULL;
@@ -218,7 +218,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
 
     // Default workpile
     ocr_model_t * defaultWorkpile =
-            checked_malloc(defaultWorkpile, sizeof(ocr_model_t));
+        (ocr_model_t *) malloc(sizeof(ocr_model_t));
     defaultWorkpile->kind = ocr_workpile_default_kind;
     defaultWorkpile->nb_instances = nb_workpiles;
     defaultWorkpile->per_type_configuration = NULL;
@@ -228,7 +228,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
     // Defines how ocr modules are bound together
     size_t nb_module_mappings = 5;
     ocr_module_mapping_t * defaultMapping =
-            checked_malloc(defaultMapping, sizeof(ocr_module_mapping_t) * nb_module_mappings);
+        (ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
     // Note: this doesn't bind modules magically. You need to have a mapping function defined
     //       and set in the targeted implementation (see ocr_scheduler_hc implementation for reference).
     //       These just make sure the mapping functions you have defined are called
@@ -268,8 +268,8 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
 /**
  * FSIM XE policy domain has:
  * one XE scheduler for all XEs
- * one worker for each XEs 
- * one executor for each XEs 
+ * one worker for each XEs
+ * one executor for each XEs
  * two workpile for each XEs, one for real work, one for CE messages
  * one memory for all XEs
  * one allocator for all XEs
@@ -288,7 +288,7 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
 
     size_t nb_XEs = nb_CEs * nb_XEs_per_CE;
 
-    // there are #XE instances of a model 
+    // there are #XE instances of a model
     ocr_model_policy_t * xePolicyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
     xePolicyModel->model.kind = OCR_POLICY_XE;
     xePolicyModel->model.nb_instances = nb_XEs;
@@ -319,7 +319,7 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
         }
         worker_id_offset += (1 + nb_XEs_per_CE); // because nothing says nasty code like your own strength reduction
     }
-    
+
     ocr_model_t * xeScheduler = (ocr_model_t *) malloc(sizeof(ocr_model_t));
     xeScheduler->kind = ocr_scheduler_xe_kind;
     xeScheduler->nb_instances = nb_per_xe_schedulers;
@@ -344,7 +344,7 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
         }
         worker_id_offset += (1 + nb_XEs_per_CE); // because nothing says nasty code like your own strength reduction
     }
-    
+
     ocr_model_t * xeWorker = (ocr_model_t *) malloc(sizeof(ocr_model_t));
     xeWorker->kind = ocr_worker_xe_kind;
     xeWorker->nb_instances = nb_per_xe_workers;
@@ -388,7 +388,7 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
     // Defines how ocr modules are bound together
     size_t nb_module_mappings = 5;
     ocr_module_mapping_t * xeMapping =
-	(ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
+        (ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
     // Note: this doesn't bind modules magically. You need to have a mapping function defined
     //       and set in the targeted implementation (see ocr_scheduler_hc implementation for reference).
     //       These just make sure the mapping functions you have defined are called
@@ -405,8 +405,8 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
 /**
  * FSIM CE policy domains has:
  * one CE scheduler for all CEs
- * one worker for each CEs 
- * one executor for each CEs 
+ * one worker for each CEs
+ * one executor for each CEs
  * two workpile for each CEs, one for real work, one for XE messages
  * one memory for all CEs
  * one allocator for all CEs
@@ -416,7 +416,7 @@ void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
     size_t nb_ce_executors = 1;
     size_t nb_ce_memories = 1;
     size_t nb_ce_allocators = 1;
-    
+
     cePolicyModel->nb_scheduler_types = 1;
     cePolicyModel->nb_worker_types = 1;
     cePolicyModel->nb_executor_types = 1;
@@ -458,7 +458,7 @@ void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
     // Defines how ocr modules are bound together
     size_t nb_module_mappings = 5;
     ocr_module_mapping_t * ceMapping =
-	(ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
+        (ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
     // Note: this doesn't bind modules magically. You need to have a mapping function defined
     //       and set in the targeted implementation (see ocr_scheduler_hc implementation for reference).
     //       These just make sure the mapping functions you have defined are called
@@ -483,7 +483,7 @@ ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
     cePolicyModel->model.per_type_configuration = NULL;
     cePolicyModel->model.per_instance_configuration = NULL;
     cePolicyModel->model.nb_instances = nb_CEs;
-    
+
     // CE scheduler
     ocr_model_t * ceScheduler = (ocr_model_t *) malloc(sizeof(ocr_model_t));
     ceScheduler->kind = ocr_scheduler_ce_kind;
@@ -507,7 +507,7 @@ ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
     ceWorker->nb_instances = nb_ce_workers;
     ceWorker->per_type_configuration = NULL;
 
-    index_config = 0; 
+    index_config = 0;
     size_t n_all_workers = nb_ce_workers*nb_CEs;
     void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
     for ( index_config = 0; index_config < n_all_workers; ++index_config ) {
@@ -518,7 +518,7 @@ ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
     ceWorker->per_instance_configuration = worker_configurations;
     cePolicyModel->workers = ceWorker;
 
-    CEModelPoliciesHelper(cePolicyModel); 
+    CEModelPoliciesHelper(cePolicyModel);
     return cePolicyModel;
 }
 
@@ -532,7 +532,7 @@ ocr_model_policy_t * createCeMasteredModelPolicy ( size_t nb_XEs_per_CE ) {
     cePolicyModel->model.per_type_configuration = NULL;
     cePolicyModel->model.per_instance_configuration = NULL;
     cePolicyModel->model.nb_instances = 1;
-    
+
     // Mastered-CE scheduler
     ocr_model_t * ceScheduler = (ocr_model_t *) malloc(sizeof(ocr_model_t));
     ceScheduler->kind = ocr_scheduler_ce_kind;
@@ -556,7 +556,7 @@ ocr_model_policy_t * createCeMasteredModelPolicy ( size_t nb_XEs_per_CE ) {
     ceWorker->nb_instances = nb_ce_workers;
     ceWorker->per_type_configuration = NULL;
 
-    index_config = 0; 
+    index_config = 0;
     size_t n_all_workers = nb_ce_workers;
     void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
     for ( index_config = 0; index_config < n_all_workers; ++index_config ) {
@@ -567,7 +567,7 @@ ocr_model_policy_t * createCeMasteredModelPolicy ( size_t nb_XEs_per_CE ) {
     ceWorker->per_instance_configuration = worker_configurations;
     cePolicyModel->workers = ceWorker;
 
-    CEModelPoliciesHelper(cePolicyModel); 
+    CEModelPoliciesHelper(cePolicyModel);
     return cePolicyModel;
 }
 
@@ -600,7 +600,7 @@ void destructOcrModelPolicy(ocr_model_policy_t * model) {
 static  void create_configure_all_schedulers ( ocr_scheduler_t ** all_schedulers, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
     size_t idx = 0, index_policy_domain = 0;
     for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
-        size_t type = 0, instance = 0; 
+        size_t type = 0, instance = 0;
         for (; type < nb_component_types; ++type) {
             // For each type, create the number of instances asked for.
             ocr_model_t curr_model = components[type];
@@ -608,7 +608,7 @@ static  void create_configure_all_schedulers ( ocr_scheduler_t ** all_schedulers
                 // Call the factory method based on the model's type kind.
                 all_schedulers[idx] = newScheduler(curr_model.kind);
                 all_schedulers[idx]->create(all_schedulers[idx], curr_model.per_type_configuration,
-                        (curr_model.per_instance_configuration) ? curr_model.per_instance_configuration[idx]: NULL );
+                                            (curr_model.per_instance_configuration) ? curr_model.per_instance_configuration[idx]: NULL );
             }
         }
     }
@@ -617,7 +617,7 @@ static  void create_configure_all_schedulers ( ocr_scheduler_t ** all_schedulers
 static  void create_configure_all_workpiles ( ocr_workpile_t ** all_workpiles, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
     size_t idx = 0, index_policy_domain = 0;
     for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
-        size_t type = 0, instance = 0; 
+        size_t type = 0, instance = 0;
         for (; type < nb_component_types; ++type) {
             // For each type, create the number of instances asked for.
             ocr_model_t curr_model = components[type];
@@ -633,7 +633,7 @@ static  void create_configure_all_workpiles ( ocr_workpile_t ** all_workpiles, i
 static  void create_configure_all_workers ( ocr_worker_t** all_workers, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
     size_t idx = 0, index_policy_domain = 0;
     for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
-        size_t type = 0, instance = 0; 
+        size_t type = 0, instance = 0;
         for (; type < nb_component_types; ++type) {
             // For each type, create the number of instances asked for.
             ocr_model_t curr_model = components[type];
@@ -641,7 +641,7 @@ static  void create_configure_all_workers ( ocr_worker_t** all_workers, int n_po
                 // Call the factory method based on the model's type kind.
                 all_workers[idx] = newWorker(curr_model.kind);
                 all_workers[idx]->create(all_workers[idx], curr_model.per_type_configuration,
-                        (curr_model.per_instance_configuration) ? curr_model.per_instance_configuration[idx]: NULL );
+                                         (curr_model.per_instance_configuration) ? curr_model.per_instance_configuration[idx]: NULL );
             }
         }
     }
@@ -650,7 +650,7 @@ static  void create_configure_all_workers ( ocr_worker_t** all_workers, int n_po
 static  void create_configure_all_executors ( ocr_executor_t ** all_executors, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
     size_t idx = 0, index_policy_domain = 0;
     for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
-        size_t type = 0, instance = 0; 
+        size_t type = 0, instance = 0;
         for (; type < nb_component_types; ++type) {
             // For each type, create the number of instances asked for.
             ocr_model_t curr_component_model = components[type];
@@ -666,7 +666,7 @@ static  void create_configure_all_executors ( ocr_executor_t ** all_executors, i
 static  void create_configure_all_allocators ( ocrAllocator_t ** all_allocators, int n_policy_domains, int nb_component_types, ocrAllocatorModel_t* components ) {
     size_t idx = 0, index_policy_domain = 0;
     for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
-        size_t type = 0, instance = 0; 
+        size_t type = 0, instance = 0;
         for (; type < nb_component_types; ++type) {
             // For each type, create the number of instances asked for.
             ocrAllocatorModel_t curr_component_model = components[type];
@@ -682,7 +682,7 @@ static  void create_configure_all_allocators ( ocrAllocator_t ** all_allocators,
 static  void create_configure_all_memories ( ocrLowMemory_t ** all_memories, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
     size_t idx = 0, index_policy_domain = 0;
     for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
-        size_t type = 0, instance = 0; 
+        size_t type = 0, instance = 0;
         for (; type < nb_component_types; ++type) {
             // For each type, create the number of instances asked for.
             ocr_model_t curr_component_model = components[type];
@@ -730,79 +730,79 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
     int n_policy_domains = model->model.nb_instances;
     ocr_policy_domain_t ** policyDomains = (ocr_policy_domain_t **) malloc( sizeof(ocr_policy_domain_t*) * n_policy_domains );
 
-	// Allocate memory for ocr components
-	// Components instances are grouped into one big chunk of memory
-	ocr_scheduler_t** all_schedulers = (ocr_scheduler_t**) malloc(sizeof(ocr_scheduler_t*) * per_policy_domain_total_nb_schedulers * n_policy_domains );
-	ocr_worker_t   ** all_workers    = (ocr_worker_t   **) malloc(sizeof(ocr_worker_t   *) * per_policy_domain_total_nb_workers    * n_policy_domains );
-	ocr_executor_t ** all_executors  = (ocr_executor_t **) malloc(sizeof(ocr_executor_t *) * per_policy_domain_total_nb_executors  * n_policy_domains );
-	ocr_workpile_t ** all_workpiles  = (ocr_workpile_t **) malloc(sizeof(ocr_workpile_t *) * per_policy_domain_total_nb_workpiles  * n_policy_domains );
-	ocrAllocator_t ** all_allocators = (ocrAllocator_t **) malloc(sizeof(ocrAllocator_t *) * totalNumAllocators * n_policy_domains );
-	ocrLowMemory_t ** all_memories   = (ocrLowMemory_t **) malloc(sizeof(ocrLowMemory_t *) * totalNumMemories * n_policy_domains );
+    // Allocate memory for ocr components
+    // Components instances are grouped into one big chunk of memory
+    ocr_scheduler_t** all_schedulers = (ocr_scheduler_t**) malloc(sizeof(ocr_scheduler_t*) * per_policy_domain_total_nb_schedulers * n_policy_domains );
+    ocr_worker_t   ** all_workers    = (ocr_worker_t   **) malloc(sizeof(ocr_worker_t   *) * per_policy_domain_total_nb_workers    * n_policy_domains );
+    ocr_executor_t ** all_executors  = (ocr_executor_t **) malloc(sizeof(ocr_executor_t *) * per_policy_domain_total_nb_executors  * n_policy_domains );
+    ocr_workpile_t ** all_workpiles  = (ocr_workpile_t **) malloc(sizeof(ocr_workpile_t *) * per_policy_domain_total_nb_workpiles  * n_policy_domains );
+    ocrAllocator_t ** all_allocators = (ocrAllocator_t **) malloc(sizeof(ocrAllocator_t *) * totalNumAllocators * n_policy_domains );
+    ocrLowMemory_t ** all_memories   = (ocrLowMemory_t **) malloc(sizeof(ocrLowMemory_t *) * totalNumMemories * n_policy_domains );
 
-	//
-	// Build instances of each ocr modules
-	//
-	//TODO would be nice to make creation more generic
+    //
+    // Build instances of each ocr modules
+    //
+    //TODO would be nice to make creation more generic
 
-	create_configure_all_schedulers ( all_schedulers, n_policy_domains, model->nb_scheduler_types, model->schedulers);
-	create_configure_all_workers ( all_workers, n_policy_domains, model->nb_worker_types, model->workers );
-	create_configure_all_executors ( all_executors, n_policy_domains, model->nb_executor_types, model->executors);
-	create_configure_all_workpiles ( all_workpiles, n_policy_domains, model->nb_workpile_types, model->workpiles);
-	create_configure_all_allocators ( all_allocators, n_policy_domains, model->numAllocTypes, model->allocators);
-	create_configure_all_memories ( all_memories, n_policy_domains, model->numMemTypes, model->memories);
+    create_configure_all_schedulers ( all_schedulers, n_policy_domains, model->nb_scheduler_types, model->schedulers);
+    create_configure_all_workers ( all_workers, n_policy_domains, model->nb_worker_types, model->workers );
+    create_configure_all_executors ( all_executors, n_policy_domains, model->nb_executor_types, model->executors);
+    create_configure_all_workpiles ( all_workpiles, n_policy_domains, model->nb_workpile_types, model->workpiles);
+    create_configure_all_allocators ( all_allocators, n_policy_domains, model->numAllocTypes, model->allocators);
+    create_configure_all_memories ( all_memories, n_policy_domains, model->numMemTypes, model->memories);
 
 
     int idx;
     for ( idx = 0; idx < n_policy_domains; ++idx ) {
 
-	ocr_scheduler_t** schedulers = (ocr_scheduler_t**) &(all_schedulers[ idx * per_policy_domain_total_nb_schedulers ]);
-	ocr_worker_t   ** workers    = (ocr_worker_t   **) &(all_workers   [ idx * per_policy_domain_total_nb_workers    ]);
-	ocr_executor_t ** executors  = (ocr_executor_t **) &(all_executors [ idx * per_policy_domain_total_nb_executors  ]);
-	ocr_workpile_t ** workpiles  = (ocr_workpile_t **) &(all_workpiles [ idx * per_policy_domain_total_nb_workpiles  ]);
-	ocrAllocator_t ** allocators = (ocrAllocator_t **) &(all_allocators[ idx * totalNumAllocators                    ]);
-	ocrLowMemory_t ** memories   = (ocrLowMemory_t **) &(all_memories  [ idx * totalNumMemories                      ]);
+        ocr_scheduler_t** schedulers = (ocr_scheduler_t**) &(all_schedulers[ idx * per_policy_domain_total_nb_schedulers ]);
+        ocr_worker_t   ** workers    = (ocr_worker_t   **) &(all_workers   [ idx * per_policy_domain_total_nb_workers    ]);
+        ocr_executor_t ** executors  = (ocr_executor_t **) &(all_executors [ idx * per_policy_domain_total_nb_executors  ]);
+        ocr_workpile_t ** workpiles  = (ocr_workpile_t **) &(all_workpiles [ idx * per_policy_domain_total_nb_workpiles  ]);
+        ocrAllocator_t ** allocators = (ocrAllocator_t **) &(all_allocators[ idx * totalNumAllocators                    ]);
+        ocrLowMemory_t ** memories   = (ocrLowMemory_t **) &(all_memories  [ idx * totalNumMemories                      ]);
 
-	// Create an instance of the policy domain
-	policyDomains[idx] = newPolicy(model->model.kind,
-		per_policy_domain_total_nb_workpiles, per_policy_domain_total_nb_workers,
-		per_policy_domain_total_nb_executors, per_policy_domain_total_nb_schedulers);
+        // Create an instance of the policy domain
+        policyDomains[idx] = newPolicy(model->model.kind,
+                                       per_policy_domain_total_nb_workpiles, per_policy_domain_total_nb_workers,
+                                       per_policy_domain_total_nb_executors, per_policy_domain_total_nb_schedulers);
 
-	policyDomains[idx]->create(policyDomains[idx], NULL, schedulers,
-		workers, executors, workpiles, allocators, memories);
+        policyDomains[idx]->create(policyDomains[idx], NULL, schedulers,
+                                   workers, executors, workpiles, allocators, memories);
 
-	// This is only needed because we want to be able to
-	// write generic code to find instances' backing arrays
-	// given a module kind.
-	size_t nb_ocr_modules = 7;
-	ocr_module_instance modules_kinds[nb_ocr_modules];
-	modules_kinds[0] = (ocr_module_instance){.kind = OCR_WORKER,	.nb_instances = per_policy_domain_total_nb_workers,	.instances = (void **) workers};
-	modules_kinds[1] = (ocr_module_instance){.kind = OCR_EXECUTOR,	.nb_instances = per_policy_domain_total_nb_executors,	.instances = (void **) executors};
-	modules_kinds[2] = (ocr_module_instance){.kind = OCR_WORKPILE,	.nb_instances = per_policy_domain_total_nb_workpiles,	.instances = (void **) workpiles};
-	modules_kinds[3] = (ocr_module_instance){.kind = OCR_SCHEDULER,	.nb_instances = per_policy_domain_total_nb_schedulers,	.instances = (void **) schedulers};
-	modules_kinds[4] = (ocr_module_instance){.kind = OCR_ALLOCATOR,	.nb_instances = totalNumAllocators,	.instances = (void **) allocators};
-	modules_kinds[5] = (ocr_module_instance){.kind = OCR_MEMORY,	.nb_instances = totalNumMemories,	.instances = (void **) memories};
-	modules_kinds[6] = (ocr_module_instance){.kind = OCR_POLICY,	.nb_instances = 1,			.instances = (void **) &(policyDomains[idx])};
+        // This is only needed because we want to be able to
+        // write generic code to find instances' backing arrays
+        // given a module kind.
+        size_t nb_ocr_modules = 7;
+        ocr_module_instance modules_kinds[nb_ocr_modules];
+        modules_kinds[0] = (ocr_module_instance){.kind = OCR_WORKER,	.nb_instances = per_policy_domain_total_nb_workers,	.instances = (void **) workers};
+        modules_kinds[1] = (ocr_module_instance){.kind = OCR_EXECUTOR,	.nb_instances = per_policy_domain_total_nb_executors,	.instances = (void **) executors};
+        modules_kinds[2] = (ocr_module_instance){.kind = OCR_WORKPILE,	.nb_instances = per_policy_domain_total_nb_workpiles,	.instances = (void **) workpiles};
+        modules_kinds[3] = (ocr_module_instance){.kind = OCR_SCHEDULER,	.nb_instances = per_policy_domain_total_nb_schedulers,	.instances = (void **) schedulers};
+        modules_kinds[4] = (ocr_module_instance){.kind = OCR_ALLOCATOR,	.nb_instances = totalNumAllocators,	.instances = (void **) allocators};
+        modules_kinds[5] = (ocr_module_instance){.kind = OCR_MEMORY,	.nb_instances = totalNumMemories,	.instances = (void **) memories};
+        modules_kinds[6] = (ocr_module_instance){.kind = OCR_POLICY,	.nb_instances = 1,			.instances = (void **) &(policyDomains[idx])};
 
-	//
-	// Bind instances of each ocr components through mapping functions
-	//   - Binding is the last thing we do as we may need information set
-	//     during the 'create' phase
-	//
-	size_t instance, nb_instances_from, nb_instances_to;
-	void ** from_instances;
-	void ** to_instances;
-	for ( instance = 0; instance < model->nb_mappings; ++instance ) {
-	    ocr_module_mapping_t * mapping = (model->mappings + instance);
-	    // Resolve modules instances we want to map
-	    resolve_module_instances(mapping->from, nb_ocr_modules, modules_kinds, &nb_instances_from, &from_instances);
-	    resolve_module_instances(mapping->to, nb_ocr_modules, modules_kinds, &nb_instances_to, &to_instances);
-	    // Resolve mapping function to use and call it
-	    ocr_map_module_fct map_fct = get_module_mapping_function(mapping->kind);
+        //
+        // Bind instances of each ocr components through mapping functions
+        //   - Binding is the last thing we do as we may need information set
+        //     during the 'create' phase
+        //
+        size_t instance, nb_instances_from, nb_instances_to;
+        void ** from_instances;
+        void ** to_instances;
+        for ( instance = 0; instance < model->nb_mappings; ++instance ) {
+            ocr_module_mapping_t * mapping = (model->mappings + instance);
+            // Resolve modules instances we want to map
+            resolve_module_instances(mapping->from, nb_ocr_modules, modules_kinds, &nb_instances_from, &from_instances);
+            resolve_module_instances(mapping->to, nb_ocr_modules, modules_kinds, &nb_instances_to, &to_instances);
+            // Resolve mapping function to use and call it
+            ocr_map_module_fct map_fct = get_module_mapping_function(mapping->kind);
 
-	    map_fct(mapping->from, mapping->to,
-		    nb_instances_from, (ocr_module_t **) from_instances,
-		    nb_instances_to, (ocr_module_t **) to_instances);
-	}
+            map_fct(mapping->from, mapping->to,
+                    nb_instances_from, (ocr_module_t **) from_instances,
+                    nb_instances_to, (ocr_module_t **) to_instances);
+        }
 
     }
     return policyDomains;

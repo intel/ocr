@@ -43,8 +43,8 @@
 
 /**
    @brief Models a processor.  There is some flexibiliy here.  You could model a
-          4 core machine as 4 processors or 1 processor with 4 threads.
- **/
+   4 core machine as 4 processors or 1 processor with 4 threads.
+**/
 typedef struct {
     u32 numThreads;
     u32 id;
@@ -53,8 +53,8 @@ typedef struct {
 
 /**
    @brief This will probably be an abstract class that is the base for modeling
-          a memory region.
- **/
+   a memory region.
+**/
 typedef struct {
     char *name;
     u32   mrIndex;
@@ -65,7 +65,7 @@ typedef struct {
 
 /**
    @brief Models the cost for a processor to access a given memory region.
- **/
+**/
 typedef struct {
     int    valid;
     double timeCost;
@@ -84,72 +84,72 @@ typedef struct {
 
 /**
    @brief Get the number of processors in the platform.
- **/
+**/
 u32 MachineDescription_getNumProcessors(MachineDescription *this);
 
 /**
    @brief Get the number of hardware threads in the platform.
- **/
+**/
 u32 MachineDescription_getNumHardwareThreads(MachineDescription *this);
 
 /**
    @brief Get the number of distinct memory regions in the platform.
- **/
+**/
 u32 MachineDescription_getNumMemoryRegions(MachineDescription *this);
 
 /**
    @brief Get the total amount of DRAM in the system (in bytes).
- **/
+**/
 u64 MachineDescription_getDramSize(MachineDescription *this);
 
 /**
    @brief Get information about one of the processors.
- **/
+**/
 Processor * MachineDescription_getProcessor(MachineDescription *this, u32 processor_index);
 
 /**
    @brief Get information about one of the memory regions.
- **/
+**/
 MemoryRegion * MachineDescription_getMemoryRegion(MachineDescription *this, u32 memory_region_index);
 
 /**
    @brief Get the cost for the given processor to access the given memory.
- **/
+**/
 CostDescriptor MachineDescription_getProcessorMemoryCost(MachineDescription *this, u32 processor_index, u32 memory_region_index);
 
 /**
    @brief Get the set of processor indices which have equal access costs to the
-          specified memory region as the specified processor.
- **/
+   specified memory region as the specified processor.
+**/
 u32 * MachineDescription_whoElseShares(MachineDescription *this, u32 processor_index, u32 memory_region_index, u32 *num_results);
 
 /**
    @brief Get the set of processor indices which have the lowest access cost to the
-          specified memory region.
- **/
+   specified memory region.
+**/
 u32 * MachineDescription_closestProcessorsToMemory(MachineDescription *this, u32 memory_region_index, u32 *num_results);
 
 /**
    @brief Get the set of memory region indices which have the lowest access cost
-          from the specified processor.
- **/
+   from the specified processor.
+**/
 u32 * MachineDescription_closestMemoryRegionsToProcessor(MachineDescription *this, u32 processor_index, u32 *num_results);
 
 /**
    @brief Get the full M x N matrix of costs for each of the M processors to
-          access each of the N memory regions.
- **/
+   access each of the N memory regions.
+**/
 CostDescriptor ** MachineDescription_getFullCostMatrix(MachineDescription *this);
 
 /**
    @brief Get a pointer to the currently loaded machine description.
- **/
+**/
 MachineDescription * getMachineDescription();
 
 /**
    @brief Fill in the machine description with Univ of Vienna PDL
-          in XML.
- **/
+   in XML.
+**/
 void setMachineDescriptionFromPDL(const char *pdlFilename);
 
 #endif /* __OCR_MACHINE_H__ */

@@ -46,7 +46,7 @@
  * in the program that are used as EDTs
  */
 #define OCR_INIT(argc, argv, ...)					\
-  ({ocrEdt_t _fn_array[] = {__VA_ARGS__}; ocrInit(argc, argv, sizeof(_fn_array)/sizeof(_fn_array[0]), _fn_array);})
+    ({ocrEdt_t _fn_array[] = {__VA_ARGS__}; ocrInit(argc, argv, sizeof(_fn_array)/sizeof(_fn_array[0]), _fn_array);})
 
 /**
  * @brief Initial function called by the "main" program to set-up the OCR

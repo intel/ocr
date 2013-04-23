@@ -190,10 +190,10 @@ typedef u32 tlsf_size_t;
 #define GET_ADDRESS(header_addr)                                \
     (pg_start + (header_addr.address << ELEMENT_SIZE_LOG2))
 
-#define SET_VALUE(header_addr, addr)            \
-    do { (header_addr).address = 0ULL;          \
-        (header_addr).value = ((u64)(addr) - pg_start) >> ELEMENT_SIZE_LOG2;  \
-} while(0)
+#define SET_VALUE(header_addr, addr)                                    \
+    do { (header_addr).address = 0ULL;                                  \
+        (header_addr).value = ((u64)(addr) - pg_start) >> ELEMENT_SIZE_LOG2; \
+    } while(0)
 
 
 #define SET_NULL(header_addr) SET_VALUE(header_addr, pg_start)
