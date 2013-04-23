@@ -97,8 +97,8 @@ typedef struct hc_task_factory {
 struct ocr_task_factory_struct* hc_task_factory_constructor(void);
 void hc_task_factory_destructor ( struct ocr_task_factory_struct* base );
 
-ocrGuid_t hc_task_factory_create_with_event_list ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, event_list_t* l);
-ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, size_t);
+ocrGuid_t hc_task_factory_create_with_event_list ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, ocrGuid_t outputEvent, event_list_t* l);
+ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, size_t, ocrGuid_t outputEvent);
 
 
 /*! \brief Event Driven Task(EDT) implementation for OCR Tasks
@@ -111,8 +111,8 @@ typedef struct hc_task_struct_t {
     ocrEdt_t p_function;
 } hc_task_t;
 
-hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, event_list_t* al, ocr_task_fcts_t * task_fct_ptrs);
-hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, size_t l_size, ocr_task_fcts_t * task_fct_ptrs);
+hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, event_list_t* al, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs);
+hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, size_t l_size, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs);
 
 void hc_task_destruct ( ocr_task_t* base );
 bool hc_task_iterate_waiting_frontier ( ocr_task_t* base );

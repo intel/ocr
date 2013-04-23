@@ -175,7 +175,7 @@ typedef struct ocr_event_factory_struct {
  */
 struct ocr_task_factory_struct;
 typedef ocrGuid_t (*task_fact_create_with_event_list_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, event_list_t* al);
-typedef ocrGuid_t (*task_fact_create_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, size_t l_size);
+typedef ocrGuid_t (*task_fact_create_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, size_t l_size, ocrGuid_t outputEvent);
 typedef void (*task_fact_destruct_fct)(struct ocr_task_factory_struct* factory);
 
 // Fwd declaration
@@ -248,6 +248,7 @@ typedef struct ocr_task_struct_t {
     u32 paramc;
     u64 * params;
     void ** paramv;
+    ocrGuid_t outputEvent; // Event to notify when the EDT is done
 #ifdef HAVE_ELS_SUPPORT
     // Defined by configure
     ocrGuid_t els[ELS_SIZE];

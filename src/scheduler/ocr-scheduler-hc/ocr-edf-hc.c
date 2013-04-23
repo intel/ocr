@@ -252,21 +252,21 @@ void hc_task_factory_destructor ( struct ocr_task_factory_struct* base ) {
     free(derived);
 }
 
-ocrGuid_t hc_task_factory_create_with_event_list (struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, event_list_t* l) {
-    hc_task_t* edt = hc_task_construct_with_event_list(fctPtr, paramc, params, paramv, l, factory->task_fct_ptrs);
+ocrGuid_t hc_task_factory_create_with_event_list (struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, ocrGuid_t outputEvent, event_list_t* l) {
+    hc_task_t* edt = hc_task_construct_with_event_list(fctPtr, paramc, params, paramv, l, outputEvent, factory->task_fct_ptrs);
     ocr_task_t* base = (ocr_task_t*) edt;
     return base->guid;
 }
 
 ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr,
-                                   u32 paramc, u64 * params, void** paramv, size_t dep_l_size) {
-    hc_task_t* edt = hc_task_construct(fctPtr, paramc, params, paramv, dep_l_size, factory->task_fct_ptrs);
+                                   u32 paramc, u64 * params, void** paramv, size_t dep_l_size, ocrGuid_t outputEvent) {
+    hc_task_t* edt = hc_task_construct(fctPtr, paramc, params, paramv, dep_l_size, outputEvent, factory->task_fct_ptrs);
     ocr_task_t* base = (ocr_task_t*) edt;
     return base->guid;
 }
 
 static void hc_task_construct_internal (hc_task_t* derived, ocrEdt_t funcPtr,
-        u32 paramc, u64 * params, void** paramv, ocr_task_fcts_t * task_fct_ptrs) {
+        u32 paramc, u64 * params, void** paramv, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs) {
     derived->nbdeps = 0;
     derived->depv = NULL;
     derived->p_function = funcPtr;
@@ -276,20 +276,21 @@ static void hc_task_construct_internal (hc_task_t* derived, ocrEdt_t funcPtr,
     base->paramc = paramc;
     base->params = params;
     base->paramv = paramv;
+    base->outputEvent = outputEvent;
     base->fct_ptrs = task_fct_ptrs;
 }
 
-hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv, event_list_t* el, ocr_task_fcts_t * task_fct_ptrs) {
+hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv, event_list_t* el, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs) {
     hc_task_t* derived = (hc_task_t*)checked_malloc(derived, sizeof(hc_task_t));
     derived->awaitList = hc_await_list_constructor_with_event_list(el);
-    hc_task_construct_internal(derived, funcPtr, paramc, params, paramv, task_fct_ptrs);
+    hc_task_construct_internal(derived, funcPtr, paramc, params, paramv, outputEvent, task_fct_ptrs);
     return derived;
 }
 
-hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv, size_t dep_list_size, ocr_task_fcts_t * task_fct_ptrs) {
+hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void** paramv, size_t dep_list_size, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs) {
     hc_task_t* derived = (hc_task_t*)checked_malloc(derived, sizeof(hc_task_t));
     derived->awaitList = hc_await_list_constructor(dep_list_size);
-    hc_task_construct_internal(derived, funcPtr, paramc, params, paramv, task_fct_ptrs);
+    hc_task_construct_internal(derived, funcPtr, paramc, params, paramv, outputEvent, task_fct_ptrs);
     return derived;
 }
 
@@ -360,6 +361,7 @@ void hc_task_execute ( ocr_task_t* base ) {
         while ( NULL != curr ) {
             dbGuid = curr->fct_ptrs->get(curr);
             depv[i].guid = dbGuid;
+            //TODO assert this guid is of kind datablock
             if(dbGuid != NULL_GUID) {
                 db = NULL;
                 globalGuidProvider->getVal(globalGuidProvider, dbGuid, (u64*)&db, NULL);
@@ -382,6 +384,13 @@ void hc_task_execute ( ocr_task_t* base ) {
             }
         }
         free(depv);
+    }
+
+    // Satisfy the output event with the edt's guid
+    if (base->outputEvent != NULL_GUID) {
+        ocr_event_t * outputEvent;
+        globalGuidProvider->getVal(globalGuidProvider, base->outputEvent, (u64*)&outputEvent, NULL);
+        outputEvent->fct_ptrs->put(outputEvent, NULL_GUID);
     }
 }
 
