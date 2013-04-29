@@ -132,3 +132,19 @@ u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind) {
     }
     return result;
 }
+
+void ocrPlaceTrackerAllocate ( ocrPlaceTracker_t** toFill ) {
+    *toFill = (ocrPlaceTracker_t*) malloc(sizeof(ocrPlaceTracker_t));
+}
+
+void ocrPlaceTrackerInsert ( ocrPlaceTracker_t* self, unsigned char currPlace ) {
+    self->existInPlaces |= (1ULL << currPlace);
+}
+
+void ocrPlaceTrackerRemove ( ocrPlaceTracker_t* self, unsigned char currPlace ) {
+    self->existInPlaces &= ~(1ULL << currPlace);
+}
+
+void ocrPlaceTrackerInit( ocrPlaceTracker_t* self ) {
+    self->existInPlaces = 0ULL;
+}

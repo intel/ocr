@@ -103,6 +103,9 @@ typedef struct ocr_policy_domain_struct {
     struct ocr_policy_domain_struct** predecessors;
     size_t n_successors;
     size_t n_predecessors;
+
+    //TODO sagnak, HACKY :(
+    unsigned char id;
 } ocr_policy_domain_t;
 
 /**!
@@ -131,5 +134,7 @@ ocr_policy_domain_t * hc_policy_domain_constructor();
 ocr_policy_domain_t * xe_policy_domain_constructor();
 ocr_policy_domain_t * ce_policy_domain_constructor();
 ocr_policy_domain_t * ce_mastered_policy_domain_constructor();
+
+ocr_policy_domain_t* get_current_policy_domain ();
 
 #endif /* OCR_POLICY_H_ */

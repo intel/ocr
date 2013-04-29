@@ -181,4 +181,15 @@ u32 ocrGuidTrackerIterateAndClear(ocrGuidTracker_t *self);
  * @return ID for the slot in the tracker or 64 if the GUID is not found
  */
 u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind);
+
+typedef struct ocrPlaceTrackerStruct_t {
+    u64 existInPlaces; 
+} ocrPlaceTracker_t;
+
+void ocrPlaceTrackerAllocate ( ocrPlaceTracker_t** toFill );
+void ocrPlaceTrackerInsert ( ocrPlaceTracker_t* self, unsigned char currPlaceID );
+void ocrPlaceTrackerRemove ( ocrPlaceTracker_t* self, unsigned char currPlaceID );
+void ocrPlaceTrackerInit ( ocrPlaceTracker_t* self );
+
+
 #endif /* __OCR_UTILS_H__ */

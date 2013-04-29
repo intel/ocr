@@ -36,10 +36,8 @@
 #include "debug.h"
 #include "ocr-task-event.h"
 #include "ocr-guid.h"
-#include "ocr-config.h"
-#ifdef OCR_ENABLE_STATISTICS
-#include "ocr-statistics.h"
-#endif
+// TODO sagnak it feels as the policy exposure here should not have happened
+#include "ocr-policy.h"
 
 void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
                    u16 flags, void* configuration) {
@@ -151,7 +149,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
        rself->attributes.freeRequested == 1) {
         // We need to actually free the data-block
         rself->lock->unlock(rself->lock);
-        regularDestruct(self);
+        self->destruct(self);
     } else {
         rself->lock->unlock(rself->lock);
     }
@@ -176,7 +174,7 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
 
     // We can call free without having acquired the block
     if(id < 64) {
-        regularRelease(self, edt, false);
+        self->release(self, edt, false);
     }
     // Now check if we can actually free the block
 
@@ -184,7 +182,7 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
     rself->lock->lock(rself->lock);
     if(rself->attributes.numUsers == 0) {
         rself->lock->unlock(rself->lock);
-        regularDestruct(self);
+        self->destruct(self);
     } else {
         rself->lock->unlock(rself->lock);
     }
@@ -204,6 +202,66 @@ ocrDataBlock_t* newDataBlockRegular() {
     result->base.release = &regularRelease;
     result->base.free = &regularFree;
     result->lock = NULL;
+
+    return (ocrDataBlock_t*)result;
+}
+
+void placedCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
+                   u16 flags, void* configuration) {
+    regularCreate(self, allocatorGuid, size, flags, configuration);
+
+    ocrDataBlockPlaced_t *derived = (ocrDataBlockPlaced_t*)self;
+    ocrPlaceTrackerInit(derived->placeTracker);
+}
+
+void placedDestruct(ocrDataBlock_t *self) {
+    ocrDataBlockPlaced_t *derived = (ocrDataBlockPlaced_t*)self;
+    // We don't use a lock here. Maybe we should
+    ocrDataBlockRegular_t *regular = &(derived->base);
+    ASSERT(regular->attributes.numUsers == 0);
+    ASSERT(regular->attributes.freeRequested == 0);
+    regular->lock->destruct(regular->lock);
+
+    // Tell the allocator to free the data-block
+    ocrAllocator_t *allocator = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, regular->allocatorGuid, (u64*)&allocator, NULL);
+
+    allocator->free(allocator, regular->ptr); // TODO sagnak first argument was regular->allocator
+
+    globalGuidProvider->releaseGuid(globalGuidProvider, self->guid);
+    free(derived);
+}
+
+void* placedAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
+    ocrDataBlockPlaced_t *derived = (ocrDataBlockPlaced_t*)self;
+
+    unsigned char currPlace = get_current_policy_domain()->id;
+    ocrPlaceTrackerInsert(derived->placeTracker, currPlace);
+    return regularAcquire(self, edt, isInternal);
+}
+
+u8 placedRelease(ocrDataBlock_t *self, ocrGuid_t edt,
+                  bool isInternal) {
+    // ocrDataBlockPlaced_t *derived = (ocrDataBlockPlaced_t*)self;
+    // unsigned char currPlace = get_current_policy_domain()->id;
+    // ocrPlaceTrackerRemove(derived->placeTracker, currPlace);
+    return regularRelease(self, edt, isInternal);
+}
+
+ocrDataBlock_t* newDataBlockPlaced() {
+    ocrDataBlockPlaced_t *result = (ocrDataBlockPlaced_t*)malloc(sizeof(ocrDataBlockPlaced_t));
+    ocrPlaceTrackerAllocate(&(result->placeTracker));
+
+    ocrDataBlockRegular_t *regular = &(result->base);
+    regular->base.guid = UNINITIALIZED_GUID;
+    globalGuidProvider->getGuid(globalGuidProvider, &(regular->base.guid), (u64)regular, OCR_GUID_DB);
+
+    regular->base.create = &placedCreate;
+    regular->base.destruct = &placedDestruct;
+    regular->base.acquire = &placedAcquire;
+    regular->base.release = &placedRelease;
+    regular->base.free = &regularFree;
+    regular->lock = newLock(OCR_LOCK_DEFAULT);
 
     return (ocrDataBlock_t*)result;
 }

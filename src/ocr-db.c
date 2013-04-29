@@ -58,7 +58,8 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
                ocrLocation_t *location, ocrInDbAllocator_t allocator) {
 
     // TODO: Currently location and allocator are ignored
-    ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_DEFAULT);
+    // ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_DEFAULT);
+    ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_PLACED);
 
 #ifdef OCR_ENABLE_STATISTICS
     // Create the statistics process for this DB.

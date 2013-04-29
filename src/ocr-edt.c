@@ -35,25 +35,6 @@
 #include "ocr-runtime.h"
 #include "ocr-guid.h"
 
-#ifdef OCR_ENABLE_STATISTICS
-#include "ocr-statistics.h"
-#include "ocr-stat-user.h"
-#include "ocr-config.h"
-#endif
-
-
-// sagnak: I had to replicate this is in two files, we may need to expose this
-static inline ocr_policy_domain_t* get_current_policy_domain () {
-    ocrGuid_t worker_guid = ocr_get_current_worker_guid();
-    ocr_worker_t * worker = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, worker_guid, (u64*)&worker, NULL);
-
-    ocr_scheduler_t * scheduler = get_worker_scheduler(worker);
-    ocr_policy_domain_t* policy_domain = scheduler -> domain;
-
-    return policy_domain;
-}
-
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     ocr_policy_domain_t* policy_domain = get_current_policy_domain();
     ocr_event_factory * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);

@@ -41,6 +41,9 @@ ocrDataBlock_t* newDataBlock(ocrDataBlockKind type) {
     case OCR_DATABLOCK_REGULAR:
         return newDataBlockRegular();
         break;
+    case OCR_DATABLOCK_PLACED:
+        return newDataBlockPlaced();
+        break;
     default:
         ASSERT(0);
     }
