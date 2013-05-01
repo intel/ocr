@@ -3,9 +3,6 @@
 #include <time.h>
 #include "ocr.h"
 
-//TODO need this because we don't use the user api yet
-#include "ocr-runtime.h"
-
 #define GAP_PENALTY -1
 #define TRANSITION_PENALTY -2
 #define TRANSVERSION_PENALTY -4
