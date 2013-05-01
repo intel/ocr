@@ -42,5 +42,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-task-event.h"
 #include "ocr-runtime-model.h"
 
-
 #endif /* __OCR_RUNTIME_H_ */

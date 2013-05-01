@@ -47,16 +47,15 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
 u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     ocr_event_t * event = NULL;
     globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
-
     event->fct_ptrs->destruct(event);
     return 0;
 }
 
+//TODO add slot to events
 u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
     ocr_event_t * event = NULL;
     globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
-
-    event->fct_ptrs->put(event, dataGuid);
+    event->fct_ptrs->satisfy(event, dataGuid, 0);
     return 0;
 }
 
@@ -69,6 +68,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
         assert(depc != 0);
         u32 i = 0;
         while(i < depc) {
+            // TODO replace with a single runtime call with all dependencies
             ocrAddDependence(depv[i], *edtGuid, i);
             i++;
         }
@@ -76,34 +76,28 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
     return 0;
 }
 
+//TODO DEPR: impacts edtCreate and addDependence
 u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
     ocrGuid_t worker_guid = ocr_get_current_worker_guid();
     ocr_task_t * task = NULL;
     globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
-
     task->fct_ptrs->schedule(task, worker_guid);
     return 0;
 }
 
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
-
     ocr_task_t * task = NULL;
     globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
-
     task->fct_ptrs->destruct(task);
     return 0;
 }
 
 u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot) {
-    //TODO LIMITATION only support event as a guid source
-
-    ocr_event_t * event = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, source, (u64*)&event, NULL);
-    ocr_task_t * task = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, destination, (u64*)&task, NULL);
-
-    task->fct_ptrs->add_dependence(task, event, slot);
-
+    // TODO should be illegal to add a dependence to an edt since they would all be provided at creation time.
+    // source to register destination is waiting on it
+    offerWaiterRegistration(source, destination, slot);
+    // destination to register it will be signaled by source
+    offerSignalerRegistration(source, destination, slot);
     return 0;
 }
 
