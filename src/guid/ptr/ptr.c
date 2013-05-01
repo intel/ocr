@@ -34,6 +34,10 @@
 #include "ptr.h"
 #include "stdlib.h"
 
+typedef struct {
+    ocrGuid_t guid;
+    ocrGuidKind kind;
+} ocrGuidImpl_t;
 
 void ptrCreate(ocrGuidProvider_t* self, void* config) {
     return;
@@ -44,24 +48,30 @@ void ptrDestruct(ocrGuidProvider_t* self) {
     return;
 }
 
-u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind type) {
-    *guid = (ocrGuid_t)val;
+u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind kind) {
+    ocrGuidImpl_t * guidInst = malloc(sizeof(ocrGuidImpl_t));
+    guidInst->guid = (ocrGuid_t)val;
+    guidInst->kind = kind;
+    *guid = (u64) guidInst;
     return 0;
 }
 
 u8 ptrGetVal(ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKind* kind) {
-    *val = (u64)guid;
+    ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *) guid;
+    *val = (u64) guidInst->guid;
     if(kind)
-        *kind = OCR_GUID_NONE;
+        *kind = guidInst->kind;
     return 0;
 }
 
 u8 ptrGetKind(ocrGuidProvider_t* self, ocrGuid_t guid, ocrGuidKind* kind) {
-    *kind = OCR_GUID_NONE;
+    ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *) guid;
+    *kind = guidInst->kind;
     return 0;
 }
 
 u8 ptrReleaseGuid(ocrGuidProvider_t *self, ocrGuid_t guid) {
+    free((ocrGuidImpl_t*) guid);
     return 0;
 }
 
