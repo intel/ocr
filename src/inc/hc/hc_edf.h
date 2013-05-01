@@ -32,11 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef EDF_H
 #define EDF_H
 
-#define EMPTY_DATUM_ERROR_MSG "can not put sentinel value for \"uninitialized\" as a value into EDF"
-
-#define UNINITIALIZED_DATA NULL
-#define UNINITIALIZED_EVENT_WAITLIST_PTR ((ocr::Task*) -1)
-
 #include "ocr-runtime.h"
 #include "ocr-types.h"
 
@@ -50,41 +45,24 @@ typedef struct hc_event_factory {
 
 struct ocr_event_factory_struct* hc_event_factory_constructor(void);
 void hc_event_factory_destructor ( struct ocr_event_factory_struct* base );
-ocrGuid_t hc_event_factory_create ( struct ocr_event_factory_struct* factory, ocrEventTypes_t eventType, bool takesArg );
+ocrGuid_t hcEventFactoryCreate ( struct ocr_event_factory_struct* factory, ocrEventTypes_t eventType, bool takesArg );
 
-typedef struct register_list_node_t {
-    ocrGuid_t task_guid;
-    struct register_list_node_t* next ;
-} register_list_node_t;
+typedef struct reg_node_st {
+    ocrGuid_t guid;
+    int slot;
+    struct reg_node_st* next ;
+} reg_node_t;
 
 typedef struct hc_event_t {
     ocr_event_t base;
-    ocrGuid_t datum;
-    volatile register_list_node_t* register_list;
+    ocrEventTypes_t kind;
+    reg_node_t * waiters; //TODO need volatile ?
+    reg_node_t * signalers;
+    ocrGuid_t data;
 } hc_event_t;
 
 struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool takesArg, ocr_event_fcts_t * event_fct_ptrs_sticky);
 void hc_event_destructor ( struct ocr_event_struct* base );
-ocrGuid_t hc_event_get (struct ocr_event_struct* event);
-void hc_event_put (struct ocr_event_struct* event, ocrGuid_t db );
-bool hc_event_register_if_not_ready(struct ocr_event_struct* event, ocrGuid_t polling_task_id );
-
-/*! \brief Dependence list data structure for EDTs
-*/
-typedef struct {
-    /*! Public member for array head*/
-    ocr_event_t** array;
-    /*! Public member for waiting frontier*/
-    ocr_event_t** waitingFrontier;
-} hc_await_list_t;
-
-/*! \brief Gets the GUID for an OCR entity instance
- *  \param[in] el User provided EventList to build an AwaitList from
- *  \return AwaitList that is a copy of the EventList
- *  Our current implementation copies the linked list into an array
- */
-hc_await_list_t* hc_await_list_constructor( size_t al_size );
-void hc_await_list_destructor(hc_await_list_t*);
 
 /******************************************************/
 /* OCR-HC Task Factory                                */
@@ -97,37 +75,24 @@ typedef struct hc_task_factory {
 struct ocr_task_factory_struct* hc_task_factory_constructor(void);
 void hc_task_factory_destructor ( struct ocr_task_factory_struct* base );
 
-ocrGuid_t hc_task_factory_create_with_event_list ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, ocrGuid_t outputEvent, event_list_t* l);
 ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, size_t, ocrGuid_t outputEvent);
-
 
 /*! \brief Event Driven Task(EDT) implementation for OCR Tasks
 */
 typedef struct hc_task_struct_t {
     ocr_task_t base;
-    hc_await_list_t* awaitList;
+    reg_node_t * waiters;
+    reg_node_t * signalers; // Does not grow, set once when the task is created
     size_t nbdeps;
     ocrEdtDep_t * depv;
     ocrEdt_t p_function;
 } hc_task_t;
 
-hc_task_t* hc_task_construct_with_event_list (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, event_list_t* al, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs);
-hc_task_t* hc_task_construct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, size_t l_size, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs);
+hc_task_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, size_t l_size, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs);
 
-void hc_task_destruct ( ocr_task_t* base );
-bool hc_task_iterate_waiting_frontier ( ocr_task_t* base );
-void hc_task_execute ( ocr_task_t* base );
+void hcTaskDestruct ( ocr_task_t* base );
+void taskExecute ( ocr_task_t* base );
 
-/*! \brief Tries to schedule a task by walking its waiting frontier.
- *  \param[in] base the task to schedule
- *  \param[in] wid the worker's guid trying to schedule the task
- *
- *  If it's not ready, the task may be enabled at some point when
- *  some of its dependencies arrive.
- *
-*/
-void hc_task_try_schedule( ocr_task_t* base, ocrGuid_t wid);
-void hc_task_add_dependence ( ocr_task_t* base, ocr_event_t* dep, size_t index );
 u64 hc_task_add_acquired(ocr_task_t* base, u64 edtId, ocrGuid_t db);
 void hc_task_remove_acquired(ocr_task_t* base, ocrGuid_t db, u64 dbId);
 

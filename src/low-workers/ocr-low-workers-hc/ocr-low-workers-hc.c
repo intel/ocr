@@ -148,31 +148,6 @@ ocrGuid_t get_worker_guid(ocr_worker_t * worker) {
 /* OCR-HC Task Factory                                */
 /******************************************************/
 
-// struct ocr_task_factory_struct* hc_task_factory_constructor(void) {
-//     hc_task_factory* derived = (hc_task_factory*) malloc(sizeof(hc_task_factory));
-//     ocr_task_factory* base = (ocr_task_factory*) derived;
-//     base->create = hc_task_factory_create;
-//     base->destruct =  hc_task_factory_destructor;
-//     return base;
-// }
-
-// void hc_task_factory_destructor ( struct ocr_task_factory_struct* base ) {
-//     hc_task_factory* derived = (hc_task_factory*) base;
-//     free(derived);
-// }
-
-// ocrGuid_t hc_task_factory_create_with_event_list (struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, event_list_t* l) {
-//     hc_task_t* edt = hc_task_construct_with_event_list(fctPtr, paramc, params, paramv, l);
-//     ocr_task_t* base = (ocr_task_t*) edt;
-//     return base->guid;
-// }
-
-// ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, size_t dep_l_size) {
-//     hc_task_t* edt = hc_task_construct(fctPtr, paramc, params, paramv, dep_l_size);
-//     ocr_task_t* base = (ocr_task_t*) edt;
-//     return base->guid;
-// }
-
 //TODO shall this be in namespace ocr-hc ?
 void * worker_computation_routine(void * arg) {
     ocr_worker_t * worker = (ocr_worker_t *) arg;

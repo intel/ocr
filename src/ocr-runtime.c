@@ -43,12 +43,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * It sets the size to be 0 and head and tail members to be NULL
  * \return  An empty linked list instance
  */
-static event_list_node_t* event_list_node_constructor () {
-    event_list_node_t* node = (event_list_node_t*)checked_malloc(node, sizeof(event_list_node_t));
-    node->event = NULL;
-    node->next = NULL;
-    return node;
-}
+
+// DEPRECATED
+// static event_list_node_t* event_list_node_constructor () {
+//     event_list_node_t* node = (event_list_node_t*)checked_malloc(node, sizeof(event_list_node_t));
+//     node->event = NULL;
+//     node->next = NULL;
+//     return node;
+// }
 
 /*! \brief Shallow destructor for event list nodes
  *  \param[in] node The node to free.
@@ -62,14 +64,16 @@ static void event_list_node_destructor (event_list_node_t* node) {
  *  \param[in]  event_guid  GUID of the event to be appended
  */
 void event_list_enlist ( event_list_t* list, ocrGuid_t event_guid ) {
-    ocr_event_t * event = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, event_guid, (u64*)&event, NULL);
+    assert(false);
+    //DISABLE to build on hudson
+    // ocr_event_t * event = NULL;
+    // globalGuidProvider->getVal(globalGuidProvider, event_guid, (u64*)&event, NULL);
 
-    ++list->size;
-    event_list_node_t* node = event_list_node_constructor();
-    node->event = event;
-    if ( NULL != list->head ) { list->tail->next = node; list->tail = node; }
-    else list->tail = list->head = node;
+    // ++list->size;
+    // event_list_node_t* node = event_list_node_constructor();
+    // node->event = event;
+    // if ( NULL != list->head ) { list->tail->next = node; list->tail = node; }
+    // else list->tail = list->head = node;
 }
 
 /*! \brief Default constructor for event list
