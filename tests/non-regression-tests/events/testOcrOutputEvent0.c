@@ -37,6 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define FLAGS 0xdead
 
+/**
+ * DESC: Chain an edt to another edt's output event.
+ */
+
 // This edt is triggered when the output event of the other edt is satisfied by the runtime
 u8 chained_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     ocrFinish(); // This is the last EDT to execute, terminate
@@ -66,7 +70,7 @@ int main (int argc, char ** argv) {
 
     // Create the chained EDT and add input and output events as dependences.
     ocrGuid_t chained_edt_guid;
-    ocrEdtCreateWithOutput(&chained_edt_guid, chained_edt, /*paramc=*/0, /*params=*/ NULL,
+    ocrEdtCreate(&chained_edt_guid, chained_edt, /*paramc=*/0, /*params=*/ NULL,
             /*paramv=*/NULL, /*properties=*/0, /*depc=*/2, /*depv=*/NULL, NULL_GUID);
     ocrAddDependence(output_event_guid, chained_edt_guid, 0);
     ocrAddDependence(input_event_guid, chained_edt_guid, 1);
@@ -77,7 +81,7 @@ int main (int argc, char ** argv) {
     // to get a little bit more control so as to when the root edt gets
     // a chance to be scheduled.
     ocrGuid_t edt_guid;
-    ocrEdtCreateWithOutput(&edt_guid, task_for_edt, /*paramc=*/0, /*params=*/ NULL,
+    ocrEdtCreate(&edt_guid, task_for_edt, /*paramc=*/0, /*params=*/ NULL,
             /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, output_event_guid);
     ocrAddDependence(event_guid, edt_guid, 0);
     ocrEdtSchedule(edt_guid);

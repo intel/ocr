@@ -117,7 +117,6 @@ u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset) {
 }
 
 struct ocrDbCopy_args {
-	ocrGuid_t completionEvt; 
 	ocrGuid_t destination;
 	u64 destinationOffset; 
 	ocrGuid_t source; 
@@ -129,7 +128,6 @@ u8 ocrDbCopy_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep
 	char *sptr, *dptr;
 
 	struct ocrDbCopy_args * pv = (struct ocrDbCopy_args *) depv[0].ptr;
-	ocrGuid_t completionEvt = pv->completionEvt;
 	ocrGuid_t destination = pv->destination;
 	u64 destinationOffset = pv->destinationOffset;
 	ocrGuid_t source = pv->source;
@@ -151,7 +149,6 @@ u8 ocrDbCopy_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep
 	}
 #endif
 
-	ocrEventSatisfy(completionEvt, destination); 
 	ocrDbRelease(source);
 	ocrDbRelease(destination);
 
@@ -161,14 +158,14 @@ u8 ocrDbCopy_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep
     return 0;
 }
 
-u8 ocrDbCopy(ocrGuid_t completionEvt, ocrGuid_t destination,u64 destinationOffset, ocrGuid_t source, u64 sourceOffset, u64 size, u64 copyType) {
+u8 ocrDbCopy(ocrGuid_t destination,u64 destinationOffset, ocrGuid_t source, u64 sourceOffset, u64 size, u64 copyType, ocrGuid_t completionEvt) {
     // Create the event
 	ocrGuid_t event_guid;
     ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true); /*TODO: Replace with ONCE after that is supported */
 
     // Create the EDT
     ocrGuid_t edt_guid;
-    ocrEdtCreate(&edt_guid, ocrDbCopy_edt, 0, NULL, NULL, 0, 1, &event_guid);
+    ocrEdtCreate(&edt_guid, ocrDbCopy_edt, 0, NULL, NULL, 0, 1, &event_guid, completionEvt);
 	ocrEdtSchedule(edt_guid);
 
 	// Create the copy params
@@ -178,7 +175,6 @@ u8 ocrDbCopy(ocrGuid_t completionEvt, ocrGuid_t destination,u64 destinationOffse
     // Warning: directly casting db_args to (void **) causes a type-punning warning with gcc-4.1.2
     ocrDbCreate(&param_db_guid, &ptr, sizeof(ocrDbCopy_args), 0xdead, NULL, NO_ALLOC);
 
-	db_args->completionEvt = completionEvt;
 	db_args->destination = destination;
 	db_args->destinationOffset = destinationOffset;
 	db_args->source = source;

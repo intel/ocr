@@ -316,7 +316,7 @@ int main ( int argc, char* argv[] ) {
             /* Create an event-driven tasks of smith_waterman tasks */
             ocrGuid_t task_guid;
 
-            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void **) p_paramv, PROPERTIES, 3, NULL);
+            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void **) p_paramv, PROPERTIES, 3, NULL, NULL_GUID);
 
             /* add dependency to the EDT from the west tile's right column ready event */
             ocrAddDependence(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);

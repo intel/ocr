@@ -70,7 +70,7 @@ int main (int argc, char ** argv) {
 
     ocrEdtCreate(&edt_guid, task_for_edt, /*paramc=*/0, /*params=*/ NULL,
             /*paramv=*/NULL, /*properties=*/0,
-            /*depc=*/1, /*depv=*/NULL);
+            /*depc=*/1, /*depv=*/NULL, /*outEvent=*/NULL_GUID);
 
     // Register a dependence between an event and an edt
     ocrAddDependence(e2, edt_guid, 0);

@@ -111,14 +111,14 @@ int main (int argc, char ** argv) {
 
     /* Create final EDT (autumn) */
     ocrEdtCreate(&autumnEdt, autumn, /*paramc=*/0, /*params=*/NULL,
-                 /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL);
+                 /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, /*outEvent=*/NULL_GUID);
 
     /* Create event */
     ocrEventCreate(&autumnEvt, OCR_EVENT_STICKY_T, true);
 
     /* Create summer */
     ocrEdtCreate(&summerEdt, summer, /*paramc=*/0, /*params=*/NULL,
-                 /*paramv=*/NULL, /*properties=*/0, /*depc=*/3, /*depv=*/NULL);
+                 /*paramv=*/NULL, /*properties=*/0, /*depc=*/3, /*depv=*/NULL, /*outEvent=*/NULL_GUID);
 
     /* Create events for summer */
     for(i = 0; i < 3; ++i) {

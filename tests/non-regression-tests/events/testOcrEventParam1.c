@@ -68,7 +68,7 @@ int main (int argc, char ** argv) {
 
     // 'depv' stores dependencies, so no need to call
     // ocrAddDependence later on to register events.
-    ocrEdtCreate(&edt_guid, task_for_edt, paramc, params, (void**) &paramv, 0, 1, depv);
+    ocrEdtCreate(&edt_guid, task_for_edt, paramc, params, (void**) &paramv, 0, 1, depv, NULL_GUID);
 
     int *k;
     ocrGuid_t db_guid;

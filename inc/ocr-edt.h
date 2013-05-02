@@ -160,16 +160,10 @@ typedef u8 (*ocrEdt_t )( u32 paramc, u64 * params, void* paramv[],
  * @param depc              Number of dependences for this EDT
  * @param depv              Values for the GUIDs of the dependences (if known)
  *                          If NULL, use ocrAddDependence
- * @param outputEvent       Event satisfied by the runtime, with the edt's guid,
- *                          when the edt has been executed.
+ * @param outputEvent       Event satisfied by the runtime when the edt has been executed.
  * @return 0 on success and an error code on failure: TODO
  **/
 u8 ocrEdtCreate(ocrGuid_t * guid, ocrEdt_t funcPtr,
-                u32 paramc, u64 * params, void** paramv,
-                u16 properties, u32 depc, ocrGuid_t * depv);
-
-//TODO, this should replace ocrEdtCreate when all tests and apps have been updated
-u8 ocrEdtCreateWithOutput(ocrGuid_t * guid, ocrEdt_t funcPtr,
                 u32 paramc, u64 * params, void** paramv,
                 u16 properties, u32 depc, ocrGuid_t * depv, ocrGuid_t outputEvent);
 

@@ -64,7 +64,7 @@ int main (int argc, char ** argv) {
     paramv[0] = 32;
 
     ocrGuid_t edt_guid;
-    ocrEdtCreate(&edt_guid, task_for_edt, paramc, params, (void**) &paramv, 0, 1, NULL);
+    ocrEdtCreate(&edt_guid, task_for_edt, paramc, params, (void**) &paramv, 0, 1, NULL, /*outEvent=*/NULL_GUID);
 
     // Register a dependence between an event and an edt
     ocrAddDependence(event_guid, edt_guid, 0);
