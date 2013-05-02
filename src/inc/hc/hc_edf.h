@@ -84,7 +84,6 @@ typedef struct hc_task_struct_t {
     reg_node_t * waiters;
     reg_node_t * signalers; // Does not grow, set once when the task is created
     size_t nbdeps;
-    ocrEdtDep_t * depv;
     ocrEdt_t p_function;
 } hc_task_t;
 

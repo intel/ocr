@@ -248,7 +248,6 @@ static void hcTaskConstructInternal (hc_task_t* derived, ocrEdt_t funcPtr,
     }
     derived->waiters = END_OF_LIST;
     derived->nbdeps = nbDeps;
-    derived->depv = NULL;
     derived->p_function = funcPtr;
     ocr_task_t* base = (ocr_task_t*) derived;
     base->guid = UNINITIALIZED_GUID;
@@ -361,7 +360,6 @@ void taskExecute ( ocr_task_t* base ) {
     if (nbdeps != 0) {
         //TODO would be nice to resolve regNode into event_t before
         depv = (ocrEdtDep_t *) checked_malloc(depv, sizeof(ocrEdtDep_t) * nbdeps);
-        derived->depv = depv;
         // Double-check we're not rescheduling an already executed edt
         assert(derived->signalers != END_OF_LIST);
         while ( i < nbdeps ) {
@@ -393,7 +391,6 @@ void taskExecute ( ocr_task_t* base ) {
                 RESULT_ASSERT(db->release(db, base->guid, true), ==, 0);
             }
         }
-        free(depv);
     }
 
     // Satisfy the output event with the edt's guid
