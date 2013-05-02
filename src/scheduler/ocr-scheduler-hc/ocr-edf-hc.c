@@ -49,14 +49,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static bool isEventGuid(ocrGuid_t guid) {
     ocrGuidKind kind;
     globalGuidProvider->getKind(globalGuidProvider, guid, &kind);
-    printf("isEventGuid %p, kind is %d\n", (void *)guid, kind);
     return kind == OCR_GUID_EVENT;
 }
 
 static bool isEdtGuid(ocrGuid_t guid) {
     ocrGuidKind kind;
     globalGuidProvider->getKind(globalGuidProvider, guid, &kind);
-    printf("isEdtGuid %p, kind is %d\n", (void *)guid, kind);
     return kind == OCR_GUID_EDT;
 }
 
@@ -64,7 +62,6 @@ static bool isEventStickyGuid(ocrGuid_t guid) {
     if(isEventGuid(guid)) {
         hc_event_t * event = NULL;
         globalGuidProvider->getVal(globalGuidProvider, guid, (u64*)&event, NULL);
-        printf("isEventStickyGuid %p, kind is %d\n", (void *)guid, event->kind);   
         return event->kind == OCR_EVENT_STICKY_T;
     }
     return false;
@@ -322,7 +319,6 @@ static void edtRegisterSignaler(ocr_task_t * base, ocrGuid_t signalerGuid, int s
  * Note: static function only meant to factorize code.
  */
 static void taskSchedule( ocrGuid_t guid, ocr_task_t* base, ocrGuid_t wid ) {
-    printf("schedule task\n");
     ocr_worker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
     ocr_scheduler_t * scheduler = get_worker_scheduler(w);
@@ -361,7 +357,6 @@ void taskExecute ( ocr_task_t* base ) {
     size_t i = 0;
     int nbdeps = derived->nbdeps;
     ocrEdtDep_t * depv = NULL;
-    printf("Task execute called \n");
     // If any dependencies, acquire their data-blocks
     if (nbdeps != 0) {
         //TODO would be nice to resolve regNode into event_t before
@@ -477,7 +472,6 @@ static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slo
 
 // register a signaler on a waiter
 static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot, bool offer) {
-    printf("Checking registerSignaler %p, %p\n", (void *) signalerGuid, (void*) waiterGuid);
     if (isEdtGuid(waiterGuid)) {
         if (isEventGuid(signalerGuid)) {
             // edt waiting for a signal from an event
@@ -497,7 +491,6 @@ static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int s
           }
         // We do not register events as signalers on waiters
     }
-    printf("END Checking registerSignaler \n");
 }
 
 // signal a 'waiter' data has arrived on a particular slot
