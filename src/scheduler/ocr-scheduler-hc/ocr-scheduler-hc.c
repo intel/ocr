@@ -39,7 +39,13 @@
 /* OCR-HC SCHEDULER                                   */
 /******************************************************/
 
-void hc_scheduler_create(ocr_scheduler_t * scheduler, void * per_type_configuration, void * per_instance_configuration) {
+void hc_scheduler_create(ocr_scheduler_t * base, void * per_type_configuration, void * per_instance_configuration) {
+    hc_scheduler_t* derived = (hc_scheduler_t*) base;
+    scheduler_configuration *mapper = (scheduler_configuration*)per_instance_configuration;
+
+    derived->worker_id_begin = mapper->worker_id_begin;
+    derived->worker_id_end = mapper->worker_id_end;
+    derived->n_workers_per_scheduler = 1 + derived->worker_id_end - derived->worker_id_begin;
 }
 
 void hc_scheduler_destruct(ocr_scheduler_t * scheduler) {
@@ -59,19 +65,17 @@ void hc_scheduler_destruct(ocr_scheduler_t * scheduler) {
 
 ocr_workpile_t * hc_scheduler_pop_mapping_one_to_one (ocr_scheduler_t* base, ocr_worker_t* w ) {
     hc_scheduler_t* derived = (hc_scheduler_t*) base;
-    return derived->pools[get_worker_id(w)];
+    return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler ];
 }
 
 ocr_workpile_t * hc_scheduler_push_mapping_one_to_one (ocr_scheduler_t* base, ocr_worker_t* w ) {
     hc_scheduler_t* derived = (hc_scheduler_t*) base;
-    return derived->pools[get_worker_id(w)];
+    return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler];
 }
 
 workpile_iterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocr_scheduler_t* base, ocr_worker_t* w ) {
     hc_scheduler_t* derived = (hc_scheduler_t*) base;
-    workpile_iterator_t * steal_iterator = derived->steal_iterators[get_worker_id(w)];
-    steal_iterator->reset(steal_iterator);
-    return steal_iterator;
+    return workpile_iterator_constructor(get_worker_id(w)% derived->n_workers_per_scheduler, derived->n_pools, derived->pools);
 }
 
 ocrGuid_t hc_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {

@@ -103,10 +103,10 @@ ocr_scheduler_t * hc_scheduler_constructor(void);
 
 /* we have to end up exposing the configuration declarations too for the runtime model
  * I do not know if abstract factories may help with this situation */
-typedef struct fsim_scheduler_configuration {
+typedef struct scheduler_configuration {
     size_t worker_id_begin;
     size_t worker_id_end;
-} fsim_scheduler_configuration;
+} scheduler_configuration;
 
 /*TODO sagnak this should not be here, this is in order not to replicate code for HC-x86 and FSIM-like*/
 void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocr_module_kind kind,

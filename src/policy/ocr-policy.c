@@ -54,6 +54,14 @@ ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
     case OCR_POLICY_MASTERED_CE:
         return ce_mastered_policy_domain_constructor(nb_workpiles, nb_workers,
                                                      nb_executors, nb_schedulers);
+    case OCR_PLACE_POLICY:
+        return place_policy_domain_constructor();
+    case OCR_LEAF_PLACE_POLICY:
+        return leaf_place_policy_domain_constructor(nb_workpiles, nb_workers,
+                                                    nb_executors, nb_schedulers);
+    case OCR_MASTERED_LEAF_PLACE_POLICY:
+        return mastered_leaf_place_policy_domain_constructor(nb_workpiles, nb_workers,
+                                                             nb_executors, nb_schedulers);
 /* sagnak end*/
     default:
         assert(false && "Unrecognized policy domain kind");
@@ -99,3 +107,26 @@ ocr_policy_domain_t* get_current_policy_domain () {
 
     return policy_domain;
 }
+
+ocrGuid_t policy_domain_take_assert ( ocr_policy_domain_t * thisPolicy, ocr_policy_domain_t * policyTakenFrom, ocrGuid_t takingWorkerGuid ) {
+    assert(0 && "postponed policy take implementation");
+    return NULL_GUID;
+}
+
+void policy_domain_give_assert ( ocr_policy_domain_t * thisPolicy, ocr_policy_domain_t * policyToGiveTo, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
+    assert(0 && "postponed policy give implementation");
+}
+
+ocrGuid_t policy_domain_handIn_assert ( struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * takingPolicy, ocrGuid_t takingWorkerGuid ) {
+    assert(0 && "postponed policy handIn implementation");
+    return NULL_GUID;
+}
+
+void policy_domain_handOut_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
+    assert(0 && "postponed policy handOut implementation");
+}
+
+void policy_domain_receive_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
+    assert(0 && "postponed policy receive implementation");
+}
+

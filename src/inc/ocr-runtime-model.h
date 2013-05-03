@@ -76,6 +76,13 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XE_per_CEs
 ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XE_per_CEs );
 ocr_model_policy_t * createCeMasteredModelPolicy ( size_t nb_XE_per_CEs );
 
+ocr_model_policy_t * createThorRootModelPolicy ( );
+ocr_model_policy_t * createThorL3ModelPolicies ( size_t n_L3s );
+ocr_model_policy_t * createThorL2ModelPolicies ( size_t n_L2s );
+ocr_model_policy_t * createThorL1ModelPolicies ( size_t n_L1s );
+ocr_model_policy_t * createThorWorkerModelPolicies ( size_t n_workers );
+ocr_model_policy_t * createThorMasteredWorkerModelPolicies ( );
+
 ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model);
 
 

@@ -121,7 +121,10 @@ typedef enum ocr_policy_kind_enum {
     OCR_POLICY_HC = 1,
     OCR_POLICY_XE = 2,
     OCR_POLICY_CE = 3,
-    OCR_POLICY_MASTERED_CE = 4
+    OCR_POLICY_MASTERED_CE = 4,
+    OCR_PLACE_POLICY = 5,
+    OCR_LEAF_PLACE_POLICY = 6,
+    OCR_MASTERED_LEAF_PLACE_POLICY = 7
 } ocr_policy_kind;
 
 ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
@@ -134,7 +137,16 @@ ocr_policy_domain_t * hc_policy_domain_constructor();
 ocr_policy_domain_t * xe_policy_domain_constructor();
 ocr_policy_domain_t * ce_policy_domain_constructor();
 ocr_policy_domain_t * ce_mastered_policy_domain_constructor();
+ocr_policy_domain_t * place_policy_domain_constructor();
+ocr_policy_domain_t * leaf_place_policy_domain_constructor();
+ocr_policy_domain_t * mastered_leaf_place_policy_domain_constructor();
 
 ocr_policy_domain_t* get_current_policy_domain ();
+
+ocrGuid_t policy_domain_take_assert ( ocr_policy_domain_t * thisPolicy, ocr_policy_domain_t * policyTakenFrom, ocrGuid_t takingWorkerGuid );
+void policy_domain_give_assert ( ocr_policy_domain_t * thisPolicy, ocr_policy_domain_t * policyToGiveTo, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
+ocrGuid_t policy_domain_handIn_assert ( struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * takingPolicy, ocrGuid_t takingWorkerGuid );
+void policy_domain_handOut_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
+void policy_domain_receive_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
 
 #endif /* OCR_POLICY_H_ */

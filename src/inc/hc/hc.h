@@ -77,14 +77,29 @@ typedef struct {
     ocr_scheduler_t scheduler;
     size_t n_pools;
     ocr_workpile_t ** pools;
-    // Note: cache steal iterators in hc's scheduler
-    // Each worker has its own steal iterator instantiated
-    // a sheduler's construction time.
-    workpile_iterator_t ** steal_iterators;
 
+    int n_workers_per_scheduler;
+    size_t worker_id_begin;
+    size_t worker_id_end;
 } hc_scheduler_t;
 
 ocr_scheduler_t * hc_scheduler_constructor(void);
+
+void hc_scheduler_create(ocr_scheduler_t * base, void * per_type_configuration, void * per_instance_configuration);
+
+/******************************************************/
+/* OCR-HC Task Factory                                */
+/******************************************************/
+
+typedef struct hc_task_factory {
+    ocr_task_factory base_factory;
+} hc_task_factory;
+
+struct ocr_task_factory_struct* hc_task_factory_constructor(void);
+void hc_task_factory_destructor ( struct ocr_task_factory_struct* base );
+
+ocrGuid_t hc_task_factory_create_with_event_list ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, event_list_t* l);
+ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, size_t);
 
 /**
  * The computation worker routine that asks work to the scheduler

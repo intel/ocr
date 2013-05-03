@@ -59,19 +59,10 @@ typedef struct ce_message_workpile {
 
 typedef struct {
     hc_scheduler_t scheduler;
-/*needed for a naive worker_id to workpile mapping*/
-    int n_workers_per_scheduler;
-    size_t worker_id_begin;
-    size_t worker_id_end;
 } xe_scheduler_t;
 
 typedef struct {
     hc_scheduler_t scheduler;
-/*needed for a naive worker_id to workpile mapping*/
-    int n_workers_per_scheduler;
-    size_t worker_id_begin;
-    size_t worker_id_end;
-
     int in_message_popping_mode;
 } ce_scheduler_t;
 

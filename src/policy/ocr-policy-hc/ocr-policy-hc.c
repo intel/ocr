@@ -157,13 +157,218 @@ ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
     policy->destruct = hc_policy_domain_destruct;
     policy->getAllocator = hc_policy_getAllocator;
     // no inter-policy domain for HC for now
-    policy->take    = NULL;
-    policy->give    = NULL;
-    policy->handOut = NULL;
-    policy->handIn  = NULL;
-    policy->receive = NULL;
+    policy->take = policy_domain_take_assert;
+    policy->give = policy_domain_give_assert;
+    policy->handIn = policy_domain_handIn_assert;
+    policy->handOut = policy_domain_handOut_assert;
+    policy->receive = policy_domain_receive_assert;
 
     policy->getTaskFactoryForUserTasks = hc_policy_getTaskFactoryForUserTasks;
     policy->getEventFactoryForUserEvents = hc_policy_getEventFactoryForUserEvents;
+    return policy;
+}
+
+void leaf_place_policy_domain_start (ocr_policy_domain_t * policy) {
+    // Create Task and Event Factories
+    policy->taskFactories = (ocr_task_factory**) malloc(sizeof(ocr_task_factory*));
+    policy->eventFactories = (ocr_event_factory**) malloc(sizeof(ocr_event_factory*));
+
+    policy->taskFactories[0] = hc_task_factory_constructor();
+    policy->eventFactories[0] = hc_event_factory_constructor();
+
+    // WARNING: Threads start should be the last thing we do here after
+    //          all data-structures have been initialized.
+    size_t i = 0;
+    size_t nb_workers = policy->nb_workers;
+    size_t nb_executors = policy->nb_executors;
+    for(i = 0; i < nb_workers; i++) {
+        policy->workers[i]->start(policy->workers[i]);
+
+    }
+    for(i = 0; i < nb_executors; i++) {
+        policy->executors[i]->start(policy->executors[i]);
+    }
+}
+
+void mastered_leaf_place_policy_domain_start (ocr_policy_domain_t * policy) {
+    // Create Task and Event Factories
+    policy->taskFactories = (ocr_task_factory**) malloc(sizeof(ocr_task_factory*));
+    policy->eventFactories = (ocr_event_factory**) malloc(sizeof(ocr_event_factory*));
+
+    policy->taskFactories[0] = hc_task_factory_constructor();
+    policy->eventFactories[0] = hc_event_factory_constructor();
+
+    // WARNING: Threads start should be the last thing we do here after
+    //          all data-structures have been initialized.
+    size_t i = 0;
+    size_t nb_workers = policy->nb_workers;
+    size_t nb_executors = policy->nb_executors;
+    // Only start (N-1) workers as worker '0' is the current thread.
+    for(i = 1; i < nb_workers; i++) {
+        policy->workers[i]->start(policy->workers[i]);
+
+    }
+    // Only start (N-1) threads as thread '0' is the current thread.
+    for(i = 1; i < nb_executors; i++) {
+        policy->executors[i]->start(policy->executors[i]);
+    }
+    // Handle thread '0'
+    policy->workers[0]->start(policy->workers[0]);
+    // Need to associate thread and worker here, as current thread fall-through
+    // in user code and may need to know which Worker it is associated to.
+    associate_executor_and_worker(policy->workers[0]);
+}
+
+void leaf_place_policy_domain_stop (ocr_policy_domain_t * policy) {
+    size_t i;
+    for (i = 0; i < policy->nb_executors; i++) {
+        policy->executors[i]->stop(policy->executors[i]);
+    }
+}
+
+void mastered_leaf_place_policy_domain_stop (ocr_policy_domain_t * policy) {
+    // WARNING: Do not add code here unless you know what you're doing !!
+    // If we are here, it means a codelet called ocrFinish which
+    // logically stopped workers and can make thread '0' executes this
+    // code before joining the other threads.
+
+    // Thread '0' joins the other (N-1) threads.
+    size_t i;
+    for (i = 1; i < policy->nb_executors; i++) {
+        policy->executors[i]->stop(policy->executors[i]);
+    }
+}
+
+void leaf_place_policy_domain_constructor_helper ( ocr_policy_domain_t * policy,
+                                                   size_t nb_workpiles,
+                                                   size_t nb_workers,
+                                                   size_t nb_executors,
+                                                   size_t nb_schedulers) {
+    // Get a GUID
+    policy->guid = UNINITIALIZED_GUID;
+    globalGuidProvider->getGuid(globalGuidProvider, &(policy->guid), (u64)policy, OCR_GUID_POLICY);
+
+    ocr_module_t * module_base = (ocr_module_t *) policy;
+    module_base->map_fct = hc_ocr_module_map_schedulers_to_policy;
+
+    policy->nb_executors = nb_executors;
+    policy->nb_workpiles = nb_workpiles;
+    policy->nb_workers = nb_workers;
+    policy->nb_executors = nb_executors;
+    policy->nb_schedulers = nb_schedulers;
+
+    policy->create = hc_policy_domain_create;
+    policy->finish = hc_policy_domain_finish;
+    policy->destruct = hc_policy_domain_destruct;
+    policy->getAllocator = hc_policy_getAllocator;
+    // no inter-policy domain for HC for now
+    policy->take = policy_domain_take_assert;
+    policy->give = policy_domain_give_assert;
+    policy->handIn = policy_domain_handIn_assert;
+    policy->handOut = policy_domain_handOut_assert;
+    policy->receive = policy_domain_receive_assert;
+
+    policy->getTaskFactoryForUserTasks = hc_policy_getTaskFactoryForUserTasks;
+    policy->getEventFactoryForUserEvents = hc_policy_getEventFactoryForUserEvents;
+}
+
+ocr_policy_domain_t * leaf_place_policy_domain_constructor(size_t nb_workpiles,
+                                                           size_t nb_workers,
+                                                           size_t nb_executors,
+                                                           size_t nb_schedulers) {
+    ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
+    leaf_place_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_executors, nb_schedulers);
+    policy->start = leaf_place_policy_domain_start; // mastered_leaf_place_policy_domain_start 
+    policy->stop = leaf_place_policy_domain_stop; // mastered_leaf_place_policy_domain_stop 
+    return policy;
+}
+
+ocr_policy_domain_t * mastered_leaf_place_policy_domain_constructor(size_t nb_workpiles,
+                                                   size_t nb_workers,
+                                                   size_t nb_executors,
+                                                   size_t nb_schedulers) {
+    ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
+    leaf_place_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_executors, nb_schedulers);
+    policy->start = mastered_leaf_place_policy_domain_start;
+    policy->stop = mastered_leaf_place_policy_domain_stop;
+    return policy;
+}
+
+void ocr_module_map_nothing_to_place (void * self_module, ocr_module_kind kind,
+                                               size_t nb_instances, void ** ptr_instances) {
+    // Checking mapping conforms to what we're expecting in this implementation
+    assert ( 0 && "We should not map anything on a place policy");
+}
+
+void place_policy_domain_create (ocr_policy_domain_t * policy, void * configuration,
+                               ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
+                               ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
+                               ocrAllocator_t ** allocators, ocrLowMemory_t ** memories) {
+    policy->schedulers = NULL;
+    policy->workers = NULL;
+    policy->executors = NULL;
+    policy->workpiles = NULL;
+    policy->allocators = NULL;
+    policy->memories = NULL;
+}
+
+void place_policy_domain_destruct(ocr_policy_domain_t * policy) {
+}
+
+ocrGuid_t place_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t* location) {
+    return NULL_GUID;
+}
+
+ocr_task_factory* place_policy_getTaskFactoryForUserTasks (ocr_policy_domain_t * policy) {
+    assert ( 0 && "We should not ask for a task factory from a place policy");
+    return NULL;
+}
+
+ocr_event_factory* place_policy_getEventFactoryForUserEvents (ocr_policy_domain_t * policy) {
+    assert ( 0 && "We should not ask for an event factory from a place policy");
+    return NULL;
+}
+
+void place_policy_domain_start(ocr_policy_domain_t * policy) {
+}
+
+void place_policy_domain_finish(ocr_policy_domain_t * policy) {
+}
+
+void place_policy_domain_stop(ocr_policy_domain_t * policy) {
+}
+
+ocr_policy_domain_t * place_policy_domain_constructor () {
+    ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
+
+    policy->guid = UNINITIALIZED_GUID;
+    globalGuidProvider->getGuid(globalGuidProvider, &(policy->guid), (u64)policy, OCR_GUID_POLICY);
+
+    ocr_module_t * module_base = (ocr_module_t *) policy;
+    module_base->map_fct = ocr_module_map_nothing_to_place;
+
+    policy->nb_workpiles = 0;
+    policy->nb_workers = 0;
+    policy->nb_schedulers = 0;
+    policy->nb_executors = 0;
+
+    policy->create = place_policy_domain_create;
+    policy->destruct = place_policy_domain_destruct;
+    policy->getAllocator = place_policy_getAllocator;
+
+    policy->getTaskFactoryForUserTasks = place_policy_getTaskFactoryForUserTasks;
+    policy->getEventFactoryForUserEvents = place_policy_getEventFactoryForUserEvents;
+
+    policy->take = policy_domain_take_assert;
+    policy->give = policy_domain_give_assert;
+    policy->handIn = policy_domain_handIn_assert;
+
+    policy->start = place_policy_domain_start;
+    policy->finish = place_policy_domain_finish;
+    policy->stop = place_policy_domain_stop;
+
+    policy->handOut = policy_domain_handOut_assert;
+    policy->receive = policy_domain_receive_assert;
+
     return policy;
 }

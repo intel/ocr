@@ -38,15 +38,6 @@
 /* OCR-FSIM SCHEDULER                                 */
 /******************************************************/
 
-void xe_scheduler_create(ocr_scheduler_t * base, void * per_type_configuration, void * per_instance_configuration) {
-    xe_scheduler_t* xeDerived = (xe_scheduler_t*) base;
-    fsim_scheduler_configuration *mapper = (fsim_scheduler_configuration*)per_instance_configuration;
-
-    xeDerived->worker_id_begin = mapper->worker_id_begin;
-    xeDerived->worker_id_end = mapper->worker_id_end;
-    xeDerived->n_workers_per_scheduler = 1 + xeDerived->worker_id_end - xeDerived->worker_id_begin;
-}
-
 void xe_scheduler_destruct(ocr_scheduler_t * scheduler) {
     // just free self, workpiles are not allocated by the scheduler
     free(scheduler);
@@ -59,18 +50,16 @@ ocr_workpile_t * xe_scheduler_pop_mapping_assert (ocr_scheduler_t* base, ocr_wor
 
 ocr_workpile_t * xe_scheduler_pop_mapping_to_assigned_work (ocr_scheduler_t* base, ocr_worker_t* w ) {
     hc_scheduler_t* hcDerived = (hc_scheduler_t*) base;
-    xe_scheduler_t* xeDerived = (xe_scheduler_t*) base;
     size_t id = get_worker_id(w);
-    assert(id >= xeDerived->worker_id_begin && id <= xeDerived->worker_id_end && "worker does not seem of this domain");
-    return hcDerived->pools[ 2 * (id % xeDerived->n_workers_per_scheduler) ];
+    assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
+    return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
 ocr_workpile_t * xe_scheduler_pop_mapping_to_work_shipping (ocr_scheduler_t* base, ocr_worker_t* w ) {
     hc_scheduler_t* hcDerived = (hc_scheduler_t*) base;
-    xe_scheduler_t* xeDerived = (xe_scheduler_t*) base;
     // TODO sagnak; god awful hardcoding, BAD
-    size_t id = xeDerived->worker_id_begin;
-    return hcDerived->pools[ 1 + 2 * (id % xeDerived->n_workers_per_scheduler) ];
+    size_t id = hcDerived->worker_id_begin;
+    return hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
 ocr_workpile_t * xe_scheduler_push_mapping_assert (ocr_scheduler_t* base, ocr_worker_t* w ) {
@@ -80,18 +69,16 @@ ocr_workpile_t * xe_scheduler_push_mapping_assert (ocr_scheduler_t* base, ocr_wo
 
 ocr_workpile_t * xe_scheduler_push_mapping_to_assigned_work (ocr_scheduler_t* base, ocr_worker_t* w ) {
     hc_scheduler_t* hcDerived = (hc_scheduler_t*) base;
-    xe_scheduler_t* xeDerived = (xe_scheduler_t*) base;
     // TODO sagnak; god awful hardcoding, BAD
-    size_t id = xeDerived->worker_id_begin;
-    return hcDerived->pools[ 2 * (id % xeDerived->n_workers_per_scheduler) ];
+    size_t id = hcDerived->worker_id_begin;
+    return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
 ocr_workpile_t * xe_scheduler_push_mapping_to_work_shipping (ocr_scheduler_t* base, ocr_worker_t* w ) {
     hc_scheduler_t* hcDerived = (hc_scheduler_t*) base;
-    xe_scheduler_t* xeDerived = (xe_scheduler_t*) base;
     size_t id = get_worker_id(w);
-    assert(id >= xeDerived->worker_id_begin && id <= xeDerived->worker_id_end && "worker does not seem of this domain");
-    return hcDerived->pools[ 1 + 2 * (id % xeDerived->n_workers_per_scheduler) ];
+    assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
+    return hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
 workpile_iterator_t* xe_scheduler_steal_mapping_fsim_faithful(ocr_scheduler_t* base, ocr_worker_t* w ) {
@@ -102,14 +89,14 @@ workpile_iterator_t* xe_scheduler_steal_mapping_fsim_faithful(ocr_scheduler_t* b
 // XE scheduler take can be called from two sites
 // first by XE worker to execute work
 ocrGuid_t xe_scheduler_take_most_fsim_faithful (ocr_scheduler_t* base, ocrGuid_t wid ) {
-    xe_scheduler_t* xeDerived = (xe_scheduler_t*) base;
+    hc_scheduler_t* hcDerived = (hc_scheduler_t*) base;
     ocr_worker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
     ocr_workpile_t * wp_to_pop = NULL;
 
     size_t id = get_worker_id(w);
-    if (id >= xeDerived->worker_id_begin && id <= xeDerived->worker_id_end) {
+    if (id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end) {
         // XE worker trying to extract 'executable work' from CE assigned workpile
         wp_to_pop = xe_scheduler_pop_mapping_to_assigned_work(base, w);
         // TODO sagnak this is true because XE and CE does not touch the workpile simultaneously
@@ -132,7 +119,7 @@ ocrGuid_t xe_scheduler_take_most_fsim_faithful (ocr_scheduler_t* base, ocrGuid_t
 // the differentiation between {1,2} and {3} is through the worker id
 // the differentiation between {1} and {2} is through a runtime check of the underlying task type
 void xe_scheduler_give_fsim_faithful (ocr_scheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
-    xe_scheduler_t* xeDerived = (xe_scheduler_t*) base;
+    hc_scheduler_t* hcDerived = (hc_scheduler_t*) base;
     ocr_worker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
@@ -142,7 +129,7 @@ void xe_scheduler_give_fsim_faithful (ocr_scheduler_t* base, ocrGuid_t wid, ocrG
     fsim_message_interface_t* taskAsMessage = &(task->message_interface);
 
     size_t id = get_worker_id(w);
-    if (id >= xeDerived->worker_id_begin && id <= xeDerived->worker_id_end) {
+    if (id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end) {
         // if the pusher is an XE worker
         if ( !taskAsMessage->is_message(taskAsMessage) ) {
             // TODO sagnak Multiple XE push mappings, do not use the class push_mapping indirection
@@ -183,7 +170,7 @@ ocr_scheduler_t* xe_scheduler_constructor() {
     ocr_module_t * module_base = (ocr_module_t *) base;
     // module_base->map_fct = xe_ocr_module_map_workpiles_to_schedulers;
     module_base->map_fct = hc_ocr_module_map_workpiles_to_schedulers;
-    base -> create = xe_scheduler_create;
+    base -> create = hc_scheduler_create;
     base -> destruct = xe_scheduler_destruct;
     base -> pop_mapping = xe_scheduler_pop_mapping_assert;
     base -> push_mapping = xe_scheduler_push_mapping_assert;
@@ -191,15 +178,6 @@ ocr_scheduler_t* xe_scheduler_constructor() {
     base -> take = xe_scheduler_take_most_fsim_faithful;
     base -> give = xe_scheduler_give_fsim_faithful;
     return base;
-}
-
-void ce_scheduler_create(ocr_scheduler_t * base, void * per_type_configuration, void * per_instance_configuration) {
-    ce_scheduler_t* ceDerived = (ce_scheduler_t*) base;
-    fsim_scheduler_configuration *mapper = (fsim_scheduler_configuration*)per_instance_configuration;
-
-    ceDerived->worker_id_begin = mapper->worker_id_begin;
-    ceDerived->worker_id_end = mapper->worker_id_end;
-    ceDerived->n_workers_per_scheduler = 1 + ceDerived->worker_id_end - ceDerived->worker_id_begin;
 }
 
 void ce_scheduler_destruct(ocr_scheduler_t * scheduler) {
@@ -215,11 +193,11 @@ ocr_workpile_t * ce_scheduler_pop_mapping (ocr_scheduler_t* base, ocr_worker_t* 
     size_t id = get_worker_id(w);
     if ( ceDerived -> in_message_popping_mode ) {
         // if I am the CE popping from my own message stash
-        assert(id >= ceDerived->worker_id_begin && id <= ceDerived->worker_id_end && "worker does not seem of this domain");
-        to_be_returned = hcDerived->pools[ 1 + 2 * (id % ceDerived->n_workers_per_scheduler) ];
+        assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
+        to_be_returned = hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
     } else {
         // if I am the CE popping from my own work stash on behalf of XEs
-        to_be_returned = hcDerived->pools[ 2 * (id % ceDerived->n_workers_per_scheduler) ];
+        to_be_returned = hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
     }
     return to_be_returned;
 }
@@ -230,19 +208,17 @@ ocr_workpile_t * ce_scheduler_push_mapping_assert (ocr_scheduler_t* base, ocr_wo
 }
 
 ocr_workpile_t * ce_scheduler_push_mapping_to_work (ocr_scheduler_t* base, ocr_worker_t* w ) {
-    ce_scheduler_t* ceDerived = (ce_scheduler_t*) base;
     hc_scheduler_t* hcDerived = (hc_scheduler_t*) base;
     size_t id = get_worker_id(w);
-    assert(id >= ceDerived->worker_id_begin && id <= ceDerived->worker_id_end && "worker does not seem of this domain");
-    return hcDerived->pools[ 2 * (id % ceDerived->n_workers_per_scheduler) ];
+    assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
+    return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
 ocr_workpile_t * ce_scheduler_push_mapping_to_messages (ocr_scheduler_t* base ) {
-    ce_scheduler_t* ceDerived = (ce_scheduler_t*) base;
     hc_scheduler_t* hcDerived = (hc_scheduler_t*) base;
     // TODO sagnak; god awful hardcoding, BAD
-    size_t id = ceDerived->worker_id_begin;
-    return hcDerived->pools[ 1 + 2 * (id % ceDerived->n_workers_per_scheduler) ];
+    size_t id = hcDerived->worker_id_begin;
+    return hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
 ocrGuid_t ce_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
@@ -295,7 +271,7 @@ ocr_scheduler_t* ce_scheduler_constructor() {
     ocr_scheduler_t* base = (ocr_scheduler_t*)derived;
     ocr_module_t * module_base = (ocr_module_t *) base;
     module_base->map_fct = hc_ocr_module_map_workpiles_to_schedulers;
-    base -> create = ce_scheduler_create;
+    base -> create = hc_scheduler_create;
     base -> destruct = ce_scheduler_destruct;
     base -> pop_mapping = ce_scheduler_pop_mapping;
     base -> push_mapping = ce_scheduler_push_mapping_assert;
