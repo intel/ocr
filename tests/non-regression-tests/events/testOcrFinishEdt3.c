@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static int * array;
 
 // This edt is triggered when the output event of the other edt is satisfied by the runtime
-u8 terminate_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t terminate_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     // TODO shouldn't be doing that... but need more support from output events to get a 'return' value from an edt
     int i = 0;
     while (i < N) {
@@ -56,10 +56,10 @@ u8 terminate_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep
         i++;
     }
     ocrFinish(); // This is the last EDT to execute, terminate
-    return 0;
+    return NULL_GUID;
 }
 
-u8 updater_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t updater_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     // Retrieve id 
     assert(paramc == 2);
     assert(params[0] == (u64) sizeof(int));
@@ -74,10 +74,10 @@ u8 updater_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t
     ocrDbRelease(dbGuid);
     free(params);
     free(paramv);
-    return 0;
+    return NULL_GUID;
 }
 
-u8 main_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t main_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     int i = 0;
     while (i < N) {
         // Pass down the index to write to and the db guid through params
@@ -97,7 +97,7 @@ u8 main_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t de
         ocrEdtSchedule(updaterEdtGuid);
         i++;
     }
-    return 0;
+    return NULL_GUID;
 }
 
 int main (int argc, char ** argv) {
@@ -110,14 +110,15 @@ int main (int argc, char ** argv) {
     ocrGuid_t outputEventGuid;
     ocrEventCreate(&outputEventGuid, OCR_EVENT_STICKY_T, true);
 
-    ocrGuid_t terminateEdtGuid;
-    ocrEdtCreate(&terminateEdtGuid, terminate_edt, /*paramc=*/0, /*params=*/ NULL, /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, NULL_GUID);
-    ocrAddDependence(outputEventGuid, terminateEdtGuid, 0);
-    ocrEdtSchedule(terminateEdtGuid);
-
     // Build a data-block to be shared with sub-edts
     ocrGuid_t dbGuid;
     ocrDbCreate(&dbGuid,(void **) &array, sizeof(int)*N, FLAGS, NULL, NO_ALLOC);
+
+    ocrGuid_t terminateEdtGuid;
+    ocrEdtCreate(&terminateEdtGuid, terminate_edt, /*paramc=*/0, /*params=*/ NULL, /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, NULL_GUID);
+    ocrAddDependence(outputEventGuid, terminateEdtGuid, 0);
+    //ocrAddDependence(dbGuid, terminateEdtGuid, 1);
+    ocrEdtSchedule(terminateEdtGuid);
     
     // Use an event to channel the db guid to the main edt
     // Could also pass it directly as a depv

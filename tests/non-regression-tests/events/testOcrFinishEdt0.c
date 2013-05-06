@@ -41,9 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * DESC: Simple finish-edt
  */
 
-u8 main_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t main_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     ocrFinish();
-    return 0;
+    return NULL_GUID;
 }
 
 int main (int argc, char ** argv) {

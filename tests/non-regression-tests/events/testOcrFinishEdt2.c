@@ -42,15 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 // This edt is triggered when the output event of the other edt is satisfied by the runtime
-u8 terminate_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t terminate_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     printf("Terminate\n");
     ocrFinish(); // This is the last EDT to execute, terminate
-    return 0;
+    return NULL_GUID;
 }
 
-u8 main_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t main_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     printf("Running Main\n");
-    return 0;
+    return NULL_GUID;
 }
 
 int main (int argc, char ** argv) {

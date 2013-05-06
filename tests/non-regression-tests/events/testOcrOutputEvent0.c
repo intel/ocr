@@ -42,14 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 // This edt is triggered when the output event of the other edt is satisfied by the runtime
-u8 chained_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t chained_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     ocrFinish(); // This is the last EDT to execute, terminate
-    return 0;
+    return NULL_GUID;
 }
 
-u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     // When this edt terminates, the runtime will satisfy its output event automatically
-    return 0;
+    return NULL_GUID;
 }
 
 int main (int argc, char ** argv) {

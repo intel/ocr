@@ -71,7 +71,7 @@ typedef struct {
     ocrGuid_t bottom_right_event_guid;
 } Tile_t;
 
-u8 smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     int index, ii, jj;
 
     /* Unbox parameters */
@@ -172,6 +172,7 @@ u8 smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocr
         fprintf(stdout, "score: %d\n", curr_bottom_row[tile_width-1]);
         ocrFinish();
     }
+    return NULL_GUID;
 }
 
 static void initialize_border_values( Tile_t** tile_matrix, int n_tiles_width, int n_tiles_height, int tile_width, int tile_height ) {

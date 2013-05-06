@@ -51,13 +51,13 @@ void someUserFunction() {
     ocrDbRelease(els_data_guid);
 }
 
-u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t data = depv[0].guid;
     ocrElsSet(ELS_OFFSET, data);
     someUserFunction();
     // This is the last EDT to execute, terminate
     ocrFinish();
-    return 0;
+    return NULL_GUID;
 }
 
 int main (int argc, char ** argv) {

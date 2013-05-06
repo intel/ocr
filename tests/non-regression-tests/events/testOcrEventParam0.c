@@ -37,14 +37,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define FLAGS 0xdead
 
-u8 task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     printf("In the task_for_edt with value %d\n", *((int *)(paramv[0])));
     assert(paramc == 1);
     assert(params[0] == sizeof(int));
     assert(*((int *)(paramv[0])) == 32);
     // This is the last EDT to execute, terminate
     ocrFinish();
-    return 0;
+    return NULL_GUID;
 }
 
 int main (int argc, char ** argv) {

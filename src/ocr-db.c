@@ -124,7 +124,7 @@ struct ocrDbCopy_args {
 	u64 size;
 } ocrDbCopy_args;
 
-u8 ocrDbCopy_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t ocrDbCopy_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
 	char *sptr, *dptr;
 
 	struct ocrDbCopy_args * pv = (struct ocrDbCopy_args *) depv[0].ptr;
@@ -155,7 +155,7 @@ u8 ocrDbCopy_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep
     ocrGuid_t param_db_guid = (ocrGuid_t)depv[0].guid;
 	ocrDbDestroy(param_db_guid);
 
-    return 0;
+    return NULL_GUID;
 }
 
 u8 ocrDbCopy(ocrGuid_t destination,u64 destinationOffset, ocrGuid_t source, u64 sourceOffset, u64 size, u64 copyType, ocrGuid_t completionEvt) {
