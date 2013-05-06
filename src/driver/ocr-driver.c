@@ -113,7 +113,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
     globalGuidProvider = newGuidProvider(OCR_GUIDPROVIDER_DEFAULT);
 
     u32 nbHardThreads = ocr_config_default_nb_hardware_threads;
-    gHackTotalMemSize = 64*1024*1024; /* 64 MB default */
+    gHackTotalMemSize = 512*1024*1024; /* 64 MB default */
     char * md_file = parseOcrOptions_MachineDescription(argc, argv);
 
     /* sagnak begin */
@@ -192,7 +192,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 
         master_worker = ce_mastered_policy_domain[0]->workers[0];
 
-    } else if ( md_file != NULL && !strncmp(md_file,"thor",5) ) {
+    } else if ( md_file != NULL && !strncmp(md_file,"thor",4) ) {
 
         size_t n_L3s = 2;
         size_t n_L2s_per_L3 = 8;
@@ -208,7 +208,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
         ocr_model_policy_t * l2_policy_model = createThorL2ModelPolicies ( n_L2s );
         ocr_model_policy_t * l1_policy_model = createThorL1ModelPolicies ( n_L1s );
         ocr_model_policy_t * mastered_worker_policy_model = createThorMasteredWorkerModelPolicies ( );
-        ocr_model_policy_t * worker_policy_model = createThorWorkerModelPolicies ( n_workers_per_L1 * n_L1s - 1 );
+        ocr_model_policy_t * worker_policy_model = createThorWorkerModelPolicies ( n_workers - 1 );
 
         ocr_policy_domain_t ** thor_root_policy_domains = instantiateModel(root_policy_model);
         ocr_policy_domain_t ** thor_l3_policy_domains = instantiateModel(l3_policy_model);
@@ -272,7 +272,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
             curr->id = breadthFirstLabel++; 
 
             curr->n_successors = n_workers_per_L1;
-            curr->successors = &(thor_worker_policy_domains[idx*n_workers_per_L1]);
+            curr->successors = &(thor_worker_policy_domains[idx*n_workers_per_L1 - 1]);
             curr->n_predecessors = 1;
             curr->predecessors = &(thor_l2_policy_domains[idx/n_L1s_per_L2]);
         }
