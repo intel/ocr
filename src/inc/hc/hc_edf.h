@@ -56,10 +56,23 @@ typedef struct reg_node_st {
 typedef struct hc_event_t {
     ocr_event_t base;
     ocrEventTypes_t kind;
-    reg_node_t * waiters; //TODO need volatile ?
-    reg_node_t * signalers;
-    ocrGuid_t data;
 } hc_event_t;
+
+typedef struct hc_event_sticky_t {
+    hc_event_t base;
+    volatile reg_node_t * waiters;
+    volatile reg_node_t * signalers;
+    ocrGuid_t data;
+} hc_event_sticky_t;
+
+typedef struct hc_event_finishlatch_t {
+    hc_event_t base;
+    // Dependences to be signaled
+    reg_node_t outputEventWaiter;
+    reg_node_t parentLatchWaiter; // Parent latch when nesting finish scope
+    ocrGuid_t ownerGuid; // finish-edt starting the finish scope
+    volatile int counter;
+} hc_event_finishlatch_t;
 
 struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool takesArg, ocr_event_fcts_t * event_fct_ptrs_sticky);
 void hc_event_destructor ( struct ocr_event_struct* base );
@@ -75,7 +88,7 @@ typedef struct hc_task_factory {
 struct ocr_task_factory_struct* hc_task_factory_constructor(void);
 void hc_task_factory_destructor ( struct ocr_task_factory_struct* base );
 
-ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, size_t, ocrGuid_t outputEvent);
+ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t outputEvent);
 
 /*! \brief Event Driven Task(EDT) implementation for OCR Tasks
 */
@@ -86,8 +99,6 @@ typedef struct hc_task_struct_t {
     size_t nbdeps;
     ocrEdt_t p_function;
 } hc_task_t;
-
-hc_task_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, size_t l_size, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs);
 
 void hcTaskDestruct ( ocr_task_t* base );
 void taskExecute ( ocr_task_t* base );

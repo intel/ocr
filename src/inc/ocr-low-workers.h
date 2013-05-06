@@ -129,6 +129,9 @@ void associate_executor_and_worker(ocr_worker_t * worker);
  */
 ocrGuid_t ocr_get_current_worker_guid();
 
+/*! \brief Get the currently executing worker and return the edt's guid it is currently executing.
+ */
+ocrGuid_t getCurrentEDT();
 
 /******************************************************/
 /* OCR WORKER KINDS AND CONSTRUCTORS                  */

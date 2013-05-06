@@ -65,7 +65,8 @@ fi
 
 cd ${COMPTREE}
 
-../configure ${INSTALL_ROOT} ${HCR_OPTS}
+# We need ELS support for finish-latch support
+../configure --enable-els=1 ${INSTALL_ROOT} ${HCR_OPTS}
 check_error "$?" "Configure failed";
 
 

@@ -116,7 +116,7 @@ u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/);
 **/
 
 /**
- * @defgroup OCREDT Event Driven Task Management
+ * @defgroup OCR EDT Event Driven Task Management
  * @brief APIs to manage the EDT in OCR
  *
  * @todo Re-evaluate the notion of event types (post 0.7 version)
@@ -133,6 +133,14 @@ typedef struct {
     ocrGuid_t guid;
     void* ptr;
 } ocrEdtDep_t;
+
+
+//
+// EDTs properties bits
+//
+
+#define EDT_PROP_NONE   ((u16) 0)
+#define EDT_PROP_FINISH ((u16) 1)
 
 /**
  * @brief Type for an EDT

@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-guid.h"
 #include "ocr-edt.h"
 
+
 /*******************************************
  * Signal/Wait Interface to tasks and events
  ******************************************/
@@ -175,7 +176,7 @@ typedef struct ocr_event_factory_struct {
  */
 struct ocr_task_factory_struct;
 
-typedef ocrGuid_t (*task_fact_create_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, size_t l_size, ocrGuid_t outputEvent);
+typedef ocrGuid_t (*task_fact_create_fct) ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, size_t l_size, ocrGuid_t outputEvent);
 
 typedef void (*task_fact_destruct_fct)(struct ocr_task_factory_struct* factory);
 
@@ -254,5 +255,12 @@ typedef struct ocr_task_struct_t {
 ////TODO old style factories
 extern ocr_task_factory* taskFactory;
 extern ocr_event_factory* eventFactory;
+
+
+
+/*******************************************
+ *  
+ ******************************************/
+
 
 #endif /* __OCR_TASK_EVENT_H_ */

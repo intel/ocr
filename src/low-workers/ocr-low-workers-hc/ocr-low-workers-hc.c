@@ -94,6 +94,13 @@ void hc_setCurrentEDT (ocr_worker_t * base, ocrGuid_t curr_edt_guid) {
     hcWorker->currentEDT_guid = curr_edt_guid;
 }
 
+ocrGuid_t getCurrentEDT() {
+    ocrGuid_t wGuid = ocr_get_current_worker_guid();
+    ocr_worker_t *worker = NULL;
+    globalGuidProvider->getVal(globalGuidProvider, wGuid, (u64*)&worker, NULL);
+    return worker->getCurrentEDT(worker);
+}
+
 void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocr_module_kind kind,
         size_t nb_instances, void ** ptr_instances) {
     // Checking mapping conforms to what we're expecting in this implementation
