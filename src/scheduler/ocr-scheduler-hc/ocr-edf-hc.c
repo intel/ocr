@@ -419,6 +419,7 @@ static void hcTaskConstructInternal (hc_task_t* derived, ocrEdt_t funcPtr,
 }
 
 hc_task_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs) {
+
     hc_task_t* newEdt = (hc_task_t*)checked_malloc(newEdt, sizeof(hc_task_t));
     hcTaskConstructInternal(newEdt, funcPtr, paramc, params, paramv, depc, outputEvent, task_fct_ptrs);
     ocr_task_t * newEdtBase = (ocr_task_t *) newEdt;
@@ -634,7 +635,16 @@ void hc_task_factory_destructor ( struct ocr_task_factory_struct* base ) {
     free(derived);
 }
 
-ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, size_t depc, ocrGuid_t outputEvent) {
+ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, size_t depc, ocrGuid_t * outputEventPtr) {
+
+    // Initialize a sticky outputEvent if requested
+    ocrGuid_t outputEvent = (ocrGuid_t) outputEventPtr;
+    if (outputEvent != NULL_GUID) {
+        outputEvent = hcEventFactoryCreate(eventFactory, OCR_EVENT_STICKY_T, false);    
+        *outputEventPtr = outputEvent;
+    }
+
+    // ocrGuid_t outputEvent = NULL_GUID;
     hc_task_t* edt = hcTaskConstruct(fctPtr, paramc, params, paramv, properties, depc, outputEvent, factory->task_fct_ptrs);
     ocr_task_t* base = (ocr_task_t*) edt;
     return base->guid;

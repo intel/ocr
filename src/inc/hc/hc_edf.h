@@ -88,7 +88,7 @@ typedef struct hc_task_factory {
 struct ocr_task_factory_struct* hc_task_factory_constructor(void);
 void hc_task_factory_destructor ( struct ocr_task_factory_struct* base );
 
-ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t outputEvent);
+ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t * outputEvent);
 
 /*! \brief Event Driven Task(EDT) implementation for OCR Tasks
 */

@@ -228,7 +228,7 @@ u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset);
  *    - EPERM: Overlapping data-blocks
  *    - ENOMEM: Destination too small to copy into or source too small to copy from
  */
-u8 ocrDbCopy(ocrGuid_t destination,u64 destinationOffset, ocrGuid_t source, u64 sourceOffset, u64 size, u64 copyType, ocrGuid_t completionEvt);
+u8 ocrDbCopy(ocrGuid_t destination,u64 destinationOffset, ocrGuid_t source, u64 sourceOffset, u64 size, u64 copyType, ocrGuid_t * completionEvt);
 
 /**
  * @brief Frees memory allocated through ocrDbMalloc

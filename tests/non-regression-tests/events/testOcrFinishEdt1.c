@@ -50,7 +50,6 @@ ocrGuid_t terminate_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, oc
 
 ocrGuid_t main_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     printf("Running Main\n");
-    ocrFinish();
     return NULL_GUID;
 }
 
@@ -61,16 +60,14 @@ int main (int argc, char ** argv) {
     ocrInit(&argc, argv, 2, fctPtrArray);
 
     ocrGuid_t outputEventGuid;
-    ocrEventCreate(&outputEventGuid, OCR_EVENT_STICKY_T, true);
-
-    // ocrGuid_t terminateEdtGuid;
-    // ocrEdtCreate(&terminateEdtGuid, terminate_edt, /*paramc=*/0, /*params=*/ NULL, /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, outputEventGuid);
-    // ocrAddDependence(outputEventGuid, terminateEdtGuid, 0);
-    // ocrEdtSchedule(terminateEdtGuid);
-
     ocrGuid_t mainEdtGuid;
     ocrEdtCreate(&mainEdtGuid, main_edt, /*paramc=*/0, /*params=*/ NULL,
-            /*paramv=*/NULL, /*properties=*/ EDT_PROP_FINISH, /*depc=*/0, NULL, outputEventGuid);
+            /*paramv=*/NULL, /*properties=*/ EDT_PROP_FINISH, /*depc=*/0, NULL, &outputEventGuid);
+
+    ocrGuid_t terminateEdtGuid;
+    ocrEdtCreate(&terminateEdtGuid, terminate_edt, /*paramc=*/0, /*params=*/ NULL, /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, NULL_GUID);
+    ocrAddDependence(outputEventGuid, terminateEdtGuid, 0);
+    ocrEdtSchedule(terminateEdtGuid);
     ocrEdtSchedule(mainEdtGuid);
 
     ocrCleanup();

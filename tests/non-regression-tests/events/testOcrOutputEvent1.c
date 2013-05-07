@@ -68,18 +68,18 @@ int main (int argc, char ** argv) {
 
     // Setup output event
     ocrGuid_t outputEvent;
-    ocrEventCreate(&outputEvent, OCR_EVENT_STICKY_T, true);
+
+    ocrGuid_t mainEdtGuid;
+    ocrEdtCreate(&mainEdtGuid, mainEdt, /*paramc=*/0, /*params=*/ NULL,
+            /*paramv=*/NULL, /*properties=*/0, /*depc=*/0, /*depv=*/NULL, &outputEvent);
 
     // Create the chained EDT and add input and output events as dependences.
     ocrGuid_t chainedEdtGuid;
     ocrEdtCreate(&chainedEdtGuid, chainedEdt, /*paramc=*/0, /*params=*/ NULL,
             /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, NULL_GUID);
     ocrAddDependence(outputEvent, chainedEdtGuid, 0);
+    
     ocrEdtSchedule(chainedEdtGuid);
-
-    ocrGuid_t mainEdtGuid;
-    ocrEdtCreate(&mainEdtGuid, mainEdt, /*paramc=*/0, /*params=*/ NULL,
-            /*paramv=*/NULL, /*properties=*/0, /*depc=*/0, /*depv=*/NULL, outputEvent);
     ocrEdtSchedule(mainEdtGuid);    
 
     ocrCleanup();

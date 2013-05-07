@@ -63,7 +63,11 @@ int main (int argc, char ** argv) {
 
     // Setup output event
     ocrGuid_t output_event_guid;
-    ocrEventCreate(&output_event_guid, OCR_EVENT_STICKY_T, true);
+    // Creates the parent EDT
+    ocrGuid_t edt_guid;
+    ocrEdtCreate(&edt_guid, task_for_edt, /*paramc=*/0, /*params=*/ NULL,
+            /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, &output_event_guid);
+
     // Setup edt input event
     ocrGuid_t input_event_guid;
     ocrEventCreate(&input_event_guid, OCR_EVENT_STICKY_T, true);
@@ -76,13 +80,10 @@ int main (int argc, char ** argv) {
     ocrAddDependence(input_event_guid, chained_edt_guid, 1);
     ocrEdtSchedule(chained_edt_guid);
 
-    // Creates the parent EDT, add dependence, schedule and trigger
+    // parent edt: Add dependence, schedule and trigger
     // Note: we don't strictly need to have a dependence here, it's just
     // to get a little bit more control so as to when the root edt gets
     // a chance to be scheduled.
-    ocrGuid_t edt_guid;
-    ocrEdtCreate(&edt_guid, task_for_edt, /*paramc=*/0, /*params=*/ NULL,
-            /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, output_event_guid);
     ocrAddDependence(event_guid, edt_guid, 0);
     ocrEdtSchedule(edt_guid);
 

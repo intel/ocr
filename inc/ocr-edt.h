@@ -173,7 +173,7 @@ typedef ocrGuid_t (*ocrEdt_t )( u32 paramc, u64 * params, void* paramv[],
  **/
 u8 ocrEdtCreate(ocrGuid_t * guid, ocrEdt_t funcPtr,
                 u32 paramc, u64 * params, void** paramv,
-                u16 properties, u32 depc, ocrGuid_t * depv, ocrGuid_t outputEvent);
+                u16 properties, u32 depc, ocrGuid_t * depv, ocrGuid_t * outputEvent);
 
 /**
  * @brief Makes the EDT available for scheduling to the runtime
