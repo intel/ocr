@@ -66,7 +66,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     ocrStatsProcessCreate(&(createdDb->statProcess), createdDb->guid);
     ocrStatsFilter_t *t = NEW_FILTER(simple);
     t->create(t, GocrFilterAggregator, NULL);
-    ocrStatsProcessRegisterFilter(&(createdDb->statProcess), (0x3F<<STATS_DB_CREATE), t);
+    ocrStatsProcessRegisterFilter(&(createdDb->statProcess), (0x3F<<((u32)STATS_DB_CREATE-1)), t);
 #endif
 
     // TODO: I need to get the current policy to figure out my allocator.
@@ -91,6 +91,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
         mess->create(mess, STATS_DB_CREATE, 0, edtGuid, createdDb->guid, NULL);
         ocrStatsAsyncMessage(srcProcess, &(createdDb->statProcess), mess);
 
+        // Acquire part
         *addr = createdDb->acquire(createdDb, edtGuid, false);
         ocrStatsMessage_t *mess2 = NEW_MESSAGE(simple);
         mess2->create(mess2, STATS_DB_ACQ, 0, edtGuid, createdDb->guid, NULL);
@@ -143,6 +144,19 @@ u8 ocrDbAcquire(ocrGuid_t db, void** addr, u16 flags) {
     globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&worker, NULL);
 
     *addr = dataBlock->acquire(dataBlock, worker->getCurrentEDT(worker), false);
+#ifdef OCR_ENABLE_STATISTICS
+    {
+        ocr_task_t *task = NULL;
+        ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
+        globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
+
+        ocrStatsProcess_t *srcProcess = edtGuid==0?&GfakeProcess:&(task->statProcess);
+
+        ocrStatsMessage_t *mess = NEW_MESSAGE(simple);
+        mess->create(mess, STATS_DB_ACQ, 0, edtGuid, db, NULL);
+        ocrStatsSyncMessage(srcProcess, &(dataBlock->statProcess), mess);
+    }
+#endif
     if(*addr == NULL) return EPERM;
     return 0;
 }
@@ -154,8 +168,26 @@ u8 ocrDbRelease(ocrGuid_t db) {
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
     ocr_worker_t *worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&worker, NULL);
+#ifdef OCR_ENABLE_STATISTICS
+    {
+        ocr_task_t *task = NULL;
+        ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
 
+        u8 result = dataBlock->release(dataBlock, edtGuid, false);
+
+        globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
+
+        ocrStatsProcess_t *srcProcess = edtGuid==0?&GfakeProcess:&(task->statProcess);
+
+        ocrStatsMessage_t *mess = NEW_MESSAGE(simple);
+        mess->create(mess, STATS_DB_REL, 0, edtGuid, db, NULL);
+        ocrStatsAsyncMessage(srcProcess, &(dataBlock->statProcess), mess);
+
+        return result;
+    }
+#else
     return dataBlock->release(dataBlock, worker->getCurrentEDT(worker), false);
+#endif
 }
 
 u8 ocrDbMalloc(ocrGuid_t guid, u64 size, void** addr) {

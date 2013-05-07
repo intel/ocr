@@ -139,6 +139,8 @@ ocrGuid_t smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 de
     /* Satisfy the bottom right event of local tile with the data block allocated above */
     int* curr_bottom_right = (int*)db_guid_i_j_br_data;
     curr_bottom_right[0] = curr_tile[tile_height][tile_width];
+
+    ocrDbRelease(db_guid_i_j_br); // For now, no auto-release it seems...
     ocrEventSatisfy(tile_matrix[i][j].bottom_right_event_guid, db_guid_i_j_br);
 
     /* Allocate datablock for right column of the local tile */
@@ -151,6 +153,7 @@ ocrGuid_t smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 de
     for ( index = 0; index < tile_height; ++index ) {
         curr_right_column[index] = curr_tile[index+1][tile_width];
     }
+    ocrDbRelease(db_guid_i_j_rc);
     ocrEventSatisfy(tile_matrix[i][j].right_column_event_guid, db_guid_i_j_rc);
 
     /* Allocate datablock for bottom row of the local tile */
@@ -163,10 +166,15 @@ ocrGuid_t smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 de
     for ( index = 0; index < tile_width; ++index ) {
         curr_bottom_row[index] = curr_tile[tile_height][index+1];
     }
+    ocrDbRelease(db_guid_i_j_brow);
     ocrEventSatisfy(tile_matrix[i][j].bottom_row_event_guid, db_guid_i_j_brow);
 
     free(curr_tile);
     free(curr_tile_tmp);
+    /* We can also free all the input DBs we get */
+    ocrDbDestroy(depv[0].guid);
+    ocrDbDestroy(depv[1].guid);
+    ocrDbDestroy(depv[2].guid);
     /* If this is the last tile (bottom right most tile), finish */
     if ( i == n_tiles_height && j == n_tiles_width ) {
         fprintf(stdout, "score: %d\n", curr_bottom_row[tile_width-1]);
@@ -184,6 +192,7 @@ static void initialize_border_values( Tile_t** tile_matrix, int n_tiles_width, i
     /* Satisfy the bottom right event for tile[0][0] with the respective datablock */
     int* allocated = (int*)db_guid_0_0_br_data;
     allocated[0] = 0;
+    ocrDbRelease(db_guid_0_0_br);
     ocrEventSatisfy(tile_matrix[0][0].bottom_right_event_guid, db_guid_0_0_br);
 
     /* Create datablocks for the bottom right elements and bottom rows for tiles[0][j]
@@ -197,7 +206,7 @@ static void initialize_border_values( Tile_t** tile_matrix, int n_tiles_width, i
         for( i = 0; i < tile_width ; ++i ) {
             allocated[i] = GAP_PENALTY*((j-1)*tile_width+i+1);
         }
-
+        ocrDbRelease(db_guid_0_j_brow);
         ocrEventSatisfy(tile_matrix[0][j].bottom_row_event_guid, db_guid_0_j_brow);
 
         ocrGuid_t db_guid_0_j_br;
@@ -206,6 +215,7 @@ static void initialize_border_values( Tile_t** tile_matrix, int n_tiles_width, i
         allocated = (int*)db_guid_0_j_br_data;
         allocated[0] = GAP_PENALTY*(j*tile_width); //sagnak: needed to handle tilesize 2
 
+        ocrDbRelease(db_guid_0_j_br);
         ocrEventSatisfy(tile_matrix[0][j].bottom_right_event_guid, db_guid_0_j_br);
     }
 
@@ -219,6 +229,7 @@ static void initialize_border_values( Tile_t** tile_matrix, int n_tiles_width, i
         for ( j = 0; j < tile_height ; ++j ) {
             allocated[j] = GAP_PENALTY*((i-1)*tile_height+j+1);
         }
+        ocrDbRelease(db_guid_i_0_rc);
         ocrEventSatisfy(tile_matrix[i][0].right_column_event_guid, db_guid_i_0_rc);
 
         ocrGuid_t db_guid_i_0_br;
@@ -228,8 +239,75 @@ static void initialize_border_values( Tile_t** tile_matrix, int n_tiles_width, i
         allocated = (int*)db_guid_i_0_br_data;
         allocated[0] = GAP_PENALTY*(i*tile_height); //sagnak: needed to handle tilesize 2
 
+        ocrDbRelease(db_guid_i_0_br);
         ocrEventSatisfy(tile_matrix[i][0].bottom_right_event_guid, db_guid_i_0_br);
     }
+}
+
+u8 main_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+
+    intptr_t *typed_paramv = *paramv;
+
+    int n_tiles_height = (int)typed_paramv[0];
+    int n_tiles_width = (int)typed_paramv[1];
+    int tile_width = (int)typed_paramv[2];
+    int tile_height = (int)typed_paramv[3];
+    signed char* string_1 = (signed char*)typed_paramv[4];
+    signed char* string_2 = (signed char*)typed_paramv[5];
+    int i, j;
+
+    Tile_t** tile_matrix = (Tile_t **) malloc(sizeof(Tile_t*)*(n_tiles_height+1));
+    for ( i = 0; i < n_tiles_height+1; ++i ) {
+        tile_matrix[i] = (Tile_t *) malloc(sizeof(Tile_t)*(n_tiles_width+1));
+        for ( j = 0; j < n_tiles_width+1; ++j ) {
+            /* Create readiness events for every tile */
+            ocrEventCreate(&(tile_matrix[i][j].bottom_row_event_guid ), OCR_EVENT_STICKY_T, true);
+            ocrEventCreate(&(tile_matrix[i][j].right_column_event_guid ), OCR_EVENT_STICKY_T, true);
+            ocrEventCreate(&(tile_matrix[i][j].bottom_right_event_guid ), OCR_EVENT_STICKY_T, true);
+        }
+    }
+
+    fprintf(stdout, "Allocated tile matrix\n");
+
+    initialize_border_values(tile_matrix, n_tiles_width, n_tiles_height, tile_width, tile_height);
+
+
+    for ( i = 1; i < n_tiles_height+1; ++i ) {
+        for ( j = 1; j < n_tiles_width+1; ++j ) {
+
+            /* Box function parameters and put them on the heap for lifetime */
+            intptr_t **p_paramv = (intptr_t **)malloc(sizeof(intptr_t*));
+            intptr_t *paramv = (intptr_t *)malloc(9*sizeof(intptr_t));
+            paramv[0]=(intptr_t) i;
+            paramv[1]=(intptr_t) j;
+            paramv[2]=(intptr_t) tile_width;
+            paramv[3]=(intptr_t) tile_height;
+            paramv[4]=(intptr_t) tile_matrix;
+            paramv[5]=(intptr_t) string_1;
+            paramv[6]=(intptr_t) string_2;
+            paramv[7]=(intptr_t) n_tiles_height;
+            paramv[8]=(intptr_t) n_tiles_width;
+            *p_paramv = paramv;
+
+            /* Create an event-driven tasks of smith_waterman tasks */
+            ocrGuid_t task_guid;
+
+            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void **) p_paramv, PROPERTIES, 3, NULL, NULL_GUID);
+
+            /* add dependency to the EDT from the west tile's right column ready event */
+            ocrAddDependence(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
+
+            /* add dependency to the EDT from the north tile's bottom row ready event */
+            ocrAddDependence(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);
+
+            /* add dependency to the EDT from the northwest tile's bottom right ready event */
+            ocrAddDependence(tile_matrix[i-1][j-1].bottom_right_event_guid, task_guid, 2);
+
+            /* schedule task*/
+            ocrEdtSchedule(task_guid);
+        }
+    }
+    return 0;
 }
 
 int main ( int argc, char* argv[] ) {
@@ -276,62 +354,24 @@ int main ( int argc, char* argv[] ) {
 
     fprintf(stdout, "Allocating tile matrix\n");
 
-    /* Allocate a 2D matrix of 'Tile's where every Tile has 3 events that represents the readiness
-     * of the bottom row, right column and bottom right element of that tile */
-    Tile_t** tile_matrix = (Tile_t **) malloc(sizeof(Tile_t*)*(n_tiles_height+1));
-    for ( i = 0; i < n_tiles_height+1; ++i ) {
-        tile_matrix[i] = (Tile_t *) malloc(sizeof(Tile_t)*(n_tiles_width+1));
-        for ( j = 0; j < n_tiles_width+1; ++j ) {
-            /* Create readiness events for every tile */
-            ocrEventCreate(&(tile_matrix[i][j].bottom_row_event_guid ), OCR_EVENT_STICKY_T, true);
-            ocrEventCreate(&(tile_matrix[i][j].right_column_event_guid ), OCR_EVENT_STICKY_T, true);
-            ocrEventCreate(&(tile_matrix[i][j].bottom_right_event_guid ), OCR_EVENT_STICKY_T, true);
-        }
-    }
-
-    fprintf(stdout, "Allocated tile matrix\n");
-
-    initialize_border_values(tile_matrix, n_tiles_width, n_tiles_height, tile_width, tile_height);
-
     struct timeval a;
     struct timeval b;
+
+    intptr_t **p_paramv = (intptr_t **)malloc(sizeof(intptr_t*));
+    intptr_t *paramv = (intptr_t *)malloc(6*sizeof(intptr_t));
+    paramv[0]=(intptr_t) n_tiles_height;
+    paramv[1]=(intptr_t) n_tiles_width;
+    paramv[2]=(intptr_t) tile_width;
+    paramv[3]=(intptr_t) tile_height;
+    paramv[4]=(intptr_t) string_1;
+    paramv[5]=(intptr_t) string_2;
+    *p_paramv = paramv;
+
     gettimeofday(&a, 0);
 
-    for ( i = 1; i < n_tiles_height+1; ++i ) {
-        for ( j = 1; j < n_tiles_width+1; ++j ) {
-
-            /* Box function parameters and put them on the heap for lifetime */
-            intptr_t **p_paramv = (intptr_t **)malloc(sizeof(intptr_t*));
-            intptr_t *paramv = (intptr_t *)malloc(9*sizeof(intptr_t));
-            paramv[0]=(intptr_t) i;
-            paramv[1]=(intptr_t) j;
-            paramv[2]=(intptr_t) tile_width;
-            paramv[3]=(intptr_t) tile_height;
-            paramv[4]=(intptr_t) tile_matrix;
-            paramv[5]=(intptr_t) string_1;
-            paramv[6]=(intptr_t) string_2;
-            paramv[7]=(intptr_t) n_tiles_height;
-            paramv[8]=(intptr_t) n_tiles_width;
-            *p_paramv = paramv;
-
-            /* Create an event-driven tasks of smith_waterman tasks */
-            ocrGuid_t task_guid;
-
-            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void **) p_paramv, PROPERTIES, 3, NULL, NULL_GUID);
-
-            /* add dependency to the EDT from the west tile's right column ready event */
-            ocrAddDependence(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
-
-            /* add dependency to the EDT from the north tile's bottom row ready event */
-            ocrAddDependence(tile_matrix[i-1][j].bottom_row_event_guid, task_guid, 1);
-
-            /* add dependency to the EDT from the northwest tile's bottom right ready event */
-            ocrAddDependence(tile_matrix[i-1][j-1].bottom_right_event_guid, task_guid, 2);
-
-            /* schedule task*/
-            ocrEdtSchedule(task_guid);
-        }
-    }
+    ocrGuid_t main_task_guid;
+    ocrEdtCreate(&main_task_guid, main_task, 6, NULL, (void**)p_paramv, PROPERTIES, 0, NULL);
+    ocrEdtSchedule(main_task_guid);
 
     ocrCleanup();
     gettimeofday(&b, 0);

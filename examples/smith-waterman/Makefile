@@ -1,7 +1,7 @@
 PROG=smithwaterman
 SUFFIX=.exe
 OMP_PROG=smith_waterman_tiled_omp
-CFLAGS=-O3 -g
+CFLAGS=-O0 -g
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr
 OCR_INPUT=.
 

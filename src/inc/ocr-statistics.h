@@ -100,6 +100,7 @@
  */
 typedef enum {
     /* EDT related events */
+    STATS_EVT_INVAL,   /**< An invalid event */
     STATS_EDT_CREATE,  /**< The EDT was first created */
     STATS_EDT_DESTROY, /**< The EDT was destroyed (rare) */
     STATS_EDT_READY,   /**< The EDT became ready to run (last dep satisfied)*/
@@ -253,6 +254,8 @@ void ocrStatsFilterCreate(ocrStatsFilter_t *self, ocrStatsFilter_t *parent,
                           void* configuration);
 
 void ocrStatsFilterDestruct(ocrStatsFilter_t *self);
+
+char* ocrStatsFilterDump(u64 tick, ocrStatsEvt_t type,  ocrGuid_t src, ocrGuid_t dest, )
 
 
 /**

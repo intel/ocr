@@ -32,6 +32,7 @@
  */
 
 #include "ptr.h"
+#include "debug.h"
 #include "stdlib.h"
 
 typedef struct {
@@ -48,25 +49,22 @@ void ptrDestruct(ocrGuidProvider_t* self) {
     return;
 }
 
-u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind kind) {
-    ocrGuidImpl_t * guidInst = malloc(sizeof(ocrGuidImpl_t));
-    guidInst->guid = (ocrGuid_t)val;
-    guidInst->kind = kind;
-    *guid = (u64) guidInst;
+u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind type) {
+    ASSERT((val & 0x7) == 0); // 8 byte aligned gives us 3 bits -> 7 values
+    ASSERT(type <= 7);
+    *guid = (ocrGuid_t)(val | type);
     return 0;
 }
 
 u8 ptrGetVal(ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKind* kind) {
-    ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *) guid;
-    *val = (u64) guidInst->guid;
+    *val = (u64)guid & ~0x7ULL;
     if(kind)
-        *kind = guidInst->kind;
+        *kind = (ocrGuidKind)((u64)(guid) & 0x7);
     return 0;
 }
 
 u8 ptrGetKind(ocrGuidProvider_t* self, ocrGuid_t guid, ocrGuidKind* kind) {
-    ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *) guid;
-    *kind = guidInst->kind;
+    *kind = (ocrGuidKind)((u64)(guid) & 0x7);
     return 0;
 }
 

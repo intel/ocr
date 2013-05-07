@@ -55,20 +55,28 @@ void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
     rself->attributes.numUsers = 0;
     rself->attributes.freeRequested = 0;
     ocrGuidTrackerInit(&(rself->usersTracker));
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Creating a datablock of size %ld @ 0x%lx (GUID: 0x%lx)\n",
+               size, (u64)rself->ptr, rself->base.guid);
+    }
+
 }
 
 void regularDestruct(ocrDataBlock_t *self) {
     // We don't use a lock here. Maybe we should
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
     ASSERT(rself->attributes.numUsers == 0);
-    ASSERT(rself->attributes.freeRequested == 0);
+    ASSERT(rself->attributes.freeRequested == 1);
     rself->lock->destruct(rself->lock);
 
     // Tell the allocator to free the data-block
     ocrAllocator_t *allocator = NULL;
     globalGuidProvider->getVal(globalGuidProvider, rself->allocatorGuid, (u64*)&allocator, NULL);
 
-    allocator->free(allocator, rself->ptr); // TODO sagnak first argument was rself->allocator
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Freeing DB @ 0x%lx (GUID: 0x%lx)\n", (u64)rself->ptr, rself->base.guid);
+    }
+    allocator->free(allocator, rself->ptr);
 
     // TODO: This is not pretty to be here but I can't put this in the ocrDbFree because
     // the semantics of ocrDbFree is that it will wait for all acquire/releases to have
@@ -85,6 +93,11 @@ void regularDestruct(ocrDataBlock_t *self) {
 void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Acquiring DB @ 0x%lx (GUID: 0x%lx) from EDT 0x%lx (isInternal %d)\n",
+               (u64)rself->ptr, rself->base.guid, edt, (u32)isInternal);
+    }
+
     // Critical section
     rself->lock->lock(rself->lock);
     if(rself->attributes.freeRequested) {
@@ -95,6 +108,9 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
     if(idForEdt > 63)
         idForEdt = ocrGuidTrackerTrack(&(rself->usersTracker), edt);
     else {
+        DO_DEBUG(DEBUG_LVL_VVERB) {
+            PRINTF("VVERB: EDT already had acquired DB (pos %d)\n", idForEdt);
+        }
         rself->lock->unlock(rself->lock);
         return rself->ptr;
     }
@@ -109,7 +125,10 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
 
     rself->lock->unlock(rself->lock);
     // End critical section
-
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Added EDT GUID 0x%lx at position %d. Have %d users and %d internal\n",
+               (u64)edt, idForEdt, rself->attributes.numUsers, rself->attributes.internalUsers);
+    }
     return rself->ptr;
 }
 
@@ -120,6 +139,10 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
     u32 edtId = ocrGuidTrackerFind(&(rself->usersTracker), edt);
     bool isTracked = true;
 
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Releasing DB @ 0x%lx (GUID 0x%lx) from EDT 0x%lx (%d) (internal: %d)\n",
+               (u64)rself->ptr, rself->base.guid, edt, edtId, (u32)isInternal);
+    }
     // Start critical section
     rself->lock->lock(rself->lock);
     if(edtId > 63 || rself->usersTracker.slots[edtId] != edt) {
@@ -143,6 +166,10 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
             rself->attributes.internalUsers -= 1;
         }
     }
+    DO_DEBUG(DEBUG_LVL_VVERB) {
+        PRINTF("VVERB: DB attributes: numUsers %d; internalUsers %d; freeRequested %d\n",
+               rself->attributes.numUsers, rself->attributes.internalUsers, rself->attributes.freeRequested);
+    }
     // Check if we need to free the block
     if(rself->attributes.numUsers == 0  &&
        rself->attributes.internalUsers == 0 &&
@@ -162,6 +189,10 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
     u32 id = ocrGuidTrackerFind(&(rself->usersTracker), edt);
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Requesting a free for DB @ 0x%lx (GUID 0x%lx)\n",
+               (u64)rself->ptr, rself->base.guid);
+    }
     // Begin critical section
     rself->lock->lock(rself->lock);
     if(rself->attributes.freeRequested) {
@@ -172,21 +203,23 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
     rself->lock->unlock(rself->lock);
     // End critical section
 
-    // We can call free without having acquired the block
-    if(id < 64) {
-        self->release(self, edt, false);
-    }
-    // Now check if we can actually free the block
 
-    // Critical section
-    rself->lock->lock(rself->lock);
-    if(rself->attributes.numUsers == 0) {
-        rself->lock->unlock(rself->lock);
-        self->destruct(self);
+    if(id < 64) {
+        regularRelease(self, edt, false);
     } else {
-        rself->lock->unlock(rself->lock);
+        // We can call free without having acquired the block
+        // Now check if we can actually free the block
+
+        // Critical section
+        rself->lock->lock(rself->lock);
+        if(rself->attributes.numUsers == 0 && rself->attributes.internalUsers == 0) {
+            rself->lock->unlock(rself->lock);
+            regularDestruct(self);
+        } else {
+            rself->lock->unlock(rself->lock);
+        }
+        // End critical section
     }
-    // End critical section
 
     return 0;
 }

@@ -82,6 +82,7 @@ typedef struct _ocrDataBlock_t {
      * is no longer used
      *
      * @param self          Pointer for this data-block
+     * @todo: FIXME. This does perform a free!!!!
      */
     void (*destruct)(struct _ocrDataBlock_t *self);
 
