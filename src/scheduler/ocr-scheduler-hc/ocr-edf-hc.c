@@ -48,6 +48,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Guid-kind checkers for convenience
 //
 
+static bool isDatablockGuid(ocrGuid_t guid) {
+    ocrGuidKind kind;
+    globalGuidProvider->getKind(globalGuidProvider, guid, &kind);
+    return kind == OCR_GUID_DB;
+}
+
 static bool isEventGuid(ocrGuid_t guid) {
     ocrGuidKind kind;
     globalGuidProvider->getKind(globalGuidProvider, guid, &kind);
@@ -495,7 +501,7 @@ void taskSignaled(ocr_task_t * base, ocrGuid_t data, int slot) {
 //Registers an entity that will signal on one of the edt's slot.
 static void edtRegisterSignaler(ocr_task_t * base, ocrGuid_t signalerGuid, int slot) {
     // Only support event signals
-    assert(isEventGuid(signalerGuid));
+    assert(isEventGuid(signalerGuid) || isDatablockGuid(signalerGuid));
     //DESIGN would be nice to pre-allocate all of this since we know the edt
     //       dep slot size at edt's creation, then what type should we expose
     //       for the signalers member in the task's data-structure ?
@@ -564,12 +570,16 @@ void taskExecute ( ocr_task_t* base ) {
         // Double-check we're not rescheduling an already executed edt
         assert(derived->signalers != END_OF_LIST);
         while ( i < nbdeps ) {
+            //TODO would be nice to standardize that on satisfy
             reg_node_t * regNode = &(derived->signalers[i]);
-            globalGuidProvider->getVal(globalGuidProvider, regNode->guid, (u64*)&eventDep, NULL);
-            dbGuid = eventDep->fct_ptrs->get(eventDep);
+            dbGuid = regNode->guid;
+            if (isEventGuid(dbGuid)) {
+                globalGuidProvider->getVal(globalGuidProvider, regNode->guid, (u64*)&eventDep, NULL);
+                dbGuid = eventDep->fct_ptrs->get(eventDep);
+            }
             depv[i].guid = dbGuid;
-            //TODO assert this guid is of kind datablock
             if(dbGuid != NULL_GUID) {
+                assert(isDatablockGuid(dbGuid));
                 db = NULL;
                 globalGuidProvider->getVal(globalGuidProvider, dbGuid, (u64*)&db, NULL);
                 depv[i].ptr = db->acquire(db, base->guid, true);
@@ -657,6 +667,7 @@ ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrE
 
 //These are essentially switches to dispatch call to the correct implementation
 
+//TODO registerDependence to replace waiter/signaler that needs to be careful notto double register stuff
 void offerWaiterRegistration(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
     registerWaiter(signalerGuid, waiterGuid, slot, true);
 }
@@ -668,48 +679,48 @@ void offerSignalerRegistration(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int
 // Registers a waiter on a signaler
 static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot, bool offer) {
     if (isEventStickyGuid(signalerGuid)) {
-            if (offer && isEdtGuid(waiterGuid)) {
-                // When we're in offering mode, the implementation doesn't
-                // register edts on events they depend on. This will be done
-                // on edtSchedule.
-                return;
-            }
-            hc_event_sticky_t * target;
-            globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
-            stickyEventRegisterWaiter(target, waiterGuid, slot);
-    } else if(isEdtGuid(signalerGuid)) {
-        // register a 'waiter' to be signaled when an edt is done
-        assert(0 && "limitation: register edt-to-entity waiter not supported");
+        if (offer && isEdtGuid(waiterGuid)) {
+            // When we're in offering mode, the implementation doesn't
+            // register edts on events they depend on. This will be done
+            // on edtSchedule.
+            return;
+        }
+        assert(isEdtGuid(waiterGuid) || isEventGuid(waiterGuid));
+        hc_event_sticky_t * target;
+        globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
+        stickyEventRegisterWaiter(target, waiterGuid, slot);
+    } else if(isDatablockGuid(signalerGuid) && isEdtGuid(waiterGuid)) {
+        if (!offer) {
+            signalWaiter(waiterGuid, signalerGuid, slot);
+        }
     } else {
-        //Note: there's no support for finish-latch because we directly
-        //      register dependencies there
-        // ERROR
-        assert(0 && "error: Unsupported guid kind in registerWaiter");
+        // Everything else is an error
+        assert("error: Unsupported guid kind in registerWaiter" );
     }
-
 }
 
 // register a signaler on a waiter
 static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot, bool offer) {
+    // anything to edt registration
     if (isEdtGuid(waiterGuid)) {
-        if (isEventGuid(signalerGuid)) {
-            // edt waiting for a signal from an event
-            ocr_task_t * target = NULL;
-            globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
-            edtRegisterSignaler(target, signalerGuid, slot);
-        } else if(isEdtGuid(signalerGuid)) {
-           assert(0 && "limitation: register edt-to-edt signal not supported");
-        } else {
-           assert(0 && "error: Unsupported guid kind in registerSignaler");
-        }
-    } else if(isEventGuid(waiterGuid)) {
-          if (isEventGuid(signalerGuid)) {
-
-          } else {
-           assert(0 && "error: Unsupported guid kind in registerSignaler"); 
-          }
-        // We do not register events as signalers on waiters
+        // edt waiting for a signal from an event or a datablock
+        assert(isEventGuid(signalerGuid) || isDatablockGuid(signalerGuid));
+        ocr_task_t * target = NULL;
+        globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
+        edtRegisterSignaler(target, signalerGuid, slot);
+        return;
+    // datablock to event registration => satisfy on the spot
+    } else if (isEventStickyGuid(waiterGuid) && 
+                isDatablockGuid(signalerGuid)) {
+        ocr_event_t * target = NULL;
+        globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
+        stickyEventSatisfy(target, signalerGuid, slot);
+        return;
     }
+    // Remaining legal registrations is event-to-event, but this is
+    // handled in 'registerWaiter'
+    assert(isEventGuid(waiterGuid) && isEventGuid(signalerGuid) &&
+        "error: Unsupported guid kind in registerSignaler");
 }
 
 // signal a 'waiter' data has arrived on a particular slot
