@@ -89,12 +89,11 @@ typedef struct ocr_policy_domain_struct {
     ocr_policy_destruct_fct destruct;
     ocr_policy_getAllocator getAllocator;
 
-    void (*give) (struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * policyToGiveTo, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid);
     void (*receive) (struct ocr_policy_domain_struct * this, ocrGuid_t workerGuid, ocrGuid_t taskGuid);
     void (*handOut) (struct ocr_policy_domain_struct * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid);
 
-    ocrGuid_t (*take) (struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * policyTakenFrom, ocrGuid_t takingWorkerGuid);
     ocrGuid_t (*handIn) (struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * takingPolicy, ocrGuid_t takingWorkerGuid);
+    ocrGuid_t (*extract) (struct ocr_policy_domain_struct * this, ocrGuid_t takingWorkerGuid);
 
     ocr_task_factory* (*getTaskFactoryForUserTasks) (struct ocr_policy_domain_struct * policy);
     ocr_event_factory* (*getEventFactoryForUserEvents) (struct ocr_policy_domain_struct * policy);
@@ -143,9 +142,9 @@ ocr_policy_domain_t * mastered_leaf_place_policy_domain_constructor();
 
 ocr_policy_domain_t* get_current_policy_domain ();
 
-ocrGuid_t policy_domain_take_assert ( ocr_policy_domain_t * thisPolicy, ocr_policy_domain_t * policyTakenFrom, ocrGuid_t takingWorkerGuid );
-void policy_domain_give_assert ( ocr_policy_domain_t * thisPolicy, ocr_policy_domain_t * policyToGiveTo, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
-ocrGuid_t policy_domain_handIn_assert ( struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * takingPolicy, ocrGuid_t takingWorkerGuid );
+ocrGuid_t policy_domain_handIn_assert ( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
+ocrGuid_t policy_domain_extract_assert ( ocr_policy_domain_t * this, ocrGuid_t takingWorkerGuid );
+
 void policy_domain_handOut_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
 void policy_domain_receive_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
 

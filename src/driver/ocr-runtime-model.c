@@ -560,7 +560,7 @@ void createThorWorkerModelPoliciesHelper ( ocr_model_policy_t * leafPolicyModel,
         curr_config->worker_id_end = worker_offset + ( index_config / nb_schedulers ) * nb_workers + nb_workers - 1;
     }
 
-    leafPolicyModel->schedulers = newModel( ocr_scheduler_default_kind, nb_schedulers, NULL, scheduler_configurations );
+    leafPolicyModel->schedulers = newModel( OCR_PLACED_SCHEDULER, nb_schedulers, NULL, scheduler_configurations );
     leafPolicyModel->executors  = newModel( ocr_executor_default_kind, nb_executors, NULL, NULL );
     leafPolicyModel->workpiles  = newModel( ocr_workpile_default_kind, nb_workpiles, NULL, NULL );
     leafPolicyModel->memories   = newModel( OCR_LOWMEMORY_DEFAULT, 1, NULL, NULL );

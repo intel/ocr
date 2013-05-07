@@ -157,11 +157,10 @@ ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
     policy->destruct = hc_policy_domain_destruct;
     policy->getAllocator = hc_policy_getAllocator;
     // no inter-policy domain for HC for now
-    policy->take = policy_domain_take_assert;
-    policy->give = policy_domain_give_assert;
-    policy->handIn = policy_domain_handIn_assert;
     policy->handOut = policy_domain_handOut_assert;
     policy->receive = policy_domain_receive_assert;
+    policy->handIn = policy_domain_handIn_assert;
+    policy->extract = policy_domain_extract_assert;
 
     policy->getTaskFactoryForUserTasks = hc_policy_getTaskFactoryForUserTasks;
     policy->getEventFactoryForUserEvents = hc_policy_getEventFactoryForUserEvents;
@@ -239,6 +238,24 @@ void mastered_leaf_place_policy_domain_stop (ocr_policy_domain_t * policy) {
     }
 }
 
+ocrGuid_t leaf_policy_domain_handIn( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
+    // TODO sagnak BAD BAD hardcoding
+
+    ocr_scheduler_t* scheduler = this->schedulers[0];
+    return scheduler->take(scheduler, takingWorkerGuid);
+}
+
+ocrGuid_t leaf_policy_domain_extract ( ocr_policy_domain_t * this, ocrGuid_t takingWorkerGuid ) {
+    size_t nPredecessors = this->n_predecessors;
+    size_t currIndex = 0;
+    ocrGuid_t extracted = NULL_GUID;
+    for ( currIndex = 0; currIndex < nPredecessors && NULL_GUID == extracted; ++currIndex ) {
+        ocr_policy_domain_t* currParent = this->predecessors[currIndex];
+        extracted = currParent->handIn(currParent, this, takingWorkerGuid);
+    }
+    return extracted;
+}
+
 void leaf_place_policy_domain_constructor_helper ( ocr_policy_domain_t * policy,
                                                    size_t nb_workpiles,
                                                    size_t nb_workers,
@@ -262,11 +279,10 @@ void leaf_place_policy_domain_constructor_helper ( ocr_policy_domain_t * policy,
     policy->destruct = hc_policy_domain_destruct;
     policy->getAllocator = hc_policy_getAllocator;
     // no inter-policy domain for HC for now
-    policy->take = policy_domain_take_assert;
-    policy->give = policy_domain_give_assert;
-    policy->handIn = policy_domain_handIn_assert;
     policy->handOut = policy_domain_handOut_assert;
     policy->receive = policy_domain_receive_assert;
+    policy->handIn = leaf_policy_domain_handIn;
+    policy->extract = leaf_policy_domain_extract;
 
     policy->getTaskFactoryForUserTasks = hc_policy_getTaskFactoryForUserTasks;
     policy->getEventFactoryForUserEvents = hc_policy_getEventFactoryForUserEvents;
@@ -338,6 +354,36 @@ void place_policy_domain_finish(ocr_policy_domain_t * policy) {
 void place_policy_domain_stop(ocr_policy_domain_t * policy) {
 }
 
+ocrGuid_t place_policy_domain_handIn( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
+    ocrGuid_t extracted = NULL_GUID;
+
+    size_t nSuccessors = this->n_successors;
+    size_t currIndex = 0;
+    for ( currIndex = 0; currIndex < nSuccessors && NULL_GUID == extracted; ++currIndex ) {
+        ocr_policy_domain_t* currChild = this->successors[currIndex];
+        if ( currChild != takingPolicy ) {
+            extracted = currChild->handIn(currChild,this,takingWorkerGuid);
+        }
+    }
+
+    if ( NULL_GUID == extracted ) {
+        size_t nPredecessors = this->n_predecessors;
+        currIndex = 0;
+        for ( currIndex = 0; currIndex < nPredecessors && NULL_GUID == extracted; ++currIndex ) {
+            ocr_policy_domain_t* currParent = this->predecessors[currIndex];
+            extracted = currParent->handIn(currParent,this,takingWorkerGuid);
+        }
+    }
+
+    return extracted;
+}
+
+ocrGuid_t place_policy_domain_extract ( ocr_policy_domain_t * this, ocrGuid_t takingWorkerGuid ) {
+    ocrGuid_t extracted = NULL_GUID;
+    assert ( 0 && "We should not ask for a place factory to extract");
+    return extracted;
+}
+
 ocr_policy_domain_t * place_policy_domain_constructor () {
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
 
@@ -359,16 +405,14 @@ ocr_policy_domain_t * place_policy_domain_constructor () {
     policy->getTaskFactoryForUserTasks = place_policy_getTaskFactoryForUserTasks;
     policy->getEventFactoryForUserEvents = place_policy_getEventFactoryForUserEvents;
 
-    policy->take = policy_domain_take_assert;
-    policy->give = policy_domain_give_assert;
-    policy->handIn = policy_domain_handIn_assert;
-
     policy->start = place_policy_domain_start;
     policy->finish = place_policy_domain_finish;
     policy->stop = place_policy_domain_stop;
 
     policy->handOut = policy_domain_handOut_assert;
     policy->receive = policy_domain_receive_assert;
+    policy->handIn = policy_domain_handIn_assert;
+    policy->extract = policy_domain_extract_assert;
 
     return policy;
 }

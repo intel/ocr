@@ -201,9 +201,8 @@ static inline void fsim_policy_domain_constructor_helper ( ocr_policy_domain_t *
     policy->getTaskFactoryForUserTasks = fsim_policy_getTaskFactoryForUserTasks;
     policy->getEventFactoryForUserEvents = fsim_policy_getEventFactoryForUserEvents;
 
-    policy->take = policy_domain_take_assert;
-    policy->give = policy_domain_give_assert;
     policy->handIn = policy_domain_handIn_assert;
+    policy->extract = policy_domain_extract_assert;
 }
 
 void xe_policy_domain_hand_out ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {

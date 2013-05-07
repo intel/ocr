@@ -108,25 +108,20 @@ ocr_policy_domain_t* get_current_policy_domain () {
     return policy_domain;
 }
 
-ocrGuid_t policy_domain_take_assert ( ocr_policy_domain_t * thisPolicy, ocr_policy_domain_t * policyTakenFrom, ocrGuid_t takingWorkerGuid ) {
-    assert(0 && "postponed policy take implementation");
-    return NULL_GUID;
-}
-
-void policy_domain_give_assert ( ocr_policy_domain_t * thisPolicy, ocr_policy_domain_t * policyToGiveTo, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
-    assert(0 && "postponed policy give implementation");
-}
-
-ocrGuid_t policy_domain_handIn_assert ( struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * takingPolicy, ocrGuid_t takingWorkerGuid ) {
+ocrGuid_t policy_domain_handIn_assert ( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
     assert(0 && "postponed policy handIn implementation");
     return NULL_GUID;
 }
 
-void policy_domain_handOut_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
+ocrGuid_t policy_domain_extract_assert ( ocr_policy_domain_t * this, ocrGuid_t takingWorkerGuid ) {
+    assert(0 && "postponed policy extract implementation");
+    return NULL_GUID;
+}
+
+void policy_domain_handOut_assert ( ocr_policy_domain_t * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
     assert(0 && "postponed policy handOut implementation");
 }
 
-void policy_domain_receive_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
+void policy_domain_receive_assert ( ocr_policy_domain_t * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
     assert(0 && "postponed policy receive implementation");
 }
-

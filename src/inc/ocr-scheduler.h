@@ -95,6 +95,7 @@ typedef enum ocr_scheduler_kind_enum {
     OCR_SCHEDULER_WST = 1
     , OCR_SCHEDULER_XE = 2
     , OCR_SCHEDULER_CE = 3
+    , OCR_PLACED_SCHEDULER = 4
 } ocr_scheduler_kind;
 
 ocr_scheduler_t * newScheduler(ocr_scheduler_kind schedulerType);
