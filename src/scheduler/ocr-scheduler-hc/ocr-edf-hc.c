@@ -112,9 +112,9 @@ static ocr_task_t * getCurrentTask() {
 
 static void signalWaiter(ocrGuid_t waiterGuid, ocrGuid_t data, int slot);
 
-static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot, bool offer);
+static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
 
-static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot, bool offer);
+static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
 
 // finish-latch function pointers
 static ocr_event_fcts_t * event_fct_ptrs_finishlatch;
@@ -494,7 +494,7 @@ void taskSignaled(ocr_task_t * base, ocrGuid_t data, int slot) {
         // else register the edt on the next event to wait on
         slot++;
         //TODO, could we directly pass the node to avoid a new alloc ?
-        registerWaiter((self->signalers[slot]).guid, base->guid, slot, false);
+        registerWaiter((self->signalers[slot]).guid, base->guid, slot);
     }
 }
 
@@ -547,7 +547,7 @@ void tryScheduleTask( ocr_task_t* base, ocrGuid_t wid ) {
         // Register the task on the first dependence. If all
         // dependences are here, the task is scheduled by
         // the dependence management code.
-        registerWaiter(self->signalers[0].guid, base->guid, 0, false);
+        registerWaiter(self->signalers[0].guid, base->guid, 0);
     } else {
         // If there's no dependence, the task must be scheduled now.
         taskSchedule(base->guid, base, wid);
@@ -667,32 +667,34 @@ ocrGuid_t hc_task_factory_create ( struct ocr_task_factory_struct* factory, ocrE
 
 //These are essentially switches to dispatch call to the correct implementation
 
-//TODO registerDependence to replace waiter/signaler that needs to be careful notto double register stuff
-void offerWaiterRegistration(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
-    registerWaiter(signalerGuid, waiterGuid, slot, true);
+void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
+
+    // WAIT MODE: event-to-event registration
+    // Note: do not call 'registerWaiter' here as it triggers event-to-edt 
+    // registration, which should only be done on edtSchedule.
+    if (isEventStickyGuid(signalerGuid) && isEventGuid(waiterGuid)) {
+        hc_event_sticky_t * target;
+        globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
+        stickyEventRegisterWaiter(target, waiterGuid, slot);
+        return;
+    }
+
+    // SIGNAL MODE:
+    //  - anything-to-edt registration
+    //  - db-to-event registration
+    registerSignaler(signalerGuid, waiterGuid, slot);
 }
 
-void offerSignalerRegistration(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
-    registerSignaler(signalerGuid, waiterGuid, slot, true);
-}
 
 // Registers a waiter on a signaler
-static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot, bool offer) {
+static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
     if (isEventStickyGuid(signalerGuid)) {
-        if (offer && isEdtGuid(waiterGuid)) {
-            // When we're in offering mode, the implementation doesn't
-            // register edts on events they depend on. This will be done
-            // on edtSchedule.
-            return;
-        }
         assert(isEdtGuid(waiterGuid) || isEventGuid(waiterGuid));
         hc_event_sticky_t * target;
         globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
         stickyEventRegisterWaiter(target, waiterGuid, slot);
     } else if(isDatablockGuid(signalerGuid) && isEdtGuid(waiterGuid)) {
-        if (!offer) {
             signalWaiter(waiterGuid, signalerGuid, slot);
-        }
     } else {
         // Everything else is an error
         assert("error: Unsupported guid kind in registerWaiter" );
@@ -700,7 +702,7 @@ static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slo
 }
 
 // register a signaler on a waiter
-static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot, bool offer) {
+static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
     // anything to edt registration
     if (isEdtGuid(waiterGuid)) {
         // edt waiting for a signal from an event or a datablock
@@ -719,8 +721,8 @@ static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int s
     }
     // Remaining legal registrations is event-to-event, but this is
     // handled in 'registerWaiter'
-    assert(isEventGuid(waiterGuid) && isEventGuid(signalerGuid) &&
-        "error: Unsupported guid kind in registerSignaler");
+    assert(isEventGuid(waiterGuid) && isEventGuid(signalerGuid) && "error: Unsupported guid kind in registerDependence");
+        
 }
 
 // signal a 'waiter' data has arrived on a particular slot

@@ -94,11 +94,7 @@ u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
 }
 
 u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot) {
-    // TODO should be illegal to add a dependence to an edt since they would all be provided at creation time.
-    // source to register destination is waiting on it
-    offerWaiterRegistration(source, destination, slot);
-    // destination to register it will be signaled by source
-    offerSignalerRegistration(source, destination, slot);
+    registerDependence(source, destination, slot);
     return 0;
 }
 

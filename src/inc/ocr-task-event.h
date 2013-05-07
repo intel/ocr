@@ -37,11 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /*******************************************
- * Signal/Wait Interface to tasks and events
+ * Dependence Registration
  ******************************************/
-
-void offerWaiterRegistration(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
-void offerSignalerRegistration(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
+void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
 
 /*******************************************
  *          OCR Event declarations
