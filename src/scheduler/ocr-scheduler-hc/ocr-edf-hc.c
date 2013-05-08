@@ -507,6 +507,10 @@ void taskSignaled(ocr_task_t * base, ocrGuid_t data, int slot) {
     // current signal frontier, since it is the only signaler
     // the edt is registered with at that time.
     hc_task_t * self = (hc_task_t *) base;
+    // Replace the signaler's guid by the data guid, this to avoid
+    // further references to the event's guid, which is good in general
+    // and crucial for once-event since they are being destroyed on satisfy.
+    self->signalers[slot].guid = data;
     if (slot == (self->nbdeps-1)) {
         // All dependencies have been satisfied, schedule the edt
         ocrGuid_t wid = ocr_get_current_worker_guid();
@@ -577,31 +581,25 @@ void tryScheduleTask( ocr_task_t* base, ocrGuid_t wid ) {
 
 void taskExecute ( ocr_task_t* base ) {
     hc_task_t* derived = (hc_task_t*)base;
-    // In this implementation the list of signalers is a list of events
-    ocr_event_t * eventDep = NULL;
-    ocrDataBlock_t *db = NULL;
-    ocrGuid_t dbGuid = UNINITIALIZED_GUID;
-    size_t i = 0;
+    // In this implementation each time a signaler has been satisfied, its guid
+    // has been replaced by the db guid it has been satisfied with.
     int nbdeps = derived->nbdeps;
     ocrEdtDep_t * depv = NULL;
     // If any dependencies, acquire their data-blocks
     if (nbdeps != 0) {
-        //TODO would be nice to resolve regNode into event_t before
+        size_t i = 0;
+        //TODO would be nice to resolve regNode into guids before
         depv = (ocrEdtDep_t *) checked_malloc(depv, sizeof(ocrEdtDep_t) * nbdeps);
         // Double-check we're not rescheduling an already executed edt
         assert(derived->signalers != END_OF_LIST);
         while ( i < nbdeps ) {
             //TODO would be nice to standardize that on satisfy
             reg_node_t * regNode = &(derived->signalers[i]);
-            dbGuid = regNode->guid;
-            if (isEventGuid(dbGuid)) {
-                globalGuidProvider->getVal(globalGuidProvider, regNode->guid, (u64*)&eventDep, NULL);
-                dbGuid = eventDep->fct_ptrs->get(eventDep);
-            }
+            ocrGuid_t dbGuid = regNode->guid;
             depv[i].guid = dbGuid;
             if(dbGuid != NULL_GUID) {
                 assert(isDatablockGuid(dbGuid));
-                db = NULL;
+                ocrDataBlock_t * db = NULL;
                 globalGuidProvider->getVal(globalGuidProvider, dbGuid, (u64*)&db, NULL);
                 depv[i].ptr = db->acquire(db, base->guid, true);
             } else {
@@ -617,8 +615,10 @@ void taskExecute ( ocr_task_t* base ) {
 
     // edt user code is done, if any deps, release data-blocks
     if (nbdeps != 0) {
+        size_t i = 0;
         for(i=0; i<nbdeps; ++i) {
             if(depv[i].guid != NULL_GUID) {
+                ocrDataBlock_t * db = NULL;
                 globalGuidProvider->getVal(globalGuidProvider, depv[i].guid, (u64*)&db, NULL);
                 RESULT_ASSERT(db->release(db, base->guid, true), ==, 0);
             }
