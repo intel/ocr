@@ -71,6 +71,7 @@ typedef struct hc_event_finishlatch_t {
     reg_node_t outputEventWaiter;
     reg_node_t parentLatchWaiter; // Parent latch when nesting finish scope
     ocrGuid_t ownerGuid; // finish-edt starting the finish scope
+    volatile ocrGuid_t returnGuid;
     volatile int counter;
 } hc_event_finishlatch_t;
 

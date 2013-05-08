@@ -317,7 +317,7 @@ void finishLatchEventSatisfy(ocr_event_t * base, ocrGuid_t data, int slot) {
         // Notify output event if any associated with the finish-edt
         reg_node_t * outputEventWaiter = &(self->outputEventWaiter);
         if (outputEventWaiter->guid != NULL_GUID) {
-            signalWaiter(outputEventWaiter->guid, NULL_GUID, outputEventWaiter->slot);
+            signalWaiter(outputEventWaiter->guid, self->returnGuid, outputEventWaiter->slot);
         }
         // Notify the parent latch if any
         reg_node_t * parentLatchWaiter = &(self->parentLatchWaiter);
@@ -629,6 +629,10 @@ void taskExecute ( ocr_task_t* base ) {
     ocr_event_t * curLatch = getFinishLatch(base);
 
     if (curLatch != NULL) {
+        // if own the latch, then set the retGuid
+        if (isFinishLatchOwner(curLatch, base->guid)) {
+            ((hc_event_finishlatch_t *) curLatch)->returnGuid = retGuid;
+        }
         finishLatchCheckout(curLatch);
         // If the edt is the last to checkout from the current finish scope,
         // the latch event automatically satisfies the parent latch (if any) // and the output event associated with the current finish-edt (if any)

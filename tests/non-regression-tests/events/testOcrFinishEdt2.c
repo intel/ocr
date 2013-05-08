@@ -44,12 +44,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * terminates.
  */
 
-// TODO shouldn't be doing that...
-static int * array;
-
 // This edt is triggered when the output event of the other edt is satisfied by the runtime
 ocrGuid_t terminate_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     // TODO shouldn't be doing that... but need more support from output events to get a 'return' value from an edt
+    assert(depv[0].guid != NULL_GUID);
+    int * array = (int*)depv[0].ptr;
     int i = 0;
     while (i < N) {
         assert(array[i] == i);
@@ -74,6 +73,8 @@ ocrGuid_t updater_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrE
     ocrDbRelease(dbGuid);
     free(params);
     free(paramv);
+    // When we are done we return the guid to the array
+    // so that the chained edt can retrieve the db.
     return NULL_GUID;
 }
 
@@ -97,7 +98,7 @@ ocrGuid_t main_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtD
         ocrEdtSchedule(updaterEdtGuid);
         i++;
     }
-    return NULL_GUID;
+    return depv[0].guid;
 }
 
 int main (int argc, char ** argv) {
@@ -107,18 +108,19 @@ int main (int argc, char ** argv) {
     fctPtrArray[2] = &terminate_edt;
     ocrInit(&argc, argv, 3, fctPtrArray);
 
-    ocrGuid_t outputEventGuid;
+    ocrGuid_t finishEdtOutputEventGuid;
     ocrGuid_t mainEdtGuid;
     ocrEdtCreate(&mainEdtGuid, main_edt, /*paramc=*/0, /*params=*/ NULL,
-            /*paramv=*/NULL, /*properties=*/ EDT_PROP_FINISH, /*depc=*/1, NULL, &outputEventGuid);
+            /*paramv=*/NULL, /*properties=*/ EDT_PROP_FINISH, /*depc=*/1, NULL, &finishEdtOutputEventGuid);
 
     // Build a data-block to be shared with sub-edts
+    int * array;
     ocrGuid_t dbGuid;
     ocrDbCreate(&dbGuid,(void **) &array, sizeof(int)*N, FLAGS, NULL, NO_ALLOC);
 
     ocrGuid_t terminateEdtGuid;
     ocrEdtCreate(&terminateEdtGuid, terminate_edt, /*paramc=*/0, /*params=*/ NULL, /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, NULL_GUID);
-    ocrAddDependence(outputEventGuid, terminateEdtGuid, 0);
+    ocrAddDependence(finishEdtOutputEventGuid, terminateEdtGuid, 0);
     //ocrAddDependence(dbGuid, terminateEdtGuid, 1);
     ocrEdtSchedule(terminateEdtGuid);
     
