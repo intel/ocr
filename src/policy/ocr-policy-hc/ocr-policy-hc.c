@@ -239,13 +239,6 @@ void mastered_leaf_place_policy_domain_stop (ocr_policy_domain_t * policy) {
 }
 
 ocrGuid_t leaf_policy_domain_handIn( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
-    // TODO sagnak BAD BAD hardcoding
-
-    ocr_scheduler_t* scheduler = this->schedulers[0];
-    return scheduler->take(scheduler, takingWorkerGuid);
-}
-
-ocrGuid_t leaf_policy_domain_extract ( ocr_policy_domain_t * this, ocrGuid_t takingWorkerGuid ) {
     size_t nPredecessors = this->n_predecessors;
     size_t currIndex = 0;
     ocrGuid_t extracted = NULL_GUID;
@@ -254,6 +247,12 @@ ocrGuid_t leaf_policy_domain_extract ( ocr_policy_domain_t * this, ocrGuid_t tak
         extracted = currParent->handIn(currParent, this, takingWorkerGuid);
     }
     return extracted;
+}
+
+ocrGuid_t leaf_policy_domain_extract ( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
+    // TODO sagnak BAD BAD hardcoding
+    ocr_scheduler_t* scheduler = this->schedulers[0];
+    return scheduler->take(scheduler, takingWorkerGuid);
 }
 
 void leaf_place_policy_domain_constructor_helper ( ocr_policy_domain_t * policy,
@@ -355,20 +354,11 @@ void place_policy_domain_stop(ocr_policy_domain_t * policy) {
 }
 
 ocrGuid_t place_policy_domain_handIn( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
-    ocrGuid_t extracted = NULL_GUID;
-
-    size_t nSuccessors = this->n_successors;
-    size_t currIndex = 0;
-    for ( currIndex = 0; currIndex < nSuccessors && NULL_GUID == extracted; ++currIndex ) {
-        ocr_policy_domain_t* currChild = this->successors[currIndex];
-        if ( currChild != takingPolicy ) {
-            extracted = currChild->handIn(currChild,this,takingWorkerGuid);
-        }
-    }
+    ocrGuid_t extracted = this->extract(this,takingPolicy,takingWorkerGuid);
 
     if ( NULL_GUID == extracted ) {
         size_t nPredecessors = this->n_predecessors;
-        currIndex = 0;
+        size_t currIndex = 0;
         for ( currIndex = 0; currIndex < nPredecessors && NULL_GUID == extracted; ++currIndex ) {
             ocr_policy_domain_t* currParent = this->predecessors[currIndex];
             extracted = currParent->handIn(currParent,this,takingWorkerGuid);
@@ -378,9 +368,16 @@ ocrGuid_t place_policy_domain_handIn( ocr_policy_domain_t * this, ocr_policy_dom
     return extracted;
 }
 
-ocrGuid_t place_policy_domain_extract ( ocr_policy_domain_t * this, ocrGuid_t takingWorkerGuid ) {
+ocrGuid_t place_policy_domain_extract ( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
     ocrGuid_t extracted = NULL_GUID;
-    assert ( 0 && "We should not ask for a place factory to extract");
+    size_t nSuccessors = this->n_successors;
+    size_t currIndex = 0;
+    for ( currIndex = 0; currIndex < nSuccessors && NULL_GUID == extracted; ++currIndex ) {
+        ocr_policy_domain_t* currChild = this->successors[currIndex];
+        if ( currChild != takingPolicy ) {
+            extracted = currChild->extract(currChild,this,takingWorkerGuid);
+        }
+    }
     return extracted;
 }
 
@@ -411,8 +408,8 @@ ocr_policy_domain_t * place_policy_domain_constructor () {
 
     policy->handOut = policy_domain_handOut_assert;
     policy->receive = policy_domain_receive_assert;
-    policy->handIn = policy_domain_handIn_assert;
-    policy->extract = policy_domain_extract_assert;
+    policy->handIn = place_policy_domain_handIn;
+    policy->extract = place_policy_domain_extract;
 
     return policy;
 }

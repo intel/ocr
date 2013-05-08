@@ -113,7 +113,7 @@ ocrGuid_t policy_domain_handIn_assert ( ocr_policy_domain_t * this, ocr_policy_d
     return NULL_GUID;
 }
 
-ocrGuid_t policy_domain_extract_assert ( ocr_policy_domain_t * this, ocrGuid_t takingWorkerGuid ) {
+ocrGuid_t policy_domain_extract_assert ( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
     assert(0 && "postponed policy extract implementation");
     return NULL_GUID;
 }

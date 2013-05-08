@@ -347,6 +347,11 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
         n_root_policy_nodes = nb_policy_domain;
         root_policies = instantiateModel(policy_model);
 
+	root_policies[0]->n_successors = 0;
+	root_policies[0]->successors = NULL;
+	root_policies[0]->n_predecessors = 0;
+	root_policies[0]->predecessors = NULL;
+
         master_worker = root_policies[0]->workers[0];
         root_policies[0]->start(root_policies[0]);
     }

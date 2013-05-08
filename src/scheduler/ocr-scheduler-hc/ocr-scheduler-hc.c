@@ -154,15 +154,17 @@ ocrGuid_t hc_placed_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
 
     ocrGuid_t popped = NULL_GUID;
 
+    int worker_id = get_worker_id(w);
+
     hc_scheduler_t* derived = (hc_scheduler_t*) base;
-    if ( wid >= derived->worker_id_begin && wid <= derived->worker_id_end ) {
+    if ( worker_id >= derived->worker_id_begin && worker_id <= derived->worker_id_end ) {
         ocr_workpile_t * wp_to_pop = base->pop_mapping(base, w);
         popped = wp_to_pop->pop(wp_to_pop);
         /*TODO sagnak I hard-coded a no intra-scheduler stealing here; BAD */
         if ( NULL_GUID == popped ) {
             // TODO sagnak steal from places
             ocr_policy_domain_t* policyDomain = base->domain;
-            popped = policyDomain->extract(policyDomain, wid);
+            popped = policyDomain->handIn(policyDomain, policyDomain, wid);
         }
     } else {
         // TODO sagnak oooh BAD BAD hardcoding yet again
