@@ -66,11 +66,13 @@ static bool isEdtGuid(ocrGuid_t guid) {
     return kind == OCR_GUID_EDT;
 }
 
-static bool isEventStickyGuid(ocrGuid_t guid) {
+static bool isEventSingleGuid(ocrGuid_t guid) {
     if(isEventGuid(guid)) {
         hc_event_t * event = NULL;
         globalGuidProvider->getVal(globalGuidProvider, guid, (u64*)&event, NULL);
-        return event->kind == OCR_EVENT_STICKY_T;
+        return ((event->kind == OCR_EVENT_ONCE_T) 
+            || (event->kind == OCR_EVENT_IDEM_T) 
+            || (event->kind == OCR_EVENT_STICKY_T));
     }
     return false;
 }
@@ -138,21 +140,23 @@ static void finishLatchCheckout(ocr_event_t * base);
 static struct ocr_event_struct* eventConstructor(ocr_event_factory * factory, ocrEventTypes_t eventType, bool takesArg) {
     ocr_event_t* base = NULL;
     ocr_event_fcts_t * eventFctPtrs = NULL;
-    if (eventType == OCR_EVENT_STICKY_T) {
-    	hc_event_sticky_t* eventImpl = (hc_event_sticky_t*) checked_malloc(eventImpl, sizeof(hc_event_sticky_t));
-    	eventImpl->signalers = END_OF_LIST;
-    	eventImpl->waiters = END_OF_LIST;
-    	eventImpl->data = UNINITIALIZED_DATA;
-    	eventFctPtrs = factory->event_fct_ptrs_sticky;
-        base = (ocr_event_t*)eventImpl;
-    } else if (eventType == OCR_EVENT_FINISH_LATCH_T) {
+    if (eventType == OCR_EVENT_FINISH_LATCH_T) {
     	hc_event_finishlatch_t * eventImpl = (hc_event_finishlatch_t*) checked_malloc(eventImpl, sizeof(hc_event_finishlatch_t));
     	eventImpl->counter = 0;
     	//Note: waiters are initialized afterwards
     	eventFctPtrs = event_fct_ptrs_finishlatch;
         base = (ocr_event_t*)eventImpl;
     } else {
-        assert("limitation: Unsupported type of event" && false);
+        assert(((eventType == OCR_EVENT_ONCE_T) ||
+                (eventType == OCR_EVENT_IDEM_T) ||
+                (eventType == OCR_EVENT_STICKY_T)) &&
+                "error: Unsupported type of event");
+        hc_event_single_t* eventImpl = (hc_event_single_t*) checked_malloc(eventImpl, sizeof(hc_event_single_t));
+        eventImpl->signalers = END_OF_LIST;
+        eventImpl->waiters = END_OF_LIST;
+        eventImpl->data = UNINITIALIZED_DATA;
+        eventFctPtrs = factory->event_fct_ptrs_sticky;
+        base = (ocr_event_t*)eventImpl;
     }
 
     // Initialize hc_event_t
@@ -176,14 +180,14 @@ void eventDestructor ( struct ocr_event_struct* base ) {
 
 
 //
-// OCR-HC Sticky Events Implementation
+// OCR-HC Single Events Implementation
 //
 
-// Sticky event registration registers a 'waiter' that should be
+// Single event registration registers a 'waiter' that should be
 // signaled by the 'self' event on a particular slot.
 // If 'self' has already been satisfied, signal 'waiter'
 // Warning: Concurrent with sticky event's put.
-static void stickyEventRegisterWaiter(hc_event_sticky_t * self, ocrGuid_t waiter, int slot) {
+static void singleEventRegisterWaiter(hc_event_single_t * self, ocrGuid_t waiter, int slot) {
     // Try to insert 'waiter' at the beginning of the list
     reg_node_t * curHead = (reg_node_t *) self->waiters;
     if(curHead != SEALED_LIST) {
@@ -211,7 +215,7 @@ static void stickyEventRegisterWaiter(hc_event_sticky_t * self, ocrGuid_t waiter
 
 // Set a sticky event data guid
 // Warning: Concurrent with registration on sticky event.
-static reg_node_t * stickyEventPut(hc_event_sticky_t * self, ocrGuid_t data ) {
+static reg_node_t * singleEventPut(hc_event_single_t * self, ocrGuid_t data ) {
     // TODO This is not enough to always detect concurrent puts.
     assert (self->data == UNINITIALIZED_DATA && "violated single assignment property for EDFs");
     self->data = data;
@@ -232,37 +236,54 @@ static reg_node_t * stickyEventPut(hc_event_sticky_t * self, ocrGuid_t data ) {
 
 // This is setting a sticky event's data
 // slotEvent is ignored for stickies.
-void stickyEventSatisfy(ocr_event_t * base, ocrGuid_t data, int slotEvent) {
-    hc_event_sticky_t * self = (hc_event_sticky_t *) base;
-    // Sticky events don't have slots, just put the data
-    reg_node_t * waiters = stickyEventPut(self, data);
-    // Put must have sealed the waiters list and returned it
-    // Note: Here the design is not great, 'put' CAS and returns the waiters 
-    // list but does not handle the signaler list which is ok for now because 
-    // it's not used.
-    assert(waiters != SEALED_LIST);
-    assert(self->data != UNINITIALIZED_DATA);
-    // Need to signal other entities waiting on the event
-    reg_node_t * waiter = waiters;
-    while (waiter != END_OF_LIST) {
-        // Note: in general it's better to read from self->data in case
-        //       the event does some post processing on the input data
-        signalWaiter(waiter->guid, self->data, waiter->slot);
-        waiters = waiter;
-        waiter = waiter->next;
-        free(waiters); // Release waiter node
+void singleEventSatisfy(ocr_event_t * base, ocrGuid_t data, int slotEvent) {
+    hc_event_t * hcSelf = (hc_event_t *) base;
+    hc_event_single_t * self = (hc_event_single_t *) base;
+
+    // Whether it is a once, idem or sticky, unitialized means it's the first
+    // time we try to satisfy the event. Note: It's a very loose check, the 
+    // 'Put' implementation must do more work to detect races on data.
+    if (self->data == UNINITIALIZED_DATA) {
+        // Single events don't have slots, just put the data
+        reg_node_t * waiters = singleEventPut(self, data);
+        // Put must have sealed the waiters list and returned it
+        // Note: Here the design is not great, 'put' CAS and returns the 
+        //       waiters list but does not handle the signaler list which 
+        //       is ok for now because it's not used.
+        assert(waiters != SEALED_LIST);
+        assert(self->data != UNINITIALIZED_DATA);
+        // Need to signal other entities waiting on the event
+        reg_node_t * waiter = waiters;
+        while (waiter != END_OF_LIST) {
+            // Note: in general it's better to read from self->data in case
+            //       the event does some post processing on the input data
+            signalWaiter(waiter->guid, self->data, waiter->slot);
+            waiters = waiter;
+            waiter = waiter->next;
+            free(waiters); // Release waiter node
+        }
+        if (hcSelf->kind == OCR_EVENT_ONCE_T) {
+            // once-events die after satisfy has been called
+            eventDestructor(base);
+        }
+    } else {
+        // once-events cannot survive down here
+        // idem-events ignore extra satisfy
+        if (hcSelf->kind == OCR_EVENT_STICKY_T) {
+            assert(false && "error: Multiple satisfy on a sticky event");
+        }
     }
 }
 
 // Internal signal/wait notification
 // Signal a sticky event some data arrived (on its unique slot)
-static void stickyEventSignaled(ocr_event_t * self, ocrGuid_t data, int slotEvent) {
-    // Sticky event signaled by another entity, call its satisfy method.
-    stickyEventSatisfy(self, data, slotEvent);
+static void singleEventSignaled(ocr_event_t * self, ocrGuid_t data, int slotEvent) {
+    // Single event signaled by another entity, call its satisfy method.
+    singleEventSatisfy(self, data, slotEvent);
 }
 
-ocrGuid_t stickyEventGet (ocr_event_t * base) {
-    hc_event_sticky_t* self = (hc_event_sticky_t*) base;
+ocrGuid_t singleEventGet (ocr_event_t * base) {
+    hc_event_single_t* self = (hc_event_single_t*) base;
     return (self->data == UNINITIALIZED_DATA) ? ERROR_GUID : self->data;
 }
 
@@ -363,8 +384,8 @@ struct ocr_event_factory_struct* hc_event_factory_constructor(void) {
     // initialize singleton instance that carries hc implementation function pointers
     base->event_fct_ptrs_sticky = (ocr_event_fcts_t *) checked_malloc(base->event_fct_ptrs_sticky, sizeof(ocr_event_fcts_t));
     base->event_fct_ptrs_sticky->destruct = eventDestructor;
-    base->event_fct_ptrs_sticky->get = stickyEventGet;
-    base->event_fct_ptrs_sticky->satisfy = stickyEventSatisfy;
+    base->event_fct_ptrs_sticky->get = singleEventGet;
+    base->event_fct_ptrs_sticky->satisfy = singleEventSatisfy;
 
     //Note: Just store finish-latch function ptrs in a static since this is 
     //      runtime implementation specific
@@ -672,10 +693,10 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
     // WAIT MODE: event-to-event registration
     // Note: do not call 'registerWaiter' here as it triggers event-to-edt 
     // registration, which should only be done on edtSchedule.
-    if (isEventStickyGuid(signalerGuid) && isEventGuid(waiterGuid)) {
-        hc_event_sticky_t * target;
+    if (isEventSingleGuid(signalerGuid) && isEventGuid(waiterGuid)) {
+        hc_event_single_t * target;
         globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
-        stickyEventRegisterWaiter(target, waiterGuid, slot);
+        singleEventRegisterWaiter(target, waiterGuid, slot);
         return;
     }
 
@@ -688,11 +709,11 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
 
 // Registers a waiter on a signaler
 static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
-    if (isEventStickyGuid(signalerGuid)) {
+    if (isEventSingleGuid(signalerGuid)) {
         assert(isEdtGuid(waiterGuid) || isEventGuid(waiterGuid));
-        hc_event_sticky_t * target;
+        hc_event_single_t * target;
         globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
-        stickyEventRegisterWaiter(target, waiterGuid, slot);
+        singleEventRegisterWaiter(target, waiterGuid, slot);
     } else if(isDatablockGuid(signalerGuid) && isEdtGuid(waiterGuid)) {
             signalWaiter(waiterGuid, signalerGuid, slot);
     } else {
@@ -712,11 +733,11 @@ static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int s
         edtRegisterSignaler(target, signalerGuid, slot);
         return;
     // datablock to event registration => satisfy on the spot
-    } else if (isEventStickyGuid(waiterGuid) && 
+    } else if (isEventSingleGuid(waiterGuid) && 
                 isDatablockGuid(signalerGuid)) {
         ocr_event_t * target = NULL;
         globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
-        stickyEventSatisfy(target, signalerGuid, slot);
+        singleEventSatisfy(target, signalerGuid, slot);
         return;
     }
     // Remaining legal registrations is event-to-event, but this is
@@ -728,10 +749,10 @@ static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int s
 // signal a 'waiter' data has arrived on a particular slot
 static void signalWaiter(ocrGuid_t waiterGuid, ocrGuid_t data, int slot) {
     // TODO do we need to know who's signaling ?
-    if (isEventStickyGuid(waiterGuid)) {
+    if (isEventSingleGuid(waiterGuid)) {
         ocr_event_t * target = NULL;
         globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
-        stickyEventSignaled(target, data, slot);
+        singleEventSignaled(target, data, slot);
     } else if(isEdtGuid(waiterGuid)) {
         ocr_task_t * target = NULL;
         globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);

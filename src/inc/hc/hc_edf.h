@@ -58,12 +58,12 @@ typedef struct hc_event_t {
     ocrEventTypes_t kind;
 } hc_event_t;
 
-typedef struct hc_event_sticky_t {
+typedef struct hc_event_single_t {
     hc_event_t base;
     volatile reg_node_t * waiters;
     volatile reg_node_t * signalers;
     ocrGuid_t data;
-} hc_event_sticky_t;
+} hc_event_single_t;
 
 typedef struct hc_event_finishlatch_t {
     hc_event_t base;
