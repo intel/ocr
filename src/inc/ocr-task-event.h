@@ -161,7 +161,8 @@ typedef struct ocr_event_factory_struct {
      */
     event_fact_destruct_fct destruct;
 
-    ocr_event_fcts_t * event_fct_ptrs_sticky;
+    ocr_event_fcts_t * event_fct_ptrs_single;
+    ocr_event_fcts_t * event_fct_ptrs_latch;
 } ocr_event_factory;
 
 

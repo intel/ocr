@@ -59,8 +59,17 @@ typedef enum {
     OCR_EVENT_STICKY_T,  /**< The event exists until explicitly destroyed with
                           * ocrEventDestroy. Multiple satisfactions result
                           * in an error */
+    OCR_EVENT_LATCH_T,   /**< The latch event can't be satisfied on either 
+                          * its the DECR or INCR slot. When it reaches zero, 
+                          * it is satisfied. */
     OCR_EVENT_T_MAX      /**< Marker */
 } ocrEventTypes_t;
+
+
+typedef enum {
+  OCR_EVENT_LATCH_DECR_SLOT = 0,
+  OCR_EVENT_LATCH_INCR_SLOT = 1
+} ocrLatchEventSlot_t;
 
 /**
  * @brief Creates an event
@@ -109,7 +118,9 @@ u8 ocrEventDestroy(ocrGuid_t guid);
  * the event will be satisfied for all EDTs/Events currently waiting on it
  * as well as any future EDT/Event that adds it as a dependence.
  **/
-u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/);
+u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=INVALID_GUID*/);
+
+u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=INVALID_GUID*/, int slot /*=0*/);
 
 /**
    @}

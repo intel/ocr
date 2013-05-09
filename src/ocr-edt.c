@@ -51,13 +51,16 @@ u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     return 0;
 }
 
-//TODO add slot to events
-u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
-    //TODO shall we check for eventGuid being NULL_GUID ?
+u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/, int slot) {
+    assert(eventGuid != NULL_GUID);
     ocr_event_t * event = NULL;
     globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
-    event->fct_ptrs->satisfy(event, dataGuid, 0);
+    event->fct_ptrs->satisfy(event, dataGuid, slot);
     return 0;
+}
+
+u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
+    return ocrEventSatisfySlot(eventGuid, dataGuid, 0);
 }
 
 u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,

@@ -58,12 +58,21 @@ typedef struct hc_event_t {
     ocrEventTypes_t kind;
 } hc_event_t;
 
-typedef struct hc_event_single_t {
+typedef struct hc_event_awaitable_t {
     hc_event_t base;
     volatile reg_node_t * waiters;
     volatile reg_node_t * signalers;
     ocrGuid_t data;
+} hc_event_awaitable_t;
+
+typedef struct hc_event_single_t {
+    hc_event_awaitable_t base;
 } hc_event_single_t;
+
+typedef struct hc_event_latch_t {
+    hc_event_awaitable_t base;
+    volatile int counter;
+} hc_event_latch_t;
 
 typedef struct hc_event_finishlatch_t {
     hc_event_t base;
@@ -75,7 +84,7 @@ typedef struct hc_event_finishlatch_t {
     volatile int counter;
 } hc_event_finishlatch_t;
 
-struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool takesArg, ocr_event_fcts_t * event_fct_ptrs_sticky);
+struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool takesArg, ocr_event_fcts_t * event_fct_ptrs);
 void hc_event_destructor ( struct ocr_event_struct* base );
 
 /******************************************************/
