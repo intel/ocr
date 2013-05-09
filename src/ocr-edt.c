@@ -105,8 +105,9 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot) {
    @brief Get @ offset in the currently running edt's local storage
    Note: not visible from the ocr user interface
  **/
-ocrGuid_t ocrElsGet(u8 offset) {
-#ifdef HAVE_ELS_SUPPORT
+ocrGuid_t ocrElsUserGet(u8 offset) {
+    // User indexing start after runtime-reserved ELS slots
+    offset = ELS_RUNTIME_SIZE + offset;
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
     ocr_worker_t * worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
@@ -114,18 +115,15 @@ ocrGuid_t ocrElsGet(u8 offset) {
     ocr_task_t * edt = NULL;
     globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL);
     return edt->els[offset];
-#else
-    assert("OCR runtime has not been compiled with ELS support" && 0);
-    return NULL_GUID;
-#endif
 }
 
 /**
    @brief Set data @ offset in the currently running edt's local storage
    Note: not visible from the ocr user interface
  **/
-void ocrElsSet(u8 offset, ocrGuid_t data) {
-#ifdef HAVE_ELS_SUPPORT
+void ocrElsUserSet(u8 offset, ocrGuid_t data) {
+    // User indexing start after runtime-reserved ELS slots
+    offset = ELS_RUNTIME_SIZE + offset;
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
     ocr_worker_t * worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
@@ -133,7 +131,4 @@ void ocrElsSet(u8 offset, ocrGuid_t data) {
     ocr_task_t * edt = NULL;
     globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL);
     edt->els[offset] = data;
-#else
-    assert("OCR runtime has not been compiled with ELS support" && 0);
-#endif
 }

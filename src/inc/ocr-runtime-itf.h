@@ -44,13 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  \return NULL_GUID if there's no ELS support.
  *  \attention Must be call from within an edt code.
  **/
-ocrGuid_t ocrElsGet(u8 offset);
+ocrGuid_t ocrElsUserGet(u8 offset);
 
 /**
  *  @brief Set data @ offset in the currently running edt's local storage
  *  \remark no-op if there's no ELS support
  **/
-void ocrElsSet(u8 offset, ocrGuid_t data);
+void ocrElsUserSet(u8 offset, ocrGuid_t data);
 
 /**
  *  @brief Get the currently executing edt.

@@ -231,6 +231,12 @@ typedef struct ocr_task_fcts_struct_t {
     task_schedule_fct schedule;
 } ocr_task_fcts_t;
 
+
+// ELS runtime size is one to support finish-edt
+// ELS_USER_SIZE is defined by configure
+#define ELS_RUNTIME_SIZE 1
+#define ELS_SIZE (ELS_RUNTIME_SIZE + ELS_USER_SIZE)
+
 /*! \brief Abstract class to represent OCR tasks.
  *
  *  This class provides the interface for the underlying implementation to conform.
@@ -242,10 +248,7 @@ typedef struct ocr_task_struct_t {
     u64 * params;
     void ** paramv;
     ocrGuid_t outputEvent; // Event to notify when the EDT is done
-#ifdef HAVE_ELS_SUPPORT
-    // Defined by configure
     ocrGuid_t els[ELS_SIZE];
-#endif
     /*! \brief Holds function pointer to the task interface
      */
     ocr_task_fcts_t * fct_ptrs;

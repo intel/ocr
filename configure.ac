@@ -67,16 +67,17 @@ AS_IF([test "x$with_mpi" != xno],
 
 AC_ARG_ENABLE(els, 
     AS_HELP_STRING([--enable-els],
-    [enable edt local storage, takes storage size as argument]),
+    [enable user edt local storage, takes storage size as argument]),
     [with_els=$enableval], 
     [with_els=no;])
     
 # note: does not check els' argument is legal
 AS_IF([test "x$with_els" != xno],
       [ AC_MSG_NOTICE([ELS support size $with_els requested]) 
-        AC_DEFINE([HAVE_ELS_SUPPORT], [1], [Define if ELS support is required])
-        AC_DEFINE_UNQUOTED([ELS_SIZE], [$with_els], [Set ELS size]) ], 
-      [ AC_MSG_NOTICE([No ELS support requested]) ]) 
+        AC_DEFINE_UNQUOTED([ELS_USER_SIZE], [$with_els], [Set User-ELS size]) ], 
+      [ AC_MSG_NOTICE([No ELS support requested])
+        AC_DEFINE_UNQUOTED([ELS_USER_SIZE], [0], [Set User-ELS size])
+      ]) 
 
 # Check if we need to distribute runtime headers
 AM_CONDITIONAL([INCLUDE_RUNTIME_ITF_HEADERS], [test x$with_els != xno])
