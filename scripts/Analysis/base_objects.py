@@ -4,7 +4,6 @@ from itertools import chain
 from blist import sorteddict
 import logging
 
-
 class LamportProcessCreator(type):
     """Meta-class creating LamportProcess based on filters.
     This will create a dictionary of methods that can be called
@@ -103,21 +102,67 @@ class LamportProcess(object):
     guid = 0
     """GUID of the LamportProcess. This uniquely identifies it"""
     allMessages = 0
-    """All messages sent to this LamportProcess"""
+    """All messages sent to this LamportProcess (sorted by timestamp)"""
+    myLogger = 0
+    """Logger for this lamport process"""
+    cachedResponders = 0
+    """Caches the responders of this LamportProcess for types of messages already seen"""
 
     def __init__(self, guid):
         self.guid = guid
         self.allMessages = sorteddict()
+        self.myLogger = logging.getLogger('base.lamport-process')
+        self.cachedResponders = dict()
+
+    def __repr__(self):
+        return "LamportProcess(name=%r, guid=%r)" % (self.__class__.__name__, self.guid)
 
     def respondsTo(self, kind):
+        cachedValue = self.cachedResponders.get(kind, None)
+        if cachedValue is not None:
+            self.myLogger.info("%r: using cached value of respondsTo for kind %s: %d",
+                               self, kind, len(cachedValue))
+            return len(cachedValue) > 0
+        else:
+            # Figure out if we respond to this message and cache it
+            cachedValue = []
+            for base in self._tocall_respondsTo:
+                if base.respondsTo(self, kind):
+                    cachedValue.append(base)
+            self.myLogger.info("%r: built cached responders for kind %s: %d",
+                               self, kind, len(cachedValue))
+            self.cachedResponders[kind] = cachedValue
+            return len(cachedValue) > 0
 
     def notify(self, message):
+        val = self.allMessages.get(message.timestamp, [])
+        val.append(message)
+        self.myLogger.debug("%r: added message %r @ %d", self,
+                            message, message.timestamp)
+        self.allMessages[message.timestamp] = val
 
-    def dump(self, arg):
-        print "In top level print with arg %d" % (arg)
-        for base in self._tocall_dump:
-            base.dump(self, arg)
+        # Now call all responders to this message
+        val = self.cachedResponders.get(kind, None)
+        if val is not None:
+            self.myLogger.debug("%r: Going over cached bases", self)
+            for base in val:
+                base.notify(self, message)
+        else:
+            # Go over all of them, we do not update cachedResponders
+            self.myLogger.debug("%r: Going over all notify bases", self)
+            for base in self._tocall_notify:
+                base.notify(self, message)
 
+    def dump(self, **kwargs):
+        if len(self._tocall_dump):
+            for base in self._tocall_dump:
+                base.dump(self, **kwargs)
+        else:
+            # Dump all messages
+            print "--- Messages dump for %r ---" % (self)
+            for msgList in self.allMessages:
+                for msg in msgList:
+                    print "\t%r" % (msg)
 
 class Message(object):
     """Message class. Each line of the trace file will form a single message."""
@@ -152,11 +197,13 @@ class Message(object):
             if msgClass is not None:
                 cls.myLogger.debug("Found class %s for message", msgClass.__name__)
 
-                srcProcess = driver.getOrCreateProcessForGuid(int(res['src'], 16), int(res['srcType']))
-                destProcess = driver.getOrCreateProcessForGuid(int(res['dest'], 16), int(res['destType']))
+                srcProcess = driver.getOrCreateProcessForGuid(int(res['src'], 16),
+                                                              int(res['srcType']))
+                destProcess = driver.getOrCreateProcessForGuid(int(res['dest'], 16),
+                                                               int(res['destType']))
                 assert(srcProcess is not None and destProcess is not None)
 
-                cls.myLogger.debug("Message from %s to %s", repr(srcProcess), repr(destProcess))
+                cls.myLogger.debug("Message from %r to %r", srcProcess, destProcess)
 
                 return msgClass(srcProcess, destProcess, int(res['ts']), kind, res['data'])
             else:
@@ -188,31 +235,23 @@ class Message(object):
         self.timestamp = timestamp
         self.kind = kind
         self.data = data
+        self.myLogger = logging.getLogger('base.message')
+
+    def __repr__(self):
+        return "Message(src=%r, dest=%r, ts=%r)" % (self.srcProcess,
+                                                    self.destProcess,
+                                                    self.timestamp)
+
+    def transport(self):
+        """Actually send the message from source to destination.
+        Could be done in init but for now keeping separate
+        """
         if destProcess.respondsTo(kind):
+            self.myLogger.debug("Sending %r", self)
             destProcess.notify(self)
-
-class Filter(object):
-    """Base class of all filters. A filter processes """
-    def __init__(self, name):
-        self.name = name
-
-class TestFilter(object):
-    _privateVar = 5
-    publicVar = 7
-    def publicMethod(self, value):
-        print "Public var is %d and private var is %d" % (self.publicVar, TestFilter._privateVar)
-        self.publicVar += value
-
-    @classmethod
-    def _privateMethod(cls):
-        print "Calling private Method"
-
-    @classmethod
-    def dump(cls, instance, arg):
-        print "In TestFilter print with arg %d" % (arg)
-
-    def publicMethod2(self):
-        TestFilter._privateMethod()
+        else:
+            self.myLogger.info("Message %r was lost because the destination \
+does not respond to it")
 
 if __name__ == "main":
-    print "Hello, I was loaded as a main file for some reason"
+    assert(False) # Should not be loaded as the main file
