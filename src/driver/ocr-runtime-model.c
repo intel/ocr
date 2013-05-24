@@ -36,7 +36,7 @@
 #include "ocr-executor.h"
 #include "ocr-low-workers.h"
 #include "ocr-scheduler.h"
-#include "ocr-policy.h"
+#include "ocr-policy-domain.h"
 #include "ocr-runtime-model.h"
 #include "ocr-config.h"
 
@@ -808,7 +808,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
         ocrMemPlatform_t ** memories   = (ocrMemPlatform_t **) &(all_memories  [ idx * totalNumMemories                      ]);
 
         // Create an instance of the policy domain
-        policyDomains[idx] = newPolicy(model->model.kind,
+        policyDomains[idx] = newPolicyDomain(model->model.kind,
                                        per_policy_domain_total_nb_workpiles, per_policy_domain_total_nb_workers,
                                        per_policy_domain_total_nb_executors, per_policy_domain_total_nb_schedulers);
 

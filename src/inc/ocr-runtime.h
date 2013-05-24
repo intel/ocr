@@ -38,7 +38,7 @@
 #include "ocr-low-workers.h"
 #include "ocr-machine.h"
 #include "ocr-scheduler.h"
-#include "ocr-policy.h"
+#include "ocr-policy-domain.h"
 #include "ocr-task-event.h"
 #include "ocr-runtime-model.h"
 

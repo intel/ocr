@@ -42,7 +42,7 @@
 #include "ocr-executor.h"
 #include "ocr-low-workers.h"
 #include "ocr-scheduler.h"
-#include "ocr-policy.h"
+#include "ocr-policy-domain.h"
 #include "ocr-workpile.h"
 #include "ocr-guid.h"
 #include "ocr-sync.h"
@@ -55,7 +55,7 @@
 extern ocr_executor_kind ocr_executor_default_kind;
 extern ocr_worker_kind ocr_worker_default_kind;
 extern ocr_scheduler_kind ocr_scheduler_default_kind;
-extern ocr_policy_kind ocr_policy_default_kind;
+extern ocr_policy_domain_kind ocr_policy_default_kind;
 extern ocr_workpile_kind ocr_workpile_default_kind;
 extern ocrAllocatorKind ocrAllocatorDefaultKind;
 extern ocrMemPlatformKind ocrMemPlatformDefaultKind;
@@ -70,7 +70,7 @@ extern u32 ocr_config_default_nb_hardware_threads;
 extern ocr_executor_kind	ocr_executor_xe_kind;
 extern ocr_worker_kind		ocr_worker_xe_kind;
 extern ocr_scheduler_kind	ocr_scheduler_xe_kind;
-extern ocr_policy_kind		ocr_policy_xe_kind;
+extern ocr_policy_domain_kind		ocr_policy_xe_kind;
 extern ocr_workpile_kind	ocr_workpile_xe_kind;
 extern ocrAllocatorKind		ocrAllocatorXEKind;
 extern ocrMemPlatformKind		ocrMemPlatformXEKind;
@@ -82,8 +82,8 @@ extern ocrGuidProviderKind	ocrGuidProviderXEKind;
 extern ocr_executor_kind	ocr_executor_ce_kind;
 extern ocr_worker_kind		ocr_worker_ce_kind;
 extern ocr_scheduler_kind	ocr_scheduler_ce_kind;
-extern ocr_policy_kind		ocr_policy_ce_kind;
-extern ocr_policy_kind		ocr_policy_ce_mastered_kind;
+extern ocr_policy_domain_kind		ocr_policy_ce_kind;
+extern ocr_policy_domain_kind		ocr_policy_ce_mastered_kind;
 extern ocr_workpile_kind	ocr_workpile_ce_work_kind;
 extern ocr_workpile_kind	ocr_workpile_ce_message_kind;
 extern ocrAllocatorKind		ocrAllocatorCEKind;

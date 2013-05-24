@@ -30,7 +30,7 @@
 */
 
 #include "fsim.h"
-#include "ocr-policy.h"
+#include "ocr-policy-domain.h"
 
 void fsim_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
                                ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,

@@ -32,10 +32,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "ocr-policy.h"
+#include "ocr-policy-domain.h"
 #include "ocr-task-event.h"
 
-ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
+ocr_policy_domain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
                                 size_t nb_workpiles,
                                 size_t nb_workers,
                                 size_t nb_executors,

@@ -37,7 +37,7 @@
 #include "ocr-task-event.h"
 #include "ocr-guid.h"
 // TODO sagnak it feels as the policy exposure here should not have happened
-#include "ocr-policy.h"
+#include "ocr-policy-domain.h"
 
 void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
                    u16 flags, void* configuration) {

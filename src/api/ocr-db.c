@@ -35,7 +35,7 @@
 #include "ocr-datablock.h"
 #include "ocr-allocator.h"
 #include "ocr-low-workers.h"
-#include "ocr-policy.h"
+#include "ocr-policy-domain.h"
 #include "debug.h"
 #include "ocr-guid.h"
 #include <errno.h>

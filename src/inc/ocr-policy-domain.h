@@ -29,8 +29,8 @@
 
 */
 
-#ifndef OCR_POLICY_H_
-#define OCR_POLICY_H_
+#ifndef OCR_POLICY_DOMAIN_H_
+#define OCR_POLICY_DOMAIN_H_
 
 #include "ocr-types.h"
 #include "ocr-guid.h"
@@ -116,7 +116,7 @@ void ocr_policy_domain_destruct(ocr_policy_domain_t * policy);
 /* OCR POLICY DOMAIN KINDS AND CONSTRUCTORS           */
 /******************************************************/
 
-typedef enum ocr_policy_kind_enum {
+typedef enum ocr_policy_domain_kind_enum {
     OCR_POLICY_HC = 1,
     OCR_POLICY_XE = 2,
     OCR_POLICY_CE = 3,
@@ -124,9 +124,9 @@ typedef enum ocr_policy_kind_enum {
     OCR_PLACE_POLICY = 5,
     OCR_LEAF_PLACE_POLICY = 6,
     OCR_MASTERED_LEAF_PLACE_POLICY = 7
-} ocr_policy_kind;
+} ocr_policy_domain_kind;
 
-ocr_policy_domain_t * newPolicy(ocr_policy_kind policyType,
+ocr_policy_domain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
                                 size_t nb_workpiles,
                                 size_t nb_workers,
                                 size_t nb_executors,
@@ -148,4 +148,4 @@ ocrGuid_t policy_domain_extract_assert ( ocr_policy_domain_t * this, ocr_policy_
 void policy_domain_handOut_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
 void policy_domain_receive_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
 
-#endif /* OCR_POLICY_H_ */
+#endif /* OCR_POLICY_DOMAIN_H_ */

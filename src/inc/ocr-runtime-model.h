@@ -32,7 +32,7 @@
 #ifndef OCR_RUNTIME_MODEL_H_
 #define OCR_RUNTIME_MODEL_H_
 
-#include "ocr-policy.h"
+#include "ocr-policy-domain.h"
 
 /**
  * This is our base model for components we want instantiate
