@@ -527,7 +527,9 @@ hc_task_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** 
     ocr_task_t * newEdtBase = (ocr_task_t *) newEdt;
     // If we are creating a finish-edt
     if (hasProperty(properties, EDT_PROP_FINISH)) {
-        ocr_event_t * latch = eventConstructor(NULL, OCR_EVENT_FINISH_LATCH_T, false);
+        ocr_policy_domain_t* policy_domain = get_current_policy_domain();
+        ocr_event_factory * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
+        ocr_event_t * latch = eventConstructor(eventFactory, OCR_EVENT_FINISH_LATCH_T, false);
         hc_event_finishlatch_t * hcLatch = (hc_event_finishlatch_t *) latch;
         // Set the owner of the latch 
         hcLatch->ownerGuid = newEdtBase->guid;
