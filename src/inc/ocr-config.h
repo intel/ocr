@@ -40,7 +40,7 @@
 #define __OCR_CONFIG_H__
 
 #include "ocr-executor.h"
-#include "ocr-low-workers.h"
+#include "ocr-worker.h"
 #include "ocr-scheduler.h"
 #include "ocr-policy-domain.h"
 #include "ocr-workpile.h"

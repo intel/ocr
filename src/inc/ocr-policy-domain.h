@@ -36,7 +36,7 @@
 #include "ocr-guid.h"
 #include "ocr-scheduler.h"
 #include "ocr-executor.h"
-#include "ocr-low-workers.h"
+#include "ocr-worker.h"
 #include "ocr-allocator.h"
 #include "ocr-mem-platform.h"
 #include "ocr-datablock.h"

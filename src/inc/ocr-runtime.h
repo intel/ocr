@@ -35,7 +35,7 @@
 #include "ocr-guid.h"
 #include "ocr-utils.h"
 #include "ocr-executor.h"
-#include "ocr-low-workers.h"
+#include "ocr-worker.h"
 #include "ocr-machine.h"
 #include "ocr-scheduler.h"
 #include "ocr-policy-domain.h"

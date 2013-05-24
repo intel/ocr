@@ -32,7 +32,7 @@ include driver/Makefile.inc
 include edt/Makefile.inc
 include executor/Makefile.inc
 include guid/Makefile.inc
-include low-workers/Makefile.inc
+include worker/Makefile.inc
 include mem-platform/Makefile.inc
 include mem-target/Makefile.inc
 include machine/Makefile.inc

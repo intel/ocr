@@ -34,7 +34,7 @@
 
 #include "ocr-guid.h"
 #include "ocr-runtime-def.h"
-#include "ocr-low-workers.h"
+#include "ocr-worker.h"
 
 
 /******************************************************/

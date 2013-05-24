@@ -34,7 +34,7 @@
 
 #include "ocr-macros.h"
 #include "ocr-executor.h"
-#include "ocr-low-workers.h"
+#include "ocr-worker.h"
 #include "ocr-scheduler.h"
 #include "ocr-policy-domain.h"
 #include "ocr-runtime-model.h"

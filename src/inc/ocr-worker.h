@@ -29,8 +29,8 @@
 
 */
 
-#ifndef __OCR_LOW_WORKERS_H__
-#define __OCR_LOW_WORKERS_H__
+#ifndef __OCR_WORKER_H__
+#define __OCR_WORKER_H__
 
 #include "ocr-guid.h"
 #include "ocr-runtime-def.h"
@@ -156,4 +156,4 @@ ocrGuid_t hc_getCurrentEDT (ocr_worker_t * base);
 void hc_setCurrentEDT (ocr_worker_t * base, ocrGuid_t curr_edt_guid);
 void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocr_module_kind kind, size_t nb_instances, void ** ptr_instances);
 
-#endif /* __OCR_LOW_WORKERS_H__ */
+#endif /* __OCR_WORKER_H__ */

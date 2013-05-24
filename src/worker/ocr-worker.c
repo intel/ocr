@@ -34,7 +34,7 @@
 
 #include "ocr-types.h"
 #include "ocr-guid.h"
-#include "ocr-low-workers.h"
+#include "ocr-worker.h"
 
 extern ocr_worker_t * hc_worker_constructor();
 extern ocr_worker_t * xe_worker_constructor();
