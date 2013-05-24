@@ -33,8 +33,8 @@
 
 
 
-#ifndef __OCR_LOW_MEMORY_H__
-#define __OCR_LOW_MEMORY_H__
+#ifndef __OCR_MEM_PLATFORM_H__
+#define __OCR_MEM_PLATFORM_H__
 
 #include "ocr-types.h"
 #include "ocr-runtime-def.h"
@@ -48,8 +48,8 @@
  * underlying machine but this will change as support for distributed and/or NUMA
  * architecture comes online. The API may therefore evolve
  */
-typedef struct _ocrLowMemory_t {
-    ocr_module_t module; /**< Base "class" for ocrLowMemory */
+typedef struct _ocrMemPlatform_t {
+    ocr_module_t module; /**< Base "class" for ocrMemPlatform */
     /**
      * @brief Constructor equivalent
      *
@@ -61,14 +61,14 @@ typedef struct _ocrLowMemory_t {
      * @param self          Pointer to this low-memory provider
      * @param config        Optional configuration (not used)
      */
-    void (*create)(struct _ocrLowMemory_t* self, void* config);
+    void (*create)(struct _ocrMemPlatform_t* self, void* config);
 
     /**
      * @brief Destructor equivalent
      *
      * @param self          Pointer to this low-memory provider
      */
-    void (*destruct)(struct _ocrLowMemory_t* self);
+    void (*destruct)(struct _ocrMemPlatform_t* self);
 
     /**
      * @brief Allocates a chunk of memory for the higher-level
@@ -78,7 +78,7 @@ typedef struct _ocrLowMemory_t {
      * @param size          Size of the chunk to allocate
      * @return Pointer to the chunk of memory allocated
      */
-    void* (*allocate)(struct _ocrLowMemory_t* self, u64 size);
+    void* (*allocate)(struct _ocrMemPlatform_t* self, u64 size);
 
     /**
      * @brief Frees a chunk of memory previously allocated
@@ -87,15 +87,15 @@ typedef struct _ocrLowMemory_t {
      * @param self          Pointer to this low-memory provider
      * @param addr          Address to free
      */
-    void (*free)(struct _ocrLowMemory_t* self, void* addr);
-} ocrLowMemory_t;
+    void (*free)(struct _ocrMemPlatform_t* self, void* addr);
+} ocrMemPlatform_t;
 
-typedef enum _ocrLowMemoryKind {
-    OCR_LOWMEMORY_DEFAULT = 0,
-    OCR_LOWMEMORY_MALLOC = 1
-} ocrLowMemoryKind;
+typedef enum _ocrMemPlatformKind {
+    OCR_MEMPLATFORM_DEFAULT = 0,
+    OCR_MEMPLATFORM_MALLOC = 1
+} ocrMemPlatformKind;
 
-extern ocrLowMemoryKind ocrLowMemoryDefaultKind;
+extern ocrMemPlatformKind ocrMemPlatformDefaultKind;
 
 /**
  * @brief Allocate a new low-memory allocator of the type specified
@@ -106,6 +106,6 @@ extern ocrLowMemoryKind ocrLowMemoryDefaultKind;
  * @param type              Type of the low-memory allocator to return
  * @return A pointer to the meta-data for the low-memory allocator
  */
-ocrLowMemory_t* newLowMemory(ocrLowMemoryKind type);
+ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type);
 
-#endif /* __OCR_LOW_MEMORY_H__ */
+#endif /* __OCR_MEM_PLATFORM_H__ */

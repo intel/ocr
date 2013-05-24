@@ -35,7 +35,7 @@
 #define __OCR_ALLOCATOR_H__
 
 #include "ocr-types.h"
-#include "ocr-low-memory.h"
+#include "ocr-mem-platform.h"
 #include "ocr-runtime-def.h"
 
 /**

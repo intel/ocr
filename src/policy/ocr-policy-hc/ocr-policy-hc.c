@@ -36,7 +36,7 @@
 void hc_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
                              ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
                              ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
-                             ocrAllocator_t ** allocators, ocrLowMemory_t ** memories) {
+                             ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories) {
     policy->schedulers = schedulers;
     policy->workers = workers;
     policy->executors = executors;
@@ -318,7 +318,7 @@ void ocr_module_map_nothing_to_place (void * self_module, ocr_module_kind kind,
 void place_policy_domain_create (ocr_policy_domain_t * policy, void * configuration,
                                ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
                                ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
-                               ocrAllocator_t ** allocators, ocrLowMemory_t ** memories) {
+                               ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories) {
     policy->schedulers = NULL;
     policy->workers = NULL;
     policy->executors = NULL;

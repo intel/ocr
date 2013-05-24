@@ -993,7 +993,7 @@ void tlsfMap(void* self, ocr_module_kind kind, size_t nb_instance, void** ptr_in
     ASSERT(nb_instance == 1); // Currently only support one underlying memory
     ASSERT(rself->numMemories == 0 && rself->memories == NULL); // Called only once
     rself->numMemories = nb_instance;
-    rself->memories = (ocrLowMemory_t**)ptr_instances;
+    rself->memories = (ocrMemPlatform_t**)ptr_instances;
 
     // Do the allocation
     rself->addr = rself->poolAddr = (u64)(rself->memories[0]->allocate(

@@ -32,14 +32,14 @@
  **/
 
 #include "debug.h"
-#include "ocr-low-memory.h"
+#include "ocr-mem-platform.h"
 #include "malloc/malloc.h"
 
-ocrLowMemory_t* newLowMemory(ocrLowMemoryKind type) {
-    if(type == OCR_LOWMEMORY_DEFAULT) type = ocrLowMemoryDefaultKind;
+ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type) {
+    if(type == OCR_MEMPLATFORM_DEFAULT) type = ocrMemPlatformDefaultKind;
     switch(type) {
-    case OCR_LOWMEMORY_MALLOC:
-        return newLowMemoryMalloc();
+    case OCR_MEMPLATFORM_MALLOC:
+        return newMemPlatformMalloc();
         break;
     default:
         ASSERT(0);

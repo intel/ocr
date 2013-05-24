@@ -31,7 +31,7 @@ include driver/Makefile.inc
 include executor/Makefile.inc
 include guid/Makefile.inc
 include low-workers/Makefile.inc
-include low-memory/Makefile.inc
+include mem-platform/Makefile.inc
 include machine/Makefile.inc
 include policy/Makefile.inc
 include scheduler/Makefile.inc

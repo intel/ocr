@@ -38,32 +38,32 @@ void mallocMap(void* self, ocr_module_kind kind, size_t nb_instances, void** ptr
 }
 
 /* Methods used for this allocation method */
-void mallocCreate(ocrLowMemory_t *self, void* config) {
+void mallocCreate(ocrMemPlatform_t *self, void* config) {
     return; /* not much to do here */
 }
 
-void mallocDestruct(ocrLowMemory_t *self) {
+void mallocDestruct(ocrMemPlatform_t *self) {
     return; /* same as for create... not much to do here */
 }
 
-void* mallocAllocate(ocrLowMemory_t *self, u64 size) {
+void* mallocAllocate(ocrMemPlatform_t *self, u64 size) {
     return malloc(size);
 }
 
-void mallocFree(ocrLowMemory_t *self, void *addr) {
+void mallocFree(ocrMemPlatform_t *self, void *addr) {
     free(addr);
 }
 
-ocrLowMemory_t* newLowMemoryMalloc() {
+ocrMemPlatform_t* newMemPlatformMalloc() {
     // TODO: This will be replaced by the runtime/GUID meta-data allocator
     // For now, we cheat and use good-old malloc which is kind of counter productive with
     // all the trouble we are going through to *not* use malloc...
-    ocrLowMemoryMalloc_t *result = (ocrLowMemoryMalloc_t*)malloc(sizeof(ocrLowMemoryMalloc_t));
+    ocrMemPlatformMalloc_t *result = (ocrMemPlatformMalloc_t*)malloc(sizeof(ocrMemPlatformMalloc_t));
     result->base.create = &mallocCreate;
     result->base.destruct = &mallocDestruct;
     result->base.allocate = &mallocAllocate;
     result->base.free = &mallocFree;
     result->base.module.map_fct = &mallocMap;
 
-    return (ocrLowMemory_t*)result;
+    return (ocrMemPlatform_t*)result;
 }

@@ -38,7 +38,7 @@
 #include "ocr-executor.h"
 #include "ocr-low-workers.h"
 #include "ocr-allocator.h"
-#include "ocr-low-memory.h"
+#include "ocr-mem-platform.h"
 #include "ocr-datablock.h"
 #include "ocr-sync.h"
 #include "ocr-runtime-def.h"
@@ -55,7 +55,7 @@ struct ocr_policy_domain_struct;
 typedef void (*ocr_policy_create_fct) (struct ocr_policy_domain_struct * policy, void * configuration,
                                        ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
                                        ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
-                                       ocrAllocator_t ** allocators, ocrLowMemory_t ** memories);
+                                       ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories);
 typedef void (*ocr_policy_start_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_finish_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_stop_fct) (struct ocr_policy_domain_struct * policy);
@@ -77,7 +77,7 @@ typedef struct ocr_policy_domain_struct {
     ocr_executor_t ** executors;
     ocr_workpile_t ** workpiles;
     ocrAllocator_t ** allocators;
-    ocrLowMemory_t ** memories;
+    ocrMemPlatform_t ** memories;
 
     ocr_task_factory** taskFactories;
     ocr_event_factory** eventFactories;

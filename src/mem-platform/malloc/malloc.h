@@ -28,15 +28,15 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#ifndef __LOW_MEMORY_MALLOC_H__
-#define __LOW_MEMORY_MALLOC_H__
+#ifndef __MEM_PLATFORM_MALLOC_H__
+#define __MEM_PLATFORM_MALLOC_H__
 
 #include "ocr-types.h"
-#include "ocr-low-memory.h"
+#include "ocr-mem-platform.h"
 
-typedef struct _ocrLowMemoryMalloc_t {
-    ocrLowMemory_t base;
-} ocrLowMemoryMalloc_t;
+typedef struct _ocrMemPlatformMalloc_t {
+    ocrMemPlatform_t base;
+} ocrMemPlatformMalloc_t;
 
-ocrLowMemory_t* newLowMemoryMalloc();
-#endif /* __LOW_MEMORY_MALLOC_H__ */
+ocrMemPlatform_t* newMemPlatformMalloc();
+#endif /* __MEM_PLATFORM_MALLOC_H__ */
