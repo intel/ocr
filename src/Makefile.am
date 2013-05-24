@@ -26,6 +26,7 @@ noinst_LTLIBRARIES =
 libocr_la_LIBADD =
 
 include allocator/Makefile.inc
+include api/Makefile.inc
 include datablock/Makefile.inc
 include driver/Makefile.inc
 include executor/Makefile.inc
@@ -41,7 +42,7 @@ include workpile/Makefile.inc
 include statistics/Makefile.inc
 
 # build the ocr runtime library
-libocr_la_SOURCES = ocr-runtime.c ocr-edt.c ocr-db.c
+libocr_la_SOURCES =
 libocr_la_CFLAGS = $(AM_CFLAGS)
 
 MAINTAINERCLEANFILES = Makefile.in
