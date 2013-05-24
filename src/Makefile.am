@@ -29,6 +29,7 @@ include allocator/Makefile.inc
 include api/Makefile.inc
 include datablock/Makefile.inc
 include driver/Makefile.inc
+include edt/Makefile.inc
 include executor/Makefile.inc
 include guid/Makefile.inc
 include low-workers/Makefile.inc
