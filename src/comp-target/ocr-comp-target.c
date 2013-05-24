@@ -33,21 +33,21 @@
 #include <stdlib.h>
 
 #include "ocr-types.h"
-#include "ocr-executor.h"
+#include "ocr-comp-target.h"
 
-ocr_executor_t * newExecutor(ocr_executor_kind executorType) {
-    switch(executorType) {
+ocr_comp_target_t * newCompTarget(ocr_comp_target_kind compTargetType) {
+    switch(compTargetType) {
         //TODO this could be transformed as iterating over some
         //array and return an instance to minimize code to be added
-    case OCR_EXECUTOR_PTHREAD:
-        return ocr_executor_pthread_constructor();
-    case OCR_EXECUTOR_XE:
-    case OCR_EXECUTOR_CE:
-    case OCR_EXECUTOR_HC:
-        return ocr_executor_hc_constructor();
+    case OCR_COMP_TARGET_XE:
+    case OCR_COMP_TARGET_CE:
+    case OCR_COMP_TARGET_HC:
+        return ocr_comp_target_hc_constructor();
     default:
-        assert(false && "Unrecognized executor kind");
+        assert(false && "Unrecognized comp-target kind");
         break;
     }
     return NULL;
 }
+
+

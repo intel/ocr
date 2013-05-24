@@ -35,7 +35,7 @@
 #include "ocr-types.h"
 #include "ocr-guid.h"
 #include "ocr-scheduler.h"
-#include "ocr-executor.h"
+#include "ocr-comp-target.h"
 #include "ocr-worker.h"
 #include "ocr-allocator.h"
 #include "ocr-mem-platform.h"
@@ -54,7 +54,7 @@ struct ocr_policy_domain_struct;
 
 typedef void (*ocr_policy_create_fct) (struct ocr_policy_domain_struct * policy, void * configuration,
                                        ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
-                                       ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
+                                       ocr_comp_target_t ** compTargets, ocr_workpile_t ** workpiles,
                                        ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories);
 typedef void (*ocr_policy_start_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_finish_fct) (struct ocr_policy_domain_struct * policy);
@@ -67,14 +67,14 @@ typedef struct ocr_policy_domain_struct {
     ocrGuid_t guid;
     int nb_schedulers;
     int nb_workers;
-    int nb_executors;
+    int nb_comp_targets;
     int nb_workpiles;
     int nb_allocators;
     int nb_memories;
 
     ocr_scheduler_t ** schedulers;
     ocr_worker_t ** workers;
-    ocr_executor_t ** executors;
+    ocr_comp_target_t ** compTargets;
     ocr_workpile_t ** workpiles;
     ocrAllocator_t ** allocators;
     ocrMemPlatform_t ** memories;
@@ -129,7 +129,7 @@ typedef enum ocr_policy_domain_kind_enum {
 ocr_policy_domain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
                                 size_t nb_workpiles,
                                 size_t nb_workers,
-                                size_t nb_executors,
+                                size_t nb_comp_targets,
                                 size_t nb_scheduler);
 
 ocr_policy_domain_t * hc_policy_domain_constructor();

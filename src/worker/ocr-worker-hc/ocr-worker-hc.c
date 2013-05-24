@@ -150,7 +150,7 @@ ocrGuid_t get_worker_guid(ocr_worker_t * worker) {
 void * worker_computation_routine(void * arg) {
     ocr_worker_t * worker = (ocr_worker_t *) arg;
     /* associate current thread with the worker */
-    associate_executor_and_worker(worker);
+    associate_comp_platform_and_worker(worker);
     ocrGuid_t workerGuid = get_worker_guid(worker);
     ocr_scheduler_t * scheduler = get_worker_scheduler(worker);
     log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(worker));

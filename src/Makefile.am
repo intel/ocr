@@ -27,10 +27,11 @@ libocr_la_LIBADD =
 
 include allocator/Makefile.inc
 include api/Makefile.inc
+include comp-platform/Makefile.inc
+include comp-target/Makefile.inc
 include datablock/Makefile.inc
 include driver/Makefile.inc
 include edt/Makefile.inc
-include executor/Makefile.inc
 include guid/Makefile.inc
 include worker/Makefile.inc
 include mem-platform/Makefile.inc

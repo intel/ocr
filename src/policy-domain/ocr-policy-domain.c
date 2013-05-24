@@ -38,30 +38,30 @@
 ocr_policy_domain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
                                 size_t nb_workpiles,
                                 size_t nb_workers,
-                                size_t nb_executors,
+                                size_t nb_comp_targets,
                                 size_t nb_schedulers) {
     switch(policyType) {
     case OCR_POLICY_HC:
         return hc_policy_domain_constructor(nb_workpiles, nb_workers,
-                                            nb_executors, nb_schedulers);
+                                            nb_comp_targets, nb_schedulers);
 /* sagnak begin */
     case OCR_POLICY_XE:
         return xe_policy_domain_constructor(nb_workpiles, nb_workers,
-                                            nb_executors, nb_schedulers);
+                                            nb_comp_targets, nb_schedulers);
     case OCR_POLICY_CE:
         return ce_policy_domain_constructor(nb_workpiles, nb_workers,
-                                            nb_executors, nb_schedulers);
+                                            nb_comp_targets, nb_schedulers);
     case OCR_POLICY_MASTERED_CE:
         return ce_mastered_policy_domain_constructor(nb_workpiles, nb_workers,
-                                                     nb_executors, nb_schedulers);
+                                                     nb_comp_targets, nb_schedulers);
     case OCR_PLACE_POLICY:
         return place_policy_domain_constructor();
     case OCR_LEAF_PLACE_POLICY:
         return leaf_place_policy_domain_constructor(nb_workpiles, nb_workers,
-                                                    nb_executors, nb_schedulers);
+                                                    nb_comp_targets, nb_schedulers);
     case OCR_MASTERED_LEAF_PLACE_POLICY:
         return mastered_leaf_place_policy_domain_constructor(nb_workpiles, nb_workers,
-                                                             nb_executors, nb_schedulers);
+                                                             nb_comp_targets, nb_schedulers);
 /* sagnak end*/
     default:
         assert(false && "Unrecognized policy domain kind");
@@ -77,10 +77,10 @@ void ocr_policy_domain_destruct(ocr_policy_domain_t * policy) {
     }
     free(policy->workers);
 
-    for(i = 0; i < policy->nb_executors; i++) {
-        policy->executors[i]->destruct(policy->executors[i]);
+    for(i = 0; i < policy->nb_comp_targets; i++) {
+        policy->compTargets[i]->destruct(policy->compTargets[i]);
     }
-    free(policy->executors);
+    free(policy->compTargets);
 
     for(i = 0; i < policy->nb_workpiles; i++) {
         policy->workpiles[i]->destruct(policy->workpiles[i]);

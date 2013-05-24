@@ -33,7 +33,7 @@
 #include <assert.h>
 
 #include "ocr-macros.h"
-#include "ocr-executor.h"
+#include "ocr-comp-target.h"
 #include "ocr-worker.h"
 #include "ocr-scheduler.h"
 #include "ocr-policy-domain.h"
@@ -80,7 +80,7 @@ static void map_modules_one_to_many(ocr_module_kind from, ocr_module_kind to,
 /**!
  * One-to-one mapping function.
  * Maps each instance of kind 'from' to each instance of kind 'to' one to one.
- * ex: maps each executor to each worker in a one-one fashion.
+ * ex: maps each comp-target to each worker in a one-one fashion.
  */
 static void map_modules_one_to_one(ocr_module_kind from, ocr_module_kind to,
                                    size_t nb_instances_from,
@@ -172,10 +172,10 @@ ocr_model_t* newModel ( int kind, int nInstances, void * per_type_configuration,
 
 /**
  * Default policy has one scheduler and a configurable
- * number of workers, executors and workpiles
+ * number of workers, comp-targets and workpiles
  */
 ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_schedulers,
-                                           size_t nb_workers, size_t nb_executors, size_t nb_workpiles) {
+                                           size_t nb_workers, size_t nb_comp_targets, size_t nb_workpiles) {
 
     // Default policy
     ocr_model_policy_t * defaultPolicy =
@@ -187,7 +187,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
 
     defaultPolicy->nb_scheduler_types = 1;
     defaultPolicy->nb_worker_types = 1;
-    defaultPolicy->nb_executor_types = 1;
+    defaultPolicy->nb_comp_target_types = 1;
     defaultPolicy->nb_workpile_types = 1;
     defaultPolicy->numMemTypes = 1;
     defaultPolicy->numAllocTypes = 1;
@@ -224,7 +224,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
     }
 
     defaultPolicy->schedulers = newModel( ocr_scheduler_default_kind, nb_schedulers, NULL, scheduler_configurations );
-    defaultPolicy->executors  = newModel( ocr_executor_default_kind, nb_executors, NULL, NULL );
+    defaultPolicy->compTargets  = newModel( ocr_comp_target_default_kind, nb_comp_targets, NULL, NULL );
     defaultPolicy->workpiles  = newModel( ocr_workpile_default_kind, nb_workpiles, NULL, NULL );
     defaultPolicy->memories   = newModel( OCR_MEMPLATFORM_DEFAULT, 1, NULL, NULL );
     defaultPolicy->workers    = newModel( ocr_worker_default_kind, nb_workers, NULL, worker_configurations);
@@ -238,7 +238,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
     //       and set in the targeted implementation (see ocr_scheduler_hc implementation for reference).
     //       These just make sure the mapping functions you have defined are called
     defaultMapping[0] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_WORKPILE, OCR_SCHEDULER);
-    defaultMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_EXECUTOR);
+    defaultMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_COMP_TARGET);
     defaultMapping[2] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_SCHEDULER, OCR_WORKER);
     defaultMapping[3] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_MEMORY, OCR_ALLOCATOR);
     defaultMapping[4] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_SCHEDULER, OCR_POLICY);
@@ -252,7 +252,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
  * FSIM XE policy domain has:
  * one XE scheduler for all XEs
  * one worker for each XEs
- * one executor for each XEs
+ * one comp-target for each XEs
  * two workpile for each XEs, one for real work, one for CE messages
  * one memory for all XEs
  * one allocator for all XEs
@@ -264,7 +264,7 @@ ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_s
 ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE ) {
     size_t nb_per_xe_schedulers = 1;
     size_t nb_per_xe_workers = 1;
-    size_t nb_per_xe_executors = 1;
+    size_t nb_per_xe_comp_targets = 1;
     size_t nb_per_xe_workpiles = 2;
     size_t nb_per_xe_memories = 1;
     size_t nb_per_xe_allocators = 1;
@@ -280,7 +280,7 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
 
     xePolicyModel->nb_scheduler_types = 1;
     xePolicyModel->nb_worker_types = 1;
-    xePolicyModel->nb_executor_types = 1;
+    xePolicyModel->nb_comp_target_types = 1;
     xePolicyModel->nb_workpile_types = 1;
     xePolicyModel->numMemTypes = 1;
     xePolicyModel->numAllocTypes = 1;
@@ -323,7 +323,7 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
 
     xePolicyModel->schedulers = newModel ( ocr_scheduler_xe_kind, nb_per_xe_schedulers, NULL, scheduler_configurations );
     xePolicyModel->workers    = newModel ( ocr_worker_xe_kind, nb_per_xe_workers, NULL, worker_configurations );
-    xePolicyModel->executors  = newModel ( ocr_executor_xe_kind, nb_per_xe_executors, NULL, NULL );
+    xePolicyModel->compTargets  = newModel ( ocr_comp_target_xe_kind, nb_per_xe_comp_targets, NULL, NULL );
     xePolicyModel->workpiles  = newModel ( ocr_workpile_xe_kind, nb_per_xe_workpiles, NULL, NULL );
     xePolicyModel->memories   = newModel ( ocrMemPlatformXEKind, nb_per_xe_memories, NULL, NULL );
 
@@ -344,7 +344,7 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
     //       and set in the targeted implementation (see ocr_scheduler_hc implementation for reference).
     //       These just make sure the mapping functions you have defined are called
     xeMapping[0] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_WORKPILE, OCR_SCHEDULER);
-    xeMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_EXECUTOR);
+    xeMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_COMP_TARGET);
     xeMapping[2] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_SCHEDULER, OCR_WORKER);
     xeMapping[3] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_MEMORY, OCR_ALLOCATOR);
     xeMapping[4] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_SCHEDULER, OCR_POLICY);
@@ -357,25 +357,25 @@ ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE
  * FSIM CE policy domains has:
  * one CE scheduler for all CEs
  * one worker for each CEs
- * one executor for each CEs
+ * one comp-target for each CEs
  * two workpile for each CEs, one for real work, one for XE messages
  * one memory for all CEs
  * one allocator for all CEs
  */
 
 void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
-    size_t nb_ce_executors = 1;
+    size_t nb_ce_comp_targets = 1;
     size_t nb_ce_memories = 1;
     size_t nb_ce_allocators = 1;
 
     cePolicyModel->nb_scheduler_types = 1;
     cePolicyModel->nb_worker_types = 1;
-    cePolicyModel->nb_executor_types = 1;
+    cePolicyModel->nb_comp_target_types = 1;
     cePolicyModel->nb_workpile_types = 2;
     cePolicyModel->numMemTypes = 1;
     cePolicyModel->numAllocTypes = 1;
 
-    cePolicyModel->executors = newModel ( ocr_executor_ce_kind, nb_ce_executors, NULL, NULL );
+    cePolicyModel->compTargets = newModel ( ocr_comp_target_ce_kind, nb_ce_comp_targets, NULL, NULL );
     cePolicyModel->memories  = newModel ( ocrMemPlatformCEKind, nb_ce_memories, NULL, NULL );
 
     // CE workpile
@@ -401,7 +401,7 @@ void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
     //       and set in the targeted implementation (see ocr_scheduler_hc implementation for reference).
     //       These just make sure the mapping functions you have defined are called
     ceMapping[0] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_WORKPILE, OCR_SCHEDULER);
-    ceMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_EXECUTOR);
+    ceMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_COMP_TARGET);
     ceMapping[2] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_SCHEDULER, OCR_WORKER);
     ceMapping[3] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_MEMORY, OCR_ALLOCATOR);
     ceMapping[4] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_SCHEDULER, OCR_POLICY);
@@ -492,7 +492,7 @@ ocr_model_policy_t * createEmptyModelPolicyHelper ( size_t nPlaces ) {
     policyModel->model.per_instance_configuration = NULL;
     policyModel->nb_scheduler_types = 0;
     policyModel->nb_worker_types    = 0;
-    policyModel->nb_executor_types  = 0;
+    policyModel->nb_comp_target_types  = 0;
     policyModel->nb_workpile_types  = 0;
     policyModel->numMemTypes = 0;
     policyModel->numAllocTypes = 0;
@@ -500,7 +500,7 @@ ocr_model_policy_t * createEmptyModelPolicyHelper ( size_t nPlaces ) {
 
     policyModel->schedulers = NULL;
     policyModel->workers = NULL;
-    policyModel->executors = NULL;
+    policyModel->compTargets = NULL;
     policyModel->workpiles = NULL;
     policyModel->memories = NULL;
     policyModel->allocators = NULL;
@@ -526,7 +526,7 @@ ocr_model_policy_t * createThorL1ModelPolicies ( size_t n_L1s ) {
 }
 void createThorWorkerModelPoliciesHelper ( ocr_model_policy_t * leafPolicyModel, size_t nb_policy_domains, size_t nb_workers, size_t worker_offset ) {
     int nb_schedulers = 1;
-    int nb_executors = 1;
+    int nb_comp_targets = 1;
     int nb_workpiles = 1;
 
     leafPolicyModel->model.nb_instances = nb_policy_domains;
@@ -535,7 +535,7 @@ void createThorWorkerModelPoliciesHelper ( ocr_model_policy_t * leafPolicyModel,
 
     leafPolicyModel->nb_scheduler_types = 1;
     leafPolicyModel->nb_worker_types = 1;
-    leafPolicyModel->nb_executor_types = 1;
+    leafPolicyModel->nb_comp_target_types = 1;
     leafPolicyModel->nb_workpile_types = 1;
     leafPolicyModel->numMemTypes = 1;
     leafPolicyModel->numAllocTypes = 1;
@@ -561,11 +561,11 @@ void createThorWorkerModelPoliciesHelper ( ocr_model_policy_t * leafPolicyModel,
     }
 
     leafPolicyModel->schedulers = newModel( OCR_PLACED_SCHEDULER, nb_schedulers, NULL, scheduler_configurations );
-    leafPolicyModel->executors  = newModel( ocr_executor_default_kind, nb_executors, NULL, NULL );
+    leafPolicyModel->compTargets  = newModel( ocr_comp_target_default_kind, nb_comp_targets, NULL, NULL );
     leafPolicyModel->workpiles  = newModel( ocr_workpile_default_kind, nb_workpiles, NULL, NULL );
     leafPolicyModel->memories   = newModel( OCR_MEMPLATFORM_DEFAULT, 1, NULL, NULL );
 
-    // Defines how ocr modules are bound together
+    // Defines how ocr modules are bound togethere
     size_t nb_module_mappings = 5;
     ocr_module_mapping_t * defaultMapping =
         (ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
@@ -573,7 +573,7 @@ void createThorWorkerModelPoliciesHelper ( ocr_model_policy_t * leafPolicyModel,
     //       and set in the targeted implementation (see ocr_scheduler_hc implementation for reference).
     //       These just make sure the mapping functions you have defined are called
     defaultMapping[0] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_WORKPILE, OCR_SCHEDULER);
-    defaultMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_EXECUTOR);
+    defaultMapping[1] = build_ocr_module_mapping(ONE_TO_ONE_MAPPING, OCR_WORKER, OCR_COMP_TARGET);
     defaultMapping[2] = build_ocr_module_mapping(ONE_TO_MANY_MAPPING, OCR_SCHEDULER, OCR_WORKER);
     defaultMapping[3] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_MEMORY, OCR_ALLOCATOR);
     defaultMapping[4] = build_ocr_module_mapping(MANY_TO_ONE_MAPPING, OCR_SCHEDULER, OCR_POLICY);
@@ -624,8 +624,8 @@ void destructOcrModelPolicy(ocr_model_policy_t * model) {
     if (model->workers != NULL) {
         free(model->workers);
     }
-    if (model->executors != NULL) {
-        free(model->executors);
+    if (model->compTargets != NULL) {
+        free(model->compTargets);
     }
     if (model->workpiles != NULL) {
         free(model->workpiles);
@@ -692,7 +692,7 @@ static  void create_configure_all_workers ( ocr_worker_t** all_workers, int n_po
     }
 }
 
-static  void create_configure_all_executors ( ocr_executor_t ** all_executors, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
+static  void create_configure_all_comp_targets ( ocr_comp_target_t ** all_comp_targets, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
     size_t idx = 0, index_policy_domain = 0;
     for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
         size_t type = 0, instance = 0;
@@ -701,8 +701,8 @@ static  void create_configure_all_executors ( ocr_executor_t ** all_executors, i
             ocr_model_t curr_component_model = components[type];
             for ( instance = 0; instance < curr_component_model.nb_instances; ++instance, ++idx ) {
                 // Call the factory method based on the model's type kind.
-                all_executors[idx] = newExecutor(curr_component_model.kind);
-                all_executors[idx]->create(all_executors[idx], curr_component_model.per_type_configuration);
+                all_comp_targets[idx] = newCompTarget(curr_component_model.kind);
+                all_comp_targets[idx]->create(all_comp_targets[idx], curr_component_model.per_type_configuration);
             }
         }
     }
@@ -745,10 +745,10 @@ static  void create_configure_all_memories ( ocrMemPlatform_t ** all_memories, i
  */
 ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
 
-    // Compute total number of workers, executors and workpiles, allocators and memories
+    // Compute total number of workers, comp-targets and workpiles, allocators and memories
     int per_policy_domain_total_nb_schedulers = 0;
     int per_policy_domain_total_nb_workers = 0;
-    int per_policy_domain_total_nb_executors = 0;
+    int per_policy_domain_total_nb_comp_targets = 0;
     int per_policy_domain_total_nb_workpiles = 0;
     u64 totalNumMemories = 0;
     u64 totalNumAllocators = 0;
@@ -759,8 +759,8 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
     for ( j = 0; j < model->nb_worker_types; ++j ) {
         per_policy_domain_total_nb_workers += model->workers[j].nb_instances;
     }
-    for ( j = 0; j < model->nb_executor_types; ++j ) {
-        per_policy_domain_total_nb_executors += model->executors[j].nb_instances;
+    for ( j = 0; j < model->nb_comp_target_types; ++j ) {
+        per_policy_domain_total_nb_comp_targets += model->compTargets[j].nb_instances;
     }
     for ( j = 0; j < model->nb_workpile_types; ++j ) {
         per_policy_domain_total_nb_workpiles += model->workpiles[j].nb_instances;
@@ -779,7 +779,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
     // Components instances are grouped into one big chunk of memory
     ocr_scheduler_t** all_schedulers = (ocr_scheduler_t**) checked_malloc(all_schedulers, sizeof(ocr_scheduler_t*) * per_policy_domain_total_nb_schedulers * n_policy_domains );
     ocr_worker_t   ** all_workers    = (ocr_worker_t   **) checked_malloc(all_workers, sizeof(ocr_worker_t   *) * per_policy_domain_total_nb_workers    * n_policy_domains );
-    ocr_executor_t ** all_executors  = (ocr_executor_t **) checked_malloc(all_executors, sizeof(ocr_executor_t *) * per_policy_domain_total_nb_executors  * n_policy_domains );
+    ocr_comp_target_t ** all_comp_targets  = (ocr_comp_target_t **) checked_malloc(all_comp_targets, sizeof(ocr_comp_target_t *) * per_policy_domain_total_nb_comp_targets  * n_policy_domains );
     ocr_workpile_t ** all_workpiles  = (ocr_workpile_t **) checked_malloc(all_workpiles, sizeof(ocr_workpile_t *) * per_policy_domain_total_nb_workpiles  * n_policy_domains );
     ocrAllocator_t ** all_allocators = (ocrAllocator_t **) checked_malloc(all_allocators, sizeof(ocrAllocator_t *) * totalNumAllocators * n_policy_domains );
     ocrMemPlatform_t ** all_memories   = (ocrMemPlatform_t **) checked_malloc(all_memories, sizeof(ocrMemPlatform_t *) * totalNumMemories * n_policy_domains );
@@ -791,7 +791,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
 
     create_configure_all_schedulers ( all_schedulers, n_policy_domains, model->nb_scheduler_types, model->schedulers);
     create_configure_all_workers    ( all_workers   , n_policy_domains, model->nb_worker_types, model->workers );
-    create_configure_all_executors  ( all_executors , n_policy_domains, model->nb_executor_types, model->executors);
+    create_configure_all_comp_targets  ( all_comp_targets , n_policy_domains, model->nb_comp_target_types, model->compTargets);
     create_configure_all_workpiles  ( all_workpiles , n_policy_domains, model->nb_workpile_types, model->workpiles);
     create_configure_all_allocators ( all_allocators, n_policy_domains, model->numAllocTypes, model->allocators);
     create_configure_all_memories   ( all_memories  , n_policy_domains, model->numMemTypes, model->memories);
@@ -802,7 +802,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
 
         ocr_scheduler_t** schedulers = (ocr_scheduler_t**) &(all_schedulers[ idx * per_policy_domain_total_nb_schedulers ]);
         ocr_worker_t   ** workers    = (ocr_worker_t   **) &(all_workers   [ idx * per_policy_domain_total_nb_workers    ]);
-        ocr_executor_t ** executors  = (ocr_executor_t **) &(all_executors [ idx * per_policy_domain_total_nb_executors  ]);
+        ocr_comp_target_t ** compTargets  = (ocr_comp_target_t **) &(all_comp_targets [ idx * per_policy_domain_total_nb_comp_targets  ]);
         ocr_workpile_t ** workpiles  = (ocr_workpile_t **) &(all_workpiles [ idx * per_policy_domain_total_nb_workpiles  ]);
         ocrAllocator_t ** allocators = (ocrAllocator_t **) &(all_allocators[ idx * totalNumAllocators                    ]);
         ocrMemPlatform_t ** memories   = (ocrMemPlatform_t **) &(all_memories  [ idx * totalNumMemories                      ]);
@@ -810,10 +810,10 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
         // Create an instance of the policy domain
         policyDomains[idx] = newPolicyDomain(model->model.kind,
                                        per_policy_domain_total_nb_workpiles, per_policy_domain_total_nb_workers,
-                                       per_policy_domain_total_nb_executors, per_policy_domain_total_nb_schedulers);
+                                       per_policy_domain_total_nb_comp_targets, per_policy_domain_total_nb_schedulers);
 
         policyDomains[idx]->create(policyDomains[idx], NULL, schedulers,
-                                   workers, executors, workpiles, allocators, memories);
+                                   workers, compTargets, workpiles, allocators, memories);
 
         // This is only needed because we want to be able to
         // write generic code to find instances' backing arrays
@@ -821,7 +821,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
         size_t nb_ocr_modules = 7;
         ocr_module_instance modules_kinds[nb_ocr_modules];
         modules_kinds[0] = (ocr_module_instance){.kind = OCR_WORKER,	.nb_instances = per_policy_domain_total_nb_workers,	.instances = (void **) workers};
-        modules_kinds[1] = (ocr_module_instance){.kind = OCR_EXECUTOR,	.nb_instances = per_policy_domain_total_nb_executors,	.instances = (void **) executors};
+        modules_kinds[1] = (ocr_module_instance){.kind = OCR_COMP_TARGET,	.nb_instances = per_policy_domain_total_nb_comp_targets,	.instances = (void **) compTargets};
         modules_kinds[2] = (ocr_module_instance){.kind = OCR_WORKPILE,	.nb_instances = per_policy_domain_total_nb_workpiles,	.instances = (void **) workpiles};
         modules_kinds[3] = (ocr_module_instance){.kind = OCR_SCHEDULER,	.nb_instances = per_policy_domain_total_nb_schedulers,	.instances = (void **) schedulers};
         modules_kinds[4] = (ocr_module_instance){.kind = OCR_ALLOCATOR,	.nb_instances = totalNumAllocators,	.instances = (void **) allocators};

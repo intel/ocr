@@ -53,14 +53,14 @@ typedef struct {
     ocr_model_t model;
     size_t nb_scheduler_types;
     size_t nb_worker_types;
-    size_t nb_executor_types;
+    size_t nb_comp_target_types;
     size_t nb_workpile_types;
     size_t nb_mappings;
     u64 numAllocTypes;
     u64 numMemTypes;
     ocr_model_t * schedulers;
     ocr_model_t * workers;
-    ocr_model_t * executors;
+    ocr_model_t * compTargets;
     ocr_model_t * workpiles;
     ocrAllocatorModel_t * allocators;
     ocr_model_t * memories;
@@ -69,7 +69,7 @@ typedef struct {
 
 ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domain,
                                            size_t nb_schedulers, size_t nb_workers,
-                                           size_t nb_executors, size_t nb_workpiles);
+                                           size_t nb_comp_targets, size_t nb_workpiles);
 
 
 ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XE_per_CEs );

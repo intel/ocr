@@ -34,11 +34,11 @@
 
 void fsim_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
                                ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
-                               ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
+                               ocr_comp_target_t ** compTargets, ocr_workpile_t ** workpiles,
                                ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories) {
     policy->schedulers = schedulers;
     policy->workers = workers;
-    policy->executors = executors;
+    policy->compTargets = compTargets;
     policy->workpiles = workpiles;
     policy->allocators = allocators;
     policy->memories = memories;
@@ -60,13 +60,13 @@ void xe_policy_domain_start(ocr_policy_domain_t * policy) {
     //          all data-structures have been initialized.
     size_t i = 0;
     size_t nb_workers = policy->nb_workers;
-    size_t nb_executors = policy->nb_executors;
+    size_t nb_comp_targets = policy->nb_comp_targets;
     for(i = 0; i < nb_workers; i++) {
         policy->workers[i]->start(policy->workers[i]);
 
     }
-    for(i = 0; i < nb_executors; i++) {
-        policy->executors[i]->start(policy->executors[i]);
+    for(i = 0; i < nb_comp_targets; i++) {
+        policy->compTargets[i]->start(policy->compTargets[i]);
     }
 }
 
@@ -77,13 +77,13 @@ void ce_policy_domain_start(ocr_policy_domain_t * policy) {
     //          all data-structures have been initialized.
     size_t i = 0;
     size_t nb_workers = policy->nb_workers;
-    size_t nb_executors = policy->nb_executors;
+    size_t nb_comp_targets = policy->nb_comp_targets;
     for(i = 0; i < nb_workers; i++) {
         policy->workers[i]->start(policy->workers[i]);
 
     }
-    for(i = 0; i < nb_executors; i++) {
-        policy->executors[i]->start(policy->executors[i]);
+    for(i = 0; i < nb_comp_targets; i++) {
+        policy->compTargets[i]->start(policy->compTargets[i]);
     }
 }
 
@@ -94,7 +94,7 @@ void ce_mastered_policy_domain_start(ocr_policy_domain_t * policy) {
     //          all data-structures have been initialized.
     size_t i = 0;
     size_t nb_workers = policy->nb_workers;
-    size_t nb_executors = policy->nb_executors;
+    size_t nb_comp_targets = policy->nb_comp_targets;
 
     // DIFFERENT FROM OTHER POLICY DOMAINS
     // Only start (N-1) workers as worker '0' is the current thread.
@@ -102,15 +102,15 @@ void ce_mastered_policy_domain_start(ocr_policy_domain_t * policy) {
         policy->workers[i]->start(policy->workers[i]);
     }
     // Only start (N-1) threads as thread '0' is the current thread.
-    for(i = 1; i < nb_executors; i++) {
-        policy->executors[i]->start(policy->executors[i]);
+    for(i = 1; i < nb_comp_targets; i++) {
+        policy->compTargets[i]->start(policy->compTargets[i]);
     }
 
     // Handle thread '0'
     policy->workers[0]->start(policy->workers[0]);
     // Need to associate thread and worker here, as current thread fall-through
     // in user code and may need to know which Worker it is associated to.
-    associate_executor_and_worker(policy->workers[0]);
+    associate_comp_platform_and_worker(policy->workers[0]);
 }
 
 void fsim_policy_domain_finish(ocr_policy_domain_t * policy) {
@@ -119,8 +119,8 @@ void fsim_policy_domain_finish(ocr_policy_domain_t * policy) {
         policy->workers[i]->stop(policy->workers[i]);
     }
 
-    for ( i = 0; i < policy->nb_executors; ++i) {
-        policy->executors[i]->stop(policy->executors[i]);
+    for ( i = 0; i < policy->nb_comp_targets; ++i) {
+        policy->compTargets[i]->stop(policy->compTargets[i]);
     }
 }
 
@@ -130,8 +130,8 @@ void fsim_mastered_policy_domain_finish(ocr_policy_domain_t * policy) {
         policy->workers[i]->stop(policy->workers[i]);
     }
 
-    for ( i = 1; i < policy->nb_executors; ++i) {
-        policy->executors[i]->stop(policy->executors[i]);
+    for ( i = 1; i < policy->nb_comp_targets; ++i) {
+        policy->compTargets[i]->stop(policy->compTargets[i]);
     }
 }
 
@@ -180,7 +180,7 @@ ocr_event_factory* fsim_policy_getEventFactoryForUserEvents(ocr_policy_domain_t 
 
 static inline void fsim_policy_domain_constructor_helper ( ocr_policy_domain_t * policy, size_t nb_workpiles,
                                                            size_t nb_workers,
-                                                           size_t nb_executors,
+                                                           size_t nb_comp_targets,
                                                            size_t nb_schedulers) {
     // Get a GUID
     policy->guid = UNINITIALIZED_GUID;
@@ -192,7 +192,7 @@ static inline void fsim_policy_domain_constructor_helper ( ocr_policy_domain_t *
     policy->nb_workpiles = nb_workpiles;
     policy->nb_workers = nb_workers;
     policy->nb_schedulers = nb_schedulers;
-    policy->nb_executors = nb_executors;
+    policy->nb_comp_targets = nb_comp_targets;
 
     policy->create = fsim_policy_domain_create;
     policy->destruct = fsim_policy_domain_destruct;
@@ -220,12 +220,12 @@ void ce_policy_domain_receive ( ocr_policy_domain_t * thisPolicy, ocrGuid_t give
 
 ocr_policy_domain_t * xe_policy_domain_constructor (size_t nb_workpiles,
                                                     size_t nb_workers,
-                                                    size_t nb_executors,
+                                                    size_t nb_comp_targets,
                                                     size_t nb_schedulers) {
 
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
 
-    fsim_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_executors, nb_schedulers);
+    fsim_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_comp_targets, nb_schedulers);
 
     policy->start = xe_policy_domain_start;
     policy->finish = fsim_policy_domain_finish;
@@ -239,12 +239,12 @@ ocr_policy_domain_t * xe_policy_domain_constructor (size_t nb_workpiles,
 
 ocr_policy_domain_t * ce_policy_domain_constructor (size_t nb_workpiles,
                                                     size_t nb_workers,
-                                                    size_t nb_executors,
+                                                    size_t nb_comp_targets,
                                                     size_t nb_schedulers) {
 
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
 
-    fsim_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_executors, nb_schedulers);
+    fsim_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_comp_targets, nb_schedulers);
 
     policy->start = ce_policy_domain_start;
     policy->finish = fsim_policy_domain_finish;
@@ -258,12 +258,12 @@ ocr_policy_domain_t * ce_policy_domain_constructor (size_t nb_workpiles,
 
 ocr_policy_domain_t * ce_mastered_policy_domain_constructor (size_t nb_workpiles,
                                                              size_t nb_workers,
-                                                             size_t nb_executors,
+                                                             size_t nb_comp_targets,
                                                              size_t nb_schedulers) {
 
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
 
-    fsim_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_executors, nb_schedulers);
+    fsim_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_comp_targets, nb_schedulers);
 
     policy->start = ce_mastered_policy_domain_start;
     policy->finish = fsim_mastered_policy_domain_finish;

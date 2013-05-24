@@ -108,11 +108,10 @@ ocrGuid_t get_worker_guid(ocr_worker_t * worker);
  */
 ocr_scheduler_t * get_worker_scheduler(ocr_worker_t * worker);
 
-/*! \brief Associate a worker to an executor.
+/*! \brief Associate a worker to a comp-platform.
  *  \param[in] worker
- *  An executor that calls this function should be
  */
-void associate_executor_and_worker(ocr_worker_t * worker);
+void associate_comp_platform_and_worker(ocr_worker_t * worker);
 
 /*! \brief Get current calling context Worker's GUID
  *  \return GUID for the Worker instance that is executing the code context this function is called in

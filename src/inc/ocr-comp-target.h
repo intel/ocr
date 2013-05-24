@@ -29,78 +29,66 @@
 
 */
 
-#ifndef __OCR_EXECUTOR_H__
-#define __OCR_EXECUTOR_H__
+#ifndef __OCR_COMP_TARGET_H__
+#define __OCR_COMP_TARGET_H__
 
 #include "ocr-guid.h"
 #include "ocr-runtime-def.h"
 #include "ocr-worker.h"
+#include "ocr-comp-platform.h"
 
 
 /******************************************************/
-/* OCR EXECUTOR INTERFACE                             */
+/* OCR COMP TARGET INTERFACE                          */
 /******************************************************/
 
 //Forward declaration
-struct ocr_executor_struct;
+struct ocr_comp_target_struct;
 
-typedef void * (*executor_routine)(void *);
+typedef void (*ocr_comp_target_create_fct) (struct ocr_comp_target_struct * base, void * configuration);
 
-typedef void (*ocr_executor_create_fct) (struct ocr_executor_struct * base, void * configuration);
-
-typedef void (*ocr_executor_destruct_fct) (struct ocr_executor_struct * base);
+typedef void (*ocr_comp_target_destruct_fct) (struct ocr_comp_target_struct * base);
 
 /*! \brief Starts a thread of execution with a function pointer and and argument for a given stack size
- *  \param[in]  routine A function that represents the computation this thread runs as it starts
- *  \param[in]  arg Argument to be passed to the routine mentioned above
- *  \param[in]  stack_size Size of stack allowed for this thread invocation
  *
  *  The signature of the interface restricts the routine that can be assigned to a thread as follows.
  *  The function, routine, should take a void pointer, arg, as an argument and return a void pointer
  */
-typedef void (*ocr_executor_start_fct) (struct ocr_executor_struct * base);
+typedef void (*ocr_comp_target_start_fct) (struct ocr_comp_target_struct * base);
 
-/*! \brief Stops this thread of execution
+/*! \brief Stops this comp-target
  */
-typedef void (*ocr_executor_stop_fct) (struct ocr_executor_struct * base);
+typedef void (*ocr_comp_target_stop_fct) (struct ocr_comp_target_struct * base);
 
-/*! \brief Abstract class to represent OCR thread of execution.
+/*! \brief Abstract class to represent OCR comp-target
  *
  *  This class provides the interface for the underlying implementation to conform.
- *  Currently, we allow threads to be started and stopped
+ *  Currently, we allow comp-target to be started and stopped
  */
-typedef struct ocr_executor_struct {
+typedef struct ocr_comp_target_struct {
     ocr_module_t module;
-
-    void * (*routine)(void *);
-    void * routine_arg;
-
-    ocr_executor_create_fct create;
-    ocr_executor_destruct_fct destruct;
-    ocr_executor_start_fct start;
-    ocr_executor_stop_fct stop;
-} ocr_executor_t;
-
-//TODO this is really ocr-hc specific
-void associate_executor_and_worker(ocr_worker_t * worker);
+    ocr_comp_platform_t * platform;
+    ocr_comp_target_create_fct create;
+    ocr_comp_target_destruct_fct destruct;
+    ocr_comp_target_start_fct start;
+    ocr_comp_target_stop_fct stop;
+} ocr_comp_target_t;
 
 ocrGuid_t ocr_get_current_worker_guid();
 
 
 /******************************************************/
-/* OCR EXECUTOR KINDS AND CONSTRUCTORS                */
+/* OCR COMP TARGET KINDS AND CONSTRUCTORS             */
 /******************************************************/
 
-typedef enum ocr_executor_kind_enum {
-    OCR_EXECUTOR_PTHREAD = 1,
-    OCR_EXECUTOR_HC = 2,
-    OCR_EXECUTOR_XE = 3,
-    OCR_EXECUTOR_CE = 4
-} ocr_executor_kind;
+typedef enum ocr_comp_target_kind_enum {
+    OCR_COMP_TARGET_HC = 1,
+    OCR_COMP_TARGET_XE = 2,
+    OCR_COMP_TARGET_CE = 3
+} ocr_comp_target_kind;
 
-ocr_executor_t * newExecutor(ocr_executor_kind executorType);
+ocr_comp_target_t * newCompTarget(ocr_comp_target_kind compTargetType);
 
-ocr_executor_t * ocr_executor_pthread_constructor(void);
-ocr_executor_t * ocr_executor_hc_constructor(void);
+ocr_comp_target_t * ocr_comp_target_hc_constructor(void);
 
-#endif /* __OCR_EXECUTOR_H__ */
+#endif /* __OCR_COMP_TARGET_H__ */

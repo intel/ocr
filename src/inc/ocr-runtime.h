@@ -34,7 +34,7 @@
 
 #include "ocr-guid.h"
 #include "ocr-utils.h"
-#include "ocr-executor.h"
+#include "ocr-comp-target.h"
 #include "ocr-worker.h"
 #include "ocr-machine.h"
 #include "ocr-scheduler.h"

@@ -18,6 +18,7 @@
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
@@ -35,11 +36,11 @@
 
 void hc_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
                              ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
-                             ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
+                             ocr_comp_target_t ** compTargets, ocr_workpile_t ** workpiles,
                              ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories) {
     policy->schedulers = schedulers;
     policy->workers = workers;
-    policy->executors = executors;
+    policy->compTargets = compTargets;
     policy->workpiles = workpiles;
     policy->allocators = allocators;
     policy->memories = memories;
@@ -57,21 +58,21 @@ void hc_policy_domain_start(ocr_policy_domain_t * policy) {
     //          all data-structures have been initialized.
     size_t i = 0;
     size_t nb_workers = policy->nb_workers;
-    size_t nb_executors = policy->nb_executors;
+    size_t nb_comp_targets = policy->nb_comp_targets;
     // Only start (N-1) workers as worker '0' is the current thread.
     for(i = 1; i < nb_workers; i++) {
         policy->workers[i]->start(policy->workers[i]);
 
     }
     // Only start (N-1) threads as thread '0' is the current thread.
-    for(i = 1; i < nb_executors; i++) {
-        policy->executors[i]->start(policy->executors[i]);
+    for(i = 1; i < nb_comp_targets; i++) {
+        policy->compTargets[i]->start(policy->compTargets[i]);
     }
     // Handle thread '0'
     policy->workers[0]->start(policy->workers[0]);
     // Need to associate thread and worker here, as current thread fall-through
     // in user code and may need to know which Worker it is associated to.
-    associate_executor_and_worker(policy->workers[0]);
+    associate_comp_platform_and_worker(policy->workers[0]);
 }
 
 void hc_policy_domain_finish(ocr_policy_domain_t * policy) {
@@ -91,8 +92,8 @@ void hc_policy_domain_stop(ocr_policy_domain_t * policy) {
 
     // Thread '0' joins the other (N-1) threads.
     size_t i;
-    for (i = 1; i < policy->nb_executors; i++) {
-        policy->executors[i]->stop(policy->executors[i]);
+    for (i = 1; i < policy->nb_comp_targets; i++) {
+        policy->compTargets[i]->stop(policy->compTargets[i]);
     }
 }
 
@@ -135,7 +136,7 @@ ocr_event_factory* hc_policy_getEventFactoryForUserEvents(ocr_policy_domain_t * 
 
 ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
                                                    size_t nb_workers,
-                                                   size_t nb_executors,
+                                                   size_t nb_comp_targets,
                                                    size_t nb_schedulers) {
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
     // Get a GUID
@@ -144,11 +145,9 @@ ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
 
     ocr_module_t * module_base = (ocr_module_t *) policy;
     module_base->map_fct = hc_ocr_module_map_schedulers_to_policy;
-
-    policy->nb_executors = nb_executors;
+    policy->nb_comp_targets = nb_comp_targets;
     policy->nb_workpiles = nb_workpiles;
     policy->nb_workers = nb_workers;
-    policy->nb_executors = nb_executors;
     policy->nb_schedulers = nb_schedulers;
     policy->create = hc_policy_domain_create;
     policy->start = hc_policy_domain_start;
@@ -179,13 +178,13 @@ void leaf_place_policy_domain_start (ocr_policy_domain_t * policy) {
     //          all data-structures have been initialized.
     size_t i = 0;
     size_t nb_workers = policy->nb_workers;
-    size_t nb_executors = policy->nb_executors;
+    size_t nb_comp_targets = policy->nb_comp_targets;
     for(i = 0; i < nb_workers; i++) {
         policy->workers[i]->start(policy->workers[i]);
 
     }
-    for(i = 0; i < nb_executors; i++) {
-        policy->executors[i]->start(policy->executors[i]);
+    for(i = 0; i < nb_comp_targets; i++) {
+        policy->compTargets[i]->start(policy->compTargets[i]);
     }
 }
 
@@ -201,27 +200,27 @@ void mastered_leaf_place_policy_domain_start (ocr_policy_domain_t * policy) {
     //          all data-structures have been initialized.
     size_t i = 0;
     size_t nb_workers = policy->nb_workers;
-    size_t nb_executors = policy->nb_executors;
+    size_t nb_comp_targets = policy->nb_comp_targets;
     // Only start (N-1) workers as worker '0' is the current thread.
     for(i = 1; i < nb_workers; i++) {
         policy->workers[i]->start(policy->workers[i]);
 
     }
     // Only start (N-1) threads as thread '0' is the current thread.
-    for(i = 1; i < nb_executors; i++) {
-        policy->executors[i]->start(policy->executors[i]);
+    for(i = 1; i < nb_comp_targets; i++) {
+        policy->compTargets[i]->start(policy->compTargets[i]);
     }
     // Handle thread '0'
     policy->workers[0]->start(policy->workers[0]);
     // Need to associate thread and worker here, as current thread fall-through
     // in user code and may need to know which Worker it is associated to.
-    associate_executor_and_worker(policy->workers[0]);
+    associate_comp_platform_and_worker(policy->workers[0]);
 }
 
 void leaf_place_policy_domain_stop (ocr_policy_domain_t * policy) {
     size_t i;
-    for (i = 0; i < policy->nb_executors; i++) {
-        policy->executors[i]->stop(policy->executors[i]);
+    for (i = 0; i < policy->nb_comp_targets; i++) {
+        policy->compTargets[i]->stop(policy->compTargets[i]);
     }
 }
 
@@ -233,8 +232,8 @@ void mastered_leaf_place_policy_domain_stop (ocr_policy_domain_t * policy) {
 
     // Thread '0' joins the other (N-1) threads.
     size_t i;
-    for (i = 1; i < policy->nb_executors; i++) {
-        policy->executors[i]->stop(policy->executors[i]);
+    for (i = 1; i < policy->nb_comp_targets; i++) {
+        policy->compTargets[i]->stop(policy->compTargets[i]);
     }
 }
 
@@ -258,7 +257,7 @@ ocrGuid_t leaf_policy_domain_extract ( ocr_policy_domain_t * this, ocr_policy_do
 void leaf_place_policy_domain_constructor_helper ( ocr_policy_domain_t * policy,
                                                    size_t nb_workpiles,
                                                    size_t nb_workers,
-                                                   size_t nb_executors,
+                                                   size_t nb_comp_targets,
                                                    size_t nb_schedulers) {
     // Get a GUID
     policy->guid = UNINITIALIZED_GUID;
@@ -267,10 +266,9 @@ void leaf_place_policy_domain_constructor_helper ( ocr_policy_domain_t * policy,
     ocr_module_t * module_base = (ocr_module_t *) policy;
     module_base->map_fct = hc_ocr_module_map_schedulers_to_policy;
 
-    policy->nb_executors = nb_executors;
+    policy->nb_comp_targets = nb_comp_targets;
     policy->nb_workpiles = nb_workpiles;
     policy->nb_workers = nb_workers;
-    policy->nb_executors = nb_executors;
     policy->nb_schedulers = nb_schedulers;
 
     policy->create = hc_policy_domain_create;
@@ -289,10 +287,10 @@ void leaf_place_policy_domain_constructor_helper ( ocr_policy_domain_t * policy,
 
 ocr_policy_domain_t * leaf_place_policy_domain_constructor(size_t nb_workpiles,
                                                            size_t nb_workers,
-                                                           size_t nb_executors,
+                                                           size_t nb_comp_targets,
                                                            size_t nb_schedulers) {
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
-    leaf_place_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_executors, nb_schedulers);
+    leaf_place_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_comp_targets, nb_schedulers);
     policy->start = leaf_place_policy_domain_start; // mastered_leaf_place_policy_domain_start 
     policy->stop = leaf_place_policy_domain_stop; // mastered_leaf_place_policy_domain_stop 
     return policy;
@@ -300,10 +298,10 @@ ocr_policy_domain_t * leaf_place_policy_domain_constructor(size_t nb_workpiles,
 
 ocr_policy_domain_t * mastered_leaf_place_policy_domain_constructor(size_t nb_workpiles,
                                                    size_t nb_workers,
-                                                   size_t nb_executors,
+                                                   size_t nb_comp_targets,
                                                    size_t nb_schedulers) {
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) malloc(sizeof(ocr_policy_domain_t));
-    leaf_place_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_executors, nb_schedulers);
+    leaf_place_policy_domain_constructor_helper(policy, nb_workpiles, nb_workers, nb_comp_targets, nb_schedulers);
     policy->start = mastered_leaf_place_policy_domain_start;
     policy->stop = mastered_leaf_place_policy_domain_stop;
     return policy;
@@ -317,11 +315,11 @@ void ocr_module_map_nothing_to_place (void * self_module, ocr_module_kind kind,
 
 void place_policy_domain_create (ocr_policy_domain_t * policy, void * configuration,
                                ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
-                               ocr_executor_t ** executors, ocr_workpile_t ** workpiles,
+                               ocr_comp_target_t ** compTargets, ocr_workpile_t ** workpiles,
                                ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories) {
     policy->schedulers = NULL;
     policy->workers = NULL;
-    policy->executors = NULL;
+    policy->compTargets = NULL;
     policy->workpiles = NULL;
     policy->allocators = NULL;
     policy->memories = NULL;
@@ -393,7 +391,7 @@ ocr_policy_domain_t * place_policy_domain_constructor () {
     policy->nb_workpiles = 0;
     policy->nb_workers = 0;
     policy->nb_schedulers = 0;
-    policy->nb_executors = 0;
+    policy->nb_comp_targets = 0;
 
     policy->create = place_policy_domain_create;
     policy->destruct = place_policy_domain_destruct;

@@ -39,7 +39,7 @@
 #ifndef __OCR_CONFIG_H__
 #define __OCR_CONFIG_H__
 
-#include "ocr-executor.h"
+#include "ocr-comp-target.h"
 #include "ocr-worker.h"
 #include "ocr-scheduler.h"
 #include "ocr-policy-domain.h"
@@ -52,7 +52,7 @@
 #endif
 
 // Default kinds of ocr modules
-extern ocr_executor_kind ocr_executor_default_kind;
+extern ocr_comp_target_kind ocr_comp_target_default_kind;
 extern ocr_worker_kind ocr_worker_default_kind;
 extern ocr_scheduler_kind ocr_scheduler_default_kind;
 extern ocr_policy_domain_kind ocr_policy_default_kind;
@@ -67,7 +67,7 @@ extern ocrGuidProviderKind ocrGuidProviderDefaultKind;
 extern u32 ocr_config_default_nb_hardware_threads;
 
 // XE kinds of ocr modules
-extern ocr_executor_kind	ocr_executor_xe_kind;
+extern ocr_comp_target_kind	ocr_comp_target_xe_kind;
 extern ocr_worker_kind		ocr_worker_xe_kind;
 extern ocr_scheduler_kind	ocr_scheduler_xe_kind;
 extern ocr_policy_domain_kind		ocr_policy_xe_kind;
@@ -79,7 +79,7 @@ extern ocrDataBlockKind		ocrDataBlockXEKind;
 extern ocrGuidProviderKind	ocrGuidProviderXEKind;
 
 // CE kinds of ocr modules
-extern ocr_executor_kind	ocr_executor_ce_kind;
+extern ocr_comp_target_kind	ocr_comp_target_ce_kind;
 extern ocr_worker_kind		ocr_worker_ce_kind;
 extern ocr_scheduler_kind	ocr_scheduler_ce_kind;
 extern ocr_policy_domain_kind		ocr_policy_ce_kind;

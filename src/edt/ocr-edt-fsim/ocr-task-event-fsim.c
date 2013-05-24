@@ -128,7 +128,7 @@ void * xe_worker_computation_routine (void * arg) {
     ocr_worker_t * baseWorker = (ocr_worker_t *) arg;
 
     /* associate current thread with the worker */
-    associate_executor_and_worker(baseWorker);
+    associate_comp_platform_and_worker(baseWorker);
 
     ocrGuid_t workerGuid = get_worker_guid(baseWorker);
     ocr_scheduler_t * xeScheduler = get_worker_scheduler(baseWorker);
@@ -183,7 +183,7 @@ void * ce_worker_computation_routine(void * arg) {
     ocr_scheduler_t * ceScheduler = get_worker_scheduler(ceWorker);
 
     /* associate current thread with the worker */
-    associate_executor_and_worker(ceWorker);
+    associate_comp_platform_and_worker(ceWorker);
 
     ocrGuid_t ceWorkerGuid = get_worker_guid(ceWorker);
     log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(ceWorker));

@@ -30,23 +30,20 @@
 */
 
 #include <assert.h>
+#include <stdlib.h>
 
-#include "ocr-executor.h"
+#include "ocr-types.h"
+#include "ocr-comp-platform.h"
 
-void hc_ocr_module_map_worker_to_executors(void * self_module, ocr_module_kind kind,
-                                           size_t nb_instances, void ** ptr_instances) {
-    // Checking mapping conforms to what we're expecting in this implementation
-    assert(kind == OCR_WORKER);
-    assert(nb_instances == 1);
-    ocr_worker_t * worker = (ocr_worker_t *) ptr_instances[0];
-    ocr_executor_t * executor = (ocr_executor_t *) self_module;
-    //TODO the routine thing is a hack. Threads should pick workers from a worker pool
-    executor->routine = worker->routine;
-    executor->routine_arg = worker;
-}
-
-ocr_executor_t * ocr_executor_hc_constructor() {
-    ocr_executor_t * executor = ocr_executor_pthread_constructor();
-    ((ocr_module_t *) executor)->map_fct = hc_ocr_module_map_worker_to_executors;
-    return executor;
+ocr_comp_platform_t * newCompPlatform(ocr_comp_platform_kind compPlatformType) {
+    switch(compPlatformType) {
+        //TODO this could be transformed as iterating over some
+        //array and return an instance to minimize code to be added
+    case OCR_COMP_PLATFORM_PTHREAD:
+        return ocr_comp_platform_pthread_constructor();
+    default:
+        assert(false && "Unrecognized comp-platform kind");
+        break;
+    }
+    return NULL;
 }

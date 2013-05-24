@@ -31,7 +31,7 @@
 
 #include "ocr-config.h"
 
-ocr_executor_kind ocr_executor_default_kind = OCR_EXECUTOR_HC;
+ocr_comp_target_kind ocr_comp_target_default_kind = OCR_COMP_TARGET_HC;
 ocr_worker_kind ocr_worker_default_kind = OCR_WORKER_HC;
 ocr_scheduler_kind ocr_scheduler_default_kind = OCR_SCHEDULER_WST;
 ocr_policy_domain_kind ocr_policy_default_kind = OCR_POLICY_HC;
@@ -45,7 +45,7 @@ ocrGuidProviderKind ocrGuidProviderDefaultKind = OCR_GUIDPROVIDER_PTR;
 u32 ocr_config_default_nb_hardware_threads = 8;
 
 // XE kinds of ocr modules
-ocr_executor_kind	ocr_executor_xe_kind    = OCR_EXECUTOR_XE;
+ocr_comp_target_kind	ocr_comp_target_xe_kind    = OCR_COMP_TARGET_XE;
 ocr_worker_kind		ocr_worker_xe_kind	= OCR_WORKER_XE;
 ocr_scheduler_kind	ocr_scheduler_xe_kind   = OCR_SCHEDULER_XE;
 ocr_policy_domain_kind		ocr_policy_xe_kind	= OCR_POLICY_XE;
@@ -57,7 +57,7 @@ ocrDataBlockKind	ocrDataBlockXEKind	= OCR_DATABLOCK_REGULAR;
 ocrGuidProviderKind	ocrGuidProviderXEKind	= OCR_GUIDPROVIDER_PTR;
 
 // CE kinds of ocr modules
-ocr_executor_kind	ocr_executor_ce_kind	= OCR_EXECUTOR_CE;
+ocr_comp_target_kind	ocr_comp_target_ce_kind	= OCR_COMP_TARGET_CE;
 ocr_worker_kind		ocr_worker_ce_kind	= OCR_WORKER_CE;
 ocr_scheduler_kind	ocr_scheduler_ce_kind	= OCR_SCHEDULER_CE;
 ocr_policy_domain_kind		ocr_policy_ce_kind      = OCR_POLICY_CE;
