@@ -100,8 +100,6 @@ typedef enum ocr_scheduler_kind_enum {
 
 ocr_scheduler_t * newScheduler(ocr_scheduler_kind schedulerType);
 
-ocr_scheduler_t * hc_scheduler_constructor(void);
-
 /* we have to end up exposing the configuration declarations too for the runtime model
  * I do not know if abstract factories may help with this situation */
 typedef struct scheduler_configuration {
