@@ -50,3 +50,10 @@ using the 'ocrTestsExamples' script.
 - Only support events of kind 'sticky'
 - ocrEdtCreate, doesn't handle depv yet (pass a db which is already satisfied)
 
+*******************
+** Documentation **
+*******************
+
+To generate documentation, type 'doxygen ocr.dox'. HTML documentation will be
+generated in doc/html and LaTeX documentation in doc/latex. A PDF can be generated
+from the LaTeX documentation by typing 'make' in that directory
