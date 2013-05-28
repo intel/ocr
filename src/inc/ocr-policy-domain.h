@@ -132,14 +132,6 @@ ocr_policy_domain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
                                 size_t nb_comp_targets,
                                 size_t nb_scheduler);
 
-ocr_policy_domain_t * hc_policy_domain_constructor();
-ocr_policy_domain_t * xe_policy_domain_constructor();
-ocr_policy_domain_t * ce_policy_domain_constructor();
-ocr_policy_domain_t * ce_mastered_policy_domain_constructor();
-ocr_policy_domain_t * place_policy_domain_constructor();
-ocr_policy_domain_t * leaf_place_policy_domain_constructor();
-ocr_policy_domain_t * mastered_leaf_place_policy_domain_constructor();
-
 ocr_policy_domain_t* get_current_policy_domain ();
 
 ocrGuid_t policy_domain_handIn_assert ( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid );

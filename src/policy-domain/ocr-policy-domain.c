@@ -35,6 +35,15 @@
 #include "ocr-policy-domain.h"
 #include "ocr-task-event.h"
 
+
+extern ocr_policy_domain_t * hc_policy_domain_constructor();
+extern ocr_policy_domain_t * xe_policy_domain_constructor();
+extern ocr_policy_domain_t * ce_policy_domain_constructor();
+extern ocr_policy_domain_t * ce_mastered_policy_domain_constructor();
+extern ocr_policy_domain_t * place_policy_domain_constructor();
+extern ocr_policy_domain_t * leaf_place_policy_domain_constructor();
+extern ocr_policy_domain_t * mastered_leaf_place_policy_domain_constructor();
+
 ocr_policy_domain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
                                 size_t nb_workpiles,
                                 size_t nb_workers,
