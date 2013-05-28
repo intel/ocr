@@ -31,6 +31,8 @@
 
 #include "ocr-config.h"
 
+//VC8 would move all those to each implementation file
+
 ocr_comp_target_kind ocr_comp_target_default_kind = OCR_COMP_TARGET_HC;
 ocr_worker_kind ocr_worker_default_kind = OCR_WORKER_HC;
 ocr_scheduler_kind ocr_scheduler_default_kind = OCR_SCHEDULER_WST;
