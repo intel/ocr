@@ -92,8 +92,6 @@ typedef enum ocr_workpile_kind_enum {
 
 ocr_workpile_t * newWorkpile(ocr_workpile_kind workpileType);
 
-ocr_workpile_t * hc_workpile_constructor(void);
-
 
 /****************************************************/
 /* OCR WORKPILE ITERATOR API                        */

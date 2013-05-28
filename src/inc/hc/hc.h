@@ -58,15 +58,13 @@ ocr_worker_t* hc_worker_constructor(void);
 
 
 /******************************************************/
-/* OCR-HC WorkPool                                    */
+/* OCR-HC Workpile                                    */
 /******************************************************/
 
 typedef struct hc_workpile {
     ocr_workpile_t base;
     deque_t * deque;
 } hc_workpile;
-
-ocr_workpile_t * hc_workpile_constructor(void);
 
 
 /******************************************************/
