@@ -67,21 +67,13 @@ typedef struct {
     ocr_module_mapping_t * mappings;
 } ocr_model_policy_t;
 
-ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domain,
-                                           size_t nb_schedulers, size_t nb_workers,
-                                           size_t nb_comp_targets, size_t nb_workpiles);
+typedef enum ocr_policy_model_kind_enum {
+  OCR_POLICY_MODEL_FLAT = 1,
+  OCR_POLICY_MODEL_FSIM = 2,
+  OCR_POLICY_MODEL_THOR = 3,
+} ocr_policy_model_kind;
 
-
-ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XE_per_CEs );
-ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XE_per_CEs );
-ocr_model_policy_t * createCeMasteredModelPolicy ( size_t nb_XE_per_CEs );
-
-ocr_model_policy_t * createThorRootModelPolicy ( );
-ocr_model_policy_t * createThorL3ModelPolicies ( size_t n_L3s );
-ocr_model_policy_t * createThorL2ModelPolicies ( size_t n_L2s );
-ocr_model_policy_t * createThorL1ModelPolicies ( size_t n_L1s );
-ocr_model_policy_t * createThorWorkerModelPolicies ( size_t n_workers );
-ocr_model_policy_t * createThorMasteredWorkerModelPolicies ( );
+ocr_model_policy_t * ocrInitPolicyModel(ocr_policy_model_kind policyModelKind, char * mdFile);
 
 ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model);
 
@@ -90,5 +82,16 @@ void destructOcrModelPolicy(ocr_model_policy_t *);
 
 // THIS IS A HACK RIGHT NOW TO GET THE MEMORY SIZE IN ONE LARGE CHUNK
 extern u64 gHackTotalMemSize;
+
+// Hooks for implementations to set what they have instantiated
+extern size_t n_root_policy_nodes;
+extern ocr_policy_domain_t ** root_policies;
+extern ocr_worker_t* master_worker;
+
+// Build a model
+ocr_model_t* newModel ( int kind, int nInstances, void * per_type_configuration, void ** per_instance_configuration );
+
+// Helper function to build ocr module mapping
+ocr_module_mapping_t build_ocr_module_mapping(ocr_mapping_kind kind, ocr_module_kind from, ocr_module_kind to);
 
 #endif /* OCR_RUNTIME_MODEL_H_ */
