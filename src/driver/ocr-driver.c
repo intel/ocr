@@ -104,8 +104,6 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
     globalGuidProvider = newGuidProvider(OCR_GUIDPROVIDER_DEFAULT);
     gHackTotalMemSize = 512*1024*1024; /* 64 MB default */
     char * md_file = parseOcrOptions_MachineDescription(argc, argv);
-
-    /* sagnak begin */
     if ( md_file != NULL && !strncmp(md_file,"fsim",5) ) {
         ocrInitPolicyModel(OCR_POLICY_MODEL_FSIM, md_file);
     } else if ( md_file != NULL && !strncmp(md_file,"thor",4) ) {
@@ -113,6 +111,12 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
     } else {
         ocrInitPolicyModel(OCR_POLICY_MODEL_FLAT, md_file);
     }
+}
+
+void ocrFinish() {
+    // This is called by the sink EDT and allow the master_worker
+    // to fall-through its worker routine code (see ocrCleanup)
+    master_worker->stop(master_worker);
 }
 
 static void recursive_policy_finish_helper ( ocr_policy_domain_t* curr ) {
@@ -133,10 +137,6 @@ static void recursive_policy_stop_helper ( ocr_policy_domain_t* curr ) {
         }
         curr->stop(curr);
     }
-}
-
-void ocrFinish() {
-    master_worker->stop(master_worker);
 }
 
 static void recursive_policy_destruct_helper ( ocr_policy_domain_t* curr ) {
@@ -171,7 +171,8 @@ static inline void unravel () {
 
 void ocrCleanup() {
     master_worker->routine(master_worker);
-
+    // master_worker is done executing. 
+    // Proceed and stop other workers and the runtime.
     unravel();
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcessDestruct(&GfakeProcess);
