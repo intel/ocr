@@ -83,15 +83,6 @@ static char * parseOcrOptions_MachineDescription(int * argc, char ** argv) {
     return md_file;
 }
 
-/**!
- * Initialize the OCR runtime.
- * @param argc number of command line options
- * @param argv Pointer to options
- * @param fnc Number of function pointers (UNUSED)
- * @param funcs array of function pointers to be used as edts (UNUSED)
- *
- * Note: removes OCR options from argc / argv
- */
 void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
     // REC: Hack, for now we just initialize the factories here.
     // See if we need to move some into policy domains and how to
@@ -227,12 +218,12 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
         thor_root_policy_domains[0]->successors = thor_l3_policy_domains;
         thor_root_policy_domains[0]->n_predecessors = 0;
         thor_root_policy_domains[0]->predecessors = NULL;
-        thor_root_policy_domains[0]->id = breadthFirstLabel++; 
+        thor_root_policy_domains[0]->id = breadthFirstLabel++;
 
         size_t idx = 0;
         for ( idx = 0; idx < n_L3s; ++idx ) {
             ocr_policy_domain_t *curr = thor_l3_policy_domains[idx];
-            curr->id = breadthFirstLabel++; 
+            curr->id = breadthFirstLabel++;
 
             curr->n_successors = n_L2s_per_L3;
             curr->successors = &(thor_l2_policy_domains[idx*n_L2s_per_L3]);
@@ -242,7 +233,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 
         for ( idx = 0; idx < n_L2s; ++idx ) {
             ocr_policy_domain_t *curr = thor_l2_policy_domains[idx];
-            curr->id = breadthFirstLabel++; 
+            curr->id = breadthFirstLabel++;
 
             curr->n_successors = n_L1s_per_L2;
             curr->successors = &(thor_l1_policy_domains[idx*n_L1s_per_L2]);
@@ -259,7 +250,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
             }
             idx = 0;
             ocr_policy_domain_t *curr = thor_l1_policy_domains[idx];
-            curr->id = breadthFirstLabel++; 
+            curr->id = breadthFirstLabel++;
 
             curr->n_successors = n_workers_per_L1;
             curr->successors = nasty_successor_buffering;
@@ -269,7 +260,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 
         for ( idx = 1; idx < n_L1s; ++idx ) {
             ocr_policy_domain_t *curr = thor_l1_policy_domains[idx];
-            curr->id = breadthFirstLabel++; 
+            curr->id = breadthFirstLabel++;
 
             curr->n_successors = n_workers_per_L1;
             curr->successors = &(thor_worker_policy_domains[idx*n_workers_per_L1 - 1]);
@@ -277,11 +268,11 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
             curr->predecessors = &(thor_l2_policy_domains[idx/n_L1s_per_L2]);
         }
 
-        // idx = 0 condition for ( idx = 1; idx < n_workers; ++idx ) 
+        // idx = 0 condition for ( idx = 1; idx < n_workers; ++idx )
         {
             idx = 0;
             ocr_policy_domain_t *curr = thor_mastered_worker_policy_domains[idx];
-            curr->id = breadthFirstLabel++; 
+            curr->id = breadthFirstLabel++;
             curr->n_successors = 0;
             curr->successors = NULL;
             curr->n_predecessors = 1;
@@ -290,7 +281,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 
         for ( idx = 1; idx < n_workers; ++idx ) {
             ocr_policy_domain_t *curr = thor_worker_policy_domains[idx-1];
-            curr->id = breadthFirstLabel++; 
+            curr->id = breadthFirstLabel++;
 
             curr->n_successors = 0;
             curr->successors = NULL;
@@ -347,10 +338,10 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
         n_root_policy_nodes = nb_policy_domain;
         root_policies = instantiateModel(policy_model);
 
-	root_policies[0]->n_successors = 0;
-	root_policies[0]->successors = NULL;
-	root_policies[0]->n_predecessors = 0;
-	root_policies[0]->predecessors = NULL;
+        root_policies[0]->n_successors = 0;
+        root_policies[0]->successors = NULL;
+        root_policies[0]->n_predecessors = 0;
+        root_policies[0]->predecessors = NULL;
 
         master_worker = root_policies[0]->workers[0];
         root_policies[0]->start(root_policies[0]);

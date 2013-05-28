@@ -39,7 +39,7 @@
 
 typedef uint64_t u64;
 typedef uint32_t u32;
-typedef uint16_t  u16;
+typedef uint16_t u16;
 typedef uint8_t  u8;
 typedef int64_t  s64;
 typedef int32_t  s32;
@@ -53,12 +53,18 @@ typedef u8 bool;
 #endif /* __cplusplus */
 
 /**
- * @brief Type describing the unique identifier of most
- * objects in OCR (EDTs, data-blocks, etc).
- **/
+ * @brief Opaque type uniquely identifying objects in OCR
+ *
+ * A globally-unique identifier used by the runtime to identify
+ * objects. The type is convertible to a 64 bit value but its exact
+ * meaning may change depending on the specific implementation.
+  **/
 typedef intptr_t ocrGuid_t;
 //typedef u64 ocrGuid_t;
 
+/**
+ * @brief An invalid ocrGuid_t
+ */
 #define NULL_GUID ((ocrGuid_t)0x0)
 
 /**
@@ -68,7 +74,8 @@ typedef intptr_t ocrGuid_t;
  * related) identification of proximity. It is used
  * to give hints/suggestions about scheduling and data-placement
  *
- * @todo Add capabilities based on policies, etc
+ * @warning This aspect of the runtime is still undefined (part of
+ * tuning). Do not use: the name may also change.
  **/
 typedef struct {
     ocrGuid_t locationId;

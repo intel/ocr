@@ -49,26 +49,31 @@
  * @brief Types of events supported
  *
  * @todo Re-evaluate the notion of bucket/multiple-satisfaction events (post 0.7)
- * @warning Currently, only OCR_EVENT_STICKY_T work properly with the HC runtime.
  */
 typedef enum {
     OCR_EVENT_ONCE_T,    /**< The event is automatically destroyed on satisfaction */
     OCR_EVENT_IDEM_T,    /**< The event exists until explicitly destroyed with
-                          * ocrEventDestroy. It is satisfied once and susequent
+                          * ocrEventDestroy(). It is satisfied once and susequent
                           * satisfactions are ignored (use case: BFS, B&B..) */
     OCR_EVENT_STICKY_T,  /**< The event exists until explicitly destroyed with
-                          * ocrEventDestroy. Multiple satisfactions result
+                          * ocrEventDestroy(). Multiple satisfactions result
                           * in an error */
-    OCR_EVENT_LATCH_T,   /**< The latch event can't be satisfied on either 
-                          * its the DECR or INCR slot. When it reaches zero, 
+    OCR_EVENT_LATCH_T,   /**< The latch event can be satisfied on either
+                          * its the DECR or INCR slot. When it reaches zero,
                           * it is satisfied. */
     OCR_EVENT_T_MAX      /**< Marker */
 } ocrEventTypes_t;
 
 
+/**
+ * @brief 'Slots' for latch events
+ *
+ * A #OCR_EVENT_LATCH_T has two slots, a 'decrement' slot
+ * and an 'increment' slot which are defined here
+ */
 typedef enum {
-  OCR_EVENT_LATCH_DECR_SLOT = 0,
-  OCR_EVENT_LATCH_INCR_SLOT = 1
+    OCR_EVENT_LATCH_DECR_SLOT = 0, /**< The decrement slot */
+    OCR_EVENT_LATCH_INCR_SLOT = 1  /**< The increment slot */
 } ocrLatchEventSlot_t;
 
 /**
@@ -101,8 +106,16 @@ u8 ocrEventDestroy(ocrGuid_t guid);
 /**
  * @brief Satisfy an event and optionally pass a data-block along with the event
  *
+ * An 'event' encodes a control dependence while the data-block optionally passed
+ * with the even encodes a data dependence. Therefore:
+ *     - An event without a data-block is a pure control dependence
+ *     - An event with a data-block is a control+data dependence
+ *     - A pure data-dependence can be encoded by directly adding a dependence
+ *       using ocrAddDependence with a data-block as the source
+ *
  * @param eventGuid       GUID of event to satisfy
  * @param dataGuid        GUID of data to pass along or INVALID_GUID if no data
+ *
  * @return 0 on success and an error code on failure:
  *     - ENOMEM: Returned if there is not enough memory. This is usually caused by
  *               a programmer error (two events to a unique slot and both events are
@@ -120,14 +133,35 @@ u8 ocrEventDestroy(ocrGuid_t guid);
  **/
 u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=INVALID_GUID*/);
 
-u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=INVALID_GUID*/, int slot /*=0*/);
+/**
+ * @brief Satisfy an event and optionally pass a data-block using event slots
+ *
+ * Most events only have one input slot; latch events though have multiple
+ * input slots for example and this call is similar to ocrEventSatisfy() except
+ * that the slot can be specified. In other words, ocrEventSatisfy() is a special
+ * case of this call where slot is 0
+ *
+ * @param eventGuid       GUID of event to satisfy
+ * @param dataGuid        GUID of data to pass along or INVALID_GUID if no data
+ * @param slot            Slot of the event to satisfy
+ *
+ * @return 0 on success and an error code on failure:
+ *     - ENOMEM: Returned if there is not enough memory. This is usually caused by
+ *               a programmer error (two events to a unique slot and both events are
+ *               satisfied)
+ *     - EINVAL: If the GUIDs do not refer to valid events/data-blocks
+ *     - ENOPERM: If the event has already been satisfied or if the event does not take
+ *                an argument and one is given or if the event takes an argument and none
+ *                is given
+ **/
+u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=INVALID_GUID*/, u32 slot /*=0*/);
 
 /**
    @}
 **/
 
 /**
- * @defgroup OCR EDT Event Driven Task Management
+ * @defgroup OCREDT Event Driven Task Management
  * @brief APIs to manage the EDT in OCR
  *
  * @todo Re-evaluate the notion of event types (post 0.7 version)
@@ -137,8 +171,7 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=INVALID_GUID*/
 /**
  * @brief Type of the input passed to each EDT
  *
- * This struct associates a DB GUID with its base pointer (implicitly acquired
- * through ocrDbAcquire)
+ * This struct associates a DB GUID with its base pointer (implicitly acquired)
  */
 typedef struct {
     ocrGuid_t guid;
@@ -146,12 +179,16 @@ typedef struct {
 } ocrEdtDep_t;
 
 
-//
-// EDTs properties bits
-//
-
-#define EDT_PROP_NONE   ((u16) 0)
-#define EDT_PROP_FINISH ((u16) 1)
+/**
+ * @defgroup OCREDTProp EDT Property values
+ * @brief Values for the 'properties' value in ocrEdtCreate
+ * @{
+ **/
+#define EDT_PROP_NONE   ((u16) 0) /**< Default value */
+#define EDT_PROP_FINISH ((u16) 1) /**< Indicates that the EDT is a finish EDT */
+/**
+ * @}
+ **/
 
 /**
  * @brief Type for an EDT
@@ -160,9 +197,12 @@ typedef struct {
  * @param params          Sizes for the parameters (to allow marshalling)
  * @param paramv          Values for non-DB and non-event parameters
  * @param depc            Number of dependences (either DBs or events)
- * @param depv            Values of the dependences. Can be INVAL_GUID/NULL if a pure control-flow event
- *                        was used as a dependence
- * @return Error code (0 on success)
+ * @param depv            Values of the dependences. Can be INVAL_GUID/NULL if not known at
+ *                        this point
+ *
+ * @return A GUID that will be passed to anyone waiting on the completion of the EDT
+ *
+ * @warning The variable number of input parameters (paramc) may change in the future.
  **/
 typedef ocrGuid_t (*ocrEdt_t )( u32 paramc, u64 * params, void* paramv[],
                    u32 depc, ocrEdtDep_t depv[]);
@@ -170,16 +210,28 @@ typedef ocrGuid_t (*ocrEdt_t )( u32 paramc, u64 * params, void* paramv[],
 /**
  * @brief Creates an EDT instance
  *
+ * This call will create an EDT object. An EDT is a small piece of computation
+ * that will only start once all its dependences have been satisfied and will
+ * then run to completion (an EDT never contains synchronization primitives).
+ *
+ * On completion, the EDT will satisfy an optional completion event (to
+ * indicate to other objects that it has finished executing). This behavior
+ * is modified slightly for finish EDTs which will only satisfy their
+ * completion event when they have completed AND all EDTs transitively created
+ * within the finish EDT have also signaled their completion events.
+ *
  * @param guid              Returned value: GUID of the newly created EDT type
  * @param funcPtr           Function to execute as the EDT
  * @param paramc            Number of non-DB and non-event parameters
  * @param params            Sizes for these parameters (to allow marshalling)
  * @param paramv            Values for those parameters (copied in)
- * @param properties        Reserved for future use
+ * @param properties        Currently indicates a finish-EDT or a normal one.
  * @param depc              Number of dependences for this EDT
  * @param depv              Values for the GUIDs of the dependences (if known)
  *                          If NULL, use ocrAddDependence
- * @param outputEvent       Event satisfied by the runtime when the edt has been executed.
+ * @param outputEvent       Event satisfied by the runtime when the EDT completes
+ *                          execution. If NULL, no event will be created.
+ *
  * @return 0 on success and an error code on failure: TODO
  **/
 u8 ocrEdtCreate(ocrGuid_t * guid, ocrEdt_t funcPtr,
@@ -204,6 +256,9 @@ u8 ocrEdtCreate(ocrGuid_t * guid, ocrEdt_t funcPtr,
  * @warning In the current implementation, this call should only be called
  * after all dependences have been added using ocrAddDependence. This may
  * be relaxed in future versions
+ *
+ * @deprecated This call is still required but will be deprecated in the future
+ * when its functionality will be implicitly included in ocrAddDependence()
  */
 u8 ocrEdtSchedule(ocrGuid_t guid);
 
@@ -233,23 +288,28 @@ u8 ocrEdtDestroy(ocrGuid_t guid);
 
 
 /**
- * @brief Adds a dependence from an event or a DB to an EDT
+ * @brief Adds a dependence between entities in OCR:
  *
- * The source GUID can be either an event or a DB. Giving a DB
- * as the source of a dependence is semantically equivalent to
- * giving a sticky event pre-satisfied with the data-block
+ * The following dependences can be added:
+ *    - Event to Event: The sink event will be satisfied when
+ *                      the source event is
+ *    - Event to EDT  : Control or control+data dependence
+ *    - DB to Event   : Equivalent to ocrEventSatisfySlot
+ *    - DB to EDT     : Pure data dependence. Semantically
+ *                      equivalent to giving a sticky event
+ *                      pre-satisfied with the DB
  *
- * @param source            GUID of the event/DB for the EDT to depend on
- * @param destination       GUID for the EDT
- * @param slot              Dependence "slot" on the EDT to connect to (up to n-1
- *                          where n is the number of dependences for the EDT)
+ * @param source            GUID of the source
+ * @param destination       GUID of the destination
+ * @param slot              Dependence "slot" on the EDT/Event to connect to
+ *                          (up to n-1 where n is the number of dependences
+ *                          for the EDT/Event)
  *
  * @return Status:
  *      - 0: Success
  *      - EINVAL: The slot number is invalid
  *      - ENOPERM: The source and destination GUIDs cannot be linked with
  *                 a dependence
- * @todo Re-evaluate the chaining of events to allow for fan-out (post 0.7)
  */
 u8 ocrAddDependence(ocrGuid_t source,
                     ocrGuid_t destination, u32 slot);
