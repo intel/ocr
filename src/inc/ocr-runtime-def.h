@@ -35,13 +35,14 @@
 typedef enum ocr_module_kind_enum {
     OCR_WORKER = 0,
     OCR_COMP_TARGET = 1,
-    OCR_WORKPILE = 2,
-    OCR_SCHEDULER = 3,
-    OCR_ALLOCATOR = 4,
-    OCR_MEMORY = 5,
-    OCR_POLICY = 6,
-    OCR_EDT = 7,
-    OCR_EVENT = 8
+    OCR_COMP_PLATFORM = 2,
+    OCR_WORKPILE = 3,
+    OCR_SCHEDULER = 4,
+    OCR_ALLOCATOR = 5,
+    OCR_MEMORY = 6,
+    OCR_POLICY = 7,
+    OCR_EDT = 8,
+    OCR_EVENT = 9
 } ocr_module_kind;
 
 
