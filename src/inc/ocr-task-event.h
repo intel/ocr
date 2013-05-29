@@ -169,14 +169,14 @@ typedef struct ocrEventFactory_t {
  */
 
 // Fwd declaration
-struct ocr_task_fcts_struct_t;
+struct ocrTaskFcts_t;
 
 /*! \brief Abstract factory class to create OCR tasks.
  *
  *  This class provides an interface to create Task instances with a non-static create function
  *  to allow runtime implementers to choose to have state in their derived TaskFactory classes.
  */
-typedef struct ocrTaskFactory_t_struct {
+typedef struct ocrTaskFactory_t {
     /*! \brief Instantiates a Task and returns its corresponding GUID
      *  \param[in]  routine A user defined function that represents the computation this Task encapsulates.
      *  \param[in]  worker_id   The Worker instance creating this Task instance
@@ -187,35 +187,33 @@ typedef struct ocrTaskFactory_t_struct {
      *  the GUIDs used to satisfy the Events enlisted in the dependence list.
      *
      */
-    ocrGuid_t (*instantiate) ( struct ocrTaskFactory_t_struct * factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, size_t l_size, ocrGuid_t * outputEvent);
+    ocrGuid_t (*instantiate) ( struct ocrTaskFactory_t * factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, size_t l_size, ocrGuid_t * outputEvent);
 
     /*! \brief Virtual destructor for the TaskFactory interface
      */
-    void (*destruct)(struct ocrTaskFactory_t_struct * factory);
+    void (*destruct)(struct ocrTaskFactory_t * factory);
 
-    struct ocr_task_fcts_struct_t * task_fct_ptrs;
+    struct ocrTaskFcts_t * taskFcts;
 } ocrTaskFactory_t;
 
 /*
  * OCR tasks function pointers typedefs
  */
-struct ocr_task_struct_t;
+struct ocrTask_t;
 
 /*! \brief Abstract class to represent OCR tasks function pointers
  *
  *  This class provides the interface to call operations on task
  */
-
-typedef struct ocr_task_fcts_struct_t {
-
+typedef struct ocrTaskFcts_t {
     /*! \brief Virtual destructor for the Task interface
      */
-    void (*destruct) ( struct ocr_task_struct_t* base );
+    void (*destruct) ( struct ocrTask_t* base );
     /*! \brief Interface to execute the underlying computation of a task
      */
-    void (*execute) ( struct ocr_task_struct_t* base );
-    void (*schedule) ( struct ocr_task_struct_t* base, ocrGuid_t wid );
-} ocr_task_fcts_t;
+    void (*execute) ( struct ocrTask_t* base );
+    void (*schedule) ( struct ocrTask_t* base, ocrGuid_t wid );
+} ocrTaskFcts_t;
 
 
 // ELS runtime size is one to support finish-edt
@@ -228,7 +226,7 @@ typedef struct ocr_task_fcts_struct_t {
  *  This class provides the interface for the underlying implementation to conform.
  *  OCR tasks can be executed and can have their synchronization frontier furthered by Events.
  */
-typedef struct ocr_task_struct_t {
+typedef struct ocrTask_t {
     ocrGuid_t guid; /**< GUID for this task (EDT) */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t statProcess;
@@ -240,7 +238,7 @@ typedef struct ocr_task_struct_t {
     ocrGuid_t els[ELS_SIZE];
     /*! \brief Holds function pointer to the task interface
      */
-    ocr_task_fcts_t * fct_ptrs;
+    ocrTaskFcts_t * fct_ptrs;
 } ocrTask_t;
 
 #endif /* __OCR_TASK_EVENT_H_ */

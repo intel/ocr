@@ -489,7 +489,7 @@ ocrEventFactory_t * newEventFactoryHc(void * config) {
 /******************************************************/
 
 void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
-        u32 paramc, u64 * params, void** paramv, size_t nbDeps, ocrGuid_t outputEvent, ocr_task_fcts_t * taskFctPtrs) {
+        u32 paramc, u64 * params, void** paramv, size_t nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs) {
     if (nbDeps == 0) {
         derived->signalers = END_OF_LIST;
     } else {
@@ -515,9 +515,9 @@ void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
     }
 }
 
-ocrTaskHc_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs) {
+ocrTaskHc_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFcts) {
     ocrTaskHc_t* newEdt = (ocrTaskHc_t*)checked_malloc(newEdt, sizeof(ocrTaskHc_t));
-    hcTaskConstructInternal(newEdt, funcPtr, paramc, params, paramv, depc, outputEvent, task_fct_ptrs);
+    hcTaskConstructInternal(newEdt, funcPtr, paramc, params, paramv, depc, outputEvent, taskFcts);
     ocrTask_t * newEdtBase = (ocrTask_t *) newEdt;
     // If we are creating a finish-edt
     if (hasProperty(properties, EDT_PROP_FINISH)) {
@@ -733,14 +733,14 @@ ocrGuid_t newTaskHc(ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 
         outputEvent = newEventHc(eventFactory, OCR_EVENT_STICKY_T, false);
         *outputEventPtr = outputEvent;
     }
-    ocrTaskHc_t* edt = hcTaskConstruct(fctPtr, paramc, params, paramv, properties, depc, outputEvent, factory->task_fct_ptrs);
+    ocrTaskHc_t* edt = hcTaskConstruct(fctPtr, paramc, params, paramv, properties, depc, outputEvent, factory->taskFcts);
     ocrTask_t* base = (ocrTask_t*) edt;
     return base->guid;
 }
 
 void destructTaskFactoryHc(ocrTaskFactory_t* base) {
     ocrTaskFactoryHc_t* derived = (ocrTaskFactoryHc_t*) base;
-    free(base->task_fct_ptrs);
+    free(base->taskFcts);
     free(derived);
 }
 
@@ -752,10 +752,10 @@ ocrTaskFactory_t * newTaskFactoryHc(void * config) {
     // initialize singleton instance that carries hc implementation 
     // function pointers. Every instantiated task will use this pointer
     // to resolve functions implementations.
-    base->task_fct_ptrs = (ocr_task_fcts_t *) checked_malloc(base->task_fct_ptrs, sizeof(ocr_task_fcts_t));
-    base->task_fct_ptrs->destruct = destructTaskHc;
-    base->task_fct_ptrs->execute = taskExecute;
-    base->task_fct_ptrs->schedule = tryScheduleTask;
+    base->taskFcts = (ocrTaskFcts_t *) checked_malloc(base->taskFcts, sizeof(ocrTaskFcts_t));
+    base->taskFcts->destruct = destructTaskHc;
+    base->taskFcts->execute = taskExecute;
+    base->taskFcts->schedule = tryScheduleTask;
     return base;
 }
 

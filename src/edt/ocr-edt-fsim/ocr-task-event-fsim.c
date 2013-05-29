@@ -41,7 +41,7 @@
 #define END_OF_LIST NULL
 
 void hcTaskConstructInternal2 (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
-        u32 paramc, u64 * params, void** paramv, size_t nbDeps, ocrGuid_t outputEvent, ocr_task_fcts_t * taskFctPtrs) {
+        u32 paramc, u64 * params, void** paramv, size_t nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs) {
     if (nbDeps == 0) {
         derived->signalers = END_OF_LIST;
     } else {
@@ -76,12 +76,11 @@ void destructTaskFsim ( ocrTask_t* base ) {
     free(derived);
 }
 
-ocrTaskFsim_t* newTaskFsimInternal (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs) {
+ocrTaskFsim_t* newTaskFsimInternal (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFcts) {
     ocrTaskFsim_t* derived = (ocrTaskFsim_t*) malloc(sizeof(ocrTaskFsim_t));
     ocrTaskHc_t* hcTaskBase = &(derived->fsimBase.base);
 
-    hcTaskBase->awaitList = hc_await_list_constructor(dep_list_size);
-    hc_task_construct_internal(hcTaskBase, funcPtr, paramc, params, paramv);
+    hcTaskConstructInternal2(hcTaskBase, funcPtr, paramc, params, paramv, depc, outputEvent, taskFcts);
 
     fsim_message_interface_t* fsimMessage = &(derived->fsimBase.message_interface);
     fsimMessage->is_message = fsim_task_is_message;
@@ -97,7 +96,7 @@ void destructTaskFactoryFsim ( ocrTaskFactory_t* base ) {
 }
 
 ocrGuid_t newTaskFsim ( ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, size_t depc, ocrGuid_t * outputEventPtr) {
-    ocrTaskFsim_t* edt = newTaskFsimInternal(fctPtr, paramc, params, paramv, properties, depc, NULL_GUID, factory->task_fct_ptrs);
+    ocrTaskFsim_t* edt = newTaskFsimInternal(fctPtr, paramc, params, paramv, properties, depc, NULL_GUID, factory->taskFcts);
     ocrTask_t* base = (ocrTask_t*) edt;
     return base->guid;
 }
@@ -108,10 +107,10 @@ ocrTaskFactory_t* newTaskFactoryFsim(void * config) {
     base->instantiate = newTaskFsim;
     base->destruct =  destructTaskFactoryFsim;
     // initialize singleton instance that carries implementation function pointers
-    base->task_fct_ptrs = (ocr_task_fcts_t *) checked_malloc(base->task_fct_ptrs, sizeof(ocr_task_fcts_t));
-    base->task_fct_ptrs->destruct = destructTaskFsim;
-    base->task_fct_ptrs->execute = taskExecute;
-    base->task_fct_ptrs->schedule = tryScheduleTask;
+    base->taskFcts = (ocrTaskFcts_t *) checked_malloc(base->taskFcts, sizeof(ocrTaskFcts_t));
+    base->taskFcts->destruct = destructTaskFsim;
+    base->taskFcts->execute = taskExecute;
+    base->taskFcts->schedule = tryScheduleTask;
     return base;
 }
 
@@ -129,12 +128,11 @@ void destructTaskFsimMessage ( ocrTask_t* base ) {
     free(derived);
 }
 
-ocrTaskFsimMessage_t* newTaskFsimMessageInternal (ocrEdt_t funcPtr, ocr_task_fcts_t * task_fct_ptrs) {
+ocrTaskFsimMessage_t* newTaskFsimMessageInternal (ocrEdt_t funcPtr, ocrTaskFcts_t * taskFcts) {
     ocrTaskFsimMessage_t* derived = (ocrTaskFsimMessage_t*) malloc(sizeof(ocrTaskFsimMessage_t));
     ocrTaskHc_t* hcTaskBase = &(derived->fsimBase.base);
 
-    hcTaskBase->awaitList = NULL;
-    hc_task_construct_internal(hcTaskBase, NULL, 0, NULL, NULL);
+    hcTaskConstructInternal2(hcTaskBase, NULL, 0, NULL, NULL, 0, NULL_GUID, taskFcts);
 
     fsim_message_interface_t* fsimMessage = &(derived->fsimBase.message_interface);
     fsimMessage->is_message = fsim_message_task_is_message;
@@ -146,7 +144,7 @@ ocrTaskFsimMessage_t* newTaskFsimMessageInternal (ocrEdt_t funcPtr, ocr_task_fct
 }
 
 ocrGuid_t newTaskFsimMessage ( ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, size_t depc, ocrGuid_t * outputEventPtr) {
-    ocrTaskFsimMessage_t* edt = newTaskFsimMessageInternal(fctPtr, factory->task_fct_ptrs);
+    ocrTaskFsimMessage_t* edt = newTaskFsimMessageInternal(fctPtr, factory->taskFcts);
     ocrTask_t* base = (ocrTask_t*) edt;
     return base->guid;
 }
@@ -157,10 +155,10 @@ ocrTaskFactory_t* newTaskFactoryFsimMessage(void * config) {
     base->instantiate = newTaskFsimMessage;
     base->destruct =  destructTaskFactoryFsimMessage;
     // initialize singleton instance that carries implementation function pointers
-    base->task_fct_ptrs = (ocr_task_fcts_t *) checked_malloc(base->task_fct_ptrs, sizeof(ocr_task_fcts_t));
-    base->task_fct_ptrs->destruct = destructTaskFsimMessage;
-    base->task_fct_ptrs->execute = taskExecute;
-    base->task_fct_ptrs->schedule = tryScheduleTask;
+    base->taskFcts = (ocrTaskFcts_t *) checked_malloc(base->taskFcts, sizeof(ocrTaskFcts_t));
+    base->taskFcts->destruct = destructTaskFsimMessage;
+    base->taskFcts->execute = taskExecute;
+    base->taskFcts->schedule = tryScheduleTask;
     return base;
 }
 

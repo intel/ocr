@@ -104,7 +104,7 @@ extern void * worker_computation_routine(void * arg);
  * TODO HC implementation exposed to support FSIM
  */
 extern void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
-        u32 paramc, u64 * params, void** paramv, size_t nbDeps, ocrGuid_t outputEvent, ocr_task_fcts_t * taskFctPtrs);
+        u32 paramc, u64 * params, void** paramv, size_t nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs);
 
 extern void taskSchedule( ocrGuid_t guid, ocrTask_t* base, ocrGuid_t wid );
 
