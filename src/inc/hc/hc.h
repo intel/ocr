@@ -54,7 +54,7 @@ typedef struct {
     ocrGuid_t currentEDT_guid;
 } hc_worker_t;
 
-ocr_worker_t* hc_worker_constructor(void);
+ocr_worker_t* newWorkerHc(void);
 
 
 /******************************************************/
@@ -72,7 +72,7 @@ typedef struct hc_workpile {
 /******************************************************/
 
 typedef struct {
-  ocrScheduler_t base;
+  ocrSchedulerFactory_t base;
 } ocrSchedulerFactoryHc_t;
 
 typedef struct {
