@@ -76,8 +76,8 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     ocr_worker_t * worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, worker_guid, (u64*)&worker, NULL);
 
-    ocr_scheduler_t * scheduler = get_worker_scheduler(worker);
-    ocr_policy_domain_t* policy = scheduler -> domain;
+    ocrScheduler_t * scheduler = get_worker_scheduler(worker);
+    ocr_policy_domain_t* policy = scheduler -> domain; 
 
     createdDb->create(createdDb, policy->getAllocator(policy, location), len, flags, NULL);
 #ifdef OCR_ENABLE_STATISTICS

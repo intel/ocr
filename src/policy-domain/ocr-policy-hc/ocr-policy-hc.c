@@ -35,7 +35,7 @@
 #include "ocr-policy-domain.h"
 
 void hc_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
-                             ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
+                             ocrScheduler_t ** schedulers, ocr_worker_t ** workers,
                              ocr_comp_target_t ** compTargets, ocr_workpile_t ** workpiles,
                              ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories) {
     policy->schedulers = schedulers;
@@ -121,7 +121,7 @@ void hc_ocr_module_map_schedulers_to_policy (void * self_module, ocr_module_kind
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) self_module;
     int i = 0;
     for ( i = 0; i < nb_instances; ++i ) {
-        ocr_scheduler_t* scheduler = ptr_instances[i];
+        ocrScheduler_t* scheduler = ptr_instances[i];
         scheduler->domain = policy;
     }
 }
@@ -250,7 +250,7 @@ ocrGuid_t leaf_policy_domain_handIn( ocr_policy_domain_t * this, ocr_policy_doma
 
 ocrGuid_t leaf_policy_domain_extract ( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
     // TODO sagnak BAD BAD hardcoding
-    ocr_scheduler_t* scheduler = this->schedulers[0];
+    ocrScheduler_t* scheduler = this->schedulers[0];
     return scheduler->take(scheduler, takingWorkerGuid);
 }
 
@@ -314,7 +314,7 @@ void ocr_module_map_nothing_to_place (void * self_module, ocr_module_kind kind,
 }
 
 void place_policy_domain_create (ocr_policy_domain_t * policy, void * configuration,
-                               ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
+                               ocrScheduler_t ** schedulers, ocr_worker_t ** workers,
                                ocr_comp_target_t ** compTargets, ocr_workpile_t ** workpiles,
                                ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories) {
     policy->schedulers = NULL;

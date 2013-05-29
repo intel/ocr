@@ -111,7 +111,7 @@ ocr_policy_domain_t* get_current_policy_domain () {
     ocr_worker_t * worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, worker_guid, (u64*)&worker, NULL);
 
-    ocr_scheduler_t * scheduler = get_worker_scheduler(worker);
+    ocrScheduler_t * scheduler = get_worker_scheduler(worker);
     ocr_policy_domain_t* policy_domain = scheduler -> domain;
 
     return policy_domain;

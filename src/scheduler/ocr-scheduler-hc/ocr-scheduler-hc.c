@@ -35,51 +35,44 @@
 #include "ocr-runtime.h"
 #include "hc.h"
 
+
 /******************************************************/
 /* OCR-HC SCHEDULER                                   */
 /******************************************************/
 
-void hc_scheduler_create(ocr_scheduler_t * base, void * per_type_configuration, void * per_instance_configuration) {
-    hc_scheduler_t* derived = (hc_scheduler_t*) base;
-    scheduler_configuration *mapper = (scheduler_configuration*)per_instance_configuration;
+// Fwd declaration
+ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
 
-    derived->worker_id_begin = mapper->worker_id_begin;
-    derived->worker_id_end = mapper->worker_id_end;
-    derived->n_workers_per_scheduler = 1 + derived->worker_id_end - derived->worker_id_begin;
+void destructSchedulerFactoryHc(ocrSchedulerFactory_t * factory) {
+    free(factory);
 }
 
-void hc_scheduler_destruct(ocr_scheduler_t * scheduler) {
-    // Free the workpile steal iterator cache
-    hc_scheduler_t * hc_scheduler = (hc_scheduler_t *) scheduler;
-    int nb_instances = hc_scheduler->n_pools;
-    workpile_iterator_t ** steal_iterators = hc_scheduler->steal_iterators;
-    int i = 0;
-    while(i < nb_instances) {
-        workpile_iterator_destructor(steal_iterators[i]);
-        i++;
-    }
-    free(steal_iterators);
-    // free self (workpiles are not allocated by the scheduler)
-    free(scheduler);
+ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(void * config) {
+    ocrSchedulerFactoryHc_t* derived = (ocrSchedulerFactoryHc_t*) checked_malloc(derived, sizeof(ocrSchedulerFactoryHc_t));
+    ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
+    base->instantiate = newSchedulerHc;
+    base->destruct =  destructSchedulerFactoryHc;
+    return base;
 }
 
-ocr_workpile_t * hc_scheduler_pop_mapping_one_to_one (ocr_scheduler_t* base, ocr_worker_t* w ) {
-    hc_scheduler_t* derived = (hc_scheduler_t*) base;
+ocr_workpile_t * hc_scheduler_pop_mapping_one_to_one (ocrScheduler_t* base, ocr_worker_t* w ) {
+    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler ];
 }
 
-ocr_workpile_t * hc_scheduler_push_mapping_one_to_one (ocr_scheduler_t* base, ocr_worker_t* w ) {
-    hc_scheduler_t* derived = (hc_scheduler_t*) base;
+ocr_workpile_t * hc_scheduler_push_mapping_one_to_one (ocrScheduler_t* base, ocr_worker_t* w ) {
+    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler];
 }
 
-workpile_iterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocr_scheduler_t* base, ocr_worker_t* w ) {
-    hc_scheduler_t* derived = (hc_scheduler_t*) base;
-    return workpile_iterator_constructor(get_worker_id(w)% derived->n_workers_per_scheduler, derived->n_pools, derived->pools);
+workpile_iterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocrScheduler_t* base, ocr_worker_t* w ) {
+    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
+    workpile_iterator_t * steal_iterator = derived->steal_iterators[get_worker_id(w)];
+    steal_iterator->reset(steal_iterator);
+    return steal_iterator;
 }
 
-ocrGuid_t hc_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
-    // First try to pop
+ocrGuid_t hc_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
     ocr_worker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
@@ -98,7 +91,7 @@ ocrGuid_t hc_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
     return popped;
 }
 
-void hc_scheduler_give (ocr_scheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
+void hc_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
     ocr_worker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
@@ -115,7 +108,7 @@ void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocr_module_ki
     assert(kind == OCR_WORKPILE);
     // allocate steal iterator cache
     workpile_iterator_t ** steal_iterators_cache = checked_malloc(steal_iterators_cache, sizeof(workpile_iterator_t *)*nb_instances);
-    hc_scheduler_t * scheduler = (hc_scheduler_t *) self_module;
+    ocrSchedulerHc_t * scheduler = (ocrSchedulerHc_t *) self_module;
     scheduler->n_pools = nb_instances;
     scheduler->pools = (ocr_workpile_t **)ptr_instances;
     // Initialize steal iterator cache
@@ -128,27 +121,52 @@ void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocr_module_ki
     scheduler->steal_iterators = steal_iterators_cache;
 }
 
-ocr_scheduler_t* hc_scheduler_constructor() {
-    hc_scheduler_t* derived = (hc_scheduler_t*) checked_malloc(derived, sizeof(hc_scheduler_t));
-    ocr_scheduler_t* base = (ocr_scheduler_t*)derived;
+void destructSchedulerHc(ocrScheduler_t * scheduler) {
+    // Free the workpile steal iterator cache
+    ocrSchedulerHc_t * hc_scheduler = (ocrSchedulerHc_t *) scheduler;
+    int nb_instances = hc_scheduler->n_pools;
+    workpile_iterator_t ** steal_iterators = hc_scheduler->steal_iterators;
+    int i = 0;
+    while(i < nb_instances) {
+        workpile_iterator_destructor(steal_iterators[i]);
+        i++;
+    }
+    free(steal_iterators);
+    // free self (workpiles are not allocated by the scheduler)
+    free(scheduler);
+}
+
+ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration) {
+    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) checked_malloc(derived, sizeof(ocrSchedulerHc_t));
+    ocrScheduler_t* base = (ocrScheduler_t*)derived;
     ocr_module_t * module_base = (ocr_module_t *) base;
     module_base->map_fct = hc_ocr_module_map_workpiles_to_schedulers;
-    base -> create = hc_scheduler_create;
-    base -> destruct = hc_scheduler_destruct;
+    base -> destruct = destructSchedulerHc;
     base -> pop_mapping = hc_scheduler_pop_mapping_one_to_one;
     base -> push_mapping = hc_scheduler_push_mapping_one_to_one;
     base -> steal_mapping = hc_scheduler_steal_mapping_one_to_all_but_self;
     base -> take = hc_scheduler_take;
     base -> give = hc_scheduler_give;
+
+    scheduler_configuration *mapper = (scheduler_configuration*)per_instance_configuration;
+    derived->worker_id_begin = mapper->worker_id_begin;
+    derived->worker_id_end = mapper->worker_id_end;
+    derived->n_workers_per_scheduler = 1 + derived->worker_id_end - derived->worker_id_begin;
+
     return base;
 }
 
-workpile_iterator_t* hc_scheduler_steal_mapping_assert (ocr_scheduler_t* base, ocr_worker_t* w ) {
+
+/******************************************************/
+/* OCR-HC-PLACED SCHEDULER                            */
+/******************************************************/
+
+workpile_iterator_t* hc_scheduler_steal_mapping_assert (ocrScheduler_t* base, ocr_worker_t* w ) {
     assert ( 0 && "We should not ask for a steal mapping from this scheduler");
     return NULL;
 }
 
-ocrGuid_t hc_placed_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
+ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
     ocr_worker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
@@ -156,7 +174,7 @@ ocrGuid_t hc_placed_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
 
     int worker_id = get_worker_id(w);
 
-    hc_scheduler_t* derived = (hc_scheduler_t*) base;
+    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     if ( worker_id >= derived->worker_id_begin && worker_id <= derived->worker_id_end ) {
         ocr_workpile_t * wp_to_pop = base->pop_mapping(base, w);
         popped = wp_to_pop->pop(wp_to_pop);
@@ -175,7 +193,7 @@ ocrGuid_t hc_placed_scheduler_take (ocr_scheduler_t* base, ocrGuid_t wid ) {
     return popped;
 }
 
-void hc_placed_scheduler_give (ocr_scheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
+void hc_placed_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
     ocr_worker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
@@ -184,17 +202,30 @@ void hc_placed_scheduler_give (ocr_scheduler_t* base, ocrGuid_t wid, ocrGuid_t t
     wp_to_push->push(wp_to_push,tid);
 }
 
-ocr_scheduler_t* hc_placed_scheduler_constructor() {
-    hc_scheduler_t* derived = (hc_scheduler_t*) malloc(sizeof(hc_scheduler_t));
-    ocr_scheduler_t* base = (ocr_scheduler_t*)derived;
+ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration) {
+    // piggy-back on the regular HC scheduler but use different function pointers
+    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) malloc(sizeof(ocrSchedulerHc_t));
+    ocrScheduler_t* base = (ocrScheduler_t*)derived;
     ocr_module_t * module_base = (ocr_module_t *) base;
     module_base->map_fct = hc_ocr_module_map_workpiles_to_schedulers;
-    base -> create = hc_scheduler_create;
-    base -> destruct = hc_scheduler_destruct;
+    base -> destruct = destructSchedulerHc;
     base -> pop_mapping = hc_scheduler_pop_mapping_one_to_one;
     base -> push_mapping = hc_scheduler_push_mapping_one_to_one;
     base -> steal_mapping = hc_scheduler_steal_mapping_assert;
     base -> take = hc_placed_scheduler_take;
     base -> give = hc_placed_scheduler_give;
+
+    scheduler_configuration *mapper = (scheduler_configuration*)per_instance_configuration;
+    derived->worker_id_begin = mapper->worker_id_begin;
+    derived->worker_id_end = mapper->worker_id_end;
+    derived->n_workers_per_scheduler = 1 + derived->worker_id_end - derived->worker_id_begin;
+    return base;
+}
+
+ocrSchedulerFactory_t * newOcrSchedulerFactoryHcPlaced(void * config) {
+    ocrSchedulerFactoryHc_t* derived = (ocrSchedulerFactoryHc_t*) checked_malloc(derived, sizeof(ocrSchedulerFactoryHc_t));
+    ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
+    base->instantiate = newSchedulerHcPlaced;
+    base->destruct =  destructSchedulerFactoryHc;
     return base;
 }

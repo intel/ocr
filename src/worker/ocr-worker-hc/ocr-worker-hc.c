@@ -41,7 +41,7 @@
 /* OCR-WORKER                                         */
 /******************************************************/
 
-ocr_scheduler_t * get_worker_scheduler(ocr_worker_t * worker) { return worker->scheduler; }
+ocrScheduler_t * get_worker_scheduler(ocr_worker_t * worker) { return worker->scheduler; }
 
 /******************************************************/
 /* OCR-HC WORKER                                      */
@@ -99,7 +99,7 @@ void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocr_module_kind k
     assert(kind == OCR_SCHEDULER);
     assert(nb_instances == 1);
     ocr_worker_t * worker = (ocr_worker_t *) self_module;
-    worker->scheduler = ((ocr_scheduler_t **) ptr_instances)[0];
+    worker->scheduler = ((ocrScheduler_t **) ptr_instances)[0];
 }
 
 /**
@@ -152,7 +152,7 @@ void * worker_computation_routine(void * arg) {
     /* associate current thread with the worker */
     associate_comp_platform_and_worker(worker);
     ocrGuid_t workerGuid = get_worker_guid(worker);
-    ocr_scheduler_t * scheduler = get_worker_scheduler(worker);
+    ocrScheduler_t * scheduler = get_worker_scheduler(worker);
     log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(worker));
     while(worker->is_running(worker)) {
         ocrGuid_t taskGuid = scheduler->take(scheduler, workerGuid);

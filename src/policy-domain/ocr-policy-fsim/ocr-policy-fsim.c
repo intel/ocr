@@ -33,7 +33,7 @@
 #include "ocr-policy-domain.h"
 
 void fsim_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
-                               ocr_scheduler_t ** schedulers, ocr_worker_t ** workers,
+                               ocrScheduler_t ** schedulers, ocr_worker_t ** workers,
                                ocr_comp_target_t ** compTargets, ocr_workpile_t ** workpiles,
                                ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories) {
     policy->schedulers = schedulers;
@@ -166,7 +166,7 @@ void fsim_ocr_module_map_schedulers_to_policy (void * self_module, ocr_module_ki
     assert(nb_instances == 1);
 
     ocr_policy_domain_t * policy = (ocr_policy_domain_t *) self_module;
-    ocr_scheduler_t* scheduler = ptr_instances[0];
+    ocrScheduler_t* scheduler = ptr_instances[0];
     scheduler->domain = policy;
 }
 
@@ -214,7 +214,7 @@ void ce_policy_domain_receive ( ocr_policy_domain_t * thisPolicy, ocrGuid_t give
     ocr_policy_domain_t* ceDomain = (ocr_policy_domain_t *) thisPolicy;
 
     // TODO sagnak, oooh nasty hardcoding
-    ocr_scheduler_t* ceScheduler = ceDomain->schedulers[0];
+    ocrScheduler_t* ceScheduler = ceDomain->schedulers[0];
     ceScheduler->give(ceScheduler, giverWorkerGuid, givenTaskGuid);
 }
 

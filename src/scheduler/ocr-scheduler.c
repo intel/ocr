@@ -34,21 +34,21 @@
 
 #include "ocr-scheduler.h"
 
-extern ocr_scheduler_t * hc_scheduler_constructor();
-extern ocr_scheduler_t * xe_scheduler_constructor();
-extern ocr_scheduler_t * ce_scheduler_constructor();
-extern ocr_scheduler_t * hc_placed_scheduler_constructor();
+extern ocrScheduler_t * newSchedulerHc(void * per_type_configuration, void * per_instance_configuration);
+extern ocrScheduler_t * newSchedulerHcPlaced(void * per_type_configuration, void * per_instance_configuration);
+extern ocrScheduler_t * newSchedulerFsimXE(void * per_type_configuration, void * per_instance_configuration);
+extern ocrScheduler_t * newSchedulerFsimCE(void * per_type_configuration, void * per_instance_configuration);
 
-ocr_scheduler_t * newScheduler(ocr_scheduler_kind schedulerType) {
+ocrScheduler_t * newScheduler(ocr_scheduler_kind schedulerType, void * per_type_configuration, void * per_instance_configuration) {
     switch(schedulerType) {
     case OCR_SCHEDULER_WST:
-        return hc_scheduler_constructor();
+        return newSchedulerHc(per_type_configuration, per_instance_configuration);
     case OCR_SCHEDULER_XE:
-        return xe_scheduler_constructor();
+        return newSchedulerFsimXE(per_type_configuration, per_instance_configuration);
     case OCR_SCHEDULER_CE:
-        return ce_scheduler_constructor();
+        return newSchedulerFsimCE(per_type_configuration, per_instance_configuration);
     case OCR_PLACED_SCHEDULER:
-        return hc_placed_scheduler_constructor();
+        return newSchedulerHcPlaced(per_type_configuration, per_instance_configuration);
     default:
         assert(false && "Unrecognized scheduler kind");
         break;

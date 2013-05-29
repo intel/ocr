@@ -57,17 +57,22 @@ typedef struct ce_message_workpile {
 /* OCR-FSIM SCHEDULERS                                */
 /******************************************************/
 
-typedef struct {
-    hc_scheduler_t scheduler;
-} xe_scheduler_t;
+typedef struct  {
+    ocrSchedulerFactory_t base;
+} ocrSchedulerFactoryFsimXE_t;
+
+typedef struct  {
+    ocrSchedulerFactory_t base;
+} ocrSchedulerFactoryFsimCE_t;
 
 typedef struct {
-    hc_scheduler_t scheduler;
+    ocrSchedulerHc_t scheduler;
+} ocrSchedulerFsimXE_t;
+
+typedef struct {
+    ocrSchedulerHc_t scheduler;
     int in_message_popping_mode;
-} ce_scheduler_t;
-
-ocr_scheduler_t * xe_scheduler_constructor(void);
-ocr_scheduler_t * ce_scheduler_constructor(void);
+} ocrSchedulerFsimCE_t;
 
 /******************************************************/
 /* OCR-FSIM Task Factory                              */

@@ -623,7 +623,7 @@ static void edtRegisterSignaler(ocrTask_t * base, ocrGuid_t signalerGuid, int sl
 void taskSchedule( ocrGuid_t guid, ocrTask_t* base, ocrGuid_t wid ) {
     ocr_worker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
-    ocr_scheduler_t * scheduler = get_worker_scheduler(w);
+    ocrScheduler_t * scheduler = get_worker_scheduler(w);
     scheduler->give(scheduler, wid, guid);
 }
 

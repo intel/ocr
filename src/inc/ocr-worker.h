@@ -84,7 +84,7 @@ typedef void (*ocr_worker_set_currentEDT)(struct ocr_worker_struct *base, ocrGui
 typedef struct ocr_worker_struct {
     ocr_module_t module;
     ocrGuid_t guid;
-    ocr_scheduler_t * scheduler;
+    ocrScheduler_t * scheduler;
     worker_routine routine;
     ocr_worker_create_fct create;
     ocr_worker_destruct_fct destruct;
@@ -106,7 +106,7 @@ ocrGuid_t get_worker_guid(ocr_worker_t * worker);
 /*! \brief Getter for the scheduler, where this Worker works on
  *  \return Scheduler member field for Worker, the one this Worker works on
  */
-ocr_scheduler_t * get_worker_scheduler(ocr_worker_t * worker);
+ocrScheduler_t * get_worker_scheduler(ocr_worker_t * worker);
 
 /*! \brief Associate a worker to a comp-platform.
  *  \param[in] worker

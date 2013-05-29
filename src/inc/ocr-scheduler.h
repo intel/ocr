@@ -47,6 +47,11 @@
 struct ocr_worker_struct;
 struct ocr_scheduler_struct;
 
+typedef struct ocrSchedulerFactory_t {
+    struct ocr_scheduler_struct * (*instantiate) ( struct ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+    void (*destruct)(struct ocrSchedulerFactory_t * factory);
+} ocrSchedulerFactory_t;
+
 typedef void (*scheduler_create_fct) (struct ocr_scheduler_struct*, void * per_type_configuration, void * per_instance_configuration);
 typedef void (*scheduler_destruct_fct) (struct ocr_scheduler_struct*);
 
@@ -75,7 +80,6 @@ struct ocr_policy_domain_struct;
  */
 typedef struct ocr_scheduler_struct {
     ocr_module_t module;
-    scheduler_create_fct create;
     scheduler_destruct_fct destruct;
     scheduler_pop_mapping_fct pop_mapping;
     scheduler_push_mapping_fct push_mapping;
@@ -84,7 +88,7 @@ typedef struct ocr_scheduler_struct {
     scheduler_give_fct give;
     ocr_module_map_fct map;
     struct ocr_policy_domain_struct* domain;
-} ocr_scheduler_t;
+} ocrScheduler_t;
 
 
 /****************************************************/
@@ -98,7 +102,7 @@ typedef enum ocr_scheduler_kind_enum {
     , OCR_PLACED_SCHEDULER = 4
 } ocr_scheduler_kind;
 
-ocr_scheduler_t * newScheduler(ocr_scheduler_kind schedulerType);
+ocrScheduler_t * newScheduler(ocr_scheduler_kind schedulerType, void * per_type_configuration, void * per_instance_configuration);
 
 /* we have to end up exposing the configuration declarations too for the runtime model
  * I do not know if abstract factories may help with this situation */

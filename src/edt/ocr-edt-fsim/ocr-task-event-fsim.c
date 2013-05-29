@@ -169,7 +169,7 @@ void * xe_worker_computation_routine (void * arg) {
     associate_comp_platform_and_worker(baseWorker);
 
     ocrGuid_t workerGuid = get_worker_guid(baseWorker);
-    ocr_scheduler_t * xeScheduler = get_worker_scheduler(baseWorker);
+    ocrScheduler_t * xeScheduler = get_worker_scheduler(baseWorker);
 
     log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(baseWorker));
 
@@ -217,7 +217,7 @@ void * xe_worker_computation_routine (void * arg) {
 
 void * ce_worker_computation_routine(void * arg) {
     ocr_worker_t * ceWorker = (ocr_worker_t *) arg;
-    ocr_scheduler_t * ceScheduler = get_worker_scheduler(ceWorker);
+    ocrScheduler_t * ceScheduler = get_worker_scheduler(ceWorker);
 
     /* associate current thread with the worker */
     associate_comp_platform_and_worker(ceWorker);
@@ -244,13 +244,13 @@ void * ce_worker_computation_routine(void * arg) {
             ocrTaskFsimMessage_t* currMessageTask = (ocrTaskFsimMessage_t*) currTask;
 
             // TODO sagnak, we seem to 'know' the underlying scheduler type, not sure if this is a good idea
-            ce_scheduler_t* derivedCeScheduler = (ce_scheduler_t*) ceScheduler;
+            ocrSchedulerFsimCE_t * derivedCeScheduler = (ocrSchedulerFsimCE_t*) ceScheduler;
 
             // find the worker, scheduler the message originated from
             ocrGuid_t targetWorkerGuid = currMessageTask->from_worker_guid;
             ocr_worker_t* targetWorker= NULL;
             globalGuidProvider->getVal(globalGuidProvider, targetWorkerGuid, (u64*)&(targetWorker), NULL);
-            ocr_scheduler_t* targetScheduler = get_worker_scheduler(targetWorker);
+            ocrScheduler_t* targetScheduler = get_worker_scheduler(targetWorker);
 
             switch (currMessageTask->type) {
             case GIVE_ME_WORK:
