@@ -66,7 +66,7 @@ static void event_list_node_destructor (event_list_node_t* node) {
 void event_list_enlist ( event_list_t* list, ocrGuid_t event_guid ) {
     assert(false);
     //DISABLE to build on hudson
-    // ocr_event_t * event = NULL;
+    // ocrEvent_t * event = NULL;
     // globalGuidProvider->getVal(globalGuidProvider, event_guid, (u64*)&event, NULL);
 
     // ++list->size;

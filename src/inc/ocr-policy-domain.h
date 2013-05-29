@@ -80,7 +80,7 @@ typedef struct ocr_policy_domain_struct {
     ocrMemPlatform_t ** memories;
 
     ocrTaskFactory_t** taskFactories;
-    ocr_event_factory** eventFactories;
+    ocrEventFactory_t** eventFactories;
 
     ocr_policy_create_fct create;
     ocr_policy_start_fct start;
@@ -96,7 +96,7 @@ typedef struct ocr_policy_domain_struct {
     ocrGuid_t (*extract) (struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * takingPolicy, ocrGuid_t takingWorkerGuid);
 
     ocrTaskFactory_t* (*getTaskFactoryForUserTasks) (struct ocr_policy_domain_struct * policy);
-    ocr_event_factory* (*getEventFactoryForUserEvents) (struct ocr_policy_domain_struct * policy);
+    ocrEventFactory_t* (*getEventFactoryForUserEvents) (struct ocr_policy_domain_struct * policy);
 
     struct ocr_policy_domain_struct** successors;
     struct ocr_policy_domain_struct** predecessors;

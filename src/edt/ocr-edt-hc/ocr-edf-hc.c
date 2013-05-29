@@ -65,7 +65,7 @@ static bool isEdtGuid(ocrGuid_t guid) {
 
 static bool isEventLatchGuid(ocrGuid_t guid) {
     if(isEventGuid(guid)) {
-        hc_event_t * event = NULL;
+        ocrEventHc_t * event = NULL;
         globalGuidProvider->getVal(globalGuidProvider, guid, (u64*)&event, NULL);
         return (event->kind == OCR_EVENT_LATCH_T);
     }
@@ -74,7 +74,7 @@ static bool isEventLatchGuid(ocrGuid_t guid) {
 
 static bool isEventSingleGuid(ocrGuid_t guid) {
     if(isEventGuid(guid)) {
-        hc_event_t * event = NULL;
+        ocrEventHc_t * event = NULL;
         globalGuidProvider->getVal(globalGuidProvider, guid, (u64*)&event, NULL);
         return ((event->kind == OCR_EVENT_ONCE_T) 
             || (event->kind == OCR_EVENT_IDEM_T) 
@@ -124,10 +124,7 @@ static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int s
 
 static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
 
-// finish-latch function pointers
-static ocr_event_fcts_t * event_fct_ptrs_finishlatch;
-
-static void finishLatchCheckout(ocr_event_t * base);
+static void finishLatchCheckout(ocrEvent_t * base);
 
 /******************************************************/
 /* OCR-HC Events Implementation                       */
@@ -143,41 +140,41 @@ static void finishLatchCheckout(ocr_event_t * base);
 
 // Generic initializer for events. Implementation-dependent event functions
 // are passed through the function pointer data-structure.
-static struct ocr_event_struct* eventConstructor(ocr_event_factory * factory, ocrEventTypes_t eventType, bool takesArg) {
-    ocr_event_t* base = NULL;
-    ocr_event_fcts_t * eventFctPtrs = NULL;
+static ocrEvent_t* eventConstructorInternal(ocrEventFactory_t * factory, ocrEventTypes_t eventType, bool takesArg) {
+    ocrEvent_t* base = NULL;
+    ocrEventFcts_t * eventFctPtrs = NULL;
     if (eventType == OCR_EVENT_FINISH_LATCH_T) {
-    	hc_event_finishlatch_t * eventImpl = (hc_event_finishlatch_t*) checked_malloc(eventImpl, sizeof(hc_event_finishlatch_t));
-    	eventImpl->counter = 0;
-    	//Note: waiters are initialized afterwards
-    	eventFctPtrs = event_fct_ptrs_finishlatch;
-        base = (ocr_event_t*)eventImpl;
+        ocrEventHcFinishLatch_t * eventImpl = (ocrEventHcFinishLatch_t*) checked_malloc(eventImpl, sizeof(ocrEventHcFinishLatch_t));
+        eventImpl->counter = 0;
+        //Note: waiters are initialized afterwards
+        eventFctPtrs = ((ocrEventFactoryHc_t*)factory)->finishLatchFcts;
+        base = (ocrEvent_t*)eventImpl;
     } else if (eventType == OCR_EVENT_LATCH_T) {
-        hc_event_latch_t * eventImpl = (hc_event_latch_t*) checked_malloc(eventImpl, sizeof(hc_event_latch_t));
+        ocrEventHcLatch_t * eventImpl = (ocrEventHcLatch_t*) checked_malloc(eventImpl, sizeof(ocrEventHcLatch_t));
         (eventImpl->base).waiters = END_OF_LIST;
         (eventImpl->base).signalers = END_OF_LIST;
         (eventImpl->base).data = NULL_GUID;
         eventImpl->counter = 0;
-        eventFctPtrs = factory->event_fct_ptrs_latch;
-        base = (ocr_event_t*)eventImpl;
+        eventFctPtrs = factory->latchFcts;
+        base = (ocrEvent_t*)eventImpl;
     } else {
         assert(((eventType == OCR_EVENT_ONCE_T) ||
                 (eventType == OCR_EVENT_IDEM_T) ||
                 (eventType == OCR_EVENT_STICKY_T)) &&
                 "error: Unsupported type of event");
-        hc_event_single_t* eventImpl = (hc_event_single_t*) checked_malloc(eventImpl, sizeof(hc_event_single_t));
+        ocrEventHcSingle_t* eventImpl = (ocrEventHcSingle_t*) checked_malloc(eventImpl, sizeof(ocrEventHcSingle_t));
         (eventImpl->base).waiters = END_OF_LIST;
         (eventImpl->base).signalers = END_OF_LIST;
         (eventImpl->base).data = UNINITIALIZED_DATA;
-        eventFctPtrs = factory->event_fct_ptrs_single;
-        base = (ocr_event_t*)eventImpl;
+        eventFctPtrs = factory->singleFcts;
+        base = (ocrEvent_t*)eventImpl;
     }
 
-    // Initialize hc_event_t
-    hc_event_t * hcImpl =  (hc_event_t *) base;
+    // Initialize ocrEventHc_t
+    ocrEventHc_t * hcImpl =  (ocrEventHc_t *) base;
     hcImpl->kind = eventType;
 
-    // Initialize ocr_event_t base
+    // Initialize ocrEvent_t base
     base->fct_ptrs = eventFctPtrs;
     base->guid = UNINITIALIZED_GUID;
     globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_EVENT);
@@ -185,9 +182,10 @@ static struct ocr_event_struct* eventConstructor(ocr_event_factory * factory, oc
     return base;
 }
 
-void eventDestructor ( struct ocr_event_struct* base ) {
-    // Event's signaler/waiter must have been deallocated at some point before.// For instance on satisfy.
-    hc_event_t* derived = (hc_event_t*)base;
+void destructEventHc ( ocrEvent_t* base ) {
+    // Event's signaler/waiter must have been previously deallocated 
+    // at some point before. For instance on satisfy.
+    ocrEventHc_t* derived = (ocrEventHc_t*)base;
     globalGuidProvider->releaseGuid(globalGuidProvider, base->guid);
     free(derived);
 }
@@ -200,7 +198,7 @@ void eventDestructor ( struct ocr_event_struct* base ) {
 // Registers a 'waiter' that should be signaled by 'self' on a particular slot.
 // If 'self' has already been satisfied, it signals 'waiter' right away.
 // Warning: Concurrent with  event's put.
-static void awaitableEventRegisterWaiter(hc_event_awaitable_t * self, ocrGuid_t waiter, int slot) {
+static void awaitableEventRegisterWaiter(ocrEventHcAwaitable_t * self, ocrGuid_t waiter, int slot) {
     // Try to insert 'waiter' at the beginning of the list
     reg_node_t * curHead = (reg_node_t *) self->waiters;
     if(curHead != SEALED_LIST) {
@@ -228,7 +226,7 @@ static void awaitableEventRegisterWaiter(hc_event_awaitable_t * self, ocrGuid_t 
 
 // Set a single event data guid
 // Warning: Concurrent with registration on sticky event.
-static reg_node_t * singleEventPut(hc_event_awaitable_t * self, ocrGuid_t data ) {
+static reg_node_t * singleEventPut(ocrEventHcAwaitable_t * self, ocrGuid_t data ) {
     // TODO This is not enough to always detect concurrent puts.
     assert (self->data == UNINITIALIZED_DATA && "violated single assignment property for EDFs");
     self->data = data;
@@ -249,9 +247,9 @@ static reg_node_t * singleEventPut(hc_event_awaitable_t * self, ocrGuid_t data )
 
 // This is setting a sticky event's data
 // slotEvent is ignored for stickies.
-void singleEventSatisfy(ocr_event_t * base, ocrGuid_t data, int slotEvent) {
-    hc_event_t * hcSelf = (hc_event_t *) base;
-    hc_event_awaitable_t * self = (hc_event_awaitable_t *) base;
+void singleEventSatisfy(ocrEvent_t * base, ocrGuid_t data, int slotEvent) {
+    ocrEventHc_t * hcSelf = (ocrEventHc_t *) base;
+    ocrEventHcAwaitable_t * self = (ocrEventHcAwaitable_t *) base;
 
     // Whether it is a once, idem or sticky, unitialized means it's the first
     // time we try to satisfy the event. Note: It's a very loose check, the 
@@ -277,7 +275,7 @@ void singleEventSatisfy(ocr_event_t * base, ocrGuid_t data, int slotEvent) {
         }
         if (hcSelf->kind == OCR_EVENT_ONCE_T) {
             // once-events die after satisfy has been called
-            eventDestructor(base);
+            destructEventHc(base);
         }
     } else {
         // once-events cannot survive down here
@@ -290,13 +288,13 @@ void singleEventSatisfy(ocr_event_t * base, ocrGuid_t data, int slotEvent) {
 
 // Internal signal/wait notification
 // Signal a sticky event some data arrived (on its unique slot)
-static void singleEventSignaled(ocr_event_t * self, ocrGuid_t data, int slot) {
+static void singleEventSignaled(ocrEvent_t * self, ocrGuid_t data, int slot) {
     // Single event signaled by another entity, call its satisfy method.
     singleEventSatisfy(self, data, slot);
 }
 
-ocrGuid_t singleEventGet (ocr_event_t * base) {
-    hc_event_awaitable_t * self = (hc_event_awaitable_t*) base;
+ocrGuid_t singleEventGet (ocrEvent_t * base) {
+    ocrEventHcAwaitable_t * self = (ocrEventHcAwaitable_t*) base;
     return (self->data == UNINITIALIZED_DATA) ? ERROR_GUID : self->data;
 }
 
@@ -307,9 +305,9 @@ ocrGuid_t singleEventGet (ocr_event_t * base) {
 
 
 // Runs concurrently with registration on latch
-void latchEventSatisfy(ocr_event_t * base, ocrGuid_t data, int slot) {
+void latchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, int slot) {
     assert((slot == OCR_EVENT_LATCH_DECR_SLOT) || (slot == OCR_EVENT_LATCH_INCR_SLOT));
-    hc_event_latch_t * latch = (hc_event_latch_t *) base;
+    ocrEventHcLatch_t * latch = (ocrEventHcLatch_t *) base;
     int incr = (slot == OCR_EVENT_LATCH_DECR_SLOT) ? -1 : 1;
     int count;
     do {
@@ -317,7 +315,7 @@ void latchEventSatisfy(ocr_event_t * base, ocrGuid_t data, int slot) {
     } while(!__sync_bool_compare_and_swap(&(latch->counter), count, count+incr));
 
     if ((count+incr) == 0) {
-        hc_event_awaitable_t * self = (hc_event_awaitable_t *) base;
+        ocrEventHcAwaitable_t * self = (ocrEventHcAwaitable_t *) base;
         //TODO add API to seal a list
         //TODO: do we need volatile here ?
         // CAS the wait-list
@@ -345,13 +343,13 @@ void latchEventSatisfy(ocr_event_t * base, ocrGuid_t data, int slot) {
 
 // Internal signal/wait notification
 // Signal a latch event some data arrived on one of its
-static void latchEventSignaled(ocr_event_t * self, ocrGuid_t data, int slot) {
+static void latchEventSignaled(ocrEvent_t * self, ocrGuid_t data, int slot) {
     // latch event signaled by another entity, call its satisfy method.
     latchEventSatisfy(self, data, slot);
 }
 
 // Latch-event doesn't have an output value
-ocrGuid_t latchEventGet(ocr_event_t * base) {
+ocrGuid_t latchEventGet(ocrEvent_t * base) {
     return NULL_GUID;
 }
 
@@ -366,9 +364,9 @@ ocrGuid_t latchEventGet(ocr_event_t * base) {
 // Requirements:
 //  R1) All dependences (what the finish latch will satisfy) are provided at creation. This implementation DOES NOT support outstanding registrations.
 //  R2) Number of incr and decr signaled on the event MUST BE equal.
-void finishLatchEventSatisfy(ocr_event_t * base, ocrGuid_t data, int slot) {
+void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, int slot) {
     assert((slot == FINISH_LATCH_DECR_SLOT) || (slot == FINISH_LATCH_INCR_SLOT));
-    hc_event_finishlatch_t * self = (hc_event_finishlatch_t *) base;
+    ocrEventHcFinishLatch_t * self = (ocrEventHcFinishLatch_t *) base;
     int incr = (slot == FINISH_LATCH_DECR_SLOT) ? -1 : 1;
     int count;
     do {
@@ -390,17 +388,17 @@ void finishLatchEventSatisfy(ocr_event_t * base, ocrGuid_t data, int slot) {
         // Notify the parent latch if any
         reg_node_t * parentLatchWaiter = &(self->parentLatchWaiter);
         if (parentLatchWaiter->guid != NULL_GUID) {
-            ocr_event_t * parentLatch;
+            ocrEvent_t * parentLatch;
             globalGuidProvider->getVal(globalGuidProvider, parentLatchWaiter->guid, (u64*)&parentLatch, NULL);
             finishLatchCheckout(parentLatch);
         }
         // Since finish-latch is internal to finish-edt, and ELS is cleared, // there are no more pointers left to it, deallocate.
-        eventDestructor(base);
+        destructEventHc(base);
     }
 }
 
 // Finish-latch event doesn't have an output value
-ocrGuid_t finishLatchEventGet(ocr_event_t * base) {
+ocrGuid_t finishLatchEventGet(ocrEvent_t * base) {
     return NULL_GUID;
 }
 
@@ -410,12 +408,12 @@ ocrGuid_t finishLatchEventGet(ocr_event_t * base) {
 /******************************************************/
 
 // satisfies the incr slot of a finish latch event
-static void finishLatchCheckin(ocr_event_t * base) {
+static void finishLatchCheckin(ocrEvent_t * base) {
     finishLatchEventSatisfy(base, NULL_GUID, FINISH_LATCH_INCR_SLOT);
 }
 
 // satisfies the decr slot of a finish latch event
-static void finishLatchCheckout(ocr_event_t * base) {
+static void finishLatchCheckout(ocrEvent_t * base) {
     finishLatchEventSatisfy(base, NULL_GUID, FINISH_LATCH_DECR_SLOT);
 }
 
@@ -423,20 +421,20 @@ static void setFinishLatch(ocrTask_t * edt, ocrGuid_t latchGuid) {
     edt->els[ELS_SLOT_FINISH_LATCH] = latchGuid;
 }
 
-static ocr_event_t * getFinishLatch(ocrTask_t * edt) {
+static ocrEvent_t * getFinishLatch(ocrTask_t * edt) {
     if (edt != NULL) { //  NULL happens in main when there's no edt yet
         ocrGuid_t latchGuid = edt->els[ELS_SLOT_FINISH_LATCH];
         if (latchGuid != NULL_GUID) {
-            ocr_event_t * event = NULL;
-            globalGuidProvider->getVal(globalGuidProvider, latchGuid, (u64*)&event, NULL);        
+            ocrEvent_t * event = NULL;
+            globalGuidProvider->getVal(globalGuidProvider, latchGuid, (u64*)&event, NULL);
             return event;
         }
     }
     return NULL;
 }
 
-static bool isFinishLatchOwner(ocr_event_t * finishLatch, ocrGuid_t edtGuid) {
-    return (finishLatch != NULL) && (((hc_event_finishlatch_t *)finishLatch)->ownerGuid == edtGuid);
+static bool isFinishLatchOwner(ocrEvent_t * finishLatch, ocrGuid_t edtGuid) {
+    return (finishLatch != NULL) && (((ocrEventHcFinishLatch_t *)finishLatch)->ownerGuid == edtGuid);
 }
 
 
@@ -444,55 +442,51 @@ static bool isFinishLatchOwner(ocr_event_t * finishLatch, ocrGuid_t edtGuid) {
 /* OCR-HC Events Factory                              */
 /******************************************************/
 
-struct ocr_event_factory_struct* hc_event_factory_constructor(void) {
-    hc_event_factory* derived = (hc_event_factory*) checked_malloc(derived, sizeof(hc_event_factory));
-    ocr_event_factory* base = (ocr_event_factory*) derived;
-    base->create = hcEventFactoryCreate;
-    base->destruct =  hc_event_factory_destructor;
-    // initialize singleton instance that carries hc implementation function pointers
-    base->event_fct_ptrs_single = (ocr_event_fcts_t *) checked_malloc(base->event_fct_ptrs_single, sizeof(ocr_event_fcts_t));
-    base->event_fct_ptrs_single->destruct = eventDestructor;
-    base->event_fct_ptrs_single->get = singleEventGet;
-    base->event_fct_ptrs_single->satisfy = singleEventSatisfy;
-
-    // latch-events
-    base->event_fct_ptrs_latch = (ocr_event_fcts_t *) checked_malloc(base->event_fct_ptrs_latch, sizeof(ocr_event_fcts_t));
-    base->event_fct_ptrs_latch->destruct = eventDestructor;
-    base->event_fct_ptrs_latch->get = latchEventGet;
-    base->event_fct_ptrs_latch->satisfy = latchEventSatisfy;
-
-    //Note: Just store finish-latch function ptrs in a static since this is 
-    //      runtime implementation specific
-    event_fct_ptrs_finishlatch = (ocr_event_fcts_t *) checked_malloc(event_fct_ptrs_finishlatch, sizeof(ocr_event_fcts_t));
-    event_fct_ptrs_finishlatch->destruct = eventDestructor;
-    event_fct_ptrs_finishlatch->get = finishLatchEventGet;
-    event_fct_ptrs_finishlatch->satisfy = finishLatchEventSatisfy;
-
-    return base;
+// takesArg indicates whether or not this event carries any data
+ocrGuid_t newEventHc ( ocrEventFactory_t * factory, ocrEventTypes_t eventType, bool takesArg ) {
+    ocrEvent_t * res = eventConstructorInternal(factory, eventType, takesArg);
+    return res->guid;
 }
 
-void hc_event_factory_destructor ( struct ocr_event_factory_struct* base ) {
-    hc_event_factory* derived = (hc_event_factory*) base;
-    free(base->event_fct_ptrs_single);
-    free(base->event_fct_ptrs_latch);
-    free(event_fct_ptrs_finishlatch);
+void destructEventFactoryHc ( ocrEventFactory_t * base ) {
+    ocrEventFactoryHc_t* derived = (ocrEventFactoryHc_t*) base;
+    free(base->singleFcts);
+    free(base->latchFcts);
+    free(derived->finishLatchFcts);
     free(derived);
 }
 
-// takesArg indicates whether or not this event carries any data
-ocrGuid_t hcEventFactoryCreate ( struct ocr_event_factory_struct* factory, ocrEventTypes_t eventType, bool takesArg ) {
-    ocr_event_t * res = eventConstructor(factory, eventType, takesArg);
-    return res->guid;
+ocrEventFactory_t * newEventFactoryHc(void * config) {
+    ocrEventFactoryHc_t* derived = (ocrEventFactoryHc_t*) checked_malloc(derived, sizeof(ocrEventFactoryHc_t));
+    ocrEventFactory_t* base = (ocrEventFactory_t*) derived;
+    base->instantiate = newEventHc;
+    base->destruct =  destructEventFactoryHc;
+    // initialize singleton instance that carries hc implementation function pointers
+    base->singleFcts = (ocrEventFcts_t *) checked_malloc(base->singleFcts, sizeof(ocrEventFcts_t));
+    base->singleFcts->destruct = destructEventHc;
+    base->singleFcts->get = singleEventGet;
+    base->singleFcts->satisfy = singleEventSatisfy;
+
+    // latch-events
+    base->latchFcts = (ocrEventFcts_t *) checked_malloc(base->latchFcts, sizeof(ocrEventFcts_t));
+    base->latchFcts->destruct = destructEventHc;
+    base->latchFcts->get = latchEventGet;
+    base->latchFcts->satisfy = latchEventSatisfy;
+
+    //Note: Just store finish-latch function ptrs in a static since this is 
+    //      runtime implementation specific
+    derived->finishLatchFcts = (ocrEventFcts_t *) checked_malloc(derived->finishLatchFcts, sizeof(ocrEventFcts_t));
+    derived->finishLatchFcts->destruct = destructEventHc;
+    derived->finishLatchFcts->get = finishLatchEventGet;
+    derived->finishLatchFcts->satisfy = finishLatchEventSatisfy;
+
+    return base;
 }
 
 
 /******************************************************/
 /* OCR-HC Task Implementation                         */
 /******************************************************/
-
-// Forward declaration to keep related definitions together
-static void taskSchedule( ocrGuid_t this_guid, ocr_task_t* base, ocrGuid_t wid );
-
 
 void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
         u32 paramc, u64 * params, void** paramv, size_t nbDeps, ocrGuid_t outputEvent, ocr_task_fcts_t * taskFctPtrs) {
@@ -522,19 +516,18 @@ void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
 }
 
 ocrTaskHc_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t outputEvent, ocr_task_fcts_t * task_fct_ptrs) {
-
     ocrTaskHc_t* newEdt = (ocrTaskHc_t*)checked_malloc(newEdt, sizeof(ocrTaskHc_t));
     hcTaskConstructInternal(newEdt, funcPtr, paramc, params, paramv, depc, outputEvent, task_fct_ptrs);
     ocrTask_t * newEdtBase = (ocrTask_t *) newEdt;
     // If we are creating a finish-edt
     if (hasProperty(properties, EDT_PROP_FINISH)) {
         ocr_policy_domain_t* policy_domain = get_current_policy_domain();
-        ocr_event_factory * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
-        ocr_event_t * latch = eventConstructor(eventFactory, OCR_EVENT_FINISH_LATCH_T, false);
-        hc_event_finishlatch_t * hcLatch = (hc_event_finishlatch_t *) latch;
-        // Set the owner of the latch 
+        ocrEventFactory_t * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
+        ocrEvent_t * latch = eventConstructorInternal(eventFactory, OCR_EVENT_FINISH_LATCH_T, false);
+        ocrEventHcFinishLatch_t * hcLatch = (ocrEventHcFinishLatch_t *) latch;
+        // Set the owner of the latch
         hcLatch->ownerGuid = newEdtBase->guid;
-        ocr_event_t * parentLatch = getFinishLatch(getCurrentTask());
+        ocrEvent_t * parentLatch = getFinishLatch(getCurrentTask());
         if (parentLatch != NULL) {
             // Check in current finish latch
             finishLatchCheckin(parentLatch);
@@ -559,7 +552,7 @@ ocrTaskHc_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void *
     } else {
         // If the currently executing edt is in a finish scope, 
         // but is not a finish-edt itself, just register to the scope
-        ocr_event_t * curLatch = getFinishLatch(getCurrentTask());
+        ocrEvent_t * curLatch = getFinishLatch(getCurrentTask());
         if (curLatch != NULL) {
             // Check in current finish latch
             finishLatchCheckin(curLatch);
@@ -704,12 +697,12 @@ void taskExecute ( ocrTask_t* base ) {
     }
 
     // check out from current finish scope
-    ocr_event_t * curLatch = getFinishLatch(base);
+    ocrEvent_t * curLatch = getFinishLatch(base);
 
     if (curLatch != NULL) {
         // if own the latch, then set the retGuid
         if (isFinishLatchOwner(curLatch, base->guid)) {
-            ((hc_event_finishlatch_t *) curLatch)->returnGuid = retGuid;
+            ((ocrEventHcFinishLatch_t *) curLatch)->returnGuid = retGuid;
         }
         finishLatchCheckout(curLatch);
         // If the edt is the last to checkout from the current finish scope,
@@ -718,7 +711,7 @@ void taskExecute ( ocrTask_t* base ) {
     // When the edt is not a finish-edt, nobody signals its output
     // event but himself, do that now.
     if ((base->outputEvent != NULL_GUID) && !isFinishLatchOwner(curLatch, base->guid)) {
-        ocr_event_t * outputEvent;
+        ocrEvent_t * outputEvent;
         globalGuidProvider->getVal(globalGuidProvider, base->outputEvent, (u64*)&outputEvent, NULL);
         // We know the output event must be of type single sticky since it is
         // internally allocated by the runtime
@@ -735,7 +728,9 @@ ocrGuid_t newTaskHc(ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 
     // Initialize a sticky outputEvent if requested
     ocrGuid_t outputEvent = (ocrGuid_t) outputEventPtr;
     if (outputEvent != NULL_GUID) {
-        outputEvent = hcEventFactoryCreate(eventFactory, OCR_EVENT_STICKY_T, false);    
+        ocr_policy_domain_t* policy_domain = get_current_policy_domain();
+        ocrEventFactory_t * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
+        outputEvent = newEventHc(eventFactory, OCR_EVENT_STICKY_T, false);
         *outputEventPtr = outputEvent;
     }
     ocrTaskHc_t* edt = hcTaskConstruct(fctPtr, paramc, params, paramv, properties, depc, outputEvent, factory->task_fct_ptrs);
@@ -776,7 +771,7 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
     // Note: do not call 'registerWaiter' here as it triggers event-to-edt
     // registration, which should only be done on edtSchedule.
     if (isEventGuid(signalerGuid) && isEventGuid(waiterGuid)) {
-        hc_event_awaitable_t * target;
+        ocrEventHcAwaitable_t * target;
         globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
         awaitableEventRegisterWaiter(target, waiterGuid, slot);
         return;
@@ -792,7 +787,7 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
 static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
     if (isEventGuid(signalerGuid)) {
         assert(isEdtGuid(waiterGuid) || isEventGuid(waiterGuid));
-        hc_event_awaitable_t * target;
+        ocrEventHcAwaitable_t * target;
         globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
         awaitableEventRegisterWaiter(target, waiterGuid, slot);
     } else if(isDatablockGuid(signalerGuid) && isEdtGuid(waiterGuid)) {
@@ -816,7 +811,7 @@ static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int s
     // datablock to event registration => satisfy on the spot
     } else if (isDatablockGuid(signalerGuid)) {
         assert(isEventGuid(waiterGuid));
-        ocr_event_t * target = NULL;
+        ocrEvent_t * target = NULL;
         globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
         // This looks a duplicate of signalWaiter, however there hasn't
         // been any signal strictly speaking, hence calling satisfy directly
@@ -837,11 +832,11 @@ static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int s
 static void signalWaiter(ocrGuid_t waiterGuid, ocrGuid_t data, int slot) {
     // TODO do we need to know who's signaling ?
     if (isEventSingleGuid(waiterGuid)) {
-        ocr_event_t * target = NULL;
+        ocrEvent_t * target = NULL;
         globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
         singleEventSignaled(target, data, slot);
     } else if (isEventLatchGuid(waiterGuid)) {
-        ocr_event_t * target = NULL;
+        ocrEvent_t * target = NULL;
         globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
         latchEventSignaled(target, data, slot);
     } else if(isEdtGuid(waiterGuid)) {

@@ -47,11 +47,11 @@ void fsim_policy_domain_create(ocr_policy_domain_t * policy, void * configuratio
 static inline void start_task_event_factories ( ocr_policy_domain_t * policy ) {
     // Create Task and Event Factories
     policy->taskFactories = (ocrTaskFactory_t**) malloc(sizeof(ocrTaskFactory_t*)*2);
-    policy->eventFactories = (ocr_event_factory**) malloc(sizeof(ocr_event_factory*));
+    policy->eventFactories = (ocrEventFactory_t**) malloc(sizeof(ocrEventFactory_t*));
 
     policy->taskFactories[0] = newTaskFactoryFsim(NULL);
     policy->taskFactories[1] = newTaskFactoryFsimMessage(NULL);
-    policy->eventFactories[0] = hc_event_factory_constructor();
+    policy->eventFactories[0] = newEventFactoryHc(NULL);
 }
 
 void xe_policy_domain_start(ocr_policy_domain_t * policy) {
@@ -149,7 +149,7 @@ void fsim_policy_domain_destruct(ocr_policy_domain_t * policy) {
     taskFactories[1]->destruct(taskFactories[1]);
     free(taskFactories);
 
-    ocr_event_factory** eventFactories = policy->eventFactories;
+    ocrEventFactory_t** eventFactories = policy->eventFactories;
     eventFactories[0]->destruct(eventFactories[0]);
     free(eventFactories);
 }
@@ -174,7 +174,7 @@ ocrTaskFactory_t* fsim_policy_getTaskFactoryForUserTasks (ocr_policy_domain_t * 
     return policy->taskFactories[0];
 }
 
-ocr_event_factory* fsim_policy_getEventFactoryForUserEvents(ocr_policy_domain_t * policy) {
+ocrEventFactory_t* fsim_policy_getEventFactoryForUserEvents(ocr_policy_domain_t * policy) {
     return policy->eventFactories[0];
 }
 

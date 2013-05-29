@@ -37,13 +37,13 @@
 
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     ocr_policy_domain_t* policy_domain = get_current_policy_domain();
-    ocr_event_factory * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
-    *guid = eventFactory->create(eventFactory, eventType, takesArg);
+    ocrEventFactory_t * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
+    *guid = eventFactory->instantiate(eventFactory, eventType, takesArg);
     return 0;
 }
 
 u8 ocrEventDestroy(ocrGuid_t eventGuid) {
-    ocr_event_t * event = NULL;
+    ocrEvent_t * event = NULL;
     globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
     event->fct_ptrs->destruct(event);
     return 0;
@@ -51,7 +51,7 @@ u8 ocrEventDestroy(ocrGuid_t eventGuid) {
 
 u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/, int slot) {
     assert(eventGuid != NULL_GUID);
-    ocr_event_t * event = NULL;
+    ocrEvent_t * event = NULL;
     globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
     event->fct_ptrs->satisfy(event, dataGuid, slot);
     return 0;

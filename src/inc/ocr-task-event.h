@@ -40,9 +40,6 @@
 #endif
 
 struct ocr_event_struct;
-typedef void (*event_destruct_fct)(struct ocr_event_struct* event);
-typedef ocrGuid_t (*event_get_fct)(struct ocr_event_struct* event);
-typedef void (*event_satisfy_fct)(struct ocr_event_struct* event, ocrGuid_t db, int slot);
 
 /*! \brief Abstract class to represent OCR events function pointers
  *
@@ -57,19 +54,19 @@ typedef struct ocr_event_struct {
 typedef struct ocr_event_fcts_struct {
     /*! \brief Virtual destructor for the Event interface
      */
-    event_destruct_fct destruct;
+    void (*destruct)(struct ocr_event_struct* event);
 
     /*! \brief Interface to get the GUID of the entity that satisfied an event.
      *  \return GUID of the entity that satisfied this event
      */
-    event_get_fct get;
+    ocrGuid_t (*get) (struct ocr_event_struct* event);
 
     /*! \brief Interface to satisfy the event
      *  \param[in]  db  GUID to satisfy this event
      *  \param[in]  w   GUID of the Worker instance satisfying this event
      */
-    event_satisfy_fct satisfy;
-} ocr_event_fcts_t;
+    void (*satisfy)(struct ocr_event_struct* event, ocrGuid_t db, int slot);
+} ocrEventFcts_t;
 
 /*! \brief Abstract class to represent OCR events.
  *
@@ -82,8 +79,8 @@ typedef struct ocr_event_struct {
     ocrGuid_t guid; /**< GUID for this event */
     /*! \brief Holds function pointer to the event interface
      */
-    ocr_event_fcts_t * fct_ptrs;
-} ocr_event_t;
+    ocrEventFcts_t * fct_ptrs;
+} ocrEvent_t;
 
 
 /*******************************************
@@ -98,7 +95,7 @@ typedef struct ocr_event_struct {
  */
 typedef struct event_list_node_struct_t {
     /*! Public Event member of the linked list node wrapper */
-    ocr_event_t *event;
+    ocrEvent_t *event;
     /*! Public next Event member of the linked list node wrapper */
     struct event_list_node_struct_t *next;
 } event_list_node_t;
@@ -142,28 +139,25 @@ void event_list_destructor ( event_list_t* list );
 /*
  * OCR event factories declarations
  */
-struct ocr_event_factory_struct;
-typedef ocrGuid_t (*event_fact_create_fct) (struct ocr_event_factory_struct* factory, ocrEventTypes_t eventType, bool takesArg);
-typedef void (*event_fact_destruct_fct)(struct ocr_event_factory_struct* factory);
 
 /*! \brief Abstract factory class to create OCR events.
  *
  *  This class provides an interface to create Event instances with a non-static create function
- *  to allow runtime implementers to choose to have state in their derived ocr_event_factory classes.
+ *  to allow runtime implementers to choose to have state in their derived ocrEventFactory_t classes.
  */
-typedef struct ocr_event_factory_struct {
-    /*! \brief Creates an concrete implementation of an Event and returns its corresponding GUID
+typedef struct ocrEventFactory_t {
+    /*! \brief Instantiates an Event and returns its corresponding GUID
      *  \return GUID of the concrete Event that is created by this call
      */
-    event_fact_create_fct create;
+  ocrGuid_t (*instantiate) (struct ocrEventFactory_t* factory, ocrEventTypes_t eventType, bool takesArg);
 
-    /*! \brief Virtual destructor for the ocr_event_factory interface
+    /*! \brief Virtual destructor for the ocrEventFactory_t interface
      */
-    event_fact_destruct_fct destruct;
+  void (*destruct)(struct ocrEventFactory_t* factory);
 
-    ocr_event_fcts_t * event_fct_ptrs_single;
-    ocr_event_fcts_t * event_fct_ptrs_latch;
-} ocr_event_factory;
+    ocrEventFcts_t * singleFcts;
+    ocrEventFcts_t * latchFcts;
+} ocrEventFactory_t;
 
 
 /*******************************************

@@ -108,6 +108,6 @@ typedef struct {
     ocrGuid_t from_worker_guid;
 } ocrTaskFsimMessage_t;
 
-typedef hc_event_t fsim_event_t;
+typedef ocrEventHc_t fsim_event_t;
 
 #endif /* FSIM_H_ */

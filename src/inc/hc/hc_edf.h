@@ -39,13 +39,12 @@
 /* OCR-HC Event Factory                               */
 /******************************************************/
 
-typedef struct hc_event_factory {
-    ocr_event_factory base_factory;
-} hc_event_factory;
+typedef struct {
+    ocrEventFactory_t base_factory;
+    ocrEventFcts_t * finishLatchFcts;
+} ocrEventFactoryHc_t;
 
-struct ocr_event_factory_struct* hc_event_factory_constructor(void);
-void hc_event_factory_destructor ( struct ocr_event_factory_struct* base );
-ocrGuid_t hcEventFactoryCreate ( struct ocr_event_factory_struct* factory, ocrEventTypes_t eventType, bool takesArg );
+ocrEventFactory_t* newEventFactoryHc(void * config);
 
 typedef struct reg_node_st {
     ocrGuid_t guid;
@@ -53,56 +52,36 @@ typedef struct reg_node_st {
     struct reg_node_st* next ;
 } reg_node_t;
 
-typedef struct hc_event_t {
-    ocr_event_t base;
+typedef struct ocrEventHc_t {
+    ocrEvent_t base;
     ocrEventTypes_t kind;
-} hc_event_t;
+} ocrEventHc_t;
 
-typedef struct hc_event_awaitable_t {
-    hc_event_t base;
+typedef struct ocrEventHcAwaitable_t {
+    ocrEventHc_t base;
     volatile reg_node_t * waiters;
     volatile reg_node_t * signalers;
     ocrGuid_t data;
-} hc_event_awaitable_t;
+} ocrEventHcAwaitable_t;
 
-typedef struct hc_event_single_t {
-    hc_event_awaitable_t base;
-} hc_event_single_t;
+typedef struct ocrEventHcSingle_t {
+    ocrEventHcAwaitable_t base;
+} ocrEventHcSingle_t;
 
-typedef struct hc_event_latch_t {
-    hc_event_awaitable_t base;
+typedef struct ocrEventHcLatch_t {
+    ocrEventHcAwaitable_t base;
     volatile int counter;
-} hc_event_latch_t;
+} ocrEventHcLatch_t;
 
-typedef struct hc_event_finishlatch_t {
-    hc_event_t base;
+typedef struct ocrEventHcFinishLatch_t {
+    ocrEventHc_t base;
     // Dependences to be signaled
     reg_node_t outputEventWaiter;
     reg_node_t parentLatchWaiter; // Parent latch when nesting finish scope
     ocrGuid_t ownerGuid; // finish-edt starting the finish scope
     volatile ocrGuid_t returnGuid;
     volatile int counter;
-} hc_event_finishlatch_t;
-
-struct ocr_event_struct* hc_event_constructor(ocrEventTypes_t eventType, bool takesArg, ocr_event_fcts_t * event_fct_ptrs);
-void hc_event_destructor ( struct ocr_event_struct* base );
-
-/*! \brief Dependence list data structure for EDTs
- */
-typedef struct {
-    /*! Public member for array head*/
-    ocr_event_t** array;
-    /*! Public member for waiting frontier*/
-    ocr_event_t** waitingFrontier;
-} hc_await_list_t;
-
-/*! \brief Gets the GUID for an OCR entity instance
- *  \param[in] el User provided EventList to build an AwaitList from
- *  \return AwaitList that is a copy of the EventList
- *  Our current implementation copies the linked list into an array
- */
-hc_await_list_t* hc_await_list_constructor( size_t al_size );
-void hc_await_list_destructor(hc_await_list_t*);
+} ocrEventHcFinishLatch_t;
 
 /*! \brief Event Driven Task(EDT) implementation for OCR Tasks
  */
