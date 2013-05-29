@@ -66,32 +66,18 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
                 u16 properties, u32 depc, ocrGuid_t* depv /*= NULL*/) {
 
     ocr_policy_domain_t* policy_domain = get_current_policy_domain();
-    ocr_task_factory* taskFactory = policy_domain->getTaskFactoryForUserTasks(policy_domain);
-
+    ocrTaskFactory_t* taskFactory = policy_domain->getTaskFactoryForUserTasks(policy_domain);
     //TODO LIMITATION handle pre-built dependence vector
-    *edtGuid = taskFactory->create(taskFactory, funcPtr, paramc, params, paramv, depc);
-#ifdef OCR_ENABLE_STATISTICS
-    // Create the statistics process for this EDT and also update clocks properly
-    ocr_task_t *task = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, *edtGuid, (u64*)&task, NULL);
-    ocrStatsProcessCreate(&(task->statProcess), *edtGuid);
-    ocrStatsFilter_t *t = NEW_FILTER(simple);
-    t->create(t, GocrFilterAggregator, NULL);
-    ocrStatsProcessRegisterFilter(&(task->statProcess), (0x1F), t);
-
-    // Now send the message that the EDT was created
-    {
-        ocr_worker_t *worker = NULL;
-        ocr_task_t *curTask = NULL;
-
-        globalGuidProvider->getVal(globalGuidProvider, ocr_get_current_worker_guid(), (u64*)&worker, NULL);
-        ocrGuid_t curTaskGuid = worker->getCurrentEDT(worker);
-        globalGuidProvider->getVal(globalGuidProvider, curTaskGuid, (u64*)&curTask, NULL);
-
-        ocrStatsProcess_t *srcProcess = curTaskGuid==0?&GfakeProcess:&(curTask->statProcess);
-        ocrStatsMessage_t *mess = NEW_MESSAGE(simple);
-        mess->create(mess, STATS_EDT_CREATE, 0, curTaskGuid, *edtGuid, NULL);
-        ocrStatsAsyncMessage(srcProcess, &(task->statProcess), mess);
+    *edtGuid = taskFactory->instantiate(taskFactory, funcPtr, paramc, params, paramv, properties, depc, outputEvent);
+    // If guids dependencies were provided, add them now
+    if(depv != NULL) {
+        assert(depc != 0);
+        u32 i = 0;
+        while(i < depc) {
+            // TODO replace with a single runtime call with all dependencies
+            ocrAddDependence(depv[i], *edtGuid, i);
+            i++;
+        }
     }
 #endif
     return 0;
@@ -99,14 +85,14 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
 
     u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
     ocrGuid_t worker_guid = ocr_get_current_worker_guid();
-    ocr_task_t * task = NULL;
+    ocrTask_t * task = NULL;
     globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
     task->fct_ptrs->schedule(task, worker_guid);
     return 0;
 }
 
-    u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
-    ocr_task_t * task = NULL;
+u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
+    ocrTask_t * task = NULL;
     globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
     task->fct_ptrs->destruct(task);
     return 0;
@@ -130,7 +116,7 @@ ocrGuid_t ocrElsUserGet(u8 offset) {
     ocr_worker_t * worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
     ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
-    ocr_task_t * edt = NULL;
+    ocrTask_t * edt = NULL;
     globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL);
     return edt->els[offset];
 }
@@ -146,7 +132,7 @@ void ocrElsUserSet(u8 offset, ocrGuid_t data) {
     ocr_worker_t * worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
     ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
-    ocr_task_t * edt = NULL;
+    ocrTask_t * edt = NULL;
     globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL);
     edt->els[offset] = data;
 }

@@ -48,10 +48,10 @@ void hc_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
 
 void hc_policy_domain_start(ocr_policy_domain_t * policy) {
     // Create Task and Event Factories
-    policy->taskFactories = (ocr_task_factory**) malloc(sizeof(ocr_task_factory*));
+    policy->taskFactories = (ocrTaskFactory_t**) malloc(sizeof(ocrTaskFactory_t*));
     policy->eventFactories = (ocr_event_factory**) malloc(sizeof(ocr_event_factory*));
 
-    policy->taskFactories[0] = hc_task_factory_constructor();
+    policy->taskFactories[0] = newTaskFactoryHc(NULL);
     policy->eventFactories[0] = hc_event_factory_constructor();
 
     // WARNING: Threads start should be the last thing we do here after
@@ -98,7 +98,7 @@ void hc_policy_domain_stop(ocr_policy_domain_t * policy) {
 }
 
 void hc_policy_domain_destruct(ocr_policy_domain_t * policy) {
-    ocr_task_factory** taskFactories = policy->taskFactories;
+    ocrTaskFactory_t** taskFactories = policy->taskFactories;
     taskFactories[0]->destruct(taskFactories[0]);
     free(taskFactories);
 
@@ -126,7 +126,7 @@ void hc_ocr_module_map_schedulers_to_policy (void * self_module, ocr_module_kind
     }
 }
 
-ocr_task_factory* hc_policy_getTaskFactoryForUserTasks (ocr_policy_domain_t * policy) {
+ocrTaskFactory_t* hc_policy_getTaskFactoryForUserTasks (ocr_policy_domain_t * policy) {
     return policy->taskFactories[0];
 }
 
@@ -168,10 +168,10 @@ ocr_policy_domain_t * hc_policy_domain_constructor(size_t nb_workpiles,
 
 void leaf_place_policy_domain_start (ocr_policy_domain_t * policy) {
     // Create Task and Event Factories
-    policy->taskFactories = (ocr_task_factory**) malloc(sizeof(ocr_task_factory*));
+    policy->taskFactories = (ocrTaskFactory_t**) malloc(sizeof(ocrTaskFactory_t*));
     policy->eventFactories = (ocr_event_factory**) malloc(sizeof(ocr_event_factory*));
 
-    policy->taskFactories[0] = hc_task_factory_constructor();
+    policy->taskFactories[0] = newTaskFactoryHc(NULL);
     policy->eventFactories[0] = hc_event_factory_constructor();
 
     // WARNING: Threads start should be the last thing we do here after
@@ -190,10 +190,10 @@ void leaf_place_policy_domain_start (ocr_policy_domain_t * policy) {
 
 void mastered_leaf_place_policy_domain_start (ocr_policy_domain_t * policy) {
     // Create Task and Event Factories
-    policy->taskFactories = (ocr_task_factory**) malloc(sizeof(ocr_task_factory*));
+    policy->taskFactories = (ocrTaskFactory_t**) malloc(sizeof(ocrTaskFactory_t*));
     policy->eventFactories = (ocr_event_factory**) malloc(sizeof(ocr_event_factory*));
 
-    policy->taskFactories[0] = hc_task_factory_constructor();
+    policy->taskFactories[0] = newTaskFactoryHc(NULL);
     policy->eventFactories[0] = hc_event_factory_constructor();
 
     // WARNING: Threads start should be the last thing we do here after
@@ -332,7 +332,7 @@ ocrGuid_t place_policy_getAllocator(ocr_policy_domain_t * policy, ocrLocation_t*
     return NULL_GUID;
 }
 
-ocr_task_factory* place_policy_getTaskFactoryForUserTasks (ocr_policy_domain_t * policy) {
+ocrTaskFactory_t* place_policy_getTaskFactoryForUserTasks (ocr_policy_domain_t * policy) {
     assert ( 0 && "We should not ask for a task factory from a place policy");
     return NULL;
 }

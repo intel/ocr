@@ -46,11 +46,11 @@ void fsim_policy_domain_create(ocr_policy_domain_t * policy, void * configuratio
 
 static inline void start_task_event_factories ( ocr_policy_domain_t * policy ) {
     // Create Task and Event Factories
-    policy->taskFactories = (ocr_task_factory**) malloc(sizeof(ocr_task_factory*)*2);
+    policy->taskFactories = (ocrTaskFactory_t**) malloc(sizeof(ocrTaskFactory_t*)*2);
     policy->eventFactories = (ocr_event_factory**) malloc(sizeof(ocr_event_factory*));
 
-    policy->taskFactories[0] = fsim_task_factory_constructor();
-    policy->taskFactories[1] = fsim_message_task_factory_constructor();
+    policy->taskFactories[0] = newTaskFactoryFsim(NULL);
+    policy->taskFactories[1] = newTaskFactoryFsimMessage(NULL);
     policy->eventFactories[0] = hc_event_factory_constructor();
 }
 
@@ -142,7 +142,7 @@ void fsim_policy_domain_stop(ocr_policy_domain_t * policy) {
 }
 
 void fsim_policy_domain_destruct(ocr_policy_domain_t * policy) {
-    ocr_task_factory** taskFactories = policy->taskFactories;
+    ocrTaskFactory_t** taskFactories = policy->taskFactories;
     // TODO: sagnak should be OK to hardcode
     // there is 2 task factories and a single event factory by type/design
     taskFactories[0]->destruct(taskFactories[0]);
@@ -170,7 +170,7 @@ void fsim_ocr_module_map_schedulers_to_policy (void * self_module, ocr_module_ki
     scheduler->domain = policy;
 }
 
-ocr_task_factory* fsim_policy_getTaskFactoryForUserTasks (ocr_policy_domain_t * policy) {
+ocrTaskFactory_t* fsim_policy_getTaskFactoryForUserTasks (ocr_policy_domain_t * policy) {
     return policy->taskFactories[0];
 }
 

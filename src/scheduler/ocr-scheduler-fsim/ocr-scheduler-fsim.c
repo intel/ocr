@@ -123,7 +123,7 @@ void xe_scheduler_give_fsim_faithful (ocr_scheduler_t* base, ocrGuid_t wid, ocrG
     ocr_worker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
-    fsim_task_base_t* task = NULL;
+    ocrTaskFsimBase_t* task = NULL;
     globalGuidProvider->getVal(globalGuidProvider, tid, (u64*)&task, NULL);
 
     fsim_message_interface_t* taskAsMessage = &(task->message_interface);
@@ -140,11 +140,11 @@ void xe_scheduler_give_fsim_faithful (ocr_scheduler_t* base, ocrGuid_t wid, ocrG
             // no assigned work found, now we have to create a 'message task'
             // by using our policy domain's message task factory
             ocr_policy_domain_t* policy_domain = base->domain;
-            ocr_task_factory* message_task_factory = policy_domain->taskFactories[1];
+            ocrTaskFactory_t* message_task_factory = policy_domain->taskFactories[1];
 
             // the message to the CE says 'give me work' and notes who is asking for it
-            ocrGuid_t messageTaskGuid = message_task_factory->create(message_task_factory, NULL, 0, NULL, NULL, 0);
-            fsim_message_task_t* derivedMessage = NULL;
+            ocrGuid_t messageTaskGuid = message_task_factory->instantiate(message_task_factory, NULL, 0, NULL, NULL, 0, 0, NULL);
+            ocrTaskFsimMessage_t* derivedMessage = NULL;
             globalGuidProvider->getVal(globalGuidProvider, messageTaskGuid, (u64*)&(derivedMessage), NULL);
             derivedMessage -> type = PICK_MY_WORK_UP;
             derivedMessage -> from_worker_guid = wid;
@@ -241,7 +241,7 @@ void ce_scheduler_give (ocr_scheduler_t* base, ocrGuid_t wid, ocrGuid_t taskGuid
     ocr_worker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
-    fsim_task_base_t* task = NULL;
+    ocrTaskFsimBase_t* task = NULL;
     globalGuidProvider->getVal(globalGuidProvider, taskGuid, (u64*)&task, NULL);
 
     fsim_message_interface_t* taskAsMessage = &(task->message_interface);

@@ -157,7 +157,7 @@ void * worker_computation_routine(void * arg) {
     while(worker->is_running(worker)) {
         ocrGuid_t taskGuid = scheduler->take(scheduler, workerGuid);
         if (taskGuid != NULL_GUID) {
-            ocr_task_t* curr_task = NULL;
+            ocrTask_t* curr_task = NULL;
             globalGuidProvider->getVal(globalGuidProvider, taskGuid, (u64*)&(curr_task), NULL);
             worker->setCurrentEDT(worker,taskGuid);
             curr_task->fct_ptrs->execute(curr_task);
