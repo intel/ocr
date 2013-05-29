@@ -25,7 +25,7 @@ static ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XE_
 static ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XE_per_CEs );
 static ocr_model_policy_t * createCeMasteredModelPolicy ( size_t nb_XE_per_CEs );
 
-void ocrInitFsimModel(char * mdFile) {
+void ocrModelInitFsim(char * mdFile) {
     // sagnak TODO handle nb_CEs <= 1 case
     size_t nb_CEs = 2;
     size_t nb_XE_per_CEs = 3;

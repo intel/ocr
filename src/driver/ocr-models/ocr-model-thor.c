@@ -15,7 +15,7 @@ static ocr_model_policy_t * createThorL1ModelPolicies ( size_t n_L1s );
 static ocr_model_policy_t * createThorWorkerModelPolicies ( size_t n_workers );
 static ocr_model_policy_t * createThorMasteredWorkerModelPolicies ( );
 
-void ocrInitThorModel(char * mdFile) {
+void ocrModelInitThor(char * mdFile) {
     size_t n_L3s = 2;
     size_t n_L2s_per_L3 = 8;
     size_t n_L1s_per_L2 = 1;
