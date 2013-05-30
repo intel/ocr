@@ -35,11 +35,13 @@
 #include "ocr-mem-platform.h"
 #include "malloc/malloc.h"
 
-ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type) {
+extern ocrMemPlatform_t * newMemPlatformMalloc(ocrMemPlatformFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+
+ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type, void * per_type_configuration, void * per_instance_configuration) {
     if(type == OCR_MEMPLATFORM_DEFAULT) type = ocrMemPlatformDefaultKind;
     switch(type) {
     case OCR_MEMPLATFORM_MALLOC:
-        return newMemPlatformMalloc();
+        return newMemPlatformMalloc(NULL, per_type_configuration, per_instance_configuration);
         break;
     default:
         ASSERT(0);

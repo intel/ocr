@@ -39,6 +39,24 @@
 #include "ocr-types.h"
 #include "ocr-runtime-def.h"
 
+
+/****************************************************/
+/* OCR MEM PLATFORM FACTORY                         */
+/****************************************************/
+
+// Forward declaration
+struct ocrMemPlatform_t;
+
+typedef struct ocrMemPlatformFactory_t {
+    struct ocrMemPlatform_t * (*instantiate) ( struct ocrMemPlatformFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+    void (*destruct)(struct ocrMemPlatformFactory_t * factory);
+} ocrMemPlatformFactory_t;
+
+
+/****************************************************/
+/* OCR MEM PLATFORM API                             */
+/****************************************************/
+
 /**
  * @brief Low-level memory provider.
  *
@@ -48,27 +66,15 @@
  * underlying machine but this will change as support for distributed and/or NUMA
  * architecture comes online. The API may therefore evolve
  */
-typedef struct _ocrMemPlatform_t {
+typedef struct ocrMemPlatform_t {
     ocr_module_t module; /**< Base "class" for ocrMemPlatform */
-    /**
-     * @brief Constructor equivalent
-     *
-     * Constructs a low-level memory allocator.
-     *
-     * @todo Currently does not do much as the underlying allocator is malloc
-     * and uses the entire machine
-     *
-     * @param self          Pointer to this low-memory provider
-     * @param config        Optional configuration (not used)
-     */
-    void (*create)(struct _ocrMemPlatform_t* self, void* config);
 
     /**
      * @brief Destructor equivalent
      *
      * @param self          Pointer to this low-memory provider
      */
-    void (*destruct)(struct _ocrMemPlatform_t* self);
+    void (*destruct)(struct ocrMemPlatform_t* self);
 
     /**
      * @brief Allocates a chunk of memory for the higher-level
@@ -78,7 +84,7 @@ typedef struct _ocrMemPlatform_t {
      * @param size          Size of the chunk to allocate
      * @return Pointer to the chunk of memory allocated
      */
-    void* (*allocate)(struct _ocrMemPlatform_t* self, u64 size);
+    void* (*allocate)(struct ocrMemPlatform_t* self, u64 size);
 
     /**
      * @brief Frees a chunk of memory previously allocated
@@ -87,7 +93,7 @@ typedef struct _ocrMemPlatform_t {
      * @param self          Pointer to this low-memory provider
      * @param addr          Address to free
      */
-    void (*free)(struct _ocrMemPlatform_t* self, void* addr);
+    void (*free)(struct ocrMemPlatform_t* self, void* addr);
 } ocrMemPlatform_t;
 
 typedef enum _ocrMemPlatformKind {
@@ -106,6 +112,6 @@ extern ocrMemPlatformKind ocrMemPlatformDefaultKind;
  * @param type              Type of the low-memory allocator to return
  * @return A pointer to the meta-data for the low-memory allocator
  */
-ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type);
+ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type, void * per_type_configuration, void * per_instance_configuration);
 
 #endif /* __OCR_MEM_PLATFORM_H__ */

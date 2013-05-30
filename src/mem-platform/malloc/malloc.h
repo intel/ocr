@@ -34,9 +34,12 @@
 #include "ocr-types.h"
 #include "ocr-mem-platform.h"
 
-typedef struct _ocrMemPlatformMalloc_t {
+typedef struct {
+    ocrMemPlatformFactory_t base;
+} ocrMemPlatformFactoryMalloc_t;
+
+typedef struct {
     ocrMemPlatform_t base;
 } ocrMemPlatformMalloc_t;
 
-ocrMemPlatform_t* newMemPlatformMalloc();
 #endif /* __MEM_PLATFORM_MALLOC_H__ */

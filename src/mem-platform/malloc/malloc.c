@@ -28,18 +28,39 @@
  **/
 
 #include <stdlib.h>
+#include "ocr-macros.h"
 #include "malloc.h"
 #include "ocr-runtime-def.h"
 #include "debug.h"
 
+
+/******************************************************/
+/* OCR MEM PLATFORM MALLOC FACTORY                    */
+/******************************************************/
+
+// Fwd declaration
+ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+
+void destructMemPlatformFactoryHc(ocrMemPlatformFactory_t * factory) {
+    free(factory);
+}
+
+ocrMemPlatformFactory_t * newOcrMemPlatformFactoryMalloc(void * config) {
+    ocrMemPlatformFactoryMalloc_t* derived = (ocrMemPlatformFactoryMalloc_t*) checked_malloc(derived, sizeof(ocrMemPlatformFactoryMalloc_t));
+    ocrMemPlatformFactory_t* base = (ocrMemPlatformFactory_t*) derived;
+    base->instantiate = newMemPlatformMalloc;
+    base->destruct =  destructMemPlatformFactoryHc;
+    return base;
+}
+
+
+/******************************************************/
+/* OCR MEM PLATFORM MALLOC IMPLEMENTATION             */
+/******************************************************/
+
 void mallocMap(void* self, ocr_module_kind kind, size_t nb_instances, void** ptr_instances) {
     ASSERT(0);
 // This should never get called for now
-}
-
-/* Methods used for this allocation method */
-void mallocCreate(ocrMemPlatform_t *self, void* config) {
-    return; /* not much to do here */
 }
 
 void mallocDestruct(ocrMemPlatform_t *self) {
@@ -54,12 +75,11 @@ void mallocFree(ocrMemPlatform_t *self, void *addr) {
     free(addr);
 }
 
-ocrMemPlatform_t* newMemPlatformMalloc() {
+ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory, void * per_type_configuration, void * per_instance_configuration) {
     // TODO: This will be replaced by the runtime/GUID meta-data allocator
     // For now, we cheat and use good-old malloc which is kind of counter productive with
     // all the trouble we are going through to *not* use malloc...
     ocrMemPlatformMalloc_t *result = (ocrMemPlatformMalloc_t*)malloc(sizeof(ocrMemPlatformMalloc_t));
-    result->base.create = &mallocCreate;
     result->base.destruct = &mallocDestruct;
     result->base.allocate = &mallocAllocate;
     result->base.free = &mallocFree;

@@ -304,8 +304,7 @@ static  void create_configure_all_memories ( ocrMemPlatform_t ** all_memories, i
             ocr_model_t curr_component_model = components[type];
             for ( instance = 0; instance < curr_component_model.nb_instances; ++instance, ++idx ) {
                 // Call the factory method based on the model's type kind.
-                all_memories[idx] = newMemPlatform(curr_component_model.kind);
-                all_memories[idx]->create(all_memories[idx],curr_component_model.per_type_configuration);
+                all_memories[idx] = newMemPlatform(curr_component_model.kind, curr_component_model.per_type_configuration, NULL);
             }
         }
     }
