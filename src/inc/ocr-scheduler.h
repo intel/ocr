@@ -44,7 +44,7 @@
 /****************************************************/
 
 // forward declarations
-struct ocr_worker_struct;
+struct ocrWorker_t;
 struct ocr_scheduler_struct;
 
 typedef struct ocrSchedulerFactory_t {
@@ -55,9 +55,9 @@ typedef struct ocrSchedulerFactory_t {
 typedef void (*scheduler_create_fct) (struct ocr_scheduler_struct*, void * per_type_configuration, void * per_instance_configuration);
 typedef void (*scheduler_destruct_fct) (struct ocr_scheduler_struct*);
 
-typedef ocr_workpile_t * (*scheduler_pop_mapping_fct) (struct ocr_scheduler_struct*, struct ocr_worker_struct*);
-typedef ocr_workpile_t * (*scheduler_push_mapping_fct) (struct ocr_scheduler_struct*, struct ocr_worker_struct*);
-typedef workpile_iterator_t* (*scheduler_steal_mapping_fct) (struct ocr_scheduler_struct*, struct ocr_worker_struct*);
+typedef ocr_workpile_t * (*scheduler_pop_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
+typedef ocr_workpile_t * (*scheduler_push_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
+typedef workpile_iterator_t* (*scheduler_steal_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
 
 /*! \brief Interface to extract a task from this scheduler
  *  \param[in]  worker_guid GUID of the worker trying to extract a task from this scheduler

@@ -163,7 +163,7 @@ ocrTaskFactory_t* newTaskFactoryFsimMessage(void * config) {
 }
 
 void * xe_worker_computation_routine (void * arg) {
-    ocr_worker_t * baseWorker = (ocr_worker_t *) arg;
+    ocrWorker_t * baseWorker = (ocrWorker_t *) arg;
 
     /* associate current thread with the worker */
     associate_comp_platform_and_worker(baseWorker);
@@ -201,7 +201,7 @@ void * xe_worker_computation_routine (void * arg) {
 
             // there is no work left and the message has been sent, so turn of the worker
             // baseWorker->stop(baseWorker);
-            xe_worker_t* derivedWorker = (xe_worker_t*)baseWorker;
+            ocrWorkerFsimXE_t* derivedWorker = (ocrWorkerFsimXE_t*)baseWorker;
             pthread_mutex_lock(&derivedWorker->isRunningMutex);
             if ( baseWorker->is_running(baseWorker) ) {
                 // give the work to the XE scheduler, which in turn should give it to the CE
@@ -216,7 +216,7 @@ void * xe_worker_computation_routine (void * arg) {
 }
 
 void * ce_worker_computation_routine(void * arg) {
-    ocr_worker_t * ceWorker = (ocr_worker_t *) arg;
+    ocrWorker_t * ceWorker = (ocrWorker_t *) arg;
     ocrScheduler_t * ceScheduler = get_worker_scheduler(ceWorker);
 
     /* associate current thread with the worker */
@@ -248,7 +248,7 @@ void * ce_worker_computation_routine(void * arg) {
 
             // find the worker, scheduler the message originated from
             ocrGuid_t targetWorkerGuid = currMessageTask->from_worker_guid;
-            ocr_worker_t* targetWorker= NULL;
+            ocrWorker_t* targetWorker= NULL;
             globalGuidProvider->getVal(globalGuidProvider, targetWorkerGuid, (u64*)&(targetWorker), NULL);
             ocrScheduler_t* targetScheduler = get_worker_scheduler(targetWorker);
 
@@ -268,7 +268,7 @@ void * ce_worker_computation_routine(void * arg) {
                     // now that the XE has work, it may be restarted
                     // targetWorker->start(targetWorker);
                     //
-                    xe_worker_t* derivedWorker = (xe_worker_t*)targetWorker;
+                    ocrWorkerFsimXE_t* derivedWorker = (ocrWorkerFsimXE_t*)targetWorker;
                     pthread_mutex_lock(&derivedWorker->isRunningMutex);
                     pthread_cond_signal(&derivedWorker->isRunningCond);
                     pthread_mutex_unlock(&derivedWorker->isRunningMutex);

@@ -621,7 +621,7 @@ static void edtRegisterSignaler(ocrTask_t * base, ocrGuid_t signalerGuid, int sl
  * Note: static function only meant to factorize code.
  */
 void taskSchedule( ocrGuid_t guid, ocrTask_t* base, ocrGuid_t wid ) {
-    ocr_worker_t* w = NULL;
+    ocrWorker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
     ocrScheduler_t * scheduler = get_worker_scheduler(w);
     scheduler->give(scheduler, wid, guid);

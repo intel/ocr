@@ -110,11 +110,11 @@ ocr_comp_platform_t * ocr_comp_platform_pthread_constructor () {
     return compPlatform;
 }
 
-void associate_comp_platform_and_worker(ocr_worker_t * worker) {
+void associate_comp_platform_and_worker(ocrWorker_t * worker) {
     int rt = pthread_setspecific(worker_key, worker);
     if (rt != 0) { printf("[PTHREAD] - ERROR in pthread_setspecific\n"); exit(1); }
 }
 
 ocrGuid_t ocr_get_current_worker_guid() {
-    return get_worker_guid(((ocr_worker_t*)pthread_getspecific(worker_key)));
+    return get_worker_guid(((ocrWorker_t*)pthread_getspecific(worker_key)));
 }

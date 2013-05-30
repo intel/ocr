@@ -40,21 +40,24 @@
 #include "deque.h"
 #include "hc_edf.h"
 
+
 /******************************************************/
 /* OCR-HC WORKER                                      */
 /******************************************************/
 
 typedef struct {
-    ocr_worker_t worker;
+  ocrWorkerFactory_t base;
+} ocrWorkerFactoryHc_t;
+
+typedef struct {
+    ocrWorker_t worker;
     //TODO this is a convenience to map workers to workpiles
     int id;
     //TODO shall these stay here or go up ?
     bool run;
     // reference to the EDT this worker is currently executing
     ocrGuid_t currentEDT_guid;
-} hc_worker_t;
-
-ocr_worker_t* newWorkerHc(void);
+} ocrWorkerHc_t;
 
 
 /******************************************************/
@@ -95,11 +98,6 @@ typedef struct {
 } ocrTaskFactoryHc_t;
 
 ocrTaskFactory_t * newTaskFactoryHc(void * config);
-
-/**
- * The computation worker routine that asks work to the scheduler
- */
-extern void * worker_computation_routine(void * arg);
 
 /*
  * TODO HC implementation exposed to support FSIM

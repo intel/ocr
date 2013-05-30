@@ -44,7 +44,7 @@ void hc_ocr_module_map_worker_to_comp_target(void * self_module, ocr_module_kind
     // Checking mapping conforms to what we're expecting in this implementation
     assert(kind == OCR_WORKER);
     assert(nb_instances == 1);
-    ocr_worker_t * worker = (ocr_worker_t *) ptr_instances[0];
+    ocrWorker_t * worker = (ocrWorker_t *) ptr_instances[0];
     ocr_comp_target_t * compTarget = (ocr_comp_target_t *) self_module;
     //TODO the routine thing is a hack.
     compTarget->platform->routine = worker->routine;

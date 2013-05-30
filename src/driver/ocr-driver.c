@@ -49,7 +49,7 @@ size_t n_root_policy_nodes;
 ocr_policy_domain_t ** root_policies;
 
 // the runtime fork/join-er
-ocr_worker_t* master_worker;
+ocrWorker_t* master_worker;
 u64 gHackTotalMemSize;
 
 //TODO we should have an argument option parsing library

@@ -113,7 +113,7 @@ ocrGuid_t ocrElsUserGet(u8 offset) {
     // User indexing start after runtime-reserved ELS slots
     offset = ELS_RUNTIME_SIZE + offset;
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t * worker = NULL;
+    ocrWorker_t * worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
     ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
     ocrTask_t * edt = NULL;
@@ -129,7 +129,7 @@ void ocrElsUserSet(u8 offset, ocrGuid_t data) {
     // User indexing start after runtime-reserved ELS slots
     offset = ELS_RUNTIME_SIZE + offset;
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t * worker = NULL;
+    ocrWorker_t * worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
     ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
     ocrTask_t * edt = NULL;

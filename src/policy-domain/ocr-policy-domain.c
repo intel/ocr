@@ -108,7 +108,7 @@ void ocr_policy_domain_destruct(ocr_policy_domain_t * policy) {
 
 ocr_policy_domain_t* get_current_policy_domain () {
     ocrGuid_t worker_guid = ocr_get_current_worker_guid();
-    ocr_worker_t * worker = NULL;
+    ocrWorker_t * worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, worker_guid, (u64*)&worker, NULL);
 
     ocrScheduler_t * scheduler = get_worker_scheduler(worker);

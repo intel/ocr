@@ -32,6 +32,7 @@
 #ifndef __OCR_RUNTIME_H_
 #define __OCR_RUNTIME_H_
 
+#include "ocr-macros.h"
 #include "ocr-guid.h"
 #include "ocr-utils.h"
 #include "ocr-comp-target.h"

@@ -36,18 +36,18 @@
 #include "ocr-guid.h"
 #include "ocr-worker.h"
 
-extern ocr_worker_t * hc_worker_constructor();
-extern ocr_worker_t * xe_worker_constructor();
-extern ocr_worker_t * ce_worker_constructor();
+extern ocrWorker_t * newWorkerHc(ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+extern ocrWorker_t * newWorkerFsimXE(ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+extern ocrWorker_t * newWorkerFsimCE(ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
 
-ocr_worker_t * newWorker(ocr_worker_kind workerType) {
+ocrWorker_t * newWorker(ocr_worker_kind workerType, void * per_type_configuration, void * per_instance_configuration) {
     switch(workerType) {
     case OCR_WORKER_XE:
-        return xe_worker_constructor();
+        return newWorkerFsimXE(NULL, per_type_configuration, per_instance_configuration);
     case OCR_WORKER_CE:
-        return ce_worker_constructor();
+        return newWorkerFsimCE(NULL, per_type_configuration, per_instance_configuration);
     case OCR_WORKER_HC:
-        return hc_worker_constructor();
+        return newWorkerHc(NULL, per_type_configuration, per_instance_configuration);
     }
     assert(false && "Unrecognized worker kind");
     return NULL;
@@ -55,7 +55,7 @@ ocr_worker_t * newWorker(ocr_worker_kind workerType) {
 
 ocrGuid_t getCurrentEdt() {
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
-    ocr_worker_t *worker = NULL;
+    ocrWorker_t *worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
     return worker->getCurrentEDT(worker);
 }

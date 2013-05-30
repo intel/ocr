@@ -55,17 +55,17 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(void * config) {
     return base;
 }
 
-ocr_workpile_t * hc_scheduler_pop_mapping_one_to_one (ocrScheduler_t* base, ocr_worker_t* w ) {
+ocr_workpile_t * hc_scheduler_pop_mapping_one_to_one (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler ];
 }
 
-ocr_workpile_t * hc_scheduler_push_mapping_one_to_one (ocrScheduler_t* base, ocr_worker_t* w ) {
+ocr_workpile_t * hc_scheduler_push_mapping_one_to_one (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler];
 }
 
-workpile_iterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocrScheduler_t* base, ocr_worker_t* w ) {
+workpile_iterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     workpile_iterator_t * steal_iterator = derived->steal_iterators[get_worker_id(w)];
     steal_iterator->reset(steal_iterator);
@@ -73,7 +73,7 @@ workpile_iterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocrSchedule
 }
 
 ocrGuid_t hc_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
-    ocr_worker_t* w = NULL;
+    ocrWorker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
     ocr_workpile_t * wp_to_pop = base->pop_mapping(base, w);
@@ -92,7 +92,7 @@ ocrGuid_t hc_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
 }
 
 void hc_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
-    ocr_worker_t* w = NULL;
+    ocrWorker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
     ocr_workpile_t * wp_to_push = base->push_mapping(base, w);
@@ -161,13 +161,13 @@ ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, void * per_type_
 /* OCR-HC-PLACED SCHEDULER                            */
 /******************************************************/
 
-workpile_iterator_t* hc_scheduler_steal_mapping_assert (ocrScheduler_t* base, ocr_worker_t* w ) {
+workpile_iterator_t* hc_scheduler_steal_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
     assert ( 0 && "We should not ask for a steal mapping from this scheduler");
     return NULL;
 }
 
 ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
-    ocr_worker_t* w = NULL;
+    ocrWorker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
     ocrGuid_t popped = NULL_GUID;
@@ -194,7 +194,7 @@ ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
 }
 
 void hc_placed_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
-    ocr_worker_t* w = NULL;
+    ocrWorker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
     // TODO sagnak calculate which 'place' to push

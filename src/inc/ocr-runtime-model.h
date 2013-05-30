@@ -86,7 +86,7 @@ extern u64 gHackTotalMemSize;
 // Hooks for implementations to set what they have instantiated
 extern size_t n_root_policy_nodes;
 extern ocr_policy_domain_t ** root_policies;
-extern ocr_worker_t* master_worker;
+extern ocrWorker_t* master_worker;
 
 // Build a model
 ocr_model_t* newModel ( int kind, int nInstances, void * per_type_configuration, void ** per_instance_configuration );

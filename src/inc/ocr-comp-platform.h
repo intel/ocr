@@ -82,7 +82,7 @@ typedef struct ocr_comp_platform_struct {
 } ocr_comp_platform_t;
 
 //TODO this is really ocr-hc specific
-void associate_comp_platform_and_worker(ocr_worker_t * worker);
+void associate_comp_platform_and_worker(ocrWorker_t * worker);
 
 ocrGuid_t ocr_get_current_worker_guid();
 
