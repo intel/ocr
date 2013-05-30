@@ -32,6 +32,7 @@
  **/
 
 #include "tlsf-allocator.h"
+#include "ocr-macros.h"
 #include "ocr-runtime-def.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
@@ -41,6 +42,30 @@
 
 #include <string.h>
 #include <stdlib.h>
+
+/******************************************************/
+/* OCR ALLOCATOR TLSF FACTORY                         */
+/******************************************************/
+
+// Fwd declaration
+ocrAllocator_t* newAllocatorTlsf(ocrAllocatorFactory_t * factory, u64 size, void * per_type_configuration, void * per_instance_configuration);
+
+void destructAllocatorFactoryTlsf(ocrAllocatorFactory_t * factory) {
+    free(factory);
+}
+
+ocrAllocatorFactory_t * newOcrAllocatorFactoryTlsf(void * config) {
+    ocrAllocatorFactoryTlsf_t* derived = (ocrAllocatorFactoryTlsf_t*) checked_malloc(derived, sizeof(ocrAllocatorFactoryTlsf_t));
+    ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*) derived;
+    base->instantiate = newAllocatorTlsf;
+    base->destruct =  destructAllocatorFactoryTlsf;
+    return base;
+}
+
+
+/******************************************************/
+/* OCR ALLOCATOR TLSF IMPLEMENTATION                  */
+/******************************************************/
 
 /**
  * @todo A lot of the weird notations here are remnants of an older
@@ -1002,14 +1027,6 @@ void tlsfMap(void* self, ocr_module_kind kind, size_t nb_instance, void** ptr_in
     RESULT_ASSERT(tlsf_init(rself->addr, rself->totalSize), ==, 0);
 }
 
-void tlsfCreate(ocrAllocator_t *self, u64 size, void* config) {
-    ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    ASSERT(rself->numMemories == 0ULL && rself->memories == NULL);
-    rself->addr = rself->poolAddr = 0ULL;
-    rself->totalSize = rself->poolSize = size;
-    rself->lock = GocrLockFactory->instantiate(GocrLockFactory, NULL);
-}
-
 void tlsfDestruct(ocrAllocator_t *self) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     if(rself->numMemories)
@@ -1043,12 +1060,11 @@ void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
 }
 
 // Method to create the TLSF allocator
-ocrAllocator_t* newAllocatorTlsf() {
+ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, u64 size, void * per_type_configuration, void * per_instance_configuration) {
     ocrAllocatorTlsf_t *result = (ocrAllocatorTlsf_t*)malloc(sizeof(ocrAllocatorTlsf_t));
     result->base.guid = UNINITIALIZED_GUID;
     globalGuidProvider->getGuid(globalGuidProvider, &(result->base.guid), (u64)result, OCR_GUID_ALLOCATOR);
 
-    result->base.create = &tlsfCreate;
     result->base.destruct = &tlsfDestruct;
     result->base.allocate = &tlsfAllocate;
     result->base.free = &tlsfFree;
@@ -1059,6 +1075,11 @@ ocrAllocator_t* newAllocatorTlsf() {
     result->lock = NULL;
 
     result->base.module.map_fct = &tlsfMap;
+
+    ASSERT(result->numMemories == 0ULL && result->memories == NULL);
+    result->addr = result->poolAddr = 0ULL;
+    result->totalSize = result->poolSize = size;
+    result->lock->create(result->lock, NULL); //TODO sagnak NULL is for config?
 
     return (ocrAllocator_t*)result;
 }

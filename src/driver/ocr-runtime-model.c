@@ -288,8 +288,7 @@ static  void create_configure_all_allocators ( ocrAllocator_t ** all_allocators,
             ocrAllocatorModel_t curr_component_model = components[type];
             for ( instance = 0; instance < curr_component_model.model.nb_instances; ++instance, ++idx ) {
                 // Call the factory method based on the model's type kind.
-                all_allocators[idx] = newAllocator(curr_component_model.model.kind);
-                all_allocators[idx]->create(all_allocators[idx], curr_component_model.sizeManaged, curr_component_model.model.per_type_configuration);
+                all_allocators[idx] = newAllocator(curr_component_model.model.kind, curr_component_model.sizeManaged, curr_component_model.model.per_type_configuration, NULL);
             }
         }
     }
