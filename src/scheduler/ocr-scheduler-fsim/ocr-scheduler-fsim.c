@@ -59,45 +59,45 @@ void destructSchedulerFsimXE(ocrScheduler_t * scheduler) {
     free(scheduler);
 }
 
-ocr_workpile_t * xe_scheduler_pop_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpile_t * xe_scheduler_pop_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
     assert( 0 && "Multiple XE pop mappings, do not use the class pop_mapping indirection");
     return NULL;
 }
 
-ocr_workpile_t * xe_scheduler_pop_mapping_to_assigned_work (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpile_t * xe_scheduler_pop_mapping_to_assigned_work (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
     size_t id = get_worker_id(w);
     assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
     return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
-ocr_workpile_t * xe_scheduler_pop_mapping_to_work_shipping (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpile_t * xe_scheduler_pop_mapping_to_work_shipping (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
     // TODO sagnak; god awful hardcoding, BAD
     size_t id = hcDerived->worker_id_begin;
     return hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
-ocr_workpile_t * xe_scheduler_push_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpile_t * xe_scheduler_push_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
     assert( 0 && "Multiple XE push mappings, do not use the class push_mapping indirection");
     return NULL;
 }
 
-ocr_workpile_t * xe_scheduler_push_mapping_to_assigned_work (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpile_t * xe_scheduler_push_mapping_to_assigned_work (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
     // TODO sagnak; god awful hardcoding, BAD
     size_t id = hcDerived->worker_id_begin;
     return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
-ocr_workpile_t * xe_scheduler_push_mapping_to_work_shipping (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpile_t * xe_scheduler_push_mapping_to_work_shipping (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
     size_t id = get_worker_id(w);
     assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
     return hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
-workpile_iterator_t* xe_scheduler_steal_mapping_fsim_faithful(ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpileIterator_t* xe_scheduler_steal_mapping_fsim_faithful(ocrScheduler_t* base, ocrWorker_t* w ) {
     assert( 0 && "XEs do not steal");
     return NULL;
 }
@@ -109,7 +109,7 @@ ocrGuid_t xe_scheduler_take_most_fsim_faithful (ocrScheduler_t* base, ocrGuid_t 
     ocrWorker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
-    ocr_workpile_t * wp_to_pop = NULL;
+    ocrWorkpile_t * wp_to_pop = NULL;
 
     size_t id = get_worker_id(w);
     if (id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end) {
@@ -149,7 +149,7 @@ void xe_scheduler_give_fsim_faithful (ocrScheduler_t* base, ocrGuid_t wid, ocrGu
         // if the pusher is an XE worker
         if ( !taskAsMessage->is_message(taskAsMessage) ) {
             // TODO sagnak Multiple XE push mappings, do not use the class push_mapping indirection
-            ocr_workpile_t * wp_to_push = xe_scheduler_push_mapping_to_work_shipping(base, w);
+            ocrWorkpile_t * wp_to_push = xe_scheduler_push_mapping_to_work_shipping(base, w);
             wp_to_push->push(wp_to_push,tid);
 
             // TODO sagnak, this assumes (*A LOT*) the structure below, is this fair?
@@ -175,7 +175,7 @@ void xe_scheduler_give_fsim_faithful (ocrScheduler_t* base, ocrGuid_t wid, ocrGu
         }
     } else {
         // if the pusher is a CE worker
-        ocr_workpile_t * wp_to_push = xe_scheduler_push_mapping_to_assigned_work(base, w);
+        ocrWorkpile_t * wp_to_push = xe_scheduler_push_mapping_to_assigned_work(base, w);
         wp_to_push->push(wp_to_push,tid);
     }
 }
@@ -226,10 +226,10 @@ void destructSchedulerFsimCE(ocrScheduler_t * scheduler) {
     free(scheduler);
 }
 
-ocr_workpile_t * ce_scheduler_pop_mapping (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpile_t * ce_scheduler_pop_mapping (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerFsimCE_t* ceDerived = (ocrSchedulerFsimCE_t*) base;
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    ocr_workpile_t * to_be_returned = NULL;
+    ocrWorkpile_t * to_be_returned = NULL;
 
     size_t id = get_worker_id(w);
     if ( ceDerived -> in_message_popping_mode ) {
@@ -243,19 +243,19 @@ ocr_workpile_t * ce_scheduler_pop_mapping (ocrScheduler_t* base, ocrWorker_t* w 
     return to_be_returned;
 }
 
-ocr_workpile_t * ce_scheduler_push_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpile_t * ce_scheduler_push_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
     assert( 0 && "Multiple CE push mappings, do not use the class push_mapping indirection");
     return NULL;
 }
 
-ocr_workpile_t * ce_scheduler_push_mapping_to_work (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpile_t * ce_scheduler_push_mapping_to_work (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
     size_t id = get_worker_id(w);
     assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
     return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
-ocr_workpile_t * ce_scheduler_push_mapping_to_messages (ocrScheduler_t* base ) {
+ocrWorkpile_t * ce_scheduler_push_mapping_to_messages (ocrScheduler_t* base ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
     // TODO sagnak; god awful hardcoding, BAD
     size_t id = hcDerived->worker_id_begin;
@@ -266,7 +266,7 @@ ocrGuid_t ce_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
     ocrWorker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
-    ocr_workpile_t * wp_to_pop = base->pop_mapping(base, w);
+    ocrWorkpile_t * wp_to_pop = base->pop_mapping(base, w);
     //ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
     // TODO fix synchronization errors
     ocrGuid_t popped = wp_to_pop->steal(wp_to_pop);
@@ -287,7 +287,7 @@ void ce_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t taskGuid 
 
     fsim_message_interface_t* taskAsMessage = &(task->message_interface);
 
-    ocr_workpile_t * workpileToPush = NULL;
+    ocrWorkpile_t * workpileToPush = NULL;
 
     if ( !taskAsMessage->is_message(taskAsMessage) ) {
         workpileToPush = ce_scheduler_push_mapping_to_work(base, w);
@@ -302,7 +302,7 @@ void ce_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t taskGuid 
     workpileToPush->push(workpileToPush,taskGuid);
 }
 
-workpile_iterator_t* ce_scheduler_steal_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpileIterator_t* ce_scheduler_steal_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
     assert( 0 && "CEs do not steal as of now");
     return NULL;
 }

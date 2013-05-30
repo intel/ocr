@@ -233,7 +233,7 @@ static  void create_configure_all_schedulers ( ocrScheduler_t ** all_schedulers,
     }
 }
 
-static  void create_configure_all_workpiles ( ocr_workpile_t ** all_workpiles, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
+static  void create_configure_all_workpiles ( ocrWorkpile_t ** all_workpiles, int n_policy_domains, int nb_component_types, ocr_model_t* components ) {
     size_t idx = 0, index_policy_domain = 0;
     for (; index_policy_domain < n_policy_domains; ++index_policy_domain ) {
         size_t type = 0, instance = 0;
@@ -242,8 +242,7 @@ static  void create_configure_all_workpiles ( ocr_workpile_t ** all_workpiles, i
             ocr_model_t curr_model = components[type];
             for ( instance = 0; instance < curr_model.nb_instances; ++instance, ++idx ) {
                 // Call the factory method based on the model's type kind.
-                all_workpiles[idx] = newWorkpile(curr_model.kind);
-                all_workpiles[idx]->create(all_workpiles[idx], curr_model.per_type_configuration);
+                all_workpiles[idx] = newWorkpile(curr_model.kind, curr_model.per_type_configuration, NULL);
             }
         }
     }
@@ -352,7 +351,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
     ocrScheduler_t** all_schedulers = (ocrScheduler_t**) checked_malloc(all_schedulers, sizeof(ocrScheduler_t*) * per_policy_domain_total_nb_schedulers * n_policy_domains );
     ocrWorker_t   ** all_workers    = (ocrWorker_t   **) checked_malloc(all_workers, sizeof(ocrWorker_t   *) * per_policy_domain_total_nb_workers    * n_policy_domains );
     ocrCompTarget_t ** all_comp_targets  = (ocrCompTarget_t **) checked_malloc(all_comp_targets, sizeof(ocrCompTarget_t *) * per_policy_domain_total_nb_comp_targets  * n_policy_domains );
-    ocr_workpile_t ** all_workpiles  = (ocr_workpile_t **) checked_malloc(all_workpiles, sizeof(ocr_workpile_t *) * per_policy_domain_total_nb_workpiles  * n_policy_domains );
+    ocrWorkpile_t ** all_workpiles  = (ocrWorkpile_t **) checked_malloc(all_workpiles, sizeof(ocrWorkpile_t *) * per_policy_domain_total_nb_workpiles  * n_policy_domains );
     ocrAllocator_t ** all_allocators = (ocrAllocator_t **) checked_malloc(all_allocators, sizeof(ocrAllocator_t *) * totalNumAllocators * n_policy_domains );
     ocrMemPlatform_t ** all_memories   = (ocrMemPlatform_t **) checked_malloc(all_memories, sizeof(ocrMemPlatform_t *) * totalNumMemories * n_policy_domains );
 
@@ -375,7 +374,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
         ocrScheduler_t** schedulers = (ocrScheduler_t**) &(all_schedulers[ idx * per_policy_domain_total_nb_schedulers ]);
         ocrWorker_t   ** workers    = (ocrWorker_t   **) &(all_workers   [ idx * per_policy_domain_total_nb_workers    ]);
         ocrCompTarget_t ** compTargets  = (ocrCompTarget_t **) &(all_comp_targets [ idx * per_policy_domain_total_nb_comp_targets  ]);
-        ocr_workpile_t ** workpiles  = (ocr_workpile_t **) &(all_workpiles [ idx * per_policy_domain_total_nb_workpiles  ]);
+        ocrWorkpile_t ** workpiles  = (ocrWorkpile_t **) &(all_workpiles [ idx * per_policy_domain_total_nb_workpiles  ]);
         ocrAllocator_t ** allocators = (ocrAllocator_t **) &(all_allocators[ idx * totalNumAllocators                    ]);
         ocrMemPlatform_t ** memories   = (ocrMemPlatform_t **) &(all_memories  [ idx * totalNumMemories                      ]);
 

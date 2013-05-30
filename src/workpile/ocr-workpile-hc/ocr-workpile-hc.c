@@ -34,45 +34,59 @@
 
 
 /******************************************************/
-/* OCR-HC WorkPool                                    */
+/* OCR-HC WorkPile Factory                            */
 /******************************************************/
 
-static void hc_workpile_create ( ocr_workpile_t * base, void * configuration) {
-    hc_workpile* derived = (hc_workpile*) base;
-    derived->deque = (deque_t *) checked_malloc(derived->deque, sizeof(deque_t));
-    deque_init(derived->deque, (void *) NULL_GUID);
+// Fwd declaration
+ocrWorkpile_t* newWorkpileHc(ocrWorkpileFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+
+void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
+    free(factory);
 }
 
-static void hc_workpile_destruct ( ocr_workpile_t * base ) {
-    hc_workpile* derived = (hc_workpile*) base;
+ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(void * config) {
+    ocrWorkpileFactoryHc_t* derived = (ocrWorkpileFactoryHc_t*) checked_malloc(derived, sizeof(ocrWorkpileFactoryHc_t));
+    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
+    base->instantiate = newWorkpileHc;
+    base->destruct =  destructWorkpileFactoryHc;
+    return base;
+}
+
+/******************************************************/
+/* OCR-HC WorkPile                                    */
+/******************************************************/
+
+static void hc_workpile_destruct ( ocrWorkpile_t * base ) {
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
     free(derived->deque);
     free(derived);
 }
 
-static ocrGuid_t hc_workpile_pop ( ocr_workpile_t * base ) {
-    hc_workpile* derived = (hc_workpile*) base;
+static ocrGuid_t hc_workpile_pop ( ocrWorkpile_t * base ) {
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
     return (ocrGuid_t) deque_pop(derived->deque);
 }
 
-static void hc_workpile_push (ocr_workpile_t * base, ocrGuid_t g ) {
-    hc_workpile* derived = (hc_workpile*) base;
+static void hc_workpile_push (ocrWorkpile_t * base, ocrGuid_t g ) {
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
     deque_push(derived->deque, (void *)g);
 }
 
-static ocrGuid_t hc_workpile_steal ( ocr_workpile_t * base ) {
-    hc_workpile* derived = (hc_workpile*) base;
+static ocrGuid_t hc_workpile_steal ( ocrWorkpile_t * base ) {
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
     return (ocrGuid_t) deque_steal(derived->deque);
 }
 
-ocr_workpile_t * hc_workpile_constructor(void) {
-    hc_workpile* derived = (hc_workpile*) checked_malloc(derived, sizeof(hc_workpile));
-    ocr_workpile_t * base = (ocr_workpile_t *) derived;
+ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, void * per_type_configuration, void * per_instance_configuration) {
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) checked_malloc(derived, sizeof(ocrWorkpileHc_t));
+    ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
     ocr_module_t * module_base = (ocr_module_t *) base;
     module_base->map_fct = NULL;
-    base->create = hc_workpile_create;
     base->destruct = hc_workpile_destruct;
     base->pop = hc_workpile_pop;
     base->push = hc_workpile_push;
     base->steal = hc_workpile_steal;
+    derived->deque = (deque_t *) checked_malloc(derived->deque, sizeof(deque_t));
+    deque_init(derived->deque, (void *) NULL_GUID);
     return base;
 }

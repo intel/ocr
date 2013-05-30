@@ -73,10 +73,14 @@ typedef struct {
 /* OCR-HC Workpile                                    */
 /******************************************************/
 
-typedef struct hc_workpile {
-    ocr_workpile_t base;
+typedef struct {
+  ocrWorkpileFactory_t base;
+} ocrWorkpileFactoryHc_t;
+
+typedef struct {
+    ocrWorkpile_t base;
     deque_t * deque;
-} hc_workpile;
+} ocrWorkpileHc_t;
 
 
 /******************************************************/
@@ -90,7 +94,11 @@ typedef struct {
 typedef struct {
     ocrScheduler_t scheduler;
     size_t n_pools;
-    ocr_workpile_t ** pools;
+    ocrWorkpile_t ** pools;
+    // Note: cache steal iterators in hc's scheduler
+    // Each worker has its own steal iterator instantiated
+    // a sheduler's construction time.
+    ocrWorkpileIterator_t ** steal_iterators;
 
     int n_workers_per_scheduler;
     size_t worker_id_begin;

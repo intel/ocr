@@ -48,10 +48,11 @@ typedef struct {
     pthread_mutex_t isRunningMutex;
 } ocrWorkerFsimXE_t;
 
-typedef struct ce_message_workpile {
-    ocr_workpile_t base;
+typedef struct ocrWorkpileFsimMessage_t {
+    ocrWorkpile_t base;
     mpsc_deque_t * deque;
-} ce_message_workpile;
+} ocrWorkpileFsimMessage_t;
+
 
 /******************************************************/
 /* OCR-FSIM SCHEDULERS                                */
@@ -74,6 +75,7 @@ typedef struct {
     int in_message_popping_mode;
 } ocrSchedulerFsimCE_t;
 
+
 /******************************************************/
 /* OCR-FSIM WORKERS                                   */
 /******************************************************/
@@ -85,6 +87,16 @@ typedef struct  {
 typedef struct  {
     ocrWorkerFactory_t base;
 } ocrWorkerFactoryFsimCE_t;
+
+
+/******************************************************/
+/* OCR-FSIM Workpile                                  */
+/******************************************************/
+
+typedef struct {
+  ocrWorkpileFactory_t base;
+} ocrWorkpileFactoryFsimMessage_t;
+
 
 /******************************************************/
 /* OCR-FSIM Task Factory                              */

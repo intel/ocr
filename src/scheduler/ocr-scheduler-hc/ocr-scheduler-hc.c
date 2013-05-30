@@ -55,19 +55,19 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(void * config) {
     return base;
 }
 
-ocr_workpile_t * hc_scheduler_pop_mapping_one_to_one (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpile_t * hc_scheduler_pop_mapping_one_to_one (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler ];
 }
 
-ocr_workpile_t * hc_scheduler_push_mapping_one_to_one (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpile_t * hc_scheduler_push_mapping_one_to_one (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler];
 }
 
-workpile_iterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpileIterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
-    workpile_iterator_t * steal_iterator = derived->steal_iterators[get_worker_id(w)];
+    ocrWorkpileIterator_t * steal_iterator = derived->steal_iterators[get_worker_id(w)];
     steal_iterator->reset(steal_iterator);
     return steal_iterator;
 }
@@ -75,14 +75,14 @@ workpile_iterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocrSchedule
 ocrGuid_t hc_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
     ocrWorker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
-
-    ocr_workpile_t * wp_to_pop = base->pop_mapping(base, w);
+    // First try to pop
+    ocrWorkpile_t * wp_to_pop = base->pop_mapping(base, w);
     ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
     if ( NULL_GUID == popped ) {
         // If popping failed, try to steal
-        workpile_iterator_t* it = base->steal_mapping(base, w);
+        ocrWorkpileIterator_t* it = base->steal_mapping(base, w);
         while ( it->hasNext(it) && (NULL_GUID == popped)) {
-            ocr_workpile_t * next = it->next(it);
+            ocrWorkpile_t * next = it->next(it);
             popped = next->steal(next);
         }
         // Note that we do not need to destruct the workpile
@@ -95,7 +95,7 @@ void hc_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
     ocrWorker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
-    ocr_workpile_t * wp_to_push = base->push_mapping(base, w);
+    ocrWorkpile_t * wp_to_push = base->push_mapping(base, w);
     wp_to_push->push(wp_to_push,tid);
 }
 
@@ -107,15 +107,15 @@ void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocr_module_ki
     // Checking mapping conforms to what we're expecting in this implementation
     assert(kind == OCR_WORKPILE);
     // allocate steal iterator cache
-    workpile_iterator_t ** steal_iterators_cache = checked_malloc(steal_iterators_cache, sizeof(workpile_iterator_t *)*nb_instances);
+    ocrWorkpileIterator_t ** steal_iterators_cache = checked_malloc(steal_iterators_cache, sizeof(ocrWorkpileIterator_t *)*nb_instances);
     ocrSchedulerHc_t * scheduler = (ocrSchedulerHc_t *) self_module;
     scheduler->n_pools = nb_instances;
-    scheduler->pools = (ocr_workpile_t **)ptr_instances;
+    scheduler->pools = (ocrWorkpile_t **)ptr_instances;
     // Initialize steal iterator cache
     int i = 0;
     while(i < nb_instances) {
         // Note: here we assume workpile 'i' will match worker 'i' => Not great
-        steal_iterators_cache[i] = workpile_iterator_constructor(i, nb_instances, (ocr_workpile_t **)ptr_instances);
+        steal_iterators_cache[i] = workpile_iterator_constructor(i, nb_instances, (ocrWorkpile_t **)ptr_instances);
         i++;
     }
     scheduler->steal_iterators = steal_iterators_cache;
@@ -125,7 +125,7 @@ void destructSchedulerHc(ocrScheduler_t * scheduler) {
     // Free the workpile steal iterator cache
     ocrSchedulerHc_t * hc_scheduler = (ocrSchedulerHc_t *) scheduler;
     int nb_instances = hc_scheduler->n_pools;
-    workpile_iterator_t ** steal_iterators = hc_scheduler->steal_iterators;
+    ocrWorkpileIterator_t ** steal_iterators = hc_scheduler->steal_iterators;
     int i = 0;
     while(i < nb_instances) {
         workpile_iterator_destructor(steal_iterators[i]);
@@ -161,7 +161,7 @@ ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, void * per_type_
 /* OCR-HC-PLACED SCHEDULER                            */
 /******************************************************/
 
-workpile_iterator_t* hc_scheduler_steal_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpileIterator_t* hc_scheduler_steal_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
     assert ( 0 && "We should not ask for a steal mapping from this scheduler");
     return NULL;
 }
@@ -176,7 +176,7 @@ ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
 
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     if ( worker_id >= derived->worker_id_begin && worker_id <= derived->worker_id_end ) {
-        ocr_workpile_t * wp_to_pop = base->pop_mapping(base, w);
+        ocrWorkpile_t * wp_to_pop = base->pop_mapping(base, w);
         popped = wp_to_pop->pop(wp_to_pop);
         /*TODO sagnak I hard-coded a no intra-scheduler stealing here; BAD */
         if ( NULL_GUID == popped ) {
@@ -186,7 +186,7 @@ ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
         }
     } else {
         // TODO sagnak oooh BAD BAD hardcoding yet again
-        ocr_workpile_t* victim = derived->pools[0];
+        ocrWorkpile_t* victim = derived->pools[0];
         popped = victim->steal(victim);
     }
 
@@ -198,7 +198,7 @@ void hc_placed_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t ti
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
 
     // TODO sagnak calculate which 'place' to push
-    ocr_workpile_t * wp_to_push = base->push_mapping(base, w);
+    ocrWorkpile_t * wp_to_push = base->push_mapping(base, w);
     wp_to_push->push(wp_to_push,tid);
 }
 

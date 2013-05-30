@@ -37,17 +37,21 @@
 
 
 /****************************************************/
-/* OCR WORKPILE API                                 */
+/* OCR WORKPILE FACTORY                             */
 /****************************************************/
 
-//Forward declaration
-struct ocr_workpile_struct;
+// Forward declaration
+struct ocrWorkpile_t;
 
-typedef void (*workpile_create_fct) ( struct ocr_workpile_struct* workpile, void * configuration );
-typedef void (*workpile_destruct_fct)(struct ocr_workpile_struct* base);
-typedef ocrGuid_t (*workpile_pop_fct) ( struct ocr_workpile_struct* base );
-typedef void (*workpile_push_fct) ( struct ocr_workpile_struct* base, ocrGuid_t g );
-typedef ocrGuid_t (*workpile_steal_fct) ( struct ocr_workpile_struct* base );
+typedef struct ocrWorkpileFactory_t {
+    struct ocrWorkpile_t * (*instantiate) ( struct ocrWorkpileFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+    void (*destruct)(struct ocrWorkpileFactory_t * factory);
+} ocrWorkpileFactory_t;
+
+
+/****************************************************/
+/* OCR WORKPILE API                                 */
+/****************************************************/
 
 /*! \brief Abstract class to represent OCR task pool data structures.
  *
@@ -55,30 +59,25 @@ typedef ocrGuid_t (*workpile_steal_fct) ( struct ocr_workpile_struct* base );
  *  As we want to support work stealing, we current have pop, push and steal interfaces
  */
 //TODO We may be influenced by how STL resolves this issue as in push_back, push_front, pop_back, pop_front
-typedef struct ocr_workpile_struct {
+typedef struct ocrWorkpile_t {
     ocr_module_t module;
-
-    /*! \brief Creates an concrete implementation of a WorkPool
-     *  \return Pointer to the concrete WorkPool that is created by this call
-     */
-    workpile_create_fct create;
     /*! \brief Virtual destructor for the WorkPool interface
      *  As this class does not have any state, the virtual destructor does not do anything
      */
-    workpile_destruct_fct destruct;
+    void (*destruct)(struct ocrWorkpile_t* base);
     /*! \brief Interface to extract a task from this pool
      *  \return GUID of the task that is extracted from this task pool
      */
-    workpile_pop_fct pop;
+    ocrGuid_t (*pop) ( struct ocrWorkpile_t* base );
     /*! \brief Interface to enlist a task
      *  \param[in]  task_guid   GUID of the task that is to be pushed into this task pool.
      */
-    workpile_push_fct push;
+    void (*push) ( struct ocrWorkpile_t* base, ocrGuid_t g );
     /*! \brief Interface to alternative extract a task from this pool
      *  \return GUID of the task that is extracted from this task pool
      */
-    workpile_steal_fct steal;
-} ocr_workpile_t;
+    ocrGuid_t (*steal) ( struct ocrWorkpile_t* base );
+} ocrWorkpile_t;
 
 
 /****************************************************/
@@ -90,36 +89,27 @@ typedef enum ocr_workpile_kind_enum {
     OCR_MESSAGE_QUEUE = 2
 } ocr_workpile_kind;
 
-ocr_workpile_t * newWorkpile(ocr_workpile_kind workpileType);
+ocrWorkpile_t * newWorkpile(ocr_workpile_kind workpileType, void * per_type_configuration, void * per_instance_configuration);
 
 
 /****************************************************/
 /* OCR WORKPILE ITERATOR API                        */
 /****************************************************/
 
-/* Forward declaration */
-struct workpile_iterator_struct;
-
-typedef void (*workpile_iterator_reset_fct) (struct workpile_iterator_struct*);
-typedef bool (*workpile_iterator_hasNext_fct) (struct workpile_iterator_struct*);
-typedef ocr_workpile_t * (*workpile_iterator_next_fct) (struct workpile_iterator_struct*);
-
-typedef struct workpile_iterator_struct {
-    workpile_iterator_hasNext_fct hasNext;
-    workpile_iterator_next_fct next;
-    workpile_iterator_reset_fct reset;
-    ocr_workpile_t ** array;
+typedef struct ocrWorkpileIterator_t {
+    bool (*hasNext) (struct ocrWorkpileIterator_t*);
+    ocrWorkpile_t * (*next) (struct ocrWorkpileIterator_t*);
+    void (*reset) (struct ocrWorkpileIterator_t*);
+    ocrWorkpile_t ** array;
     int id;
     int curr;
     int mod;
-} workpile_iterator_t;
+} ocrWorkpileIterator_t;
 
-void workpile_iterator_reset (workpile_iterator_t * base);
-bool workpile_iterator_hasNext (workpile_iterator_t * base);
-ocr_workpile_t * workpile_iterator_next (workpile_iterator_t * base);
-workpile_iterator_t* workpile_iterator_constructor ( int i, size_t n_pools, ocr_workpile_t ** pools );
-void workpile_iterator_destructor (workpile_iterator_t* base);
-
-
+void workpile_iterator_reset (ocrWorkpileIterator_t * base);
+bool workpile_iterator_hasNext (ocrWorkpileIterator_t * base);
+ocrWorkpile_t * workpile_iterator_next (ocrWorkpileIterator_t * base);
+ocrWorkpileIterator_t* workpile_iterator_constructor ( int i, size_t n_pools, ocrWorkpile_t ** pools );
+void workpile_iterator_destructor (ocrWorkpileIterator_t* base);
 
 #endif /* __OCR_WORKPILE_H_ */

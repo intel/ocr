@@ -54,7 +54,7 @@ struct ocr_policy_domain_struct;
 
 typedef void (*ocr_policy_create_fct) (struct ocr_policy_domain_struct * policy, void * configuration,
                                        ocrScheduler_t ** schedulers, ocrWorker_t ** workers,
-                                       ocrCompTarget_t ** compTargets, ocr_workpile_t ** workpiles,
+                                       ocrCompTarget_t ** compTargets, ocrWorkpile_t ** workpiles,
                                        ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories);
 typedef void (*ocr_policy_start_fct) (struct ocr_policy_domain_struct * policy);
 typedef void (*ocr_policy_finish_fct) (struct ocr_policy_domain_struct * policy);
@@ -75,7 +75,7 @@ typedef struct ocr_policy_domain_struct {
     ocrScheduler_t ** schedulers;
     ocrWorker_t ** workers;
     ocrCompTarget_t ** compTargets;
-    ocr_workpile_t ** workpiles;
+    ocrWorkpile_t ** workpiles;
     ocrAllocator_t ** allocators;
     ocrMemPlatform_t ** memories;
 
