@@ -39,40 +39,45 @@
 
 
 /******************************************************/
-/* OCR COMP TARGET INTERFACE                          */
+/* OCR COMP TARGET FACTORY                            */
 /******************************************************/
 
-//Forward declaration
-struct ocr_comp_target_struct;
+// Forward declaration
+struct ocrCompTarget_t;
 
-typedef void (*ocr_comp_target_create_fct) (struct ocr_comp_target_struct * base, void * configuration);
+typedef struct ocrCompTargetFactory_t {
+    struct ocrCompTarget_t * (*instantiate) ( struct ocrCompTargetFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+    void (*destruct)(struct ocrCompTargetFactory_t * factory);
+} ocrCompTargetFactory_t;
 
-typedef void (*ocr_comp_target_destruct_fct) (struct ocr_comp_target_struct * base);
 
-/*! \brief Starts a thread of execution with a function pointer and and argument for a given stack size
- *
- *  The signature of the interface restricts the routine that can be assigned to a thread as follows.
- *  The function, routine, should take a void pointer, arg, as an argument and return a void pointer
- */
-typedef void (*ocr_comp_target_start_fct) (struct ocr_comp_target_struct * base);
-
-/*! \brief Stops this comp-target
- */
-typedef void (*ocr_comp_target_stop_fct) (struct ocr_comp_target_struct * base);
+/******************************************************/
+/* OCR COMP TARGET INTERFACE                          */
+/******************************************************/
 
 /*! \brief Abstract class to represent OCR comp-target
  *
  *  This class provides the interface for the underlying implementation to conform.
  *  Currently, we allow comp-target to be started and stopped
  */
-typedef struct ocr_comp_target_struct {
+typedef struct ocrCompTarget_t {
     ocr_module_t module;
     ocr_comp_platform_t * platform;
-    ocr_comp_target_create_fct create;
-    ocr_comp_target_destruct_fct destruct;
-    ocr_comp_target_start_fct start;
-    ocr_comp_target_stop_fct stop;
-} ocr_comp_target_t;
+
+    void (*destruct) (struct ocrCompTarget_t * base);
+
+    /*! \brief Starts a thread of execution with a function pointer and and argument for a given stack size
+     *
+     *  The signature of the interface restricts the routine that can be assigned to a thread as follows.
+     *  The function, routine, should take a void pointer, arg, as an argument and return a void pointer
+     */
+    void (*start) (struct ocrCompTarget_t * base);
+
+    /*! \brief Stops this comp-target
+     */
+    void (*stop) (struct ocrCompTarget_t * base);
+
+} ocrCompTarget_t;
 
 ocrGuid_t ocr_get_current_worker_guid();
 
@@ -87,8 +92,6 @@ typedef enum ocr_comp_target_kind_enum {
     OCR_COMP_TARGET_CE = 3
 } ocr_comp_target_kind;
 
-ocr_comp_target_t * newCompTarget(ocr_comp_target_kind compTargetType);
-
-ocr_comp_target_t * ocr_comp_target_hc_constructor(void);
+ocrCompTarget_t * newCompTarget(ocr_comp_target_kind compTargetType, void * per_type_configuration, void * per_instance_configuration);
 
 #endif /* __OCR_COMP_TARGET_H__ */

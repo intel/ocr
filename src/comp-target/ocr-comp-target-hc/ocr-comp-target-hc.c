@@ -34,10 +34,26 @@
 
 #include "ocr-macros.h"
 #include "ocr-comp-target.h"
+#include "hc.h"
+
+// Fwd declaration
+ocrCompTarget_t* newCompTargetHc(ocrCompTargetFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+
+void destructCompTargetFactoryHc(ocrCompTargetFactory_t * factory) {
+    free(factory);
+}
+
+ocrCompTargetFactory_t * newOcrCompTargetFactoryHc(void * config) {
+    ocrCompTargetFactoryHc_t* derived = (ocrCompTargetFactoryHc_t*) checked_malloc(derived, sizeof(ocrCompTargetFactoryHc_t));
+    ocrCompTargetFactory_t* base = (ocrCompTargetFactory_t*) derived;
+    base->instantiate = newCompTargetHc;
+    base->destruct = destructCompTargetFactoryHc;
+    return base;
+}
 
 typedef struct {
-    ocr_comp_target_t base;
-} ocr_comp_target_hc_t;
+    ocrCompTarget_t base;
+} ocrCompTargetHc_t;
 
 void hc_ocr_module_map_worker_to_comp_target(void * self_module, ocr_module_kind kind,
                                            size_t nb_instances, void ** ptr_instances) {
@@ -45,39 +61,35 @@ void hc_ocr_module_map_worker_to_comp_target(void * self_module, ocr_module_kind
     assert(kind == OCR_WORKER);
     assert(nb_instances == 1);
     ocrWorker_t * worker = (ocrWorker_t *) ptr_instances[0];
-    ocr_comp_target_t * compTarget = (ocr_comp_target_t *) self_module;
+    ocrCompTarget_t * compTarget = (ocrCompTarget_t *) self_module;
     //TODO the routine thing is a hack.
     compTarget->platform->routine = worker->routine;
     compTarget->platform->routine_arg = worker;
 }
 
-void ocr_comp_target_hc_start(ocr_comp_target_t * compTarget) {
-  ((ocr_comp_target_t *)compTarget)->platform->start(compTarget->platform);
+void ocr_comp_target_hc_start(ocrCompTarget_t * compTarget) {
+  compTarget->platform->start(compTarget->platform);
 }
 
-void ocr_comp_target_hc_stop(ocr_comp_target_t * compTarget) {
-  ((ocr_comp_target_t *)compTarget)->platform->stop(compTarget->platform);
+void ocr_comp_target_hc_stop(ocrCompTarget_t * compTarget) {
+  compTarget->platform->stop(compTarget->platform);
 }
 
-void ocr_comp_target_hc_create ( ocr_comp_target_t * compTarget, void * configuration) {
-  ((ocr_comp_target_t *)compTarget)->platform->create(compTarget->platform, configuration);
-}
-
-void ocr_comp_target_hc_destruct (ocr_comp_target_t * compTarget) {
-    ((ocr_comp_target_t *)compTarget)->platform->destruct(compTarget->platform);
+void ocr_comp_target_hc_destruct (ocrCompTarget_t * compTarget) {
+    compTarget->platform->destruct(compTarget->platform);
     free(compTarget);
 }
 
-ocr_comp_target_t * ocr_comp_target_hc_constructor() {
+ocrCompTarget_t * newCompTargetHc(ocrCompTargetFactory_t * factory, void * per_type_configuration, void * per_instance_configuration) {
     //TODO the comp-target/comp-platform mapping should be arranged in the policy-domain
-    ocr_comp_platform_t * compPlatform = ocr_comp_platform_pthread_constructor();
-    ocr_comp_target_t * compTarget = checked_malloc(compTarget, sizeof(ocr_comp_target_hc_t));
+    ocr_comp_platform_t * compPlatform = ocr_comp_platform_pthread_constructor();    
+    ocrCompTarget_t * compTarget = checked_malloc(compTarget, sizeof(ocrCompTargetHc_t));
     ocr_module_t * module_base = (ocr_module_t *) compTarget;
     module_base->map_fct = hc_ocr_module_map_worker_to_comp_target;
-    compTarget->create = ocr_comp_target_hc_create;
     compTarget->destruct = ocr_comp_target_hc_destruct;
     compTarget->start = ocr_comp_target_hc_start;
     compTarget->stop = ocr_comp_target_hc_stop;
     compTarget->platform = compPlatform;
+    compTarget->platform->create(compTarget->platform, per_type_configuration);
     return compTarget;
 }

@@ -34,7 +34,7 @@
 
 void fsim_policy_domain_create(ocr_policy_domain_t * policy, void * configuration,
                                ocrScheduler_t ** schedulers, ocrWorker_t ** workers,
-                               ocr_comp_target_t ** compTargets, ocr_workpile_t ** workpiles,
+                               ocrCompTarget_t ** compTargets, ocr_workpile_t ** workpiles,
                                ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories) {
     policy->schedulers = schedulers;
     policy->workers = workers;

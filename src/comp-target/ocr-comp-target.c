@@ -35,14 +35,16 @@
 #include "ocr-types.h"
 #include "ocr-comp-target.h"
 
-ocr_comp_target_t * newCompTarget(ocr_comp_target_kind compTargetType) {
+extern ocrCompTarget_t * newCompTargetHc(ocrCompTargetFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+
+ocrCompTarget_t * newCompTarget(ocr_comp_target_kind compTargetType, void * per_type_configuration, void * per_instance_configuration) {
     switch(compTargetType) {
         //TODO this could be transformed as iterating over some
         //array and return an instance to minimize code to be added
     case OCR_COMP_TARGET_XE:
     case OCR_COMP_TARGET_CE:
     case OCR_COMP_TARGET_HC:
-        return ocr_comp_target_hc_constructor();
+        return newCompTargetHc(NULL, per_type_configuration, per_instance_configuration);
     default:
         assert(false && "Unrecognized comp-target kind");
         break;
