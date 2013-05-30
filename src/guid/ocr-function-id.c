@@ -33,9 +33,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ocr-function-id.h"
+#include "ocr-guid.h"
 #include "ocr-macros.h"
-
+#include "ocr-function-id.h"
+   
 /**
  * Global variables to store the data for mapping function IDs to function pointers and vice-versa
  *

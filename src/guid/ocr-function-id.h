@@ -46,8 +46,6 @@ typedef struct ocr_hashtable_entry_struct{
     struct ocr_hashtable_entry_struct * nxt; /* the next bucket in the hashtable */
 }ocr_hashtable_entry;
 
-
-
 /**
  * @brief initializing the data structures to store the function ID mapping on each distributed node
  *
