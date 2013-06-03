@@ -36,7 +36,7 @@
 #include "ocr-guid.h"
 
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
-    ocr_policy_domain_t* policy_domain = get_current_policy_domain();
+    ocrPolicyDomain_t* policy_domain = get_current_policy_domain();
     ocrEventFactory_t * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
     *guid = eventFactory->instantiate(eventFactory, eventType, takesArg);
     return 0;
@@ -65,7 +65,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
                 u32 paramc, u64 * params, void** paramv,
                 u16 properties, u32 depc, ocrGuid_t* depv /*= NULL*/) {
 
-    ocr_policy_domain_t* policy_domain = get_current_policy_domain();
+    ocrPolicyDomain_t* policy_domain = get_current_policy_domain();
     ocrTaskFactory_t* taskFactory = policy_domain->getTaskFactoryForUserTasks(policy_domain);
     //TODO LIMITATION handle pre-built dependence vector
     *edtGuid = taskFactory->instantiate(taskFactory, funcPtr, paramc, params, paramv, properties, depc, outputEvent);

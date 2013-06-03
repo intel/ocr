@@ -521,7 +521,7 @@ ocrTaskHc_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void *
     ocrTask_t * newEdtBase = (ocrTask_t *) newEdt;
     // If we are creating a finish-edt
     if (hasProperty(properties, EDT_PROP_FINISH)) {
-        ocr_policy_domain_t* policy_domain = get_current_policy_domain();
+        ocrPolicyDomain_t* policy_domain = get_current_policy_domain();
         ocrEventFactory_t * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
         ocrEvent_t * latch = eventConstructorInternal(eventFactory, OCR_EVENT_FINISH_LATCH_T, false);
         ocrEventHcFinishLatch_t * hcLatch = (ocrEventHcFinishLatch_t *) latch;
@@ -728,7 +728,7 @@ ocrGuid_t newTaskHc(ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 
     // Initialize a sticky outputEvent if requested
     ocrGuid_t outputEvent = (ocrGuid_t) outputEventPtr;
     if (outputEvent != NULL_GUID) {
-        ocr_policy_domain_t* policy_domain = get_current_policy_domain();
+        ocrPolicyDomain_t* policy_domain = get_current_policy_domain();
         ocrEventFactory_t * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
         outputEvent = newEventHc(eventFactory, OCR_EVENT_STICKY_T, false);
         *outputEventPtr = outputEvent;

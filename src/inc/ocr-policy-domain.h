@@ -43,101 +43,361 @@
 #include "ocr-sync.h"
 #include "ocr-runtime-def.h"
 #include "ocr-task-event.h"
+#include "ocr-tuning.h"
 
 
 /******************************************************/
 /* OCR POLICY DOMAIN INTERFACE                        */
 /******************************************************/
 
-// Forward declaration
-struct ocr_policy_domain_struct;
+typedef enum {
+    PD_MSG_INVAL       = 0, /**< Invalid message */
+    PD_MSG_EDT_READY   = 1, /**< An EDT is now fully "satisfied" */
+    PD_MSG_EDT_SATISFY = 2, /**< Partial EDT satisfaction */
+    PD_MSG_DB_DESTROY  = 3, /**< A DB destruction has been requested */
+    PD_MSG_EDT_TAKE    = 4, /**< Take EDTs (children of the PD make this call) */
+    PD_MSG_DB_TAKE     = 5, /**< Take DBs (children of the PD make this call) */
+    PD_MSG_EDT_STEAL   = 6, /**< Steal EDTs (from non-children PD) */
+    PD_MSG_DB_STEAL    = 7, /**< Steal DBs (from non-children PD) */
+} ocrPolicyMsgTypes_t;
 
-typedef void (*ocr_policy_create_fct) (struct ocr_policy_domain_struct * policy, void * configuration,
-                                       ocrScheduler_t ** schedulers, ocrWorker_t ** workers,
-                                       ocrCompTarget_t ** compTargets, ocrWorkpile_t ** workpiles,
-                                       ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories);
-typedef void (*ocr_policy_start_fct) (struct ocr_policy_domain_struct * policy);
-typedef void (*ocr_policy_finish_fct) (struct ocr_policy_domain_struct * policy);
-typedef void (*ocr_policy_stop_fct) (struct ocr_policy_domain_struct * policy);
-typedef void (*ocr_policy_destruct_fct) (struct ocr_policy_domain_struct * policy);
-typedef ocrGuid_t (*ocr_policy_getAllocator)(struct ocr_policy_domain_struct *policy, ocrLocation_t* location);
-
-typedef struct ocr_policy_domain_struct {
-    ocr_module_t module;
-    ocrGuid_t guid;
-    int nb_schedulers;
-    int nb_workers;
-    int nb_comp_targets;
-    int nb_workpiles;
-    int nb_allocators;
-    int nb_memories;
-
-    ocrScheduler_t ** schedulers;
-    ocrWorker_t ** workers;
-    ocrCompTarget_t ** compTargets;
-    ocrWorkpile_t ** workpiles;
-    ocrAllocator_t ** allocators;
-    ocrMemPlatform_t ** memories;
-
-    ocrTaskFactory_t** taskFactories;
-    ocrEventFactory_t** eventFactories;
-
-    ocr_policy_create_fct create;
-    ocr_policy_start_fct start;
-    ocr_policy_finish_fct finish;
-    ocr_policy_stop_fct stop;
-    ocr_policy_destruct_fct destruct;
-    ocr_policy_getAllocator getAllocator;
-
-    void (*receive) (struct ocr_policy_domain_struct * this, ocrGuid_t workerGuid, ocrGuid_t taskGuid);
-    void (*handOut) (struct ocr_policy_domain_struct * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid);
-
-    ocrGuid_t (*handIn) (struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * takingPolicy, ocrGuid_t takingWorkerGuid);
-    ocrGuid_t (*extract) (struct ocr_policy_domain_struct * this, struct ocr_policy_domain_struct * takingPolicy, ocrGuid_t takingWorkerGuid);
-
-    ocrTaskFactory_t* (*getTaskFactoryForUserTasks) (struct ocr_policy_domain_struct * policy);
-    ocrEventFactory_t* (*getEventFactoryForUserEvents) (struct ocr_policy_domain_struct * policy);
-
-    struct ocr_policy_domain_struct** successors;
-    struct ocr_policy_domain_struct** predecessors;
-    size_t n_successors;
-    size_t n_predecessors;
-
-    //TODO sagnak, HACKY :(
-    unsigned char id;
-} ocr_policy_domain_t;
-
-/**!
- * Default destructor for ocr policy domain
+/**
+ * @brief Structure describing a "message" that is used to communicate between
+ * policy domains in an asynchronous manner
+ *
+ * Policy domains can communicate between each other using either
+ * a synchronous method where the requester (source) policy domain executes
+ * the code of the requestee (destination) policy domain directly or
+ * asynchronously where the source domain sends the equivalent of a message
+ * to the destination domain and then `waits' for a response. The first
+ * way requires synchronization and homogeneous runtime cores and is the
+ * most natural model on x86 while the second model is more natural in a
+ * slave-master framework where the slaves are not allowed to execute
+ * code written for the master.
+ *
+ * This struct is meant to be extended (either one per implementation
+ * or optionally one per implementation and type).
+ *
+ * Note that this structure is also used for synchronous messages
+ * so that the caller knows who finally responded to its request.
  */
-void ocr_policy_domain_destruct(ocr_policy_domain_t * policy);
+typedef struct _ocrPolicyCtx_t {
+    ocrGuid_t sourcePD;    /**< Source policy domain */
+    ocrGuid_t sourceObj;   /**< Source object (worker for example) in the source PD */
+    u64       sourceId;    /**< Internal ID to the source PD */
+    ocrGuid_t destPD;      /**< Destination policy domain (after all eventual hops) */
+    ocrGuid_t destObj;     /**< Responding object (after all eventual hops) */
+    ocrPolicyMsgType type; /**< Type of message */
+} ocrPolicyCtx_t;
 
-/******************************************************/
-/* OCR POLICY DOMAIN KINDS AND CONSTRUCTORS           */
-/******************************************************/
+/**
+ * @brief A policy domain is OCR's way of dividing up the runtime in scalable
+ * chunks
+ *
+ * Each policy domain contains the following:
+ *     - 0 or more 'schedulers' which both schedule tasks and place data
+ *     - 0 or more 'workers' on which EDTs are executed
+ *     - 0 or more 'target computes' on which 'workers' are mapped and run
+ *     - 0 or more 'workpiles' from which EDTs are taken to be scheduled
+ *       on the workers. Note that the exact content of workpiles is
+ *       left up to the scheduler managing them
+ *     - 0 or more 'allocators' from which DBs are allocated/freed
+ *     - 0 or more 'target memories' which are managed by the
+ *       allocators
+ *
+ * A policy domain will directly respond to requests emanating from user
+ * code to:
+ *     - create EDTs (using ocrEdtCreate())
+ *     - create DBs (using ocrDbCreate())
+ *     - create GUIDs
+ *
+ * It will also respond to requests from the runtime to:
+ *     - destroy and reallocate a data-block (callback stemming from user
+ *       actions on data-blocks using ocrDbDestroy())
+ *     - destroy an EDT (callback stemming from user actions on EDTs
+ *       using ocrEdtDestroy())
+ *     - partial or complete satisfaction of dependences (callback
+ *       stemming from user actions on EDTs using ocrEventSatisfy())
+ *     - take EDTs stemming from idling workers for example
+ *
+ * Finally, it will respond to requests from other policy domains to:
+ *     - take (steal) EDTs and DBs (data load-balancing)
+ */
+typedef struct _ocrPolicyDomain_t {
+    ocr_module_t module;
+    ocrGuid_t guid;                             /**< GUID for this policy */
 
-typedef enum ocr_policy_domain_kind_enum {
-    OCR_POLICY_HC = 1,
-    OCR_POLICY_XE = 2,
-    OCR_POLICY_CE = 3,
-    OCR_POLICY_MASTERED_CE = 4,
-    OCR_PLACE_POLICY = 5,
-    OCR_LEAF_PLACE_POLICY = 6,
-    OCR_MASTERED_LEAF_PLACE_POLICY = 7
-} ocr_policy_domain_kind;
+    u32 schedulerCount;                         /**< Number of schedulers */
+    u32 workerCount;                            /**< Number of workers */
+    u32 computeCount;                           /**< Number of target computate nodes */
+    u32 workpileCount;                          /**< Number of workpiles */
+    u32 allocatorCount;                         /**< Number of allocators */
+    u32 memoryCount;                            /**< Number of target memory nodes */
 
-ocr_policy_domain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
-                                size_t nb_workpiles,
-                                size_t nb_workers,
-                                size_t nb_comp_targets,
-                                size_t nb_scheduler);
+    ocrScheduler_t  ** schedulers;              /**< All the schedulers */
+    ocrWorker_t     ** workers;                 /**< All the workers */
+    ocrCompTarget_t ** computes;                /**< All the target compute nodes */
+    ocrWorkpile_t   ** workpiles;               /**< All the workpiles */
+    ocrAllocator_t  ** allocators;              /**< All the allocators */
+    ocrMemTarget_t  ** memories;                /**< All the target memory nodes */
 
-ocr_policy_domain_t* get_current_policy_domain ();
+    ocrTaskFactory_t  * taskFactory;            /**< Factory to produce tasks (EDTs) in this policy domain */
+    ocrDbFactory_t    * dbFactory;              /**< Factory to produce data-blocks in this policy domain */
+    ocrEventFactory_t * eventFactory;           /**< Factory to produce events in this policy domain */
 
-ocrGuid_t policy_domain_handIn_assert ( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
-ocrGuid_t policy_domain_extract_assert ( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
+    ocrPolicyCtxFactory_t * contextFactory;     /**< Factory to produce the contexts (used for communicating
+                                                 * between policy domains) */
 
-void policy_domain_handOut_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
-void policy_domain_receive_assert ( ocr_policy_domain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
+    ocrGuidProvider_t *guidProvider;            /**< GUID generator for this policy domain */
+
+    ocrCost_t *costFunction;                    /**< Cost function used to determine
+                                                 * what to schedule/steal/take/etc.
+                                                 * Currently a placeholder for future
+                                                 * objective driven scheduling */
+
+    /**
+     * @brief Create a policy domain
+     *
+     * Allocates the required space for the policy domain
+     * based on the counts passed as arguments. The 'schedulers',
+     * 'workers', 'computes', 'workpiles', 'allocators' and 'memories'
+     * data-structures must then be properly filled
+     *
+     * @param me                This policy
+     * @param configuration     An optional configuration
+     * @param schedulerCount    The number of schedulers
+     * @param workerCount       The number of workers
+     * @param computeCount      The number of compute targets
+     * @param workpileCount     The number of workpiles
+     * @param allocatorCount    The number of allocators
+     * @param memoryCount       The number of memory targets
+     * @param taskFactory       The factory to use to generate EDTs
+     * @param dbFactory         The factory to use to generate DBs
+     * @param eventFactory      The factory to use to generate events
+     * @param contextFactory    The factory to use to generate context
+     * @param guidProvider      The provider of GUIDs for this policy domain
+     * @param costFunction      The cost function used by this policy domain
+     */
+    void (*create)(struct _ocrPolicyDomain_t *me, void *configuration,
+                   u32 schedulerCount, u32 workerCount, u32 computeCount,
+                   u32 workpileCount, u32 allocatorCount, u32 memoryCount,
+                   ocrTaskFactor_t *taskFactory, ocrDbFactory_t *dbFactory,
+                   ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t
+                   *contextFactory, ocrCost_t *costFunction);
+
+    /**
+     * @brief Destroys (and frees any associated memory) this
+     * policy domain
+     *
+     * Call when the policy domain has stopped executing to free
+     * any remaining memory.
+     *
+     * @param me                This policy domain
+     */
+    void (*destruct)(struct _ocrPolicyDomain_t *me);
+
+    /**
+     * @brief Starts this policy domain
+     *
+     * This starts the portion of OCR that manages the resources contained
+     * in this policy domain.
+     *
+     * @param me                This policy domain
+     */
+    void (*start)(struct _ocrPolicyDomain_t *me);
+
+    /**
+     * @brief Stops this policy domain
+     *
+     * This stops the portion of OCR that manages the resources
+     * contained in this policy domain. The policy domain will also stop
+     * responding to requests from other policy domains.
+     *
+     * @param me                This policy domain
+     */
+    void (*stop)(struct _ocrPolicyDomain_t *me);
+
+    // TODO: Do we need a finish? What was it for
+
+
+    /**
+     * @brief Request the allocation of memory (a data-block)
+     *
+     * This call will be triggered by user code when a data-block
+     * needs to be allocated
+     *
+     * @param me                This policy domain
+     * @param guid              Contains the DB GUID on return for synchronous
+     *                          calls
+     * @param size              Size of the DB requested
+     * @param hint              Hint concerning where to allocate
+     * @param context           Context for this call. This will be updated
+     *                          as the call progresses (with the destination
+     *                          information for example)
+     *
+     * If this policy domain implements synchronous calls, this call will only
+     * return once the entire call has been serviced. In the asynchronous case,
+     * this call will return a value indicating asynchronous processing and the
+     * policy domain will be notified when the call returns.
+     *
+     * @return:
+     *     - 0 if the call completed successfully synchronously
+     *     - 255 if the call is being processed asynchronously
+     *     - TODO
+     */
+    u8 (*allocateDb)(struct _ocrPolicyDomain_t *me, ocrGuid_t *guid, u64 size,
+                     ocrHint_t *hint, ocrPolicyCtx_t *context);
+
+    /**
+     * @brief Request the creation of a task metadata (EDT)
+     *
+     * This call will be triggered by user code when an EDT
+     * is created
+     *
+     * @todo Improve description to be more like allocateDb
+     *
+     * @todo Add something about templates here and potentially
+     * known dependences so that it can be optimally placed
+     */
+    u8 (*createEdt)(struct _ocrPolicyDomain_t *me, ocrGuid_t *guid, ocrHint_t *hint,
+                    ocrPolicyCtx_t *context);
+
+    /**
+     * @brief Inform the policy domain of an event that does not require any
+     * further processing
+     *
+     * These events are informational to the policy domain (runtime) and include
+     * things like dependence satisfaction, destruction of a DB, etc. The context
+     * will encode the type of event and any additional information
+     *
+     * This call will return immediately (whether in asynchronous or
+     * synchronous mode)
+     */
+    void (*inform)(struct _ocrPolicyDomain_t *me, ocrGuid_t obj,
+                   const ocrPolicyCtx_t *context);
+
+    /**
+     * @brief Gets a GUID and associates the value 'val' with
+     * it
+     *
+     * This is used by the runtime to obtain new GUIDs
+     *
+     * @todo Write description, behaves as other functions
+     */
+    u8 (*getGuid)(struct _ocrPolicyDomain_t *me, ocrGuid_t *guid, u64 val,
+                  ocrGuidKind type)
+
+    /**
+     * @brief Take one or more EDTs to execute
+     *
+     * This call is called by children of this policy-domain: either workers
+     * in need of work or children policy domains that did not find work.
+     *
+     * On a synchronous return, the number of EDTs taken and a pointer
+     * to an array of them will be returned. On an asynchronous return,
+     * count will be 0 and the edts pointer will be invalid; the information
+     * will have to come from the context
+     *
+     * @param me        This policy domain
+     * @param cost      An optional cost function provided by the taker
+     * @param count     On return contains the number of EDTs taken (synchronous calls)
+     * @param edts      On return contains the EDTs taken (synchronous calls)
+     * @param context   Context for this call
+     *
+     * @return:
+     *     - 0 if the call completed successfully synchronously
+     *     - 255 if the call is being processed asynchronously
+     *     - TODO
+     */
+    u8 (*takeEdt)(struct _ocrPolicyDomain_t *me, ocrCost_t *cost, u32 *count,
+                  ocrTask_t **edts, ocrPolicyCtx_t *context);
+
+    /**
+     * @brief Same as takeEdt but for data-blocks
+     *
+     * @todo Add full description
+     */
+    u8 (*takeDb)(struct _ocrPolicyDomain_t *me, ocrCost_t *cost, u32 *count,
+                 ocrDb_t **dbs, ocrPolicyCtx_t *context);
+
+    /**
+     * @brief Steal one or more EDTs to execute
+     *
+     * This call is called by non-children of this policy-domain: either
+     * parent policy domains or sibling ones (most likely through the
+     * parent)
+     *
+     * On a synchronous return, the number of EDTs taken and a pointer
+     * to an array of them will be returned. On an asynchronous return,
+     * count will be 0 and the edts pointer will be invalid; the information
+     * will have to come from the context
+     *
+     * @param me        This policy domain
+     * @param cost      An optional cost function provided by the taker
+     * @param count     On return contains the number of EDTs taken (synchronous calls)
+     * @param edts      On return contains the EDTs taken (synchronous calls)
+     * @param context   Context for this call
+     *
+     * @return:
+     *     - 0 if the call completed successfully synchronously
+     *     - 255 if the call is being processed asynchronously
+     *     - TODO
+     */
+    u8 (*stealEdt)(struct _ocrPolicyDomain_t *me, ocrCost_t *cost, u32 *count,
+                  ocrTask_t **edts, ocrPolicyCtx_t *context);
+
+    /**
+     * @brief Same as stealEdt but for data-blocks
+     *
+     * @todo Add full description
+     */
+    u8 (*stealDb)(struct _ocrPolicyDomain_t *me, ocrCost_t *cost, u32 *count,
+                 ocrDb_t **dbs, ocrPolicyCtx_t *context);
+
+    struct _ocrPolicyDomain_t** childrenPd;
+    struct _ocrPolicyDomain_t** parentPd;
+    u32 successorCount;
+    u32 predecessorCount;
+
+} ocrPolicyDomain_t;
+
+// Common functions on all policy domains (ie: not function pointers)
+ocrTaskFactory_t*  getTaskFactoryFromPd(ocrPolicyDomain_t *policy);
+ocrEventFactory_t* getEventFactoryFromPd(ocrPolicyDomain_t *policy);
+ocrDbFactory_t*    getDbFactoryFromPd(ocrPolicyDomain_t *policy);
+
+
+// /**!
+//  * Default destructor for ocr policy domain
+//  */
+// void ocr_policy_domain_destruct(ocrPolicyDomain_t * policy);
+
+// /******************************************************/
+// /* OCR POLICY DOMAIN KINDS AND CONSTRUCTORS           */
+// /******************************************************/
+
+// typedef enum ocr_policy_domain_kind_enum {
+//     OCR_POLICY_HC = 1,
+//     OCR_POLICY_XE = 2,
+//     OCR_POLICY_CE = 3,
+//     OCR_POLICY_MASTERED_CE = 4,
+//     OCR_PLACE_POLICY = 5,
+//     OCR_LEAF_PLACE_POLICY = 6,
+//     OCR_MASTERED_LEAF_PLACE_POLICY = 7
+// } ocr_policy_domain_kind;
+
+// ocrPolicyDomain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
+//                                 size_t workpileCount,
+//                                 size_t workerCount,
+//                                 size_t computeCount,
+//                                 size_t nb_scheduler);
+
+// ocrPolicyDomain_t* get_current_policy_domain ();
+
+// ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
+// ocrGuid_t policy_domain_extract_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
+
+// void policy_domain_handOut_assert ( ocrPolicyDomain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
+// void policy_domain_receive_assert ( ocrPolicyDomain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
 
 #endif /* OCR_POLICY_DOMAIN_H_ */

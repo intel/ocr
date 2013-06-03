@@ -37,14 +37,14 @@ void ocrModelInitFsim(char * mdFile) {
         ce_policy_models = createCeModelPolicies ( nb_CEs-1, nb_XE_per_CEs );
     ocr_model_policy_t * ce_mastered_policy_model = createCeMasteredModelPolicy( nb_XE_per_CEs );
 
-    ocr_policy_domain_t ** xe_policy_domains = instantiateModel(xe_policy_models);
-    ocr_policy_domain_t ** ce_policy_domains = NULL;
+    ocrPolicyDomain_t ** xe_policy_domains = instantiateModel(xe_policy_models);
+    ocrPolicyDomain_t ** ce_policy_domains = NULL;
     if ( nb_CEs > 1 )
         ce_policy_domains = instantiateModel(ce_policy_models);
-    ocr_policy_domain_t ** ce_mastered_policy_domain = instantiateModel(ce_mastered_policy_model);
+    ocrPolicyDomain_t ** ce_mastered_policy_domain = instantiateModel(ce_mastered_policy_model);
 
     n_root_policy_nodes = nb_CEs;
-    root_policies = (ocr_policy_domain_t**) malloc(sizeof(ocr_policy_domain_t*)*nb_CEs);
+    root_policies = (ocrPolicyDomain_t**) malloc(sizeof(ocrPolicyDomain_t*)*nb_CEs);
 
     root_policies[0] = ce_mastered_policy_domain[0];
 
@@ -60,7 +60,7 @@ void ocrModelInitFsim(char * mdFile) {
     ce_mastered_policy_domain[0]->predecessors = NULL;
 
     for ( idx = 1; idx < nb_CEs; ++idx ) {
-        ocr_policy_domain_t *curr = ce_policy_domains[idx-1];
+        ocrPolicyDomain_t *curr = ce_policy_domains[idx-1];
 
         curr->n_successors = nb_XE_per_CEs;
         curr->successors = &(xe_policy_domains[idx*nb_XE_per_CEs]);
@@ -70,7 +70,7 @@ void ocrModelInitFsim(char * mdFile) {
 
     // sagnak: should this instead be recursive?
     for ( idx = 0; idx < nb_XE_per_CEs; ++idx ) {
-        ocr_policy_domain_t *curr = xe_policy_domains[idx];
+        ocrPolicyDomain_t *curr = xe_policy_domains[idx];
 
         curr->n_successors = 0;
         curr->successors = NULL;
@@ -79,7 +79,7 @@ void ocrModelInitFsim(char * mdFile) {
     }
 
     for ( idx = nb_XE_per_CEs; idx < nb_XEs; ++idx ) {
-        ocr_policy_domain_t *curr = xe_policy_domains[idx];
+        ocrPolicyDomain_t *curr = xe_policy_domains[idx];
 
         curr->n_successors = 0;
         curr->successors = NULL;
@@ -90,11 +90,11 @@ void ocrModelInitFsim(char * mdFile) {
     ce_mastered_policy_domain[0]->start(ce_mastered_policy_domain[0]);
 
     for ( idx = 1; idx < nb_CEs; ++idx ) {
-        ocr_policy_domain_t *curr = ce_policy_domains[idx-1];
+        ocrPolicyDomain_t *curr = ce_policy_domains[idx-1];
         curr->start(curr);
     }
     for ( idx = 0; idx < nb_XEs; ++idx ) {
-        ocr_policy_domain_t *curr = xe_policy_domains[idx];
+        ocrPolicyDomain_t *curr = xe_policy_domains[idx];
         curr->start(curr);
     }
 
@@ -163,7 +163,7 @@ static ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs
 
     xePolicyModel->schedulers = newModel ( ocr_scheduler_xe_kind, nb_per_xe_schedulers, NULL, scheduler_configurations );
     xePolicyModel->workers    = newModel ( ocr_worker_xe_kind, nb_per_xe_workers, NULL, worker_configurations );
-    xePolicyModel->compTargets  = newModel ( ocr_comp_target_xe_kind, nb_per_xe_comp_targets, NULL, NULL );
+    xePolicyModel->computes  = newModel ( ocr_comp_target_xe_kind, nb_per_xe_comp_targets, NULL, NULL );
     xePolicyModel->workpiles  = newModel ( ocr_workpile_xe_kind, nb_per_xe_workpiles, NULL, NULL );
     xePolicyModel->memories   = newModel ( ocrMemPlatformXEKind, nb_per_xe_memories, NULL, NULL );
 
@@ -215,7 +215,7 @@ void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
     cePolicyModel->numMemTypes = 1;
     cePolicyModel->numAllocTypes = 1;
 
-    cePolicyModel->compTargets = newModel ( ocr_comp_target_ce_kind, nb_ce_comp_targets, NULL, NULL );
+    cePolicyModel->computes = newModel ( ocr_comp_target_ce_kind, nb_ce_comp_targets, NULL, NULL );
     cePolicyModel->memories  = newModel ( ocrMemPlatformCEKind, nb_ce_memories, NULL, NULL );
 
     // CE workpile

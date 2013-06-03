@@ -155,7 +155,7 @@ void xe_scheduler_give_fsim_faithful (ocrScheduler_t* base, ocrGuid_t wid, ocrGu
             // TODO sagnak, this assumes (*A LOT*) the structure below, is this fair?
             // no assigned work found, now we have to create a 'message task'
             // by using our policy domain's message task factory
-            ocr_policy_domain_t* policy_domain = base->domain;
+            ocrPolicyDomain_t* policy_domain = base->domain;
             ocrTaskFactory_t* message_task_factory = policy_domain->taskFactories[1];
 
             // the message to the CE says 'give me work' and notes who is asking for it
@@ -170,7 +170,7 @@ void xe_scheduler_give_fsim_faithful (ocrScheduler_t* base, ocrGuid_t wid, ocrGu
             base->give(base, wid, messageTaskGuid);
 
         } else {
-            ocr_policy_domain_t* xePolicyDomain = base->domain;
+            ocrPolicyDomain_t* xePolicyDomain = base->domain;
             xePolicyDomain->handOut(xePolicyDomain, wid, tid);
         }
     } else {

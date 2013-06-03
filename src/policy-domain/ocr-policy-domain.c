@@ -36,41 +36,41 @@
 #include "ocr-task-event.h"
 
 
-extern ocr_policy_domain_t * hc_policy_domain_constructor();
-extern ocr_policy_domain_t * xe_policy_domain_constructor();
-extern ocr_policy_domain_t * ce_policy_domain_constructor();
-extern ocr_policy_domain_t * ce_mastered_policy_domain_constructor();
-extern ocr_policy_domain_t * place_policy_domain_constructor();
-extern ocr_policy_domain_t * leaf_place_policy_domain_constructor();
-extern ocr_policy_domain_t * mastered_leaf_place_policy_domain_constructor();
+extern ocrPolicyDomain_t * hc_policy_domain_constructor();
+extern ocrPolicyDomain_t * xe_policy_domain_constructor();
+extern ocrPolicyDomain_t * ce_policy_domain_constructor();
+extern ocrPolicyDomain_t * ce_mastered_policy_domain_constructor();
+extern ocrPolicyDomain_t * place_policy_domain_constructor();
+extern ocrPolicyDomain_t * leaf_place_policy_domain_constructor();
+extern ocrPolicyDomain_t * mastered_leaf_place_policy_domain_constructor();
 
-ocr_policy_domain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
-                                size_t nb_workpiles,
-                                size_t nb_workers,
-                                size_t nb_comp_targets,
-                                size_t nb_schedulers) {
+ocrPolicyDomain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
+                                size_t workpileCount,
+                                size_t workerCount,
+                                size_t computeCount,
+                                size_t schedulerCount) {
     switch(policyType) {
     case OCR_POLICY_HC:
-        return hc_policy_domain_constructor(nb_workpiles, nb_workers,
-                                            nb_comp_targets, nb_schedulers);
+        return hc_policy_domain_constructor(workpileCount, workerCount,
+                                            computeCount, schedulerCount);
 /* sagnak begin */
     case OCR_POLICY_XE:
-        return xe_policy_domain_constructor(nb_workpiles, nb_workers,
-                                            nb_comp_targets, nb_schedulers);
+        return xe_policy_domain_constructor(workpileCount, workerCount,
+                                            computeCount, schedulerCount);
     case OCR_POLICY_CE:
-        return ce_policy_domain_constructor(nb_workpiles, nb_workers,
-                                            nb_comp_targets, nb_schedulers);
+        return ce_policy_domain_constructor(workpileCount, workerCount,
+                                            computeCount, schedulerCount);
     case OCR_POLICY_MASTERED_CE:
-        return ce_mastered_policy_domain_constructor(nb_workpiles, nb_workers,
-                                                     nb_comp_targets, nb_schedulers);
+        return ce_mastered_policy_domain_constructor(workpileCount, workerCount,
+                                                     computeCount, schedulerCount);
     case OCR_PLACE_POLICY:
         return place_policy_domain_constructor();
     case OCR_LEAF_PLACE_POLICY:
-        return leaf_place_policy_domain_constructor(nb_workpiles, nb_workers,
-                                                    nb_comp_targets, nb_schedulers);
+        return leaf_place_policy_domain_constructor(workpileCount, workerCount,
+                                                    computeCount, schedulerCount);
     case OCR_MASTERED_LEAF_PLACE_POLICY:
-        return mastered_leaf_place_policy_domain_constructor(nb_workpiles, nb_workers,
-                                                             nb_comp_targets, nb_schedulers);
+        return mastered_leaf_place_policy_domain_constructor(workpileCount, workerCount,
+                                                             computeCount, schedulerCount);
 /* sagnak end*/
     default:
         assert(false && "Unrecognized policy domain kind");
@@ -79,24 +79,24 @@ ocr_policy_domain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
     return NULL;
 }
 
-void ocr_policy_domain_destruct(ocr_policy_domain_t * policy) {
+void ocr_policy_domain_destruct(ocrPolicyDomain_t * policy) {
     size_t i;
-    for(i = 0; i < policy->nb_workers; i++) {
+    for(i = 0; i < policy->workerCount; i++) {
         policy->workers[i]->destruct(policy->workers[i]);
     }
     free(policy->workers);
 
-    for(i = 0; i < policy->nb_comp_targets; i++) {
-        policy->compTargets[i]->destruct(policy->compTargets[i]);
+    for(i = 0; i < policy->computeCount; i++) {
+        policy->computes[i]->destruct(policy->computes[i]);
     }
-    free(policy->compTargets);
+    free(policy->computes);
 
-    for(i = 0; i < policy->nb_workpiles; i++) {
+    for(i = 0; i < policy->workpileCount; i++) {
         policy->workpiles[i]->destruct(policy->workpiles[i]);
     }
     free(policy->workpiles);
 
-    for(i = 0; i < policy->nb_schedulers; i++) {
+    for(i = 0; i < policy->schedulerCount; i++) {
         policy->schedulers[i]->destruct(policy->schedulers[i]);
     }
     free(policy->schedulers);
@@ -106,31 +106,31 @@ void ocr_policy_domain_destruct(ocr_policy_domain_t * policy) {
     free(policy);
 }
 
-ocr_policy_domain_t* get_current_policy_domain () {
+ocrPolicyDomain_t* get_current_policy_domain () {
     ocrGuid_t worker_guid = ocr_get_current_worker_guid();
     ocrWorker_t * worker = NULL;
     globalGuidProvider->getVal(globalGuidProvider, worker_guid, (u64*)&worker, NULL);
 
     ocrScheduler_t * scheduler = get_worker_scheduler(worker);
-    ocr_policy_domain_t* policy_domain = scheduler -> domain;
+    ocrPolicyDomain_t* policy_domain = scheduler -> domain;
 
     return policy_domain;
 }
 
-ocrGuid_t policy_domain_handIn_assert ( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
+ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
     assert(0 && "postponed policy handIn implementation");
     return NULL_GUID;
 }
 
-ocrGuid_t policy_domain_extract_assert ( ocr_policy_domain_t * this, ocr_policy_domain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
+ocrGuid_t policy_domain_extract_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
     assert(0 && "postponed policy extract implementation");
     return NULL_GUID;
 }
 
-void policy_domain_handOut_assert ( ocr_policy_domain_t * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
+void policy_domain_handOut_assert ( ocrPolicyDomain_t * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
     assert(0 && "postponed policy handOut implementation");
 }
 
-void policy_domain_receive_assert ( ocr_policy_domain_t * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
+void policy_domain_receive_assert ( ocrPolicyDomain_t * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
     assert(0 && "postponed policy receive implementation");
 }

@@ -42,14 +42,14 @@
 /******************************************************/
 
 // Forward declaration
-struct ocrWorker_t;
+struct _ocrWorker_t;
 
-typedef struct ocrWorkerFactory_t {
-    struct ocrWorker_t * (*instantiate) ( struct ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+typedef struct _ocrWorkerFactory_t {
+    struct _ocrWorker_t * (*instantiate) (struct ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
     void (*destruct)(struct ocrWorkerFactory_t * factory);
 } ocrWorkerFactory_t;
 
-typedef struct ocrWorker_t {
+typedef struct _ocrWorker_t {
     ocr_module_t module;
     ocrGuid_t guid;
     ocrScheduler_t * scheduler;

@@ -199,8 +199,8 @@ void destructOcrModelPolicy(ocr_model_policy_t * model) {
     if (model->workers != NULL) {
         free(model->workers);
     }
-    if (model->compTargets != NULL) {
-        free(model->compTargets);
+    if (model->computes != NULL) {
+        free(model->computes);
     }
     if (model->workpiles != NULL) {
         free(model->workpiles);
@@ -312,7 +312,7 @@ static  void create_configure_all_memories ( ocrMemPlatform_t ** all_memories, i
 /**!
  * Given a policy domain model, go over its modules and instantiate them.
  */
-ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
+ocrPolicyDomain_t ** instantiateModel(ocr_model_policy_t * model) {
 
     // Compute total number of workers, comp-targets and workpiles, allocators and memories
     int per_policy_domain_total_nb_schedulers = 0;
@@ -329,7 +329,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
         per_policy_domain_total_nb_workers += model->workers[j].nb_instances;
     }
     for ( j = 0; j < model->nb_comp_target_types; ++j ) {
-        per_policy_domain_total_nb_comp_targets += model->compTargets[j].nb_instances;
+        per_policy_domain_total_nb_comp_targets += model->computes[j].nb_instances;
     }
     for ( j = 0; j < model->nb_workpile_types; ++j ) {
         per_policy_domain_total_nb_workpiles += model->workpiles[j].nb_instances;
@@ -342,7 +342,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
     }
 
     int n_policy_domains = model->model.nb_instances;
-    ocr_policy_domain_t ** policyDomains = (ocr_policy_domain_t **) malloc( sizeof(ocr_policy_domain_t*) * n_policy_domains );
+    ocrPolicyDomain_t ** policyDomains = (ocrPolicyDomain_t **) malloc( sizeof(ocrPolicyDomain_t*) * n_policy_domains );
 
     // Allocate memory for ocr components
     // Components instances are grouped into one big chunk of memory
@@ -360,7 +360,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
 
     create_configure_all_schedulers ( all_schedulers, n_policy_domains, model->nb_scheduler_types, model->schedulers);
     create_configure_all_workers    ( all_workers   , n_policy_domains, model->nb_worker_types, model->workers );
-    create_configure_all_comp_targets  ( all_comp_targets , n_policy_domains, model->nb_comp_target_types, model->compTargets);
+    create_configure_all_comp_targets  ( all_comp_targets , n_policy_domains, model->nb_comp_target_types, model->computes);
     create_configure_all_workpiles  ( all_workpiles , n_policy_domains, model->nb_workpile_types, model->workpiles);
     create_configure_all_allocators ( all_allocators, n_policy_domains, model->numAllocTypes, model->allocators);
     create_configure_all_memories   ( all_memories  , n_policy_domains, model->numMemTypes, model->memories);
@@ -371,7 +371,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
 
         ocrScheduler_t** schedulers = (ocrScheduler_t**) &(all_schedulers[ idx * per_policy_domain_total_nb_schedulers ]);
         ocrWorker_t   ** workers    = (ocrWorker_t   **) &(all_workers   [ idx * per_policy_domain_total_nb_workers    ]);
-        ocrCompTarget_t ** compTargets  = (ocrCompTarget_t **) &(all_comp_targets [ idx * per_policy_domain_total_nb_comp_targets  ]);
+        ocrCompTarget_t ** computes  = (ocrCompTarget_t **) &(all_comp_targets [ idx * per_policy_domain_total_nb_comp_targets  ]);
         ocrWorkpile_t ** workpiles  = (ocrWorkpile_t **) &(all_workpiles [ idx * per_policy_domain_total_nb_workpiles  ]);
         ocrAllocator_t ** allocators = (ocrAllocator_t **) &(all_allocators[ idx * totalNumAllocators                    ]);
         ocrMemPlatform_t ** memories   = (ocrMemPlatform_t **) &(all_memories  [ idx * totalNumMemories                      ]);
@@ -382,7 +382,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
                                        per_policy_domain_total_nb_comp_targets, per_policy_domain_total_nb_schedulers);
 
         policyDomains[idx]->create(policyDomains[idx], NULL, schedulers,
-                                   workers, compTargets, workpiles, allocators, memories);
+                                   workers, computes, workpiles, allocators, memories);
 
         // This is only needed because we want to be able to
         // write generic code to find instances' backing arrays
@@ -390,7 +390,7 @@ ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model) {
         size_t nb_ocr_modules = 7;
         ocr_module_instance modules_kinds[nb_ocr_modules];
         modules_kinds[0] = (ocr_module_instance){.kind = OCR_WORKER,	.nb_instances = per_policy_domain_total_nb_workers,	.instances = (void **) workers};
-        modules_kinds[1] = (ocr_module_instance){.kind = OCR_COMP_TARGET,	.nb_instances = per_policy_domain_total_nb_comp_targets,	.instances = (void **) compTargets};
+        modules_kinds[1] = (ocr_module_instance){.kind = OCR_COMP_TARGET,	.nb_instances = per_policy_domain_total_nb_comp_targets,	.instances = (void **) computes};
         modules_kinds[2] = (ocr_module_instance){.kind = OCR_WORKPILE,	.nb_instances = per_policy_domain_total_nb_workpiles,	.instances = (void **) workpiles};
         modules_kinds[3] = (ocr_module_instance){.kind = OCR_SCHEDULER,	.nb_instances = per_policy_domain_total_nb_schedulers,	.instances = (void **) schedulers};
         modules_kinds[4] = (ocr_module_instance){.kind = OCR_ALLOCATOR,	.nb_instances = totalNumAllocators,	.instances = (void **) allocators};

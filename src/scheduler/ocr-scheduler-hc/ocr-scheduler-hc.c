@@ -181,7 +181,7 @@ ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
         /*TODO sagnak I hard-coded a no intra-scheduler stealing here; BAD */
         if ( NULL_GUID == popped ) {
             // TODO sagnak steal from places
-            ocr_policy_domain_t* policyDomain = base->domain;
+            ocrPolicyDomain_t* policyDomain = base->domain;
             popped = policyDomain->handIn(policyDomain, policyDomain, wid);
         }
     } else {

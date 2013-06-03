@@ -68,7 +68,7 @@ typedef struct ocrAllocatorFactory_t {
 typedef struct _ocrAllocator_t {
     ocr_module_t module; /**< Base "class" for the allocator */
 
-    ocrGuid_t guid;  /**< The allocator also has a GUID so that data-blocks can now what allocated/freed them */
+    ocrGuid_t guid;  /**< The allocator also has a GUID so that data-blocks can know what allocated/freed them */
 
     /**
      * @brief Destructor equivalent

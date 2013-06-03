@@ -60,7 +60,7 @@ typedef struct {
     u64 numMemTypes;
     ocr_model_t * schedulers;
     ocr_model_t * workers;
-    ocr_model_t * compTargets;
+    ocr_model_t * computes;
     ocr_model_t * workpiles;
     ocrAllocatorModel_t * allocators;
     ocr_model_t * memories;
@@ -75,7 +75,7 @@ typedef enum ocr_policy_model_kind_enum {
 
 ocr_model_policy_t * ocrInitPolicyModel(ocr_policy_model_kind policyModelKind, char * mdFile);
 
-ocr_policy_domain_t ** instantiateModel(ocr_model_policy_t * model);
+ocrPolicyDomain_t ** instantiateModel(ocr_model_policy_t * model);
 
 
 void destructOcrModelPolicy(ocr_model_policy_t *);
@@ -85,7 +85,7 @@ extern u64 gHackTotalMemSize;
 
 // Hooks for implementations to set what they have instantiated
 extern size_t n_root_policy_nodes;
-extern ocr_policy_domain_t ** root_policies;
+extern ocrPolicyDomain_t ** root_policies;
 extern ocrWorker_t* master_worker;
 
 // Build a model

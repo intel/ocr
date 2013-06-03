@@ -8,8 +8,8 @@
 #include "ocr-guid.h"
 #include "ocr-macros.h"
 
-static ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_schedulers,
-                                           size_t nb_workers, size_t nb_comp_targets, size_t nb_workpiles);
+static ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t schedulerCount,
+                                           size_t workerCount, size_t computeCount, size_t workpileCount);
 
 void ocrModelInitFlat(char * mdFile) {
     u32 nbHardThreads = ocr_config_default_nb_hardware_threads;
@@ -55,8 +55,8 @@ void ocrModelInitFlat(char * mdFile) {
  * Default policy has one scheduler and a configurable
  * number of workers, comp-targets and workpiles
  */
-static ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t nb_schedulers,
-                                           size_t nb_workers, size_t nb_comp_targets, size_t nb_workpiles) {
+static ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t schedulerCount,
+                                           size_t workerCount, size_t computeCount, size_t workpileCount) {
 
     // Default policy
     ocr_model_policy_t * defaultPolicy =
@@ -84,17 +84,17 @@ static ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size
 
     defaultPolicy->allocators = defaultAllocator;
 
-    size_t index_config = 0, n_all_schedulers = nb_schedulers*nb_policy_domains;
+    size_t index_config = 0, n_all_schedulers = schedulerCount*nb_policy_domains;
 
     void** scheduler_configurations = malloc(sizeof(scheduler_configuration*)*n_all_schedulers);
     for ( index_config = 0; index_config < n_all_schedulers; ++index_config ) {
         scheduler_configurations[index_config] = (scheduler_configuration*) malloc(sizeof(scheduler_configuration));
         scheduler_configuration* curr_config = (scheduler_configuration*)scheduler_configurations[index_config];
-        curr_config->worker_id_begin = ( index_config / nb_schedulers ) * nb_workers;
-        curr_config->worker_id_end = ( index_config / nb_schedulers ) * nb_workers + nb_workers - 1;
+        curr_config->worker_id_begin = ( index_config / schedulerCount ) * workerCount;
+        curr_config->worker_id_end = ( index_config / schedulerCount ) * workerCount + workerCount - 1;
     }
 
-    size_t n_all_workers = nb_workers*nb_policy_domains;
+    size_t n_all_workers = workerCount*nb_policy_domains;
 
     index_config = 0;
     void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
@@ -104,11 +104,11 @@ static ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size
         curr_config->worker_id = index_config;
     }
 
-    defaultPolicy->schedulers = newModel( ocr_scheduler_default_kind, nb_schedulers, NULL, scheduler_configurations );
-    defaultPolicy->compTargets  = newModel( ocr_comp_target_default_kind, nb_comp_targets, NULL, NULL );
-    defaultPolicy->workpiles  = newModel( ocr_workpile_default_kind, nb_workpiles, NULL, NULL );
+    defaultPolicy->schedulers = newModel( ocr_scheduler_default_kind, schedulerCount, NULL, scheduler_configurations );
+    defaultPolicy->computes  = newModel( ocr_comp_target_default_kind, computeCount, NULL, NULL );
+    defaultPolicy->workpiles  = newModel( ocr_workpile_default_kind, workpileCount, NULL, NULL );
     defaultPolicy->memories   = newModel( OCR_MEMPLATFORM_DEFAULT, 1, NULL, NULL );
-    defaultPolicy->workers    = newModel( ocr_worker_default_kind, nb_workers, NULL, worker_configurations);
+    defaultPolicy->workers    = newModel( ocr_worker_default_kind, workerCount, NULL, worker_configurations);
 
 
     // Defines how ocr modules are bound together

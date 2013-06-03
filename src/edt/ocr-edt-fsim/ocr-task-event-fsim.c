@@ -190,7 +190,7 @@ void * xe_worker_computation_routine (void * arg) {
             // TODO sagnak, this assumes (*A LOT*) the structure below, is this fair?
             // no assigned work found, now we have to create a 'message task'
             // by using our policy domain's message task factory
-            ocr_policy_domain_t* policy_domain = xeScheduler->domain;
+            ocrPolicyDomain_t* policy_domain = xeScheduler->domain;
             ocrTaskFactory_t* message_task_factory = policy_domain->taskFactories[1];
             // the message to the CE says 'give me work' and notes who is asking for it
             ocrGuid_t messageTaskGuid = message_task_factory->instantiate(message_task_factory, NULL, 0, NULL, NULL, 0, 0, NULL);
