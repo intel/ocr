@@ -354,6 +354,15 @@ typedef struct _ocrPolicyDomain_t {
     u8 (*stealDb)(struct _ocrPolicyDomain_t *me, ocrCost_t *cost, u32 *count,
                  ocrDb_t **dbs, ocrPolicyCtx_t *context);
 
+    /**
+     * @brief Called for asynchronous calls when the call has been
+     * processed.
+     *
+     * @param me        This policy domain
+     * @param context   Context for the call (indicating what it is a response to)
+     */
+    void (*processResponse)(struct _ocrPolicyDomain_t *me, ocrPolicyCtx_t *context);
+
     struct _ocrPolicyDomain_t** childrenPd;
     struct _ocrPolicyDomain_t** parentPd;
     u32 successorCount;
