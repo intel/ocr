@@ -48,14 +48,14 @@
 /******************************************************/
 
 // Fwd declaration
-ocrAllocator_t* newAllocatorTlsf(ocrAllocatorFactory_t * factory, u64 size, void * per_type_configuration, void * per_instance_configuration);
+ocrAllocator_t* newAllocatorTlsf(ocrAllocatorFactory_t * factory, u64 size, void * perTypeConfig, void * perInstanceConfig);
 
 void destructAllocatorFactoryTlsf(ocrAllocatorFactory_t * factory) {
     free(factory);
 }
 
 ocrAllocatorFactory_t * newOcrAllocatorFactoryTlsf(void * config) {
-    ocrAllocatorFactoryTlsf_t* derived = (ocrAllocatorFactoryTlsf_t*) checked_malloc(derived, sizeof(ocrAllocatorFactoryTlsf_t));
+    ocrAllocatorFactoryTlsf_t* derived = (ocrAllocatorFactoryTlsf_t*) checkedMalloc(derived, sizeof(ocrAllocatorFactoryTlsf_t));
     ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*) derived;
     base->instantiate = newAllocatorTlsf;
     base->destruct =  destructAllocatorFactoryTlsf;
@@ -1013,7 +1013,7 @@ u64 tlsf_realloc(u64 pg_start, u64 ptr, u64 size) {
 }
 
 // Helper methods
-void tlsfMap(void* self, ocr_module_kind kind, size_t nb_instance, void** ptr_instances) {
+void tlsfMap(void* self, ocrMappableKind kind, u64 nb_instance, void** ptr_instances) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     ASSERT(nb_instance == 1); // Currently only support one underlying memory
     ASSERT(rself->numMemories == 0 && rself->memories == NULL); // Called only once
@@ -1060,7 +1060,7 @@ void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
 }
 
 // Method to create the TLSF allocator
-ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, u64 size, void * per_type_configuration, void * per_instance_configuration) {
+ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, u64 size, void * perTypeConfig, void * perInstanceConfig) {
     ocrAllocatorTlsf_t *result = (ocrAllocatorTlsf_t*)malloc(sizeof(ocrAllocatorTlsf_t));
     result->base.guid = UNINITIALIZED_GUID;
     globalGuidProvider->getGuid(globalGuidProvider, &(result->base.guid), (u64)result, OCR_GUID_ALLOCATOR);
@@ -1074,7 +1074,7 @@ ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, u64 size, voi
     result->addr = result->totalSize = result->poolAddr = result->poolSize = 0ULL;
     result->lock = NULL;
 
-    result->base.module.map_fct = &tlsfMap;
+    result->base.module.mapFct = &tlsfMap;
 
     ASSERT(result->numMemories == 0ULL && result->memories == NULL);
     result->addr = result->poolAddr = 0ULL;

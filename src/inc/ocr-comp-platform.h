@@ -70,7 +70,7 @@ typedef void (*ocr_comp_platform_stop_fct) (struct ocr_comp_platform_struct * ba
  *  Currently, we allow threads to be started and stopped
  */
 typedef struct ocr_comp_platform_struct {
-    ocr_module_t module;
+    ocrMappable_t module;
 
     void * (*routine)(void *);
     void * routine_arg;

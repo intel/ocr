@@ -21,15 +21,15 @@
  */
 
 // Fwd declarations
-static ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XE_per_CEs );
-static ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XE_per_CEs );
-static ocr_model_policy_t * createCeMasteredModelPolicy ( size_t nb_XE_per_CEs );
+static ocr_model_policy_t * createXeModelPolicies ( u64 nb_CEs, u64 nb_XE_per_CEs );
+static ocr_model_policy_t * createCeModelPolicies ( u64 nb_CEs, u64 nb_XE_per_CEs );
+static ocr_model_policy_t * createCeMasteredModelPolicy ( u64 nb_XE_per_CEs );
 
 void ocrModelInitFsim(char * mdFile) {
     // sagnak TODO handle nb_CEs <= 1 case
-    size_t nb_CEs = 2;
-    size_t nb_XE_per_CEs = 3;
-    size_t nb_XEs = nb_XE_per_CEs * nb_CEs;
+    u64 nb_CEs = 2;
+    u64 nb_XE_per_CEs = 3;
+    u64 nb_XEs = nb_XE_per_CEs * nb_CEs;
 
     ocr_model_policy_t * xe_policy_models = createXeModelPolicies ( nb_CEs, nb_XE_per_CEs );
     ocr_model_policy_t * ce_policy_models = NULL;
@@ -48,7 +48,7 @@ void ocrModelInitFsim(char * mdFile) {
 
     root_policies[0] = ce_mastered_policy_domain[0];
 
-    size_t idx = 0;
+    u64 idx = 0;
     for ( idx = 0; idx < nb_CEs-1; ++idx ) {
         root_policies[idx+1] = ce_policy_domains[idx];
     }
@@ -101,22 +101,22 @@ void ocrModelInitFsim(char * mdFile) {
     master_worker = ce_mastered_policy_domain[0]->workers[0];
 }
 
-static ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE ) {
-    size_t nb_per_xe_schedulers = 1;
-    size_t nb_per_xe_workers = 1;
-    size_t nb_per_xe_comp_targets = 1;
-    size_t nb_per_xe_workpiles = 2;
-    size_t nb_per_xe_memories = 1;
-    size_t nb_per_xe_allocators = 1;
+static ocr_model_policy_t * createXeModelPolicies ( u64 nb_CEs, u64 nb_XEs_per_CE ) {
+    u64 nb_per_xe_schedulers = 1;
+    u64 nb_per_xe_workers = 1;
+    u64 nb_per_xe_comp_targets = 1;
+    u64 nb_per_xe_workpiles = 2;
+    u64 nb_per_xe_memories = 1;
+    u64 nb_per_xe_allocators = 1;
 
-    size_t nb_XEs = nb_CEs * nb_XEs_per_CE;
+    u64 nb_XEs = nb_CEs * nb_XEs_per_CE;
 
     // there are #XE instances of a model
     ocr_model_policy_t * xePolicyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
     xePolicyModel->model.kind = OCR_POLICY_XE;
     xePolicyModel->model.nb_instances = nb_XEs;
-    xePolicyModel->model.per_type_configuration = NULL;
-    xePolicyModel->model.per_instance_configuration = NULL;
+    xePolicyModel->model.perTypeConfig = NULL;
+    xePolicyModel->model.perInstanceConfig = NULL;
 
     xePolicyModel->nb_scheduler_types = 1;
     xePolicyModel->nb_worker_types = 1;
@@ -126,9 +126,9 @@ static ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs
     xePolicyModel->numAllocTypes = 1;
 
     // XE scheduler
-    size_t index_ce, index_xe;
-    size_t index_config = 0;
-    size_t worker_id_offset = 1;
+    u64 index_ce, index_xe;
+    u64 index_config = 0;
+    u64 worker_id_offset = 1;
     void** scheduler_configurations = malloc(sizeof(scheduler_configuration*)*nb_XEs*nb_per_xe_schedulers);
     for ( index_config = 0; index_config < nb_XEs; ++index_config ) {
         scheduler_configurations[index_config] = (scheduler_configuration*) malloc(sizeof(scheduler_configuration));
@@ -145,7 +145,7 @@ static ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs
     }
 
     index_config = 0;
-    size_t n_all_workers = nb_XEs*nb_per_xe_workers;
+    u64 n_all_workers = nb_XEs*nb_per_xe_workers;
     void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
     for ( index_config = 0; index_config < n_all_workers; ++index_config ) {
         worker_configurations[index_config] = (worker_configuration*) malloc(sizeof(worker_configuration));
@@ -169,15 +169,15 @@ static ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs
 
     // XE allocator
     ocrAllocatorModel_t *xeAllocator = (ocrAllocatorModel_t*)malloc(sizeof(ocrAllocatorModel_t));
-    xeAllocator->model.per_type_configuration = NULL;
-    xeAllocator->model.per_instance_configuration = NULL;
+    xeAllocator->model.perTypeConfig = NULL;
+    xeAllocator->model.perInstanceConfig = NULL;
     xeAllocator->model.kind = ocrAllocatorXEKind;
     xeAllocator->model.nb_instances = nb_per_xe_allocators;
     xeAllocator->sizeManaged = gHackTotalMemSize;
     xePolicyModel->allocators = xeAllocator;
 
     // Defines how ocr modules are bound together
-    size_t nb_module_mappings = 5;
+    u64 nb_module_mappings = 5;
     ocr_module_mapping_t * xeMapping =
         (ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
     // Note: this doesn't bind modules magically. You need to have a mapping function defined
@@ -204,9 +204,9 @@ static ocr_model_policy_t * createXeModelPolicies ( size_t nb_CEs, size_t nb_XEs
  */
 
 void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
-    size_t nb_ce_comp_targets = 1;
-    size_t nb_ce_memories = 1;
-    size_t nb_ce_allocators = 1;
+    u64 nb_ce_comp_targets = 1;
+    u64 nb_ce_memories = 1;
+    u64 nb_ce_allocators = 1;
 
     cePolicyModel->nb_scheduler_types = 1;
     cePolicyModel->nb_worker_types = 1;
@@ -220,21 +220,21 @@ void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
 
     // CE workpile
     ocr_model_t * ceWorkpiles = (ocr_model_t *) malloc(sizeof(ocr_model_t)*2);
-    ceWorkpiles[0] = (ocr_model_t){.kind =    ocr_workpile_ce_work_kind, .nb_instances = 1, .per_type_configuration = NULL, .per_instance_configuration = NULL };
-    ceWorkpiles[1] = (ocr_model_t){.kind = ocr_workpile_ce_message_kind, .nb_instances = 1, .per_type_configuration = NULL, .per_instance_configuration = NULL };
+    ceWorkpiles[0] = (ocr_model_t){.kind =    ocr_workpile_ce_work_kind, .nb_instances = 1, .perTypeConfig = NULL, .perInstanceConfig = NULL };
+    ceWorkpiles[1] = (ocr_model_t){.kind = ocr_workpile_ce_message_kind, .nb_instances = 1, .perTypeConfig = NULL, .perInstanceConfig = NULL };
     cePolicyModel->workpiles = ceWorkpiles;
 
     // CE allocator
     ocrAllocatorModel_t *ceAllocator = (ocrAllocatorModel_t*)malloc(sizeof(ocrAllocatorModel_t));
-    ceAllocator->model.per_type_configuration = NULL;
-    ceAllocator->model.per_instance_configuration = NULL;
+    ceAllocator->model.perTypeConfig = NULL;
+    ceAllocator->model.perInstanceConfig = NULL;
     ceAllocator->model.kind = ocrAllocatorXEKind;
     ceAllocator->model.nb_instances = nb_ce_allocators;
     ceAllocator->sizeManaged = gHackTotalMemSize;
     cePolicyModel->allocators = ceAllocator;
 
     // Defines how ocr modules are bound together
-    size_t nb_module_mappings = 5;
+    u64 nb_module_mappings = 5;
     ocr_module_mapping_t * ceMapping =
         (ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
     // Note: this doesn't bind modules magically. You need to have a mapping function defined
@@ -251,18 +251,18 @@ void CEModelPoliciesHelper ( ocr_model_policy_t * cePolicyModel ) {
 
 }
 
-static ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XEs_per_CE ) {
+static ocr_model_policy_t * createCeModelPolicies ( u64 nb_CEs, u64 nb_XEs_per_CE ) {
     ocr_model_policy_t * cePolicyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
 
-    size_t nb_ce_schedulers = 1;
-    size_t nb_ce_workers = 1;
+    u64 nb_ce_schedulers = 1;
+    u64 nb_ce_workers = 1;
 
     cePolicyModel->model.kind = ocr_policy_ce_kind;
-    cePolicyModel->model.per_type_configuration = NULL;
-    cePolicyModel->model.per_instance_configuration = NULL;
+    cePolicyModel->model.perTypeConfig = NULL;
+    cePolicyModel->model.perInstanceConfig = NULL;
     cePolicyModel->model.nb_instances = nb_CEs;
 
-    size_t index_config = 0, n_all_schedulers = nb_ce_schedulers*nb_CEs;
+    u64 index_config = 0, n_all_schedulers = nb_ce_schedulers*nb_CEs;
     void** scheduler_configurations = malloc(sizeof(scheduler_configuration*)*n_all_schedulers);
     for ( index_config = 0; index_config < n_all_schedulers; ++index_config ) {
         scheduler_configurations[index_config] = (scheduler_configuration*) malloc(sizeof(scheduler_configuration));
@@ -272,7 +272,7 @@ static ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XEs
     }
 
     index_config = 0;
-    size_t n_all_workers = nb_ce_workers*nb_CEs;
+    u64 n_all_workers = nb_ce_workers*nb_CEs;
     void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
     for ( index_config = 0; index_config < n_all_workers; ++index_config ) {
         worker_configurations[index_config] = (worker_configuration*) malloc(sizeof(worker_configuration));
@@ -287,19 +287,19 @@ static ocr_model_policy_t * createCeModelPolicies ( size_t nb_CEs, size_t nb_XEs
     return cePolicyModel;
 }
 
-static ocr_model_policy_t * createCeMasteredModelPolicy ( size_t nb_XEs_per_CE ) {
+static ocr_model_policy_t * createCeMasteredModelPolicy ( u64 nb_XEs_per_CE ) {
     ocr_model_policy_t * cePolicyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
 
-    size_t nb_ce_schedulers = 1;
-    size_t nb_ce_workers = 1;
+    u64 nb_ce_schedulers = 1;
+    u64 nb_ce_workers = 1;
 
     cePolicyModel->model.kind = ocr_policy_ce_mastered_kind;
-    cePolicyModel->model.per_type_configuration = NULL;
-    cePolicyModel->model.per_instance_configuration = NULL;
+    cePolicyModel->model.perTypeConfig = NULL;
+    cePolicyModel->model.perInstanceConfig = NULL;
     cePolicyModel->model.nb_instances = 1;
 
     // Mastered-CE scheduler
-    size_t index_config = 0, n_all_schedulers = nb_ce_schedulers;
+    u64 index_config = 0, n_all_schedulers = nb_ce_schedulers;
     void** scheduler_configurations = malloc(sizeof(scheduler_configuration*)*n_all_schedulers);
     for ( index_config = 0; index_config < n_all_schedulers; ++index_config ) {
         scheduler_configurations[index_config] = (scheduler_configuration*) malloc(sizeof(scheduler_configuration));
@@ -309,7 +309,7 @@ static ocr_model_policy_t * createCeMasteredModelPolicy ( size_t nb_XEs_per_CE )
     }
 
     index_config = 0;
-    size_t n_all_workers = nb_ce_workers;
+    u64 n_all_workers = nb_ce_workers;
     void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
     for ( index_config = 0; index_config < n_all_workers; ++index_config ) {
         worker_configurations[index_config] = (worker_configuration*) malloc(sizeof(worker_configuration));

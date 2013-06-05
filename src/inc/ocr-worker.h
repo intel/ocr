@@ -45,12 +45,12 @@
 struct _ocrWorker_t;
 
 typedef struct _ocrWorkerFactory_t {
-    struct _ocrWorker_t * (*instantiate) (struct ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+    struct _ocrWorker_t * (*instantiate) (struct ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
     void (*destruct)(struct ocrWorkerFactory_t * factory);
 } ocrWorkerFactory_t;
 
 typedef struct _ocrWorker_t {
-    ocr_module_t module;
+    ocrMappable_t module;
     ocrGuid_t guid;
     ocrScheduler_t * scheduler;
 
@@ -130,23 +130,23 @@ typedef enum ocr_worker_kind_enum {
     OCR_WORKER_CE = 3
 } ocr_worker_kind;
 
-ocrWorker_t * newWorker(ocr_worker_kind workerType, void * per_type_configuration, void * per_instance_configuration);
+ocrWorker_t * newWorker(ocr_worker_kind workerType, void * perTypeConfig, void * perInstanceConfig);
 
 /* we have to end up exposing the configuration declarations too for the runtime model
  * I do not know if abstract factories may help with this situation */
 typedef struct worker_configuration {
-    size_t worker_id;
+    u64 worker_id;
 } worker_configuration;
 
 /* TODO sagnak restructure code in a more pleasant manner than this
  * exposing some HC worker implementations to be reused for the FSIM-like implementations */
-void hc_worker_create ( ocrWorker_t * base, void * per_type_configuration, void * per_instance_configuration);
+void hc_worker_create ( ocrWorker_t * base, void * perTypeConfig, void * perInstanceConfig);
 void destructWorkerHc ( ocrWorker_t * base );
 void hc_start_worker(ocrWorker_t * base);
 void hc_stop_worker(ocrWorker_t * base);
 bool hc_is_running_worker(ocrWorker_t * base);
 ocrGuid_t hc_getCurrentEDT (ocrWorker_t * base);
 void hc_setCurrentEDT (ocrWorker_t * base, ocrGuid_t curr_edt_guid);
-void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocr_module_kind kind, size_t nb_instances, void ** ptr_instances);
+void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocrMappableKind kind, u64 nb_instances, void ** ptr_instances);
 
 #endif /* __OCR_WORKER_H__ */

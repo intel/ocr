@@ -48,11 +48,11 @@ struct ocrWorker_t;
 struct ocr_scheduler_struct;
 
 typedef struct ocrSchedulerFactory_t {
-    struct ocr_scheduler_struct * (*instantiate) ( struct ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+    struct ocr_scheduler_struct * (*instantiate) ( struct ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
     void (*destruct)(struct ocrSchedulerFactory_t * factory);
 } ocrSchedulerFactory_t;
 
-typedef void (*scheduler_create_fct) (struct ocr_scheduler_struct*, void * per_type_configuration, void * per_instance_configuration);
+typedef void (*scheduler_create_fct) (struct ocr_scheduler_struct*, void * perTypeConfig, void * perInstanceConfig);
 typedef void (*scheduler_destruct_fct) (struct ocr_scheduler_struct*);
 
 typedef ocrWorkpile_t * (*scheduler_pop_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
@@ -79,14 +79,14 @@ struct ocr_policy_domain_struct;
  *  Currently, we allow scheduler interface to have work taken from them or given to them
  */
 typedef struct ocr_scheduler_struct {
-    ocr_module_t module;
+    ocrMappable_t module;
     scheduler_destruct_fct destruct;
     scheduler_pop_mapping_fct pop_mapping;
     scheduler_push_mapping_fct push_mapping;
     scheduler_steal_mapping_fct steal_mapping;
     scheduler_take_fct take;
     scheduler_give_fct give;
-    ocr_module_map_fct map;
+    ocrMapFct_t map;
     struct ocr_policy_domain_struct* domain;
 } ocrScheduler_t;
 
@@ -102,17 +102,17 @@ typedef enum ocr_scheduler_kind_enum {
     , OCR_PLACED_SCHEDULER = 4
 } ocr_scheduler_kind;
 
-ocrScheduler_t * newScheduler(ocr_scheduler_kind schedulerType, void * per_type_configuration, void * per_instance_configuration);
+ocrScheduler_t * newScheduler(ocr_scheduler_kind schedulerType, void * perTypeConfig, void * perInstanceConfig);
 
 /* we have to end up exposing the configuration declarations too for the runtime model
  * I do not know if abstract factories may help with this situation */
 typedef struct scheduler_configuration {
-    size_t worker_id_begin;
-    size_t worker_id_end;
+    u64 worker_id_begin;
+    u64 worker_id_end;
 } scheduler_configuration;
 
 /*TODO sagnak this should not be here, this is in order not to replicate code for HC-x86 and FSIM-like*/
-void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocr_module_kind kind,
-                                               size_t nb_instances, void ** ptr_instances);
+void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocrMappableKind kind,
+                                               u64 nb_instances, void ** ptr_instances);
 
 #endif /* __OCR_SCHEDULER_H__ */

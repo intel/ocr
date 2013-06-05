@@ -121,7 +121,7 @@ typedef struct event_list_struct_t {
      */
     event_list_enlist_fct enlist;
     /*! Public member to denote the current size of the linked list object */
-    size_t size;
+    u64 size;
     /*! Public head and tail members of the linked list */
     event_list_node_t *head, *tail;
 } event_list_t;
@@ -187,7 +187,7 @@ typedef struct ocrTaskFactory_t {
      *  the GUIDs used to satisfy the Events enlisted in the dependence list.
      *
      */
-    ocrGuid_t (*instantiate) ( struct ocrTaskFactory_t * factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, size_t l_size, ocrGuid_t * outputEvent);
+    ocrGuid_t (*instantiate) ( struct ocrTaskFactory_t * factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, u64 l_size, ocrGuid_t * outputEvent);
 
     /*! \brief Virtual destructor for the TaskFactory interface
      */

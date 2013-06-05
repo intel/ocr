@@ -9,21 +9,21 @@
 
 // Fwd declarations
 static ocr_model_policy_t * createThorRootModelPolicy ( );
-static ocr_model_policy_t * createThorL3ModelPolicies ( size_t n_L3s );
-static ocr_model_policy_t * createThorL2ModelPolicies ( size_t n_L2s );
-static ocr_model_policy_t * createThorL1ModelPolicies ( size_t n_L1s );
-static ocr_model_policy_t * createThorWorkerModelPolicies ( size_t n_workers );
+static ocr_model_policy_t * createThorL3ModelPolicies ( u64 n_L3s );
+static ocr_model_policy_t * createThorL2ModelPolicies ( u64 n_L2s );
+static ocr_model_policy_t * createThorL1ModelPolicies ( u64 n_L1s );
+static ocr_model_policy_t * createThorWorkerModelPolicies ( u64 n_workers );
 static ocr_model_policy_t * createThorMasteredWorkerModelPolicies ( );
 
 void ocrModelInitThor(char * mdFile) {
-    size_t n_L3s = 2;
-    size_t n_L2s_per_L3 = 8;
-    size_t n_L1s_per_L2 = 1;
-    size_t n_workers_per_L1 = 1;
+    u64 n_L3s = 2;
+    u64 n_L2s_per_L3 = 8;
+    u64 n_L1s_per_L2 = 1;
+    u64 n_workers_per_L1 = 1;
 
-    size_t n_L2s = n_L2s_per_L3 * n_L3s; // 16
-    size_t n_L1s = n_L1s_per_L2 * n_L2s; // 16
-    size_t n_workers = n_workers_per_L1 * n_L1s; //16
+    u64 n_L2s = n_L2s_per_L3 * n_L3s; // 16
+    u64 n_L1s = n_L1s_per_L2 * n_L2s; // 16
+    u64 n_workers = n_workers_per_L1 * n_L1s; //16
 
     ocr_model_policy_t * root_policy_model = createThorRootModelPolicy ( );
     ocr_model_policy_t * l3_policy_model = createThorL3ModelPolicies ( n_L3s );
@@ -43,7 +43,7 @@ void ocrModelInitThor(char * mdFile) {
     root_policies = (ocrPolicyDomain_t**) malloc(sizeof(ocrPolicyDomain_t*));
     root_policies[0] = thor_root_policy_domains[0];
 
-    size_t breadthFirstLabel = 0;
+    u64 breadthFirstLabel = 0;
 
     thor_root_policy_domains[0]->n_successors = n_L3s;
     thor_root_policy_domains[0]->successors = thor_l3_policy_domains;
@@ -51,7 +51,7 @@ void ocrModelInitThor(char * mdFile) {
     thor_root_policy_domains[0]->predecessors = NULL;
     thor_root_policy_domains[0]->id = breadthFirstLabel++; 
 
-    size_t idx = 0;
+    u64 idx = 0;
     for ( idx = 0; idx < n_L3s; ++idx ) {
         ocrPolicyDomain_t *curr = thor_l3_policy_domains[idx];
         curr->id = breadthFirstLabel++; 
@@ -141,12 +141,12 @@ void ocrModelInitThor(char * mdFile) {
     master_worker = thor_mastered_worker_policy_domains[0]->workers[0];
 }
 
-static ocr_model_policy_t * createEmptyModelPolicyHelper ( size_t nPlaces ) {
+static ocr_model_policy_t * createEmptyModelPolicyHelper ( u64 nPlaces ) {
     ocr_model_policy_t * policyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
     policyModel->model.kind = OCR_PLACE_POLICY;
     policyModel->model.nb_instances = nPlaces;
-    policyModel->model.per_type_configuration = NULL;
-    policyModel->model.per_instance_configuration = NULL;
+    policyModel->model.perTypeConfig = NULL;
+    policyModel->model.perInstanceConfig = NULL;
     policyModel->nb_scheduler_types = 0;
     policyModel->nb_worker_types    = 0;
     policyModel->nb_comp_target_types  = 0;
@@ -170,26 +170,26 @@ static ocr_model_policy_t * createThorRootModelPolicy ( ) {
     return createEmptyModelPolicyHelper(1);
 }
 
-static ocr_model_policy_t * createThorL3ModelPolicies ( size_t n_L3s ) {
+static ocr_model_policy_t * createThorL3ModelPolicies ( u64 n_L3s ) {
     return createEmptyModelPolicyHelper(n_L3s);
 }
 
-static ocr_model_policy_t * createThorL2ModelPolicies ( size_t n_L2s ) {
+static ocr_model_policy_t * createThorL2ModelPolicies ( u64 n_L2s ) {
     return createEmptyModelPolicyHelper(n_L2s);
 }
 
-static ocr_model_policy_t * createThorL1ModelPolicies ( size_t n_L1s ) {
+static ocr_model_policy_t * createThorL1ModelPolicies ( u64 n_L1s ) {
     return createEmptyModelPolicyHelper(n_L1s);
 }
 
-void createThorWorkerModelPoliciesHelper ( ocr_model_policy_t * leafPolicyModel, size_t nb_policy_domains, size_t workerCount, size_t worker_offset ) {
+void createThorWorkerModelPoliciesHelper ( ocr_model_policy_t * leafPolicyModel, u64 nb_policy_domains, u64 workerCount, u64 worker_offset ) {
     int schedulerCount = 1;
     int computeCount = 1;
     int workpileCount = 1;
 
     leafPolicyModel->model.nb_instances = nb_policy_domains;
-    leafPolicyModel->model.per_type_configuration = NULL;
-    leafPolicyModel->model.per_instance_configuration = NULL;
+    leafPolicyModel->model.perTypeConfig = NULL;
+    leafPolicyModel->model.perInstanceConfig = NULL;
 
     leafPolicyModel->nb_scheduler_types = 1;
     leafPolicyModel->nb_worker_types = 1;
@@ -200,15 +200,15 @@ void createThorWorkerModelPoliciesHelper ( ocr_model_policy_t * leafPolicyModel,
 
     // Default allocator
     ocrAllocatorModel_t *defaultAllocator = (ocrAllocatorModel_t*)malloc(sizeof(ocrAllocatorModel_t));
-    defaultAllocator->model.per_type_configuration = NULL;
-    defaultAllocator->model.per_instance_configuration = NULL;
+    defaultAllocator->model.perTypeConfig = NULL;
+    defaultAllocator->model.perInstanceConfig = NULL;
     defaultAllocator->model.kind = OCR_ALLOCATOR_DEFAULT;
     defaultAllocator->model.nb_instances = 1;
     defaultAllocator->sizeManaged = gHackTotalMemSize;
 
     leafPolicyModel->allocators = defaultAllocator;
 
-    size_t index_config = 0, n_all_schedulers = schedulerCount*nb_policy_domains;
+    u64 index_config = 0, n_all_schedulers = schedulerCount*nb_policy_domains;
 
     void** scheduler_configurations = malloc(sizeof(scheduler_configuration*)*n_all_schedulers);
     for ( index_config = 0; index_config < n_all_schedulers; ++index_config ) {
@@ -224,7 +224,7 @@ void createThorWorkerModelPoliciesHelper ( ocr_model_policy_t * leafPolicyModel,
     leafPolicyModel->memories   = newModel( OCR_MEMPLATFORM_DEFAULT, 1, NULL, NULL );
 
     // Defines how ocr modules are bound togethere
-    size_t nb_module_mappings = 5;
+    u64 nb_module_mappings = 5;
     ocr_module_mapping_t * defaultMapping =
         (ocr_module_mapping_t *) malloc(sizeof(ocr_module_mapping_t) * nb_module_mappings);
     // Note: this doesn't bind modules magically. You need to have a mapping function defined
@@ -246,7 +246,7 @@ static ocr_model_policy_t * createThorMasteredWorkerModelPolicies ( ) {
 
     leafPolicyModel->model.kind = OCR_MASTERED_LEAF_PLACE_POLICY;
 
-    size_t index_config = 0;
+    u64 index_config = 0;
     void** worker_configurations = malloc(sizeof(worker_configuration*));
     worker_configurations[index_config] = (worker_configuration*) malloc(sizeof(worker_configuration));
     worker_configuration* curr_config = (worker_configuration*)worker_configurations[index_config];
@@ -257,13 +257,13 @@ static ocr_model_policy_t * createThorMasteredWorkerModelPolicies ( ) {
     return leafPolicyModel;
 }
 
-static ocr_model_policy_t * createThorWorkerModelPolicies ( size_t n_workers ) {
+static ocr_model_policy_t * createThorWorkerModelPolicies ( u64 n_workers ) {
     ocr_model_policy_t * leafPolicyModel = (ocr_model_policy_t *) malloc(sizeof(ocr_model_policy_t));
     createThorWorkerModelPoliciesHelper(leafPolicyModel, n_workers, 1, 1);
 
     leafPolicyModel->model.kind = OCR_LEAF_PLACE_POLICY;
 
-    size_t index_config = 0;
+    u64 index_config = 0;
     void** worker_configurations = malloc(sizeof(worker_configuration*)*n_workers );
     for ( index_config = 0; index_config < n_workers; ++index_config ) {
         worker_configurations[index_config] = (worker_configuration*) malloc(sizeof(worker_configuration));

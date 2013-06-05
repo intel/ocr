@@ -43,11 +43,12 @@
 /******************************************************/
 
 // Forward declaration
-struct ocrCompTarget_t;
+struct _ocrCompTarget_t;
 
-typedef struct ocrCompTargetFactory_t {
-    struct ocrCompTarget_t * (*instantiate) ( struct ocrCompTargetFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
-    void (*destruct)(struct ocrCompTargetFactory_t * factory);
+typedef struct _ocrCompTargetFactory_t {
+    struct _ocrCompTarget_t * (*instantiate) ( struct _ocrCompTargetFactory_t * factory,
+                                               void * perTypeConfig, void * perInstanceConfig);
+    void (*destruct)(struct _ocrCompTargetFactory_t * factory);
 } ocrCompTargetFactory_t;
 
 
@@ -60,22 +61,22 @@ typedef struct ocrCompTargetFactory_t {
  *  This class provides the interface for the underlying implementation to conform.
  *  Currently, we allow comp-target to be started and stopped
  */
-typedef struct ocrCompTarget_t {
-    ocr_module_t module;
+typedef struct _ocrCompTarget_t {
+    ocrMappable_t module;
     ocr_comp_platform_t * platform;
 
-    void (*destruct) (struct ocrCompTarget_t * base);
+    void (*destruct) (struct _ocrCompTarget_t * base);
 
     /*! \brief Starts a thread of execution with a function pointer and and argument for a given stack size
      *
      *  The signature of the interface restricts the routine that can be assigned to a thread as follows.
      *  The function, routine, should take a void pointer, arg, as an argument and return a void pointer
      */
-    void (*start) (struct ocrCompTarget_t * base);
+    void (*start) (struct _ocrCompTarget_t * base);
 
     /*! \brief Stops this comp-target
      */
-    void (*stop) (struct ocrCompTarget_t * base);
+    void (*stop) (struct _ocrCompTarget_t * base);
 
 } ocrCompTarget_t;
 
@@ -92,6 +93,6 @@ typedef enum ocr_comp_target_kind_enum {
     OCR_COMP_TARGET_CE = 3
 } ocr_comp_target_kind;
 
-ocrCompTarget_t * newCompTarget(ocr_comp_target_kind compTargetType, void * per_type_configuration, void * per_instance_configuration);
+ocrCompTarget_t * newCompTarget(ocr_comp_target_kind compTargetType, void * perTypeConfig, void * perInstanceConfig);
 
 #endif /* __OCR_COMP_TARGET_H__ */

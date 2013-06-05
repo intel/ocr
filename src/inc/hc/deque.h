@@ -47,10 +47,10 @@ typedef struct deque {
 #define SLOW_EXPAND_THRESHOLD 128
 #define INC_DEQUE_CAPACITY 64
 
-void deque_init(deque_t * deq, void * init_value);
+void dequeInit(deque_t * deq, void * init_value);
 void * deque_steal(deque_t * deq);
-void deque_push(deque_t* deq, void* entry);
-void * deque_pop(deque_t * deq);
+void dequePush(deque_t* deq, void* entry);
+void * dequePop(deque_t * deq);
 
 typedef struct locked_deque {
         volatile int head;
@@ -59,7 +59,7 @@ typedef struct locked_deque {
         buffer_t * buffer;
 } mpsc_deque_t;
 
-void mpsc_deque_init(mpsc_deque_t* deq, void * init_value);
+void mpscDequeInit(mpsc_deque_t* deq, void * init_value);
 void* deque_non_competing_pop_head (mpsc_deque_t* deq );
 void deque_locked_push(mpsc_deque_t* deq, void* entry);
 

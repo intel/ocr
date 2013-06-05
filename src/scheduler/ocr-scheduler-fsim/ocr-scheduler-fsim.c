@@ -40,14 +40,14 @@
 /******************************************************/
 
 // Fwd declaration
-ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
 void destructSchedulerFactoryFsimXE(ocrSchedulerFactory_t * factory) {
     free(factory);
 }
 
 ocrSchedulerFactory_t * newOcrSchedulerFactoryFsimXE(void * config) {
-    ocrSchedulerFactoryFsimXE_t* derived = (ocrSchedulerFactoryFsimXE_t*) checked_malloc(derived, sizeof(ocrSchedulerFactoryFsimXE_t));
+    ocrSchedulerFactoryFsimXE_t* derived = (ocrSchedulerFactoryFsimXE_t*) checkedMalloc(derived, sizeof(ocrSchedulerFactoryFsimXE_t));
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = newSchedulerFsimXE;
     base->destruct = destructSchedulerFactoryFsimXE;
@@ -66,7 +66,7 @@ ocrWorkpile_t * xe_scheduler_pop_mapping_assert (ocrScheduler_t* base, ocrWorker
 
 ocrWorkpile_t * xe_scheduler_pop_mapping_to_assigned_work (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    size_t id = get_worker_id(w);
+    u64 id = get_worker_id(w);
     assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
     return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
@@ -74,7 +74,7 @@ ocrWorkpile_t * xe_scheduler_pop_mapping_to_assigned_work (ocrScheduler_t* base,
 ocrWorkpile_t * xe_scheduler_pop_mapping_to_work_shipping (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
     // TODO sagnak; god awful hardcoding, BAD
-    size_t id = hcDerived->worker_id_begin;
+    u64 id = hcDerived->worker_id_begin;
     return hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
@@ -86,13 +86,13 @@ ocrWorkpile_t * xe_scheduler_push_mapping_assert (ocrScheduler_t* base, ocrWorke
 ocrWorkpile_t * xe_scheduler_push_mapping_to_assigned_work (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
     // TODO sagnak; god awful hardcoding, BAD
-    size_t id = hcDerived->worker_id_begin;
+    u64 id = hcDerived->worker_id_begin;
     return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
 ocrWorkpile_t * xe_scheduler_push_mapping_to_work_shipping (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    size_t id = get_worker_id(w);
+    u64 id = get_worker_id(w);
     assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
     return hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
@@ -111,7 +111,7 @@ ocrGuid_t xe_scheduler_take_most_fsim_faithful (ocrScheduler_t* base, ocrGuid_t 
 
     ocrWorkpile_t * wp_to_pop = NULL;
 
-    size_t id = get_worker_id(w);
+    u64 id = get_worker_id(w);
     if (id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end) {
         // XE worker trying to extract 'executable work' from CE assigned workpile
         wp_to_pop = xe_scheduler_pop_mapping_to_assigned_work(base, w);
@@ -144,7 +144,7 @@ void xe_scheduler_give_fsim_faithful (ocrScheduler_t* base, ocrGuid_t wid, ocrGu
 
     fsim_message_interface_t* taskAsMessage = &(task->message_interface);
 
-    size_t id = get_worker_id(w);
+    u64 id = get_worker_id(w);
     if (id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end) {
         // if the pusher is an XE worker
         if ( !taskAsMessage->is_message(taskAsMessage) ) {
@@ -180,13 +180,13 @@ void xe_scheduler_give_fsim_faithful (ocrScheduler_t* base, ocrGuid_t wid, ocrGu
     }
 }
 
-ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration) {
+ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
     ocrSchedulerFsimXE_t* derived = (ocrSchedulerFsimXE_t*) malloc(sizeof(ocrSchedulerFsimXE_t));
     ocrScheduler_t* base = (ocrScheduler_t*)derived;
     ocrSchedulerHc_t* hcBase = (ocrSchedulerHc_t*)derived;
-    ocr_module_t * module_base = (ocr_module_t *) base;
-    // module_base->map_fct = xe_ocr_module_map_workpiles_to_schedulers;
-    module_base->map_fct = hc_ocr_module_map_workpiles_to_schedulers;
+    ocrMappable_t * module_base = (ocrMappable_t *) base;
+    // module_base->mapFct = xe_ocr_module_map_workpiles_to_schedulers;
+    module_base->mapFct = hc_ocr_module_map_workpiles_to_schedulers;
     base -> destruct = destructSchedulerFsimXE;
     base -> pop_mapping = xe_scheduler_pop_mapping_assert;
     base -> push_mapping = xe_scheduler_push_mapping_assert;
@@ -194,7 +194,7 @@ ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * per_t
     base -> take = xe_scheduler_take_most_fsim_faithful;
     base -> give = xe_scheduler_give_fsim_faithful;
 
-    scheduler_configuration *mapper = (scheduler_configuration*)per_instance_configuration;
+    scheduler_configuration *mapper = (scheduler_configuration*)perInstanceConfig;
     hcBase->worker_id_begin = mapper->worker_id_begin;
     hcBase->worker_id_end = mapper->worker_id_end;
     hcBase->n_workers_per_scheduler = 1 + hcBase->worker_id_end - hcBase->worker_id_begin;
@@ -207,14 +207,14 @@ ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * per_t
 /* OCR-FSIM CE SCHEDULER                              */
 /******************************************************/
 
-ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
 void destructSchedulerFactoryFsimCE(ocrSchedulerFactory_t * factory) {
     free(factory);
 }
 
 ocrSchedulerFactory_t * newOcrSchedulerFactoryFsimCE(void * config) {
-    ocrSchedulerFactoryFsimCE_t* derived = (ocrSchedulerFactoryFsimCE_t*) checked_malloc(derived, sizeof(ocrSchedulerFactoryFsimCE_t));
+    ocrSchedulerFactoryFsimCE_t* derived = (ocrSchedulerFactoryFsimCE_t*) checkedMalloc(derived, sizeof(ocrSchedulerFactoryFsimCE_t));
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = newSchedulerFsimCE;
     base->destruct = destructSchedulerFactoryFsimCE;
@@ -229,18 +229,18 @@ void destructSchedulerFsimCE(ocrScheduler_t * scheduler) {
 ocrWorkpile_t * ce_scheduler_pop_mapping (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerFsimCE_t* ceDerived = (ocrSchedulerFsimCE_t*) base;
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    ocrWorkpile_t * to_be_returned = NULL;
+    ocrWorkpile_t * toBeReturned = NULL;
 
-    size_t id = get_worker_id(w);
+    u64 id = get_worker_id(w);
     if ( ceDerived -> in_message_popping_mode ) {
         // if I am the CE popping from my own message stash
         assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
-        to_be_returned = hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
+        toBeReturned = hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
     } else {
         // if I am the CE popping from my own work stash on behalf of XEs
-        to_be_returned = hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
+        toBeReturned = hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
     }
-    return to_be_returned;
+    return toBeReturned;
 }
 
 ocrWorkpile_t * ce_scheduler_push_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
@@ -250,7 +250,7 @@ ocrWorkpile_t * ce_scheduler_push_mapping_assert (ocrScheduler_t* base, ocrWorke
 
 ocrWorkpile_t * ce_scheduler_push_mapping_to_work (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    size_t id = get_worker_id(w);
+    u64 id = get_worker_id(w);
     assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
     return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
@@ -258,7 +258,7 @@ ocrWorkpile_t * ce_scheduler_push_mapping_to_work (ocrScheduler_t* base, ocrWork
 ocrWorkpile_t * ce_scheduler_push_mapping_to_messages (ocrScheduler_t* base ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
     // TODO sagnak; god awful hardcoding, BAD
-    size_t id = hcDerived->worker_id_begin;
+    u64 id = hcDerived->worker_id_begin;
     return hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
 }
 
@@ -307,12 +307,12 @@ ocrWorkpileIterator_t* ce_scheduler_steal_mapping_assert (ocrScheduler_t* base, 
     return NULL;
 }
 
-ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration) {
+ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
     ocrSchedulerFsimCE_t* derived = (ocrSchedulerFsimCE_t*) malloc(sizeof(ocrSchedulerFsimCE_t));
     ocrScheduler_t* base = (ocrScheduler_t*)derived;
     ocrSchedulerHc_t* hcBase = (ocrSchedulerHc_t*)derived;
-    ocr_module_t * module_base = (ocr_module_t *) base;
-    module_base->map_fct = hc_ocr_module_map_workpiles_to_schedulers;
+    ocrMappable_t * module_base = (ocrMappable_t *) base;
+    module_base->mapFct = hc_ocr_module_map_workpiles_to_schedulers;
     base -> destruct = destructSchedulerFsimCE;
     base -> pop_mapping = ce_scheduler_pop_mapping;
     base -> push_mapping = ce_scheduler_push_mapping_assert;
@@ -321,7 +321,7 @@ ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, void * per_t
     base -> give = ce_scheduler_give;
     derived -> in_message_popping_mode = 1;
 
-    scheduler_configuration *mapper = (scheduler_configuration*)per_instance_configuration;
+    scheduler_configuration *mapper = (scheduler_configuration*)perInstanceConfig;
     hcBase->worker_id_begin = mapper->worker_id_begin;
     hcBase->worker_id_end = mapper->worker_id_end;
     hcBase->n_workers_per_scheduler = 1 + hcBase->worker_id_end - hcBase->worker_id_begin;

@@ -43,7 +43,7 @@
  * @brief Memory Target
  */
 typedef struct _ocrMemTarget_t {
-    ocr_module_t module; /**< Base "class" for ocrMemTarget */
+    ocrMappable_t module; /**< Base "class" for ocrMemTarget */
 } ocrMemTarget_t;
 
 typedef enum _ocrMemTargetKind {

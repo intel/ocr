@@ -45,10 +45,10 @@ extern ocrPolicyDomain_t * leaf_place_policy_domain_constructor();
 extern ocrPolicyDomain_t * mastered_leaf_place_policy_domain_constructor();
 
 ocrPolicyDomain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
-                                size_t workpileCount,
-                                size_t workerCount,
-                                size_t computeCount,
-                                size_t schedulerCount) {
+                                u64 workpileCount,
+                                u64 workerCount,
+                                u64 computeCount,
+                                u64 schedulerCount) {
     switch(policyType) {
     case OCR_POLICY_HC:
         return hc_policy_domain_constructor(workpileCount, workerCount,
@@ -80,7 +80,7 @@ ocrPolicyDomain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
 }
 
 void ocr_policy_domain_destruct(ocrPolicyDomain_t * policy) {
-    size_t i;
+    u64 i;
     for(i = 0; i < policy->workerCount; i++) {
         policy->workers[i]->destruct(policy->workers[i]);
     }

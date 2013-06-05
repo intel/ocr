@@ -55,12 +55,8 @@ static void unlockX86(ocrLock_t* self) {
     rself->val = 0;
 }
 
-static u8 tryLockX86(ocrLock_t* self) {
-    ocrLockX86_t *rself = (ocrLockX86_t*)self;
-    if(__sync_bool_compare_and_swap(&(rself->val), 0, 1))
-        return 1;
-    return 0;
-}
+ocrLock_t* newLockX86() {
+    ocrLockX86_t *result = (ocrLockX86_t*)checkedMalloc(result, sizeof(ocrLockX86_t));
 
 /* x86 lock factory */
 static ocrLock_t* newLockX86(ocrLockFactory_t *self, void* config) {

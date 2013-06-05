@@ -41,12 +41,12 @@
 #define END_OF_LIST NULL
 
 void hcTaskConstructInternal2 (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
-        u32 paramc, u64 * params, void** paramv, size_t nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs) {
+        u32 paramc, u64 * params, void** paramv, u64 nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs) {
     if (nbDeps == 0) {
         derived->signalers = END_OF_LIST;
     } else {
         // Since we know how many dependences we have, preallocate signalers
-        derived->signalers = checked_malloc(derived->signalers, sizeof(reg_node_t)*nbDeps);
+        derived->signalers = checkedMalloc(derived->signalers, sizeof(reg_node_t)*nbDeps);
     }
     derived->waiters = END_OF_LIST;
     derived->nbdeps = nbDeps;
@@ -76,7 +76,7 @@ void destructTaskFsim ( ocrTask_t* base ) {
     free(derived);
 }
 
-ocrTaskFsim_t* newTaskFsimInternal (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFcts) {
+ocrTaskFsim_t* newTaskFsimInternal (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, u64 depc, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFcts) {
     ocrTaskFsim_t* derived = (ocrTaskFsim_t*) malloc(sizeof(ocrTaskFsim_t));
     ocrTaskHc_t* hcTaskBase = &(derived->fsimBase.base);
 
@@ -95,7 +95,7 @@ void destructTaskFactoryFsim ( ocrTaskFactory_t* base ) {
     free(derived);
 }
 
-ocrGuid_t newTaskFsim ( ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, size_t depc, ocrGuid_t * outputEventPtr) {
+ocrGuid_t newTaskFsim ( ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, u64 depc, ocrGuid_t * outputEventPtr) {
     ocrTaskFsim_t* edt = newTaskFsimInternal(fctPtr, paramc, params, paramv, properties, depc, NULL_GUID, factory->taskFcts);
     ocrTask_t* base = (ocrTask_t*) edt;
     return base->guid;
@@ -107,7 +107,7 @@ ocrTaskFactory_t* newTaskFactoryFsim(void * config) {
     base->instantiate = newTaskFsim;
     base->destruct =  destructTaskFactoryFsim;
     // initialize singleton instance that carries implementation function pointers
-    base->taskFcts = (ocrTaskFcts_t *) checked_malloc(base->taskFcts, sizeof(ocrTaskFcts_t));
+    base->taskFcts = (ocrTaskFcts_t *) checkedMalloc(base->taskFcts, sizeof(ocrTaskFcts_t));
     base->taskFcts->destruct = destructTaskFsim;
     base->taskFcts->execute = taskExecute;
     base->taskFcts->schedule = tryScheduleTask;
@@ -143,7 +143,7 @@ ocrTaskFsimMessage_t* newTaskFsimMessageInternal (ocrEdt_t funcPtr, ocrTaskFcts_
     return derived;
 }
 
-ocrGuid_t newTaskFsimMessage ( ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, size_t depc, ocrGuid_t * outputEventPtr) {
+ocrGuid_t newTaskFsimMessage ( ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, u64 depc, ocrGuid_t * outputEventPtr) {
     ocrTaskFsimMessage_t* edt = newTaskFsimMessageInternal(fctPtr, factory->taskFcts);
     ocrTask_t* base = (ocrTask_t*) edt;
     return base->guid;
@@ -155,7 +155,7 @@ ocrTaskFactory_t* newTaskFactoryFsimMessage(void * config) {
     base->instantiate = newTaskFsimMessage;
     base->destruct =  destructTaskFactoryFsimMessage;
     // initialize singleton instance that carries implementation function pointers
-    base->taskFcts = (ocrTaskFcts_t *) checked_malloc(base->taskFcts, sizeof(ocrTaskFcts_t));
+    base->taskFcts = (ocrTaskFcts_t *) checkedMalloc(base->taskFcts, sizeof(ocrTaskFcts_t));
     base->taskFcts->destruct = destructTaskFsimMessage;
     base->taskFcts->execute = taskExecute;
     base->taskFcts->schedule = tryScheduleTask;

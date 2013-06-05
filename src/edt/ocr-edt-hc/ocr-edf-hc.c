@@ -144,13 +144,13 @@ static ocrEvent_t* eventConstructorInternal(ocrEventFactory_t * factory, ocrEven
     ocrEvent_t* base = NULL;
     ocrEventFcts_t * eventFctPtrs = NULL;
     if (eventType == OCR_EVENT_FINISH_LATCH_T) {
-        ocrEventHcFinishLatch_t * eventImpl = (ocrEventHcFinishLatch_t*) checked_malloc(eventImpl, sizeof(ocrEventHcFinishLatch_t));
+        ocrEventHcFinishLatch_t * eventImpl = (ocrEventHcFinishLatch_t*) checkedMalloc(eventImpl, sizeof(ocrEventHcFinishLatch_t));
         eventImpl->counter = 0;
         //Note: waiters are initialized afterwards
         eventFctPtrs = ((ocrEventFactoryHc_t*)factory)->finishLatchFcts;
         base = (ocrEvent_t*)eventImpl;
     } else if (eventType == OCR_EVENT_LATCH_T) {
-        ocrEventHcLatch_t * eventImpl = (ocrEventHcLatch_t*) checked_malloc(eventImpl, sizeof(ocrEventHcLatch_t));
+        ocrEventHcLatch_t * eventImpl = (ocrEventHcLatch_t*) checkedMalloc(eventImpl, sizeof(ocrEventHcLatch_t));
         (eventImpl->base).waiters = END_OF_LIST;
         (eventImpl->base).signalers = END_OF_LIST;
         (eventImpl->base).data = NULL_GUID;
@@ -162,7 +162,7 @@ static ocrEvent_t* eventConstructorInternal(ocrEventFactory_t * factory, ocrEven
                 (eventType == OCR_EVENT_IDEM_T) ||
                 (eventType == OCR_EVENT_STICKY_T)) &&
                 "error: Unsupported type of event");
-        ocrEventHcSingle_t* eventImpl = (ocrEventHcSingle_t*) checked_malloc(eventImpl, sizeof(ocrEventHcSingle_t));
+        ocrEventHcSingle_t* eventImpl = (ocrEventHcSingle_t*) checkedMalloc(eventImpl, sizeof(ocrEventHcSingle_t));
         (eventImpl->base).waiters = END_OF_LIST;
         (eventImpl->base).signalers = END_OF_LIST;
         (eventImpl->base).data = UNINITIALIZED_DATA;
@@ -202,7 +202,7 @@ static void awaitableEventRegisterWaiter(ocrEventHcAwaitable_t * self, ocrGuid_t
     // Try to insert 'waiter' at the beginning of the list
     reg_node_t * curHead = (reg_node_t *) self->waiters;
     if(curHead != SEALED_LIST) {
-        reg_node_t * newHead = checked_malloc(newHead, sizeof(reg_node_t));
+        reg_node_t * newHead = checkedMalloc(newHead, sizeof(reg_node_t));
         newHead->guid = waiter;
         newHead->slot = slot;
         newHead->next = (reg_node_t *) curHead;
@@ -457,25 +457,25 @@ void destructEventFactoryHc ( ocrEventFactory_t * base ) {
 }
 
 ocrEventFactory_t * newEventFactoryHc(void * config) {
-    ocrEventFactoryHc_t* derived = (ocrEventFactoryHc_t*) checked_malloc(derived, sizeof(ocrEventFactoryHc_t));
+    ocrEventFactoryHc_t* derived = (ocrEventFactoryHc_t*) checkedMalloc(derived, sizeof(ocrEventFactoryHc_t));
     ocrEventFactory_t* base = (ocrEventFactory_t*) derived;
     base->instantiate = newEventHc;
     base->destruct =  destructEventFactoryHc;
     // initialize singleton instance that carries hc implementation function pointers
-    base->singleFcts = (ocrEventFcts_t *) checked_malloc(base->singleFcts, sizeof(ocrEventFcts_t));
+    base->singleFcts = (ocrEventFcts_t *) checkedMalloc(base->singleFcts, sizeof(ocrEventFcts_t));
     base->singleFcts->destruct = destructEventHc;
     base->singleFcts->get = singleEventGet;
     base->singleFcts->satisfy = singleEventSatisfy;
 
     // latch-events
-    base->latchFcts = (ocrEventFcts_t *) checked_malloc(base->latchFcts, sizeof(ocrEventFcts_t));
+    base->latchFcts = (ocrEventFcts_t *) checkedMalloc(base->latchFcts, sizeof(ocrEventFcts_t));
     base->latchFcts->destruct = destructEventHc;
     base->latchFcts->get = latchEventGet;
     base->latchFcts->satisfy = latchEventSatisfy;
 
     //Note: Just store finish-latch function ptrs in a static since this is 
     //      runtime implementation specific
-    derived->finishLatchFcts = (ocrEventFcts_t *) checked_malloc(derived->finishLatchFcts, sizeof(ocrEventFcts_t));
+    derived->finishLatchFcts = (ocrEventFcts_t *) checkedMalloc(derived->finishLatchFcts, sizeof(ocrEventFcts_t));
     derived->finishLatchFcts->destruct = destructEventHc;
     derived->finishLatchFcts->get = finishLatchEventGet;
     derived->finishLatchFcts->satisfy = finishLatchEventSatisfy;
@@ -489,12 +489,12 @@ ocrEventFactory_t * newEventFactoryHc(void * config) {
 /******************************************************/
 
 void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
-        u32 paramc, u64 * params, void** paramv, size_t nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs) {
+        u32 paramc, u64 * params, void** paramv, u64 nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs) {
     if (nbDeps == 0) {
         derived->signalers = END_OF_LIST;
     } else {
         // Since we know how many dependences we have, preallocate signalers
-        derived->signalers = checked_malloc(derived->signalers, sizeof(reg_node_t)*nbDeps);
+        derived->signalers = checkedMalloc(derived->signalers, sizeof(reg_node_t)*nbDeps);
     }
     derived->waiters = END_OF_LIST;
     derived->nbdeps = nbDeps;
@@ -515,8 +515,8 @@ void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
     }
 }
 
-ocrTaskHc_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, size_t depc, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFcts) {
-    ocrTaskHc_t* newEdt = (ocrTaskHc_t*)checked_malloc(newEdt, sizeof(ocrTaskHc_t));
+ocrTaskHc_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, u64 depc, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFcts) {
+    ocrTaskHc_t* newEdt = (ocrTaskHc_t*)checkedMalloc(newEdt, sizeof(ocrTaskHc_t));
     hcTaskConstructInternal(newEdt, funcPtr, paramc, params, paramv, depc, outputEvent, taskFcts);
     ocrTask_t * newEdtBase = (ocrTask_t *) newEdt;
     // If we are creating a finish-edt
@@ -658,9 +658,9 @@ void taskExecute ( ocrTask_t* base ) {
     ocrEdtDep_t * depv = NULL;
     // If any dependencies, acquire their data-blocks
     if (nbdeps != 0) {
-        size_t i = 0;
+        u64 i = 0;
         //TODO would be nice to resolve regNode into guids before
-        depv = (ocrEdtDep_t *) checked_malloc(depv, sizeof(ocrEdtDep_t) * nbdeps);
+        depv = (ocrEdtDep_t *) checkedMalloc(depv, sizeof(ocrEdtDep_t) * nbdeps);
         // Double-check we're not rescheduling an already executed edt
         assert(derived->signalers != END_OF_LIST);
         while ( i < nbdeps ) {
@@ -686,7 +686,7 @@ void taskExecute ( ocrTask_t* base ) {
 
     // edt user code is done, if any deps, release data-blocks
     if (nbdeps != 0) {
-        size_t i = 0;
+        u64 i = 0;
         for(i=0; i<nbdeps; ++i) {
             if(depv[i].guid != NULL_GUID) {
                 ocrDataBlock_t * db = NULL;
@@ -724,7 +724,7 @@ void taskExecute ( ocrTask_t* base ) {
 /* OCR-HC Task Factory                                */
 /******************************************************/
 
-ocrGuid_t newTaskHc(ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, size_t depc, ocrGuid_t * outputEventPtr) {
+ocrGuid_t newTaskHc(ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, u64 depc, ocrGuid_t * outputEventPtr) {
     // Initialize a sticky outputEvent if requested
     ocrGuid_t outputEvent = (ocrGuid_t) outputEventPtr;
     if (outputEvent != NULL_GUID) {
@@ -745,14 +745,14 @@ void destructTaskFactoryHc(ocrTaskFactory_t* base) {
 }
 
 ocrTaskFactory_t * newTaskFactoryHc(void * config) {
-    ocrTaskFactoryHc_t* derived = (ocrTaskFactoryHc_t*) checked_malloc(derived, sizeof(ocrTaskFactoryHc_t));
+    ocrTaskFactoryHc_t* derived = (ocrTaskFactoryHc_t*) checkedMalloc(derived, sizeof(ocrTaskFactoryHc_t));
     ocrTaskFactory_t* base = (ocrTaskFactory_t*) derived;
     base->instantiate = newTaskHc;
     base->destruct =  destructTaskFactoryHc;
     // initialize singleton instance that carries hc implementation 
     // function pointers. Every instantiated task will use this pointer
     // to resolve functions implementations.
-    base->taskFcts = (ocrTaskFcts_t *) checked_malloc(base->taskFcts, sizeof(ocrTaskFcts_t));
+    base->taskFcts = (ocrTaskFcts_t *) checkedMalloc(base->taskFcts, sizeof(ocrTaskFcts_t));
     base->taskFcts->destruct = destructTaskHc;
     base->taskFcts->execute = taskExecute;
     base->taskFcts->schedule = tryScheduleTask;

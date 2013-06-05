@@ -39,15 +39,15 @@
 //TODO don't like that: I think we should have some kind of a plugin
 // mechanism where an implementation can associate its string to a function pointer.
 // i.e HC_WORKPOOL -> newWorkpileHc
-extern ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
-extern ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+extern ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+extern ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
-ocrWorkpile_t * newWorkpile(ocr_workpile_kind workpileType, void * per_type_configuration, void * per_instance_configuration) {
+ocrWorkpile_t * newWorkpile(ocrWorkpileKind workpileType, void * perTypeConfig, void * perInstanceConfig) {
     switch(workpileType) {
     case OCR_DEQUE:
-        return newWorkpileHc(NULL, per_type_configuration, per_instance_configuration);
+        return newWorkpileHc(NULL, perTypeConfig, perInstanceConfig);
     case OCR_MESSAGE_QUEUE:
-        return newWorkpileFsimMessage(NULL, per_type_configuration, per_instance_configuration);
+        return newWorkpileFsimMessage(NULL, perTypeConfig, perInstanceConfig);
     default:
         assert(false && "Unrecognized workpile kind");
         break;
@@ -61,29 +61,29 @@ ocrWorkpile_t * newWorkpile(ocr_workpile_kind workpileType, void * per_type_conf
 /* OCR Workpile iterator                              */
 /******************************************************/
 
-void workpile_iterator_reset (ocrWorkpileIterator_t * base) {
+void workpileIteratorReset (ocrWorkpileIterator_t * base) {
     base->curr = ((base->id) + 1) % base->mod;
 }
 
-bool workpile_iterator_hasNext (ocrWorkpileIterator_t * base) {
+bool workpileIteratorHasNext (ocrWorkpileIterator_t * base) {
     return base->id != base->curr;
 }
 
-ocrWorkpile_t * workpile_iterator_next (ocrWorkpileIterator_t * base) {
+ocrWorkpile_t * workpileIteratorNext (ocrWorkpileIterator_t * base) {
     int current = base->curr;
-    ocrWorkpile_t * to_be_returned = base->array[current];
+    ocrWorkpile_t * toBeReturned = base->array[current];
     base->curr = (current+1) % base->mod;
-    return to_be_returned;
+    return toBeReturned;
 }
 
-ocrWorkpileIterator_t* workpile_iterator_constructor ( int i, size_t n_pools, ocrWorkpile_t ** pools ) {
-    ocrWorkpileIterator_t* it = (ocrWorkpileIterator_t *) checked_malloc(it, sizeof(ocrWorkpileIterator_t));
+ocrWorkpileIterator_t* workpileIteratorConstructor ( int i, u64 n_pools, ocrWorkpile_t ** pools ) {
+    ocrWorkpileIterator_t* it = (ocrWorkpileIterator_t *) checkedMalloc(it, sizeof(ocrWorkpileIterator_t));
     it->array = pools;
     it->id = i;
     it->mod = n_pools;
-    it->hasNext = workpile_iterator_hasNext;
-    it->next = workpile_iterator_next;
-    it->reset = workpile_iterator_reset;
+    it->hasNext = workpileIteratorHasNext;
+    it->next = workpileIteratorNext;
+    it->reset = workpileIteratorReset;
     // The 'curr' field is initialized by reset
     it->reset(it);
     return it;

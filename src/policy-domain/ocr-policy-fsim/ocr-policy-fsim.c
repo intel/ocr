@@ -58,9 +58,9 @@ void xe_policy_domain_start(ocrPolicyDomain_t * policy) {
     start_task_event_factories(policy);
     // WARNING: Threads start should be the last thing we do here after
     //          all data-structures have been initialized.
-    size_t i = 0;
-    size_t workerCount = policy->workerCount;
-    size_t computeCount = policy->computeCount;
+    u64 i = 0;
+    u64 workerCount = policy->workerCount;
+    u64 computeCount = policy->computeCount;
     for(i = 0; i < workerCount; i++) {
         policy->workers[i]->start(policy->workers[i]);
 
@@ -75,9 +75,9 @@ void ce_policy_domain_start(ocrPolicyDomain_t * policy) {
 
     // WARNING: Threads start should be the last thing we do here after
     //          all data-structures have been initialized.
-    size_t i = 0;
-    size_t workerCount = policy->workerCount;
-    size_t computeCount = policy->computeCount;
+    u64 i = 0;
+    u64 workerCount = policy->workerCount;
+    u64 computeCount = policy->computeCount;
     for(i = 0; i < workerCount; i++) {
         policy->workers[i]->start(policy->workers[i]);
 
@@ -92,9 +92,9 @@ void ce_mastered_policy_domain_start(ocrPolicyDomain_t * policy) {
 
     // WARNING: Threads start should be the last thing we do here after
     //          all data-structures have been initialized.
-    size_t i = 0;
-    size_t workerCount = policy->workerCount;
-    size_t computeCount = policy->computeCount;
+    u64 i = 0;
+    u64 workerCount = policy->workerCount;
+    u64 computeCount = policy->computeCount;
 
     // DIFFERENT FROM OTHER POLICY DOMAINS
     // Only start (N-1) workers as worker '0' is the current thread.
@@ -114,7 +114,7 @@ void ce_mastered_policy_domain_start(ocrPolicyDomain_t * policy) {
 }
 
 void fsim_policy_domain_finish(ocrPolicyDomain_t * policy) {
-    size_t i;
+    u64 i;
     for ( i = 0; i < policy->workerCount; ++i ) {
         policy->workers[i]->stop(policy->workers[i]);
     }
@@ -125,7 +125,7 @@ void fsim_policy_domain_finish(ocrPolicyDomain_t * policy) {
 }
 
 void fsim_mastered_policy_domain_finish(ocrPolicyDomain_t * policy) {
-    size_t i;
+    u64 i;
     for ( i = 0; i < policy->workerCount; ++i ) {
         policy->workers[i]->stop(policy->workers[i]);
     }
@@ -159,8 +159,8 @@ ocrGuid_t fsim_policy_getAllocator(ocrPolicyDomain_t * policy, ocrLocation_t* lo
 }
 
 // Mapping function one-to-one to map a scheduler to a policy instance
-void fsim_ocr_module_map_schedulers_to_policy (void * self_module, ocr_module_kind kind,
-                                               size_t nb_instances, void ** ptr_instances) {
+void fsim_ocr_module_map_schedulers_to_policy (void * self_module, ocrMappableKind kind,
+                                               u64 nb_instances, void ** ptr_instances) {
     // Checking mapping conforms to what we're expecting in this implementation
     assert(kind == OCR_SCHEDULER);
     assert(nb_instances == 1);
@@ -178,16 +178,16 @@ ocrEventFactory_t* fsim_policy_getEventFactoryForUserEvents(ocrPolicyDomain_t * 
     return policy->eventFactories[0];
 }
 
-static inline void fsim_policy_domain_constructor_helper ( ocrPolicyDomain_t * policy, size_t workpileCount,
-                                                           size_t workerCount,
-                                                           size_t computeCount,
-                                                           size_t schedulerCount) {
+static inline void fsim_policy_domain_constructor_helper ( ocrPolicyDomain_t * policy, u64 workpileCount,
+                                                           u64 workerCount,
+                                                           u64 computeCount,
+                                                           u64 schedulerCount) {
     // Get a GUID
     policy->guid = UNINITIALIZED_GUID;
     globalGuidProvider->getGuid(globalGuidProvider, &(policy->guid), (u64)policy, OCR_GUID_POLICY);
 
-    ocr_module_t * module_base = (ocr_module_t *) policy;
-    module_base->map_fct = fsim_ocr_module_map_schedulers_to_policy;
+    ocrMappable_t * module_base = (ocrMappable_t *) policy;
+    module_base->mapFct = fsim_ocr_module_map_schedulers_to_policy;
 
     policy->workpileCount = workpileCount;
     policy->workerCount = workerCount;
@@ -218,10 +218,10 @@ void ce_policy_domain_receive ( ocrPolicyDomain_t * thisPolicy, ocrGuid_t giverW
     ceScheduler->give(ceScheduler, giverWorkerGuid, givenTaskGuid);
 }
 
-ocrPolicyDomain_t * xe_policy_domain_constructor (size_t workpileCount,
-                                                    size_t workerCount,
-                                                    size_t computeCount,
-                                                    size_t schedulerCount) {
+ocrPolicyDomain_t * xe_policy_domain_constructor (u64 workpileCount,
+                                                    u64 workerCount,
+                                                    u64 computeCount,
+                                                    u64 schedulerCount) {
 
     ocrPolicyDomain_t * policy = (ocrPolicyDomain_t *) malloc(sizeof(ocrPolicyDomain_t));
 
@@ -237,10 +237,10 @@ ocrPolicyDomain_t * xe_policy_domain_constructor (size_t workpileCount,
     return policy;
 }
 
-ocrPolicyDomain_t * ce_policy_domain_constructor (size_t workpileCount,
-                                                    size_t workerCount,
-                                                    size_t computeCount,
-                                                    size_t schedulerCount) {
+ocrPolicyDomain_t * ce_policy_domain_constructor (u64 workpileCount,
+                                                    u64 workerCount,
+                                                    u64 computeCount,
+                                                    u64 schedulerCount) {
 
     ocrPolicyDomain_t * policy = (ocrPolicyDomain_t *) malloc(sizeof(ocrPolicyDomain_t));
 
@@ -256,10 +256,10 @@ ocrPolicyDomain_t * ce_policy_domain_constructor (size_t workpileCount,
     return policy;
 }
 
-ocrPolicyDomain_t * ce_mastered_policy_domain_constructor (size_t workpileCount,
-                                                             size_t workerCount,
-                                                             size_t computeCount,
-                                                             size_t schedulerCount) {
+ocrPolicyDomain_t * ce_mastered_policy_domain_constructor (u64 workpileCount,
+                                                             u64 workerCount,
+                                                             u64 computeCount,
+                                                             u64 schedulerCount) {
 
     ocrPolicyDomain_t * policy = (ocrPolicyDomain_t *) malloc(sizeof(ocrPolicyDomain_t));
 

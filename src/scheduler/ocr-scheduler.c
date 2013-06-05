@@ -34,21 +34,21 @@
 
 #include "ocr-scheduler.h"
 
-extern ocrScheduler_t * newSchedulerHc(ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
-extern ocrScheduler_t * newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
-extern ocrScheduler_t * newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
-extern ocrScheduler_t * newSchedulerFsimCE(ocrSchedulerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+extern ocrScheduler_t * newSchedulerHc(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+extern ocrScheduler_t * newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+extern ocrScheduler_t * newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+extern ocrScheduler_t * newSchedulerFsimCE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
-ocrScheduler_t * newScheduler(ocr_scheduler_kind schedulerType, void * per_type_configuration, void * per_instance_configuration) {
+ocrScheduler_t * newScheduler(ocr_scheduler_kind schedulerType, void * perTypeConfig, void * perInstanceConfig) {
     switch(schedulerType) {
     case OCR_SCHEDULER_WST:
-        return newSchedulerHc(NULL, per_type_configuration, per_instance_configuration);
+        return newSchedulerHc(NULL, perTypeConfig, perInstanceConfig);
     case OCR_SCHEDULER_XE:
-        return newSchedulerFsimXE(NULL, per_type_configuration, per_instance_configuration);
+        return newSchedulerFsimXE(NULL, perTypeConfig, perInstanceConfig);
     case OCR_SCHEDULER_CE:
-        return newSchedulerFsimCE(NULL, per_type_configuration, per_instance_configuration);
+        return newSchedulerFsimCE(NULL, perTypeConfig, perInstanceConfig);
     case OCR_PLACED_SCHEDULER:
-        return newSchedulerHcPlaced(NULL, per_type_configuration, per_instance_configuration);
+        return newSchedulerHcPlaced(NULL, perTypeConfig, perInstanceConfig);
     default:
         assert(false && "Unrecognized scheduler kind");
         break;

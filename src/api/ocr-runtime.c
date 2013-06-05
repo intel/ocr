@@ -46,7 +46,7 @@
 
 // DEPRECATED
 // static event_list_node_t* event_list_node_constructor () {
-//     event_list_node_t* node = (event_list_node_t*)checked_malloc(node, sizeof(event_list_node_t));
+//     event_list_node_t* node = (event_list_node_t*)checkedMalloc(node, sizeof(event_list_node_t));
 //     node->event = NULL;
 //     node->next = NULL;
 //     return node;
@@ -81,7 +81,7 @@ void event_list_enlist ( event_list_t* list, ocrGuid_t event_guid ) {
  * through a function pointer to 'event_list_enlist'
  */
 event_list_t* event_list_constructor () {
-    event_list_t* list = (event_list_t*)checked_malloc(list, sizeof(event_list_t));
+    event_list_t* list = (event_list_t*)checkedMalloc(list, sizeof(event_list_t));
     list->size = 0;
     list->head = list->tail = NULL;
     list->enlist = event_list_enlist;

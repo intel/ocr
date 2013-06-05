@@ -29,10 +29,10 @@
 
 */
 
-#ifndef OCR_RUNTIME_DEF_H_
-#define OCR_RUNTIME_DEF_H_
+#ifndef OCR_MAPPABLE_H_
+#define OCR_MAPPABLE_H_
 
-typedef enum ocr_module_kind_enum {
+typedef enum _ocrMappableKind {
     OCR_WORKER = 0,
     OCR_COMP_TARGET = 1,
     OCR_COMP_PLATFORM = 2,
@@ -43,26 +43,29 @@ typedef enum ocr_module_kind_enum {
     OCR_POLICY = 7,
     OCR_EDT = 8,
     OCR_EVENT = 9
-} ocr_module_kind;
+} ocrMappableKind;
 
 
-typedef enum ocr_module_mapping_kind_enum {
-    ONE_TO_ONE_MAPPING = 0,
+typedef enum _ocrMappingKind {
+    ONE_TO_ONE_MAPPING  = 0,
     MANY_TO_ONE_MAPPING = 1,
     ONE_TO_MANY_MAPPING = 2
-} ocr_mapping_kind;
+} ocrMappingKind;
 
-typedef struct struct_ocr_module_mapping_t {
-    ocr_mapping_kind kind;
-    ocr_module_kind from;
-    ocr_module_kind to;
-} ocr_module_mapping_t;
+typedef struct _ocrModuleMapping_t {
+    ocrMappingKind kind;
+    ocrMappableKind from;
+    ocrMappableKind to;
+} ocrModuleMapping_t;
 
-typedef void (*ocr_module_map_fct) (void * self_module, ocr_module_kind kind, size_t nb_instances, void ** ptr_instances);
+struct _ocrMappable_t;
 
-typedef struct struct_ocr_module_t {
-    ocr_module_map_fct map_fct;
-} ocr_module_t;
+typedef void (*ocrMapFct_t) (struct _ocrMappable_t * self, ocrMappableKind kind,
+                             u64 instanceCount, void ** instances);
+
+typedef struct _ocrMappable_t {
+    ocrMapFct_t mapFct;
+} ocrMappable_t;
 
 
-#endif /* OCR_RUNTIME_DEF_H_ */
+#endif /* OCR_MAPPABLE_H_ */

@@ -36,12 +36,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "deque.h"
 #include "hc_sysdep.h"
 
-void deque_init(deque_t * deq, void * init_value) {
+void dequeInit(deque_t * deq, void * init_value) {
     deq->head = 0;
     deq->tail = 0;
-    deq->buffer = (buffer_t *) checked_malloc(deq->buffer, sizeof(buffer_t));
+    deq->buffer = (buffer_t *) checkedMalloc(deq->buffer, sizeof(buffer_t));
     deq->buffer->capacity = INIT_DEQUE_CAPACITY;
-    deq->buffer->data = (volatile void **) checked_malloc(deq->buffer->data, sizeof(void*)*INIT_DEQUE_CAPACITY);
+    deq->buffer->data = (volatile void **) checkedMalloc(deq->buffer->data, sizeof(void*)*INIT_DEQUE_CAPACITY);
     volatile void ** data = deq->buffer->data;
     int i=0;
     while(i < INIT_DEQUE_CAPACITY) {
@@ -53,7 +53,7 @@ void deque_init(deque_t * deq, void * init_value) {
 /*
  * push an entry onto the tail of the deque
  */
-void deque_push(deque_t* deq, void* entry) {
+void dequePush(deque_t* deq, void* entry) {
 	int n = deq->buffer->capacity;
 	int size = deq->tail - deq->head;
 	if (size == n) { /* deque looks full */
@@ -69,7 +69,7 @@ void deque_push(deque_t* deq, void* entry) {
 	deq->tail++;
 }
 
-void mpsc_deque_init(mpsc_deque_t* deq, void * init_value) {
+void mpscDequeInit(mpsc_deque_t* deq, void * init_value) {
     deq->head = 0;
     deq->tail = 0;
     deq->push = 0;
@@ -157,7 +157,7 @@ void * deque_steal(deque_t * deq) {
 /*
  * pop the task out of the deque from the tail
  */
-void * deque_pop(deque_t * deq) {
+void * dequePop(deque_t * deq) {
 	hc_mfence();
 	int tail = deq->tail;
 	tail--;

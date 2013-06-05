@@ -36,18 +36,18 @@
 #include "ocr-guid.h"
 #include "ocr-worker.h"
 
-extern ocrWorker_t * newWorkerHc(ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
-extern ocrWorker_t * newWorkerFsimXE(ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
-extern ocrWorker_t * newWorkerFsimCE(ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+extern ocrWorker_t * newWorkerHc(ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+extern ocrWorker_t * newWorkerFsimXE(ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+extern ocrWorker_t * newWorkerFsimCE(ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
-ocrWorker_t * newWorker(ocr_worker_kind workerType, void * per_type_configuration, void * per_instance_configuration) {
+ocrWorker_t * newWorker(ocr_worker_kind workerType, void * perTypeConfig, void * perInstanceConfig) {
     switch(workerType) {
     case OCR_WORKER_XE:
-        return newWorkerFsimXE(NULL, per_type_configuration, per_instance_configuration);
+        return newWorkerFsimXE(NULL, perTypeConfig, perInstanceConfig);
     case OCR_WORKER_CE:
-        return newWorkerFsimCE(NULL, per_type_configuration, per_instance_configuration);
+        return newWorkerFsimCE(NULL, perTypeConfig, perInstanceConfig);
     case OCR_WORKER_HC:
-        return newWorkerHc(NULL, per_type_configuration, per_instance_configuration);
+        return newWorkerHc(NULL, perTypeConfig, perInstanceConfig);
     }
     assert(false && "Unrecognized worker kind");
     return NULL;

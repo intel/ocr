@@ -48,7 +48,7 @@
 struct ocrMemPlatform_t;
 
 typedef struct ocrMemPlatformFactory_t {
-    struct ocrMemPlatform_t * (*instantiate) ( struct ocrMemPlatformFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+    struct ocrMemPlatform_t * (*instantiate) ( struct ocrMemPlatformFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
     void (*destruct)(struct ocrMemPlatformFactory_t * factory);
 } ocrMemPlatformFactory_t;
 
@@ -67,7 +67,7 @@ typedef struct ocrMemPlatformFactory_t {
  * architecture comes online. The API may therefore evolve
  */
 typedef struct ocrMemPlatform_t {
-    ocr_module_t module; /**< Base "class" for ocrMemPlatform */
+    ocrMappable_t module; /**< Base "class" for ocrMemPlatform */
 
     /**
      * @brief Destructor equivalent
@@ -112,6 +112,6 @@ extern ocrMemPlatformKind ocrMemPlatformDefaultKind;
  * @param type              Type of the low-memory allocator to return
  * @return A pointer to the meta-data for the low-memory allocator
  */
-ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type, void * per_type_configuration, void * per_instance_configuration);
+ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type, void * perTypeConfig, void * perInstanceConfig);
 
 #endif /* __OCR_MEM_PLATFORM_H__ */

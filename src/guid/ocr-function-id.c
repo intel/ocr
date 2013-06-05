@@ -91,7 +91,7 @@ void create_function_IDs(u32 numFuncs, ocrEdt_t * funcs) {
   nFuncs = numFuncs;
   id_to_fn = funcs;
   //TODO: implement the creation of the hashmap from function pointers to the function ID's
-  hashtable = (ocr_hashtable_entry **) malloc(nFuncs*sizeof(ocr_hashtable_entry*));
+  hashtable = (ocr_hashtable_entry **) checkedMalloc(hashtable, nFuncs*sizeof(ocr_hashtable_entry*));
   assert(hashtable!=NULL);
   u32 i;
   for (i=0; i < numFuncs; i++) hashtable[i] = NULL;
@@ -103,7 +103,7 @@ void create_function_IDs(u32 numFuncs, ocrEdt_t * funcs) {
     }
     u32 bucket;
     bucket = ocr_function_hash(func);
-    ocr_hashtable_entry *newEntry = checked_malloc(newEntry, sizeof(ocr_hashtable_entry));
+    ocr_hashtable_entry *newEntry = checkedMalloc(newEntry, sizeof(ocr_hashtable_entry));
     assert(newEntry != NULL);
     newEntry->nxt = hashtable[bucket];
     newEntry->func = func;

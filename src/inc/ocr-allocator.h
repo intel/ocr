@@ -44,10 +44,26 @@
 /****************************************************/
 
 // Forward declaration
-struct ocrAllocator_t;
+struct _ocrAllocator_t;
 
-typedef struct ocrAllocatorFactory_t {
-    struct ocrAllocator_t * (*instantiate) ( struct ocrAllocatorFactory_t * factory, u64 size, void * per_type_configuration, void * per_instance_configuration);
+/**
+ * @brief Allocator factory
+ */
+typedef struct _ocrAllocatorFactory_t {
+    /**
+     * @brief Allocator factory
+     *
+     * Initiates a new allocator and returns a pointer
+     * to it.
+     *
+     * @param factory       Pointer to this factory
+     * @param size          Total size of the memory to manage with
+     *                      this allocator
+     * @param
+     */
+    struct _ocrAllocator_t * (*instantiate) ( struct ocrAllocatorFactory_t * factory,
+                                             u64 size, void * perTypeConfig,
+                                             void * perInstanceConfig);
     void (*destruct)(struct ocrAllocatorFactory_t * factory);
 } ocrAllocatorFactory_t;
 
@@ -66,7 +82,7 @@ typedef struct ocrAllocatorFactory_t {
  * modeling of scratchpads and makes NUMA memory explicit
  */
 typedef struct _ocrAllocator_t {
-    ocr_module_t module; /**< Base "class" for the allocator */
+    ocrMappable_t module; /**< Base "class" for the allocator */
 
     ocrGuid_t guid;  /**< The allocator also has a GUID so that data-blocks can know what allocated/freed them */
 
@@ -135,6 +151,6 @@ extern ocrAllocatorKind ocrAllocatorDefaultKind;
  *                          Defaults to the default allocator if not specified
  * @return A pointer to the meta-data for the allocator
  */
-ocrAllocator_t* newAllocator(ocrAllocatorKind type, u64 size, void * per_type_configuration, void * per_instance_configuration);
+ocrAllocator_t* newAllocator(ocrAllocatorKind type, u64 size, void * perTypeConfig, void * perInstanceConfig);
 
 #endif /* __OCR_ALLOCATOR_H__ */

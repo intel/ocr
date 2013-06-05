@@ -44,7 +44,7 @@
 struct ocrWorkpile_t;
 
 typedef struct ocrWorkpileFactory_t {
-    struct ocrWorkpile_t * (*instantiate) ( struct ocrWorkpileFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+    struct ocrWorkpile_t * (*instantiate) ( struct ocrWorkpileFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
     void (*destruct)(struct ocrWorkpileFactory_t * factory);
 } ocrWorkpileFactory_t;
 
@@ -60,7 +60,7 @@ typedef struct ocrWorkpileFactory_t {
  */
 //TODO We may be influenced by how STL resolves this issue as in push_back, push_front, pop_back, pop_front
 typedef struct ocrWorkpile_t {
-    ocr_module_t module;
+    ocrMappable_t module;
     /*! \brief Virtual destructor for the WorkPool interface
      *  As this class does not have any state, the virtual destructor does not do anything
      */
@@ -87,9 +87,9 @@ typedef struct ocrWorkpile_t {
 typedef enum ocr_workpile_kind_enum {
     OCR_DEQUE = 1,
     OCR_MESSAGE_QUEUE = 2
-} ocr_workpile_kind;
+} ocrWorkpileKind;
 
-ocrWorkpile_t * newWorkpile(ocr_workpile_kind workpileType, void * per_type_configuration, void * per_instance_configuration);
+ocrWorkpile_t * newWorkpile(ocrWorkpileKind workpileType, void * perTypeConfig, void * perInstanceConfig);
 
 
 /****************************************************/
@@ -106,10 +106,10 @@ typedef struct ocrWorkpileIterator_t {
     int mod;
 } ocrWorkpileIterator_t;
 
-void workpile_iterator_reset (ocrWorkpileIterator_t * base);
-bool workpile_iterator_hasNext (ocrWorkpileIterator_t * base);
-ocrWorkpile_t * workpile_iterator_next (ocrWorkpileIterator_t * base);
-ocrWorkpileIterator_t* workpile_iterator_constructor ( int i, size_t n_pools, ocrWorkpile_t ** pools );
+void workpileIteratorReset (ocrWorkpileIterator_t * base);
+bool workpileIteratorHasNext (ocrWorkpileIterator_t * base);
+ocrWorkpile_t * workpileIteratorNext (ocrWorkpileIterator_t * base);
+ocrWorkpileIterator_t* workpileIteratorConstructor ( int i, u64 n_pools, ocrWorkpile_t ** pools );
 void workpile_iterator_destructor (ocrWorkpileIterator_t* base);
 
 #endif /* __OCR_WORKPILE_H_ */

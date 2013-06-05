@@ -93,7 +93,7 @@ typedef struct {
 
 typedef struct {
     ocrScheduler_t scheduler;
-    size_t n_pools;
+    u64 n_pools;
     ocrWorkpile_t ** pools;
     // Note: cache steal iterators in hc's scheduler
     // Each worker has its own steal iterator instantiated
@@ -101,8 +101,8 @@ typedef struct {
     ocrWorkpileIterator_t ** steal_iterators;
 
     int n_workers_per_scheduler;
-    size_t worker_id_begin;
-    size_t worker_id_end;
+    u64 worker_id_begin;
+    u64 worker_id_end;
 } ocrSchedulerHc_t;
 
 
@@ -120,7 +120,7 @@ ocrTaskFactory_t * newTaskFactoryHc(void * config);
  * TODO HC implementation exposed to support FSIM
  */
 extern void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
-        u32 paramc, u64 * params, void** paramv, size_t nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs);
+        u32 paramc, u64 * params, void** paramv, u64 nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs);
 
 extern void taskSchedule( ocrGuid_t guid, ocrTask_t* base, ocrGuid_t wid );
 

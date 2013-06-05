@@ -124,7 +124,7 @@ typedef struct _ocrPolicyCtx_t {
  *     - take (steal) EDTs and DBs (data load-balancing)
  */
 typedef struct _ocrPolicyDomain_t {
-    ocr_module_t module;
+    ocrMappable_t module;
     ocrGuid_t guid;                             /**< GUID for this policy */
 
     u32 schedulerCount;                         /**< Number of schedulers */
@@ -396,10 +396,10 @@ ocrDbFactory_t*    getDbFactoryFromPd(ocrPolicyDomain_t *policy);
 // } ocr_policy_domain_kind;
 
 // ocrPolicyDomain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
-//                                 size_t workpileCount,
-//                                 size_t workerCount,
-//                                 size_t computeCount,
-//                                 size_t nb_scheduler);
+//                                 u64 workpileCount,
+//                                 u64 workerCount,
+//                                 u64 computeCount,
+//                                 u64 nb_scheduler);
 
 // ocrPolicyDomain_t* get_current_policy_domain ();
 

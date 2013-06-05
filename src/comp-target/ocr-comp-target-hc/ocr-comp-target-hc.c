@@ -37,14 +37,14 @@
 #include "hc.h"
 
 // Fwd declaration
-ocrCompTarget_t* newCompTargetHc(ocrCompTargetFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+ocrCompTarget_t* newCompTargetHc(ocrCompTargetFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
 void destructCompTargetFactoryHc(ocrCompTargetFactory_t * factory) {
     free(factory);
 }
 
 ocrCompTargetFactory_t * newOcrCompTargetFactoryHc(void * config) {
-    ocrCompTargetFactoryHc_t* derived = (ocrCompTargetFactoryHc_t*) checked_malloc(derived, sizeof(ocrCompTargetFactoryHc_t));
+    ocrCompTargetFactoryHc_t* derived = (ocrCompTargetFactoryHc_t*) checkedMalloc(derived, sizeof(ocrCompTargetFactoryHc_t));
     ocrCompTargetFactory_t* base = (ocrCompTargetFactory_t*) derived;
     base->instantiate = newCompTargetHc;
     base->destruct = destructCompTargetFactoryHc;
@@ -55,8 +55,8 @@ typedef struct {
     ocrCompTarget_t base;
 } ocrCompTargetHc_t;
 
-void hc_ocr_module_map_worker_to_comp_target(void * self_module, ocr_module_kind kind,
-                                           size_t nb_instances, void ** ptr_instances) {
+void hc_ocr_module_map_worker_to_comp_target(void * self_module, ocrMappableKind kind,
+                                           u64 nb_instances, void ** ptr_instances) {
     // Checking mapping conforms to what we're expecting in this implementation
     assert(kind == OCR_WORKER);
     assert(nb_instances == 1);
@@ -80,16 +80,16 @@ void ocr_comp_target_hc_destruct (ocrCompTarget_t * compTarget) {
     free(compTarget);
 }
 
-ocrCompTarget_t * newCompTargetHc(ocrCompTargetFactory_t * factory, void * per_type_configuration, void * per_instance_configuration) {
+ocrCompTarget_t * newCompTargetHc(ocrCompTargetFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
     //TODO the comp-target/comp-platform mapping should be arranged in the policy-domain
     ocr_comp_platform_t * compPlatform = ocr_comp_platform_pthread_constructor();    
-    ocrCompTarget_t * compTarget = checked_malloc(compTarget, sizeof(ocrCompTargetHc_t));
-    ocr_module_t * module_base = (ocr_module_t *) compTarget;
-    module_base->map_fct = hc_ocr_module_map_worker_to_comp_target;
+    ocrCompTarget_t * compTarget = checkedMalloc(compTarget, sizeof(ocrCompTargetHc_t));
+    ocrMappable_t * module_base = (ocrMappable_t *) compTarget;
+    module_base->mapFct = hc_ocr_module_map_worker_to_comp_target;
     compTarget->destruct = ocr_comp_target_hc_destruct;
     compTarget->start = ocr_comp_target_hc_start;
     compTarget->stop = ocr_comp_target_hc_stop;
     compTarget->platform = compPlatform;
-    compTarget->platform->create(compTarget->platform, per_type_configuration);
+    compTarget->platform->create(compTarget->platform, perTypeConfig);
     return compTarget;
 }

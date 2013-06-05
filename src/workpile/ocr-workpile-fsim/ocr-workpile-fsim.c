@@ -37,14 +37,14 @@
 /******************************************************/
 
 // Fwd declaration
-ocrWorkpile_t* newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+ocrWorkpile_t* newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
 void destructWorkpileFactoryFsimMessage(ocrWorkpileFactory_t * factory) {
     free(factory);
 }
 
 ocrWorkpileFactory_t * newOcrWorkpileFactoryFsimMessage(void * config) {
-    ocrWorkpileFactoryFsimMessage_t* derived = (ocrWorkpileFactoryFsimMessage_t*) checked_malloc(derived, sizeof(ocrWorkpileFactoryFsimMessage_t));
+    ocrWorkpileFactoryFsimMessage_t* derived = (ocrWorkpileFactoryFsimMessage_t*) checkedMalloc(derived, sizeof(ocrWorkpileFactoryFsimMessage_t));
     ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
     base->instantiate = newWorkpileFsimMessage;
     base->destruct =  destructWorkpileFactoryFsimMessage;
@@ -72,16 +72,16 @@ static void ce_message_workpile_push (ocrWorkpile_t * base, ocrGuid_t g ) {
     deque_locked_push(derived->deque, (void *)g);
 }
 
-ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, void * per_type_configuration, void * per_instance_configuration) {
+ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
     ocrWorkpileFsimMessage_t* derived = (ocrWorkpileFsimMessage_t*) malloc(sizeof(ocrWorkpileFsimMessage_t));
     ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
-    ocr_module_t * module_base = (ocr_module_t *) base;
-    module_base->map_fct = NULL;
+    ocrMappable_t * module_base = (ocrMappable_t *) base;
+    module_base->mapFct = NULL;
     base->destruct = ce_message_workpile_destruct;
     base->pop = ce_message_workpile_pop;
     base->push = ce_message_workpile_push;
     base->steal = ce_message_workpile_pop;
     derived->deque = (mpsc_deque_t *) malloc(sizeof(mpsc_deque_t));
-    mpsc_deque_init(derived->deque, (void *) NULL_GUID);
+    mpscDequeInit(derived->deque, (void *) NULL_GUID);
     return base;
 }

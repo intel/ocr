@@ -43,7 +43,7 @@
 typedef struct {
     ocr_comp_platform_t base;
     pthread_t os_thread;
-    size_t stack_size;
+    u64 stack_size;
 } ocr_comp_platform_pthread_t;
 
 /**
@@ -98,9 +98,9 @@ ocr_comp_platform_t * ocr_comp_platform_pthread_constructor () {
     // This is it initialize the pthread-local storage that stores
     // the current worker the thread is executing.
     pthread_once(&worker_key_initialized, initialize_pthread_worker_key);
-    ocr_comp_platform_t * compPlatform = checked_malloc(compPlatform, sizeof(ocr_comp_platform_pthread_t));
-    ocr_module_t * module_base = (ocr_module_t *) compPlatform;
-    module_base->map_fct = NULL;
+    ocr_comp_platform_t * compPlatform = checkedMalloc(compPlatform, sizeof(ocr_comp_platform_pthread_t));
+    ocrMappable_t * module_base = (ocrMappable_t *) compPlatform;
+    module_base->mapFct = NULL;
     compPlatform->routine = NULL;
     compPlatform->routine_arg = NULL;
     compPlatform->create = ocr_comp_platform_pthread_create;

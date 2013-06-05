@@ -8,8 +8,8 @@
 #include "ocr-guid.h"
 #include "ocr-macros.h"
 
-static ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t schedulerCount,
-                                           size_t workerCount, size_t computeCount, size_t workpileCount);
+static ocr_model_policy_t * defaultOcrModelPolicy(u64 nb_policy_domains, u64 schedulerCount,
+                                           u64 workerCount, u64 computeCount, u64 workpileCount);
 
 void ocrModelInitFlat(char * mdFile) {
     u32 nbHardThreads = ocr_config_default_nb_hardware_threads;
@@ -28,11 +28,11 @@ void ocrModelInitFlat(char * mdFile) {
 
     // This is the default policy
     // TODO this should be declared in the default policy model
-    size_t nb_policy_domain = 1;
-    size_t nb_workers_per_policy_domain = nbHardThreads;
-    size_t nb_workpiles_per_policy_domain = nbHardThreads;
-    size_t nb_comp_target_per_policy_domain = nbHardThreads;
-    size_t nb_schedulers_per_policy_domain = 1;
+    u64 nb_policy_domain = 1;
+    u64 nb_workers_per_policy_domain = nbHardThreads;
+    u64 nb_workpiles_per_policy_domain = nbHardThreads;
+    u64 nb_comp_target_per_policy_domain = nbHardThreads;
+    u64 nb_schedulers_per_policy_domain = 1;
 
     ocr_model_policy_t * policy_model = defaultOcrModelPolicy(nb_policy_domain,
                                                               nb_schedulers_per_policy_domain, nb_workers_per_policy_domain,
@@ -55,16 +55,16 @@ void ocrModelInitFlat(char * mdFile) {
  * Default policy has one scheduler and a configurable
  * number of workers, comp-targets and workpiles
  */
-static ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size_t schedulerCount,
-                                           size_t workerCount, size_t computeCount, size_t workpileCount) {
+static ocr_model_policy_t * defaultOcrModelPolicy(u64 nb_policy_domains, u64 schedulerCount,
+                                           u64 workerCount, u64 computeCount, u64 workpileCount) {
 
     // Default policy
     ocr_model_policy_t * defaultPolicy =
-        (ocr_model_policy_t *) checked_malloc(defaultPolicy, sizeof(ocr_model_policy_t));
+        (ocr_model_policy_t *) checkedMalloc(defaultPolicy, sizeof(ocr_model_policy_t));
     defaultPolicy->model.kind = ocr_policy_default_kind;
     defaultPolicy->model.nb_instances = nb_policy_domains;
-    defaultPolicy->model.per_type_configuration = NULL;
-    defaultPolicy->model.per_instance_configuration = NULL;
+    defaultPolicy->model.perTypeConfig = NULL;
+    defaultPolicy->model.perInstanceConfig = NULL;
 
     defaultPolicy->nb_scheduler_types = 1;
     defaultPolicy->nb_worker_types = 1;
@@ -76,15 +76,15 @@ static ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size
     // Default allocator
     ocrAllocatorModel_t *defaultAllocator =
         (ocrAllocatorModel_t*)malloc(sizeof(ocrAllocatorModel_t));
-    defaultAllocator->model.per_type_configuration = NULL;
-    defaultAllocator->model.per_instance_configuration = NULL;
+    defaultAllocator->model.perTypeConfig = NULL;
+    defaultAllocator->model.perInstanceConfig = NULL;
     defaultAllocator->model.kind = OCR_ALLOCATOR_DEFAULT;
     defaultAllocator->model.nb_instances = 1;
     defaultAllocator->sizeManaged = gHackTotalMemSize;
 
     defaultPolicy->allocators = defaultAllocator;
 
-    size_t index_config = 0, n_all_schedulers = schedulerCount*nb_policy_domains;
+    u64 index_config = 0, n_all_schedulers = schedulerCount*nb_policy_domains;
 
     void** scheduler_configurations = malloc(sizeof(scheduler_configuration*)*n_all_schedulers);
     for ( index_config = 0; index_config < n_all_schedulers; ++index_config ) {
@@ -94,7 +94,7 @@ static ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size
         curr_config->worker_id_end = ( index_config / schedulerCount ) * workerCount + workerCount - 1;
     }
 
-    size_t n_all_workers = workerCount*nb_policy_domains;
+    u64 n_all_workers = workerCount*nb_policy_domains;
 
     index_config = 0;
     void** worker_configurations = malloc(sizeof(worker_configuration*)*n_all_workers );
@@ -112,9 +112,9 @@ static ocr_model_policy_t * defaultOcrModelPolicy(size_t nb_policy_domains, size
 
 
     // Defines how ocr modules are bound together
-    size_t nb_module_mappings = 5;
+    u64 nb_module_mappings = 5;
     ocr_module_mapping_t * defaultMapping =
-        (ocr_module_mapping_t *) checked_malloc(defaultMapping, sizeof(ocr_module_mapping_t) * nb_module_mappings);
+        (ocr_module_mapping_t *) checkedMalloc(defaultMapping, sizeof(ocr_module_mapping_t) * nb_module_mappings);
     // Note: this doesn't bind modules magically. You need to have a mapping function defined
     //       and set in the targeted implementation (see ocr_scheduler_hc implementation for reference).
     //       These just make sure the mapping functions you have defined are called

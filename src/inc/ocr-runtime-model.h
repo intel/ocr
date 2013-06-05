@@ -39,9 +39,9 @@
  */
 typedef struct {
     int kind;
-    size_t nb_instances;
-    void * per_type_configuration;
-    void ** per_instance_configuration;
+    u64 nb_instances;
+    void * perTypeConfig;
+    void ** perInstanceConfig;
 } ocr_model_t;
 
 typedef struct _ocrAllocatorModel_t {
@@ -51,11 +51,11 @@ typedef struct _ocrAllocatorModel_t {
 
 typedef struct {
     ocr_model_t model;
-    size_t nb_scheduler_types;
-    size_t nb_worker_types;
-    size_t nb_comp_target_types;
-    size_t nb_workpile_types;
-    size_t nb_mappings;
+    u64 nb_scheduler_types;
+    u64 nb_worker_types;
+    u64 nb_comp_target_types;
+    u64 nb_workpile_types;
+    u64 nb_mappings;
     u64 numAllocTypes;
     u64 numMemTypes;
     ocr_model_t * schedulers;
@@ -84,14 +84,14 @@ void destructOcrModelPolicy(ocr_model_policy_t *);
 extern u64 gHackTotalMemSize;
 
 // Hooks for implementations to set what they have instantiated
-extern size_t n_root_policy_nodes;
+extern u64 n_root_policy_nodes;
 extern ocrPolicyDomain_t ** root_policies;
 extern ocrWorker_t* master_worker;
 
 // Build a model
-ocr_model_t* newModel ( int kind, int nInstances, void * per_type_configuration, void ** per_instance_configuration );
+ocr_model_t* newModel ( int kind, int nInstances, void * perTypeConfig, void ** perInstanceConfig );
 
 // Helper function to build ocr module mapping
-ocr_module_mapping_t build_ocr_module_mapping(ocr_mapping_kind kind, ocr_module_kind from, ocr_module_kind to);
+ocr_module_mapping_t build_ocr_module_mapping(ocr_mapping_kind kind, ocrMappableKind from, ocrMappableKind to);
 
 #endif /* OCR_RUNTIME_MODEL_H_ */

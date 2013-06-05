@@ -41,14 +41,14 @@
 /******************************************************/
 
 // Fwd declaration
-ocrWorker_t* newWorkerFsimXE(ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+ocrWorker_t* newWorkerFsimXE(ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
 void destructWorkerFactoryFsimXE(ocrWorkerFactory_t * factory) {
     free(factory);
 }
 
 ocrWorkerFactory_t * newOcrWorkerFactoryFsimXE(void * config) {
-    ocrWorkerFactoryFsimXE_t* derived = (ocrWorkerFactoryFsimXE_t*) checked_malloc(derived, sizeof(ocrWorkerFactoryFsimXE_t));
+    ocrWorkerFactoryFsimXE_t* derived = (ocrWorkerFactoryFsimXE_t*) checkedMalloc(derived, sizeof(ocrWorkerFactoryFsimXE_t));
     ocrWorkerFactory_t* base = (ocrWorkerFactory_t*) derived;
     base->instantiate = newWorkerFsimXE;
     base->destruct = destructWorkerFactoryFsimXE;
@@ -78,17 +78,17 @@ void xe_worker_destruct ( ocrWorker_t * base ) {
 
 extern void* xe_worker_computation_routine (void * arg);
 
-ocrWorker_t* newWorkerFsimXE (ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration) {
+ocrWorker_t* newWorkerFsimXE (ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
     // Piggy-back on HC worker, modifying some of the implementation function
     ocrWorkerFsimXE_t * xeWorker = (ocrWorkerFsimXE_t *) malloc(sizeof(ocrWorkerFsimXE_t));
     ocrWorkerHc_t * hcWorker = &(xeWorker->hcBase);
     hcWorker->run = false;
-    hcWorker->id = ((worker_configuration*)per_instance_configuration)->worker_id;
+    hcWorker->id = ((worker_configuration*)perInstanceConfig)->worker_id;
     hcWorker->currentEDT_guid = NULL_GUID;
 
     ocrWorker_t * base = (ocrWorker_t *) hcWorker;
-    ocr_module_t* module_base = (ocr_module_t*) base;
-    module_base->map_fct = hc_ocr_module_map_scheduler_to_worker;
+    ocrMappable_t* module_base = (ocrMappable_t*) base;
+    module_base->mapFct = hc_ocr_module_map_scheduler_to_worker;
 
     base->guid = UNINITIALIZED_GUID;
     globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_WORKER);
@@ -113,14 +113,14 @@ ocrWorker_t* newWorkerFsimXE (ocrWorkerFactory_t * factory, void * per_type_conf
 /******************************************************/
 
 // Fwd declaration
-ocrWorker_t* newWorkerFsimCE(ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration);
+ocrWorker_t* newWorkerFsimCE(ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
 void destructWorkerFactoryFsimCE(ocrWorkerFactory_t * factory) {
     free(factory);
 }
 
 ocrWorkerFactory_t * newOcrWorkerFactoryFsimCE(void * config) {
-    ocrWorkerFactoryFsimCE_t* derived = (ocrWorkerFactoryFsimCE_t*) checked_malloc(derived, sizeof(ocrWorkerFactoryFsimCE_t));
+    ocrWorkerFactoryFsimCE_t* derived = (ocrWorkerFactoryFsimCE_t*) checkedMalloc(derived, sizeof(ocrWorkerFactoryFsimCE_t));
     ocrWorkerFactory_t* base = (ocrWorkerFactory_t*) derived;
     base->instantiate = newWorkerFsimCE;
     base->destruct =  destructWorkerFactoryFsimCE;
@@ -129,16 +129,16 @@ ocrWorkerFactory_t * newOcrWorkerFactoryFsimCE(void * config) {
 
 extern void* ce_worker_computation_routine (void * arg);
 
-ocrWorker_t* newWorkerFsimCE (ocrWorkerFactory_t * factory, void * per_type_configuration, void * per_instance_configuration) {
+ocrWorker_t* newWorkerFsimCE (ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
     // Piggy-back on HC worker, modifying the routine
     ocrWorkerHc_t * worker = (ocrWorkerHc_t *) malloc(sizeof(ocrWorkerHc_t));
     worker->run = false;
-    worker->id = ((worker_configuration*)per_instance_configuration)->worker_id;
+    worker->id = ((worker_configuration*)perInstanceConfig)->worker_id;
     worker->currentEDT_guid = NULL_GUID;
 
     ocrWorker_t * base = (ocrWorker_t *) worker;
-    ocr_module_t* module_base = (ocr_module_t*) base;
-    module_base->map_fct = hc_ocr_module_map_scheduler_to_worker;
+    ocrMappable_t* module_base = (ocrMappable_t*) base;
+    module_base->mapFct = hc_ocr_module_map_scheduler_to_worker;
 
     base->guid = UNINITIALIZED_GUID;
     globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_WORKER);
