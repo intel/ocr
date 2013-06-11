@@ -49,7 +49,7 @@ u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     return 0;
 }
 
-u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/, int slot) {
+u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/, u32 slot) {
     assert(eventGuid != NULL_GUID);
     ocrEvent_t * event = NULL;
     globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
