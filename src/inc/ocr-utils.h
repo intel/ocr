@@ -67,6 +67,37 @@
  */
 #define log_worker(level, fmt, ...) ocr_log(WORKER, level, fmt, __VA_ARGS__)
 
+/******************************************************/
+/* PARAMETER LISTS                                    */
+/******************************************************/
+
+/**
+ * @brief Parameter list used to create factories and or instances (through the
+ * factories)
+ *
+ * This struct is meant to be "extended" with the parameters required for a
+ * particular function. This type is used in newXXXFactory() functions as well
+ * as the instantiate() functions in factories and allows us to have a single API
+ * for all instantiate functions thereby making it easy to instantiate multiple
+ * types of objects programatically
+ */
+typedef struct _ocrParamList_t {
+    u64 size;       /**< Size of this parameter list (in bytes) */
+    char* misc;     /**< Miscellaneous arguments (NULL terminated string) */
+} ocrParamList_t;
+
+#define ALLOC_PARAM_LIST(result, type)                  \
+    do {                                                \
+        result = (type*) malloc(sizeof(type));          \
+        ocrParamList_t *_t = (ocrParamList_t*)result;   \
+        _t->size = (u64)sizeof(type);                   \
+    } while(0);
+
+#define INIT_PARAM_LIST(var, type)                      \
+    do {                                                \
+    ocrParamList_t *_t = (ocrParamList_t*)&var;         \
+    _t->size = sizeof(type);                            \
+    } while(0);
 
 /******************************************************/
 /*  ABORT / EXIT OCR                                  */
@@ -183,7 +214,7 @@ u32 ocrGuidTrackerIterateAndClear(ocrGuidTracker_t *self);
 u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind);
 
 typedef struct ocrPlaceTrackerStruct_t {
-    u64 existInPlaces; 
+    u64 existInPlaces;
 } ocrPlaceTracker_t;
 
 void ocrPlaceTrackerAllocate ( ocrPlaceTracker_t** toFill );

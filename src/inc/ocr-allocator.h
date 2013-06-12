@@ -36,7 +36,8 @@
 
 #include "ocr-types.h"
 #include "ocr-mem-platform.h"
-#include "ocr-runtime-def.h"
+#include "ocr-mappable.h"
+#include "ocr-utils.h"
 
 
 /****************************************************/
@@ -45,6 +46,21 @@
 
 // Forward declaration
 struct _ocrAllocator_t;
+
+/**
+ * @brief Parameter list to create an allocator factory
+ */
+typedef struct _paramListAllocatorFact_t {
+    ocrParamList_t base;
+} paramListALlocatorFact_t;
+
+/**
+ * @brief Parameter list to create an allocator instance
+ */
+typedef struct _paramListAllocatorInst_t {
+    ocrParamList_t base;
+    u64 size;
+} paramListAllocatorInst_t;
 
 /**
  * @brief Allocator factory
@@ -61,10 +77,10 @@ typedef struct _ocrAllocatorFactory_t {
      *                      this allocator
      * @param
      */
-    struct _ocrAllocator_t * (*instantiate) ( struct ocrAllocatorFactory_t * factory,
-                                             u64 size, void * perTypeConfig,
-                                             void * perInstanceConfig);
-    void (*destruct)(struct ocrAllocatorFactory_t * factory);
+    struct _ocrAllocator_t * (*instantiate)(struct _ocrAllocatorFactory_t * factory,
+                                            ocrParamList_t *instanceArg);
+
+    void (*destruct)(struct _ocrAllocatorFactory_t * factory);
 } ocrAllocatorFactory_t;
 
 
@@ -131,26 +147,6 @@ typedef struct _ocrAllocator_t {
      *   - if size is 0, equivalent to free
      */
     void* (*reallocate)(struct _ocrAllocator_t *self, void* address, u64 size);
-
 } ocrAllocator_t;
-
-typedef enum _ocrAllocatorKind {
-    OCR_ALLOCATOR_DEFAULT = 0,
-    OCR_ALLOCATOR_TLSF = 1
-} ocrAllocatorKind;
-
-extern ocrAllocatorKind ocrAllocatorDefaultKind;
-
-/**
- * @brief Allocates a new allocator of the type specified
- *
- * The user will need to call "create" on the allocator
- * returned to properly initialize it.
- *
- * @param type              Type of the allocator to return
- *                          Defaults to the default allocator if not specified
- * @return A pointer to the meta-data for the allocator
- */
-ocrAllocator_t* newAllocator(ocrAllocatorKind type, u64 size, void * perTypeConfig, void * perInstanceConfig);
 
 #endif /* __OCR_ALLOCATOR_H__ */

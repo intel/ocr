@@ -35,16 +35,4 @@
 #include "ocr-allocator.h"
 #include "tlsf/tlsf-allocator.h"
 
-extern ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, u64 size, void * perTypeConfig, void * perInstanceConfig);
-
-ocrAllocator_t* newAllocator(ocrAllocatorKind type, u64 size, void * perTypeConfig, void * perInstanceConfig) {
-    if(type == OCR_ALLOCATOR_DEFAULT) type = ocrAllocatorDefaultKind;
-    switch(type) {
-    case OCR_ALLOCATOR_TLSF:
-        return newAllocatorTlsf(NULL, size, perTypeConfig, perInstanceConfig);
-        break;
-    default:
-        ASSERT(0);
-    }
-    return NULL;
-}
+extern ocrAllocatorFactory_t * newTlsfAllocatorFactory(paramListALlocatorFact_t *typeArg);
