@@ -35,24 +35,21 @@
 #define __OCR_ALLOCATOR_H__
 
 #include "ocr-types.h"
-#include "ocr-mem-platform.h"
+#include "ocr-mem-target.h"
 #include "ocr-mappable.h"
 #include "ocr-utils.h"
 
 
 /****************************************************/
-/* OCR ALLOCATOR FACTORY                            */
+/* PARAMETER LISTS                                  */
 /****************************************************/
-
-// Forward declaration
-struct _ocrAllocator_t;
 
 /**
  * @brief Parameter list to create an allocator factory
  */
 typedef struct _paramListAllocatorFact_t {
     ocrParamList_t base;
-} paramListALlocatorFact_t;
+} paramListAllocatorFact_t;
 
 /**
  * @brief Parameter list to create an allocator instance
@@ -62,10 +59,98 @@ typedef struct _paramListAllocatorInst_t {
     u64 size;
 } paramListAllocatorInst_t;
 
+/****************************************************/
+/* OCR ALLOCATOR                                    */
+/****************************************************/
+
+typedef struct _ocrAllocator_t ocrAllocator_t;
+
+/**
+ * @brief Allocator function pointers
+ *
+ * The function pointers are separate from the allocator instance to allow for
+ * the sharing of function pointers for allocators from the same factory
+ */
+typedef struct _ocrAllocatorFcts_t {
+    /**
+     * @brief Destructor equivalent
+     *
+     * Cleans up the allocator. Calls free on self as well as
+     * any memory allocated from the low-memory allocators
+     *
+     * @param self              Pointer to this allocator
+     */
+    void (*destruct)(ocrAllocator_t* self);
+
+    /**
+     * @brief Actual allocation
+     *
+     * Allocates a continuous chunk of memory of the requested size
+     *
+     * @param self              Pointer to this allocator
+     * @param size              Size to allocate (in bytes)
+     * @return NULL if allocation is unsuccessful or the address
+     **/
+    void* (*allocate)(ocrAllocator_t *self, u64 size);
+
+    /**
+     * @brief Frees a previously allocated block
+     *
+     * The block should have been allocated by the same
+     * allocator
+     *
+     * @param self              Pointer to this allocator
+     * @param address           Address to free
+     **/
+    void (*free)(ocrAllocator_t *self, void* address);
+
+    /**
+     * @brief Reallocate within the chunk managed by this allocator
+     *
+     * @param self              Pointer to this allocator
+     * @param address           Address to reallocate
+     * @param size              New size
+     *
+     * Note that regular rules on the special values of
+     * address and size apply:
+     *   - if address is NULL, equivalent to malloc
+     *   - if size is 0, equivalent to free
+     */
+    void* (*reallocate)(ocrAllocator_t *self, void* address, u64 size);
+} ocrAllocatorFcts_t;
+
+typedef struct _ocrMemTarget_t ocrMemTarget_t;
+
+/**
+ * @brief Allocator is the interface to the allocator to a zone
+ * of memory.
+ *
+ * This is *not* the low-level memory allocator. This allows memory
+ * to be managed in "chunks" (for example one per location) and each can
+ * have an independent allocator. Specifically, this enables the
+ * modeling of scratchpads and makes NUMA memory explicit
+ */
+typedef struct _ocrAllocator_t {
+    ocrMappable_t module;     /**< Base "class" for the allocator */
+    ocrGuid_t guid;           /**< The allocator also has a GUID so that
+                               * data-blocks can know what allocated/freed them */
+
+    ocrMemTarget_t *memories; /**< Allocators are mapped to ocrMemTarget_t (0+) */
+    u32 memoryCount;          /**< Number of memories associated */
+
+    ocrAllocatorFcts_t *fctPtrs;
+} ocrAllocator_t;
+
+
+/****************************************************/
+/* OCR ALLOCATOR FACTORY                            */
+/****************************************************/
+
 /**
  * @brief Allocator factory
  */
 typedef struct _ocrAllocatorFactory_t {
+    ocrMappable_t module; /**< Base "class" for the allocator factory */
     /**
      * @brief Allocator factory
      *
@@ -81,72 +166,8 @@ typedef struct _ocrAllocatorFactory_t {
                                             ocrParamList_t *instanceArg);
 
     void (*destruct)(struct _ocrAllocatorFactory_t * factory);
+
+    ocrAllocatorFcts_t allocFcts;
 } ocrAllocatorFactory_t;
-
-
-/****************************************************/
-/* OCR ALLOCATOR API                                */
-/****************************************************/
-
-/**
- * @brief Allocator is the interface to the allocator to a zone
- * of memory.
- *
- * This is *not* the low-level memory allocator. This allows memory
- * to be managed in "chunks" (for example one per location) and each can
- * have an independent allocator. Specifically, this enables the
- * modeling of scratchpads and makes NUMA memory explicit
- */
-typedef struct _ocrAllocator_t {
-    ocrMappable_t module; /**< Base "class" for the allocator */
-
-    ocrGuid_t guid;  /**< The allocator also has a GUID so that data-blocks can know what allocated/freed them */
-
-    /**
-     * @brief Destructor equivalent
-     *
-     * Cleans up the allocator. Calls free on self as well as
-     * any memory allocated from the low-memory allocators
-     *
-     * @param self              Pointer to this allocator
-     */
-    void (*destruct)(struct _ocrAllocator_t* self);
-
-    /**
-     * @brief Actual allocation
-     *
-     * Allocates a continuous chunk of memory of the requested size
-     *
-     * @param self              Pointer to this allocator
-     * @param size              Size to allocate (in bytes)
-     * @return NULL if allocation is unsuccessful or the address
-     **/
-    void* (*allocate)(struct _ocrAllocator_t *self, u64 size);
-
-    /**
-     * @brief Frees a previously allocated block
-     *
-     * The block should have been allocated by the same
-     * allocator
-     *
-     * @param self              Pointer to this allocator
-     * @param address           Address to free
-     **/
-    void (*free)(struct _ocrAllocator_t *self, void* address);
-
-    /**
-     * @brief Reallocate within the chunk managed by this allocator
-     *
-     * @param self              Pointer to this allocator
-     * @param address           Address to reallocate
-     * @param size              New size
-     *
-     * Note that regular rules on the special values of
-     * address and size apply:
-     *   - if address is NULL, equivalent to malloc
-     *   - if size is 0, equivalent to free
-     */
-    void* (*reallocate)(struct _ocrAllocator_t *self, void* address, u64 size);
-} ocrAllocator_t;
 
 #endif /* __OCR_ALLOCATOR_H__ */

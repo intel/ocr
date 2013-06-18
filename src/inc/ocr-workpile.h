@@ -33,25 +33,45 @@
 #define __OCR_WORKPILE_H_
 
 #include "ocr-guid.h"
-#include "ocr-runtime-def.h"
+#include "ocr-mappable.h"
+#include "ocr-utils.h"
+
+/****************************************************/
+/* PARAMETER LISTS                                  */
+/****************************************************/
+
+typedef struct _paramListWorkpileFact_t {
+    ocrParamList_t base;
+} paramListWorkpileFact_t;
+
+typedef struct _paramListWorkpileInst_t {
+    ocrParamList_t base;
+} paramListWorkpileInst_t;
 
 
 /****************************************************/
-/* OCR WORKPILE FACTORY                             */
+/* OCR WORKPILE                                     */
 /****************************************************/
 
-// Forward declaration
-struct ocrWorkpile_t;
+typedef struct _ocrWorkpile_t ocrWorkpile_t;
 
-typedef struct ocrWorkpileFactory_t {
-    struct ocrWorkpile_t * (*instantiate) ( struct ocrWorkpileFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
-    void (*destruct)(struct ocrWorkpileFactory_t * factory);
-} ocrWorkpileFactory_t;
+typedef struct _ocrWorkpileFcts_t {
+    void (*destruct)(ocrWorkpile_t *self);
+    /*! \brief Interface to extract a task from this pool
+     *  \return GUID of the task that is extracted from this task pool
+     */
+    ocrGuid_t (*pop) (ocrWorkpile_t *self, ocrCost_t *cost);
 
+    /*! \brief Interface to alternative extract a task from this pool
+     *  \return GUID of the task that is extracted from this task pool
+     */
+    ocrGuid_t (*steal)(ocrWorkpile_t *self, ocrCost_t *cost);
 
-/****************************************************/
-/* OCR WORKPILE API                                 */
-/****************************************************/
+    /*! \brief Interface to enlist a task
+     *  \param[in]  task_guid   GUID of the task that is to be pushed into this task pool.
+     */
+    void (*push) (ocrWorkpile_t *self, ocrGuid_t g);
+} ocrWorkpileFcts_t;
 
 /*! \brief Abstract class to represent OCR task pool data structures.
  *
@@ -61,37 +81,21 @@ typedef struct ocrWorkpileFactory_t {
 //TODO We may be influenced by how STL resolves this issue as in push_back, push_front, pop_back, pop_front
 typedef struct ocrWorkpile_t {
     ocrMappable_t module;
-    /*! \brief Virtual destructor for the WorkPool interface
-     *  As this class does not have any state, the virtual destructor does not do anything
-     */
-    void (*destruct)(struct ocrWorkpile_t* base);
-    /*! \brief Interface to extract a task from this pool
-     *  \return GUID of the task that is extracted from this task pool
-     */
-    ocrGuid_t (*pop) ( struct ocrWorkpile_t* base );
-    /*! \brief Interface to enlist a task
-     *  \param[in]  task_guid   GUID of the task that is to be pushed into this task pool.
-     */
-    void (*push) ( struct ocrWorkpile_t* base, ocrGuid_t g );
-    /*! \brief Interface to alternative extract a task from this pool
-     *  \return GUID of the task that is extracted from this task pool
-     */
-    ocrGuid_t (*steal) ( struct ocrWorkpile_t* base );
+
+    ocrWorkpileFcts_t *fctPtrs;
 } ocrWorkpile_t;
 
-
 /****************************************************/
-/* OCR WORKPILE KINDS AND CONSTRUCTORS              */
+/* OCR WORKPILE FACTORY                             */
 /****************************************************/
 
-typedef enum ocr_workpile_kind_enum {
-    OCR_DEQUE = 1,
-    OCR_MESSAGE_QUEUE = 2
-} ocrWorkpileKind;
+typedef struct _ocrWorkpileFactory_t {
+    ocrWorkpile_t * (*instantiate) (struct _ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance);
 
-ocrWorkpile_t * newWorkpile(ocrWorkpileKind workpileType, void * perTypeConfig, void * perInstanceConfig);
+    void (*destruct)(struct _ocrWorkpileFactory_t * factory);
+} ocrWorkpileFactory_t;
 
-
+// TODO: Is this required??
 /****************************************************/
 /* OCR WORKPILE ITERATOR API                        */
 /****************************************************/

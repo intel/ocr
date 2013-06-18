@@ -33,66 +33,75 @@
 #define __OCR_COMP_TARGET_H__
 
 #include "ocr-guid.h"
-#include "ocr-runtime-def.h"
-#include "ocr-worker.h"
-#include "ocr-comp-platform.h"
+#include "ocr-mappable.h"
+#include "ocr-util.h"
 
+/****************************************************/
+/* PARAMETER LISTS                                  */
+/****************************************************/
 
-/******************************************************/
-/* OCR COMP TARGET FACTORY                            */
-/******************************************************/
+typedef struct _paramListCompTargetFact_t {
+    ocrParamList_t base;
+} paramListCompTargetFact_t;
 
-// Forward declaration
-struct _ocrCompTarget_t;
+typedef struct _paramListCompTargetInst_t {
+    ocrParamList_t base;
+    void* (*routine)(void*);
+    void* routineArg;
+} paramListCompTargetInst_t;
 
-typedef struct _ocrCompTargetFactory_t {
-    struct _ocrCompTarget_t * (*instantiate) ( struct _ocrCompTargetFactory_t * factory,
-                                               void * perTypeConfig, void * perInstanceConfig);
-    void (*destruct)(struct _ocrCompTargetFactory_t * factory);
-} ocrCompTargetFactory_t;
+/****************************************************/
+/* OCR COMPUTE TARGET                               */
+/****************************************************/
 
+typedef struct _ocrCompTarget_t ocrCompTarget_t;
 
-/******************************************************/
-/* OCR COMP TARGET INTERFACE                          */
-/******************************************************/
+typedef struct _ocrCompTargetFcts_t {
+    void (*destruct) (ocrCompTarget_t * self);
 
-/*! \brief Abstract class to represent OCR comp-target
- *
- *  This class provides the interface for the underlying implementation to conform.
- *  Currently, we allow comp-target to be started and stopped
- */
-typedef struct _ocrCompTarget_t {
-    ocrMappable_t module;
-    ocr_comp_platform_t * platform;
-
-    void (*destruct) (struct _ocrCompTarget_t * base);
-
-    /*! \brief Starts a thread of execution with a function pointer and and argument for a given stack size
+    /*! \brief Starts a compute target
      *
-     *  The signature of the interface restricts the routine that can be assigned to a thread as follows.
-     *  The function, routine, should take a void pointer, arg, as an argument and return a void pointer
      */
-    void (*start) (struct _ocrCompTarget_t * base);
+    void (*start) (ocrCompTarget_t * self);
 
     /*! \brief Stops this comp-target
      */
-    void (*stop) (struct _ocrCompTarget_t * base);
+    void (*stop) (ocrCompTarget_t * self);
+} ocrCompTargetFcts_t;
 
+typedef struct _ocrCompPlatform_t ocrCompPlatform_t;
+
+/** @brief Abstract class to represent OCR compute-target
+ *
+ * A compute target will run on a compute-platform and emulates a computing
+ * resource at the target level.
+ *
+ */
+typedef struct _ocrCompTarget_t {
+    ocrMappable_t module;
+    ocrGuid_t guid;
+
+    ocrCompPlatform_t * platforms; /**< Computing platform this compute target
+                                    * is executing on */
+    u32 platformCount;
+
+    void* (*routine)(void*);      /**< Routine executed by this compute target */
+    void* routineArg;             /**< Argument for the routine */
+
+    ocrCompTargetFcts_t *fctPtrs;
 } ocrCompTarget_t;
 
-ocrGuid_t ocr_get_current_worker_guid();
+/****************************************************/
+/* OCR COMPUTE TARGET FACTORY                       */
+/****************************************************/
+typedef struct _ocrCompTargetFactory_t {
+    ocrMappable_t module;
 
+    ocrCompTarget_t * (*instantiate) ( struct _ocrCompTargetFactory_t * factory,
+                                       ocrParamList_t *perInstance);
+    void (*destruct)(struct _ocrCompTargetFactory_t * factory);
 
-/******************************************************/
-/* OCR COMP TARGET KINDS AND CONSTRUCTORS             */
-/******************************************************/
-
-typedef enum ocr_comp_target_kind_enum {
-    OCR_COMP_TARGET_HC = 1,
-    OCR_COMP_TARGET_XE = 2,
-    OCR_COMP_TARGET_CE = 3
-} ocr_comp_target_kind;
-
-ocrCompTarget_t * newCompTarget(ocr_comp_target_kind compTargetType, void * perTypeConfig, void * perInstanceConfig);
+    ocrCompTargetFcts_t targetFcts;
+} ocrCompTargetFactory_t;
 
 #endif /* __OCR_COMP_TARGET_H__ */

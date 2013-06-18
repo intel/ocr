@@ -82,7 +82,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     createdDb->create(createdDb, policy->getAllocator(policy, location), len, flags, NULL);
 #ifdef OCR_ENABLE_STATISTICS
     {
-        ocr_task_t *task = NULL;
+        ocrTask_t *task = NULL;
         ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
         globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
         ocrStatsProcess_t *srcProcess = edtGuid==0?&GfakeProcess:&(task->statProcess);
@@ -116,7 +116,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
 
 #ifdef OCR_ENABLE_STATISTICS
     {
-        ocr_task_t *task = NULL;
+        ocrTask_t *task = NULL;
         ocrDataBlock_t *dataBlock = NULL;
         ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
         globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
@@ -146,7 +146,7 @@ u8 ocrDbAcquire(ocrGuid_t db, void** addr, u16 flags) {
     *addr = dataBlock->acquire(dataBlock, worker->getCurrentEDT(worker), false);
 #ifdef OCR_ENABLE_STATISTICS
     {
-        ocr_task_t *task = NULL;
+        ocrTask_t *task = NULL;
         ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
         globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
 
@@ -170,7 +170,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
     globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&worker, NULL);
 #ifdef OCR_ENABLE_STATISTICS
     {
-        ocr_task_t *task = NULL;
+        ocrTask_t *task = NULL;
         ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
 
         u8 result = dataBlock->release(dataBlock, edtGuid, false);

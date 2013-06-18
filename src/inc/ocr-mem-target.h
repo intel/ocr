@@ -1,5 +1,5 @@
 /**
- * @brief OCR interface to the low level memory interface
+ * @brief OCR interface to the target level memory interface
  * @authors Romain Cledat, Intel Corporation
  * @date 2012-09-21
  * Copyright (c) 2012, Intel Corporation
@@ -37,27 +37,82 @@
 #define __OCR_MEM_TARGET_H__
 
 #include "ocr-types.h"
-#include "ocr-runtime-def.h"
+#include "ocr-mappable.h"
+#include "ocr-utils.h"
 
+/****************************************************/
+/* PARAMETER LISTS                                  */
+/****************************************************/
+typedef struct _paramListMemTargetFact_t {
+    ocrParamList_t base;
+} paramListMemTargetFact_t;
+
+typedef struct _paramListMemTargetInst_t {
+    ocrParamList_t base;
+} paramListMemTargetInst_t;
+
+
+/****************************************************/
+/* OCR MEMORY TARGETS                               */
+/****************************************************/
+
+typedef struct _ocrMemTarget_t ocrMemTarget_t;
+
+typedef struct _ocrMemTargetFcts_t {
+    /**
+     * @brief Destructor equivalent
+     *
+     * @param self          Pointer to this low-memory provider
+     */
+    void (*destruct)(ocrMemTarget_t* self);
+
+    /**
+     * @brief Allocates a chunk of memory for the higher-level
+     * allocators to manage
+     *
+     * @param self          Pointer to this low-memory provider
+     * @param size          Size of the chunk to allocate
+     * @return Pointer to the chunk of memory allocated
+     */
+    void* (*allocate)(ocrMemTarget_t* self, u64 size);
+
+    /**
+     * @brief Frees a chunk of memory previously allocated
+     * by self using allocate
+     *
+     * @param self          Pointer to this low-memory provider
+     * @param addr          Address to free
+     */
+    void (*free)(ocrMemTarget_t* self, void* addr);
+} ocrMemTargetFcts_t;
+
+typedef struct _ocrMemPlatform_t ocrMemPlatform_t;
 /**
- * @brief Memory Target
+ * @brief Target-level memory provider.
+ *
+ * This represents the target's memories (such as scratchpads)
+ *
  */
 typedef struct _ocrMemTarget_t {
     ocrMappable_t module; /**< Base "class" for ocrMemTarget */
+    ocrGuid_t guid;
+
+    ocrMemPlatform_t *memories;
+    u32 memoryCount;
+
+    ocrMemTargetFcts_t *fctPtrs;
 } ocrMemTarget_t;
 
-typedef enum _ocrMemTargetKind {
-    OCR_MEMTARGET_DEFAULT = 0,
-} ocrMemTargetKind;
+/****************************************************/
+/* OCR MEMORY TARGET FACTORY                        */
+/****************************************************/
 
-extern ocrMemTargetKind ocrMemTargetDefaultKind;
+typedef struct _ocrMemTargetFactory_t {
+    ocrMemTarget_t * (*instantiate) (struct _ocrMemTargetFactory_t * factory,
+                                     ocrParamList_t* perInstance);
+    void (*destruct)(struct _ocrMemTargetFactory_t * factory);
 
-/**
- * @brief Allocate a new memory target of the type specified
- *
- * @param type              Type of the memory target to return
- * @return A pointer to the meta-data for the memory target
- */
-ocrMemTarget_t* newMemTarget(ocrMemTargetKind type);
+    ocrMemTargetFcts_t targetFcts;
+} ocrMemTargetFactory_t;
 
 #endif /* __OCR_MEM_TARGET_H__ */

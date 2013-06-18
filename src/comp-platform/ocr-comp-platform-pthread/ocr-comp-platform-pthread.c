@@ -41,7 +41,7 @@
 /******************************************************/
 
 typedef struct {
-    ocr_comp_platform_t base;
+    ocrCompPlatform_t base;
     pthread_t os_thread;
     u64 stack_size;
 } ocr_comp_platform_pthread_t;
@@ -61,7 +61,7 @@ void initialize_pthread_worker_key() {
     if (rt != 0) { printf("[PTHREAD] - ERROR in pthread_key_create\n"); exit(1); }
 }
 
-void ocr_comp_platform_pthread_start(ocr_comp_platform_t * compPlatform) {
+void ocr_comp_platform_pthread_start(ocrCompPlatform_t * compPlatform) {
     ocr_comp_platform_pthread_t * pthreadCompPlatform = (ocr_comp_platform_pthread_t *) compPlatform;
     int rt = 0;
     pthread_attr_t attr;
@@ -74,13 +74,13 @@ void ocr_comp_platform_pthread_start(ocr_comp_platform_t * compPlatform) {
     if (rt != 0) { printf("[PTHREAD] - ERROR in pthread_create\n"); exit(1); }
 }
 
-void ocr_comp_platform_pthread_stop(ocr_comp_platform_t * compPlatform) {
+void ocr_comp_platform_pthread_stop(ocrCompPlatform_t * compPlatform) {
     ocr_comp_platform_pthread_t * pthreadCompPlatform = (ocr_comp_platform_pthread_t *) compPlatform;
     int rt = pthread_join(pthreadCompPlatform->os_thread, NULL);
     if (rt != 0) { printf("[PTHREAD] - ERROR in pthread_join\n"); exit(1); }
 }
 
-void ocr_comp_platform_pthread_create ( ocr_comp_platform_t * base, void * configuration) {
+void ocr_comp_platform_pthread_create ( ocrCompPlatform_t * base, void * configuration) {
     ocr_comp_platform_pthread_t * derived = (ocr_comp_platform_pthread_t *) base;
     if (configuration != NULL) {
         //TODO passed in configuration
@@ -90,15 +90,15 @@ void ocr_comp_platform_pthread_create ( ocr_comp_platform_t * base, void * confi
     }
 }
 
-void ocr_comp_platform_pthread_destruct (ocr_comp_platform_t * base) {
+void ocr_comp_platform_pthread_destruct (ocrCompPlatform_t * base) {
     free(base);
 }
 
-ocr_comp_platform_t * ocr_comp_platform_pthread_constructor () {
+ocrCompPlatform_t * ocr_comp_platform_pthread_constructor () {
     // This is it initialize the pthread-local storage that stores
     // the current worker the thread is executing.
     pthread_once(&worker_key_initialized, initialize_pthread_worker_key);
-    ocr_comp_platform_t * compPlatform = checkedMalloc(compPlatform, sizeof(ocr_comp_platform_pthread_t));
+    ocrCompPlatform_t * compPlatform = checkedMalloc(compPlatform, sizeof(ocr_comp_platform_pthread_t));
     ocrMappable_t * module_base = (ocrMappable_t *) compPlatform;
     module_base->mapFct = NULL;
     compPlatform->routine = NULL;

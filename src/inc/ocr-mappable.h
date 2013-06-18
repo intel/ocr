@@ -58,10 +58,10 @@ typedef struct _ocrModuleMapping_t {
     ocrMappableKind to;
 } ocrModuleMapping_t;
 
-struct _ocrMappable_t;
+typedef struct _ocrMappable_t ocrMappable_t;
 
-typedef void (*ocrMapFct_t) (struct _ocrMappable_t * self, ocrMappableKind kind,
-                             u64 instanceCount, void ** instances);
+typedef void (*ocrMapFct_t) (ocrMappable_t * self, ocrMappableKind kind,
+                             u64 instanceCount, ocrMappable_t ** instances);
 
 typedef struct _ocrMappable_t {
     ocrMapFct_t mapFct;

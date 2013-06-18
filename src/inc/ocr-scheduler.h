@@ -35,84 +35,85 @@
 #include "ocr-guid.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
-#include "ocr-workpile.h"
-#include "ocr-runtime-def.h"
+#include "ocr-mappable.h"
 
 
 /****************************************************/
-/* OCR SCHEDULER API                                */
+/* PARAMETER LISTS                                  */
+/****************************************************/
+typedef struct _paramListSchedulerFact_t {
+    ocrParamList_t base;
+} paramListSchedulerFact_t;
+
+typedef struct _paramListSchedulerInst_t {
+    ocrParamList_t base;
+} paramListSchedulerInst_t;
+
+
+// typedef ocrWorkpile_t * (*scheduler_pop_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
+// typedef ocrWorkpile_t * (*scheduler_push_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
+// typedef ocrWorkpileIterator_t* (*scheduler_steal_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
+
+/****************************************************/
+/* OCR SCHEDULER                                    */
 /****************************************************/
 
-// forward declarations
-struct ocrWorker_t;
-struct ocr_scheduler_struct;
+typedef struct _ocrScheduler_t ocrScheduler_t;
 
-typedef struct ocrSchedulerFactory_t {
-    struct ocr_scheduler_struct * (*instantiate) ( struct ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
-    void (*destruct)(struct ocrSchedulerFactory_t * factory);
-} ocrSchedulerFactory_t;
+typedef struct _ocrSchedulerFcts_t {
+    void (*destruct)(ocrScheduler_t *self);
 
-typedef void (*scheduler_create_fct) (struct ocr_scheduler_struct*, void * perTypeConfig, void * perInstanceConfig);
-typedef void (*scheduler_destruct_fct) (struct ocr_scheduler_struct*);
+    // TODO: I am removing these for now as I think they can
+    // be internal to the other exposed functions (it seems they are called
+    // as sub-parts of take/give)
 
-typedef ocrWorkpile_t * (*scheduler_pop_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
-typedef ocrWorkpile_t * (*scheduler_push_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
-typedef ocrWorkpileIterator_t* (*scheduler_steal_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
+    // scheduler_pop_mapping_fct pop_mapping;
+    // scheduler_push_mapping_fct push_mapping;
+    // scheduler_steal_mapping_fct steal_mapping;
 
-/*! \brief Interface to extract a task from this scheduler
- *  \param[in]  worker_guid GUID of the worker trying to extract a task from this scheduler
- *  \return GUID of the task that is extracted from this task pool
- */
-typedef ocrGuid_t (*scheduler_take_fct) (struct ocr_scheduler_struct * , ocrGuid_t wid );
+    /**
+     * @brief Requests EDTs from this scheduler
+     * @see ocrPolicyDomain_t
+     */
+    u8 (*takeEdt)(ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
+                  ocrGuid_t *edts, ocrPolicyCtx_t *context);
 
-/*! \brief Interface to provide a task to this scheduler
- *  \param[in]  worker_guid GUID of the worker providing a task to this scheduler
- *  \param[in]  task_guid   GUID of the task being given to this scheduler
- */
-typedef void (*scheduler_give_fct) (struct ocr_scheduler_struct * , ocrGuid_t wid, ocrGuid_t tid );
+    u8 (*giveEdt)(ocrScheduler_t *self, u32 count,
+                  ocrGuid_t *edts, ocrPolicyCtx_t *context);
 
-// forward declaration
-struct ocr_policy_domain_struct;
+    // TODO: We will need to add the DB functions here
+} ocrSchedulerFcts_t;
 
+typedef struct _ocrWorker_t ocrWorker_t;
+typedef struct _ocrWorkpile_t ocrWorpile_t;
 /*! \brief Represents OCR schedulers.
  *
  *  Currently, we allow scheduler interface to have work taken from them or given to them
  */
-typedef struct ocr_scheduler_struct {
+typedef struct _ocrScheduler_t {
     ocrMappable_t module;
-    scheduler_destruct_fct destruct;
-    scheduler_pop_mapping_fct pop_mapping;
-    scheduler_push_mapping_fct push_mapping;
-    scheduler_steal_mapping_fct steal_mapping;
-    scheduler_take_fct take;
-    scheduler_give_fct give;
-    ocrMapFct_t map;
-    struct ocr_policy_domain_struct* domain;
+    ocrGuid_t guid;
+
+    ocrWorker_t *workers;
+    ocrWorkpile_t *workpiles;
+    u32 workerCount;
+    u32 workpileCount;
+
+    ocrSchedulerFcts_t *fctPtrs;
 } ocrScheduler_t;
 
 
 /****************************************************/
-/* OCR SCHEDULER KINDS AND CONSTRUCTORS             */
+/* OCR SCHEDULER FACTORY                            */
 /****************************************************/
 
-typedef enum ocr_scheduler_kind_enum {
-    OCR_SCHEDULER_WST = 1
-    , OCR_SCHEDULER_XE = 2
-    , OCR_SCHEDULER_CE = 3
-    , OCR_PLACED_SCHEDULER = 4
-} ocr_scheduler_kind;
+typedef struct _ocrSchedulerFactory_t {
+    ocrScheduler_t* (*instantiate) (struct +ocrSchedulerFactory_t * factory,
+                                    ocrParamList_t *perInstance);
 
-ocrScheduler_t * newScheduler(ocr_scheduler_kind schedulerType, void * perTypeConfig, void * perInstanceConfig);
+    void (*destruct)(struct ocrSchedulerFactory_t * factory);
 
-/* we have to end up exposing the configuration declarations too for the runtime model
- * I do not know if abstract factories may help with this situation */
-typedef struct scheduler_configuration {
-    u64 worker_id_begin;
-    u64 worker_id_end;
-} scheduler_configuration;
-
-/*TODO sagnak this should not be here, this is in order not to replicate code for HC-x86 and FSIM-like*/
-void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocrMappableKind kind,
-                                               u64 nb_instances, void ** ptr_instances);
+    ocrSchedulerFcts_t schedulerFcts;
+} ocrSchedulerFactory_t;
 
 #endif /* __OCR_SCHEDULER_H__ */

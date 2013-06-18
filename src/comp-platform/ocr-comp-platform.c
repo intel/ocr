@@ -35,7 +35,7 @@
 #include "ocr-types.h"
 #include "ocr-comp-platform.h"
 
-ocr_comp_platform_t * newCompPlatform(ocr_comp_platform_kind compPlatformType) {
+ocrCompPlatform_t * newCompPlatform(ocr_comp_platform_kind compPlatformType) {
     switch(compPlatformType) {
         //TODO this could be transformed as iterating over some
         //array and return an instance to minimize code to be added

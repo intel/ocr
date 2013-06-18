@@ -34,6 +34,9 @@
 
 #include "ocr-types.h"
 
+// Forward declaration
+typedef struct _ocrPolicyDomain_t ocrPolicyDomain_t;
+
 /******************************************************/
 /* LOGGING FACILITY                                   */
 /******************************************************/
@@ -82,8 +85,9 @@
  * types of objects programatically
  */
 typedef struct _ocrParamList_t {
-    u64 size;       /**< Size of this parameter list (in bytes) */
-    char* misc;     /**< Miscellaneous arguments (NULL terminated string) */
+    u64 size;                   /**< Size of this parameter list (in bytes) */
+    ocrPolicyDomain_t *policy;  /**< Policy domain for this factory/instance */
+    char* misc;                 /**< Miscellaneous arguments (NULL terminated string) */
 } ocrParamList_t;
 
 #define ALLOC_PARAM_LIST(result, type)                  \

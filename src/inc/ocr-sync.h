@@ -49,21 +49,39 @@ typedef struct _ocrLock_t {
     /**
      * @brief Destructor equivalent
      *
-     * Cleans up the lock if needed. Does not call free
+     * Cleans up the lock and frees the metadata associated with it.
+     * This is the mirror call the task factory's instantiate call
      *
      * @param self          Pointer to this lock
      */
     void (*destruct)(struct _ocrLock_t* self);
 
+    /**
+     * @brief Grab the lock
+     *
+     * This calls blocks until the lock is grabbed
+     *
+     * @param self          Pointer to this lock
+     */
     void (*lock)(struct _ocrLock_t* self);
 
+    /**
+     * @brief Release the lock
+     *
+     * Note that the implementation determines
+     * whether or not only the entity that had
+     * locked the lock can unlock it. This call
+     * is non-blocking
+     *
+     * @param self          Pointer to this lock
+     */
     void (*unlock)(struct _ocrLock_t* self);
 
     /**
      * @brief Tries to grab the lock
      *
      * Returns 1 on success or 0 on failure.
-     * Non-blocking in any case
+     * Non-blocking call in both cases
      *
      * @param self      This lock
      * @return 1 if the lock was successfully grabbed, 0 if not
@@ -75,9 +93,17 @@ typedef struct _ocrLock_t {
  * @brief Factory for locks
  */
 typedef struct _ocrLockFactory_t {
-    // I don't think we need create. Encapsulated in newLockFactoryXXX
-//    void (*create)(struct _ocrLockFactory_t *self, void* config);
+    /**
+     * @brief Destroy the factory freeing up any
+     * memory associated with it
+     *
+     * @param self          This factory
+
+     * @warning This call will not necessarily destroy
+     * all locks created with the factory
+     */
     void (*destruct)(struct _ocrLockFactory_t *self);
+
 
     ocrLock_t* (*instantiate)(struct _ocrLockFactory_t* self, void* config);
 } ocrLockFactory_t;
@@ -90,6 +116,12 @@ typedef struct _ocrLockFactory_t {
  * @todo See if we need 32 bit, etc.
  */
 typedef struct _ocrAtomic64_t {
+    /**
+     * @brief Destroy the atomic freeing up any
+     * memory associated with it
+     *
+     * @param self          This atomic
+     */
     void (*destruct)(struct _ocrAtomic64_t *self);
 
     /**
@@ -99,6 +131,12 @@ typedef struct _ocrAtomic64_t {
      *     - if location is cmpValue, atomically replace with
      *       newValue and return cmpValue
      *     - if location is *not* cmpValue, return value at location
+     *
+     * @param self          This atomic
+     * @param cmpValue      Expected value of the atomic
+     * @param newValue      Value to set if the atomic has the expected value
+     *
+     * @return Old value of the atomic
      */
     u64 (*cmpswap)(struct _ocrAtomic64_t *self, u64 cmpValue, u64 newValue);
 
@@ -120,6 +158,7 @@ typedef struct _ocrAtomic64_t {
      *
      * This may return an "old" value if a concurrent
      * atomic change is happening.
+     *
      * @param self      This atomic
      * @return Value of the atomic
      */
@@ -130,7 +169,6 @@ typedef struct _ocrAtomic64_t {
  * @brief Factory for atomics
  */
 typedef struct _ocrAtomic64Factory_t {
-//    void (*create)(struct _ocrAtomics64Factory_t *self, void* config);
     void (*destruct)(struct _ocrAtomic64Factory_t *self);
 
     ocrAtomic64_t* (*instantiate)(struct _ocrAtomic64Factory_t* self, void* config);

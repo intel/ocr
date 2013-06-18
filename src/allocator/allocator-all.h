@@ -31,8 +31,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include "debug.h"
-#include "ocr-allocator.h"
-#include "tlsf/tlsf-allocator.h"
+#ifndef __ALLOCATOR_ALL_H__
+#define __ALLOCATOR_ALL_H__
 
-extern ocrAllocatorFactory_t * newTlsfAllocatorFactory(paramListALlocatorFact_t *typeArg);
+#include "ocr-allocator.h"
+#include "ocr-utils.h"
+
+// TLSF allocator
+#include "allocator/tlsf/tlsf-allocator.h"
+extern ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *typeArg);
+
+// Add other allocators using the same pattern as above
+
+#endif /* __ALLOCATOR_ALL_H__ */

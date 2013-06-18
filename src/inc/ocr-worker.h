@@ -33,46 +33,43 @@
 #define __OCR_WORKER_H__
 
 #include "ocr-guid.h"
-#include "ocr-runtime-def.h"
+#include "ocr-mappable.h"
 #include "ocr-scheduler.h"
 
+/****************************************************/
+/* PARAMETER LISTS                                  */
+/****************************************************/
+
+typedef struct _paramListWorkerFact_t {
+    ocrParamList_t base;
+} paramListWorkerFact_t;
+
+typedef struct _paramListWorkerInst_t {
+    ocrParamList_t base;
+} paramListWorkerInst_t;
 
 /******************************************************/
 /* OCR WORKER                                         */
 /******************************************************/
 
-// Forward declaration
-struct _ocrWorker_t;
+typedef struct _ocrWorker_t ocrWorker_t;
 
-typedef struct _ocrWorkerFactory_t {
-    struct _ocrWorker_t * (*instantiate) (struct ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
-    void (*destruct)(struct ocrWorkerFactory_t * factory);
-} ocrWorkerFactory_t;
-
-typedef struct _ocrWorker_t {
-    ocrMappable_t module;
-    ocrGuid_t guid;
-    ocrScheduler_t * scheduler;
-
-    /*! \brief Routine the worker executes
-     */
-    void * (*routine)(void *);
-
+typedef struct _ocrWorkerFcts_t {
     //TODO deal with worker id
-    void (*destruct) (struct ocrWorker_t * base);
+    void (*destruct) (ocrWorker_t *self);
 
     /*! \brief Start Worker
      */
-    void (*start) (struct ocrWorker_t * base);
+    void (*start) (ocrWorker_t *self);
 
     /*! \brief Stop Worker
      */
-    void (*stop) (struct ocrWorker_t * base);
+    void (*stop) (ocrWorker_t *self);
 
     /*! \brief Check if Worker is still running
      *  \return true if the Worker is running, false otherwise
      */
-    bool (*is_running) (struct ocrWorker_t * base);
+    bool (*isRunning) (ocrWorker_t *self);
 
     /**
      * @brief Returns the EDT this worker is currently running
@@ -81,7 +78,7 @@ typedef struct _ocrWorker_t {
      * @param base              OCR Worker
      * @return GUID for the currently running EDT
      */
-    ocrGuid_t (*getCurrentEDT)(struct ocrWorker_t *base);
+    ocrGuid_t (*getCurrentEDT)(ocrWorker_t *self);
 
     /**
      * @brief Sets the EDT this worker is currently running
@@ -90,8 +87,36 @@ typedef struct _ocrWorker_t {
      * @param currEDT           GUID of the EDT this OCR Worker is now running
      * @return GUID for the currently running EDT
      */
-     void (*setCurrentEDT)(struct ocrWorker_t *base, ocrGuid_t currEDT);
+     void (*setCurrentEDT)(ocrWorker_t *self, ocrGuid_t currEDT);
+} ocrWorkerFcts_t;
+
+typedef struct _ocrWorker_t {
+    ocrMappable_t module;
+    ocrGuid_t guid;
+
+    ocrCompTarget_t *computes; /**< Compute node(s) associated with this worker */
+    u32 computeCount;          /**< Number of compute node(s) associated */
+
+    /*! \brief Routine the worker executes
+     */
+    void * (*routine)(void *);
+
+    ocrWorkerFcts_t *fctPtrs;
 } ocrWorker_t;
+
+
+/****************************************************/
+/* OCR WORKER FACTORY                               */
+/****************************************************/
+
+typedef struct _ocrWorkerFactory_t {
+    ocrWorker_t * (*instantiate) (struct _ocrWorkerFactory_t * factory, ocrParamList_t *perInstance);
+    void (*destruct)(struct _ocrWorkerFactory_t * factory);
+
+    ocrWorkerFcts_t workerPtrs;
+} ocrWorkerFactory_t;
+
+// TODO: Check these functions and prune if required
 
 /*! \brief Getter for Worker id member field
  *  \return identifier for this Worker
@@ -119,24 +144,6 @@ ocrGuid_t ocr_get_current_worker_guid();
 /*! \brief Get the currently executing worker and return the edt's guid it is currently executing.
  */
 ocrGuid_t getCurrentEDT();
-
-/******************************************************/
-/* OCR WORKER KINDS AND CONSTRUCTORS                  */
-/******************************************************/
-
-typedef enum ocr_worker_kind_enum {
-    OCR_WORKER_HC = 1,
-    OCR_WORKER_XE = 2,
-    OCR_WORKER_CE = 3
-} ocr_worker_kind;
-
-ocrWorker_t * newWorker(ocr_worker_kind workerType, void * perTypeConfig, void * perInstanceConfig);
-
-/* we have to end up exposing the configuration declarations too for the runtime model
- * I do not know if abstract factories may help with this situation */
-typedef struct worker_configuration {
-    u64 worker_id;
-} worker_configuration;
 
 /* TODO sagnak restructure code in a more pleasant manner than this
  * exposing some HC worker implementations to be reused for the FSIM-like implementations */

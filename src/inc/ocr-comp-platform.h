@@ -32,71 +32,66 @@
 #ifndef __OCR_COMP_PLATFORM_H__
 #define __OCR_COMP_PLATFORM_H__
 
-#include "ocr-guid.h"
-#include "ocr-runtime-def.h"
-#include "ocr-worker.h"
+#include "ocr-mappable.h"
+#include "ocr-utils.h"
+
+/****************************************************/
+/* PARAMETER LISTS                                  */
+/****************************************************/
+typedef struct _paramListCompPlatformFact_t {
+    ocrParamList_t base;
+} paramListCompPlatformFact_t;
+
+typedef struct _paramListCompPlatformInst_t {
+    ocrParamList_t base;
+    void* (*routine)(void*);
+    void* routineArg;
+} paramListCompPlatformInst_t;
 
 
-/******************************************************/
-/* OCR COMP PLATFORM INTERFACE                        */
-/******************************************************/
+/****************************************************/
+/* OCR COMPUTE PLATFORM                             */
+/****************************************************/
+typedef struct _ocrCompPlatform_t ocrCompPlatform_t;
 
-//Forward declaration
-struct ocr_comp_platform_struct;
+typedef struct _ocrCompPlatformFcts_t {
+    void (*destruct)(ocrCompPlatform_t *self);
+    /**
+     * @brief Starts a thread of execution.
+     *
+     * The function started will be 'routine' and it will be passed 'routineArg'
+     * @todo There was something about a stack size...
+     */
+    void (*start)(ocrCompPlatform_t *self);
 
-typedef void * (*comp_platform_routine)(void *);
+    /**
+     * @brief Stops this tread of execution
+     */
+    void (*stop)(ocrCompPlatform_t *self);
+} ocrCompPlatformFcts_t;
 
-typedef void (*ocr_comp_platform_create_fct) (struct ocr_comp_platform_struct * base, void * configuration);
-
-typedef void (*ocr_comp_platform_destruct_fct) (struct ocr_comp_platform_struct * base);
-
-/*! \brief Starts a thread of execution with a function pointer and an argument for a given stack size
- *  \param[in]  routine A function that represents the computation this thread runs as it starts
- *  \param[in]  arg Argument to be passed to the routine mentioned above
- *  \param[in]  stack_size Size of stack allowed for this thread invocation
- *
- *  The signature of the interface restricts the routine that can be assigned to a thread as follows.
- *  The function, routine, should take a void pointer, arg, as an argument and return a void pointer
- */
-typedef void (*ocr_comp_platform_start_fct) (struct ocr_comp_platform_struct * base);
-
-/*! \brief Stops this thread of execution
- */
-typedef void (*ocr_comp_platform_stop_fct) (struct ocr_comp_platform_struct * base);
-
-/*! \brief Abstract class to represent OCR thread of execution.
- *
- *  This class provides the interface for the underlying implementation to conform.
- *  Currently, we allow threads to be started and stopped
- */
-typedef struct ocr_comp_platform_struct {
+typedef struct _ocrCompPlatform_t {
     ocrMappable_t module;
 
-    void * (*routine)(void *);
-    void * routine_arg;
+    void* (*routine)(void*);
+    void* routineArg;
 
-    ocr_comp_platform_create_fct create;
-    ocr_comp_platform_destruct_fct destruct;
-    ocr_comp_platform_start_fct start;
-    ocr_comp_platform_stop_fct stop;
-} ocr_comp_platform_t;
+    ocrCompPlatformFcts_t *fctPtrs;
+} ocrCompPlatform_t;
 
-//TODO this is really ocr-hc specific
-void associate_comp_platform_and_worker(ocrWorker_t * worker);
+/****************************************************/
+/* OCR COMPUTE PLATFORM FACTORY                     */
+/****************************************************/
 
-ocrGuid_t ocr_get_current_worker_guid();
+typedef struct _ocrCompPlatformFactory_t {
+    ocrMappable_t module;
 
+    ocrCompPlatform_t* (*instantiate)(struct _ocrCompPlatformFactory_t *factory,
+                                      ocrParamList_t *perInstance);
 
-/******************************************************/
-/* OCR COMP PLATFORM KINDS AND CONSTRUCTORS           */
-/******************************************************/
+    void (*destruct)(struct _ocrCompPlatformFactory_t *factory);
 
-typedef enum ocr_comp_platform_kind_enum {
-    OCR_COMP_PLATFORM_PTHREAD = 1,
-} ocr_comp_platform_kind;
-
-ocr_comp_platform_t * newCompPlatform(ocr_comp_platform_kind compPlatformType);
-
-ocr_comp_platform_t * ocr_comp_platform_pthread_constructor(void);
+    ocrCompPlatformFcts_t platformFcts;
+} ocrCompPlatformFactory_t;
 
 #endif /* __OCR_COMP_PLATFORM_H__ */

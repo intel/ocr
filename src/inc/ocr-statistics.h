@@ -255,7 +255,7 @@ void ocrStatsFilterCreate(ocrStatsFilter_t *self, ocrStatsFilter_t *parent,
 
 void ocrStatsFilterDestruct(ocrStatsFilter_t *self);
 
-char* ocrStatsFilterDump(u64 tick, ocrStatsEvt_t type,  ocrGuid_t src, ocrGuid_t dest, )
+char* ocrStatsFilterDump(u64 tick, ocrStatsEvt_t type,  ocrGuid_t src, ocrGuid_t dest);
 
 
 /**

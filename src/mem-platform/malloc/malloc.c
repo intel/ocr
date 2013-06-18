@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include "ocr-macros.h"
 #include "malloc.h"
-#include "ocr-runtime-def.h"
+#include "ocr-mappable.h"
 #include "debug.h"
 
 

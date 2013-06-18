@@ -29,43 +29,55 @@
 
  */
 
-#ifndef __OCR_TASK_EVENT_H_
-#define __OCR_TASK_EVENT_H_
+#ifndef __OCR_EVENT_H__
+#define __OCR_EVENT_H__
 
 #include "ocr-guid.h"
 #include "ocr-edt.h"
+#include "ocr-utils.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
 #endif
 
-struct ocr_event_struct;
+/*******************************************
+ * Dependence Registration
+ ******************************************/
+void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
 
+/****************************************************/
+/* PARAMETER LISTS                                  */
+/****************************************************/
+typedef struct _paramListEventFact_t {
+    ocrParamList_t base;
+} paramListEventFact_t;
+
+/****************************************************/
+/* OCR EVENT                                        */
+/****************************************************/
+
+typedef struct _ocrEvent_t ocrEvent_t;
 /*! \brief Abstract class to represent OCR events function pointers
  *
  *  This class provides the interface for the underlying implementation to conform.
  */
-typedef struct ocr_event_struct {
-    ocrGuid_t guid; /**< GUID for this event */
-#ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcess_t statProcess;
-#endif
+typedef struct _ocrEventFcts_t {
 
 typedef struct ocr_event_fcts_struct {
     /*! \brief Virtual destructor for the Event interface
      */
-    void (*destruct)(struct ocr_event_struct* event);
+    void (*destruct)(ocrEvent_t* self);
 
     /*! \brief Interface to get the GUID of the entity that satisfied an event.
      *  \return GUID of the entity that satisfied this event
      */
-    ocrGuid_t (*get) (struct ocr_event_struct* event);
+    ocrGuid_t (*get) (ocrEvent_t* self, u32 slot);
 
     /*! \brief Interface to satisfy the event
-     *  \param[in]  db  GUID to satisfy this event
-     *  \param[in]  w   GUID of the Worker instance satisfying this event
+     *  \param[in]  db   GUID to satisfy this event with (or NULL_GUID)
+     *  \param[in]  slot Input slot for this event (for latch events for example)
      */
-    void (*satisfy)(struct ocr_event_struct* event, ocrGuid_t db, int slot);
+    void (*satisfy)(ocrEvent_t* self, ocrGuid_t db, u32 slot);
 } ocrEventFcts_t;
 
 /*! \brief Abstract class to represent OCR events.
@@ -74,14 +86,40 @@ typedef struct ocr_event_fcts_struct {
  *  Events can be satisfied once with a GUID, can be polled for what GUID satisfied the event,
  *  and can be registered to by a task.
  */
-typedef struct ocr_event_struct {
-
+typedef struct _ocrEvent_t {
     ocrGuid_t guid; /**< GUID for this event */
+    #ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcess_t statProcess;
+    #endif
     /*! \brief Holds function pointer to the event interface
      */
-    ocrEventFcts_t * fct_ptrs;
+    ocrEventFcts_t *fctPtrs;
 } ocrEvent_t;
 
+
+/****************************************************/
+/* OCR EVENT FACTORY                                */
+/****************************************************/
+
+/*! \brief Abstract factory class to create OCR events.
+ *
+ *  This class provides an interface to create Event instances with a non-static create function
+ *  to allow runtime implementers to choose to have state in their derived ocrEventFactory_t classes.
+ */
+typedef struct _ocrEventFactory_t {
+    /*! \brief Instantiates an Event and returns its corresponding GUID
+     *  \return Event metadata for the instantiated event
+     */
+    ocrEvent_t* (*instantiate)(struct _ocrEventFactory_t* factory, ocrEventTypes_t eventType,
+        bool takesArg);
+
+    /*! \brief Virtual destructor for the ocrEventFactory_t interface
+     */
+    void (*destruct)(struct _ocrEventFactory_t* factory);
+
+    ocrEventFcts_t singleFcts; /**< Functions for non-latch events */
+    ocrEventFcts_t latchFcts;  /**< Functions for latch events */
+} ocrEventFactory_t;
 
 /*******************************************
  *       OCR Event Lists declarations
@@ -100,6 +138,7 @@ typedef struct event_list_node_struct_t {
     struct event_list_node_struct_t *next;
 } event_list_node_t;
 
+// TODO: Move this to HC specific stuff
 /*
  * Event list's function pointers typedef
  */
@@ -136,109 +175,4 @@ event_list_t* event_list_constructor ();
  */
 void event_list_destructor ( event_list_t* list );
 
-/*
- * OCR event factories declarations
- */
-
-/*! \brief Abstract factory class to create OCR events.
- *
- *  This class provides an interface to create Event instances with a non-static create function
- *  to allow runtime implementers to choose to have state in their derived ocrEventFactory_t classes.
- */
-typedef struct ocrEventFactory_t {
-    /*! \brief Instantiates an Event and returns its corresponding GUID
-     *  \return GUID of the concrete Event that is created by this call
-     */
-  ocrGuid_t (*instantiate) (struct ocrEventFactory_t* factory, ocrEventTypes_t eventType, bool takesArg);
-
-    /*! \brief Virtual destructor for the ocrEventFactory_t interface
-     */
-  void (*destruct)(struct ocrEventFactory_t* factory);
-
-    ocrEventFcts_t * singleFcts;
-    ocrEventFcts_t * latchFcts;
-} ocrEventFactory_t;
-
-
-/*******************************************
- *        OCR Tasks declarations
- ******************************************/
-
-/*
- * OCR tasks factories declarations
- */
-
-// Fwd declaration
-struct ocrTaskFcts_t;
-
-/*! \brief Abstract factory class to create OCR tasks.
- *
- *  This class provides an interface to create Task instances with a non-static create function
- *  to allow runtime implementers to choose to have state in their derived TaskFactory classes.
- */
-typedef struct ocrTaskFactory_t {
-    /*! \brief Instantiates a Task and returns its corresponding GUID
-     *  \param[in]  routine A user defined function that represents the computation this Task encapsulates.
-     *  \param[in]  worker_id   The Worker instance creating this Task instance
-     *  \return GUID of the concrete Task that is created by this call
-     *
-     *  The signature of the interface restricts the user computation that can be assigned to a task as follows.
-     *  The user defined computation should take a vector of GUIDs and its size as their inputs, which may be
-     *  the GUIDs used to satisfy the Events enlisted in the dependence list.
-     *
-     */
-    ocrGuid_t (*instantiate) ( struct ocrTaskFactory_t * factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, u64 l_size, ocrGuid_t * outputEvent);
-
-    /*! \brief Virtual destructor for the TaskFactory interface
-     */
-    void (*destruct)(struct ocrTaskFactory_t * factory);
-
-    struct ocrTaskFcts_t * taskFcts;
-} ocrTaskFactory_t;
-
-/*
- * OCR tasks function pointers typedefs
- */
-struct ocrTask_t;
-
-/*! \brief Abstract class to represent OCR tasks function pointers
- *
- *  This class provides the interface to call operations on task
- */
-typedef struct ocrTaskFcts_t {
-    /*! \brief Virtual destructor for the Task interface
-     */
-    void (*destruct) ( struct ocrTask_t* base );
-    /*! \brief Interface to execute the underlying computation of a task
-     */
-    void (*execute) ( struct ocrTask_t* base );
-    void (*schedule) ( struct ocrTask_t* base, ocrGuid_t wid );
-} ocrTaskFcts_t;
-
-
-// ELS runtime size is one to support finish-edt
-// ELS_USER_SIZE is defined by configure
-#define ELS_RUNTIME_SIZE 1
-#define ELS_SIZE (ELS_RUNTIME_SIZE + ELS_USER_SIZE)
-
-/*! \brief Abstract class to represent OCR tasks.
- *
- *  This class provides the interface for the underlying implementation to conform.
- *  OCR tasks can be executed and can have their synchronization frontier furthered by Events.
- */
-typedef struct ocrTask_t {
-    ocrGuid_t guid; /**< GUID for this task (EDT) */
-#ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcess_t statProcess;
-#endif
-    u32 paramc;
-    u64 * params;
-    void ** paramv;
-    ocrGuid_t outputEvent; // Event to notify when the EDT is done
-    ocrGuid_t els[ELS_SIZE];
-    /*! \brief Holds function pointer to the task interface
-     */
-    ocrTaskFcts_t * fct_ptrs;
-} ocrTask_t;
-
-#endif /* __OCR_TASK_EVENT_H_ */
+#endif /* __OCR_EVENT_H_ */

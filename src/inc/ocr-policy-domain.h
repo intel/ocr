@@ -38,10 +38,10 @@
 #include "ocr-comp-target.h"
 #include "ocr-worker.h"
 #include "ocr-allocator.h"
-#include "ocr-mem-platform.h"
+#include "ocr-mem-target.h"
 #include "ocr-datablock.h"
 #include "ocr-sync.h"
-#include "ocr-runtime-def.h"
+#include "ocr-mappable.h"
 #include "ocr-task-event.h"
 #include "ocr-tuning.h"
 
@@ -59,7 +59,7 @@ typedef enum {
     PD_MSG_DB_TAKE     = 5, /**< Take DBs (children of the PD make this call) */
     PD_MSG_EDT_STEAL   = 6, /**< Steal EDTs (from non-children PD) */
     PD_MSG_DB_STEAL    = 7, /**< Steal DBs (from non-children PD) */
-} ocrPolicyMsgTypes_t;
+} ocrPolicyMsgType_t;
 
 /**
  * @brief Structure describing a "message" that is used to communicate between
@@ -82,13 +82,22 @@ typedef enum {
  * so that the caller knows who finally responded to its request.
  */
 typedef struct _ocrPolicyCtx_t {
-    ocrGuid_t sourcePD;    /**< Source policy domain */
-    ocrGuid_t sourceObj;   /**< Source object (worker for example) in the source PD */
-    u64       sourceId;    /**< Internal ID to the source PD */
-    ocrGuid_t destPD;      /**< Destination policy domain (after all eventual hops) */
-    ocrGuid_t destObj;     /**< Responding object (after all eventual hops) */
-    ocrPolicyMsgType type; /**< Type of message */
+    ocrGuid_t sourcePD;      /**< Source policy domain */
+    ocrGuid_t sourceObj;     /**< Source object (worker for example) in the source PD */
+    u64       sourceId;      /**< Internal ID to the source PD */
+    ocrGuid_t destPD;        /**< Destination policy domain (after all eventual hops) */
+    ocrGuid_t destObj;       /**< Responding object (after all eventual hops) */
+    ocrPolicyMsgType_t type; /**< Type of message */
+
+    void (*destruct)(struct _ocrPolicyCtx_t *self);
 } ocrPolicyCtx_t;
+
+
+typedef struct _ocrPolicyCtxFactory_t {
+    ocrPolicyCtx_t * (*instantiate)(struct _ocrPolicyCtxFactory_t *factory,
+                                    void* perTypeConfig, void* perInstanceConfig);
+    void (*destruct)(struct _ocrPolicyCtx_t *self);
+} ocrPolicyCtxFactory_t;
 
 /**
  * @brief A policy domain is OCR's way of dividing up the runtime in scalable
@@ -142,7 +151,7 @@ typedef struct _ocrPolicyDomain_t {
     ocrMemTarget_t  ** memories;                /**< All the target memory nodes */
 
     ocrTaskFactory_t  * taskFactory;            /**< Factory to produce tasks (EDTs) in this policy domain */
-    ocrDbFactory_t    * dbFactory;              /**< Factory to produce data-blocks in this policy domain */
+    ocrDataBlockFactory_t * dbFactory;          /**< Factory to produce data-blocks in this policy domain */
     ocrEventFactory_t * eventFactory;           /**< Factory to produce events in this policy domain */
 
     ocrPolicyCtxFactory_t * contextFactory;     /**< Factory to produce the contexts (used for communicating
@@ -163,7 +172,7 @@ typedef struct _ocrPolicyDomain_t {
      * 'workers', 'computes', 'workpiles', 'allocators' and 'memories'
      * data-structures must then be properly filled
      *
-     * @param me                This policy
+     * @param self                This policy
      * @param configuration     An optional configuration
      * @param schedulerCount    The number of schedulers
      * @param workerCount       The number of workers
@@ -178,10 +187,10 @@ typedef struct _ocrPolicyDomain_t {
      * @param guidProvider      The provider of GUIDs for this policy domain
      * @param costFunction      The cost function used by this policy domain
      */
-    void (*create)(struct _ocrPolicyDomain_t *me, void *configuration,
+    void (*create)(struct _ocrPolicyDomain_t *self, void *configuration,
                    u32 schedulerCount, u32 workerCount, u32 computeCount,
                    u32 workpileCount, u32 allocatorCount, u32 memoryCount,
-                   ocrTaskFactor_t *taskFactory, ocrDbFactory_t *dbFactory,
+                   ocrTaskFactory_t *taskFactory, ocrDataBlockFactory_t *dbFactory,
                    ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t
                    *contextFactory, ocrCost_t *costFunction);
 
@@ -192,9 +201,9 @@ typedef struct _ocrPolicyDomain_t {
      * Call when the policy domain has stopped executing to free
      * any remaining memory.
      *
-     * @param me                This policy domain
+     * @param self                This policy domain
      */
-    void (*destruct)(struct _ocrPolicyDomain_t *me);
+    void (*destruct)(struct _ocrPolicyDomain_t *self);
 
     /**
      * @brief Starts this policy domain
@@ -202,9 +211,9 @@ typedef struct _ocrPolicyDomain_t {
      * This starts the portion of OCR that manages the resources contained
      * in this policy domain.
      *
-     * @param me                This policy domain
+     * @param self                This policy domain
      */
-    void (*start)(struct _ocrPolicyDomain_t *me);
+    void (*start)(struct _ocrPolicyDomain_t *self);
 
     /**
      * @brief Stops this policy domain
@@ -213,9 +222,9 @@ typedef struct _ocrPolicyDomain_t {
      * contained in this policy domain. The policy domain will also stop
      * responding to requests from other policy domains.
      *
-     * @param me                This policy domain
+     * @param self                This policy domain
      */
-    void (*stop)(struct _ocrPolicyDomain_t *me);
+    void (*stop)(struct _ocrPolicyDomain_t *self);
 
     // TODO: Do we need a finish? What was it for
 
@@ -226,7 +235,7 @@ typedef struct _ocrPolicyDomain_t {
      * This call will be triggered by user code when a data-block
      * needs to be allocated
      *
-     * @param me                This policy domain
+     * @param self                This policy domain
      * @param guid              Contains the DB GUID on return for synchronous
      *                          calls
      * @param size              Size of the DB requested
@@ -245,7 +254,7 @@ typedef struct _ocrPolicyDomain_t {
      *     - 255 if the call is being processed asynchronously
      *     - TODO
      */
-    u8 (*allocateDb)(struct _ocrPolicyDomain_t *me, ocrGuid_t *guid, u64 size,
+    u8 (*allocateDb)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid, u64 size,
                      ocrHint_t *hint, ocrPolicyCtx_t *context);
 
     /**
@@ -259,7 +268,7 @@ typedef struct _ocrPolicyDomain_t {
      * @todo Add something about templates here and potentially
      * known dependences so that it can be optimally placed
      */
-    u8 (*createEdt)(struct _ocrPolicyDomain_t *me, ocrGuid_t *guid, ocrHint_t *hint,
+    u8 (*createEdt)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid, ocrHint_t *hint,
                     ocrPolicyCtx_t *context);
 
     /**
@@ -273,7 +282,7 @@ typedef struct _ocrPolicyDomain_t {
      * This call will return immediately (whether in asynchronous or
      * synchronous mode)
      */
-    void (*inform)(struct _ocrPolicyDomain_t *me, ocrGuid_t obj,
+    void (*inform)(struct _ocrPolicyDomain_t *self, ocrGuid_t obj,
                    const ocrPolicyCtx_t *context);
 
     /**
@@ -284,21 +293,21 @@ typedef struct _ocrPolicyDomain_t {
      *
      * @todo Write description, behaves as other functions
      */
-    u8 (*getGuid)(struct _ocrPolicyDomain_t *me, ocrGuid_t *guid, u64 val,
-                  ocrGuidKind type)
+    u8 (*getGuid)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid, u64 val,
+                  ocrGuidKind type);
 
     /**
      * @brief Take one or more EDTs to execute
      *
-     * This call is called by children of this policy-domain: either workers
-     * in need of work or children policy domains that did not find work.
+     * This call is called by either workers within this PD that need work or by
+     * other PDs that are trying to "steal" work from here
      *
      * On a synchronous return, the number of EDTs taken and a pointer
-     * to an array of them will be returned. On an asynchronous return,
-     * count will be 0 and the edts pointer will be invalid; the information
+     * to an array of GUIDs for them will be returned. On an asynchronous return,
+     * count will be 0 and the GUIDs pointer will be invalid; the information
      * will have to come from the context
      *
-     * @param me        This policy domain
+     * @param self        This policy domain
      * @param cost      An optional cost function provided by the taker
      * @param count     On return contains the number of EDTs taken (synchronous calls)
      * @param edts      On return contains the EDTs taken (synchronous calls)
@@ -309,71 +318,51 @@ typedef struct _ocrPolicyDomain_t {
      *     - 255 if the call is being processed asynchronously
      *     - TODO
      */
-    u8 (*takeEdt)(struct _ocrPolicyDomain_t *me, ocrCost_t *cost, u32 *count,
-                  ocrTask_t **edts, ocrPolicyCtx_t *context);
+    u8 (*takeEdt)(struct _ocrPolicyDomain_t *self, ocrCost_t *cost, u32 *count,
+                  ocrGuid_t *edts, ocrPolicyCtx_t *context);
 
     /**
      * @brief Same as takeEdt but for data-blocks
      *
      * @todo Add full description
      */
-    u8 (*takeDb)(struct _ocrPolicyDomain_t *me, ocrCost_t *cost, u32 *count,
-                 ocrDb_t **dbs, ocrPolicyCtx_t *context);
+    u8 (*takeDb)(struct _ocrPolicyDomain_t *self, ocrCost_t *cost, u32 *count,
+                 ocrGuid_t *dbs, ocrPolicyCtx_t *context);
 
     /**
-     * @brief Steal one or more EDTs to execute
+     * @brief A function called by other policy domains to hand-off
+     * EDTs; this is in essence, the opposite of takeEdt
      *
-     * This call is called by non-children of this policy-domain: either
-     * parent policy domains or sibling ones (most likely through the
-     * parent)
-     *
-     * On a synchronous return, the number of EDTs taken and a pointer
-     * to an array of them will be returned. On an asynchronous return,
-     * count will be 0 and the edts pointer will be invalid; the information
-     * will have to come from the context
-     *
-     * @param me        This policy domain
-     * @param cost      An optional cost function provided by the taker
-     * @param count     On return contains the number of EDTs taken (synchronous calls)
-     * @param edts      On return contains the EDTs taken (synchronous calls)
-     * @param context   Context for this call
-     *
-     * @return:
-     *     - 0 if the call completed successfully synchronously
-     *     - 255 if the call is being processed asynchronously
-     *     - TODO
+     * @todo Give more detail
+     * @todo Is this needed?
      */
-    u8 (*stealEdt)(struct _ocrPolicyDomain_t *me, ocrCost_t *cost, u32 *count,
-                  ocrTask_t **edts, ocrPolicyCtx_t *context);
+    u8 (*giveEdt)(struct _ocrPolicyDomain_t *self, u32 count, ocrGuid_t *edts,
+                  ocrPolicyCtx_t *context);
 
     /**
-     * @brief Same as stealEdt but for data-blocks
-     *
-     * @todo Add full description
+     * @brief Same as giveEdt() but for data-blocks
      */
-    u8 (*stealDb)(struct _ocrPolicyDomain_t *me, ocrCost_t *cost, u32 *count,
-                 ocrDb_t **dbs, ocrPolicyCtx_t *context);
+    u8 (*giveDb)(struct _ocrPolicyDomain_t *self, u32 count, ocrGuid_t *dbs,
+                 ocrPolicyCtx_t *context);
 
     /**
      * @brief Called for asynchronous calls when the call has been
      * processed.
      *
-     * @param me        This policy domain
+     * @param self        This policy domain
      * @param context   Context for the call (indicating what it is a response to)
      */
-    void (*processResponse)(struct _ocrPolicyDomain_t *me, ocrPolicyCtx_t *context);
+    void (*processResponse)(struct _ocrPolicyDomain_t *self, ocrPolicyCtx_t *context);
 
-    struct _ocrPolicyDomain_t** childrenPd;
-    struct _ocrPolicyDomain_t** parentPd;
-    u32 successorCount;
-    u32 predecessorCount;
+    struct _ocrPolicyDomain_t** neighbors;
+    u32 neighborCount;
 
 } ocrPolicyDomain_t;
 
 // Common functions on all policy domains (ie: not function pointers)
 ocrTaskFactory_t*  getTaskFactoryFromPd(ocrPolicyDomain_t *policy);
 ocrEventFactory_t* getEventFactoryFromPd(ocrPolicyDomain_t *policy);
-ocrDbFactory_t*    getDbFactoryFromPd(ocrPolicyDomain_t *policy);
+ocrDataBlockFactory_t* getDataBlockFactoryFromPd(ocrPolicyDomain_t *policy);
 
 
 // /**!

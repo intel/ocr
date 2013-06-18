@@ -82,7 +82,7 @@ void ocr_comp_target_hc_destruct (ocrCompTarget_t * compTarget) {
 
 ocrCompTarget_t * newCompTargetHc(ocrCompTargetFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
     //TODO the comp-target/comp-platform mapping should be arranged in the policy-domain
-    ocr_comp_platform_t * compPlatform = ocr_comp_platform_pthread_constructor();    
+    ocrCompPlatform_t * compPlatform = ocr_comp_platform_pthread_constructor();    
     ocrCompTarget_t * compTarget = checkedMalloc(compTarget, sizeof(ocrCompTargetHc_t));
     ocrMappable_t * module_base = (ocrMappable_t *) compTarget;
     module_base->mapFct = hc_ocr_module_map_worker_to_comp_target;

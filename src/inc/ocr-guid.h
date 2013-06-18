@@ -35,6 +35,8 @@
 #define __OCR_GUID_H__
 
 #include "ocr-types.h"
+#include "ocr-mappable.h"
+#include "ocr-utils.h"
 
 typedef enum {
     OCR_GUID_NONE = 0,
@@ -46,24 +48,24 @@ typedef enum {
     OCR_GUID_WORKER = 6
 } ocrGuidKind;
 
-/**
- * @brief Provider for GUIDs for the system
- *
- * GUIDs should be unique and are used to
- * identify and locate objects (and their associated
- * metadata mostly). GUIDs serve as a level of indirection
- * to allow objects to move around in the system and
- * support different address spaces (in the future)
- */
-typedef struct _ocrGuidProvider_t {
-    /**
-     * @brief Constructor equivalent
-     *
-     * @param self          Pointer to this GUID provider
-     * @param config        And optional configuration (not currently used)
-     */
-    void (*create)(struct _ocrGuidProvider_t* self, void* config);
+/****************************************************/
+/* OCR PARAMETER LISTS                              */
+/****************************************************/
+typedef struct _paramListGuidProviderFact_t {
+    ocrParamList_t base;
+} paramListGuidProviderFact_t;
 
+typedef struct _paramListGuidProviderInst_t {
+    ocrParamList_t base;
+} paramListGuidProviderInst_t;
+
+/****************************************************/
+/* OCR GUID PROVIDER                                */
+/****************************************************/
+
+typedef struct _ocrGuidProvider_t ocrGuidProvider_t;
+
+typedef struct _ocrGuidProviderFcts_t {
     /**
      * @brief Destructor equivalent
      *
@@ -72,7 +74,7 @@ typedef struct _ocrGuidProvider_t {
      *
      * @param self          Pointer to this GUID provider
      */
-    void (*destruct)(struct _ocrGuidProvider_t* self);
+    void (*destruct)(ocrGuidProvider_t* self);
 
     /**
      * @brief Returns a GUID for an object of type 'type'
@@ -88,7 +90,7 @@ typedef struct _ocrGuidProvider_t {
      * @param type          Type of the object that will be associated with the GUID
      * @return 0 on success or an error code
      */
-    u8 (*getGuid)(struct _ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val,
+    u8 (*getGuid)(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val,
                   ocrGuidKind type);
 
     /**
@@ -101,7 +103,7 @@ typedef struct _ocrGuidProvider_t {
      *
      * @return 0 on success or an error code
      */
-    u8 (*getVal)(struct _ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKind* kind);
+    u8 (*getVal)(ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKind* kind);
 
     /**
      * @brief Returns the kind of a GUID
@@ -111,7 +113,7 @@ typedef struct _ocrGuidProvider_t {
      * @param kind          Kind returned. Can be NULL if the user does not care about the kind
      * @return 0 on success or an error code
      */
-    u8 (*getKind)(struct _ocrGuidProvider_t* self, ocrGuid_t guid, ocrGuidKind* kind);
+    u8 (*getKind)(ocrGuidProvider_t* self, ocrGuid_t guid, ocrGuidKind* kind);
 
     /**
      * @brief Releases the GUID
@@ -123,19 +125,37 @@ typedef struct _ocrGuidProvider_t {
      * @param guid          GUID to release
      * @return 0 on success or an error code
      */
-    u8 (*releaseGuid)(struct _ocrGuidProvider_t *self, ocrGuid_t guid);
+    u8 (*releaseGuid)(ocrGuidProvider_t *self, ocrGuid_t guid);
+} ocrGuidProviderFcts_t;
+
+/**
+ * @brief Provider for GUIDs for the system
+ *
+ * GUIDs should be unique and are used to
+ * identify and locate objects (and their associated
+ * metadata mostly). GUIDs serve as a level of indirection
+ * to allow objects to move around in the system and
+ * support different address spaces (in the future)
+ */
+typedef struct _ocrGuidProvider_t {
+    ocrMappable_t module;
+
+    ocrGuidProviderFcts_t *fctPtrs;
 } ocrGuidProvider_t;
 
-typedef enum _ocrGuidProviderKind {
-    OCR_GUIDPROVIDER_DEFAULT = 0,
-    OCR_GUIDPROVIDER_PTR = 1
-} ocrGuidProviderKind;
+/****************************************************/
+/* OCR GUID PROVIDER FACTORY                        */
+/****************************************************/
 
-extern ocrGuidProviderKind ocrGuidProviderDefaultKind;
+typedef struct _ocrGuidProviderFact_t {
+    ocrMappable_t base;
 
-extern ocrGuidProvider_t *globalGuidProvider;
+    ocrGuidProvider_t* (*instantiate)(struct _ocrGuidProviderFact_t *factory, ocrParamList_t* perInstance);
 
-ocrGuidProvider_t* newGuidProvider(ocrGuidProviderKind type);
+    void (*destruct)(struct _ocrGuidProviderFact_t *factory);
+
+    ocrGuidProviderFcts_t providerFcts;
+} ocrGuidProviderFact_t;
 
 #define UNINITIALIZED_GUID ((ocrGuid_t)-2)
 
