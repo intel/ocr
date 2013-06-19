@@ -34,6 +34,7 @@
 
 #include "ocr-mappable.h"
 #include "ocr-utils.h"
+#include "ocr-guid.h"
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -44,8 +45,6 @@ typedef struct _paramListCompPlatformFact_t {
 
 typedef struct _paramListCompPlatformInst_t {
     ocrParamList_t base;
-    void* (*routine)(void*);
-    void* routineArg;
 } paramListCompPlatformInst_t;
 
 
@@ -68,13 +67,11 @@ typedef struct _ocrCompPlatformFcts_t {
      * @brief Stops this tread of execution
      */
     void (*stop)(ocrCompPlatform_t *self);
+
 } ocrCompPlatformFcts_t;
 
 typedef struct _ocrCompPlatform_t {
     ocrMappable_t module;
-
-    void* (*routine)(void*);
-    void* routineArg;
 
     ocrCompPlatformFcts_t *fctPtrs;
 } ocrCompPlatform_t;
@@ -84,8 +81,6 @@ typedef struct _ocrCompPlatform_t {
 /****************************************************/
 
 typedef struct _ocrCompPlatformFactory_t {
-    ocrMappable_t module;
-
     ocrCompPlatform_t* (*instantiate)(struct _ocrCompPlatformFactory_t *factory,
                                       ocrParamList_t *perInstance);
 
@@ -93,5 +88,32 @@ typedef struct _ocrCompPlatformFactory_t {
 
     ocrCompPlatformFcts_t platformFcts;
 } ocrCompPlatformFactory_t;
+
+/****************************************************/
+/* UTILITY METHODS                                  */
+/****************************************************/
+
+/**
+ * @brief Gets the current target the calling code is running on
+ *
+ * This function will get bound when platform factories are
+ * created
+ *
+ * @warning Only the last binding will remain in effect
+ */
+extern ocrGuid_t (*getCurrentCompTarget)();
+extern void (*setCurrentCompTarget)(ocrGuid_t guid);
+
+/**
+ * @brief Gets the current EDT executing
+ */
+extern ocrGuid_t (*getCurrentEDT)();
+extern void (*setCurrentEDT)(ocrGuid_t guid);
+
+/**
+ * @brief Gets the current policy domain for the calling code
+ */
+extern ocrGuid_t (*getCurrentPD)();
+extern void (*setCurrentPD)(ocrGuid_t guid);
 
 #endif /* __OCR_COMP_PLATFORM_H__ */

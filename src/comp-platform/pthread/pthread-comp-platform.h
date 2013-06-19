@@ -1,7 +1,7 @@
 /**
- * @brief OCR compute platforms
+ * @brief Compute Platform implemented using pthread
  * @authors Romain Cledat, Intel Corporation
- * @date 2012-06-19
+ * @date 2013-06-18
  * Copyright (c) 2013, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,12 +31,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include "ocr-comp-platform.h"
-#include "ocr-guid.h"
 
-ocrGuid_t (*getCurrentCompTarget)() = NULL;
-ocrGuid_t (*getCurrentEDT)() = NULL;
-ocrGuid_t (*getCurrentPD)() = NULL;
-void (*setCurrentCompTarget)(ocrGuid_t) = NULL;
-void (*setCurrentEDT)(ocrGuid_t) = NULL;
-void (*setCurrentPD)(ocrGuid_t) = NULL;
+#ifndef __COMP_PLATFORM_PTHREAD_H__
+#define __COMP_PLATFORM_PTHREAD_H__
+
+#include <pthread.h>
+
+#include "ocr-types.h"
+#include "ocr-comp-platform.h"
+#include "ocr-comp-target.h"
+#include "ocr-utils.h"
+
+typedef struct {
+    ocrCompPlatformFactory_t base;
+} ocrCompPlatformFactoryPthread_t;
+
+typedef struct {
+    ocrCompPlatform_t base;
+    pthread_t osThread;
+    u64 stackSize;
+    void (*routine)(void*);
+    void* routineArg;
+} ocrCompPlatformPthread_t;
+
+typedef struct {
+    paramListCompPlatformInst_t base;
+    void (*routine)(void*);
+    void* routineArg;
+} paramListCompPlatformPthread_t;
+
+ocrCompPlatformFactory_t* newCompPlatformFactoryPthread(ocrParamList_t *perType);
+#endif /* __COMP_PLATFORM_PTHREAD_H__ */
