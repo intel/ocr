@@ -36,11 +36,27 @@
 
 #include "ocr-allocator.h"
 #include "ocr-utils.h"
+#include "ocr-debug.h"
+
+// TODO: Bala will modify this
+typedef enum _allocatorType_t {
+    allocatorTlsf_id,
+} allocatorType_t;
 
 // TLSF allocator
 #include "allocator/tlsf/tlsf-allocator.h"
 extern ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *typeArg);
 
 // Add other allocators using the same pattern as above
+
+inline ocrAllocatorFactory_t *newAllocatorFactory(allocatorType_t type, ocrParamList_t *typeArg) {
+    switch(type) {
+    case allocatorTlsf_id:
+        return newAllocatorFactoryTlsf(typeArg);
+    default:
+        ASSERT(0);
+        return NULL;
+    };
+}
 
 #endif /* __ALLOCATOR_ALL_H__ */

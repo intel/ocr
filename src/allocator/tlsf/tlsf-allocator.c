@@ -1084,7 +1084,7 @@ ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
         checkedMalloc(derived, sizeof(ocrAllocatorFactoryTlsf_t));
     ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*) derived;
     base->instantiate = newAllocatorTlsf;
-    base->destruct =  destructAllocatorFactoryTlsf;
+    base->destruct =  &destructAllocatorFactoryTlsf;
     base->allocFcts.destruct = &tlsfDestruct;
     base->allocFcts.allocate = &tlsfAllocate;
     base->allocFcts.free = &tlsfFree;
