@@ -170,6 +170,7 @@ typedef struct _ocrTask_t {
  *  to allow runtime implementers to choose to have state in their derived TaskFactory classes.
  */
 typedef struct _ocrTaskFactory_t {
+    ocrMappable_t module;
     /*! \brief Instantiates a Task and returns its corresponding GUID
      *  \param[in]  routine A user defined function that represents the computation this Task encapsulates.
      *  \param[in]  worker_id   The Worker instance creating this Task instance

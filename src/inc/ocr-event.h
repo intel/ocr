@@ -107,6 +107,7 @@ typedef struct _ocrEvent_t {
  *  to allow runtime implementers to choose to have state in their derived ocrEventFactory_t classes.
  */
 typedef struct _ocrEventFactory_t {
+    ocrMappable_t module;
     /*! \brief Instantiates an Event and returns its corresponding GUID
      *  \return Event metadata for the instantiated event
      */

@@ -108,6 +108,7 @@ typedef struct _ocrScheduler_t {
 /****************************************************/
 
 typedef struct _ocrSchedulerFactory_t {
+    ocrMappable_t module;
     ocrScheduler_t* (*instantiate) (struct +ocrSchedulerFactory_t * factory,
                                     ocrParamList_t *perInstance);
 

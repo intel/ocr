@@ -90,6 +90,7 @@ typedef struct ocrWorkpile_t {
 /****************************************************/
 
 typedef struct _ocrWorkpileFactory_t {
+    ocrMappable_t module;
     ocrWorkpile_t * (*instantiate) (struct _ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance);
 
     void (*destruct)(struct _ocrWorkpileFactory_t * factory);
