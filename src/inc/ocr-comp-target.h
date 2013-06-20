@@ -46,8 +46,6 @@ typedef struct _paramListCompTargetFact_t {
 
 typedef struct _paramListCompTargetInst_t {
     ocrParamList_t base;
-    void* (*routine)(void*);
-    void* routineArg;
 } paramListCompTargetInst_t;
 
 /****************************************************/
@@ -85,9 +83,6 @@ typedef struct _ocrCompTarget_t {
                                     * is executing on */
     u32 platformCount;
 
-    void* (*routine)(void*);      /**< Routine executed by this compute target */
-    void* routineArg;             /**< Argument for the routine */
-
     ocrCompTargetFcts_t *fctPtrs;
 } ocrCompTarget_t;
 
@@ -95,8 +90,6 @@ typedef struct _ocrCompTarget_t {
 /* OCR COMPUTE TARGET FACTORY                       */
 /****************************************************/
 typedef struct _ocrCompTargetFactory_t {
-    ocrMappable_t module;
-
     ocrCompTarget_t * (*instantiate) ( struct _ocrCompTargetFactory_t * factory,
                                        ocrParamList_t *perInstance);
     void (*destruct)(struct _ocrCompTargetFactory_t * factory);

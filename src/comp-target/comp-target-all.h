@@ -28,28 +28,31 @@
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
+#ifndef __COMP_TARGET_ALL_H__
+#define __COMP_TARGET_ALL_H__
 
-#include <assert.h>
-#include <stdlib.h>
-
-#include "ocr-types.h"
 #include "ocr-comp-target.h"
+#include "ocr-utils.h"
+#include "ocr-debug.h"
 
-extern ocrCompTarget_t * newCompTargetHc(ocrCompTargetFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+typedef enum _compTargetType_t {
+    compTargetHc_id,
+} compTargetType_t;
 
-ocrCompTarget_t * newCompTarget(ocr_comp_target_kind compTargetType, void * perTypeConfig, void * perInstanceConfig) {
-    switch(compTargetType) {
-        //TODO this could be transformed as iterating over some
-        //array and return an instance to minimize code to be added
-    case OCR_COMP_TARGET_XE:
-    case OCR_COMP_TARGET_CE:
-    case OCR_COMP_TARGET_HC:
-        return newCompTargetHc(NULL, perTypeConfig, perInstanceConfig);
+// Pthread compute platform
+#include "comp-target/hc/hc-comp-target.h"
+extern ocrCompTarget_t* newCompTargetHc(ocrParamList_t *typeArg);
+
+// Add other compute targets using the same pattern as above
+
+inline ocrCompTarget_t *newCompTargetFactory(compTargetType_t type, ocrParamList_t *typeArg) {
+    switch(type) {
+    case compTargetHc_id:
+        return newCompTargetHc(typeArg);
     default:
-        assert(false && "Unrecognized comp-target kind");
-        break;
-    }
-    return NULL;
+        ASSERT(0);
+        return NULL;
+    };
 }
 
-
+#endif /* __COMP_TARGET_ALL_H__ */
