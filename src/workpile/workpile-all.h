@@ -35,15 +35,15 @@
 #include "ocr-workpile.h"
 #include "ocr-utils.h"
 
-typedef enum _workerType_t {
+typedef enum _workpileType_t {
     workpileHc_id,
     workpileFsimMessage_id
 } workpileType_t;
 
-extern ocrWorker_t* newOcrWorkpileFactoryHc(ocrParamList_t *perType);
-extern ocrWorker_t* newOcrWorkpileFactoryFsimMessage(ocrParamList_t *perType);
+extern ocrWorkpileFactory_t* newOcrWorkpileFactoryHc(ocrParamList_t *perType);
+extern ocrWorkpileFactory_t* newOcrWorkpileFactoryFsimMessage(ocrParamList_t *perType);
 
-inline ocrWorker_t * newWorkpileFactory(workpileType_t type, ocrParamList_t *perType) {
+inline ocrWorkpileFactory_t * newWorkpileFactory(workpileType_t type, ocrParamList_t *perType) {
     switch(type) {
     case workpileHc_id:
         return newOcrWorkpileFactoryHc(perType);
