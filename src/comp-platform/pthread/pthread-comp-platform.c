@@ -174,7 +174,7 @@ static void setCurrentPDPthread(ocrGuid_t val) {
     RESULT_ASSERT(pthread_setspecific(selfKey, vals), ==, 0);
 }
 
-static void destructCompPlatformPthread(ocrCompPlatformFactory_t *factory) {
+static void destructCompPlatformFactoryPthread(ocrCompPlatformFactory_t *factory) {
     free(factory);
 }
 
@@ -183,7 +183,7 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
         checkedMalloc(derived, sizeof(ocrCompPlatformFactoryPthread_t));
 
     base->instantiate = &newCompPlatformPthread;
-    base->destruct = &destructCompPlatformPthread;
+    base->destruct = &destructCompPlatformFactoryPthread;
     base->platformFcts.destruct = &pthreadDestruct;
     base->platformFcts.start = &pthreadStart;
     base->platformFcts.stop = &pthreadStop;

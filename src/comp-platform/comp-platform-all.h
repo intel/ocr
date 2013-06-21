@@ -41,15 +41,14 @@ typedef enum _compPlatformType_t {
 } compPlatformType_t;
 
 // Pthread compute platform
-#include "comp-platform/pthread/pthread.h"
-extern ocrCompPlatform_t* newCompPlatformPthread(ocrParamList_t *typeArg);
+#include "comp-platform/pthread/pthread-comp-platform.h"
 
 // Add other compute platforms using the same pattern as above
 
-inline ocrCompPlatform_t *newCompPlatformFactory(compPlatformType_t type, ocrParamList_t *typeArg) {
+inline ocrCompPlatformFactory_t *newCompPlatformFactory(compPlatformType_t type, ocrParamList_t *typeArg) {
     switch(type) {
     case compPlatformPthread_id:
-        return newCompPlatformPthread(typeArg);
+        return newCompPlatformFactoryPthread(typeArg);
     default:
         ASSERT(0);
         return NULL;
@@ -57,16 +56,3 @@ inline ocrCompPlatform_t *newCompPlatformFactory(compPlatformType_t type, ocrPar
 }
 
 #endif /* __COMP_PLATFORM_ALL_H__ */
-
-ocrCompPlatform_t * newCompPlatform(ocr_comp_platform_kind compPlatformType) {
-    switch(compPlatformType) {
-        //TODO this could be transformed as iterating over some
-        //array and return an instance to minimize code to be added
-    case OCR_COMP_PLATFORM_PTHREAD:
-        return ocr_comp_platform_pthread_constructor();
-    default:
-        assert(false && "Unrecognized comp-platform kind");
-        break;
-    }
-    return NULL;
-}

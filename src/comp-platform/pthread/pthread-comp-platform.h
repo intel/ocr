@@ -60,5 +60,5 @@ typedef struct {
     void* routineArg;
 } paramListCompPlatformPthread_t;
 
-ocrCompPlatformFactory_t* newCompPlatformFactoryPthread(ocrParamList_t *perType);
+extern ocrCompPlatformFactory_t* newCompPlatformFactoryPthread(ocrParamList_t *perType);
 #endif /* __COMP_PLATFORM_PTHREAD_H__ */
