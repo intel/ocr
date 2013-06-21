@@ -110,6 +110,11 @@ typedef struct {
     u64 worker_id_end;
 } ocrSchedulerHc_t;
 
+typedef struct _paramListSchedulerHcInst_t {
+  paramListSchedulerInst_t base;
+  int worker_id_begin;
+  int worker_id_end;
+} paramListSchedulerHcInst_t;
 
 /******************************************************/
 /* OCR-HC Task Factory                                */

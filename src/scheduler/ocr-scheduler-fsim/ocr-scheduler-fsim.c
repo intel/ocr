@@ -40,13 +40,13 @@
 /******************************************************/
 
 // Fwd declaration
-ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance);
 
 void destructSchedulerFactoryFsimXE(ocrSchedulerFactory_t * factory) {
     free(factory);
 }
 
-ocrSchedulerFactory_t * newOcrSchedulerFactoryFsimXE(void * config) {
+ocrSchedulerFactory_t * newOcrSchedulerFactoryFsimXE(ocrParamList_t *perType) {
     ocrSchedulerFactoryFsimXE_t* derived = (ocrSchedulerFactoryFsimXE_t*) checkedMalloc(derived, sizeof(ocrSchedulerFactoryFsimXE_t));
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = newSchedulerFsimXE;
@@ -180,7 +180,7 @@ void xe_scheduler_give_fsim_faithful (ocrScheduler_t* base, ocrGuid_t wid, ocrGu
     }
 }
 
-ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
+ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
     ocrSchedulerFsimXE_t* derived = (ocrSchedulerFsimXE_t*) malloc(sizeof(ocrSchedulerFsimXE_t));
     ocrScheduler_t* base = (ocrScheduler_t*)derived;
     ocrSchedulerHc_t* hcBase = (ocrSchedulerHc_t*)derived;
@@ -194,7 +194,7 @@ ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * perTy
     base -> take = xe_scheduler_take_most_fsim_faithful;
     base -> give = xe_scheduler_give_fsim_faithful;
 
-    scheduler_configuration *mapper = (scheduler_configuration*)perInstanceConfig;
+    paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
     hcBase->worker_id_begin = mapper->worker_id_begin;
     hcBase->worker_id_end = mapper->worker_id_end;
     hcBase->n_workers_per_scheduler = 1 + hcBase->worker_id_end - hcBase->worker_id_begin;
@@ -207,13 +207,13 @@ ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * perTy
 /* OCR-FSIM CE SCHEDULER                              */
 /******************************************************/
 
-ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance);
 
 void destructSchedulerFactoryFsimCE(ocrSchedulerFactory_t * factory) {
     free(factory);
 }
 
-ocrSchedulerFactory_t * newOcrSchedulerFactoryFsimCE(void * config) {
+ocrSchedulerFactory_t * newOcrSchedulerFactoryFsimCE(ocrParamList_t *perType) {
     ocrSchedulerFactoryFsimCE_t* derived = (ocrSchedulerFactoryFsimCE_t*) checkedMalloc(derived, sizeof(ocrSchedulerFactoryFsimCE_t));
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = newSchedulerFsimCE;
@@ -307,7 +307,7 @@ ocrWorkpileIterator_t* ce_scheduler_steal_mapping_assert (ocrScheduler_t* base, 
     return NULL;
 }
 
-ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
+ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
     ocrSchedulerFsimCE_t* derived = (ocrSchedulerFsimCE_t*) malloc(sizeof(ocrSchedulerFsimCE_t));
     ocrScheduler_t* base = (ocrScheduler_t*)derived;
     ocrSchedulerHc_t* hcBase = (ocrSchedulerHc_t*)derived;
@@ -321,7 +321,7 @@ ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, void * perTy
     base -> give = ce_scheduler_give;
     derived -> in_message_popping_mode = 1;
 
-    scheduler_configuration *mapper = (scheduler_configuration*)perInstanceConfig;
+    paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
     hcBase->worker_id_begin = mapper->worker_id_begin;
     hcBase->worker_id_end = mapper->worker_id_end;
     hcBase->n_workers_per_scheduler = 1 + hcBase->worker_id_end - hcBase->worker_id_begin;

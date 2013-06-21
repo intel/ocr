@@ -29,30 +29,37 @@
 
 */
 
-#include <assert.h>
-#include <stdlib.h>
+#ifndef __SCHEDULER_ALL_H__
+#define __SCHEDULER_ALL_H__
 
 #include "ocr-scheduler.h"
+#include "ocr-utils.h"
 
-extern ocrScheduler_t * newSchedulerHc(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
-extern ocrScheduler_t * newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
-extern ocrScheduler_t * newSchedulerFsimXE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
-extern ocrScheduler_t * newSchedulerFsimCE(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+typedef enum _schedulerType_t {
+    schedulerHc_id,
+    schedulerHcPlaced_id,
+    schedulerFsimXE_id,
+    schedulerFsimCE_id
+} schedulerType_t;
 
-ocrScheduler_t * newScheduler(ocr_scheduler_kind schedulerType, void * perTypeConfig, void * perInstanceConfig) {
-    switch(schedulerType) {
-    case OCR_SCHEDULER_WST:
-        return newSchedulerHc(NULL, perTypeConfig, perInstanceConfig);
-    case OCR_SCHEDULER_XE:
-        return newSchedulerFsimXE(NULL, perTypeConfig, perInstanceConfig);
-    case OCR_SCHEDULER_CE:
-        return newSchedulerFsimCE(NULL, perTypeConfig, perInstanceConfig);
-    case OCR_PLACED_SCHEDULER:
-        return newSchedulerHcPlaced(NULL, perTypeConfig, perInstanceConfig);
-    default:
-        assert(false && "Unrecognized scheduler kind");
-        break;
+extern ocrSchedulerFactory_t * newSchedulerFactoryHc(ocrParamList_t *perType);
+extern ocrSchedulerFactory_t * newSchedulerFactoryHcPlaced(ocrParamList_t *perType);
+extern ocrSchedulerFactory_t * newSchedulerFactoryFsimXE(ocrParamList_t *perType);
+extern ocrSchedulerFactory_t * newSchedulerFactoryFsimCE(ocrParamList_t *perType);
+
+inline ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrParamList_t *perType) {
+    switch(type) {
+    case schedulerHc_id:
+        return newOcrSchedulerFactoryHc(perType);
+    case schedulerFsimXE_id:
+        return newSchedulerFactoryFsimXE(perType);
+    case schedulerFsimCE_id:
+        return newSchedulerFactoryFsimCE(perType);
+    case schedulerHcPlaced_id:
+        return newSchedulerFactoryHcPlaced(perType);
     }
-
+    ASSERT(0);
     return NULL;
 }
+
+#endif /* __SCHEDULER_ALL_H__ */

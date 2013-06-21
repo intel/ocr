@@ -41,13 +41,13 @@
 /******************************************************/
 
 // Fwd declaration
-ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance);
 
 void destructSchedulerFactoryHc(ocrSchedulerFactory_t * factory) {
     free(factory);
 }
 
-ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(void * config) {
+ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(ocrParamList_t *perType) {
     ocrSchedulerFactoryHc_t* derived = (ocrSchedulerFactoryHc_t*) checkedMalloc(derived, sizeof(ocrSchedulerFactoryHc_t));
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = newSchedulerHc;
@@ -136,7 +136,7 @@ void destructSchedulerHc(ocrScheduler_t * scheduler) {
     free(scheduler);
 }
 
-ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
+ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) checkedMalloc(derived, sizeof(ocrSchedulerHc_t));
     ocrScheduler_t* base = (ocrScheduler_t*)derived;
     ocrMappable_t * module_base = (ocrMappable_t *) base;
@@ -148,7 +148,7 @@ ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, void * perTypeCo
     base -> take = hc_scheduler_take;
     base -> give = hc_scheduler_give;
 
-    scheduler_configuration *mapper = (scheduler_configuration*)perInstanceConfig;
+    paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
     derived->worker_id_begin = mapper->worker_id_begin;
     derived->worker_id_end = mapper->worker_id_end;
     derived->n_workers_per_scheduler = 1 + derived->worker_id_end - derived->worker_id_begin;
@@ -202,7 +202,7 @@ void hc_placed_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t ti
     wp_to_push->push(wp_to_push,tid);
 }
 
-ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
+ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
     // piggy-back on the regular HC scheduler but use different function pointers
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) malloc(sizeof(ocrSchedulerHc_t));
     ocrScheduler_t* base = (ocrScheduler_t*)derived;
@@ -215,14 +215,14 @@ ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, void * per
     base -> take = hc_placed_scheduler_take;
     base -> give = hc_placed_scheduler_give;
 
-    scheduler_configuration *mapper = (scheduler_configuration*)perInstanceConfig;
+    paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
     derived->worker_id_begin = mapper->worker_id_begin;
     derived->worker_id_end = mapper->worker_id_end;
     derived->n_workers_per_scheduler = 1 + derived->worker_id_end - derived->worker_id_begin;
     return base;
 }
 
-ocrSchedulerFactory_t * newOcrSchedulerFactoryHcPlaced(void * config) {
+ocrSchedulerFactory_t * newOcrSchedulerFactoryHcPlaced(ocrParamList_t *perType) {
     ocrSchedulerFactoryHc_t* derived = (ocrSchedulerFactoryHc_t*) checkedMalloc(derived, sizeof(ocrSchedulerFactoryHc_t));
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = newSchedulerHcPlaced;
