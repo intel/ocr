@@ -50,5 +50,5 @@ typedef struct {
     ocrLock_t* lock; /**< Currently needs a lock. The idea is to have multiple allocators but currently only one */
 } ocrAllocatorTlsf_t;
 
-ocrAllocatorFactory_t* newAllocatorFactoryTlsf(ocrParamList_t *perType);
+extern ocrAllocatorFactory_t* newAllocatorFactoryTlsf(ocrParamList_t *perType);
 #endif /* __TLSF_ALLOCATOR_H__ */

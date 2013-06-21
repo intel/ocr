@@ -1080,9 +1080,8 @@ static void destructAllocatorFactoryTlsf(ocrAllocatorFactory_t * factory) {
 }
 
 ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
-    ocrAllocatorFactoryTlsf_t* derived = (ocrAllocatorFactoryTlsf_t*)
-        checkedMalloc(derived, sizeof(ocrAllocatorFactoryTlsf_t));
-    ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*) derived;
+    ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*)
+        checkedMalloc(base, sizeof(ocrAllocatorFactoryTlsf_t));
     base->instantiate = newAllocatorTlsf;
     base->destruct =  &destructAllocatorFactoryTlsf;
     base->allocFcts.destruct = &tlsfDestruct;

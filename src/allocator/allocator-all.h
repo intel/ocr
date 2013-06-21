@@ -45,7 +45,6 @@ typedef enum _allocatorType_t {
 
 // TLSF allocator
 #include "allocator/tlsf/tlsf-allocator.h"
-extern ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *typeArg);
 
 // Add other allocators using the same pattern as above
 
