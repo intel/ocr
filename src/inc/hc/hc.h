@@ -58,6 +58,11 @@ typedef struct {
   ocrWorkerFactory_t base;
 } ocrWorkerFactoryHc_t;
 
+typedef struct _paramListWorkerHcInst_t {
+  paramListWorkerInst_t base;
+  int workerId;
+} paramListWorkerHcInst_t;
+
 typedef struct {
     ocrWorker_t worker;
     //TODO this is a convenience to map workers to workpiles

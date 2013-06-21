@@ -88,6 +88,12 @@ typedef struct  {
     ocrWorkerFactory_t base;
 } ocrWorkerFactoryFsimCE_t;
 
+typedef struct _paramListWorkerFsimInst_t {
+  paramListWorkerInst_t base;
+  int workerId;
+} paramListWorkerFsimInst_t;
+
+
 
 /******************************************************/
 /* OCR-FSIM Workpile                                  */

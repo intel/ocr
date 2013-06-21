@@ -36,23 +36,6 @@
 #include "ocr-guid.h"
 #include "ocr-worker.h"
 
-extern ocrWorker_t * newWorkerHc(ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
-extern ocrWorker_t * newWorkerFsimXE(ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
-extern ocrWorker_t * newWorkerFsimCE(ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
-
-ocrWorker_t * newWorker(ocr_worker_kind workerType, void * perTypeConfig, void * perInstanceConfig) {
-    switch(workerType) {
-    case OCR_WORKER_XE:
-        return newWorkerFsimXE(NULL, perTypeConfig, perInstanceConfig);
-    case OCR_WORKER_CE:
-        return newWorkerFsimCE(NULL, perTypeConfig, perInstanceConfig);
-    case OCR_WORKER_HC:
-        return newWorkerHc(NULL, perTypeConfig, perInstanceConfig);
-    }
-    assert(false && "Unrecognized worker kind");
-    return NULL;
-}
-
 ocrGuid_t getCurrentEdt() {
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
     ocrWorker_t *worker = NULL;

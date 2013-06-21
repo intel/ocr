@@ -47,13 +47,13 @@ ocrScheduler_t * get_worker_scheduler(ocrWorker_t * worker) { return worker->sch
 /******************************************************/
 
 // Fwd declaration
-ocrWorker_t* newWorkerHc(ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+ocrWorker_t* newWorkerHc(ocrWorkerFactory_t * factory, ocrParamList_t * perInstance);
 
 void destructWorkerFactoryHc(ocrWorkerFactory_t * factory) {
     free(factory);
 }
 
-ocrWorkerFactory_t * newOcrWorkerFactoryHc(void * config) {
+ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
     ocrWorkerFactoryHc_t* derived = (ocrWorkerFactoryHc_t*) checkedMalloc(derived, sizeof(ocrWorkerFactoryHc_t));
     ocrWorkerFactory_t* base = (ocrWorkerFactory_t*) derived;
     base->instantiate = newWorkerHc;
@@ -116,11 +116,10 @@ void * worker_computation_routine(void * arg);
 /**
  * Builds an instance of a HC worker
  */
-ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
+ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
     ocrWorkerHc_t * worker = checkedMalloc(worker, sizeof(ocrWorkerHc_t));
-    worker->id = -1;
     worker->run = false;
-    worker->id = ((worker_configuration*)perInstanceConfig)->worker_id;
+    worker->id = ((paramListWorkerHcInst_t*)perInstance)->worker_id;
     worker->currentEDT_guid = NULL_GUID;
 
     ocrWorker_t * base = (ocrWorker_t *) worker;

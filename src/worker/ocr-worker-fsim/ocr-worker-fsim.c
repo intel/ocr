@@ -41,13 +41,13 @@
 /******************************************************/
 
 // Fwd declaration
-ocrWorker_t* newWorkerFsimXE(ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+ocrWorker_t* newWorkerFsimXE(ocrWorkerFactory_t * factory, ocrParamList_t * perInstance);
 
 void destructWorkerFactoryFsimXE(ocrWorkerFactory_t * factory) {
     free(factory);
 }
 
-ocrWorkerFactory_t * newOcrWorkerFactoryFsimXE(void * config) {
+ocrWorkerFactory_t * newOcrWorkerFactoryFsimXE(ocrParamList_t * perType) {
     ocrWorkerFactoryFsimXE_t* derived = (ocrWorkerFactoryFsimXE_t*) checkedMalloc(derived, sizeof(ocrWorkerFactoryFsimXE_t));
     ocrWorkerFactory_t* base = (ocrWorkerFactory_t*) derived;
     base->instantiate = newWorkerFsimXE;
@@ -78,12 +78,12 @@ void xe_worker_destruct ( ocrWorker_t * base ) {
 
 extern void* xe_worker_computation_routine (void * arg);
 
-ocrWorker_t* newWorkerFsimXE (ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
+ocrWorker_t* newWorkerFsimXE (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
     // Piggy-back on HC worker, modifying some of the implementation function
     ocrWorkerFsimXE_t * xeWorker = (ocrWorkerFsimXE_t *) malloc(sizeof(ocrWorkerFsimXE_t));
     ocrWorkerHc_t * hcWorker = &(xeWorker->hcBase);
     hcWorker->run = false;
-    hcWorker->id = ((worker_configuration*)perInstanceConfig)->worker_id;
+    hcWorker->id = ((paramListWorkerFsimInst_t*)perInstance)->worker_id;
     hcWorker->currentEDT_guid = NULL_GUID;
 
     ocrWorker_t * base = (ocrWorker_t *) hcWorker;
@@ -113,13 +113,13 @@ ocrWorker_t* newWorkerFsimXE (ocrWorkerFactory_t * factory, void * perTypeConfig
 /******************************************************/
 
 // Fwd declaration
-ocrWorker_t* newWorkerFsimCE(ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+ocrWorker_t* newWorkerFsimCE(ocrWorkerFactory_t * factory, ocrParamList_t * perInstance);
 
 void destructWorkerFactoryFsimCE(ocrWorkerFactory_t * factory) {
     free(factory);
 }
 
-ocrWorkerFactory_t * newOcrWorkerFactoryFsimCE(void * config) {
+ocrWorkerFactory_t * newOcrWorkerFactoryFsimCE(ocrParamList_t * perType) {
     ocrWorkerFactoryFsimCE_t* derived = (ocrWorkerFactoryFsimCE_t*) checkedMalloc(derived, sizeof(ocrWorkerFactoryFsimCE_t));
     ocrWorkerFactory_t* base = (ocrWorkerFactory_t*) derived;
     base->instantiate = newWorkerFsimCE;
@@ -129,11 +129,11 @@ ocrWorkerFactory_t * newOcrWorkerFactoryFsimCE(void * config) {
 
 extern void* ce_worker_computation_routine (void * arg);
 
-ocrWorker_t* newWorkerFsimCE (ocrWorkerFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
+ocrWorker_t* newWorkerFsimCE (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
     // Piggy-back on HC worker, modifying the routine
     ocrWorkerHc_t * worker = (ocrWorkerHc_t *) malloc(sizeof(ocrWorkerHc_t));
     worker->run = false;
-    worker->id = ((worker_configuration*)perInstanceConfig)->worker_id;
+    worker->id = ((paramListWorkerFsimInst_t*)perInstance)->worker_id;
     worker->currentEDT_guid = NULL_GUID;
 
     ocrWorker_t * base = (ocrWorker_t *) worker;
@@ -151,7 +151,6 @@ ocrWorker_t* newWorkerFsimCE (ocrWorkerFactory_t * factory, void * perTypeConfig
     base->is_running = hc_is_running_worker;
     base->getCurrentEDT = hc_getCurrentEDT;
     base->setCurrentEDT = hc_setCurrentEDT;
-
 
     return base;
 }
