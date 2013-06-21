@@ -41,14 +41,13 @@ typedef enum _compTargetType_t {
 
 // Pthread compute platform
 #include "comp-target/hc/hc-comp-target.h"
-extern ocrCompTarget_t* newCompTargetHc(ocrParamList_t *typeArg);
 
 // Add other compute targets using the same pattern as above
 
-inline ocrCompTarget_t *newCompTargetFactory(compTargetType_t type, ocrParamList_t *typeArg) {
+inline ocrCompTargetFactory_t *newCompTargetFactory(compTargetType_t type, ocrParamList_t *typeArg) {
     switch(type) {
     case compTargetHc_id:
-        return newCompTargetHc(typeArg);
+        return newCompTargetFactoryHc(typeArg);
     default:
         ASSERT(0);
         return NULL;

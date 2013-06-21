@@ -58,6 +58,6 @@ typedef struct {
     void* routineArg;
 } ocrCompTargetHc_t;
 
-ocrCompTargetFactory_t* newCompTargetFactoryHc(ocrParamList_t *perType);
+extern ocrCompTargetFactory_t* newCompTargetFactoryHc(ocrParamList_t *perType);
 
 #endif /* __COMP_TARGET_HC_H__ */
