@@ -29,45 +29,29 @@
 
 */
 
-#include <stdlib.h>
-#include <assert.h>
+#ifndef __WORKPILE_ALL_H__
+#define __WORKPILE_ALL_H__
 
-#include "ocr-macros.h"
-#include "ocr-types.h"
 #include "ocr-workpile.h"
+#include "ocr-utils.h"
 
-/******************************************************/
-/* OCR Workpile iterator                              */
-/******************************************************/
+typedef enum _workerType_t {
+    workpileHc_id,
+    workpileFsimMessage_id
+} workpileType_t;
 
-void workpileIteratorReset (ocrWorkpileIterator_t * base) {
-    base->curr = ((base->id) + 1) % base->mod;
+extern ocrWorker_t* newOcrWorkpileFactoryHc(ocrParamList_t *perType);
+extern ocrWorker_t* newOcrWorkpileFactoryFsimMessage(ocrParamList_t *perType);
+
+inline ocrWorker_t * newWorkpileFactory(workpileType_t type, ocrParamList_t *perType) {
+    switch(type) {
+    case workpileHc_id:
+        return newOcrWorkpileFactoryHc(perType);
+    case workpileFsimMessage_id:
+        return newOcrWorkpileFactoryFsimMessage(perType);
+    }
+    ASSERT(0);
+    return NULL;
 }
 
-bool workpileIteratorHasNext (ocrWorkpileIterator_t * base) {
-    return base->id != base->curr;
-}
-
-ocrWorkpile_t * workpileIteratorNext (ocrWorkpileIterator_t * base) {
-    int current = base->curr;
-    ocrWorkpile_t * toBeReturned = base->array[current];
-    base->curr = (current+1) % base->mod;
-    return toBeReturned;
-}
-
-ocrWorkpileIterator_t* workpileIteratorConstructor ( int i, u64 n_pools, ocrWorkpile_t ** pools ) {
-    ocrWorkpileIterator_t* it = (ocrWorkpileIterator_t *) checkedMalloc(it, sizeof(ocrWorkpileIterator_t));
-    it->array = pools;
-    it->id = i;
-    it->mod = n_pools;
-    it->hasNext = workpileIteratorHasNext;
-    it->next = workpileIteratorNext;
-    it->reset = workpileIteratorReset;
-    // The 'curr' field is initialized by reset
-    it->reset(it);
-    return it;
-}
-
-void workpile_iterator_destructor (ocrWorkpileIterator_t* base) {
-    free(base);
-}
+#endif /* __WORKPILE_ALL_H__ */

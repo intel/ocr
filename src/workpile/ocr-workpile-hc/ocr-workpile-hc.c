@@ -38,13 +38,13 @@
 /******************************************************/
 
 // Fwd declaration
-ocrWorkpile_t* newWorkpileHc(ocrWorkpileFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+ocrWorkpile_t* newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance);
 
 void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
     free(factory);
 }
 
-ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(void * config) {
+ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(ocrParamList_t *perType) {
     ocrWorkpileFactoryHc_t* derived = (ocrWorkpileFactoryHc_t*) checkedMalloc(derived, sizeof(ocrWorkpileFactoryHc_t));
     ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
     base->instantiate = newWorkpileHc;
@@ -77,7 +77,7 @@ static ocrGuid_t hc_workpile_steal ( ocrWorkpile_t * base ) {
     return (ocrGuid_t) deque_steal(derived->deque);
 }
 
-ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
+ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) checkedMalloc(derived, sizeof(ocrWorkpileHc_t));
     ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
     ocrMappable_t * module_base = (ocrMappable_t *) base;

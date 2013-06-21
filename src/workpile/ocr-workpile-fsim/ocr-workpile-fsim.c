@@ -37,13 +37,13 @@
 /******************************************************/
 
 // Fwd declaration
-ocrWorkpile_t* newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+ocrWorkpile_t* newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance);
 
 void destructWorkpileFactoryFsimMessage(ocrWorkpileFactory_t * factory) {
     free(factory);
 }
 
-ocrWorkpileFactory_t * newOcrWorkpileFactoryFsimMessage(void * config) {
+ocrWorkpileFactory_t * newOcrWorkpileFactoryFsimMessage(ocrParamList_t *perType) {
     ocrWorkpileFactoryFsimMessage_t* derived = (ocrWorkpileFactoryFsimMessage_t*) checkedMalloc(derived, sizeof(ocrWorkpileFactoryFsimMessage_t));
     ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
     base->instantiate = newWorkpileFsimMessage;
@@ -72,7 +72,7 @@ static void ce_message_workpile_push (ocrWorkpile_t * base, ocrGuid_t g ) {
     deque_locked_push(derived->deque, (void *)g);
 }
 
-ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
+ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
     ocrWorkpileFsimMessage_t* derived = (ocrWorkpileFsimMessage_t*) malloc(sizeof(ocrWorkpileFsimMessage_t));
     ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
     ocrMappable_t * module_base = (ocrMappable_t *) base;
