@@ -65,7 +65,7 @@ fi
 
 cd ${COMPTREE}
 
-../configure ${INSTALL_ROOT} ${HCR_OPTS}
+../configure ${INSTALL_ROOT} ${HCR_OPTS} --enable-els=1
 check_error "$?" "Configure failed";
 
 
