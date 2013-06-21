@@ -44,7 +44,7 @@ static void mapCompTargetToPlatform(ocrMappable_t *self, ocrMappableKind kind,
     compTarget->base.platformCount = 1;
 }
 
-static void hcDesctruct(ocrCompTarget_t *compTarget) {
+static void hcDestruct(ocrCompTarget_t *compTarget) {
     free(compTarget);
 }
 
