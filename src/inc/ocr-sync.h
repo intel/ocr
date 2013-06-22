@@ -37,15 +37,49 @@
 #define __OCR_SYNC_H__
 
 #include "ocr-types.h"
+#include "ocr-utils.h"
 
-/**
- * @brief A model for a very simple lock that
- * can be used in the runtime
- *
- * Locks are not exposed to the user as the EDT
- * model does not require them
- */
-typedef struct _ocrLock_t {
+struct foo {
+    int i;
+};
+{
+    int i;
+}
+/****************************************************/
+/* PARAMETER LISTS                                  */
+/****************************************************/
+typedef struct {
+    ocrParamList_t base;
+} paramListLockFact_t;
+
+typedef struct {
+    ocrParamList_t base;
+} paramListLockInst_t;
+
+typedef struct {
+    ocrParamList_t base;
+} paramListAtomic64Fact_t;
+
+typedef struct {
+    ocrParamList_t base;
+} paramListAtomic64Inst_t;
+
+typedef struct {
+    ocrParamList_t base;
+} paramListQueueFact_t;
+
+typedef struct {
+    ocrParamList_t base;
+} paramListQueueInst_t;
+
+
+/****************************************************/
+/* OCR LOCK                                         */
+/****************************************************/
+
+typedef struct _ocrLock_t ocrLock_t;
+
+typedef struct _ocrLockFcts_t {
     /**
      * @brief Destructor equivalent
      *
@@ -54,7 +88,7 @@ typedef struct _ocrLock_t {
      *
      * @param self          Pointer to this lock
      */
-    void (*destruct)(struct _ocrLock_t* self);
+    void (*destruct)(ocrLock_t* self);
 
     /**
      * @brief Grab the lock
@@ -63,7 +97,7 @@ typedef struct _ocrLock_t {
      *
      * @param self          Pointer to this lock
      */
-    void (*lock)(struct _ocrLock_t* self);
+    void (*lock)(ocrLock_t* self);
 
     /**
      * @brief Release the lock
@@ -75,7 +109,7 @@ typedef struct _ocrLock_t {
      *
      * @param self          Pointer to this lock
      */
-    void (*unlock)(struct _ocrLock_t* self);
+    void (*unlock)(ocrLock_t* self);
 
     /**
      * @brief Tries to grab the lock
@@ -86,8 +120,23 @@ typedef struct _ocrLock_t {
      * @param self      This lock
      * @return 1 if the lock was successfully grabbed, 0 if not
      */
-    u8 (*trylock)(struct _ocrLock_t* self);
+    u8 (*trylock)(ocrLock_t* self);
+} ocrLockFcts_t;
+
+/**
+ * @brief A model for a very simple lock that
+ * can be used in the runtime
+ *
+ * Locks are not exposed to the user as the EDT
+ * model does not require them
+ */
+typedef struct _ocrLock_t {
+    ocrLockFcts_t *fctPtrs;
 } ocrLock_t;
+
+/****************************************************/
+/* OCR LOCK FACTORY                                 */
+/****************************************************/
 
 /**
  * @brief Factory for locks
@@ -105,24 +154,25 @@ typedef struct _ocrLockFactory_t {
     void (*destruct)(struct _ocrLockFactory_t *self);
 
 
-    ocrLock_t* (*instantiate)(struct _ocrLockFactory_t* self, void* config);
+    ocrLock_t* (*instantiate)(struct _ocrLockFactory_t* self, ocrParamList_t *perInstance);
+
+    ocrLockFcts_t lockFcts;
 } ocrLockFactory_t;
 
-/**
- * @brief A model for a simple atomic 64 bit value
- *
- * You can increment the atomic or perform a compare-and-swap
- *
- * @todo See if we need 32 bit, etc.
- */
-typedef struct _ocrAtomic64_t {
+/****************************************************/
+/* OCR ATOMIC                                       */
+/****************************************************/
+
+typedef struct _ocrAtomics64_t ocrAtomics64_t;
+
+typedef struct {
     /**
      * @brief Destroy the atomic freeing up any
      * memory associated with it
      *
      * @param self          This atomic
      */
-    void (*destruct)(struct _ocrAtomic64_t *self);
+    void (*destruct)(ocrAtomic64_t *self);
 
     /**
      * @brief Compare and swap
@@ -138,7 +188,7 @@ typedef struct _ocrAtomic64_t {
      *
      * @return Old value of the atomic
      */
-    u64 (*cmpswap)(struct _ocrAtomic64_t *self, u64 cmpValue, u64 newValue);
+    u64 (*cmpswap)(ocrAtomic64_t *self, u64 cmpValue, u64 newValue);
 
     /**
      * @brief Atomic add
@@ -151,7 +201,7 @@ typedef struct _ocrAtomic64_t {
      * @param addValue  Value to add to location
      * @return New value of the location
      */
-    u64 (*xadd)(struct _ocrAtomic64_t *self, u64 addValue);
+    u64 (*xadd)(ocrAtomic64_t *self, u64 addValue);
 
     /**
      * @brief Return the current value
@@ -162,18 +212,35 @@ typedef struct _ocrAtomic64_t {
      * @param self      This atomic
      * @return Value of the atomic
      */
-    u64 (*val)(struct _ocrAtomic64_t *self);
+    u64 (*val)(ocrAtomic64_t *self);
+} ocrAtomic64Fcts_t;
+
+/**
+ * @brief A model for a simple atomic 64 bit value
+ *
+ * You can increment the atomic or perform a compare-and-swap
+ *
+ * @todo See if we need 32 bit, etc.
+ */
+typedef struct _ocrAtomic64_t {
+    ocrAtomic64Fcts_t *fctPtrs;
 } ocrAtomic64_t;
 
+/****************************************************/
+/* OCR ATOMIC 64 FACTORY                            */
+/****************************************************/
 /**
  * @brief Factory for atomics
  */
 typedef struct _ocrAtomic64Factory_t {
     void (*destruct)(struct _ocrAtomic64Factory_t *self);
 
-    ocrAtomic64_t* (*instantiate)(struct _ocrAtomic64Factory_t* self, void* config);
+    ocrAtomic64_t* (*instantiate)(struct _ocrAtomic64Factory_t* self, ocrParamList_t *perInstance);
+
+    ocrAtomic64Fcts_t atomicFcts;
 } ocrAtomic64Factory_t;
 
+// TODO: Do we really need this?
 /**
  * @brief Queue implementation.
  *
@@ -198,12 +265,5 @@ typedef struct _ocrQueueFactory_t {
 
     ocrQueue_t* (*instantiate)(struct _ocrQueueFactory_t *self, void* config);
 } ocrQueueFactory_t;
-
-// typedef enum _ocrLockKind {
-//     OCR_LOCK_DEFAULT = 0,
-//     OCR_LOCK_X86 = 1
-// } ocrLockKind;
-
-// extern ocrLockKind ocrLockDefaultKind;
 
 #endif /* __OCR_SYNC_H__ */

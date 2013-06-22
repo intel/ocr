@@ -180,7 +180,7 @@ static void destructCompPlatformFactoryPthread(ocrCompPlatformFactory_t *factory
 
 ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType) {
     ocrCompPlatformFactory_t *base = (ocrCompPlatformFactory_t*)
-        checkedMalloc(derived, sizeof(ocrCompPlatformFactoryPthread_t));
+        checkedMalloc(base, sizeof(ocrCompPlatformFactoryPthread_t));
 
     base->instantiate = &newCompPlatformPthread;
     base->destruct = &destructCompPlatformFactoryPthread;

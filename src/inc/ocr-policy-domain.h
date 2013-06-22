@@ -159,6 +159,9 @@ typedef struct _ocrPolicyDomain_t {
 
     ocrGuidProvider_t *guidProvider;            /**< GUID generator for this policy domain */
 
+    ocrLockFactory_t *lockFactory;              /**< Factory for locks */
+    ocrAtomic64Factory_t *atomicFactory;        /**< Factory for atomics */
+
     ocrCost_t *costFunction;                    /**< Cost function used to determine
                                                  * what to schedule/steal/take/etc.
                                                  * Currently a placeholder for future
@@ -354,6 +357,9 @@ typedef struct _ocrPolicyDomain_t {
      */
     void (*processResponse)(struct _ocrPolicyDomain_t *self, ocrPolicyCtx_t *context);
 
+    ocrLock_t* getLock(struct _ocrPolicyDomain_t *self);
+    ocrAtomic64_t* getAtomic64(struct _ocrPolicyDomain_t *self);
+
     struct _ocrPolicyDomain_t** neighbors;
     u32 neighborCount;
 
@@ -363,6 +369,7 @@ typedef struct _ocrPolicyDomain_t {
 ocrTaskFactory_t*  getTaskFactoryFromPd(ocrPolicyDomain_t *policy);
 ocrEventFactory_t* getEventFactoryFromPd(ocrPolicyDomain_t *policy);
 ocrDataBlockFactory_t* getDataBlockFactoryFromPd(ocrPolicyDomain_t *policy);
+ocrLockFactory_t* getLockFactoryFromPd(ocrPolicyDomain_t *policy);
 
 
 // /**!
