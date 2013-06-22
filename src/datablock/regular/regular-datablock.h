@@ -40,6 +40,10 @@
 #include "ocr-sync.h"
 #include "ocr-utils.h"
 
+typedef struct {
+    ocrDataBlockFactory_t base;
+} ocrDataBlockFactoryRegular_t;
+
 typedef union {
     struct {
         volatile u64 flags : 16;
@@ -56,21 +60,12 @@ typedef struct _ocrDataBlockRegular_t {
 
     /* Data for the data-block */
     void* ptr; /**< Current address for this data-block */
-    ocrGuid_t allocatorGuid; /**< Current allocator that this data-block belongs to. */
-    u32 size; /**< Current size for this data-block */
     ocrLock_t* lock; /**< Lock for this data-block */
     ocrDataBlockRegularAttr_t attributes; /**< Attributes for this data-block */
 
     ocrGuidTracker_t usersTracker;
 } ocrDataBlockRegular_t;
 
-
-typedef struct ocrDataBlockPlacedStruct_t {
-    ocrDataBlockRegular_t base;
-    ocrPlaceTracker_t* placeTracker;
-} ocrDataBlockPlaced_t;
-
-ocrDataBlock_t* newDataBlockRegular();
-ocrDataBlock_t* newDataBlockPlaced();
+ocrDataBlockFactory_t* newDataBlockFactoryRegular(ocrParamList_t *perType);
 
 #endif /* __DATABLOCK_REGULAR_H__ */

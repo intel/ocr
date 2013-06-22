@@ -56,6 +56,7 @@ typedef struct _paramListDataBlockInst_t {
     ocrGuid_t allocator;    /**< Allocator that created this data-block */
     ocrGuid_t allocPD;      /**< Policy-domain of the allocator */
     u64 size;
+    void* ptr;              /**< Initial location for the data-block */
     u16 flags;
 } paramListDataBlockInst_t;
 
@@ -135,7 +136,11 @@ typedef struct _ocrDataBlock_t {
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t statProcess;
 #endif
-    ocrGuid_t allocator; /**< Allocator that created this data-block */
+    ocrGuid_t allocator;    /**< Allocator that created this data-block */
+    ocrGuid_t allocatorPD;  /**< Policy domain of the creating allocator */
+    u64 size;               /**< Size of the data-block */
+    void* ptr;              /**< Current location for this data-block */
+    u16 properties;         /**< Properties for the data-block */
     ocrDataBlockFcts_t *fctPtrs;
 } ocrDataBlock_t;
 

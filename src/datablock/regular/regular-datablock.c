@@ -42,52 +42,6 @@
 void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
                    u16 flags, void* configuration) {
 
-    ocrAllocator_t *allocator = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, allocatorGuid, (u64*)&allocator, NULL);
-    ASSERT(allocator);
-    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
-
-    rself->ptr = allocator->allocate(allocator, size);
-    rself->allocatorGuid = allocatorGuid;
-    rself->size = size;
-    rself->lock = GocrLockFactory->instantiate(GocrLockFactory, NULL);
-    rself->attributes.flags = flags;
-    rself->attributes.numUsers = 0;
-    rself->attributes.freeRequested = 0;
-    ocrGuidTrackerInit(&(rself->usersTracker));
-    DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Creating a datablock of size %ld @ 0x%lx (GUID: 0x%lx)\n",
-               size, (u64)rself->ptr, rself->base.guid);
-    }
-
-}
-
-void regularDestruct(ocrDataBlock_t *self) {
-    // We don't use a lock here. Maybe we should
-    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
-    ASSERT(rself->attributes.numUsers == 0);
-    ASSERT(rself->attributes.freeRequested == 1);
-    rself->lock->destruct(rself->lock);
-
-    // Tell the allocator to free the data-block
-    ocrAllocator_t *allocator = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, rself->allocatorGuid, (u64*)&allocator, NULL);
-
-    DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Freeing DB @ 0x%lx (GUID: 0x%lx)\n", (u64)rself->ptr, rself->base.guid);
-    }
-    allocator->free(allocator, rself->ptr);
-
-    // TODO: This is not pretty to be here but I can't put this in the ocrDbFree because
-    // the semantics of ocrDbFree is that it will wait for all acquire/releases to have
-    // completed so I have to release the block when it is really being freed. This current
-    // OCR version does not really implement delayed freeing but may in the future.
-#ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcessDestruct(&(rself->base.statProcess));
-#endif
-
-    globalGuidProvider->releaseGuid(globalGuidProvider, self->guid);
-    free(rself);
 }
 
 void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
@@ -224,77 +178,89 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
     return 0;
 }
 
-ocrDataBlock_t* newDataBlockRegular() {
-    ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)malloc(sizeof(ocrDataBlockRegular_t));
-    result->base.guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(result->base.guid), (u64)result, OCR_GUID_DB);
-
-    result->base.create = &regularCreate;
-    result->base.destruct = &regularDestruct;
-    result->base.acquire = &regularAcquire;
-    result->base.release = &regularRelease;
-    result->base.free = &regularFree;
-    result->lock = NULL;
-
-    return (ocrDataBlock_t*)result;
-}
-
-void placedCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
-                   u16 flags, void* configuration) {
-    regularCreate(self, allocatorGuid, size, flags, configuration);
-
-    ocrDataBlockPlaced_t *derived = (ocrDataBlockPlaced_t*)self;
-    ocrPlaceTrackerInit(derived->placeTracker);
-}
-
-void placedDestruct(ocrDataBlock_t *self) {
-    ocrDataBlockPlaced_t *derived = (ocrDataBlockPlaced_t*)self;
+void regularDestruct(ocrDataBlock_t *self) {
     // We don't use a lock here. Maybe we should
-    ocrDataBlockRegular_t *regular = &(derived->base);
-    ASSERT(regular->attributes.numUsers == 0);
-    ASSERT(regular->attributes.freeRequested == 0);
-    regular->lock->destruct(regular->lock);
+    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
+    ASSERT(rself->attributes.numUsers == 0);
+    ASSERT(rself->attributes.freeRequested == 1);
+    rself->lock->destruct(rself->lock);
 
     // Tell the allocator to free the data-block
     ocrAllocator_t *allocator = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, regular->allocatorGuid, (u64*)&allocator, NULL);
+    globalGuidProvider->getVal(globalGuidProvider, rself->allocatorGuid, (u64*)&allocator, NULL);
 
-    allocator->free(allocator, regular->ptr); // TODO sagnak first argument was regular->allocator
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Freeing DB @ 0x%lx (GUID: 0x%lx)\n", (u64)rself->ptr, rself->base.guid);
+    }
+    allocator->free(allocator, rself->ptr);
+
+    // TODO: This is not pretty to be here but I can't put this in the ocrDbFree because
+    // the semantics of ocrDbFree is that it will wait for all acquire/releases to have
+    // completed so I have to release the block when it is really being freed. This current
+    // OCR version does not really implement delayed freeing but may in the future.
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcessDestruct(&(rself->base.statProcess));
+#endif
 
     globalGuidProvider->releaseGuid(globalGuidProvider, self->guid);
-    free(derived);
+    free(rself);
 }
 
-void* placedAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
-    ocrDataBlockPlaced_t *derived = (ocrDataBlockPlaced_t*)self;
+ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactor_t *factory, ocrParamList_t *perInstance) {
+    paramListDataBlockInst_t *parameters = (paramListDataBlockInst_t*)perInstance;
 
-    unsigned char currPlace = get_current_policy_domain()->id;
-    ocrPlaceTrackerInsert(derived->placeTracker, currPlace);
-    return regularAcquire(self, edt, isInternal);
-}
+    ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)
+        checkedMalloc(result, sizeof(ocrDataBlockRegular_t));
 
-u8 placedRelease(ocrDataBlock_t *self, ocrGuid_t edt,
-                  bool isInternal) {
-    // ocrDataBlockPlaced_t *derived = (ocrDataBlockPlaced_t*)self;
-    // unsigned char currPlace = get_current_policy_domain()->id;
-    // ocrPlaceTrackerRemove(derived->placeTracker, currPlace);
-    return regularRelease(self, edt, isInternal);
-}
+    result->base.guid = UNINITIALIZED_GUID;
+    result->base.allocator = parameters->allocator;
+    result->base.allocatorPD = parameters->allocPD;
+    result->base.size = parameters->size;
+    result->base.ptr = parameters->ptr;
+    result->base.properties = parameters->properties;
+    result->base.fctPtrs = &(factory->dataBlockFcts);
 
-ocrDataBlock_t* newDataBlockPlaced() {
-    ocrDataBlockPlaced_t *result = (ocrDataBlockPlaced_t*)malloc(sizeof(ocrDataBlockPlaced_t));
-    ocrPlaceTrackerAllocate(&(result->placeTracker));
+    // TODO: Get GUID
+    //globalGuidProvider->getGuid(globalGuidProvider, &(result->base.guid), (u64)result, OCR_GUID_DB);
 
-    ocrDataBlockRegular_t *regular = &(result->base);
-    regular->base.guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(regular->base.guid), (u64)regular, OCR_GUID_DB);
+    result->lock = NULL;
+    result->attributes.flags = result->base.properties;
+    rself->attributes.numUsers = 0;
+    rself->attributes.freeRequested = 0;
+    ocrGuidTrackerInit(&(rself->usersTracker));
 
-    regular->base.create = &placedCreate;
-    regular->base.destruct = &placedDestruct;
-    regular->base.acquire = &placedAcquire;
-    regular->base.release = &placedRelease;
-    regular->base.free = &regularFree;
-    regular->lock = newLock(OCR_LOCK_DEFAULT);
+    ocrAllocator_t *allocator = NULL;
+
+    globalGuidProvider->getVal(globalGuidProvider, allocatorGuid, (u64*)&allocator, NULL);
+    ASSERT(allocator);
+    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
+
+    rself->ptr = allocator->allocate(allocator, size);
+    rself->allocatorGuid = allocatorGuid;
+    rself->size = size;
+    // TODO: Use policy domain to create the lock
+
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Creating a datablock of size %ld @ 0x%lx (GUID: 0x%lx)\n",
+               size, (u64)rself->ptr, rself->base.guid);
+    }
 
     return (ocrDataBlock_t*)result;
+}
+/******************************************************/
+/* OCR DATABLOCK REGULAR FACTORY                      */
+/******************************************************/
+
+static void destructRegularFactory(ocrDataBlockFactory_t *factory) {
+    free(factory);
+}
+
+ocrDataBlockFactory_t *newDataBlockFactoryRegular(ocrParamList_t *perType) {
+    ocrDataBlockFactory_t *base = (ocrDataBlockFactory_t*)
+        checkedMalloc(base, sizeof(ocrDataBlockFactoryRegular_t));
+
+    base->instantiate = &newDataBlockRegular;
+    base->destruct = &destructRegularFactory;
+    base->platformFcts.destruct = &regularDestruct;
+
 }

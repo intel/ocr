@@ -31,21 +31,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include "debug.h"
-#include "ocr-datablock.h"
-#include "regular/regular.h"
+#ifndef __DATABLOCK_ALL_H__
+#define __DATABLOCK_ALL_H__
 
-ocrDataBlock_t* newDataBlock(ocrDataBlockKind type) {
-    if(type == OCR_DATABLOCK_DEFAULT) type = ocrDataBlockDefaultKind;
+#include "ocr-datablock.h"
+#include "ocr-debug.h"
+#include "ocr-utils.h"
+
+// TODO: Bala will modify this
+typedef enum _dataBlockType_t {
+    dataBlockRegular_id,
+    dataBlockPlaced_id
+} dataBlockType_t;
+
+// Regular datablock
+#include "datablock/regular/regular-datablock.h"
+
+// Placed datablock
+#include "datablock/placed/placed-datablock.h"
+
+
+ocrDataBlockFactory_t* newDataBlockFactory(dataBlockType_t type, ocrParamList_t *typeArg) {
     switch(type) {
-    case OCR_DATABLOCK_REGULAR:
-        return newDataBlockRegular();
+    case dataBlockRegular_id:
+        return newDataBlockFactoryRegular(typeArg);
         break;
-    case OCR_DATABLOCK_PLACED:
-        return newDataBlockPlaced();
+    case dataBlockPlaced_id:
+        return newDataBlockFactoryPlaced(typeArg);
         break;
     default:
         ASSERT(0);
     }
     return NULL;
 }
+
+#endif /* __DATABLOCK_ALL_H__ */
