@@ -35,7 +35,7 @@
 #include "ocr-types.h"
 
 // Forward declaration
-typedef struct _ocrPolicyDomain_t ocrPolicyDomain_t;
+struct _ocrPolicyDomain_t;
 
 /******************************************************/
 /* LOGGING FACILITY                                   */
@@ -86,7 +86,7 @@ typedef struct _ocrPolicyDomain_t ocrPolicyDomain_t;
  */
 typedef struct _ocrParamList_t {
     u64 size;                   /**< Size of this parameter list (in bytes) */
-    ocrPolicyDomain_t *policy;  /**< Policy domain for this factory/instance */
+    struct _ocrPolicyDomain_t *policy;  /**< Policy domain for this factory/instance */
     char* misc;                 /**< Miscellaneous arguments (NULL terminated string) */
 } ocrParamList_t;
 

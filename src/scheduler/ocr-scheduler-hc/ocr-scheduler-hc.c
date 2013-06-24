@@ -72,11 +72,18 @@ ocrWorkpileIterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocrSchedu
     return steal_iterator;
 }
 
-ocrGuid_t hc_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
+
+u8 (*takeEdt)(ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
+                  ocrGuid_t *edts, ocrPolicyCtx_t *context);
+
+u8 ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
+                  ocrGuid_t *edts, ocrPolicyCtx_t *context_ {
+// ocrGuid_t hc_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
     ocrWorker_t* w = NULL;
     globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
     // First try to pop
-    ocrWorkpile_t * wp_to_pop = base->pop_mapping(base, w);
+    // ocrWorkpile_t * wp_to_pop = self->pop_mapping(self, w);
+    ocrWorkpile_t * wp_to_pop = hc_scheduler_pop_mapping_one_to_one(self, w);
     ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
     if ( NULL_GUID == popped ) {
         // If popping failed, try to steal

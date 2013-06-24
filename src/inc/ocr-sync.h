@@ -42,9 +42,7 @@
 struct foo {
     int i;
 };
-{
-    int i;
-}
+
 /****************************************************/
 /* PARAMETER LISTS                                  */
 /****************************************************/
@@ -77,7 +75,7 @@ typedef struct {
 /* OCR LOCK                                         */
 /****************************************************/
 
-typedef struct _ocrLock_t ocrLock_t;
+struct _ocrLock_t;
 
 typedef struct _ocrLockFcts_t {
     /**
@@ -88,7 +86,7 @@ typedef struct _ocrLockFcts_t {
      *
      * @param self          Pointer to this lock
      */
-    void (*destruct)(ocrLock_t* self);
+    void (*destruct)(struct _ocrLock_t* self);
 
     /**
      * @brief Grab the lock
@@ -97,7 +95,7 @@ typedef struct _ocrLockFcts_t {
      *
      * @param self          Pointer to this lock
      */
-    void (*lock)(ocrLock_t* self);
+    void (*lock)(struct _ocrLock_t* self);
 
     /**
      * @brief Release the lock
@@ -109,7 +107,7 @@ typedef struct _ocrLockFcts_t {
      *
      * @param self          Pointer to this lock
      */
-    void (*unlock)(ocrLock_t* self);
+    void (*unlock)(struct _ocrLock_t* self);
 
     /**
      * @brief Tries to grab the lock
@@ -120,7 +118,7 @@ typedef struct _ocrLockFcts_t {
      * @param self      This lock
      * @return 1 if the lock was successfully grabbed, 0 if not
      */
-    u8 (*trylock)(ocrLock_t* self);
+    u8 (*trylock)(struct _ocrLock_t* self);
 } ocrLockFcts_t;
 
 /**
@@ -163,7 +161,7 @@ typedef struct _ocrLockFactory_t {
 /* OCR ATOMIC                                       */
 /****************************************************/
 
-typedef struct _ocrAtomics64_t ocrAtomics64_t;
+struct _ocrAtomics64_t;
 
 typedef struct {
     /**
@@ -172,7 +170,7 @@ typedef struct {
      *
      * @param self          This atomic
      */
-    void (*destruct)(ocrAtomic64_t *self);
+    void (*destruct)(struct _ocrAtomics64_t *self);
 
     /**
      * @brief Compare and swap
@@ -188,7 +186,7 @@ typedef struct {
      *
      * @return Old value of the atomic
      */
-    u64 (*cmpswap)(ocrAtomic64_t *self, u64 cmpValue, u64 newValue);
+    u64 (*cmpswap)(struct _ocrAtomics64_t *self, u64 cmpValue, u64 newValue);
 
     /**
      * @brief Atomic add
@@ -201,7 +199,7 @@ typedef struct {
      * @param addValue  Value to add to location
      * @return New value of the location
      */
-    u64 (*xadd)(ocrAtomic64_t *self, u64 addValue);
+    u64 (*xadd)(struct _ocrAtomics64_t *self, u64 addValue);
 
     /**
      * @brief Return the current value
@@ -212,7 +210,7 @@ typedef struct {
      * @param self      This atomic
      * @return Value of the atomic
      */
-    u64 (*val)(ocrAtomic64_t *self);
+    u64 (*val)(struct _ocrAtomics64_t *self);
 } ocrAtomic64Fcts_t;
 
 /**

@@ -40,6 +40,10 @@
 #include "ocr-statistics.h"
 #endif
 
+struct _ocrTask_t;
+struct _ocrTaskFcts_t;
+struct _ocrTaskFactory_t;
+
 /****************************************************/
 /* PARAMETER LISTS                                  */
 /****************************************************/
@@ -55,8 +59,6 @@ typedef struct _paramListTaskTemplateFact_t {
 /* OCR TASK TEMPLATE                                */
 /****************************************************/
 
-typedef struct _ocrTaskTemplate_t ocrTaskTemplate_t;
-
 /*! \brief Abstract class to represent OCR task template functions
  *
  *  This class provides the interface to call operations on task
@@ -65,7 +67,7 @@ typedef struct _ocrTaskTemplate_t ocrTaskTemplate_t;
 typedef struct ocrTaskTemplateFcts_t {
     /*! \brief Virtual destructor for the Task interface
      */
-    void (*destruct) (ocrTask_t* self);
+    void (*destruct) (struct _ocrTask_t* self);
 } ocrTaskTemplateFcts_t;
 
 /*! \brief Abstract class to represent OCR task templates.
@@ -80,7 +82,7 @@ typedef struct _ocrTaskTemplate_t {
     u32 depc;
     u64 * params;
     ocrEdt_t executePtr;
-    ocrTaskFcts_t * fctPtrs;
+    struct _ocrTaskFcts_t * fctPtrs;
 } ocrTaskTemplate_t;
 
 /****************************************************/
@@ -117,20 +119,20 @@ typedef struct _ocrTaskTemplateFactory_t {
 /* OCR TASK                                         */
 /****************************************************/
 
-typedef struct _ocrTask_t ocrTask_t;
+struct _ocrTask_t;
 
 /*! \brief Abstract class to represent OCR tasks function pointers
  *
  *  This class provides the interface to call operations on task
  */
-typedef struct ocrTaskFcts_t {
+typedef struct _ocrTaskFcts_t {
     /*! \brief Virtual destructor for the Task interface
      */
-    void (*destruct) (ocrTask_t* self);
+    void (*destruct) (struct _ocrTask_t* self);
     /*! \brief Interface to execute the underlying computation of a task
      */
-    void (*execute) (ocrTask_t* self);
-//    void (*schedule) (ocrTask_t* self, ocrGuid_t wid );
+    void (*execute) (struct _ocrTask_t* self);
+//    void (*schedule) (struct _ocrTask_t* self, ocrGuid_t wid );
 } ocrTaskFcts_t;
 
 // ELS runtime size is one to support finish-edt

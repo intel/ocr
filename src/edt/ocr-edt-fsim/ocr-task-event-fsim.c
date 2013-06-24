@@ -59,7 +59,7 @@ void hcTaskConstructInternal2 (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
     base->params = params;
     base->paramv = paramv;
     base->outputEvent = outputEvent;
-    base->fct_ptrs = taskFctPtrs;
+    base->fctPtrs = taskFctPtrs;
     // Initialize ELS
     int i = 0;
     while (i < ELS_SIZE) {
@@ -184,7 +184,7 @@ void * xe_worker_computation_routine (void * arg) {
             ocrTask_t* currTask = NULL;
             globalGuidProvider->getVal(globalGuidProvider, taskGuid, (u64*)&(currTask), NULL);
             baseWorker->setCurrentEDT(baseWorker,taskGuid);
-            currTask->execute(currTask);
+            currTask->fctPtrs->execute(currTask);
             baseWorker->setCurrentEDT(baseWorker, NULL_GUID);
         } else {
             // TODO sagnak, this assumes (*A LOT*) the structure below, is this fair?

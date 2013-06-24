@@ -82,10 +82,12 @@ ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *pe
     ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
     ocrMappable_t * module_base = (ocrMappable_t *) base;
     module_base->mapFct = NULL;
-    base->destruct = hc_workpile_destruct;
-    base->pop = hc_workpile_pop;
-    base->push = hc_workpile_push;
-    base->steal = hc_workpile_steal;
+    ocrWorkpileFcts_t * fctPtrs = (ocrWorkpileFcts_t *) malloc(sizeof(ocrWorkpileFcts_t));
+    base->fctPtrs = fctPtrs;
+    fctPtrs->destruct = hc_workpile_destruct;
+    fctPtrs->pop = hc_workpile_pop;
+    fctPtrs->push = hc_workpile_push;
+    fctPtrs->steal = hc_workpile_steal;
     derived->deque = (deque_t *) checkedMalloc(derived->deque, sizeof(deque_t));
     dequeInit(derived->deque, (void *) NULL_GUID);
     return base;

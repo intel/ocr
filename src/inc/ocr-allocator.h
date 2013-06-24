@@ -63,7 +63,7 @@ typedef struct _paramListAllocatorInst_t {
 /* OCR ALLOCATOR                                    */
 /****************************************************/
 
-typedef struct _ocrAllocator_t ocrAllocator_t;
+struct _ocrAllocator_t;
 
 /**
  * @brief Allocator function pointers
@@ -80,7 +80,7 @@ typedef struct _ocrAllocatorFcts_t {
      *
      * @param self              Pointer to this allocator
      */
-    void (*destruct)(ocrAllocator_t* self);
+    void (*destruct)(struct _ocrAllocator_t* self);
 
     /**
      * @brief Actual allocation
@@ -91,7 +91,7 @@ typedef struct _ocrAllocatorFcts_t {
      * @param size              Size to allocate (in bytes)
      * @return NULL if allocation is unsuccessful or the address
      **/
-    void* (*allocate)(ocrAllocator_t *self, u64 size);
+    void* (*allocate)(struct _ocrAllocator_t *self, u64 size);
 
     /**
      * @brief Frees a previously allocated block
@@ -102,7 +102,7 @@ typedef struct _ocrAllocatorFcts_t {
      * @param self              Pointer to this allocator
      * @param address           Address to free
      **/
-    void (*free)(ocrAllocator_t *self, void* address);
+    void (*free)(struct _ocrAllocator_t *self, void* address);
 
     /**
      * @brief Reallocate within the chunk managed by this allocator
@@ -116,10 +116,10 @@ typedef struct _ocrAllocatorFcts_t {
      *   - if address is NULL, equivalent to malloc
      *   - if size is 0, equivalent to free
      */
-    void* (*reallocate)(ocrAllocator_t *self, void* address, u64 size);
+    void* (*reallocate)(struct _ocrAllocator_t *self, void* address, u64 size);
 } ocrAllocatorFcts_t;
 
-typedef struct _ocrMemTarget_t ocrMemTarget_t;
+struct _ocrMemTarget_t;
 
 /**
  * @brief Allocator is the interface to the allocator to a zone
@@ -135,7 +135,7 @@ typedef struct _ocrAllocator_t {
     ocrGuid_t guid;           /**< The allocator also has a GUID so that
                                * data-blocks can know what allocated/freed them */
 
-    ocrMemTarget_t *memories; /**< Allocators are mapped to ocrMemTarget_t (0+) */
+    struct _ocrMemTarget_t *memories; /**< Allocators are mapped to ocrMemTarget_t (0+) */
     u32 memoryCount;          /**< Number of memories associated */
 
     ocrAllocatorFcts_t *fctPtrs;

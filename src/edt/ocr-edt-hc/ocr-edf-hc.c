@@ -175,7 +175,7 @@ static ocrEvent_t* eventConstructorInternal(ocrEventFactory_t * factory, ocrEven
     hcImpl->kind = eventType;
 
     // Initialize ocrEvent_t base
-    base->fct_ptrs = eventFctPtrs;
+    base->fctPtrs = eventFctPtrs;
     base->guid = UNINITIALIZED_GUID;
     globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_EVENT);
 
@@ -507,7 +507,7 @@ void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
     base->params = params;
     base->paramv = paramv;
     base->outputEvent = outputEvent;
-    base->fct_ptrs = taskFctPtrs;
+    base->fctPtrs = taskFctPtrs;
     // Initialize ELS
     int i = 0;
     while (i < ELS_SIZE) {

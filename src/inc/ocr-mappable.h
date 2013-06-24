@@ -53,7 +53,6 @@ typedef enum _ocrMappableKind {
     OCR_POLICY = 17
 } ocrMappableKind;
 
-
 typedef enum _ocrMappingKind {
     ONE_TO_ONE_MAPPING  = 0,
     MANY_TO_ONE_MAPPING = 1,
@@ -66,10 +65,10 @@ typedef struct _ocrModuleMapping_t {
     ocrMappableKind to;
 } ocrModuleMapping_t;
 
-typedef struct _ocrMappable_t ocrMappable_t;
+struct _ocrMappable_t;
 
-typedef void (*ocrMapFct_t) (ocrMappable_t * self, ocrMappableKind kind,
-                             u64 instanceCount, ocrMappable_t ** instances);
+typedef void (*ocrMapFct_t) (struct _ocrMappable_t * self, ocrMappableKind kind,
+                             u64 instanceCount, struct _ocrMappable_t ** instances);
 
 typedef struct _ocrMappable_t {
     ocrMapFct_t mapFct;

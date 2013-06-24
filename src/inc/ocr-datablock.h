@@ -64,7 +64,7 @@ typedef struct _paramListDataBlockInst_t {
 /* OCR DATABLOCK                                    */
 /****************************************************/
 
-typedef struct _ocrDataBlock_t ocrDataBlock_t;
+struct _ocrDataBlock_t;
 
 typedef struct _ocrDataBlockFcts_t {
     /**
@@ -78,7 +78,7 @@ typedef struct _ocrDataBlockFcts_t {
      * @param self          Pointer for this data-block
      * @todo: FIXME. This does perform a free!!!!
      */
-    void (*destruct)(ocrDataBlock_t *self);
+    void (*destruct)(struct _ocrDataBlock_t *self);
 
     /**
      * @brief Acquires the data-block for an EDT
@@ -93,7 +93,7 @@ typedef struct _ocrDataBlockFcts_t {
      *
      * @note Multiple acquires for the same EDT have no effect
      */
-    void* (*acquire)(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal);
+    void* (*acquire)(struct _ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal);
 
     /**
      * @brief Releases a data-block previously acquired
@@ -106,7 +106,7 @@ typedef struct _ocrDataBlockFcts_t {
      * @note No need to match one-to-one with acquires. One release
      * releases any and all previous acquires
      */
-    u8 (*release)(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal);
+    u8 (*release)(struct _ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal);
 
     /**
      * @brief Requests that the block be freed when possible
@@ -120,7 +120,7 @@ typedef struct _ocrDataBlockFcts_t {
      * @param edt           EDT seeking to free the data-block
      * @return 0 on success and an error code on failure (see ocr-db.h)
      */
-    u8 (*free)(ocrDataBlock_t *self, ocrGuid_t edt);
+    u8 (*free)(struct _ocrDataBlock_t *self, ocrGuid_t edt);
 } ocrDataBlockFcts_t;
 
 /**

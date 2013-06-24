@@ -63,7 +63,7 @@ typedef struct _paramListGuidProviderInst_t {
 /* OCR GUID PROVIDER                                */
 /****************************************************/
 
-typedef struct _ocrGuidProvider_t ocrGuidProvider_t;
+struct _ocrGuidProvider_t;
 
 typedef struct _ocrGuidProviderFcts_t {
     /**
@@ -74,7 +74,7 @@ typedef struct _ocrGuidProviderFcts_t {
      *
      * @param self          Pointer to this GUID provider
      */
-    void (*destruct)(ocrGuidProvider_t* self);
+    void (*destruct)(struct _ocrGuidProvider_t* self);
 
     /**
      * @brief Returns a GUID for an object of type 'type'
@@ -90,7 +90,7 @@ typedef struct _ocrGuidProviderFcts_t {
      * @param type          Type of the object that will be associated with the GUID
      * @return 0 on success or an error code
      */
-    u8 (*getGuid)(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val,
+    u8 (*getGuid)(struct _ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val,
                   ocrGuidKind type);
 
     /**
@@ -103,7 +103,7 @@ typedef struct _ocrGuidProviderFcts_t {
      *
      * @return 0 on success or an error code
      */
-    u8 (*getVal)(ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKind* kind);
+    u8 (*getVal)(struct _ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKind* kind);
 
     /**
      * @brief Returns the kind of a GUID
@@ -113,7 +113,7 @@ typedef struct _ocrGuidProviderFcts_t {
      * @param kind          Kind returned. Can be NULL if the user does not care about the kind
      * @return 0 on success or an error code
      */
-    u8 (*getKind)(ocrGuidProvider_t* self, ocrGuid_t guid, ocrGuidKind* kind);
+    u8 (*getKind)(struct _ocrGuidProvider_t* self, ocrGuid_t guid, ocrGuidKind* kind);
 
     /**
      * @brief Releases the GUID
@@ -125,7 +125,7 @@ typedef struct _ocrGuidProviderFcts_t {
      * @param guid          GUID to release
      * @return 0 on success or an error code
      */
-    u8 (*releaseGuid)(ocrGuidProvider_t *self, ocrGuid_t guid);
+    u8 (*releaseGuid)(struct _ocrGuidProvider_t *self, ocrGuid_t guid);
 } ocrGuidProviderFcts_t;
 
 /**

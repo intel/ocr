@@ -34,7 +34,7 @@
 
 #include "ocr-guid.h"
 #include "ocr-mappable.h"
-#include "ocr-util.h"
+#include "ocr-utils.h"
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -52,22 +52,22 @@ typedef struct _paramListCompTargetInst_t {
 /* OCR COMPUTE TARGET                               */
 /****************************************************/
 
-typedef struct _ocrCompTarget_t ocrCompTarget_t;
+struct _ocrCompTarget_t;
 
 typedef struct _ocrCompTargetFcts_t {
-    void (*destruct) (ocrCompTarget_t * self);
+    void (*destruct) (struct _ocrCompTarget_t * self);
 
     /*! \brief Starts a compute target
      *
      */
-    void (*start) (ocrCompTarget_t * self);
+    void (*start) (struct _ocrCompTarget_t * self);
 
     /*! \brief Stops this comp-target
      */
-    void (*stop) (ocrCompTarget_t * self);
+    void (*stop) (struct _ocrCompTarget_t * self);
 } ocrCompTargetFcts_t;
 
-typedef struct _ocrCompPlatform_t ocrCompPlatform_t;
+struct _ocrCompPlatform_t;
 
 /** @brief Abstract class to represent OCR compute-target
  *
@@ -79,7 +79,7 @@ typedef struct _ocrCompTarget_t {
     ocrMappable_t module;
     ocrGuid_t guid;
 
-    ocrCompPlatform_t * platforms; /**< Computing platform this compute target
+    struct _ocrCompPlatform_t * platforms; /**< Computing platform this compute target
                                     * is executing on */
     u32 platformCount;
 

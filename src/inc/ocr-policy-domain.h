@@ -42,7 +42,8 @@
 #include "ocr-datablock.h"
 #include "ocr-sync.h"
 #include "ocr-mappable.h"
-#include "ocr-task-event.h"
+#include "ocr-event.h"
+#include "ocr-task.h"
 #include "ocr-tuning.h"
 
 
@@ -397,7 +398,7 @@ ocrLockFactory_t* getLockFactoryFromPd(ocrPolicyDomain_t *policy);
 //                                 u64 computeCount,
 //                                 u64 nb_scheduler);
 
-// ocrPolicyDomain_t* get_current_policy_domain ();
+ocrPolicyDomain_t* get_current_policy_domain ();
 
 // ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
 // ocrGuid_t policy_domain_extract_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );

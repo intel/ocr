@@ -34,9 +34,11 @@
 #include "ocr-comp-platform.h"
 #include "ocr-guid.h"
 
+struct _ocrPolicyDomain_t;
+
 ocrGuid_t (*getCurrentCompTarget)() = NULL;
 ocrGuid_t (*getCurrentEDT)() = NULL;
-ocrGuid_t (*getCurrentPD)() = NULL;
+struct _ocrPolicyDomain_t * (*getCurrentPD)() = NULL;
 void (*setCurrentCompTarget)(ocrGuid_t) = NULL;
 void (*setCurrentEDT)(ocrGuid_t) = NULL;
 void (*setCurrentPD)(ocrGuid_t) = NULL;

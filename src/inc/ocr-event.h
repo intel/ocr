@@ -56,7 +56,7 @@ typedef struct _paramListEventFact_t {
 /* OCR EVENT                                        */
 /****************************************************/
 
-typedef struct _ocrEvent_t ocrEvent_t;
+struct _ocrEvent_t;
 /*! \brief Abstract class to represent OCR events function pointers
  *
  *  This class provides the interface for the underlying implementation to conform.
@@ -66,18 +66,18 @@ typedef struct _ocrEventFcts_t {
 typedef struct ocr_event_fcts_struct {
     /*! \brief Virtual destructor for the Event interface
      */
-    void (*destruct)(ocrEvent_t* self);
+    void (*destruct)(struct _ocrEvent_t* self);
 
     /*! \brief Interface to get the GUID of the entity that satisfied an event.
      *  \return GUID of the entity that satisfied this event
      */
-    ocrGuid_t (*get) (ocrEvent_t* self, u32 slot);
+    ocrGuid_t (*get) (struct _ocrEvent_t* self, u32 slot);
 
     /*! \brief Interface to satisfy the event
      *  \param[in]  db   GUID to satisfy this event with (or NULL_GUID)
      *  \param[in]  slot Input slot for this event (for latch events for example)
      */
-    void (*satisfy)(ocrEvent_t* self, ocrGuid_t db, u32 slot);
+    void (*satisfy)(struct _ocrEvent_t* self, ocrGuid_t db, u32 slot);
 } ocrEventFcts_t;
 
 /*! \brief Abstract class to represent OCR events.

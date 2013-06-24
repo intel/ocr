@@ -56,7 +56,7 @@ typedef struct _paramListMemTargetInst_t {
 /* OCR MEMORY TARGETS                               */
 /****************************************************/
 
-typedef struct _ocrMemTarget_t ocrMemTarget_t;
+struct _ocrMemTarget_t;
 
 typedef struct _ocrMemTargetFcts_t {
     /**
@@ -64,7 +64,7 @@ typedef struct _ocrMemTargetFcts_t {
      *
      * @param self          Pointer to this low-memory provider
      */
-    void (*destruct)(ocrMemTarget_t* self);
+    void (*destruct)(struct _ocrMemTarget_t* self);
 
     /**
      * @brief Allocates a chunk of memory for the higher-level
@@ -74,7 +74,7 @@ typedef struct _ocrMemTargetFcts_t {
      * @param size          Size of the chunk to allocate
      * @return Pointer to the chunk of memory allocated
      */
-    void* (*allocate)(ocrMemTarget_t* self, u64 size);
+    void* (*allocate)(struct _ocrMemTarget_t* self, u64 size);
 
     /**
      * @brief Frees a chunk of memory previously allocated
@@ -83,10 +83,10 @@ typedef struct _ocrMemTargetFcts_t {
      * @param self          Pointer to this low-memory provider
      * @param addr          Address to free
      */
-    void (*free)(ocrMemTarget_t* self, void* addr);
+    void (*free)(struct _ocrMemTarget_t* self, void* addr);
 } ocrMemTargetFcts_t;
 
-typedef struct _ocrMemPlatform_t ocrMemPlatform_t;
+struct _ocrMemPlatform_t;
 /**
  * @brief Target-level memory provider.
  *
@@ -97,7 +97,7 @@ typedef struct _ocrMemTarget_t {
     ocrMappable_t module; /**< Base "class" for ocrMemTarget */
     ocrGuid_t guid;
 
-    ocrMemPlatform_t *memories;
+    struct _ocrMemPlatform_t *memories;
     u32 memoryCount;
 
     ocrMemTargetFcts_t *fctPtrs;

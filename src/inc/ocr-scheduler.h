@@ -58,10 +58,10 @@ typedef struct _paramListSchedulerInst_t {
 /* OCR SCHEDULER                                    */
 /****************************************************/
 
-typedef struct _ocrScheduler_t ocrScheduler_t;
+struct _ocrScheduler_t;
 
 typedef struct _ocrSchedulerFcts_t {
-    void (*destruct)(ocrScheduler_t *self);
+    void (*destruct)(struct _ocrScheduler_t *self);
 
     // TODO: I am removing these for now as I think they can
     // be internal to the other exposed functions (it seems they are called
@@ -75,17 +75,18 @@ typedef struct _ocrSchedulerFcts_t {
      * @brief Requests EDTs from this scheduler
      * @see ocrPolicyDomain_t
      */
-    u8 (*takeEdt)(ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
+    u8 (*takeEdt)(struct _ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
                   ocrGuid_t *edts, ocrPolicyCtx_t *context);
 
-    u8 (*giveEdt)(ocrScheduler_t *self, u32 count,
+    u8 (*giveEdt)(struct _ocrScheduler_t *self, u32 count,
                   ocrGuid_t *edts, ocrPolicyCtx_t *context);
 
     // TODO: We will need to add the DB functions here
 } ocrSchedulerFcts_t;
 
-typedef struct _ocrWorker_t ocrWorker_t;
-typedef struct _ocrWorkpile_t ocrWorpile_t;
+struct _ocrWorker_t;
+struct _ocrWorkpile_t;
+
 /*! \brief Represents OCR schedulers.
  *
  *  Currently, we allow scheduler interface to have work taken from them or given to them
@@ -94,8 +95,8 @@ typedef struct _ocrScheduler_t {
     ocrMappable_t module;
     ocrGuid_t guid;
 
-    ocrWorker_t *workers;
-    ocrWorkpile_t *workpiles;
+    struct _ocrWorker_t *workers;
+    struct _ocrWorkpile_t *workpiles;
     u32 workerCount;
     u32 workpileCount;
 
@@ -109,10 +110,10 @@ typedef struct _ocrScheduler_t {
 
 typedef struct _ocrSchedulerFactory_t {
     ocrMappable_t module;
-    ocrScheduler_t* (*instantiate) (struct +ocrSchedulerFactory_t * factory,
+    ocrScheduler_t* (*instantiate) (struct _ocrSchedulerFactory_t * factory,
                                     ocrParamList_t *perInstance);
 
-    void (*destruct)(struct ocrSchedulerFactory_t * factory);
+    void (*destruct)(struct _ocrSchedulerFactory_t * factory);
 
     ocrSchedulerFcts_t schedulerFcts;
 } ocrSchedulerFactory_t;

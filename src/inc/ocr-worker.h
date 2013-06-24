@@ -35,6 +35,7 @@
 #include "ocr-guid.h"
 #include "ocr-mappable.h"
 #include "ocr-scheduler.h"
+#include "ocr-comp-target.h"
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -52,24 +53,24 @@ typedef struct _paramListWorkerInst_t {
 /* OCR WORKER                                         */
 /******************************************************/
 
-typedef struct _ocrWorker_t ocrWorker_t;
+struct _ocrWorker_t;
 
 typedef struct _ocrWorkerFcts_t {
     //TODO deal with worker id
-    void (*destruct) (ocrWorker_t *self);
+    void (*destruct) (struct _ocrWorker_t *self);
 
     /*! \brief Start Worker
      */
-    void (*start) (ocrWorker_t *self);
+    void (*start) (struct _ocrWorker_t *self);
 
     /*! \brief Stop Worker
      */
-    void (*stop) (ocrWorker_t *self);
+    void (*stop) (struct _ocrWorker_t *self);
 
     /*! \brief Check if Worker is still running
      *  \return true if the Worker is running, false otherwise
      */
-    bool (*isRunning) (ocrWorker_t *self);
+    bool (*isRunning) (struct _ocrWorker_t *self);
 
     /**
      * @brief Returns the EDT this worker is currently running
@@ -78,7 +79,7 @@ typedef struct _ocrWorkerFcts_t {
      * @param base              OCR Worker
      * @return GUID for the currently running EDT
      */
-    ocrGuid_t (*getCurrentEDT)(ocrWorker_t *self);
+    ocrGuid_t (*getCurrentEDT)(struct _ocrWorker_t *self);
 
     /**
      * @brief Sets the EDT this worker is currently running
@@ -87,7 +88,7 @@ typedef struct _ocrWorkerFcts_t {
      * @param currEDT           GUID of the EDT this OCR Worker is now running
      * @return GUID for the currently running EDT
      */
-     void (*setCurrentEDT)(ocrWorker_t *self, ocrGuid_t currEDT);
+     void (*setCurrentEDT)(struct _ocrWorker_t *self, ocrGuid_t currEDT);
 } ocrWorkerFcts_t;
 
 typedef struct _ocrWorker_t {

@@ -51,22 +51,22 @@ typedef struct _paramListCompPlatformInst_t {
 /****************************************************/
 /* OCR COMPUTE PLATFORM                             */
 /****************************************************/
-typedef struct _ocrCompPlatform_t ocrCompPlatform_t;
+struct _ocrCompPlatform_t;
 
 typedef struct _ocrCompPlatformFcts_t {
-    void (*destruct)(ocrCompPlatform_t *self);
+    void (*destruct)(struct _ocrCompPlatform_t *self);
     /**
      * @brief Starts a thread of execution.
      *
      * The function started will be 'routine' and it will be passed 'routineArg'
      * @todo There was something about a stack size...
      */
-    void (*start)(ocrCompPlatform_t *self);
+    void (*start)(struct _ocrCompPlatform_t *self);
 
     /**
      * @brief Stops this tread of execution
      */
-    void (*stop)(ocrCompPlatform_t *self);
+    void (*stop)(struct _ocrCompPlatform_t *self);
 
 } ocrCompPlatformFcts_t;
 
@@ -110,10 +110,11 @@ extern void (*setCurrentCompTarget)(ocrGuid_t guid);
 extern ocrGuid_t (*getCurrentEDT)();
 extern void (*setCurrentEDT)(ocrGuid_t guid);
 
+struct _ocrPolicyDomain_t;
 /**
  * @brief Gets the current policy domain for the calling code
  */
-extern ocrGuid_t (*getCurrentPD)();
+extern struct _ocrPolicyDomain_t * (*getCurrentPD)();
 extern void (*setCurrentPD)(ocrGuid_t guid);
 
 #endif /* __OCR_COMP_PLATFORM_H__ */

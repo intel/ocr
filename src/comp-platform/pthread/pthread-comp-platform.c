@@ -39,6 +39,8 @@
 #include "ocr-macros.h"
 
 
+struct _ocrPolicyDomain_t;
+
 /**
  * @brief Structure stored on a per-thread basis to keep track of
  * "who we are"
@@ -46,7 +48,7 @@
 typedef struct {
     ocrGuid_t compTarget;
     ocrGuid_t edt;
-    ocrGuid_t policyDomain;
+    struct _ocrPolicyDomain_t * policyDomain;
 } perThreadStorage_t;
 
 /**
@@ -151,7 +153,8 @@ static ocrGuid_t getCurrentEDTPthread() {
     return vals->edt;
 }
 
-static ocrGuid_t getCurrentPDPthread() {
+struct _ocrPolicyDomain_t;
+static struct _ocrPolicyDomain_t * getCurrentPDPthread() {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
     return vals->policyDomain;
 }

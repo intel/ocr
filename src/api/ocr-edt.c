@@ -45,7 +45,7 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
 u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     ocrEvent_t * event = NULL;
     globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
-    event->fct_ptrs->destruct(event);
+    event->fctPtrs->destruct(event);
     return 0;
 }
 
@@ -53,7 +53,7 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*
     assert(eventGuid != NULL_GUID);
     ocrEvent_t * event = NULL;
     globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
-    event->fct_ptrs->satisfy(event, dataGuid, slot);
+    event->fctPtrs->satisfy(event, dataGuid, slot);
     return 0;
 }
 
@@ -112,14 +112,14 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
     ocrGuid_t worker_guid = ocr_get_current_worker_guid();
     ocrTask_t * task = NULL;
     globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
-    task->fct_ptrs->schedule(task, worker_guid);
+    task->fctPtrs->schedule(task, worker_guid);
     return 0;
 }
 
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     ocrTask_t * task = NULL;
     globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
-    task->fct_ptrs->destruct(task);
+    task->fctPtrs->destruct(task);
     return 0;
 }
 
