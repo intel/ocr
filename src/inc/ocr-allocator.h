@@ -135,7 +135,7 @@ typedef struct _ocrAllocator_t {
     ocrGuid_t guid;           /**< The allocator also has a GUID so that
                                * data-blocks can know what allocated/freed them */
 
-    struct _ocrMemTarget_t *memories; /**< Allocators are mapped to ocrMemTarget_t (0+) */
+    struct _ocrMemTarget_t **memories; /**< Allocators are mapped to ocrMemTarget_t (0+) */
     u32 memoryCount;          /**< Number of memories associated */
 
     ocrAllocatorFcts_t *fctPtrs;

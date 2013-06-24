@@ -879,7 +879,7 @@ static u64 tlsfMalloc(u64 pgStart, u64 size) {
 
     if(allocSize == 0 && size != 0) {
         DO_DEBUG(DEBUG_LVL_VERB) {
-            PRINTF("VERB: tlsfMalloc @0x#lx returning NULL for too large size %ld\n",
+            PRINTF("VERB: tlsfMalloc @0x%lx returning NULL for too large size %ld\n",
                    pgStart, size);
         }
         return _NULL;
@@ -1001,17 +1001,20 @@ static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
 }
 
 // Helper methods
-static void tlsfMap(ocrMappable_t* self, ocrMappableKind kind, u32 instanceCount,
-                    ocrMappable_t* ptrInstances) {
+static void tlsfMap(ocrMappable_t* self, ocrMappableKind kind, u64 instanceCount,
+                    ocrMappable_t** ptrInstances) {
 
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     ASSERT(instanceCount == 1); // Currently only support one underlying memory
     ASSERT(rself->base.memoryCount == 0 && rself->base.memories == NULL); // Called only once
     rself->base.memoryCount = instanceCount;
-    rself->base.memories = (ocrMemTarget_t*)ptrInstances;
+    // TODO: Is this the best way...
+    rself->base.memories = (ocrMemTarget_t**)checkedMalloc(rself->base.memories,
+                                                           sizeof(ocrMemTarget_t*));
+    rself->base.memories[0] = ((ocrMemTarget_t**)ptrInstances)[0];
 
     // Do the allocation
-    rself->addr = rself->poolAddr = (u64)(rself->.base.memories[0]->allocate(
+    rself->addr = rself->poolAddr = (u64)(rself->base.memories[0]->fctPtrs->allocate(
                                               rself->base.memories[0], rself->totalSize));
     ASSERT(rself->addr);
     RESULT_ASSERT(tlsfInit(rself->addr, rself->totalSize), ==, 0);
@@ -1019,33 +1022,34 @@ static void tlsfMap(ocrMappable_t* self, ocrMappableKind kind, u32 instanceCount
 
 void tlsfDestruct(ocrAllocator_t *self) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    if(rself->numMemories)
-        rself->memories[0]->free(rself->memories[0], (void*)rself->addr);
-    rself->lock->destruct(rself->lock);
+    if(self->memoryCount)
+        self->memories[0]->fctPtrs->free(self->memories[0], (void*)rself->addr);
+    rself->lock->fctPtrs->destruct(rself->lock);
+    free(self->memories);
     globalGuidProvider->releaseGuid(globalGuidProvider, self->guid);
     free(rself);
 }
 
 void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    rself->lock->lock(rself->lock);
+    rself->lock->fctPtrs->lock(rself->lock);
     void* toReturn = (void*)tlsfMalloc(rself->addr, size);
-    rself->lock->unlock(rself->lock);
+    rself->lock->fctPtrs->unlock(rself->lock);
     return toReturn;
 }
 
-void tlsfFree(ocrAllocator_t *self, void* address) {
+void tlsfDeallocate(ocrAllocator_t *self, void* address) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    rself->lock->lock(rself->lock);
+    rself->lock->fctPtrs->lock(rself->lock);
     tlsfFree(rself->addr, (u64)address);
-    rself->lock->unlock(rself->lock);
+    rself->lock->fctPtrs->unlock(rself->lock);
 }
 
 void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    rself->lock->lock(rself->lock);
+    rself->lock->fctPtrs->lock(rself->lock);
     void* toReturn = (void*)(tlsfRealloc(rself->addr, (u64)address, size));
-    rself->lock->unlock(rself->lock);
+    rself->lock->fctPtrs->unlock(rself->lock);
     return toReturn;
 }
 
@@ -1064,7 +1068,8 @@ ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_
 
     result->addr = result->poolAddr = 0ULL;
     result->totalSize = result->poolSize = perInstanceReal->size;
-    result->lock->create(result->lock, NULL);
+    // TODO: Create the lock from the factory from the PD
+//    result->lock->create(result->lock, NULL);
 
     result->base.module.mapFct = &tlsfMap;
 
@@ -1086,8 +1091,8 @@ ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
     base->destruct =  &destructAllocatorFactoryTlsf;
     base->allocFcts.destruct = &tlsfDestruct;
     base->allocFcts.allocate = &tlsfAllocate;
-    base->allocFcts.free = &tlsfFree;
-    base->reallocate = &tlsfReallocate;
+    base->allocFcts.free = &tlsfDeallocate;
+    base->allocFcts.reallocate = &tlsfReallocate;
     return base;
 }
 // Deactivated for now. Need to clean-up
