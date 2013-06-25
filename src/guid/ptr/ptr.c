@@ -40,10 +40,6 @@ typedef struct {
     ocrGuidKind kind;
 } ocrGuidImpl_t;
 
-void ptrCreate(ocrGuidProvider_t* self, void* config) {
-    return;
-}
-
 void ptrDestruct(ocrGuidProvider_t* self) {
     free(self);
     return;
@@ -75,12 +71,11 @@ u8 ptrReleaseGuid(ocrGuidProvider_t *self, ocrGuid_t guid) {
 
 ocrGuidProvider_t* newGuidProviderPtr() {
     ocrGuidProviderPtr_t *result = (ocrGuidProviderPtr_t*)malloc(sizeof(ocrGuidProviderPtr_t));
-    result->base.create = &ptrCreate;
-    result->base.destruct = &ptrDestruct;
-    result->base.getGuid = &ptrGetGuid;
-    result->base.getVal = &ptrGetVal;
-    result->base.getKind = &ptrGetKind;
-    result->base.releaseGuid = &ptrReleaseGuid;
+    result->base.fctPtrs->destruct = &ptrDestruct;
+    result->base.fctPtrs->getGuid = &ptrGetGuid;
+    result->base.fctPtrs->getVal = &ptrGetVal;
+    result->base.fctPtrs->getKind = &ptrGetKind;
+    result->base.fctPtrs->releaseGuid = &ptrReleaseGuid;
 
     return (ocrGuidProvider_t*)result;
 }
