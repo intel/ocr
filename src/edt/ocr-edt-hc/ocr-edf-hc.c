@@ -679,7 +679,7 @@ void taskExecute ( ocrTask_t* base ) {
                 assert(isDatablockGuid(dbGuid));
                 ocrDataBlock_t * db = NULL;
                 deguidify(getCurrentPD(), dbGuid, (u64*)&db, NULL);
-                depv[i].ptr = db->acquire(db, base->guid, true);
+                depv[i].ptr = db->fctPtrs->acquire(db, base->guid, true);
             } else {
                 depv[i].ptr = NULL;
             }
@@ -699,7 +699,7 @@ void taskExecute ( ocrTask_t* base ) {
             if(depv[i].guid != NULL_GUID) {
                 ocrDataBlock_t * db = NULL;
                 deguidify(getCurrentPD(), depv[i].guid, (u64*)&db, NULL);
-                RESULT_ASSERT(db->release(db, base->guid, true), ==, 0);
+                RESULT_ASSERT(db->fctPtrs->release(db, base->guid, true), ==, 0);
             }
         }
     }

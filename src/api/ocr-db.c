@@ -77,8 +77,8 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     deguidify(getCurrentPD(), worker_guid, (u64*)&worker, NULL);
 
     ocrScheduler_t * scheduler = get_worker_scheduler(worker);
-    ocrPolicyDomain_t* policy = scheduler -> domain; 
-
+    ocrPolicyDomain_t* policy = scheduler -> domain;
+    //TODO this should go through a db factory
     createdDb->create(createdDb, policy->getAllocator(policy, location), len, flags, NULL);
 #ifdef OCR_ENABLE_STATISTICS
     {
@@ -92,7 +92,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
         ocrStatsAsyncMessage(srcProcess, &(createdDb->statProcess), mess);
 
         // Acquire part
-        *addr = createdDb->acquire(createdDb, edtGuid, false);
+        *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);
         ocrStatsMessage_t *mess2 = NEW_MESSAGE(simple);
         mess2->create(mess2, STATS_DB_ACQ, 0, edtGuid, createdDb->guid, NULL);
         ocrStatsSyncMessage(srcProcess, &(createdDb->statProcess), mess2);
@@ -132,7 +132,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
 #endif
     // Make sure you do the free *AFTER* sending the message because the free could
     // destroy the datablock (and the stat process).
-    u8 status = dataBlock->free(dataBlock, worker->fctPtrs->getCurrentEDT(worker));
+    u8 status = dataBlock->fctPtrs->free(dataBlock, worker->fctPtrs->getCurrentEDT(worker));
     return status;
 }
 
@@ -144,7 +144,7 @@ u8 ocrDbAcquire(ocrGuid_t db, void** addr, u16 flags) {
     ocrWorker_t *worker = NULL;
     deguidify(getCurrentPD(), workerGuid, (u64*)&worker, NULL);
 
-    *addr = dataBlock->acquire(dataBlock, worker->fctPtrs->getCurrentEDT(worker), false);
+    *addr = dataBlock->fctPtrs->acquire(dataBlock, worker->fctPtrs->getCurrentEDT(worker), false);
 #ifdef OCR_ENABLE_STATISTICS
     {
         ocrTask_t *task = NULL;
@@ -174,7 +174,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
         ocrTask_t *task = NULL;
         ocrGuid_t edtGuid = worker->fctPtrs->getCurrentEDT(worker);
 
-        u8 result = dataBlock->release(dataBlock, edtGuid, false);
+        u8 result = dataBlock->fctPtrs->release(dataBlock, edtGuid, false);
 
         deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
 
