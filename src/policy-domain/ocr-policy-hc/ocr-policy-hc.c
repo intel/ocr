@@ -48,11 +48,8 @@ void hc_policy_domain_create(ocrPolicyDomain_t * policy, void * configuration,
 
 void hc_policy_domain_start(ocrPolicyDomain_t * policy) {
     // Create Task and Event Factories
-    policy->taskFactories = (ocrTaskFactory_t**) malloc(sizeof(ocrTaskFactory_t*));
-    policy->eventFactories = (ocrEventFactory_t**) malloc(sizeof(ocrEventFactory_t*));
-
-    policy->taskFactories[0] = newTaskFactoryHc(NULL);
-    policy->eventFactories[0] = newEventFactoryHc(NULL);
+    policy->taskFactory = newTaskFactoryHc(NULL);
+    policy->eventFactory = newEventFactoryHc(NULL);
 
     // WARNING: Threads start should be the last thing we do here after
     //          all data-structures have been initialized.
@@ -126,14 +123,6 @@ void hc_ocr_module_map_schedulers_to_policy (void * self_module, ocrMappableKind
     }
 }
 
-ocrTaskFactory_t* hc_policy_getTaskFactoryForUserTasks (ocrPolicyDomain_t * policy) {
-    return policy->taskFactories[0];
-}
-
-ocrEventFactory_t* hc_policy_getEventFactoryForUserEvents(ocrPolicyDomain_t * policy) {
-    return policy->eventFactories[0];
-}
-
 ocrPolicyDomain_t * hc_policy_domain_constructor(u64 workpileCount,
                                                    u64 workerCount,
                                                    u64 computeCount,
@@ -160,8 +149,6 @@ ocrPolicyDomain_t * hc_policy_domain_constructor(u64 workpileCount,
     policy->handIn = policy_domain_handIn_assert;
     policy->extract = policy_domain_extract_assert;
 
-    policy->getTaskFactoryForUserTasks = hc_policy_getTaskFactoryForUserTasks;
-    policy->getEventFactoryForUserEvents = hc_policy_getEventFactoryForUserEvents;
     return policy;
 }
 
@@ -279,9 +266,6 @@ void leaf_place_policy_domain_constructor_helper ( ocrPolicyDomain_t * policy,
     policy->receive = policy_domain_receive_assert;
     policy->handIn = leaf_policy_domain_handIn;
     policy->extract = leaf_policy_domain_extract;
-
-    policy->getTaskFactoryForUserTasks = hc_policy_getTaskFactoryForUserTasks;
-    policy->getEventFactoryForUserEvents = hc_policy_getEventFactoryForUserEvents;
 }
 
 ocrPolicyDomain_t * leaf_place_policy_domain_constructor(u64 workpileCount,
@@ -329,16 +313,6 @@ void place_policy_domain_destruct(ocrPolicyDomain_t * policy) {
 
 ocrGuid_t place_policy_getAllocator(ocrPolicyDomain_t * policy, ocrLocation_t* location) {
     return NULL_GUID;
-}
-
-ocrTaskFactory_t* place_policy_getTaskFactoryForUserTasks (ocrPolicyDomain_t * policy) {
-    assert ( 0 && "We should not ask for a task factory from a place policy");
-    return NULL;
-}
-
-ocrEventFactory_t* place_policy_getEventFactoryForUserEvents (ocrPolicyDomain_t * policy) {
-    assert ( 0 && "We should not ask for an event factory from a place policy");
-    return NULL;
 }
 
 void place_policy_domain_start(ocrPolicyDomain_t * policy) {
@@ -395,9 +369,6 @@ ocrPolicyDomain_t * place_policy_domain_constructor () {
     policy->create = place_policy_domain_create;
     policy->destruct = place_policy_domain_destruct;
     policy->getAllocator = place_policy_getAllocator;
-
-    policy->getTaskFactoryForUserTasks = place_policy_getTaskFactoryForUserTasks;
-    policy->getEventFactoryForUserEvents = place_policy_getEventFactoryForUserEvents;
 
     policy->start = place_policy_domain_start;
     policy->finish = place_policy_domain_finish;

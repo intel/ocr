@@ -524,7 +524,7 @@ static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomai
     ocrTask_t * newEdtBase = (ocrTask_t *) newEdt;
     // If we are creating a finish-edt
     if (hasProperty(properties, EDT_PROP_FINISH)) {
-        ocrEventFactory_t * eventFactory = pd->getEventFactoryForUserEvents(pd);
+        ocrEventFactory_t * eventFactory = getEventFactoryFromPd(pd);
         ocrEvent_t * latch = eventConstructorInternal(pd, eventFactory, OCR_EVENT_FINISH_LATCH_T, false);
         ocrEventHcFinishLatch_t * hcLatch = (ocrEventHcFinishLatch_t *) latch;
         // Set the owner of the latch
@@ -738,6 +738,7 @@ ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory, ocrEdt_
     base->paramc = paramc;
     base->depc = depc;
     base->executePtr = executePtr;
+    //TODO this is most likely wrong: should be in ocrTaskFactory ?
     base->fctPtrs = &(((ocrTaskTemplateFactoryHc_t *) factory)->taskFctPtrs);
     return base;
 }
@@ -773,7 +774,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplat
     ocrGuid_t outputEvent = (ocrGuid_t) outputEventPtr;
     ocrPolicyDomain_t* pd = getCurrentPD();
     if (outputEvent != NULL_GUID) {
-        ocrEventFactory_t * eventFactory = pd->getEventFactoryForUserEvents(pd);
+        ocrEventFactory_t * eventFactory = getEventFactoryFromPd(pd);
         ocrEvent_t * event = newEventHc(eventFactory, OCR_EVENT_STICKY_T, false);
         *outputEventPtr = event->guid;
     }

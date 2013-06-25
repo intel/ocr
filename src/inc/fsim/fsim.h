@@ -112,14 +112,14 @@ typedef struct {
     ocrTaskFactory_t base_factory;
 } ocrTaskFactoryFsim_t;
 
-ocrTaskFactory_t* newTaskFactoryFsim(void * config);
+ocrTaskFactory_t* newTaskFactoryFsim(ocrParamList_t* perType);
 void destructTaskFactoryFsim ( ocrTaskFactory_t* base );
 
 typedef struct {
     ocrTaskFactory_t base_factory;
 } ocrTaskFactoryFsimMessage_t;
 
-ocrTaskFactory_t* newTaskFactoryFsimMessage(void * config);
+ocrTaskFactory_t* newTaskFactoryFsimMessage(ocrParamList_t* perType);
 void destructTaskFactoryFsimMessage ( ocrTaskFactory_t* base );
 
 typedef struct fsim_message_interface_struct {

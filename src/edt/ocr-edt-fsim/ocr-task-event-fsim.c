@@ -42,8 +42,9 @@
 
 // This is doing pretty much what the hc implementation would do
 // There's no inheritance setup so it's a vague copy paste
-static void hcTaskConstructInternal (ocrTaskHc_t* derived, 
-        ocrTaskTemplate * taskTemplate, u64 * params, void** paramv, ocrGuid_t outputEvent) {
+static void newTaskFsimInternal (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived, 
+        ocrTaskTemplate_t * taskTemplate, u64 * params, void** paramv, ocrGuid_t outputEvent) {
+    u32 nbDeps = taskTemplate->depc;
     if (nbDeps == 0) {
         derived->signalers = END_OF_LIST;
     } else {
@@ -54,10 +55,13 @@ static void hcTaskConstructInternal (ocrTaskHc_t* derived,
     // Initialize base
     ocrTask_t* base = (ocrTask_t*) derived;
     base->guid = UNINITIALIZED_GUID;
+    guidify(pd, &(base->guid), (u64)base, OCR_GUID_EDT);
+    if (taskTemplate != NULL) {
+        base->templateGuid = taskTemplate->guid;
+    }
     base->params = params;
     base->paramv = paramv;
     base->outputEvent = outputEvent;
-    base->templateGuid = taskTemplate->guid;
     // Initialize ELS
     int i = 0;
     while (i < ELS_SIZE) {
@@ -79,35 +83,60 @@ void destructTaskFactoryFsim ( ocrTaskFactory_t* base ) {
     free(derived);
 }
 
-ocrTaskTemplate_t * fsimTaskTemplateConstruct (ocrTaskTemplateFactory_t* factory, ocrEdt_t executePtr, u32 paramc, u32 depc, ocrTaskFcts_t * fctPtrs) {
-    ocrTaskTemplate_t * base = (ocrTaskTemplate_t*) malloc(sizeof(ocrTaskTemplate_t));
-    base->executePtr = executePtr;
+
+/******************************************************/
+/* Fsim Task Template Factory                         */
+/******************************************************/
+
+ocrTaskTemplate_t * newTaskTemplateFsim (ocrTaskTemplateFactory_t* factory, ocrEdt_t executePtr, u32 paramc, u32 depc) {
+    ocrTaskTemplateHc_t* template = (ocrTaskTemplateHc_t*) checkedMalloc(template, sizeof(ocrTaskTemplateHc_t));
+    ocrTaskTemplate_t * base = (ocrTaskTemplate_t *) template;
     base->paramc = paramc;
-    base->depc = nbDeps;
-    base->fctPtrs = fctPtrs;
+    base->depc = depc;
+    base->executePtr = executePtr;
+    //TODO this is most likely wrong: should be in ocrTaskFactory ?
+    base->fctPtrs = &(((ocrTaskTemplateFactoryHc_t *) factory)->taskFctPtrs);
     return base;
 }
 
-// TODO destruct 
-ocrTask_t * newTaskFsim ( ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, u64 * params, void** paramv, u16 properties, ocrGuid_t outputEvent) {
+void destructTaskTemplateFactoryFsim(ocrTaskTemplateFactory_t* base) {
+    ocrTaskTemplateFactoryHc_t* derived = (ocrTaskTemplateFactoryHc_t*) base;
+    free(derived);
+}
+
+ocrTaskTemplateFactory_t * newTaskTemplateFactoryFsim(ocrParamList_t* perType) {
+    ocrTaskTemplateFactoryHc_t* derived = (ocrTaskTemplateFactoryHc_t*) checkedMalloc(derived, sizeof(ocrTaskTemplateFactoryHc_t));
+    ocrTaskTemplateFactory_t* base = (ocrTaskTemplateFactory_t*) derived;
+    base->instantiate = newTaskTemplateFsim;
+    base->destruct =  destructTaskTemplateFactoryFsim;
+    //TODO What taskTemplateFcts is supposed to do ?
+    return base;
+}
+
+ocrTask_t * newTaskFsim ( ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, u64 * params, void** paramv, u16 properties, ocrGuid_t * outputEventPtr) {
     ocrTaskFsim_t* derived = (ocrTaskFsim_t*) malloc(sizeof(ocrTaskFsim_t));
     ocrTaskHc_t* hcTaskBase = &(derived->fsimBase.base);
-    hcTaskConstructInternal(hcTaskBase, taskTemplate, params, paramv, properties, outputEvent);
-    fsim_message_interface_t* fsimMessage = &(derived->fsimBase.message_interface);
-    fsimMessage->is_message = fsim_task_is_message;
+    ocrPolicyDomain_t* pd = getCurrentPD();
+    ocrGuid_t outputEvent = (ocrGuid_t) outputEventPtr;
+    if (outputEvent != NULL_GUID) {
+        ASSERT(false && "fsim implementation doesn't support output event");
+    }
+    newTaskFsimInternal(pd, hcTaskBase, taskTemplate, params, paramv, outputEvent);
+    derived->fsimBase.message_interface.is_message = fsim_task_is_message;
     return (ocrTask_t*) derived;
 }
 
-ocrTaskFactory_t* newTaskFactoryFsim(void * config) {
+ocrTaskFactory_t* newTaskFactoryFsim(ocrParamList_t* perInstance) {
     ocrTaskFactoryFsim_t* derived = (ocrTaskFactoryFsim_t*) malloc(sizeof(ocrTaskFactoryFsim_t));
     ocrTaskFactory_t* base = (ocrTaskFactory_t*) derived;
     base->instantiate = newTaskFsim;
     base->destruct =  destructTaskFactoryFsim;
-    // initialize singleton instance that carries implementation function pointers
-    base->taskFcts = (ocrTaskFcts_t *) checkedMalloc(base->taskFcts, sizeof(ocrTaskFcts_t));
-    base->taskFcts->destruct = destructTaskFsim;
-    base->taskFcts->execute = taskExecute;
-    base->taskFcts->schedule = tryScheduleTask;
+    // initialize singleton instance that carries hc implementation 
+    // function pointers. Every instantiated task template will use 
+    // this pointer to resolve functions implementations.
+    base->taskFctPtrs.destruct = destructTaskFsim;
+    base->taskFctPtrs.execute = taskExecute;
+    base->taskFctPtrs.schedule = tryScheduleTask;
     return base;
 }
 
@@ -125,26 +154,29 @@ void destructTaskFsimMessage ( ocrTask_t* base ) {
     free(derived);
 }
 
-ocrTask_t * newTaskFsimMessage(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, u32 paramc, u64 * params, void** paramv, u16 properties, ocrGuid_t outputEvent) {
+ocrTask_t * newTaskFsimMessage(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, u64 * params, void** paramv, u16 properties, ocrGuid_t * outputEventPtr) {
     ocrTaskFsimMessage_t* derived = (ocrTaskFsimMessage_t*) malloc(sizeof(ocrTaskFsimMessage_t));
     ocrTaskHc_t* hcTaskBase = &(derived->fsimBase.base);
+    ocrPolicyDomain_t* pd = getCurrentPD();
+    if (outputEventPtr != NULL) {
+        ASSERT(false && "fsim implementation doesn't support output event");
+    }
     // This is an internal task used as a "message", we shouldn't need to setup a task template
-    hcTaskConstructInternal(hcTaskBase, NULL, NULL, NULL, 0, NULL_GUID);
-    fsim_message_interface_t* fsimMessage = &(derived->fsimBase.message_interface);
-    fsimMessage->is_message = fsim_message_task_is_message;
+    newTaskFsimInternal(pd, hcTaskBase, NULL, NULL, NULL, NULL_GUID);
+    derived->fsimBase.message_interface.is_message = fsim_message_task_is_message;
     return (ocrTask_t*) derived;
 }
 
-ocrTaskFactory_t* newTaskFactoryFsimMessage(void * config) {
+ocrTaskFactory_t* newTaskFactoryFsimMessage(ocrParamList_t* perInstance) {
     ocrTaskFactoryFsimMessage_t* derived = (ocrTaskFactoryFsimMessage_t*) malloc(sizeof(ocrTaskFactoryFsimMessage_t));
     ocrTaskFactory_t* base = (ocrTaskFactory_t*) derived;
     base->instantiate = newTaskFsimMessage;
     base->destruct =  destructTaskFactoryFsimMessage;
     // initialize singleton instance that carries implementation function pointers
     base->taskFcts = (ocrTaskFcts_t *) checkedMalloc(base->taskFcts, sizeof(ocrTaskFcts_t));
-    base->taskFcts->destruct = destructTaskFsimMessage;
-    base->taskFcts->execute = taskExecute;
-    base->taskFcts->schedule = tryScheduleTask;
+    base->taskFcts.destruct = destructTaskFsimMessage;
+    base->taskFcts.execute = taskExecute;
+    base->taskFcts.schedule = tryScheduleTask;
     return base;
 }
 
@@ -180,7 +212,7 @@ void * xe_worker_computation_routine (void * arg) {
             ocrTaskFactory_t* message_task_factory = policy_domain->taskFactories[1];
             // the message to the CE says 'give me work' and notes who is asking for it
             ocrTaskFsimMessage_t * derived = (ocrTaskFsimMessage_t *) 
-                message_task_factory->instantiate(message_task_factory, NULL_GUID, 0, NULL);
+                message_task_factory->instantiate(message_task_factory, NULL, NULL, NULL, 0, NULL);
             guidify(getCurrentPD(), &(task->guid), (u64)task, OCR_GUID_EDT);
             ocrGuid_t messageTaskGuid = task->guid;
             derived -> type = GIVE_ME_WORK;
