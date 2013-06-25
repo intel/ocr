@@ -122,13 +122,14 @@ typedef struct _paramListSchedulerHcInst_t {
 
 typedef struct {
     ocrTaskTemplateFactory_t base_factory;
-    ocrTaskFcts_t taskFctPtrs;
 } ocrTaskTemplateFactoryHc_t;
 
 ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType);
 
 typedef struct {
     ocrTaskFactory_t base_factory;
+    // singleton the factory passes on to each task instance
+    ocrTaskFcts_t taskFctPtrs;
 } ocrTaskFactoryHc_t;
 
 ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perType);

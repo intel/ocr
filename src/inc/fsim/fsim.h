@@ -42,6 +42,15 @@
 #include "deque.h"
 
 
+/******************************************************/
+/* OCR-FSIM POLICY DOMAIN                             */
+/******************************************************/
+
+typedef struct _ocrPolicyDomainFsim_t {
+  ocrPolicyDomain_t base;
+  ocrTaskFactory_t * taskMessageFactory;
+} ocrPolicyDomainFsim_t;
+
 typedef struct {
     ocrWorkerHc_t hcBase;
     pthread_cond_t isRunningCond;
@@ -116,7 +125,7 @@ ocrTaskFactory_t* newTaskFactoryFsim(ocrParamList_t* perType);
 void destructTaskFactoryFsim ( ocrTaskFactory_t* base );
 
 typedef struct {
-    ocrTaskFactory_t base_factory;
+    ocrTaskFactoryHc_t base_factory;
 } ocrTaskFactoryFsimMessage_t;
 
 ocrTaskFactory_t* newTaskFactoryFsimMessage(ocrParamList_t* perType);

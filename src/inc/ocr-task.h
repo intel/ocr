@@ -81,7 +81,6 @@ typedef struct _ocrTaskTemplate_t {
     u32 paramc;
     u32 depc;
     ocrEdt_t executePtr;
-    struct _ocrTaskFcts_t * fctPtrs;
 } ocrTaskTemplate_t;
 
 /****************************************************/
@@ -143,6 +142,7 @@ typedef struct _ocrTask_t {
     ocrGuid_t outputEvent; // Event to notify when the EDT is done
     // TODO: What about depv?? => This is implementation specific for now
     ocrGuid_t els[ELS_SIZE];
+    struct _ocrTaskFcts_t * fctPtrs;
 } ocrTask_t;
 
 /****************************************************/

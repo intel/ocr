@@ -123,9 +123,7 @@ u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
     ocrPolicyDomain_t * pd = getCurrentPD();
     ocrTask_t * task = NULL;
     deguidify(pd, edtGuid, (u64*)&task, NULL);
-    ocrTaskTemplate_t * taskTemplate = NULL;
-    deguidify(pd, task->templateGuid, (u64*)&taskTemplate, NULL);
-    taskTemplate->fctPtrs->schedule(task);
+    task->fctPtrs->schedule(task);
     return 0;
 }
 
@@ -133,9 +131,7 @@ u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     ocrPolicyDomain_t * pd = getCurrentPD();
     ocrTask_t * task = NULL;
     deguidify(pd, edtGuid, (u64*)&task, NULL);
-    ocrTaskTemplate_t * taskTemplate = NULL;
-    deguidify(pd, task->templateGuid, (u64*)&taskTemplate, NULL);
-    taskTemplate->fctPtrs->destruct(task);
+    task->fctPtrs->destruct(task);
     return 0;
 }
 

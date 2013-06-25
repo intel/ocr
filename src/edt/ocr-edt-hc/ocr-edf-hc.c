@@ -738,8 +738,6 @@ ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory, ocrEdt_
     base->paramc = paramc;
     base->depc = depc;
     base->executePtr = executePtr;
-    //TODO this is most likely wrong: should be in ocrTaskFactory ?
-    base->fctPtrs = &(((ocrTaskTemplateFactoryHc_t *) factory)->taskFctPtrs);
     return base;
 }
 
@@ -753,12 +751,6 @@ ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType) {
     ocrTaskTemplateFactory_t* base = (ocrTaskTemplateFactory_t*) derived;
     base->instantiate = newTaskTemplateHc;
     base->destruct =  destructTaskTemplateFactoryHc;
-    // initialize singleton instance that carries hc implementation 
-    // function pointers. Every instantiated task template will use 
-    // this pointer to resolve functions implementations.
-    derived->taskFctPtrs.destruct = destructTaskHc;
-    derived->taskFctPtrs.execute = taskExecute;
-    derived->taskFctPtrs.schedule = tryScheduleTask;
     //TODO What taskTemplateFcts is supposed to do ?
     return base;
 }
@@ -780,6 +772,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplat
     }
     ocrTaskHc_t* edt = newTaskHcInternal(factory, pd, taskTemplate, params, paramv, properties, outputEvent);
     ocrTask_t* base = (ocrTask_t*) edt;
+    base->fctPtrs = &(((ocrTaskFactoryHc_t *) factory)->taskFctPtrs);
     return base;
 }
 
@@ -793,6 +786,14 @@ ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance) {
     ocrTaskFactory_t* base = (ocrTaskFactory_t*) derived;
     base->instantiate = newTaskHc;
     base->destruct =  destructTaskFactoryHc;
+
+    // initialize singleton instance that carries hc implementation 
+    // function pointers. Every instantiated task template will use 
+    // this pointer to resolve functions implementations.
+    derived->taskFctPtrs.destruct = destructTaskHc;
+    derived->taskFctPtrs.execute = taskExecute;
+    derived->taskFctPtrs.schedule = tryScheduleTask;
+
     return base;
 }
 

@@ -94,8 +94,6 @@ ocrTaskTemplate_t * newTaskTemplateFsim (ocrTaskTemplateFactory_t* factory, ocrE
     base->paramc = paramc;
     base->depc = depc;
     base->executePtr = executePtr;
-    //TODO this is most likely wrong: should be in ocrTaskFactory ?
-    base->fctPtrs = &(((ocrTaskTemplateFactoryHc_t *) factory)->taskFctPtrs);
     return base;
 }
 
@@ -115,28 +113,30 @@ ocrTaskTemplateFactory_t * newTaskTemplateFactoryFsim(ocrParamList_t* perType) {
 
 ocrTask_t * newTaskFsim ( ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, u64 * params, void** paramv, u16 properties, ocrGuid_t * outputEventPtr) {
     ocrTaskFsim_t* derived = (ocrTaskFsim_t*) malloc(sizeof(ocrTaskFsim_t));
-    ocrTaskHc_t* hcTaskBase = &(derived->fsimBase.base);
+    ocrTaskHc_t* hcBase = &(derived->fsimBase.base);
+    ocrTask_t* base = &(hcBase->base);
     ocrPolicyDomain_t* pd = getCurrentPD();
-    ocrGuid_t outputEvent = (ocrGuid_t) outputEventPtr;
-    if (outputEvent != NULL_GUID) {
+    if (outputEventPtr != NULL) {
         ASSERT(false && "fsim implementation doesn't support output event");
     }
-    newTaskFsimInternal(pd, hcTaskBase, taskTemplate, params, paramv, outputEvent);
+    newTaskFsimInternal(pd, hcBase, taskTemplate, params, paramv, NULL_GUID);
     derived->fsimBase.message_interface.is_message = fsim_task_is_message;
-    return (ocrTask_t*) derived;
+    base->fctPtrs = &(((ocrTaskFactoryHc_t *)factory)->taskFctPtrs);
+    return base;
 }
 
 ocrTaskFactory_t* newTaskFactoryFsim(ocrParamList_t* perInstance) {
     ocrTaskFactoryFsim_t* derived = (ocrTaskFactoryFsim_t*) malloc(sizeof(ocrTaskFactoryFsim_t));
+    ocrTaskFactoryHc_t* baseHc = (ocrTaskFactoryHc_t*) derived;
     ocrTaskFactory_t* base = (ocrTaskFactory_t*) derived;
     base->instantiate = newTaskFsim;
     base->destruct =  destructTaskFactoryFsim;
     // initialize singleton instance that carries hc implementation 
     // function pointers. Every instantiated task template will use 
     // this pointer to resolve functions implementations.
-    base->taskFctPtrs.destruct = destructTaskFsim;
-    base->taskFctPtrs.execute = taskExecute;
-    base->taskFctPtrs.schedule = tryScheduleTask;
+    baseHc->taskFctPtrs.destruct = destructTaskFsim;
+    baseHc->taskFctPtrs.execute = taskExecute;
+    baseHc->taskFctPtrs.schedule = tryScheduleTask;
     return base;
 }
 
@@ -156,27 +156,30 @@ void destructTaskFsimMessage ( ocrTask_t* base ) {
 
 ocrTask_t * newTaskFsimMessage(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, u64 * params, void** paramv, u16 properties, ocrGuid_t * outputEventPtr) {
     ocrTaskFsimMessage_t* derived = (ocrTaskFsimMessage_t*) malloc(sizeof(ocrTaskFsimMessage_t));
-    ocrTaskHc_t* hcTaskBase = &(derived->fsimBase.base);
+    ocrTaskHc_t* hcBase = &(derived->fsimBase.base);
+    ocrTask_t* base = &(hcBase->base);
     ocrPolicyDomain_t* pd = getCurrentPD();
     if (outputEventPtr != NULL) {
         ASSERT(false && "fsim implementation doesn't support output event");
     }
     // This is an internal task used as a "message", we shouldn't need to setup a task template
-    newTaskFsimInternal(pd, hcTaskBase, NULL, NULL, NULL, NULL_GUID);
+    newTaskFsimInternal(pd, hcBase, NULL, NULL, NULL, NULL_GUID);
     derived->fsimBase.message_interface.is_message = fsim_message_task_is_message;
+    base->fctPtrs = &(((ocrTaskFactoryHc_t *)factory)->taskFctPtrs);
     return (ocrTask_t*) derived;
 }
 
 ocrTaskFactory_t* newTaskFactoryFsimMessage(ocrParamList_t* perInstance) {
     ocrTaskFactoryFsimMessage_t* derived = (ocrTaskFactoryFsimMessage_t*) malloc(sizeof(ocrTaskFactoryFsimMessage_t));
+    ocrTaskFactoryHc_t* baseHc = (ocrTaskFactoryHc_t*) derived;
     ocrTaskFactory_t* base = (ocrTaskFactory_t*) derived;
     base->instantiate = newTaskFsimMessage;
     base->destruct =  destructTaskFactoryFsimMessage;
+
     // initialize singleton instance that carries implementation function pointers
-    base->taskFcts = (ocrTaskFcts_t *) checkedMalloc(base->taskFcts, sizeof(ocrTaskFcts_t));
-    base->taskFcts.destruct = destructTaskFsimMessage;
-    base->taskFcts.execute = taskExecute;
-    base->taskFcts.schedule = tryScheduleTask;
+    baseHc->taskFctPtrs.destruct = destructTaskFsimMessage;
+    baseHc->taskFctPtrs.execute = taskExecute;
+    baseHc->taskFctPtrs.schedule = tryScheduleTask;
     return base;
 }
 
@@ -208,13 +211,11 @@ void * xe_worker_computation_routine (void * arg) {
             // TODO sagnak, this assumes (*A LOT*) the structure below, is this fair?
             // no assigned work found, now we have to create a 'message task'
             // by using our policy domain's message task factory
-            ocrPolicyDomain_t* policy_domain = xeScheduler->domain;
-            ocrTaskFactory_t* message_task_factory = policy_domain->taskFactories[1];
+            ocrPolicyDomainFsim_t* policy_domain = (ocrPolicyDomainFsim_t *) xeScheduler->domain;
+            ocrTaskFactory_t* message_task_factory = policy_domain->taskMessageFactory;
             // the message to the CE says 'give me work' and notes who is asking for it
             ocrTaskFsimMessage_t * derived = (ocrTaskFsimMessage_t *) 
                 message_task_factory->instantiate(message_task_factory, NULL, NULL, NULL, 0, NULL);
-            guidify(getCurrentPD(), &(task->guid), (u64)task, OCR_GUID_EDT);
-            ocrGuid_t messageTaskGuid = task->guid;
             derived -> type = GIVE_ME_WORK;
             derived -> from_worker_guid = workerGuid;
 
@@ -223,6 +224,7 @@ void * xe_worker_computation_routine (void * arg) {
             ocrWorkerFsimXE_t* derivedWorker = (ocrWorkerFsimXE_t*)baseWorker;
             pthread_mutex_lock(&derivedWorker->isRunningMutex);
             if ( baseWorker->is_running(baseWorker) ) {
+                ocrGuid_t messageTaskGuid = derived->fsimBase.base.base.guid;
                 // give the work to the XE scheduler, which in turn should give it to the CE
                 // through policy domain hand out and the scheduler differentiates tasks by type (RTTI) like
                 xeScheduler->give(xeScheduler, workerGuid, messageTaskGuid);
