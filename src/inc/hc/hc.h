@@ -133,15 +133,8 @@ typedef struct {
 
 ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perType);
 
-/*
- * TODO HC implementation exposed to support FSIM
- */
- 
-extern void hcTaskConstructInternal (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived, ocrTaskTemplate_t * taskTemplate,
-        u64 * params, void** paramv, ocrGuid_t outputEvent);
-
 extern void taskSchedule( ocrGuid_t guid, ocrTask_t* base, ocrGuid_t wid );
 
-extern void tryScheduleTask( ocrTask_t* base, ocrGuid_t wid );
+extern void tryScheduleTask( ocrTask_t* base );
 
 #endif /* HC_H_ */

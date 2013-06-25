@@ -492,7 +492,7 @@ ocrEventFactory_t * newEventFactoryHc(void * config) {
 /* OCR-HC Task Implementation                         */
 /******************************************************/
 
-void hcTaskConstructInternal (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived, ocrTaskTemplate_t * taskTemplate,
+static void newTaskHcInternalCommon (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived, ocrTaskTemplate_t * taskTemplate,
         u64 * params, void** paramv, ocrGuid_t outputEvent) {
     u64 nbDeps = taskTemplate->depc;
     if (nbDeps == 0) {
@@ -517,10 +517,10 @@ void hcTaskConstructInternal (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived, ocrT
     }
 }
 
-static ocrTaskHc_t* hcTaskConstruct (ocrTaskFactory_t* factory, ocrPolicyDomain_t * pd, ocrTaskTemplate_t * taskTemplate, 
+static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomain_t * pd, ocrTaskTemplate_t * taskTemplate, 
                                     u64 * params, void** paramv, u16 properties, ocrGuid_t outputEvent) {
     ocrTaskHc_t* newEdt = (ocrTaskHc_t*)checkedMalloc(newEdt, sizeof(ocrTaskHc_t));
-    hcTaskConstructInternal(pd, newEdt, taskTemplate, params, paramv, outputEvent);
+    newTaskHcInternalCommon(pd, newEdt, taskTemplate, params, paramv, outputEvent);
     ocrTask_t * newEdtBase = (ocrTask_t *) newEdt;
     // If we are creating a finish-edt
     if (hasProperty(properties, EDT_PROP_FINISH)) {
@@ -768,7 +768,8 @@ ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType) {
 
 ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, 
                     u64 * params, void** paramv, u16 properties, ocrGuid_t * outputEventPtr) {
-    // Initialize a sticky outputEvent if requested
+    // Initialize a sticky outputEvent if requested (ptr not NULL)
+    // i.e. the user gave a place-holder for the runtime to initialize and set an output event.
     ocrGuid_t outputEvent = (ocrGuid_t) outputEventPtr;
     ocrPolicyDomain_t* pd = getCurrentPD();
     if (outputEvent != NULL_GUID) {
@@ -776,7 +777,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplat
         ocrEvent_t * event = newEventHc(eventFactory, OCR_EVENT_STICKY_T, false);
         *outputEventPtr = event->guid;
     }
-    ocrTaskHc_t* edt = hcTaskConstruct(factory, pd, taskTemplate, params, paramv, properties, outputEvent);
+    ocrTaskHc_t* edt = newTaskHcInternal(factory, pd, taskTemplate, params, paramv, properties, outputEvent);
     ocrTask_t* base = (ocrTask_t*) edt;
     return base;
 }
