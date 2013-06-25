@@ -101,22 +101,22 @@ ocrPolicyDomain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
 void ocr_policy_domain_destruct(ocrPolicyDomain_t * policy) {
     u64 i;
     for(i = 0; i < policy->workerCount; i++) {
-        policy->workers[i]->destruct(policy->workers[i]);
+        policy->workers[i]->fctPtrs->destruct(policy->workers[i]);
     }
     free(policy->workers);
 
     for(i = 0; i < policy->computeCount; i++) {
-        policy->computes[i]->destruct(policy->computes[i]);
+        policy->computes[i]->fctPtrs->destruct(policy->computes[i]);
     }
     free(policy->computes);
 
     for(i = 0; i < policy->workpileCount; i++) {
-        policy->workpiles[i]->destruct(policy->workpiles[i]);
+        policy->workpiles[i]->fctPtrs->destruct(policy->workpiles[i]);
     }
     free(policy->workpiles);
 
     for(i = 0; i < policy->schedulerCount; i++) {
-        policy->schedulers[i]->destruct(policy->schedulers[i]);
+        policy->schedulers[i]->fctPtrs->destruct(policy->schedulers[i]);
     }
     free(policy->schedulers);
 

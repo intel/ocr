@@ -96,12 +96,15 @@ ocrWorker_t* newWorkerFsimXE (ocrWorkerFactory_t * factory, ocrParamList_t * per
 
     base->scheduler = NULL;
     base->routine = xe_worker_computation_routine;
-    base->destruct = xe_worker_destruct;
-    base->start = hc_start_worker;
-    base->stop = xe_stop_worker;
-    base->is_running = hc_is_running_worker;
-    base->getCurrentEDT = hc_getCurrentEDT;
-    base->setCurrentEDT = hc_setCurrentEDT;
+    base->fctPtrs = &(factory->workerFcts);
+    //TODO these need to be moved to the factory schedulerFcts
+    base->fctPtrs->destruct = xe_worker_destruct;
+    base->fctPtrs->start = hc_start_worker;
+    base->fctPtrs->stop = xe_stop_worker;
+    base->fctPtrs->isRunning = hc_is_running_worker;
+    base->fctPtrs->getCurrentEDT = hc_getCurrentEDT;
+    base->fctPtrs->setCurrentEDT = hc_setCurrentEDT;
+    //TODO END
 
     pthread_cond_init( &xeWorker->isRunningCond, NULL);
     pthread_mutex_init( &xeWorker->isRunningMutex, NULL);
@@ -146,12 +149,13 @@ ocrWorker_t* newWorkerFsimCE (ocrWorkerFactory_t * factory, ocrParamList_t * per
 
     base->scheduler = NULL;
     base->routine = ce_worker_computation_routine;
-    base->destruct = destructWorkerHc;
-    base->start = hc_start_worker;
-    base->stop = hc_stop_worker;
-    base->is_running = hc_is_running_worker;
-    base->getCurrentEDT = hc_getCurrentEDT;
-    base->setCurrentEDT = hc_setCurrentEDT;
+    base->fctPtrs = (ocrWorkerFcts_t*) malloc(sizeof(ocrWorkerFcts_t));
+    base->fctPtrs->destruct = destructWorkerHc;
+    base->fctPtrs->start = hc_start_worker;
+    base->fctPtrs->stop = hc_stop_worker;
+    base->fctPtrs->isRunning = hc_is_running_worker;
+    base->fctPtrs->getCurrentEDT = hc_getCurrentEDT;
+    base->fctPtrs->setCurrentEDT = hc_setCurrentEDT;
 
     return base;
 }

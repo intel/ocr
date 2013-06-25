@@ -90,7 +90,7 @@ u8 ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
         ocrWorkpileIterator_t* it = base->steal_mapping(base, w);
         while ( it->hasNext(it) && (NULL_GUID == popped)) {
             ocrWorkpile_t * next = it->next(it);
-            popped = next->steal(next);
+            popped = next->fctPtrs->steal(next);
         }
         // Note that we do not need to destruct the workpile
         // iterator as the HC implementation caches them.
@@ -103,7 +103,7 @@ void hc_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
     deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     ocrWorkpile_t * wp_to_push = base->push_mapping(base, w);
-    wp_to_push->push(wp_to_push,tid);
+    wp_to_push->fctPtrs->push(wp_to_push,tid);
 }
 
 /**!
@@ -148,13 +148,15 @@ ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *
     ocrScheduler_t* base = (ocrScheduler_t*)derived;
     ocrMappable_t * module_base = (ocrMappable_t *) base;
     module_base->mapFct = hc_ocr_module_map_workpiles_to_schedulers;
-    base -> destruct = destructSchedulerHc;
-    base -> pop_mapping = hc_scheduler_pop_mapping_one_to_one;
-    base -> push_mapping = hc_scheduler_push_mapping_one_to_one;
-    base -> steal_mapping = hc_scheduler_steal_mapping_one_to_all_but_self;
-    base -> take = hc_scheduler_take;
-    base -> give = hc_scheduler_give;
-
+    base->fctPtrs = &(factory->schedulerFcts);
+    //TODO these need to be moved to the factory schedulerFcts
+    base->fctPtrs->destruct = destructSchedulerHc;
+    base->fctPtrs->pop_mapping = hc_scheduler_pop_mapping_one_to_one;
+    base->fctPtrs->push_mapping = hc_scheduler_push_mapping_one_to_one;
+    base->fctPtrs->steal_mapping = hc_scheduler_steal_mapping_one_to_all_but_self;
+    base->fctPtrs->take = hc_scheduler_take;
+    base->fctPtrs->give = hc_scheduler_give;
+    //TODO END
     paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
     derived->worker_id_begin = mapper->worker_id_begin;
     derived->worker_id_end = mapper->worker_id_end;
@@ -183,8 +185,8 @@ ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
 
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     if ( worker_id >= derived->worker_id_begin && worker_id <= derived->worker_id_end ) {
-        ocrWorkpile_t * wp_to_pop = base->pop_mapping(base, w);
-        popped = wp_to_pop->pop(wp_to_pop);
+        ocrWorkpile_t * wp_to_pop = base->fctPtrs->pop_mapping(base, w);
+        popped = wp_to_pop->fctPtrs->pop(wp_to_pop);
         /*TODO sagnak I hard-coded a no intra-scheduler stealing here; BAD */
         if ( NULL_GUID == popped ) {
             // TODO sagnak steal from places
@@ -194,7 +196,7 @@ ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
     } else {
         // TODO sagnak oooh BAD BAD hardcoding yet again
         ocrWorkpile_t* victim = derived->pools[0];
-        popped = victim->steal(victim);
+        popped = victim->fctPtrs->steal(victim);
     }
 
     return popped;
@@ -206,7 +208,7 @@ void hc_placed_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t ti
 
     // TODO sagnak calculate which 'place' to push
     ocrWorkpile_t * wp_to_push = base->push_mapping(base, w);
-    wp_to_push->push(wp_to_push,tid);
+    wp_to_push->fctPtrs->push(wp_to_push,tid);
 }
 
 ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
@@ -215,12 +217,15 @@ ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, ocrParamLi
     ocrScheduler_t* base = (ocrScheduler_t*)derived;
     ocrMappable_t * module_base = (ocrMappable_t *) base;
     module_base->mapFct = hc_ocr_module_map_workpiles_to_schedulers;
-    base -> destruct = destructSchedulerHc;
-    base -> pop_mapping = hc_scheduler_pop_mapping_one_to_one;
-    base -> push_mapping = hc_scheduler_push_mapping_one_to_one;
-    base -> steal_mapping = hc_scheduler_steal_mapping_assert;
-    base -> take = hc_placed_scheduler_take;
-    base -> give = hc_placed_scheduler_give;
+    base->fctPtrs = &(factory->schedulerFcts);
+    //TODO these need to be moved to the factory schedulerFcts
+    base->fctPtrs->destruct = destructSchedulerHc;
+    base->fctPtrs->pop_mapping = hc_scheduler_pop_mapping_one_to_one;
+    base->fctPtrs->push_mapping = hc_scheduler_push_mapping_one_to_one;
+    base->fctPtrs->steal_mapping = hc_scheduler_steal_mapping_assert;
+    base->fctPtrs->take = hc_placed_scheduler_take;
+    base->fctPtrs->give = hc_placed_scheduler_give;
+    //TODO END
 
     paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
     derived->worker_id_begin = mapper->worker_id_begin;

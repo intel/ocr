@@ -83,7 +83,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 #ifdef OCR_ENABLE_STATISTICS
     {
         ocrTask_t *task = NULL;
-        ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
+        ocrGuid_t edtGuid = worker->fctPtrs->getCurrentEDT(worker);
         deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
         ocrStatsProcess_t *srcProcess = edtGuid==0?&GfakeProcess:&(task->statProcess);
 
@@ -98,7 +98,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
         ocrStatsSyncMessage(srcProcess, &(createdDb->statProcess), mess2);
     }
 #else
-    *addr = createdDb->acquire(createdDb, worker->getCurrentEDT(worker), false);
+    *addr = createdDb->acquire(createdDb, worker->fctPtrs->getCurrentEDT(worker), false);
 #endif
     if(*addr == NULL) return ENOMEM;
 
@@ -119,7 +119,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     {
         ocrTask_t *task = NULL;
         ocrDataBlock_t *dataBlock = NULL;
-        ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
+        ocrGuid_t edtGuid = worker->fctPtrs->getCurrentEDT(worker);
         deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
         deguidify(getCurrentPD(), db, (u64*)&dataBlock, NULL);
 
@@ -132,7 +132,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
 #endif
     // Make sure you do the free *AFTER* sending the message because the free could
     // destroy the datablock (and the stat process).
-    u8 status = dataBlock->free(dataBlock, worker->getCurrentEDT(worker));
+    u8 status = dataBlock->free(dataBlock, worker->fctPtrs->getCurrentEDT(worker));
     return status;
 }
 
@@ -144,11 +144,11 @@ u8 ocrDbAcquire(ocrGuid_t db, void** addr, u16 flags) {
     ocrWorker_t *worker = NULL;
     deguidify(getCurrentPD(), workerGuid, (u64*)&worker, NULL);
 
-    *addr = dataBlock->acquire(dataBlock, worker->getCurrentEDT(worker), false);
+    *addr = dataBlock->acquire(dataBlock, worker->fctPtrs->getCurrentEDT(worker), false);
 #ifdef OCR_ENABLE_STATISTICS
     {
         ocrTask_t *task = NULL;
-        ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
+        ocrGuid_t edtGuid = worker->fctPtrs->getCurrentEDT(worker);
         deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
 
         ocrStatsProcess_t *srcProcess = edtGuid==0?&GfakeProcess:&(task->statProcess);
@@ -172,7 +172,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
 #ifdef OCR_ENABLE_STATISTICS
     {
         ocrTask_t *task = NULL;
-        ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
+        ocrGuid_t edtGuid = worker->fctPtrs->getCurrentEDT(worker);
 
         u8 result = dataBlock->release(dataBlock, edtGuid, false);
 
@@ -187,7 +187,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
         return result;
     }
 #else
-    return dataBlock->release(dataBlock, worker->getCurrentEDT(worker), false);
+    return dataBlock->release(dataBlock, worker->fctPtrs->getCurrentEDT(worker), false);
 #endif
 }
 

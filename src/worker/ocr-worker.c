@@ -40,5 +40,5 @@ ocrGuid_t getCurrentEdt() {
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
     ocrWorker_t *worker = NULL;
     deguidify(getCurrentPD(), workerGuid, (u64*)&(worker), NULL);
-    return worker->getCurrentEDT(worker);
+    return worker->fctPtrs->getCurrentEDT(worker);
 }

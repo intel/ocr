@@ -77,12 +77,13 @@ ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, ocrParamL
     ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
     ocrMappable_t * module_base = (ocrMappable_t *) base;
     module_base->mapFct = NULL;
-    ocrWorkpileFcts_t * fctPtrs = (ocrWorkpileFcts_t *) malloc(sizeof(ocrWorkpileFcts_t));
-    base->fctPtrs = fctPtrs;
+    base->fctPtrs = &(factory->workpileFcts);
+    //TODO these need to be moved to the factory schedulerFcts
     fctPtrs->destruct = ce_message_workpile_destruct;
     fctPtrs->pop = ce_message_workpile_pop;
     fctPtrs->push = ce_message_workpile_push;
     fctPtrs->steal = ce_message_workpile_pop;
+    //TODO END
     derived->deque = (mpsc_deque_t *) malloc(sizeof(mpsc_deque_t));
     mpscDequeInit(derived->deque, (void *) NULL_GUID);
     return base;

@@ -188,13 +188,15 @@ ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, ocrParamList
     ocrMappable_t * module_base = (ocrMappable_t *) base;
     // module_base->mapFct = xe_ocr_module_map_workpiles_to_schedulers;
     module_base->mapFct = hc_ocr_module_map_workpiles_to_schedulers;
+    base->fctPtrs = &(factory->schedulerFcts);
+    //TODO these need to be moved to the factory schedulerFcts
     base -> destruct = destructSchedulerFsimXE;
     base -> pop_mapping = xe_scheduler_pop_mapping_assert;
     base -> push_mapping = xe_scheduler_push_mapping_assert;
     base -> steal_mapping = xe_scheduler_steal_mapping_fsim_faithful;
     base -> take = xe_scheduler_take_most_fsim_faithful;
     base -> give = xe_scheduler_give_fsim_faithful;
-
+    //TODO END
     paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
     hcBase->worker_id_begin = mapper->worker_id_begin;
     hcBase->worker_id_end = mapper->worker_id_end;
@@ -314,12 +316,15 @@ ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, ocrParamList
     ocrSchedulerHc_t* hcBase = (ocrSchedulerHc_t*)derived;
     ocrMappable_t * module_base = (ocrMappable_t *) base;
     module_base->mapFct = hc_ocr_module_map_workpiles_to_schedulers;
+    base->fctPtrs = &(factory->schedulerFcts);
+    //TODO these need to be moved to the factory schedulerFcts
     base -> destruct = destructSchedulerFsimCE;
     base -> pop_mapping = ce_scheduler_pop_mapping;
     base -> push_mapping = ce_scheduler_push_mapping_assert;
     base -> steal_mapping = ce_scheduler_steal_mapping_assert;
     base -> take = ce_scheduler_take;
     base -> give = ce_scheduler_give;
+    //TODO END
     derived -> in_message_popping_mode = 1;
 
     paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;

@@ -194,7 +194,7 @@ void * xe_worker_computation_routine (void * arg) {
 
     log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(baseWorker));
 
-    while ( baseWorker->is_running(baseWorker) ) {
+    while ( baseWorker->fctPtrs->isRunning(baseWorker) ) {
         //
         // try to extract work from an XE's workpile of assigned-by-CE-tasks
         // as of now always of size 1
@@ -204,9 +204,9 @@ void * xe_worker_computation_routine (void * arg) {
             // if managed to find work that was assigned by CE, execute it
             ocrTask_t* currTask = NULL;
             deguidify(getCurrentPD(), taskGuid, (u64*)&(currTask), NULL);
-            baseWorker->setCurrentEDT(baseWorker,taskGuid);
+            baseWorker->fctPtrs->setCurrentEDT(baseWorker,taskGuid);
             currTask->fctPtrs->execute(currTask);
-            baseWorker->setCurrentEDT(baseWorker, NULL_GUID);
+            baseWorker->fctPtrs->setCurrentEDT(baseWorker, NULL_GUID);
         } else {
             // TODO sagnak, this assumes (*A LOT*) the structure below, is this fair?
             // no assigned work found, now we have to create a 'message task'
@@ -223,7 +223,7 @@ void * xe_worker_computation_routine (void * arg) {
             // baseWorker->stop(baseWorker);
             ocrWorkerFsimXE_t* derivedWorker = (ocrWorkerFsimXE_t*)baseWorker;
             pthread_mutex_lock(&derivedWorker->isRunningMutex);
-            if ( baseWorker->is_running(baseWorker) ) {
+            if ( baseWorker->fctPtrs->isRunning(baseWorker) ) {
                 ocrGuid_t messageTaskGuid = derived->fsimBase.base.base.guid;
                 // give the work to the XE scheduler, which in turn should give it to the CE
                 // through policy domain hand out and the scheduler differentiates tasks by type (RTTI) like
@@ -245,7 +245,7 @@ void * ce_worker_computation_routine(void * arg) {
 
     ocrGuid_t ceWorkerGuid = get_worker_guid(ceWorker);
     log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(ceWorker));
-    while(ceWorker->is_running(ceWorker)) {
+    while(ceWorker->fctPtrs->isRunning(ceWorker)) {
 
         // pop a 'message task' to handle messaging
         // the 'state' of the scheduler should point to the message workpile

@@ -58,15 +58,15 @@ void hc_policy_domain_start(ocrPolicyDomain_t * policy) {
     u64 computeCount = policy->computeCount;
     // Only start (N-1) workers as worker '0' is the current thread.
     for(i = 1; i < workerCount; i++) {
-        policy->workers[i]->start(policy->workers[i]);
+        policy->workers[i]->fctPtrs->start(policy->workers[i]);
 
     }
     // Only start (N-1) threads as thread '0' is the current thread.
     for(i = 1; i < computeCount; i++) {
-        policy->computes[i]->start(policy->computes[i]);
+        policy->computes[i]->fctPtrs->start(policy->computes[i]);
     }
     // Handle thread '0'
-    policy->workers[0]->start(policy->workers[0]);
+    policy->workers[0]->fctPtrs->start(policy->workers[0]);
     // Need to associate thread and worker here, as current thread fall-through
     // in user code and may need to know which Worker it is associated to.
     associate_comp_platform_and_worker(policy->workers[0]);
@@ -77,7 +77,7 @@ void hc_policy_domain_finish(ocrPolicyDomain_t * policy) {
     // free to fall-through in ocr_finalize() (see warning there)
     u64 i;
     for ( i = 0; i < policy->workerCount; ++i ) {
-        policy->workers[i]->stop(policy->workers[i]);
+        policy->workers[i]->fctPtrs->stop(policy->workers[i]);
     }
 }
 
@@ -90,7 +90,7 @@ void hc_policy_domain_stop(ocrPolicyDomain_t * policy) {
     // Thread '0' joins the other (N-1) threads.
     u64 i;
     for (i = 1; i < policy->computeCount; i++) {
-        policy->computes[i]->stop(policy->computes[i]);
+        policy->computes[i]->fctPtrs->stop(policy->computes[i]);
     }
 }
 
@@ -166,11 +166,11 @@ void leaf_place_policy_domain_start (ocrPolicyDomain_t * policy) {
     u64 workerCount = policy->workerCount;
     u64 computeCount = policy->computeCount;
     for(i = 0; i < workerCount; i++) {
-        policy->workers[i]->start(policy->workers[i]);
+        policy->workers[i]->fctPtrs->start(policy->workers[i]);
 
     }
     for(i = 0; i < computeCount; i++) {
-        policy->computes[i]->start(policy->computes[i]);
+        policy->computes[i]->fctPtrs->start(policy->computes[i]);
     }
 }
 
@@ -189,15 +189,15 @@ void mastered_leaf_place_policy_domain_start (ocrPolicyDomain_t * policy) {
     u64 computeCount = policy->computeCount;
     // Only start (N-1) workers as worker '0' is the current thread.
     for(i = 1; i < workerCount; i++) {
-        policy->workers[i]->start(policy->workers[i]);
+        policy->workers[i]->fctPtrs->start(policy->workers[i]);
 
     }
     // Only start (N-1) threads as thread '0' is the current thread.
     for(i = 1; i < computeCount; i++) {
-        policy->computes[i]->start(policy->computes[i]);
+        policy->computes[i]->fctPtrs->start(policy->computes[i]);
     }
     // Handle thread '0'
-    policy->workers[0]->start(policy->workers[0]);
+    policy->workers[0]->fctPtrs->start(policy->workers[0]);
     // Need to associate thread and worker here, as current thread fall-through
     // in user code and may need to know which Worker it is associated to.
     associate_comp_platform_and_worker(policy->workers[0]);
@@ -206,7 +206,7 @@ void mastered_leaf_place_policy_domain_start (ocrPolicyDomain_t * policy) {
 void leaf_place_policy_domain_stop (ocrPolicyDomain_t * policy) {
     u64 i;
     for (i = 0; i < policy->computeCount; i++) {
-        policy->computes[i]->stop(policy->computes[i]);
+        policy->computes[i]->fctPtrs->stop(policy->computes[i]);
     }
 }
 
@@ -219,7 +219,7 @@ void mastered_leaf_place_policy_domain_stop (ocrPolicyDomain_t * policy) {
     // Thread '0' joins the other (N-1) threads.
     u64 i;
     for (i = 1; i < policy->computeCount; i++) {
-        policy->computes[i]->stop(policy->computes[i]);
+        policy->computes[i]->fctPtrs->stop(policy->computes[i]);
     }
 }
 

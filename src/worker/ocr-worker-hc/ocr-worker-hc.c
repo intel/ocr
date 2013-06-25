@@ -97,7 +97,7 @@ ocrGuid_t getCurrentEDT() {
     ocrGuid_t wGuid = ocr_get_current_worker_guid();
     ocrWorker_t *worker = NULL;
     deguidify(getCurrentPD(), wGuid, (u64*)&worker, NULL);
-    return worker->getCurrentEDT(worker);
+    return worker->fctPtrs->getCurrentEDT(worker);
 }
 
 void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocrMappableKind kind,
@@ -132,12 +132,15 @@ ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrParamList_t * perInst
 
     base->scheduler = NULL;
     base->routine = worker_computation_routine;
-    base->destruct = destructWorkerHc;
-    base->start = hc_start_worker;
-    base->stop = hc_stop_worker;
-    base->is_running = hc_is_running_worker;
-    base->getCurrentEDT = hc_getCurrentEDT;
-    base->setCurrentEDT = hc_setCurrentEDT;
+    base->fctPtrs = &(factory->workerFcts);
+    //TODO these need to be moved to the factory schedulerFcts
+    base->fctPtrs->destruct = destructWorkerHc;
+    base->fctPtrs->start = hc_start_worker;
+    base->fctPtrs->stop = hc_stop_worker;
+    base->fctPtrs->isRunning = hc_is_running_worker;
+    base->fctPtrs->getCurrentEDT = hc_getCurrentEDT;
+    base->fctPtrs->setCurrentEDT = hc_setCurrentEDT;
+    //TODO END
     return base;
 }
 
@@ -164,15 +167,15 @@ void * worker_computation_routine(void * arg) {
     ocrGuid_t workerGuid = get_worker_guid(worker);
     ocrScheduler_t * scheduler = get_worker_scheduler(worker);
     log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(worker));
-    while(worker->is_running(worker)) {
+    while(worker->fctPtrs->isRunning(worker)) {
         ocrGuid_t taskGuid = scheduler->take(scheduler, workerGuid);
         if (taskGuid != NULL_GUID) {
             ocrTask_t* curr_task = NULL;
             deguidify(getCurrentPD(), taskGuid, (u64*)&(curr_task), NULL);
-            worker->setCurrentEDT(worker,taskGuid);
+            worker->fctPtrs->setCurrentEDT(worker,taskGuid);
             curr_task->fctPtrs->execute(curr_task);
-            worker->setCurrentEDT(worker, NULL_GUID);
-            curr_task->destruct(curr_task);
+            worker->fctPtrs->setCurrentEDT(worker, NULL_GUID);
+            curr_task->fctPtrs->destruct(curr_task);
         }
     }
     return NULL;

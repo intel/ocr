@@ -94,7 +94,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
         ocrTask_t *curTask = NULL;
 
         deguidify(pd, ocr_get_current_worker_guid(), (u64*)&worker, NULL);
-        ocrGuid_t curTaskGuid = worker->getCurrentEDT(worker);
+        ocrGuid_t curTaskGuid = worker->fctPtrs->getCurrentEDT(worker);
         deguidify(pd, curTaskGuid, (u64*)&curTask, NULL);
 
         ocrStatsProcess_t *srcProcess = curTaskGuid==0?&GfakeProcess:&(curTask->statProcess);
@@ -153,7 +153,7 @@ ocrGuid_t ocrElsUserGet(u8 offset) {
     ocrPolicyDomain_t * pd = getCurrentPD();
     ocrWorker_t * worker = NULL;
     deguidify(pd, workerGuid, (u64*)&(worker), NULL);
-    ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
+    ocrGuid_t edtGuid = worker->fctPtrs->getCurrentEDT(worker);
     ocrTask_t * edt = NULL;
     deguidify(pd, edtGuid, (u64*)&(edt), NULL);
     return edt->els[offset];
@@ -170,7 +170,7 @@ void ocrElsUserSet(u8 offset, ocrGuid_t data) {
     ocrPolicyDomain_t * pd = getCurrentPD();
     ocrWorker_t * worker = NULL;
     deguidify(pd, workerGuid, (u64*)&(worker), NULL);
-    ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
+    ocrGuid_t edtGuid = worker->fctPtrs->getCurrentEDT(worker);
     ocrTask_t * edt = NULL;
     deguidify(pd, edtGuid, (u64*)&(edt), NULL);
     edt->els[offset] = data;

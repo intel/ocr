@@ -110,7 +110,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[]) {
 void ocrFinish() {
     // This is called by the sink EDT and allow the master_worker
     // to fall-through its worker routine code (see ocrCleanup)
-    master_worker->stop(master_worker);
+    master_worker->fctPtrs->stop(master_worker);
 }
 
 static void recursive_policy_finish_helper ( ocrPolicyDomain_t* curr ) {
