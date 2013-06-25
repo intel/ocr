@@ -32,6 +32,8 @@
 #include "ocr-macros.h"
 #include "ocr-comp-target.h"
 #include "hc-comp-target.h"
+#include "ocr-comp-platform.h"
+#include "debug.h"
 
 static void mapCompTargetToPlatform(ocrMappable_t *self, ocrMappableKind kind,
                                     u64 instanceCount, ocrMappable_t ** instances) {
@@ -40,22 +42,25 @@ static void mapCompTargetToPlatform(ocrMappable_t *self, ocrMappableKind kind,
     ASSERT(kind == OCR_COMP_PLATFORM);
     ASSERT(instanceCount == 1);
     ocrCompTarget_t *compTarget = (ocrCompTarget_t*)self;
-    compTarget->base.platforms = (ocrCompPlatform_t*)instances[0];
-    compTarget->base.platformCount = 1;
+    compTarget->platforms = (ocrCompPlatform_t**)checkedMalloc(
+        compTarget->platforms, sizeof(ocrCompPlatform_t*));
+    compTarget->platforms[0] = (ocrCompPlatform_t*)instances[0];
+    compTarget->platformCount = 1;
 }
 
 static void hcDestruct(ocrCompTarget_t *compTarget) {
+    free(compTarget->platforms);
     free(compTarget);
 }
 
 static void hcStart(ocrCompTarget_t * compTarget) {
     ASSERT(compTarget->platformCount == 1);
-    compTarget->platforms[0]->start(compTarget->platforms[0]);
+    compTarget->platforms[0]->fctPtrs->start(compTarget->platforms[0]);
 }
 
 static void hcStop(ocrCompTarget_t * compTarget) {
     ASSERT(compTarget->platformCount == 1);
-    compTarget->platforms[0]->stop(compTarget->platforms[0]);
+    compTarget->platforms[0]->fctPtrs->stop(compTarget->platforms[0]);
 }
 
 ocrCompTarget_t * newCompTargetHc(ocrCompTargetFactory_t * factory, ocrParamList_t* perInstance) {

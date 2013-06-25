@@ -41,4 +41,4 @@ ocrGuid_t (*getCurrentEDT)() = NULL;
 struct _ocrPolicyDomain_t * (*getCurrentPD)() = NULL;
 void (*setCurrentCompTarget)(ocrGuid_t) = NULL;
 void (*setCurrentEDT)(ocrGuid_t) = NULL;
-void (*setCurrentPD)(ocrGuid_t) = NULL;
+void (*setCurrentPD)(struct _ocrPolicyDomain_t*) = NULL;

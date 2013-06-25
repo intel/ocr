@@ -115,6 +115,6 @@ struct _ocrPolicyDomain_t;
  * @brief Gets the current policy domain for the calling code
  */
 extern struct _ocrPolicyDomain_t * (*getCurrentPD)();
-extern void (*setCurrentPD)(ocrGuid_t guid);
+extern void (*setCurrentPD)(struct _ocrPolicyDomain_t*);
 
 #endif /* __OCR_COMP_PLATFORM_H__ */

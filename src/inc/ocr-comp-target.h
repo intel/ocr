@@ -79,7 +79,7 @@ typedef struct _ocrCompTarget_t {
     ocrMappable_t module;
     ocrGuid_t guid;
 
-    struct _ocrCompPlatform_t * platforms; /**< Computing platform this compute target
+    struct _ocrCompPlatform_t ** platforms; /**< Computing platform this compute target
                                     * is executing on */
     u32 platformCount;
 

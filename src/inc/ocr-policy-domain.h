@@ -300,6 +300,9 @@ typedef struct _ocrPolicyDomain_t {
     u8 (*getGuid)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid, u64 val,
                   ocrGuidKind type);
 
+    u8 (*getInfoForGuid)(struct _ocrPolicyDomain_t *self, ocrGuid_t guid, u64* val,
+                         ocrGuidKind* type);
+
     /**
      * @brief Take one or more EDTs to execute
      *

@@ -71,14 +71,15 @@ pthread_once_t selfKeyInitialized = PTHREAD_ONCE_INIT;
 /**
  * @brief Routine that will be started in this pthread
  */
-static void wrapperPthreadRun(void *arg) {
+static void* wrapperPthreadRun(void *arg) {
     launchArg_t *launchArgs = (launchArg_t *)arg;
     perThreadStorage_t *data = (perThreadStorage_t*)checkedMalloc(data, sizeof(perThreadStorage_t));
-    RESULT_ASSERT(pthread_key_setspecific(selfKey, data), ==, 0);
+    RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
 
     launchArgs->subRoutine(launchArgs->arg);
 
     free(launchArgs);
+    return NULL;
 }
 
 
@@ -92,7 +93,7 @@ static void pthreadStart(ocrCompPlatform_t * compPlatform) {
     // Build the launch arguments
     launchArg_t *launchArgs = (launchArg_t*)checkedMalloc(launchArgs, sizeof(launchArg_t));
     launchArgs->subRoutine = pthreadCompPlatform->routine;
-    launchArgs->arg = pthreadCompPlatform->arg;
+    launchArgs->arg = pthreadCompPlatform->routineArg;
 
     pthread_attr_t attr;
     RESULT_ASSERT(pthread_attr_init(&attr), ==, 0);
@@ -121,7 +122,7 @@ static ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *facto
 
     pthread_once(&selfKeyInitialized,  initializeKey);
     ocrCompPlatformPthread_t * compPlatformPthread = checkedMalloc(
-        compPlatform, sizeof(ocrCompPlatformPthread_t));
+        compPlatformPthread, sizeof(ocrCompPlatformPthread_t));
 
     compPlatformPthread->base.module.mapFct = NULL;
     compPlatformPthread->base.fctPtrs = &(factory->platformFcts);
@@ -171,7 +172,7 @@ static void setCurrentEDTPthread(ocrGuid_t val) {
     RESULT_ASSERT(pthread_setspecific(selfKey, vals), ==, 0);
 }
 
-static void setCurrentPDPthread(ocrGuid_t val) {
+static void setCurrentPDPthread(struct _ocrPolicyDomain_t *val) {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
     vals->policyDomain = val;
     RESULT_ASSERT(pthread_setspecific(selfKey, vals), ==, 0);
@@ -192,7 +193,7 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     base->platformFcts.stop = &pthreadStop;
 
     getCurrentCompTarget = &getCurrentComputePthread;
-    setCurrentComptTarget = &setCurrentComputePthread;
+    setCurrentCompTarget = &setCurrentComputePthread;
     getCurrentEDT = &getCurrentEDTPthread;
     setCurrentEDT = &setCurrentEDTPthread;
     getCurrentPD = &getCurrentPDPthread;

@@ -32,6 +32,8 @@
 #ifndef OCR_MAPPABLE_H_
 #define OCR_MAPPABLE_H_
 
+#include "ocr-types.h"
+
 typedef enum _ocrMappableKind {
     OCR_COMP_PLATFORM = 0,
     OCR_COMP_TARGET = 1,
