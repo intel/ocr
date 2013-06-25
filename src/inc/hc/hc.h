@@ -121,15 +121,22 @@ typedef struct _paramListSchedulerHcInst_t {
 /******************************************************/
 
 typedef struct {
+    ocrTaskTemplateFactory_t base_factory;
+    ocrTaskFcts_t taskFctPtrs;
+} ocrTaskTemplateFactoryHc_t;
+
+ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType);
+
+typedef struct {
     ocrTaskFactory_t base_factory;
 } ocrTaskFactoryHc_t;
 
-ocrTaskFactory_t * newTaskFactoryHc(void * config);
+ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perType);
 
 /*
  * TODO HC implementation exposed to support FSIM
  */
-extern void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
+extern void hcTaskConstructInternal (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived, ocrEdt_t funcPtr,
         u32 paramc, u64 * params, void** paramv, u64 nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs);
 
 extern void taskSchedule( ocrGuid_t guid, ocrTask_t* base, ocrGuid_t wid );

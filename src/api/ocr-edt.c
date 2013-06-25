@@ -35,16 +35,23 @@
 #include "ocr-runtime.h"
 #include "ocr-guid.h"
 
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#include "ocr-stat-user.h"
+#include "ocr-config.h"
+#endif
+
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
-    ocrPolicyDomain_t* policy_domain = get_current_policy_domain();
-    ocrEventFactory_t * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
-    *guid = eventFactory->instantiate(eventFactory, eventType, takesArg);
+    ocrPolicyDomain_t * pd = getCurrentPD();
+    ocrEventFactory_t * eventFactory = getEventFactoryFromPd(pd);
+    ocrEvent_t * event = eventFactory->instantiate(eventFactory, eventType, takesArg);
+    guid = event->guid;
     return 0;
 }
 
 u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     ocrEvent_t * event = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
+    deguidify(getCurrentPD(), eventGuid, (u64*)&event, NULL);
     event->fctPtrs->destruct(event);
     return 0;
 }
@@ -52,7 +59,7 @@ u8 ocrEventDestroy(ocrGuid_t eventGuid) {
 u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/, u32 slot) {
     assert(eventGuid != NULL_GUID);
     ocrEvent_t * event = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, eventGuid, (u64*)&event, NULL);
+    deguidify(getCurrentPD(), eventGuid, (u64*)&event, NULL);
     event->fctPtrs->satisfy(event, dataGuid, slot);
     return 0;
 }
@@ -65,14 +72,17 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
                 u32 paramc, u64 * params, void** paramv,
                 u16 properties, u32 depc, ocrGuid_t* depv /*= NULL*/) {
 
-    ocrPolicyDomain_t* policy_domain = get_current_policy_domain();
-    ocrTaskFactory_t* taskFactory = policy_domain->getTaskFactoryForUserTasks(policy_domain);
+    ocrPolicyDomain_t * pd = getCurrentPD();
+    //TODO the task template should be created in the user realm
+    ocrTaskTemplateFactory_t* taskTemplateFactory = getTaskTemplateFactoryFromPd(pd);
+    ocrTaskTemplate_t* taskTemplate = taskTemplateFactory->instantiate(taskTemplateFactory, funcPtr, paramc, depc);
+    ocrTaskFactory_t* taskFactory = getTaskFactoryFromPd(pd);
     //TODO LIMITATION handle pre-built dependence vector
-    *edtGuid = taskFactory->instantiate(taskFactory, funcPtr, paramc, params, paramv, properties, depc, outputEvent);
+    ocrTask_t * task = taskFactory->instantiate(taskFactory, taskTemplate, params, paramv, properties, outputEvent);
+    *edtGuid = task->guid;
+
 #ifdef OCR_ENABLE_STATISTICS
     // Create the statistics process for this EDT and also update clocks properly
-    ocrTask_t *task = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, *edtGuid, (u64*)&task, NULL);
     ocrStatsProcessCreate(&(task->statProcess), *edtGuid);
     ocrStatsFilter_t *t = NEW_FILTER(simple);
     t->create(t, GocrFilterAggregator, NULL);
@@ -83,9 +93,9 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
         ocrWorker_t *worker = NULL;
         ocrTask_t *curTask = NULL;
 
-        globalGuidProvider->getVal(globalGuidProvider, ocr_get_current_worker_guid(), (u64*)&worker, NULL);
+        deguidify(pd, ocr_get_current_worker_guid(), (u64*)&worker, NULL);
         ocrGuid_t curTaskGuid = worker->getCurrentEDT(worker);
-        globalGuidProvider->getVal(globalGuidProvider, curTaskGuid, (u64*)&curTask, NULL);
+        deguidify(pd, curTaskGuid, (u64*)&curTask, NULL);
 
         ocrStatsProcess_t *srcProcess = curTaskGuid==0?&GfakeProcess:&(curTask->statProcess);
         ocrStatsMessage_t *mess = NEW_MESSAGE(simple);
@@ -111,14 +121,14 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
     u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
     ocrGuid_t worker_guid = ocr_get_current_worker_guid();
     ocrTask_t * task = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
-    task->fctPtrs->schedule(task, worker_guid);
+    deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
+    task->fctPtrs->execute(task, worker_guid);
     return 0;
 }
 
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     ocrTask_t * task = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&task, NULL);
+    deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
     task->fctPtrs->destruct(task);
     return 0;
 }
@@ -138,11 +148,12 @@ ocrGuid_t ocrElsUserGet(u8 offset) {
     // User indexing start after runtime-reserved ELS slots
     offset = ELS_RUNTIME_SIZE + offset;
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+    ocrPolicyDomain_t * pd = getCurrentPD();
     ocrWorker_t * worker = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
+    deguidify(pd, workerGuid, (u64*)&(worker), NULL);
     ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
     ocrTask_t * edt = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL);
+    deguidify(pd, edtGuid, (u64*)&(edt), NULL);
     return edt->els[offset];
 }
 
@@ -154,10 +165,11 @@ void ocrElsUserSet(u8 offset, ocrGuid_t data) {
     // User indexing start after runtime-reserved ELS slots
     offset = ELS_RUNTIME_SIZE + offset;
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+    ocrPolicyDomain_t * pd = getCurrentPD();
     ocrWorker_t * worker = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, workerGuid, (u64*)&(worker), NULL);
+    deguidify(pd, workerGuid, (u64*)&(worker), NULL);
     ocrGuid_t edtGuid = worker->getCurrentEDT(worker);
     ocrTask_t * edt = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&(edt), NULL);
+    deguidify(pd, edtGuid, (u64*)&(edt), NULL);
     edt->els[offset] = data;
 }

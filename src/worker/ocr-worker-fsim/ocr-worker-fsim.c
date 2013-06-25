@@ -72,7 +72,8 @@ void xe_worker_destruct ( ocrWorker_t * base ) {
     pthread_cond_destroy( &xeWorker->isRunningCond );
     pthread_mutex_destroy( &xeWorker->isRunningMutex );
 
-    globalGuidProvider->releaseGuid(globalGuidProvider, base->guid);
+    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
+    guidProvider->releaseGuid(guidProvider, base->guid);
     free(base);
 }
 
@@ -91,7 +92,7 @@ ocrWorker_t* newWorkerFsimXE (ocrWorkerFactory_t * factory, ocrParamList_t * per
     module_base->mapFct = hc_ocr_module_map_scheduler_to_worker;
 
     base->guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_WORKER);
+    guidify(getCurrentPD(), &(base->guid), (u64)base, OCR_GUID_WORKER);
 
     base->scheduler = NULL;
     base->routine = xe_worker_computation_routine;
@@ -141,7 +142,7 @@ ocrWorker_t* newWorkerFsimCE (ocrWorkerFactory_t * factory, ocrParamList_t * per
     module_base->mapFct = hc_ocr_module_map_scheduler_to_worker;
 
     base->guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_WORKER);
+    guidify(getCurrentPD(), &(base->guid), (u64)base, OCR_GUID_WORKER);
 
     base->scheduler = NULL;
     base->routine = ce_worker_computation_routine;

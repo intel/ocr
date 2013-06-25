@@ -35,6 +35,25 @@
 #include "ocr-policy-domain.h"
 #include "ocr-task-event.h"
 
+inline ocrTaskFactory_t* getTaskFactoryFromPd(ocrPolicyDomain_t *policy) {
+  return policy->taskFactory;
+}
+
+inline ocrTaskTemplateFactory_t* getTaskTemplateFactoryFromPd(ocrPolicyDomain_t *policy) {
+  return policy->taskTemplateFactory;
+}
+
+inline ocrEventFactory_t* getEventFactoryFromPd(ocrPolicyDomain_t *policy) {
+ return policy->eventFactory;   
+}
+
+inline ocrDataBlockFactory_t* getDataBlockFactoryFromPd(ocrPolicyDomain_t *policy) {
+  return policy->dbFactory;
+}
+
+inline ocrLockFactory_t* getLockFactoryFromPd(ocrPolicyDomain_t *policy) {
+  return policy->lockFactory;
+}
 
 extern ocrPolicyDomain_t * hc_policy_domain_constructor();
 extern ocrPolicyDomain_t * xe_policy_domain_constructor();
@@ -102,14 +121,15 @@ void ocr_policy_domain_destruct(ocrPolicyDomain_t * policy) {
     free(policy->schedulers);
 
     // Destroy the GUID
-    globalGuidProvider->releaseGuid(globalGuidProvider, policy->guid);
+    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
+    guidProvider->releaseGuid(guidProvider, policy->guid);
     free(policy);
 }
 
 ocrPolicyDomain_t* get_current_policy_domain () {
     ocrGuid_t worker_guid = ocr_get_current_worker_guid();
     ocrWorker_t * worker = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, worker_guid, (u64*)&worker, NULL);
+    deguidify(getCurrentPD(), worker_guid, (u64*)&worker, NULL);
 
     ocrScheduler_t * scheduler = get_worker_scheduler(worker);
     ocrPolicyDomain_t* policy_domain = scheduler -> domain;

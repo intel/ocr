@@ -62,7 +62,8 @@ ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
 }
 
 void destructWorkerHc ( ocrWorker_t * base ) {
-    globalGuidProvider->releaseGuid(globalGuidProvider, base->guid);
+        ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
+    guidProvider->releaseGuid(guidProvider, base->guid);
     free(base);
 }
 
@@ -95,7 +96,7 @@ void hc_setCurrentEDT (ocrWorker_t * base, ocrGuid_t curr_edt_guid) {
 ocrGuid_t getCurrentEDT() {
     ocrGuid_t wGuid = ocr_get_current_worker_guid();
     ocrWorker_t *worker = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, wGuid, (u64*)&worker, NULL);
+    deguidify(getCurrentPD(), wGuid, (u64*)&worker, NULL);
     return worker->getCurrentEDT(worker);
 }
 
@@ -127,7 +128,7 @@ ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrParamList_t * perInst
     module_base->mapFct = hc_ocr_module_map_scheduler_to_worker;
 
     base->guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_WORKER);
+    guidify(getCurrentPD(), &(base->guid), (u64)base, OCR_GUID_WORKER);
 
     base->scheduler = NULL;
     base->routine = worker_computation_routine;
@@ -167,7 +168,7 @@ void * worker_computation_routine(void * arg) {
         ocrGuid_t taskGuid = scheduler->take(scheduler, workerGuid);
         if (taskGuid != NULL_GUID) {
             ocrTask_t* curr_task = NULL;
-            globalGuidProvider->getVal(globalGuidProvider, taskGuid, (u64*)&(curr_task), NULL);
+            deguidify(getCurrentPD(), taskGuid, (u64*)&(curr_task), NULL);
             worker->setCurrentEDT(worker,taskGuid);
             curr_task->fctPtrs->execute(curr_task);
             worker->setCurrentEDT(worker, NULL_GUID);

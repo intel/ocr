@@ -80,7 +80,7 @@ u8 ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
                   ocrGuid_t *edts, ocrPolicyCtx_t *context_ {
 // ocrGuid_t hc_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
     ocrWorker_t* w = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
     // First try to pop
     // ocrWorkpile_t * wp_to_pop = self->pop_mapping(self, w);
     ocrWorkpile_t * wp_to_pop = hc_scheduler_pop_mapping_one_to_one(self, w);
@@ -100,7 +100,7 @@ u8 ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
 
 void hc_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
     ocrWorker_t* w = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     ocrWorkpile_t * wp_to_push = base->push_mapping(base, w);
     wp_to_push->push(wp_to_push,tid);
@@ -175,7 +175,7 @@ ocrWorkpileIterator_t* hc_scheduler_steal_mapping_assert (ocrScheduler_t* base, 
 
 ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
     ocrWorker_t* w = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     ocrGuid_t popped = NULL_GUID;
 
@@ -202,7 +202,7 @@ ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
 
 void hc_placed_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
     ocrWorker_t* w = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     // TODO sagnak calculate which 'place' to push
     ocrWorkpile_t * wp_to_push = base->push_mapping(base, w);

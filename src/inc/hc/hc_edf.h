@@ -83,6 +83,12 @@ typedef struct ocrEventHcFinishLatch_t {
     volatile int counter;
 } ocrEventHcFinishLatch_t;
 
+/*! \brief Event Driven Task(EDT) template implementation
+ */
+typedef struct {
+    ocrTaskTemplate_t base;
+} ocrTaskTemplateHc_t;
+
 /*! \brief Event Driven Task(EDT) implementation for OCR Tasks
  */
 typedef struct {
@@ -90,7 +96,6 @@ typedef struct {
     reg_node_t * waiters;
     reg_node_t * signalers; // Does not grow, set once when the task is created
     u64 nbdeps;
-    ocrEdt_t p_function;
 } ocrTaskHc_t;
 
 void taskExecute ( ocrTask_t* base );

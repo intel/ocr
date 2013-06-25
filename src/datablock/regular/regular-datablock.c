@@ -187,7 +187,7 @@ void regularDestruct(ocrDataBlock_t *self) {
 
     // Tell the allocator to free the data-block
     ocrAllocator_t *allocator = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, rself->allocatorGuid, (u64*)&allocator, NULL);
+    deguidify(getCurrentPD(), rself->allocatorGuid, (u64*)&allocator, NULL);
 
     DO_DEBUG(DEBUG_LVL_VERB) {
         PRINTF("VERB: Freeing DB @ 0x%lx (GUID: 0x%lx)\n", (u64)rself->ptr, rself->base.guid);
@@ -202,7 +202,8 @@ void regularDestruct(ocrDataBlock_t *self) {
     ocrStatsProcessDestruct(&(rself->base.statProcess));
 #endif
 
-    globalGuidProvider->releaseGuid(globalGuidProvider, self->guid);
+    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
+    guidProvider->releaseGuid(guidProvider, self->guid);
     free(rself);
 }
 
@@ -221,7 +222,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactor_t *factory, ocrParamList_
     result->base.fctPtrs = &(factory->dataBlockFcts);
 
     // TODO: Get GUID
-    //globalGuidProvider->getGuid(globalGuidProvider, &(result->base.guid), (u64)result, OCR_GUID_DB);
+    //guidify(getCurrentPD(), &(result->base.guid), (u64)result, OCR_GUID_DB);
 
     result->lock = NULL;
     result->attributes.flags = result->base.properties;
@@ -231,7 +232,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactor_t *factory, ocrParamList_
 
     ocrAllocator_t *allocator = NULL;
 
-    globalGuidProvider->getVal(globalGuidProvider, allocatorGuid, (u64*)&allocator, NULL);
+    deguidify(getCurrentPD(), allocatorGuid, (u64*)&allocator, NULL);
     ASSERT(allocator);
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 

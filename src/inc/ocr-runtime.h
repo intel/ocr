@@ -32,6 +32,8 @@
 #ifndef __OCR_RUNTIME_H_
 #define __OCR_RUNTIME_H_
 
+// All the headers necessary to call-in the runtime
+
 #include "ocr-macros.h"
 #include "ocr-guid.h"
 #include "ocr-utils.h"
@@ -42,6 +44,7 @@
 #include "ocr-machine.h"
 #include "ocr-scheduler.h"
 #include "ocr-policy-domain.h"
+#include "ocr-policy-domain-getter.h"
 #include "ocr-runtime-model.h"
 
 #endif /* __OCR_RUNTIME_H_ */

@@ -35,7 +35,8 @@
 #include "hc_edf.h"
 #include "ocr-datablock.h"
 #include "ocr-utils.h"
-#include "ocr-task-event.h"
+#include "ocr-task.h"
+#include "ocr-event.h"
 #include "ocr-worker.h"
 #include "debug.h"
 
@@ -43,30 +44,38 @@
 #include "ocr-statistics.h"
 #endif
 
-struct ocr_event_factory_struct* hc_event_factory_constructor(void) {
-    hc_event_factory* derived = (hc_event_factory*) malloc(sizeof(hc_event_factory));
-    ocr_event_factory* base = (ocr_event_factory*) derived;
-    base->create = hc_event_factory_create;
-    base->destruct =  hc_event_factory_destructor;
-    return base;
+
+#define SEALED_LIST ((void *) -1)
+#define END_OF_LIST NULL
+#define UNINITIALIZED_DATA ((ocrGuid_t) -2)
+
+
+//
+// Guid-kind checkers for convenience
+//
+
+static bool isDatablockGuid(ocrGuid_t guid) {
+    ocrGuidKind kind;
+    guidKind(getCurrentPD(),guid, &kind);
+    return kind == OCR_GUID_DB;
 }
 
 static bool isEventGuid(ocrGuid_t guid) {
     ocrGuidKind kind;
-    globalGuidProvider->getKind(globalGuidProvider, guid, &kind);
+    guidKind(getCurrentPD(),guid, &kind);
     return kind == OCR_GUID_EVENT;
 }
 
 static bool isEdtGuid(ocrGuid_t guid) {
     ocrGuidKind kind;
-    globalGuidProvider->getKind(globalGuidProvider, guid, &kind);
+    guidKind(getCurrentPD(),guid, &kind);
     return kind == OCR_GUID_EDT;
 }
 
 static bool isEventLatchGuid(ocrGuid_t guid) {
     if(isEventGuid(guid)) {
         ocrEventHc_t * event = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, guid, (u64*)&event, NULL);
+        deguidify(getCurrentPD(), guid, (u64*)&event, NULL);
         return (event->kind == OCR_EVENT_LATCH_T);
     }
     return false;
@@ -75,9 +84,9 @@ static bool isEventLatchGuid(ocrGuid_t guid) {
 static bool isEventSingleGuid(ocrGuid_t guid) {
     if(isEventGuid(guid)) {
         ocrEventHc_t * event = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, guid, (u64*)&event, NULL);
-        return ((event->kind == OCR_EVENT_ONCE_T) 
-            || (event->kind == OCR_EVENT_IDEM_T) 
+        deguidify(getCurrentPD(), guid, (u64*)&event, NULL);
+        return ((event->kind == OCR_EVENT_ONCE_T)
+            || (event->kind == OCR_EVENT_IDEM_T)
             || (event->kind == OCR_EVENT_STICKY_T));
     }
     return false;
@@ -108,7 +117,7 @@ static ocrTask_t * getCurrentTask() {
     ocrGuid_t edtGuid = getCurrentEDT();
     if (edtGuid != NULL_GUID) {
         ocrTask_t * event = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, edtGuid, (u64*)&event, NULL);
+        deguidify(getCurrentPD(), edtGuid, (u64*)&event, NULL);
         return event;
     }
     return NULL;
@@ -140,7 +149,7 @@ static void finishLatchCheckout(ocrEvent_t * base);
 
 // Generic initializer for events. Implementation-dependent event functions
 // are passed through the function pointer data-structure.
-static ocrEvent_t* eventConstructorInternal(ocrEventFactory_t * factory, ocrEventTypes_t eventType, bool takesArg) {
+static ocrEvent_t* eventConstructorInternal(ocrPolicyDomain_t * pd, ocrEventFactory_t * factory, ocrEventTypes_t eventType, bool takesArg) {
     ocrEvent_t* base = NULL;
     ocrEventFcts_t * eventFctPtrs = NULL;
     if (eventType == OCR_EVENT_FINISH_LATCH_T) {
@@ -177,7 +186,7 @@ static ocrEvent_t* eventConstructorInternal(ocrEventFactory_t * factory, ocrEven
     // Initialize ocrEvent_t base
     base->fctPtrs = eventFctPtrs;
     base->guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_EVENT);
+    guidify(pd, &(base->guid), (u64)base, OCR_GUID_EVENT);
 
     return base;
 }
@@ -186,7 +195,8 @@ void destructEventHc ( ocrEvent_t* base ) {
     // Event's signaler/waiter must have been previously deallocated 
     // at some point before. For instance on satisfy.
     ocrEventHc_t* derived = (ocrEventHc_t*)base;
-    globalGuidProvider->releaseGuid(globalGuidProvider, base->guid);
+    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
+    guidProvider->releaseGuid(guidProvider, base->guid);
     free(derived);
 }
 
@@ -389,7 +399,7 @@ void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, int slot) {
         reg_node_t * parentLatchWaiter = &(self->parentLatchWaiter);
         if (parentLatchWaiter->guid != NULL_GUID) {
             ocrEvent_t * parentLatch;
-            globalGuidProvider->getVal(globalGuidProvider, parentLatchWaiter->guid, (u64*)&parentLatch, NULL);
+            deguidify(getCurrentPD(), parentLatchWaiter->guid, (u64*)&parentLatch, NULL);
             finishLatchCheckout(parentLatch);
         }
         // Since finish-latch is internal to finish-edt, and ELS is cleared, // there are no more pointers left to it, deallocate.
@@ -426,7 +436,7 @@ static ocrEvent_t * getFinishLatch(ocrTask_t * edt) {
         ocrGuid_t latchGuid = edt->els[ELS_SLOT_FINISH_LATCH];
         if (latchGuid != NULL_GUID) {
             ocrEvent_t * event = NULL;
-            globalGuidProvider->getVal(globalGuidProvider, latchGuid, (u64*)&event, NULL);
+            deguidify(getCurrentPD(), latchGuid, (u64*)&event, NULL);
             return event;
         }
     }
@@ -443,9 +453,9 @@ static bool isFinishLatchOwner(ocrEvent_t * finishLatch, ocrGuid_t edtGuid) {
 /******************************************************/
 
 // takesArg indicates whether or not this event carries any data
-ocrGuid_t newEventHc ( ocrEventFactory_t * factory, ocrEventTypes_t eventType, bool takesArg ) {
-    ocrEvent_t * res = eventConstructorInternal(factory, eventType, takesArg);
-    return res->guid;
+ocrEvent_t * newEventHc ( ocrEventFactory_t * factory, ocrEventTypes_t eventType, bool takesArg ) {
+    ocrEvent_t * res = eventConstructorInternal(getCurrentPD(), factory, eventType, takesArg);
+    return res;
 }
 
 void destructEventFactoryHc ( ocrEventFactory_t * base ) {
@@ -488,8 +498,9 @@ ocrEventFactory_t * newEventFactoryHc(void * config) {
 /* OCR-HC Task Implementation                         */
 /******************************************************/
 
-void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
-        u32 paramc, u64 * params, void** paramv, u64 nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs) {
+void hcTaskConstructInternal (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived, ocrTaskTemplate_t * taskTemplate,
+        u64 * params, void** paramv, ocrGuid_t outputEvent) {
+    u64 nbDeps = taskTemplate->depc;
     if (nbDeps == 0) {
         derived->signalers = END_OF_LIST;
     } else {
@@ -497,17 +508,14 @@ void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
         derived->signalers = checkedMalloc(derived->signalers, sizeof(reg_node_t)*nbDeps);
     }
     derived->waiters = END_OF_LIST;
-    derived->nbdeps = nbDeps;
-    derived->p_function = funcPtr;
     // Initialize base
     ocrTask_t* base = (ocrTask_t*) derived;
     base->guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_EDT);
-    base->paramc = paramc;
+    guidify(pd, &(base->guid), (u64)base, OCR_GUID_EDT);
+    base->templateGuid = taskTemplate->guid;
     base->params = params;
     base->paramv = paramv;
     base->outputEvent = outputEvent;
-    base->fctPtrs = taskFctPtrs;
     // Initialize ELS
     int i = 0;
     while (i < ELS_SIZE) {
@@ -515,14 +523,14 @@ void hcTaskConstructInternal (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
     }
 }
 
-ocrTaskHc_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, u64 depc, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFcts) {
+static ocrTaskHc_t* hcTaskConstruct (ocrTaskFactory_t* factory, ocrPolicyDomain_t * pd, ocrTaskTemplate_t * taskTemplate, 
+                                    u64 * params, void** paramv, u16 properties, ocrGuid_t outputEvent) {
     ocrTaskHc_t* newEdt = (ocrTaskHc_t*)checkedMalloc(newEdt, sizeof(ocrTaskHc_t));
-    hcTaskConstructInternal(newEdt, funcPtr, paramc, params, paramv, depc, outputEvent, taskFcts);
+    hcTaskConstructInternal(pd, newEdt, taskTemplate, params, paramv, outputEvent);
     ocrTask_t * newEdtBase = (ocrTask_t *) newEdt;
     // If we are creating a finish-edt
     if (hasProperty(properties, EDT_PROP_FINISH)) {
-        ocrPolicyDomain_t* policy_domain = get_current_policy_domain();
-        ocrEventFactory_t * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
+        ocrEventFactory_t * eventFactory = pd->getEventFactoryForUserEvents(pd);
         ocrEvent_t * latch = eventConstructorInternal(eventFactory, OCR_EVENT_FINISH_LATCH_T, false);
         ocrEventHcFinishLatch_t * hcLatch = (ocrEventHcFinishLatch_t *) latch;
         // Set the owner of the latch
@@ -565,7 +573,11 @@ ocrTaskHc_t* hcTaskConstruct (ocrEdt_t funcPtr, u32 paramc, u64 * params, void *
 
 void destructTaskHc ( ocrTask_t* base ) {
     ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
-    globalGuidProvider->releaseGuid(globalGuidProvider, base->guid);
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcessDestruct(&(base->statProcess));
+#endif
+    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
+    guidProvider->releaseGuid(guidProvider, base->guid);
     free(derived);
 }
 
@@ -622,7 +634,7 @@ static void edtRegisterSignaler(ocrTask_t * base, ocrGuid_t signalerGuid, int sl
  */
 void taskSchedule( ocrGuid_t guid, ocrTask_t* base, ocrGuid_t wid ) {
     ocrWorker_t* w = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
     ocrScheduler_t * scheduler = get_worker_scheduler(w);
     scheduler->give(scheduler, wid, guid);
 }
@@ -671,7 +683,7 @@ void taskExecute ( ocrTask_t* base ) {
             if(dbGuid != NULL_GUID) {
                 assert(isDatablockGuid(dbGuid));
                 ocrDataBlock_t * db = NULL;
-                globalGuidProvider->getVal(globalGuidProvider, dbGuid, (u64*)&db, NULL);
+                deguidify(getCurrentPD(), dbGuid, (u64*)&db, NULL);
                 depv[i].ptr = db->acquire(db, base->guid, true);
             } else {
                 depv[i].ptr = NULL;
@@ -690,7 +702,7 @@ void taskExecute ( ocrTask_t* base ) {
         for(i=0; i<nbdeps; ++i) {
             if(depv[i].guid != NULL_GUID) {
                 ocrDataBlock_t * db = NULL;
-                globalGuidProvider->getVal(globalGuidProvider, depv[i].guid, (u64*)&db, NULL);
+                deguidify(getCurrentPD(), depv[i].guid, (u64*)&db, NULL);
                 RESULT_ASSERT(db->release(db, base->guid, true), ==, 0);
             }
         }
@@ -712,7 +724,7 @@ void taskExecute ( ocrTask_t* base ) {
     // event but himself, do that now.
     if ((base->outputEvent != NULL_GUID) && !isFinishLatchOwner(curLatch, base->guid)) {
         ocrEvent_t * outputEvent;
-        globalGuidProvider->getVal(globalGuidProvider, base->outputEvent, (u64*)&outputEvent, NULL);
+        deguidify(getCurrentPD(), base->outputEvent, (u64*)&outputEvent, NULL);
         // We know the output event must be of type single sticky since it is
         // internally allocated by the runtime
         assert(isEventSingleGuid(base->outputEvent));
@@ -721,41 +733,66 @@ void taskExecute ( ocrTask_t* base ) {
 }
 
 /******************************************************/
+/* OCR-HC Task Template Factory                       */
+/******************************************************/
+
+ocrGuid_t newTaskTemplateHc(ocrTaskTemplateFactory_t* factory, ocrEdt_t executePtr, u32 paramc, u64 depc) {
+    ocrTaskTemplateHc_t* template = (ocrTaskTemplateHc_t*) checkedMalloc(template, sizeof(ocrTaskTemplateHc_t));
+    ocrTaskTemplate_t * base = (ocrTaskTemplate_t *) template;
+    base->paramc = paramc;
+    base->depc = depc;
+    base->executePtr = executePtr;
+    base->fctPtrs = &(((ocrTaskTemplateFactoryHc_t *) factory)->taskFctPtrs);
+}
+
+void destructTaskTemplateFactoryHc(ocrTaskTemplateFactory_t* base) {
+    ocrTaskTemplateFactoryHc_t* derived = (ocrTaskTemplateFactoryHc_t*) base;
+    free(derived);
+}
+
+ocrTaskFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType) {
+    ocrTaskTemplateFactoryHc_t* derived = (ocrTaskTemplateFactoryHc_t*) checkedMalloc(derived, sizeof(ocrTaskTemplateFactoryHc_t));
+    ocrTaskTemplateFactory_t* base = (ocrTaskTemplateFactory_t*) derived;
+    base->instantiate = newTaskTemplateHc;
+    base->destruct =  destructTaskTemplateFactoryHc;
+    // initialize singleton instance that carries hc implementation 
+    // function pointers. Every instantiated task template will use 
+    // this pointer to resolve functions implementations.
+    derived->taskFctPtrs.destruct = destructTaskHc;
+    derived->taskFctPtrs.execute = taskExecute;
+    derived->taskFctPtrs.schedule = tryScheduleTask;
+    //TODO What taskTemplateFcts is supposed to do ?
+}
+
+/******************************************************/
 /* OCR-HC Task Factory                                */
 /******************************************************/
 
-ocrGuid_t newTaskHc(ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, u64 depc, ocrGuid_t * outputEventPtr) {
+ocrGuid_t newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, 
+                    u64 * params, void** paramv, u16 properties, ocrGuid_t * outputEventPtr) {
     // Initialize a sticky outputEvent if requested
     ocrGuid_t outputEvent = (ocrGuid_t) outputEventPtr;
+    ocrPolicyDomain_t* pd = getCurrentPD();
     if (outputEvent != NULL_GUID) {
-        ocrPolicyDomain_t* policy_domain = get_current_policy_domain();
-        ocrEventFactory_t * eventFactory = policy_domain->getEventFactoryForUserEvents(policy_domain);
+        ocrEventFactory_t * eventFactory = pd->getEventFactoryForUserEvents(pd);
         outputEvent = newEventHc(eventFactory, OCR_EVENT_STICKY_T, false);
         *outputEventPtr = outputEvent;
     }
-    ocrTaskHc_t* edt = hcTaskConstruct(fctPtr, paramc, params, paramv, properties, depc, outputEvent, factory->taskFcts);
+    ocrTaskHc_t* edt = hcTaskConstruct(factory, pd, taskTemplate, params, paramv, properties, outputEvent);
     ocrTask_t* base = (ocrTask_t*) edt;
     return base->guid;
 }
 
 void destructTaskFactoryHc(ocrTaskFactory_t* base) {
     ocrTaskFactoryHc_t* derived = (ocrTaskFactoryHc_t*) base;
-    free(base->taskFcts);
     free(derived);
 }
 
-ocrTaskFactory_t * newTaskFactoryHc(void * config) {
+ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance) {
     ocrTaskFactoryHc_t* derived = (ocrTaskFactoryHc_t*) checkedMalloc(derived, sizeof(ocrTaskFactoryHc_t));
     ocrTaskFactory_t* base = (ocrTaskFactory_t*) derived;
     base->instantiate = newTaskHc;
     base->destruct =  destructTaskFactoryHc;
-    // initialize singleton instance that carries hc implementation 
-    // function pointers. Every instantiated task will use this pointer
-    // to resolve functions implementations.
-    base->taskFcts = (ocrTaskFcts_t *) checkedMalloc(base->taskFcts, sizeof(ocrTaskFcts_t));
-    base->taskFcts->destruct = destructTaskHc;
-    base->taskFcts->execute = taskExecute;
-    base->taskFcts->schedule = tryScheduleTask;
     return base;
 }
 
@@ -772,7 +809,7 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
     // registration, which should only be done on edtSchedule.
     if (isEventGuid(signalerGuid) && isEventGuid(waiterGuid)) {
         ocrEventHcAwaitable_t * target;
-        globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
+        deguidify(getCurrentPD(), signalerGuid, (u64*)&target, NULL);
         awaitableEventRegisterWaiter(target, waiterGuid, slot);
         return;
     }
@@ -788,7 +825,7 @@ static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slo
     if (isEventGuid(signalerGuid)) {
         assert(isEdtGuid(waiterGuid) || isEventGuid(waiterGuid));
         ocrEventHcAwaitable_t * target;
-        globalGuidProvider->getVal(globalGuidProvider, signalerGuid, (u64*)&target, NULL);
+        deguidify(getCurrentPD(), signalerGuid, (u64*)&target, NULL);
         awaitableEventRegisterWaiter(target, waiterGuid, slot);
     } else if(isDatablockGuid(signalerGuid) && isEdtGuid(waiterGuid)) {
             signalWaiter(waiterGuid, signalerGuid, slot);
@@ -805,14 +842,14 @@ static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int s
         // edt waiting for a signal from an event or a datablock
         assert(isEventGuid(signalerGuid) || isDatablockGuid(signalerGuid));
         ocrTask_t * target = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
+        deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
         edtRegisterSignaler(target, signalerGuid, slot);
         return;
     // datablock to event registration => satisfy on the spot
     } else if (isDatablockGuid(signalerGuid)) {
         assert(isEventGuid(waiterGuid));
         ocrEvent_t * target = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
+        deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
         // This looks a duplicate of signalWaiter, however there hasn't
         // been any signal strictly speaking, hence calling satisfy directly
         if (isEventSingleGuid(waiterGuid)) {
@@ -833,15 +870,15 @@ static void signalWaiter(ocrGuid_t waiterGuid, ocrGuid_t data, int slot) {
     // TODO do we need to know who's signaling ?
     if (isEventSingleGuid(waiterGuid)) {
         ocrEvent_t * target = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
+        deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
         singleEventSignaled(target, data, slot);
     } else if (isEventLatchGuid(waiterGuid)) {
         ocrEvent_t * target = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
+        deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
         latchEventSignaled(target, data, slot);
     } else if(isEdtGuid(waiterGuid)) {
         ocrTask_t * target = NULL;
-        globalGuidProvider->getVal(globalGuidProvider, waiterGuid, (u64*)&target, NULL);
+        deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
         taskSignaled(target, data, slot);
     } else {
         // ERROR

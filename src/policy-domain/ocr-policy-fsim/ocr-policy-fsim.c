@@ -184,7 +184,7 @@ static inline void fsim_policy_domain_constructor_helper ( ocrPolicyDomain_t * p
                                                            u64 schedulerCount) {
     // Get a GUID
     policy->guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(policy->guid), (u64)policy, OCR_GUID_POLICY);
+    guidify(getCurrentPD(), &(policy->guid), (u64)policy, OCR_GUID_POLICY);
 
     ocrMappable_t * module_base = (ocrMappable_t *) policy;
     module_base->mapFct = fsim_ocr_module_map_schedulers_to_policy;

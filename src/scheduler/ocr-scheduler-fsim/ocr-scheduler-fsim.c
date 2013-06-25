@@ -107,7 +107,7 @@ ocrWorkpileIterator_t* xe_scheduler_steal_mapping_fsim_faithful(ocrScheduler_t* 
 ocrGuid_t xe_scheduler_take_most_fsim_faithful (ocrScheduler_t* base, ocrGuid_t wid ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
     ocrWorker_t* w = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     ocrWorkpile_t * wp_to_pop = NULL;
 
@@ -137,10 +137,10 @@ ocrGuid_t xe_scheduler_take_most_fsim_faithful (ocrScheduler_t* base, ocrGuid_t 
 void xe_scheduler_give_fsim_faithful (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
     ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
     ocrWorker_t* w = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     ocrTaskFsimBase_t* task = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, tid, (u64*)&task, NULL);
+    deguidify(getCurrentPD(), tid, (u64*)&task, NULL);
 
     fsim_message_interface_t* taskAsMessage = &(task->message_interface);
 
@@ -159,9 +159,10 @@ void xe_scheduler_give_fsim_faithful (ocrScheduler_t* base, ocrGuid_t wid, ocrGu
             ocrTaskFactory_t* message_task_factory = policy_domain->taskFactories[1];
 
             // the message to the CE says 'give me work' and notes who is asking for it
-            ocrGuid_t messageTaskGuid = message_task_factory->instantiate(message_task_factory, NULL, 0, NULL, NULL, 0, 0, NULL);
-            ocrTaskFsimMessage_t* derivedMessage = NULL;
-            globalGuidProvider->getVal(globalGuidProvider, messageTaskGuid, (u64*)&(derivedMessage), NULL);
+            ocrTaskFsimMessage_t* derivedMessage = (ocrTaskFsimMessage_t*) 
+                message_task_factory->instantiate(message_task_factory, NULL_GUID, 0, NULL);
+            guidify(getCurrentPD(), &(task->guid), (u64)task, OCR_GUID_EDT);
+            ocrGuid_t messageTaskGuid = task->guid;
             derivedMessage -> type = PICK_MY_WORK_UP;
             derivedMessage -> from_worker_guid = wid;
 
@@ -264,7 +265,7 @@ ocrWorkpile_t * ce_scheduler_push_mapping_to_messages (ocrScheduler_t* base ) {
 
 ocrGuid_t ce_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
     ocrWorker_t* w = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     ocrWorkpile_t * wp_to_pop = base->pop_mapping(base, w);
     //ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
@@ -280,10 +281,10 @@ ocrGuid_t ce_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
 // last being the CEs giving a 'message task' to itself if it can not serve the message
 void ce_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t taskGuid ) {
     ocrWorker_t* w = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, wid, (u64*)&w, NULL);
+    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     ocrTaskFsimBase_t* task = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, taskGuid, (u64*)&task, NULL);
+    deguidify(getCurrentPD(), taskGuid, (u64*)&task, NULL);
 
     fsim_message_interface_t* taskAsMessage = &(task->message_interface);
 

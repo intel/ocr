@@ -43,9 +43,10 @@ typedef enum {
     OCR_GUID_ALLOCATOR = 1,
     OCR_GUID_DB = 2,
     OCR_GUID_EDT = 3,
-    OCR_GUID_EVENT = 4,
-    OCR_GUID_POLICY = 5,
-    OCR_GUID_WORKER = 6
+    OCR_GUID_EDT_TEMPLATE = 4,
+    OCR_GUID_EVENT = 5,
+    OCR_GUID_POLICY = 6,
+    OCR_GUID_WORKER = 7
 } ocrGuidKind;
 
 /****************************************************/
@@ -160,5 +161,11 @@ typedef struct _ocrGuidProviderFact_t {
 #define UNINITIALIZED_GUID ((ocrGuid_t)-2)
 
 #define ERROR_GUID ((ocrGuid_t)-1)
+
+inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, ocrGuidKind * kindRes);
+
+inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64* ptr, ocrGuid_t * guidRes, ocrGuidKind kind);
+
+inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes, ocrGuidKind* kind);
 
 #endif /* __OCR_GUID__H_ */

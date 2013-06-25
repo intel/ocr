@@ -128,8 +128,8 @@ static u64 simpleFilterDump(ocrStatsFilter_t *self, char** out, u64 chunk, void*
     intSimpleMessageNode_t *tmess = &(rself->messages[chunk]);
 
     ocrStat
-    globalGuidProvider->getKind(globalGuidProvider, tmess->src, &srcK);
-    globalGuidProvider->getKind(globalGuidProvider, tmess->dest, &destK);
+    guidKind(getCurrentPD(),tmess->src, &srcK);
+    guidKind(getCurrentPD(),tmess->dest, &destK);
 
     snprintf(*out, sizeof(char)*82, "%ld : T %d 0x%lx(%d) -> 0x%lx(%d) ", tmess->tick,
              tmess->type, tmess->src, srcK, tmess->dest, destK);

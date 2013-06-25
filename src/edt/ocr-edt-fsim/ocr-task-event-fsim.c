@@ -40,8 +40,10 @@
 
 #define END_OF_LIST NULL
 
-void hcTaskConstructInternal2 (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
-        u32 paramc, u64 * params, void** paramv, u64 nbDeps, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFctPtrs) {
+// This is doing pretty much what the hc implementation would do
+// There's no inheritance setup so it's a vague copy paste
+static void hcTaskConstructInternal (ocrTaskHc_t* derived, 
+        ocrTaskTemplate * taskTemplate, u64 * params, void** paramv, ocrGuid_t outputEvent) {
     if (nbDeps == 0) {
         derived->signalers = END_OF_LIST;
     } else {
@@ -49,17 +51,13 @@ void hcTaskConstructInternal2 (ocrTaskHc_t* derived, ocrEdt_t funcPtr,
         derived->signalers = checkedMalloc(derived->signalers, sizeof(reg_node_t)*nbDeps);
     }
     derived->waiters = END_OF_LIST;
-    derived->nbdeps = nbDeps;
-    derived->p_function = funcPtr;
     // Initialize base
     ocrTask_t* base = (ocrTask_t*) derived;
     base->guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(base->guid), (u64)base, OCR_GUID_EDT);
-    base->paramc = paramc;
     base->params = params;
     base->paramv = paramv;
     base->outputEvent = outputEvent;
-    base->fctPtrs = taskFctPtrs;
+    base->templateGuid = taskTemplate->guid;
     // Initialize ELS
     int i = 0;
     while (i < ELS_SIZE) {
@@ -76,29 +74,28 @@ void destructTaskFsim ( ocrTask_t* base ) {
     free(derived);
 }
 
-ocrTaskFsim_t* newTaskFsimInternal (ocrEdt_t funcPtr, u32 paramc, u64 * params, void ** paramv, u16 properties, u64 depc, ocrGuid_t outputEvent, ocrTaskFcts_t * taskFcts) {
-    ocrTaskFsim_t* derived = (ocrTaskFsim_t*) malloc(sizeof(ocrTaskFsim_t));
-    ocrTaskHc_t* hcTaskBase = &(derived->fsimBase.base);
-
-    hcTaskConstructInternal2(hcTaskBase, funcPtr, paramc, params, paramv, depc, outputEvent, taskFcts);
-
-    fsim_message_interface_t* fsimMessage = &(derived->fsimBase.message_interface);
-    fsimMessage->is_message = fsim_task_is_message;
-
-    ocr_task_t* ocrTaskBase = (ocr_task_t*) hcTaskBase;
-    ocrTaskBase->destruct = fsim_task_destruct;
-    return derived;
-}
-
 void destructTaskFactoryFsim ( ocrTaskFactory_t* base ) {
     ocrTaskFactoryFsim_t* derived = (ocrTaskFactoryFsim_t*) base;
     free(derived);
 }
 
-ocrGuid_t newTaskFsim ( ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, u64 depc, ocrGuid_t * outputEventPtr) {
-    ocrTaskFsim_t* edt = newTaskFsimInternal(fctPtr, paramc, params, paramv, properties, depc, NULL_GUID, factory->taskFcts);
-    ocrTask_t* base = (ocrTask_t*) edt;
-    return base->guid;
+ocrTaskTemplate_t * fsimTaskTemplateConstruct (ocrTaskTemplateFactory_t* factory, ocrEdt_t executePtr, u32 paramc, u32 depc, ocrTaskFcts_t * fctPtrs) {
+    ocrTaskTemplate_t * base = (ocrTaskTemplate_t*) malloc(sizeof(ocrTaskTemplate_t));
+    base->executePtr = executePtr;
+    base->paramc = paramc;
+    base->depc = nbDeps;
+    base->fctPtrs = fctPtrs;
+    return base;
+}
+
+// TODO destruct 
+ocrTask_t * newTaskFsim ( ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, u64 * params, void** paramv, u16 properties, ocrGuid_t outputEvent) {
+    ocrTaskFsim_t* derived = (ocrTaskFsim_t*) malloc(sizeof(ocrTaskFsim_t));
+    ocrTaskHc_t* hcTaskBase = &(derived->fsimBase.base);
+    hcTaskConstructInternal(hcTaskBase, taskTemplate, params, paramv, properties, outputEvent);
+    fsim_message_interface_t* fsimMessage = &(derived->fsimBase.message_interface);
+    fsimMessage->is_message = fsim_task_is_message;
+    return (ocrTask_t*) derived;
 }
 
 ocrTaskFactory_t* newTaskFactoryFsim(void * config) {
@@ -128,25 +125,14 @@ void destructTaskFsimMessage ( ocrTask_t* base ) {
     free(derived);
 }
 
-ocrTaskFsimMessage_t* newTaskFsimMessageInternal (ocrEdt_t funcPtr, ocrTaskFcts_t * taskFcts) {
+ocrTask_t * newTaskFsimMessage(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, u32 paramc, u64 * params, void** paramv, u16 properties, ocrGuid_t outputEvent) {
     ocrTaskFsimMessage_t* derived = (ocrTaskFsimMessage_t*) malloc(sizeof(ocrTaskFsimMessage_t));
     ocrTaskHc_t* hcTaskBase = &(derived->fsimBase.base);
-
-    hcTaskConstructInternal2(hcTaskBase, NULL, 0, NULL, NULL, 0, NULL_GUID, taskFcts);
-
+    // This is an internal task used as a "message", we shouldn't need to setup a task template
+    hcTaskConstructInternal(hcTaskBase, NULL, NULL, NULL, 0, NULL_GUID);
     fsim_message_interface_t* fsimMessage = &(derived->fsimBase.message_interface);
     fsimMessage->is_message = fsim_message_task_is_message;
-
-    ocr_task_t* ocrTaskBase = (ocr_task_t*) hcTaskBase;
-    ocrTaskBase->destruct = fsim_message_task_destruct;
-
-    return derived;
-}
-
-ocrGuid_t newTaskFsimMessage ( ocrTaskFactory_t* factory, ocrEdt_t fctPtr, u32 paramc, u64 * params, void** paramv, u16 properties, u64 depc, ocrGuid_t * outputEventPtr) {
-    ocrTaskFsimMessage_t* edt = newTaskFsimMessageInternal(fctPtr, factory->taskFcts);
-    ocrTask_t* base = (ocrTask_t*) edt;
-    return base->guid;
+    return (ocrTask_t*) derived;
 }
 
 ocrTaskFactory_t* newTaskFactoryFsimMessage(void * config) {
@@ -182,7 +168,7 @@ void * xe_worker_computation_routine (void * arg) {
         if ( NULL_GUID != taskGuid ) {
             // if managed to find work that was assigned by CE, execute it
             ocrTask_t* currTask = NULL;
-            globalGuidProvider->getVal(globalGuidProvider, taskGuid, (u64*)&(currTask), NULL);
+            deguidify(getCurrentPD(), taskGuid, (u64*)&(currTask), NULL);
             baseWorker->setCurrentEDT(baseWorker,taskGuid);
             currTask->fctPtrs->execute(currTask);
             baseWorker->setCurrentEDT(baseWorker, NULL_GUID);
@@ -193,9 +179,10 @@ void * xe_worker_computation_routine (void * arg) {
             ocrPolicyDomain_t* policy_domain = xeScheduler->domain;
             ocrTaskFactory_t* message_task_factory = policy_domain->taskFactories[1];
             // the message to the CE says 'give me work' and notes who is asking for it
-            ocrGuid_t messageTaskGuid = message_task_factory->instantiate(message_task_factory, NULL, 0, NULL, NULL, 0, 0, NULL);
-            ocrTaskFsimMessage_t* derived = NULL;
-            globalGuidProvider->getVal(globalGuidProvider, messageTaskGuid, (u64*)&(derived), NULL);
+            ocrTaskFsimMessage_t * derived = (ocrTaskFsimMessage_t *) 
+                message_task_factory->instantiate(message_task_factory, NULL_GUID, 0, NULL);
+            guidify(getCurrentPD(), &(task->guid), (u64)task, OCR_GUID_EDT);
+            ocrGuid_t messageTaskGuid = task->guid;
             derived -> type = GIVE_ME_WORK;
             derived -> from_worker_guid = workerGuid;
 
@@ -235,7 +222,7 @@ void * ce_worker_computation_routine(void * arg) {
 
             // check if the popped task is of 'message task' type
             ocrTaskFsimBase_t* currTask = NULL;
-            globalGuidProvider->getVal(globalGuidProvider, messageTaskGuid, (u64*)&(currTask), NULL);
+            deguidify(getCurrentPD(), messageTaskGuid, (u64*)&(currTask), NULL);
 
             fsim_message_interface_t* taskAsMessage = &(currTask->message_interface);
             assert(taskAsMessage->is_message(taskAsMessage) && "hoping to pop a message-task; popped non-message task");
@@ -249,7 +236,7 @@ void * ce_worker_computation_routine(void * arg) {
             // find the worker, scheduler the message originated from
             ocrGuid_t targetWorkerGuid = currMessageTask->from_worker_guid;
             ocrWorker_t* targetWorker= NULL;
-            globalGuidProvider->getVal(globalGuidProvider, targetWorkerGuid, (u64*)&(targetWorker), NULL);
+            deguidify(getCurrentPD(), targetWorkerGuid, (u64*)&(targetWorker), NULL);
             ocrScheduler_t* targetScheduler = get_worker_scheduler(targetWorker);
 
             switch (currMessageTask->type) {

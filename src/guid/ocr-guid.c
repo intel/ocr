@@ -33,9 +33,6 @@
 #include "ptr/ptr.h"
 #include "debug.h"
 
-ocrGuidProvider_t *globalGuidProvider = NULL;
-
-
 ocrGuidProvider_t* newGuidProvider(ocrGuidProviderKind type) {
     if(type == OCR_GUIDPROVIDER_DEFAULT) type = ocrGuidProviderDefaultKind;
     switch(type) {
@@ -45,4 +42,12 @@ ocrGuidProvider_t* newGuidProvider(ocrGuidProviderKind type) {
         ASSERT(0);
     }
     return NULL;
+}
+
+inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64* ptr, ocrGuid_t * guidRes, ocrGuidKind kind) {
+  return pd->getGuid(pd, ptr, guidRes, kind);
+}
+
+inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes, ocrGuidKind* kindRes) {
+  return pd->getVal(pd, guid, ptrRes, kindRes);
 }

@@ -45,7 +45,7 @@
 #include "ocr-event.h"
 #include "ocr-task.h"
 #include "ocr-tuning.h"
-
+#include "ocr-workpile.h"
 
 /******************************************************/
 /* OCR POLICY DOMAIN INTERFACE                        */
@@ -152,6 +152,7 @@ typedef struct _ocrPolicyDomain_t {
     ocrMemTarget_t  ** memories;                /**< All the target memory nodes */
 
     ocrTaskFactory_t  * taskFactory;            /**< Factory to produce tasks (EDTs) in this policy domain */
+    ocrTaskTemplateFactory_t  * taskTemplateFactory; /**< Factory to produce task templates in this policy domain */
     ocrDataBlockFactory_t * dbFactory;          /**< Factory to produce data-blocks in this policy domain */
     ocrEventFactory_t * eventFactory;           /**< Factory to produce events in this policy domain */
 
@@ -369,13 +370,6 @@ typedef struct _ocrPolicyDomain_t {
 
 } ocrPolicyDomain_t;
 
-// Common functions on all policy domains (ie: not function pointers)
-ocrTaskFactory_t*  getTaskFactoryFromPd(ocrPolicyDomain_t *policy);
-ocrEventFactory_t* getEventFactoryFromPd(ocrPolicyDomain_t *policy);
-ocrDataBlockFactory_t* getDataBlockFactoryFromPd(ocrPolicyDomain_t *policy);
-ocrLockFactory_t* getLockFactoryFromPd(ocrPolicyDomain_t *policy);
-
-
 // /**!
 //  * Default destructor for ocr policy domain
 //  */
@@ -401,7 +395,7 @@ ocrLockFactory_t* getLockFactoryFromPd(ocrPolicyDomain_t *policy);
 //                                 u64 computeCount,
 //                                 u64 nb_scheduler);
 
-ocrPolicyDomain_t* get_current_policy_domain ();
+// ocrPolicyDomain_t* get_current_policy_domain ();
 
 // ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
 // ocrGuid_t policy_domain_extract_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );

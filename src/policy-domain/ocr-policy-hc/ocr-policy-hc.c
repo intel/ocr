@@ -141,7 +141,7 @@ ocrPolicyDomain_t * hc_policy_domain_constructor(u64 workpileCount,
   ocrPolicyDomain_t * policy = (ocrPolicyDomain_t *) checkedMalloc(policy, sizeof(ocrPolicyDomain_t));
     // Get a GUID
     policy->guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(policy->guid), (u64)policy, OCR_GUID_POLICY);
+    guidify(getCurrentPD(), &(policy->guid), (u64)policy, OCR_GUID_POLICY);
     ocrMappable_t * module_base = (ocrMappable_t *) policy;
     module_base->mapFct = hc_ocr_module_map_schedulers_to_policy;
     policy->computeCount = computeCount;
@@ -260,7 +260,7 @@ void leaf_place_policy_domain_constructor_helper ( ocrPolicyDomain_t * policy,
                                                    u64 schedulerCount) {
     // Get a GUID
     policy->guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(policy->guid), (u64)policy, OCR_GUID_POLICY);
+    guidify(getCurrentPD(), &(policy->guid), (u64)policy, OCR_GUID_POLICY);
 
     ocrMappable_t * module_base = (ocrMappable_t *) policy;
     module_base->mapFct = hc_ocr_module_map_schedulers_to_policy;
@@ -382,7 +382,7 @@ ocrPolicyDomain_t * place_policy_domain_constructor () {
     ocrPolicyDomain_t * policy = (ocrPolicyDomain_t *) malloc(sizeof(ocrPolicyDomain_t));
 
     policy->guid = UNINITIALIZED_GUID;
-    globalGuidProvider->getGuid(globalGuidProvider, &(policy->guid), (u64)policy, OCR_GUID_POLICY);
+    guidify(getCurrentPD(), &(policy->guid), (u64)policy, OCR_GUID_POLICY);
 
     ocrMappable_t * module_base = (ocrMappable_t *) policy;
     module_base->mapFct = ocr_module_map_nothing_to_place;

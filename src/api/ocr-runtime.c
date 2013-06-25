@@ -67,7 +67,7 @@ void event_list_enlist ( event_list_t* list, ocrGuid_t event_guid ) {
     assert(false);
     //DISABLE to build on hudson
     // ocrEvent_t * event = NULL;
-    // globalGuidProvider->getVal(globalGuidProvider, event_guid, (u64*)&event, NULL);
+    // deguidify(getCurrentPD(), event_guid, (u64*)&event, NULL);
 
     // ++list->size;
     // event_list_node_t* node = event_list_node_constructor();
