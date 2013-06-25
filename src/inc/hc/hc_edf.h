@@ -41,7 +41,7 @@
 
 typedef struct {
     ocrEventFactory_t base_factory;
-    ocrEventFcts_t * finishLatchFcts;
+    ocrEventFcts_t finishLatchFcts;
 } ocrEventFactoryHc_t;
 
 ocrEventFactory_t* newEventFactoryHc(void * config);
