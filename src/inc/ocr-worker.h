@@ -114,8 +114,7 @@ typedef struct _ocrWorkerFactory_t {
     ocrMappable_t module;
     ocrWorker_t * (*instantiate) (struct _ocrWorkerFactory_t * factory, ocrParamList_t *perInstance);
     void (*destruct)(struct _ocrWorkerFactory_t * factory);
-
-    ocrWorkerFcts_t workerPtrs;
+    ocrWorkerFcts_t workerFcts;
 } ocrWorkerFactory_t;
 
 // TODO: Check these functions and prune if required
