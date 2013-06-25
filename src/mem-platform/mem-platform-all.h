@@ -31,10 +31,33 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
+#ifndef __MEM_PLATFORM_ALL_H__
+#define __MEM_PLATFORM_ALL_H__
+
 #include "debug.h"
 #include "ocr-mem-platform.h"
-#include "malloc/malloc.h"
+#include "ocr-utils.h"
 
+typedef enum _memPlatformType_t {
+    memPlatformMalloc_id
+} memPlatformType_t;
+
+// Malloc memory platform
+#include "mem-platform/malloc/malloc-mem-platform.h"
+
+// Add other memory platforms using the same pattern as above
+
+inline ocrMemPlatformFactory_t *newMemPlatformFactory(memPlatformType_t type, ocrParamList_t *typeArg) {
+    switch(type) {
+    case memPlatformMalloc_id:
+        return newMemPlatformFactoryMalloc(typeArg);
+    default:
+        ASSERT(0);
+        return NULL;
+    };
+}
+
+#endif /* __MEM_PLATFORM_ALL_H__ */
 extern ocrMemPlatform_t * newMemPlatformMalloc(ocrMemPlatformFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
 ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type, void * perTypeConfig, void * perInstanceConfig) {

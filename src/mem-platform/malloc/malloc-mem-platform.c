@@ -29,29 +29,10 @@
 
 #include <stdlib.h>
 #include "ocr-macros.h"
-#include "malloc.h"
+#include "malloc-mem-platform.h"
+#include "ocr-mem-platform.h"
 #include "ocr-mappable.h"
 #include "debug.h"
-
-
-/******************************************************/
-/* OCR MEM PLATFORM MALLOC FACTORY                    */
-/******************************************************/
-
-// Fwd declaration
-ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
-
-void destructMemPlatformFactoryHc(ocrMemPlatformFactory_t * factory) {
-    free(factory);
-}
-
-ocrMemPlatformFactory_t * newOcrMemPlatformFactoryMalloc(void * config) {
-    ocrMemPlatformFactoryMalloc_t* derived = (ocrMemPlatformFactoryMalloc_t*) checkedMalloc(derived, sizeof(ocrMemPlatformFactoryMalloc_t));
-    ocrMemPlatformFactory_t* base = (ocrMemPlatformFactory_t*) derived;
-    base->instantiate = newMemPlatformMalloc;
-    base->destruct =  destructMemPlatformFactoryHc;
-    return base;
-}
 
 
 /******************************************************/
@@ -75,15 +56,37 @@ void mallocFree(ocrMemPlatform_t *self, void *addr) {
     free(addr);
 }
 
-ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory, void * perTypeConfig, void * perInstanceConfig) {
+ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
+                                       ocrParamList_t *perInstance) {
+
     // TODO: This will be replaced by the runtime/GUID meta-data allocator
     // For now, we cheat and use good-old malloc which is kind of counter productive with
     // all the trouble we are going through to *not* use malloc...
-    ocrMemPlatformMalloc_t *result = (ocrMemPlatformMalloc_t*)malloc(sizeof(ocrMemPlatformMalloc_t));
-    result->base.destruct = &mallocDestruct;
-    result->base.allocate = &mallocAllocate;
-    result->base.free = &mallocFree;
-    result->base.module.mapFct = &mallocMap;
+    ocrMemPlatform_t *result = (ocrMemPlatform_t*)
+        checkedMalloc(result, sizeof(ocrMemPlatformMalloc_t));
 
-    return (ocrMemPlatform_t*)result;
+    result->fctPtrs = &(factory->platformFcts);
+
+    return result;
+}
+
+/******************************************************/
+/* OCR MEM PLATFORM MALLOC FACTORY                    */
+/******************************************************/
+
+static void destructMemPlatformFactoryMalloc(ocrMemPlatformFactory_t *factory) {
+    free(factory);
+}
+
+ocrMemPlatformFactory_t *newMemPlatformFactoryMalloc(ocrParamList_t *perType) {
+    ocrMemPlatformFactory_t *base = (ocrMemPlatformFactory_t*)
+        checkedMalloc(base, sizeof(ocrMemPlatformFactoryMalloc_t));
+
+    base->instantiate = &newMemPlatformMalloc;
+    base->destruct = &destructMemPlatformFactoryMalloc;
+    base->platformFcts.destruct = &mallocDestruct;
+    base->platformFcts.allocate = &mallocAllocate;
+    base->platformFcts.free = &mallocFree;
+
+    return base;
 }
