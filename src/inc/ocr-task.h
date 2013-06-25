@@ -113,6 +113,7 @@ typedef struct _ocrTaskFcts_t {
     /*! \brief Virtual destructor for the Task interface
      */
     void (*destruct) (struct _ocrTask_t* self);
+    //TODO would like to keep distinction between execute and schedule for now to avoid confusion
     /*! \brief Interface to execute the underlying computation of a task
      */
     void (*execute) (struct _ocrTask_t* self);

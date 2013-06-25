@@ -45,7 +45,7 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     ocrPolicyDomain_t * pd = getCurrentPD();
     ocrEventFactory_t * eventFactory = getEventFactoryFromPd(pd);
     ocrEvent_t * event = eventFactory->instantiate(eventFactory, eventType, takesArg);
-    guid = event->guid;
+    *guid = event->guid;
     return 0;
 }
 
@@ -118,18 +118,24 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
     return 0;
 }
 
-    u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
-    ocrGuid_t worker_guid = ocr_get_current_worker_guid();
+//TODO DEPR: impacts edtCreate and addDependence
+u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
+    ocrPolicyDomain_t * pd = getCurrentPD();
     ocrTask_t * task = NULL;
-    deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
-    task->fctPtrs->execute(task, worker_guid);
+    deguidify(pd, edtGuid, (u64*)&task, NULL);
+    ocrTaskTemplate_t * taskTemplate = NULL;
+    deguidify(pd, task->templateGuid, (u64*)&taskTemplate, NULL);
+    taskTemplate->fctPtrs->schedule(task);
     return 0;
 }
 
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
+    ocrPolicyDomain_t * pd = getCurrentPD();
     ocrTask_t * task = NULL;
-    deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
-    task->fctPtrs->destruct(task);
+    deguidify(pd, edtGuid, (u64*)&task, NULL);
+    ocrTaskTemplate_t * taskTemplate = NULL;
+    deguidify(pd, task->templateGuid, (u64*)&taskTemplate, NULL);
+    taskTemplate->fctPtrs->destruct(task);
     return 0;
 }
 

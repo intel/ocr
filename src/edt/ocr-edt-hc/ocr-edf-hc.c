@@ -638,7 +638,8 @@ void taskSchedule( ocrGuid_t guid, ocrTask_t* base, ocrGuid_t wid ) {
  * If no dependence, schedule the task right-away 
  * Warning: This method is to be called ONCE per task and there's no safeguard !
  */
-void tryScheduleTask( ocrTask_t* base, ocrGuid_t wid ) {
+void tryScheduleTask( ocrTask_t* base ) {
+    ocrGuid_t wid = ocr_get_current_worker_guid();
     //DESIGN This is very much specific to the way we've chosen
     //       to handle event-to-task dependence, which needs some
     //       kind of bootstrapping. This could be done when the last
@@ -688,7 +689,7 @@ void taskExecute ( ocrTask_t* base ) {
         derived->signalers = END_OF_LIST;
     }
 
-    //TODO: define when task template is resolved from its guid.
+    //TODO: define when task template is resolved from its guid
     ocrGuid_t retGuid = derived->p_function(base->paramc, base->params, base->paramv, nbdeps, depv);
 
     // edt user code is done, if any deps, release data-blocks
