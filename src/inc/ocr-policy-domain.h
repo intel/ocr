@@ -362,8 +362,8 @@ typedef struct _ocrPolicyDomain_t {
      */
     void (*processResponse)(struct _ocrPolicyDomain_t *self, ocrPolicyCtx_t *context);
 
-    ocrLock_t* getLock(struct _ocrPolicyDomain_t *self);
-    ocrAtomic64_t* getAtomic64(struct _ocrPolicyDomain_t *self);
+    ocrLock_t* (*getLock)(struct _ocrPolicyDomain_t *self);
+    ocrAtomic64_t* (*getAtomic64)(struct _ocrPolicyDomain_t *self);
 
     struct _ocrPolicyDomain_t** neighbors;
     u32 neighborCount;

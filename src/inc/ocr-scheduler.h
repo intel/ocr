@@ -59,6 +59,8 @@ typedef struct _paramListSchedulerInst_t {
 /****************************************************/
 
 struct _ocrScheduler_t;
+struct ocrCost_t;
+struct ocrPolicyCtx_t;
 
 typedef struct _ocrSchedulerFcts_t {
     void (*destruct)(struct _ocrScheduler_t *self);
@@ -75,11 +77,11 @@ typedef struct _ocrSchedulerFcts_t {
      * @brief Requests EDTs from this scheduler
      * @see ocrPolicyDomain_t
      */
-    u8 (*takeEdt)(struct _ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
-                  ocrGuid_t *edts, ocrPolicyCtx_t *context);
+    u8 (*takeEdt)(struct _ocrScheduler_t *self, struct ocrCost_t *cost, u32 *count,
+                  ocrGuid_t *edts, struct ocrPolicyCtx_t *context);
 
     u8 (*giveEdt)(struct _ocrScheduler_t *self, u32 count,
-                  ocrGuid_t *edts, ocrPolicyCtx_t *context);
+                  ocrGuid_t *edts, struct ocrPolicyCtx_t *context);
 
     // TODO: We will need to add the DB functions here
 } ocrSchedulerFcts_t;
