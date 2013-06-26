@@ -25,6 +25,7 @@ lib_LTLIBRARIES = libocr.la
 noinst_LTLIBRARIES =
 libocr_la_LIBADD =
 
+include allocator/Makefile.inc
 include api/Makefile.inc
 include comp-platform/Makefile.inc
 include comp-target/Makefile.inc
@@ -32,17 +33,16 @@ include datablock/Makefile.inc
 include driver/Makefile.inc
 include edt/Makefile.inc
 include guid/Makefile.inc
-include worker/Makefile.inc
+include machine-description/Makefile.inc
 include mem-platform/Makefile.inc
 include mem-target/Makefile.inc
-include machine-description/Makefile.inc
 include policy-domain/Makefile.inc
 include scheduler/Makefile.inc
+include statistics/Makefile.inc
 include sync/Makefile.inc
 include utils/Makefile.inc
+include worker/Makefile.inc
 include workpile/Makefile.inc
-include statistics/Makefile.inc
-include allocator/Makefile.inc
 
 # build the ocr runtime library
 libocr_la_SOURCES =

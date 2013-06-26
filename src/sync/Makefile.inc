@@ -1,10 +1,5 @@
 OCR_SRC_SYNC=sync
 
-noinst_LTLIBRARIES += libocr_sync.la
-libocr_la_LIBADD += libocr_sync.la
-
-libocr_sync_la_SOURCES =
-
 libocr_sync_la_CFLAGS = $(AM_CFLAGS)
 
 #TODO this should be conditionally built
