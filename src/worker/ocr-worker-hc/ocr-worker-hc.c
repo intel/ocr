@@ -32,6 +32,7 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#include "debug.h"
 #include "ocr-runtime.h"
 #include "hc.h"
 #include "ocr-guid.h"
