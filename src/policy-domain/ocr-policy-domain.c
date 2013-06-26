@@ -122,7 +122,7 @@ void ocr_policy_domain_destruct(ocrPolicyDomain_t * policy) {
 
     // Destroy the GUID
     ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
-    guidProvider->releaseGuid(guidProvider, policy->guid);
+    guidProvider->fctPtrs->releaseGuid(guidProvider, policy->guid);
     free(policy);
 }
 
