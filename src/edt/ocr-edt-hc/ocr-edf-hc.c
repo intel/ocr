@@ -628,8 +628,18 @@ static void edtRegisterSignaler(ocrTask_t * base, ocrGuid_t signalerGuid, int sl
  * Note: static function only meant to factorize code.
  */
 static inline void taskSchedule( ocrGuid_t taskGuid ) {
+    // Setting up the context 
     ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
     ocrPolicyDomain_t * pd = getCurrentPD();
+    ocrGuid_t workerGuid = pd->sourceObj;
+    ocrWorker_t * worker = NULL;
+    deguidify(pd, workerGuid, (u64*)&worker, NULL);
+    ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) worker;
+    contextTake->sourceId = hcWorker->id;
+    contextTake->destPD = pd->guid;
+    contextTake->destObj = NULL_GUID;
+    contextTake->type = PD_MSG_EDT_READY;
+    // give the edt to the policy domain
     pd->giveEdt(pd, 1, &taskGuid, ctx);
 }
 

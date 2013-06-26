@@ -39,6 +39,10 @@ struct _ocrPolicyCtx_t;
 
 //TODO  Will have to directly bind to pthread in this implementation 
 struct _ocrPolicyDomain_t * (*getCurrentPD)() = NULL;
+
+/**
+ * This should return a cloned context of the currently executing worker
+ */
 ocrPolicyCtx_t * (*getCurrentWorkerContext)() = NULL;
 ocrGuid_t (*getCurrentEDT)() = NULL;
 void (*setCurrentCompTarget)(ocrGuid_t) = NULL;
