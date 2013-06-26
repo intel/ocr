@@ -23,10 +23,10 @@ libocr_workpile_hc_la_CFLAGS = $(AM_CFLAGS)#
 
 # OCR-FSIM workpile implementation
 #
-noinst_LTLIBRARIES += libocr_workpile_fsim.la
-libocr_la_LIBADD += libocr_workpile_fsim.la
+#noinst_LTLIBRARIES += libocr_workpile_fsim.la
+#libocr_la_LIBADD += libocr_workpile_fsim.la
 
-libocr_workpile_fsim_la_SOURCES = \
-$(OCR_SRC_WORKPILE)/fsim/fsim-workpile.c
+#libocr_workpile_fsim_la_SOURCES = \
+#$(OCR_SRC_WORKPILE)/fsim/fsim-workpile.c
 
-libocr_workpile_fsim_la_CFLAGS = $(AM_CFLAGS)
+#libocr_workpile_fsim_la_CFLAGS = $(AM_CFLAGS)
