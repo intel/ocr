@@ -39,6 +39,10 @@
 // TODO sagnak it feels as the policy exposure here should not have happened
 #include "ocr-policy-domain.h"
 
+#include "inttypes.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-macros.h"
+
 void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
                    u16 flags, void* configuration) {
 
@@ -48,7 +52,7 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Acquiring DB @ 0x%lluX (GUID: 0x%lluX) from EDT 0x%lluX (isInternal %d)\n",
+        PRINTF("VERB: Acquiring DB @ 0x%llx (GUID: 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (isInternal %d)\n",
                (u64)rself->ptr, rself->base.guid, edt, (u32)isInternal);
     }
 
@@ -94,7 +98,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
     bool isTracked = true;
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Releasing DB @ 0x%llx (GUID 0x%llx) from EDT 0x%llx (%d) (internal: %d)\n",
+        PRINTF("VERB: Releasing DB @ 0x%llx (GUID 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (%d) (internal: %d)\n",
                (u64)rself->ptr, rself->base.guid, edt, edtId, (u32)isInternal);
     }
     // Start critical section
@@ -139,12 +143,41 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
     return 0;
 }
 
+void regularDestruct(ocrDataBlock_t *self) {
+    // We don't use a lock here. Maybe we should
+    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
+    ASSERT(rself->attributes.numUsers == 0);
+    ASSERT(rself->attributes.freeRequested == 1);
+    rself->lock->fctPtrs->destruct(rself->lock);
+
+    // Tell the allocator to free the data-block
+    ocrAllocator_t *allocator = NULL;
+    deguidify(getCurrentPD(), rself->allocatorGuid, (u64*)&allocator, NULL);
+
+    DO_DEBUG(DEBUG_LVL_VERB) {
+        PRINTF("VERB: Freeing DB @ 0x%llx (GUID: 0x%"PRIdPTR")\n", (u64)rself->ptr, rself->base.guid);
+    }
+    allocator->fctPtrs->free(allocator, rself->ptr);
+
+    // TODO: This is not pretty to be here but I can't put this in the ocrDbFree because
+    // the semantics of ocrDbFree is that it will wait for all acquire/releases to have
+    // completed so I have to release the block when it is really being freed. This current
+    // OCR version does not really implement delayed freeing but may in the future.
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcessDestruct(&(rself->base.statProcess));
+#endif
+
+    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
+    guidProvider->releaseGuid(guidProvider, self->guid);
+    free(rself);
+}
+
 u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
     u32 id = ocrGuidTrackerFind(&(rself->usersTracker), edt);
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Requesting a free for DB @ 0x%llx (GUID 0x%llx)\n",
+        PRINTF("VERB: Requesting a free for DB @ 0x%llx (GUID 0x%"PRIdPTR")\n",
                (u64)rself->ptr, rself->base.guid);
     }
     // Begin critical section
@@ -178,35 +211,7 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
     return 0;
 }
 
-void regularDestruct(ocrDataBlock_t *self) {
-    // We don't use a lock here. Maybe we should
-    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
-    ASSERT(rself->attributes.numUsers == 0);
-    ASSERT(rself->attributes.freeRequested == 1);
-    rself->lock->fctPtrs->destruct(rself->lock);
-
-    // Tell the allocator to free the data-block
-    ocrAllocator_t *allocator = NULL;
-    deguidify(getCurrentPD(), rself->allocatorGuid, (u64*)&allocator, NULL);
-
-    DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Freeing DB @ 0x%lx (GUID: 0x%lx)\n", (u64)rself->ptr, rself->base.guid);
-    }
-    allocator->fctPtrs->free(allocator, rself->ptr);
-
-    // TODO: This is not pretty to be here but I can't put this in the ocrDbFree because
-    // the semantics of ocrDbFree is that it will wait for all acquire/releases to have
-    // completed so I have to release the block when it is really being freed. This current
-    // OCR version does not really implement delayed freeing but may in the future.
-#ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcessDestruct(&(rself->base.statProcess));
-#endif
-
-    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
-    guidProvider->releaseGuid(guidProvider, self->guid);
-    free(rself);
-}
-
+// TODO sagnak to romain -> what the hell happened here below, two separate implementations merged under one?
 ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrParamList_t *perInstance) {
     paramListDataBlockInst_t *parameters = (paramListDataBlockInst_t*)perInstance;
 
@@ -242,7 +247,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrParamList
     // TODO: Use policy domain to create the lock
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Creating a datablock of size %ld @ 0x%lx (GUID: 0x%lx)\n",
+        PRINTF("VERB: Creating a datablock of size %ld @ 0x%llx (GUID: 0x%"PRIdPTR")\n",
                size, (u64)rself->ptr, rself->base.guid);
     }
 
