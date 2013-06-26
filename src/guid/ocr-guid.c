@@ -44,8 +44,8 @@ ocrGuidProvider_t* newGuidProvider(ocrGuidProviderKind type) {
     return NULL;
 }
 
-inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64* ptr, ocrGuid_t * guidRes, ocrGuidKind kind) {
-  return pd->getGuid(pd, ptr, guidRes, kind);
+inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * guidRes, ocrGuidKind kind) {
+  return pd->getGuid(pd, guidRes, ptr, kind);
 }
 
 inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes, ocrGuidKind* kindRes) {

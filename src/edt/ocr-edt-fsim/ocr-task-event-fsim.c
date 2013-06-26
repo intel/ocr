@@ -55,7 +55,7 @@ static void newTaskFsimInternal (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived,
     // Initialize base
     ocrTask_t* base = (ocrTask_t*) derived;
     base->guid = UNINITIALIZED_GUID;
-    guidify(pd, &(base->guid), (u64)base, OCR_GUID_EDT);
+    guidify(pd, (u64)base, &(base->guid), OCR_GUID_EDT);
     if (taskTemplate != NULL) {
         base->templateGuid = taskTemplate->guid;
     }

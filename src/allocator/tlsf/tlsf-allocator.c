@@ -1059,7 +1059,7 @@ ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_
     ocrAllocatorTlsf_t *result = (ocrAllocatorTlsf_t*)
         checkedMalloc(result, sizeof(ocrAllocatorTlsf_t));
     result->base.guid = UNINITIALIZED_GUID;
-    guidify(getCurrentPD(), &(result->base.guid), (u64)result, OCR_GUID_ALLOCATOR);
+    guidify(getCurrentPD(), (u64) result, &(result->base.guid), OCR_GUID_ALLOCATOR);
     result->base.fctPtrs = &(factory->allocFcts);
     result->base.memories = NULL;
     result->base.memoryCount = 0;

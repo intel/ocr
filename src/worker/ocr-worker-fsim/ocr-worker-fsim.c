@@ -92,7 +92,7 @@ ocrWorker_t* newWorkerFsimXE (ocrWorkerFactory_t * factory, ocrParamList_t * per
     module_base->mapFct = hc_ocr_module_map_scheduler_to_worker;
 
     base->guid = UNINITIALIZED_GUID;
-    guidify(getCurrentPD(), &(base->guid), (u64)base, OCR_GUID_WORKER);
+    guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_WORKER);
 
     base->scheduler = NULL;
     base->routine = xe_worker_computation_routine;
@@ -145,7 +145,7 @@ ocrWorker_t* newWorkerFsimCE (ocrWorkerFactory_t * factory, ocrParamList_t * per
     module_base->mapFct = hc_ocr_module_map_scheduler_to_worker;
 
     base->guid = UNINITIALIZED_GUID;
-    guidify(getCurrentPD(), &(base->guid), (u64)base, OCR_GUID_WORKER);
+    guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_WORKER);
 
     base->scheduler = NULL;
     base->routine = ce_worker_computation_routine;

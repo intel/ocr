@@ -186,7 +186,7 @@ static ocrEvent_t* eventConstructorInternal(ocrPolicyDomain_t * pd, ocrEventFact
     // Initialize ocrEvent_t base
     base->fctPtrs = eventFctPtrs;
     base->guid = UNINITIALIZED_GUID;
-    guidify(pd, &(base->guid), (u64)base, OCR_GUID_EVENT);
+    guidify(pd, (u64)base, &(base->guid), OCR_GUID_EVENT);
 
     return base;
 }
@@ -505,7 +505,7 @@ static void newTaskHcInternalCommon (ocrPolicyDomain_t * pd, ocrTaskHc_t* derive
     // Initialize base
     ocrTask_t* base = (ocrTask_t*) derived;
     base->guid = UNINITIALIZED_GUID;
-    guidify(pd, &(base->guid), (u64)base, OCR_GUID_EDT);
+    guidify(pd, (u64)base, &(base->guid), OCR_GUID_EDT);
     base->templateGuid = taskTemplate->guid;
     base->params = params;
     base->paramv = paramv;

@@ -164,7 +164,7 @@ typedef struct _ocrGuidProviderFact_t {
 
 inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, ocrGuidKind * kindRes);
 
-inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64* ptr, ocrGuid_t * guidRes, ocrGuidKind kind);
+inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * guidRes, ocrGuidKind kind);
 
 inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes, ocrGuidKind* kind);
 

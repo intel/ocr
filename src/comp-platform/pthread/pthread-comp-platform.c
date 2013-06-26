@@ -125,7 +125,7 @@ static ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *facto
         compPlatformPthread, sizeof(ocrCompPlatformPthread_t));
 
     compPlatformPthread->base.module.mapFct = NULL;
-    compPlatformPthread->base.fctPtrs = &(factory->platformFcts);
+    compPlatformPthread->base.qfctPtrs = &(factory->platformFcts);
 
     // TODO: Extract information from perInstance. Will be in misc
     compPlatformPthread->routine = NULL;
