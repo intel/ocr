@@ -150,7 +150,9 @@ void * worker_computation_routine(void * arg) {
     // Entering the worker loop
     while(worker->fctPtrs->isRunning(worker)) {
         ocrGuid_t taskGuid;
-        pd->takeEdt(pd, NULL, NULL, &taskGuid, contextTake);
+        u32 count;
+        pd->takeEdt(pd, NULL, &count, &taskGuid, contextTake);
+        ASSERT(count == 1); // remove that when we can take a bunch
         if (taskGuid != NULL_GUID) {
             ocrTask_t* curr_task = NULL;
             deguidify(pd, taskGuid, (u64*)&(curr_task), NULL);
