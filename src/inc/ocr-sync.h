@@ -152,7 +152,7 @@ typedef struct _ocrLockFactory_t {
     void (*destruct)(struct _ocrLockFactory_t *self);
 
 
-    ocrLock_t* (*instantiate)(struct _ocrLockFactory_t* self, ocrParamList_t *perInstance);
+    ocrLock_t* (*instantiate)(struct _ocrLockFactory_t* factory, ocrParamList_t *perInstance);
 
     ocrLockFcts_t lockFcts;
 } ocrLockFactory_t;
@@ -161,7 +161,7 @@ typedef struct _ocrLockFactory_t {
 /* OCR ATOMIC                                       */
 /****************************************************/
 
-struct _ocrAtomics64_t;
+struct _ocrAtomic64_t;
 
 typedef struct {
     /**
@@ -170,7 +170,7 @@ typedef struct {
      *
      * @param self          This atomic
      */
-    void (*destruct)(struct _ocrAtomics64_t *self);
+    void (*destruct)(struct _ocrAtomic64_t *self);
 
     /**
      * @brief Compare and swap
@@ -186,7 +186,7 @@ typedef struct {
      *
      * @return Old value of the atomic
      */
-    u64 (*cmpswap)(struct _ocrAtomics64_t *self, u64 cmpValue, u64 newValue);
+    u64 (*cmpswap)(struct _ocrAtomic64_t *self, u64 cmpValue, u64 newValue);
 
     /**
      * @brief Atomic add
@@ -199,7 +199,7 @@ typedef struct {
      * @param addValue  Value to add to location
      * @return New value of the location
      */
-    u64 (*xadd)(struct _ocrAtomics64_t *self, u64 addValue);
+    u64 (*xadd)(struct _ocrAtomic64_t *self, u64 addValue);
 
     /**
      * @brief Return the current value
@@ -210,7 +210,7 @@ typedef struct {
      * @param self      This atomic
      * @return Value of the atomic
      */
-    u64 (*val)(struct _ocrAtomics64_t *self);
+    u64 (*val)(struct _ocrAtomic64_t *self);
 } ocrAtomic64Fcts_t;
 
 /**
@@ -233,7 +233,7 @@ typedef struct _ocrAtomic64_t {
 typedef struct _ocrAtomic64Factory_t {
     void (*destruct)(struct _ocrAtomic64Factory_t *self);
 
-    ocrAtomic64_t* (*instantiate)(struct _ocrAtomic64Factory_t* self, ocrParamList_t *perInstance);
+    ocrAtomic64_t* (*instantiate)(struct _ocrAtomic64Factory_t* factory, ocrParamList_t *perInstance);
 
     ocrAtomic64Fcts_t atomicFcts;
 } ocrAtomic64Factory_t;
@@ -245,7 +245,9 @@ typedef struct _ocrAtomic64Factory_t {
  * @todo Do we need to have multiple interfaces for different
  * types of queues
  */
-typedef struct _ocrQueue_t {
+struct _ocrQueue_t;
+
+typedef struct _ocrQueueFcts_t {
     void (*destruct)(struct _ocrQueue_t *self);
 
     u64 (*popHead)(struct _ocrQueue_t *self);
@@ -253,6 +255,10 @@ typedef struct _ocrQueue_t {
 
     u64 (*pushHead)(struct _ocrQueue_t *self, u64 val);
     u64 (*pushTail)(struct _ocrQueue_t *self, u64 val);
+} ocrQueueFcts_t;
+
+typedef struct _ocrQueue_t {
+    ocrQueueFcts_t *fctPtrs;
 } ocrQueue_t;
 
 /**
@@ -261,7 +267,9 @@ typedef struct _ocrQueue_t {
 typedef struct _ocrQueueFactory_t {
     void (*destruct)(struct _ocrQueueFactory_t *self);
 
-    ocrQueue_t* (*instantiate)(struct _ocrQueueFactory_t *self, void* config);
+    ocrQueue_t* (*instantiate)(struct _ocrQueueFactory_t *factory, ocrParamList_t* perType);
+
+    ocrQueueFcts_t queueFcts;
 } ocrQueueFactory_t;
 
 #endif /* __OCR_SYNC_H__ */

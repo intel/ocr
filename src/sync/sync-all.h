@@ -1,5 +1,5 @@
 /**
- * @brief Simple basic x86 implementation of synchronization primitives
+ * @brief OCR synchronization primitives
  * @authors Romain Cledat, Intel Corporation
  * @date 2012-09-21
  * Copyright (c) 2012, Intel Corporation
@@ -31,44 +31,46 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
+#ifndef __SYNC_ALL_H__
+#define __SYNC_ALL_H__
 
-#ifndef __SYNC_X86_H__
-#define __SYNC_X86_H__
-
-#include "ocr-types.h"
+#include "debug.h"
 #include "ocr-sync.h"
 
-typedef struct {
-    ocrLock_t base;
-    u32 val;
-} ocrLockX86_t;
+typedef enum _syncType_t {
+    syncX86_id,
+} syncType_t;
 
-typedef struct {
-    ocrLockFactory_t base;
-} ocrLockFactoryX86_t;
+#include "sync/x86/x86-sync.h"
 
-typedef struct {
-    ocrAtomic64_t base;
-    volatile u64 val;
-} ocrAtomic64X86_t;
+inline ocrLockFactory_t *newLockFactory(syncType_t type, ocrParamList_t *typeArg) {
+    switch(type) {
+    case syncX86_id:
+        return newLockFactoryX86(typeArg);
+    default:
+        ASSERT(0);
+        return NULL;
+    }
+}
 
-typedef struct {
-    ocrAtomic64Factory_t base;
-} ocrAtomic64FactoryX86_t;
+inline ocrAtomic64Factory_t *newAtomic64Factory(syncType_t type, ocrParamList_t *typeArg) {
+    switch(type) {
+    case syncX86_id:
+        return newAtomic64FactoryX86(typeArg);
+    default:
+        ASSERT(0);
+        return NULL;
+    }
+}
 
-typedef struct {
-    ocrQueue_t base;
-    volatile u64 head, tail, size;
-    u64 *content;
-    volatile u32 lock;
-} ocrQueueX86_t;
+inline ocrQueueFactory_t *newQueueFactory(syncType_t type, ocrParamList_t *typeArg) {
+    switch(type) {
+    case syncX86_id:
+        return newQueueFactoryX86(typeArg);
+    default:
+        ASSERT(0);
+        return NULL;
+    }
+}
 
-typedef struct {
-    ocrQueueFactory_t base;
-} ocrQueueFactoryX86_t;
-
-ocrLockFactory_t *newLockFactoryX86(void* config);
-ocrAtomic64Factory_t *newAtomic64FactoryX86(void* config);
-ocrQueueFactory_t *newQueueFactoryX86(void* config);
-
-#endif /* __SYNC_X86_H__ */
+#endif /* __SYNC_ALL_H__ */

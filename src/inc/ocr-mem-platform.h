@@ -64,7 +64,7 @@ typedef struct _ocrMemPlatformFcts_t {
      *
      * @param self          Pointer to this low-memory provider
      */
-    void (*destruct)(ocrMemPlatform_t* self);
+    void (*destruct)(struct _ocrMemPlatform_t* self);
 
     /**
      * @brief Allocates a chunk of memory for the higher-level
@@ -74,7 +74,7 @@ typedef struct _ocrMemPlatformFcts_t {
      * @param size          Size of the chunk to allocate
      * @return Pointer to the chunk of memory allocated
      */
-    void* (*allocate)(ocrMemPlatform_t* self, u64 size);
+    void* (*allocate)(struct _ocrMemPlatform_t* self, u64 size);
 
     /**
      * @brief Frees a chunk of memory previously allocated
@@ -83,7 +83,7 @@ typedef struct _ocrMemPlatformFcts_t {
      * @param self          Pointer to this low-memory provider
      * @param addr          Address to free
      */
-    void (*free)(ocrMemPlatform_t* self, void* addr);
+    void (*free)(struct _ocrMemPlatform_t* self, void* addr);
 } ocrMemPlatformFcts_t;
 
 /**

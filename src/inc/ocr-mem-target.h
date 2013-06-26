@@ -97,8 +97,8 @@ typedef struct _ocrMemTarget_t {
     ocrMappable_t module; /**< Base "class" for ocrMemTarget */
     ocrGuid_t guid;
 
-    struct _ocrMemPlatform_t *memories;
-    u32 memoryCount;
+    struct _ocrMemPlatform_t **memories;
+    u64 memoryCount;
 
     ocrMemTargetFcts_t *fctPtrs;
 } ocrMemTarget_t;

@@ -16,8 +16,8 @@ noinst_LTLIBRARIES += libocr_workpile_hc.la
 libocr_la_LIBADD += libocr_workpile_hc.la
 
 libocr_workpile_hc_la_SOURCES = \
-$(OCR_SRC_WORKPILE)/ocr-workpile-hc/ocr-workpile-hc.c \
-$(OCR_SRC_WORKPILE)/ocr-workpile-hc/deque.c
+$(OCR_SRC_WORKPILE)/hc/hc-workpile.c \
+$(OCR_SRC_WORKPILE)/hc/deque.c
 
 libocr_workpile_hc_la_CFLAGS = $(AM_CFLAGS)#
 
@@ -27,6 +27,6 @@ noinst_LTLIBRARIES += libocr_workpile_fsim.la
 libocr_la_LIBADD += libocr_workpile_fsim.la
 
 libocr_workpile_fsim_la_SOURCES = \
-$(OCR_SRC_WORKPILE)/ocr-workpile-fsim/ocr-workpile-fsim.c
+$(OCR_SRC_WORKPILE)/fsim/fsim-workpile.c
 
 libocr_workpile_fsim_la_CFLAGS = $(AM_CFLAGS)

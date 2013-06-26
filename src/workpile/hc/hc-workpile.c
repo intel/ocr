@@ -29,58 +29,63 @@
 
 */
 
-#include "fsim.h"
+#include "ocr-macros.h"
+#include "hc.h"
+
 
 /******************************************************/
-/* OCR-FSIM-CE Message Workpile                       */
+/* OCR-HC WorkPile                                    */
 /******************************************************/
 
-static void ce_message_workpile_destruct ( ocrWorkpile_t * base ) {
-    ocrWorkpileFsimMessage_t* derived = (ocrWorkpileFsimMessage_t*) base;
+static void hcWorkpileDestruct ( ocrWorkpile_t * base ) {
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
     free(derived->deque);
     free(derived);
 }
 
-static ocrGuid_t ce_message_workpile_pop ( ocrWorkpile_t * base, ocrCost_t *cost) {
-    ocrWorkpileFsimMessage_t* derived = (ocrWorkpileFsimMessage_t*) base;
-    return (ocrGuid_t) deque_non_competing_pop_head(derived->deque);
+static ocrGuid_t hcWorkpilePop ( ocrWorkpile_t * base, ocrCost_t *cost ) {
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
+    return (ocrGuid_t) dequePop(derived->deque);
 }
 
-static void ce_message_workpile_push (ocrWorkpile_t * base, ocrGuid_t g ) {
-    ocrWorkpileFsimMessage_t* derived = (ocrWorkpileFsimMessage_t*) base;
-    deque_locked_push(derived->deque, (void *)g);
+static void hcWorkpilePush (ocrWorkpile_t * base, ocrGuid_t g ) {
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
+    dequePush(derived->deque, (void *)g);
 }
 
-ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
-    ocrWorkpileFsimMessage_t* derived = (ocrWorkpileFsimMessage_t*) malloc(sizeof(ocrWorkpileFsimMessage_t));
+static ocrGuid_t hcWorkpileSteal ( ocrWorkpile_t * base, ocrCost_t *cost ) {
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
+    return (ocrGuid_t) deque_steal(derived->deque);
+}
+
+ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) checkedMalloc(derived, sizeof(ocrWorkpileHc_t));
     ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
     ocrMappable_t * module_base = (ocrMappable_t *) base;
     module_base->mapFct = NULL;
     base->fctPtrs = &(factory->workpileFcts);
-    derived->deque = (mpsc_deque_t *) malloc(sizeof(mpsc_deque_t));
-    mpscDequeInit(derived->deque, (void *) NULL_GUID);
+    derived->deque = (deque_t *) checkedMalloc(derived->deque, sizeof(deque_t));
+    dequeInit(derived->deque, (void *) NULL_GUID);
     return base;
 }
 
 
 /******************************************************/
-/* OCR-FSIM-CE Message Workpile Factory               */
+/* OCR-HC WorkPile Factory                            */
 /******************************************************/
 
-void destructWorkpileFactoryFsimMessage(ocrWorkpileFactory_t * factory) {
+void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
     free(factory);
 }
 
-ocrWorkpileFactory_t * newOcrWorkpileFactoryFsimMessage(ocrParamList_t *perType) {
-    ocrWorkpileFactoryFsimMessage_t* derived = (ocrWorkpileFactoryFsimMessage_t*) checkedMalloc(derived, sizeof(ocrWorkpileFactoryFsimMessage_t));
+ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(ocrParamList_t *perType) {
+    ocrWorkpileFactoryHc_t* derived = (ocrWorkpileFactoryHc_t*) checkedMalloc(derived, sizeof(ocrWorkpileFactoryHc_t));
     ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
-    base->instantiate = newWorkpileFsimMessage;
-    base->destruct =  destructWorkpileFactoryFsimMessage;
-    base->workpileFcts.destruct = ce_message_workpile_destruct;
-    base->workpileFcts.pop = ce_message_workpile_pop;
-    base->workpileFcts.push = ce_message_workpile_push;
-    base->workpileFcts.steal = ce_message_workpile_pop;
+    base->instantiate = newWorkpileHc;
+    base->destruct =  destructWorkpileFactoryHc;
+    base->workpileFcts.destruct = hcWorkpileDestruct;
+    base->workpileFcts.pop = hcWorkpilePop;
+    base->workpileFcts.push = hcWorkpilePush;
+    base->workpileFcts.steal = hcWorkpileSteal;
     return base;
 }
-
-

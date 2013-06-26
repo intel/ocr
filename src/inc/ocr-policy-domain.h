@@ -137,12 +137,12 @@ typedef struct _ocrPolicyDomain_t {
     ocrMappable_t module;
     ocrGuid_t guid;                             /**< GUID for this policy */
 
-    u32 schedulerCount;                         /**< Number of schedulers */
-    u32 workerCount;                            /**< Number of workers */
-    u32 computeCount;                           /**< Number of target computate nodes */
-    u32 workpileCount;                          /**< Number of workpiles */
-    u32 allocatorCount;                         /**< Number of allocators */
-    u32 memoryCount;                            /**< Number of target memory nodes */
+    u64 schedulerCount;                         /**< Number of schedulers */
+    u64 workerCount;                            /**< Number of workers */
+    u64 computeCount;                           /**< Number of target computate nodes */
+    u64 workpileCount;                          /**< Number of workpiles */
+    u64 allocatorCount;                         /**< Number of allocators */
+    u64 memoryCount;                            /**< Number of target memory nodes */
 
     ocrScheduler_t  ** schedulers;              /**< All the schedulers */
     ocrWorker_t     ** workers;                 /**< All the workers */
@@ -193,8 +193,8 @@ typedef struct _ocrPolicyDomain_t {
      * @param costFunction      The cost function used by this policy domain
      */
     void (*create)(struct _ocrPolicyDomain_t *self, void *configuration,
-                   u32 schedulerCount, u32 workerCount, u32 computeCount,
-                   u32 workpileCount, u32 allocatorCount, u32 memoryCount,
+                   u64 schedulerCount, u64 workerCount, u64 computeCount,
+                   u64 workpileCount, u64 allocatorCount, u64 memoryCount,
                    ocrTaskFactory_t *taskFactory, ocrDataBlockFactory_t *dbFactory,
                    ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t
                    *contextFactory, ocrCost_t *costFunction);
@@ -366,7 +366,7 @@ typedef struct _ocrPolicyDomain_t {
     ocrAtomic64_t* (*getAtomic64)(struct _ocrPolicyDomain_t *self);
 
     struct _ocrPolicyDomain_t** neighbors;
-    u32 neighborCount;
+    u64 neighborCount;
 
 } ocrPolicyDomain_t;
 

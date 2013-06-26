@@ -136,7 +136,7 @@ typedef struct _ocrAllocator_t {
                                * data-blocks can know what allocated/freed them */
 
     struct _ocrMemTarget_t **memories; /**< Allocators are mapped to ocrMemTarget_t (0+) */
-    u32 memoryCount;          /**< Number of memories associated */
+    u64 memoryCount;          /**< Number of memories associated */
 
     ocrAllocatorFcts_t *fctPtrs;
 } ocrAllocator_t;

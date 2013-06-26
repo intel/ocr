@@ -31,11 +31,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include <stdlib.h>
-
 #include "ocr-macros.h"
 #include "ocr-types.h"
-#include "x86.h"
+#include "x86-sync.h"
 #include "debug.h"
 
 /* x86 lock */
@@ -59,14 +57,10 @@ ocrLock_t* newLockX86() {
     ocrLockX86_t *result = (ocrLockX86_t*)checkedMalloc(result, sizeof(ocrLockX86_t));
 
 /* x86 lock factory */
-static ocrLock_t* newLockX86(ocrLockFactory_t *self, void* config) {
-    ocrLockX86_t *result = (ocrLockX86_t*)malloc(sizeof(ocrLockX86_t));
+static ocrLock_t* newLockX86(ocrLockFactory_t *factory, ocrParamList_t* perInstance) {
+    ocrLockX86_t *result = (ocrLockX86_t*)checkedMalloc(result, sizeof(ocrLockX86_t));
 
-    result->base.destruct = &destructLockX86;
-    result->base.lock = &lockX86;
-    result->base.unlock = &unlockX86;
-    result->base.trylock = &tryLockX86;
-
+    result->base.fctPtrs = &(factory->lockFcts);
     result->val = 0;
 
     return (ocrLock_t*)result;
@@ -74,20 +68,24 @@ static ocrLock_t* newLockX86(ocrLockFactory_t *self, void* config) {
 
 static void destructLockFactoryX86(ocrLockFactory_t *self) {
     free(self);
-    return;
 }
 
-ocrLockFactory_t* newLockFactoryX86(void* config) {
-    ocrLockFactoryX86_t *result = (ocrLockFactoryX86_t*)malloc(sizeof(ocrLockFactoryX86_t));
-    result->base.destruct = &destructLockFactoryX86;
-    result->base.instantiate = &newLockX86;
-    return (ocrLockFactory_t*)result;
+ocrLockFactory_t* newLockFactoryX86(ocrParamList_t* perType) {
+    ocrLockFactory_t *result = (ocrLockFactory_t*)checkedMalloc(
+        result, sizeof(ocrLockFactoryX86_t));
+    result->destruct = &destructLockFactoryX86;
+    result->instantiate = &newLockX86;
+    result->lockFcts.destruct = &destructLockX86;
+    result->lockFcts.lock = &lockX86;
+    result->lockFcts.unlock = &unlockX86;
+    result->lockFcts.trylock = &tryLockX86;
+
+    return result;
 }
 
 /* x86 atomic */
 static void destructAtomic64X86(ocrAtomic64_t *self) {
     free(self);
-    return;
 }
 
 static u64 xadd64X86(ocrAtomic64_t *self, u64 addValue) {
@@ -100,14 +98,17 @@ static u64 cmpswap64X86(ocrAtomic64_t *self, u64 cmpValue, u64 newValue) {
     return __sync_val_compare_and_swap(&(rself->val), cmpValue, newValue);
 }
 
+static u64 val64X86(ocrAtomic64_t *self) {
+    ocrAtomic64X86_t *rself = (ocrAtomic64X86_t*)(self);
+    return rself->val;
+}
+
 /* x86 atomic factory */
-static ocrAtomic64_t* newAtomic64X86(ocrAtomic64Factory_t *self, void* config) {
-    ocrAtomic64X86_t *result = (ocrAtomic64X86_t*)malloc(sizeof(ocrAtomic64X86_t));
+static ocrAtomic64_t* newAtomic64X86(ocrAtomic64Factory_t *factory, ocrParamList_t* perInstance) {
+    ocrAtomic64X86_t *result = (ocrAtomic64X86_t*)checkedMalloc(
+        result, sizeof(ocrAtomic64X86_t));
 
-    result->base.destruct = &destructAtomic64X86;
-    result->base.xadd = &xadd64X86;
-    result->base.cmpswap = &cmpswap64X86;
-
+    result->base.fctPtrs = &(factory->atomicFcts);
     result->val = 0ULL;
 
     return (ocrAtomic64_t*)result;
@@ -115,13 +116,17 @@ static ocrAtomic64_t* newAtomic64X86(ocrAtomic64Factory_t *self, void* config) {
 
 static void destructAtomic64FactoryX86(ocrAtomic64Factory_t *self) {
     free(self);
-    return;
 }
 
-ocrAtomic64Factory_t* newAtomic64FactoryX86(void* config) {
-    ocrAtomic64FactoryX86_t *result = (ocrAtomic64FactoryX86_t*)malloc(sizeof(ocrAtomic64FactoryX86_t));
-    result->base.destruct = &destructAtomic64FactoryX86;
-    result->base.instantiate = &newAtomic64X86;
+ocrAtomic64Factory_t* newAtomic64FactoryX86(ocrParamList_t *perType) {
+    ocrAtomic64Factory_t *result = (ocrAtomic64Factory_t*)checkedMalloc(
+        result, sizeof(ocrAtomic64FactoryX86_t));
+    result->destruct = &destructAtomic64FactoryX86;
+    result->instantiate = &newAtomic64X86;
+    result->atomicFcts.destruct = &destructAtomic64X86;
+    result->atomicFcts.xadd = &xadd64X86;
+    result->atomicFcts.cmpswap = &cmpswap64X86;
+    result->atomicFcts.val = &val64X86;
     return (ocrAtomic64Factory_t*)result;
 }
 
@@ -174,20 +179,17 @@ static u64 pushTailX86(ocrQueue_t *self, u64 val) {
 }
 
 /* x86 queue factory */
-static ocrQueue_t* newQueueX86(ocrQueueFactory_t *self, void* config) {
-    ocrQueueX86_t *result = (ocrQueueX86_t*)malloc(sizeof(ocrQueueX86_t));
-    u64 reqSize = (u64)config;
-    if(!reqSize) reqSize = 32; // Hard coded for now, make a constant somewhere
+static ocrQueue_t* newQueueX86(ocrQueueFactory_t *factory, ocrParamList_t *perInstance) {
+    ocrQueueX86_t *result = (ocrQueueX86_t*)checkedMalloc(result, sizeof(ocrQueueX86_t));
+//    u64 reqSize = (u64)config;
+    u64 reqSize = 32; // TODO: Add config if needed and if we want to keep this!!
+//    if(!reqSize) reqSize = 32; // Hard coded for now, make a constant somewhere
 
-    result->base.destruct = &destructQueueX86;
-    result->base.popHead = &popHeadX86;
-    result->base.popTail = &popTailX86;
-    result->base.pushHead = &pushHeadX86;
-    result->base.pushTail = &pushTailX86;
 
+    result->base.fctPtrs = &(factory->queueFcts);
     result->head = result->tail = 0ULL;
     result->size = reqSize;
-    result->content = (u64*)malloc(sizeof(u64)*reqSize);
+    result->content = (u64*)checkedMalloc(result->content, sizeof(u64)*reqSize);
     result->lock = 0;
 
     return (ocrQueue_t*)result;
@@ -197,9 +199,17 @@ static void destructQueueFactoryX86(ocrQueueFactory_t *self) {
     free(self);
 }
 
-ocrQueueFactory_t* newQueueFactoryX86(void* config) {
-    ocrQueueFactoryX86_t *result = (ocrQueueFactoryX86_t*)malloc(sizeof(ocrQueueFactoryX86_t));
-    result->base.destruct = &destructQueueFactoryX86;
-    result->base.instantiate = &newQueueX86;
+ocrQueueFactory_t* newQueueFactoryX86(ocrParamList_t *perType) {
+    ocrQueueFactory_t *result = (ocrQueueFactory_t*)checkedMalloc(
+        result, sizeof(ocrQueueFactoryX86_t));
+    result->destruct = &destructQueueFactoryX86;
+    result->instantiate = &newQueueX86;
+
+    result->queueFcts.destruct = &destructQueueX86;
+    result->queueFcts.popHead = &popHeadX86;
+    result->queueFcts.popTail = &popTailX86;
+    result->queueFcts.pushHead = &pushHeadX86;
+    result->queueFcts.pushTail = &pushTailX86;
+
     return (ocrQueueFactory_t*)result;
 }

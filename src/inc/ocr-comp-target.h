@@ -81,7 +81,7 @@ typedef struct _ocrCompTarget_t {
 
     struct _ocrCompPlatform_t ** platforms; /**< Computing platform this compute target
                                     * is executing on */
-    u32 platformCount;
+    u64 platformCount;
 
     ocrCompTargetFcts_t *fctPtrs;
 } ocrCompTarget_t;

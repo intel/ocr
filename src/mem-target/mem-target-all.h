@@ -1,5 +1,5 @@
 /**
- * @brief OCR synchronization primitives
+ * @brief OCR memory targets
  * @authors Romain Cledat, Intel Corporation
  * @date 2012-09-21
  * Copyright (c) 2012, Intel Corporation
@@ -31,18 +31,43 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include "debug.h"
-#include "ocr-sync.h"
-#include "x86/x86.h"
+#ifndef __MEM_TARGET_ALL_H__
+#define __MEM_TARGET_ALL_H__
 
-// ocrLock_t* newLock(ocrLockKind type) {
-//     if(type == OCR_LOCK_DEFAULT) type = ocrLockDefaultKind;
-//     switch(type) {
-//     case OCR_LOCK_X86:
-//         return newLockX86();
-//         break;
-//     default:
-//         ASSERT(0);
-//     }
-//     return NULL;
-// }
+#include "debug.h"
+#include "ocr-mem-target.h"
+#include "ocr-utils.h"
+
+typedef enum _memTargetType_t {
+    memTargetShared_id
+} memTargetType_t;
+
+// Shared memory target
+#include "mem-target/shared/shared-mem-target.h"
+
+// Add other memory targets using the same pattern as above
+
+inline ocrMemTargetFactory_t *newMemTargetFactory(memTargetType_t type, ocrParamList_t *typeArg) {
+    switch(type) {
+    case memTargetShared_id:
+        return newMemTargetFactoryShared(typeArg);
+    default:
+        ASSERT(0);
+        return NULL;
+    };
+}
+
+#endif /* __MEM_TARGET_ALL_H__ */
+extern ocrMemPlatform_t * newMemPlatformMalloc(ocrMemPlatformFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
+
+ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type, void * perTypeConfig, void * perInstanceConfig) {
+    if(type == OCR_MEMPLATFORM_DEFAULT) type = ocrMemPlatformDefaultKind;
+    switch(type) {
+    case OCR_MEMPLATFORM_MALLOC:
+        return newMemPlatformMalloc(NULL, perTypeConfig, perInstanceConfig);
+        break;
+    default:
+        ASSERT(0);
+    }
+    return NULL;
+}

@@ -1,5 +1,5 @@
 /**
- * @brief OCR low-level memory allocator
+ * @brief Simple basic x86 implementation of synchronization primitives
  * @authors Romain Cledat, Intel Corporation
  * @date 2012-09-21
  * Copyright (c) 2012, Intel Corporation
@@ -31,21 +31,49 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include "debug.h"
-#include "ocr-mem-target.h"
 
-typedef enum _memTargetType_t {
-    //TODO
-    none_id
-} memTargetType_t;
+#ifndef __SYNC_X86_H__
+#define __SYNC_X86_H__
 
-ocrMemTarget_t* newMemTarget(memTargetType_t type) {
-    // if(type == OCR_MEMTARGET_DEFAULT) type = ocrMemTargetDefaultKind;
-    // switch(type) {
-    // 	// NOT YET IMPLEMENTED
-    // default:
-    //     ASSERT(0);
-    // }
-    ASSERT(false && "newMemTarget not implemented");
-    return NULL;
-}
+#include "ocr-types.h"
+#include "ocr-sync.h"
+#include "ocr-utils.h"
+
+typedef struct {
+    ocrLock_t base;
+    u32 val;
+} ocrLockX86_t;
+
+typedef struct {
+    ocrLockFactory_t base;
+} ocrLockFactoryX86_t;
+
+typedef struct {
+    ocrAtomic64_t base;
+    volatile u64 val;
+} ocrAtomic64X86_t;
+
+typedef struct {
+    ocrAtomic64Factory_t base;
+} ocrAtomic64FactoryX86_t;
+
+typedef struct {
+    ocrQueue_t base;
+    volatile u64 head, tail, size;
+    u64 *content;
+    volatile u32 lock;
+} ocrQueueX86_t;
+
+typedef struct {
+    ocrQueueFactory_t base;
+} ocrQueueFactoryX86_t;
+
+extern ocrLockFactory_t *newLockFactoryX86(ocrParamList_t *typeArg);
+extern ocrAtomic64Factory_t *newAtomic64FactoryX86(ocrParamList_t *typeArg);
+extern ocrQueueFactory_t *newQueueFactoryX86(ocrParamList_t *typeArg);
+
+#endif /* __SYNC_X86_H__ */
+
+
+
+

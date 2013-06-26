@@ -99,8 +99,8 @@ typedef struct _ocrScheduler_t {
 
     struct _ocrWorker_t *workers;
     struct _ocrWorkpile_t *workpiles;
-    u32 workerCount;
-    u32 workpileCount;
+    u64 workerCount;
+    u64 workpileCount;
 
     ocrSchedulerFcts_t *fctPtrs;
 } ocrScheduler_t;

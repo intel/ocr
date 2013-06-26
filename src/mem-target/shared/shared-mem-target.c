@@ -1,5 +1,5 @@
 /**
- * @brief Simple implementation of a malloc wrapper
+ * @brief Simple implementation of a shared memory target
  * @authors Romain Cledat, Intel Corporation
  * Copyright (c) 2012, Intel Corporation
  * All rights reserved.
@@ -29,59 +29,73 @@
 
 #include <stdlib.h>
 #include "ocr-macros.h"
-#include "malloc-mem-platform.h"
-#include "ocr-mem-platform.h"
+#include "shared-mem-target.h"
+#include "ocr-mem-target.h"
 #include "ocr-mappable.h"
 #include "debug.h"
 
 
 /******************************************************/
-/* OCR MEM PLATFORM MALLOC IMPLEMENTATION             */
+/* OCR MEM TARGET SHARED IMPLEMENTATION               */
 /******************************************************/
 
-void mallocDestruct(ocrMemPlatform_t *self) {
+void sharedMap(ocrMappable_t* self, ocrMappableKind kind, u64 instanceCount,
+               ocrMappable_t **instances) {
+    ASSERT(kind == OCR_MEM_PLATFORM);
+    ASSERT(instanceCount == 1);
+    ocrMemTarget_t *me = (ocrMemTarget_t*)self;
+    me->memories = (ocrMemPlatform_t**)checkedMalloc(me->memories,
+                                                     sizeof(ocrMemPlatform_t*));
+    me->memories[0] = instances[0];
+    me->memoryCount = instanceCount;
+}
+
+void sharedDestruct(ocrMemTarget_t *self) {
+    free(self->memories);
     free(self);
 }
 
-void* mallocAllocate(ocrMemPlatform_t *self, u64 size) {
-    return malloc(size);
+void* sharedAllocate(ocrMemTarget_t *self, u64 size) {
+    return self->memories[0]->fctPtrs->allocate(
+        self->memories[0], size);
 }
 
-void mallocFree(ocrMemPlatform_t *self, void *addr) {
-    free(addr);
+void sharedFree(ocrMemTarget_t *self, void *addr) {
+    return self->memories[0]->fctPtrs->free(
+        self->memories[0], addr);
 }
 
-ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
+ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
                                        ocrParamList_t *perInstance) {
 
     // TODO: This will be replaced by the runtime/GUID meta-data allocator
     // For now, we cheat and use good-old malloc which is kind of counter productive with
     // all the trouble we are going through to *not* use malloc...
-    ocrMemPlatform_t *result = (ocrMemPlatform_t*)
-        checkedMalloc(result, sizeof(ocrMemPlatformMalloc_t));
+    ocrMemTarget_t *result = (ocrMemTarget_t*)
+        checkedMalloc(result, sizeof(ocrMemTargetShared_t));
 
-    result->fctPtrs = &(factory->platformFcts);
+    result->fctPtrs = &(factory->targetFcts);
 
     return result;
 }
 
 /******************************************************/
-/* OCR MEM PLATFORM MALLOC FACTORY                    */
+/* OCR MEM TARGET SHARED FACTORY                    */
 /******************************************************/
 
-static void destructMemPlatformFactoryMalloc(ocrMemPlatformFactory_t *factory) {
+static void destructMemTargetFactoryShared(ocrMemTargetFactory_t *factory) {
     free(factory);
 }
 
-ocrMemPlatformFactory_t *newMemPlatformFactoryMalloc(ocrParamList_t *perType) {
-    ocrMemPlatformFactory_t *base = (ocrMemPlatformFactory_t*)
-        checkedMalloc(base, sizeof(ocrMemPlatformFactoryMalloc_t));
+ocrMemTargetFactory_t *newMemTargetFactoryShared(ocrParamList_t *perType) {
+    ocrMemTargetFactory_t *base = (ocrMemTargetFactory_t*)
+        checkedMalloc(base, sizeof(ocrMemTargetFactoryShared_t));
 
-    base->instantiate = &newMemPlatformMalloc;
-    base->destruct = &destructMemPlatformFactoryMalloc;
-    base->platformFcts.destruct = &mallocDestruct;
-    base->platformFcts.allocate = &mallocAllocate;
-    base->platformFcts.free = &mallocFree;
+    base->instantiate = &newMemTargetShared;
+    base->destruct = &destructMemTargetFactoryShared;
+    base->targetFcts.destruct = &sharedDestruct;
+    base->targetFcts.allocate = &sharedAllocate;
+    base->targetFcts.free = &sharedFree;
 
     return base;
 }

@@ -96,7 +96,7 @@ typedef struct _ocrWorker_t {
     ocrGuid_t guid;
 
     ocrCompTarget_t *computes; /**< Compute node(s) associated with this worker */
-    u32 computeCount;          /**< Number of compute node(s) associated */
+    u64 computeCount;          /**< Number of compute node(s) associated */
 
     /*! \brief Routine the worker executes
      */
