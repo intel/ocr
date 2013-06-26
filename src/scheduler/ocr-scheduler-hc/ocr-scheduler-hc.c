@@ -73,44 +73,53 @@ ocrWorkpileIterator_t* steal_mapping_one_to_all_but_self (ocrScheduler_t* base, 
 }
 
 
-u8 (*takeEdt)(ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
-                  ocrGuid_t *edts, ocrPolicyCtx_t *context);
-
-u8 ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
-                  ocrGuid_t *edts, ocrPolicyCtx_t *context_ {
+u8 hc_scheduler_take (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *count,
+                  ocrGuid_t *edts, struct _ocrPolicyCtx_t *context) {
 // ocrGuid_t hc_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
     ocrWorker_t* w = NULL;
+    ocrGuid_t wid = context->sourceObj;
     deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
     // First try to pop
     // ocrWorkpile_t * wp_to_pop = self->pop_mapping(self, w);
     ocrWorkpile_t * wp_to_pop = pop_mapping_one_to_one(self, w);
-    ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
+    // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
+    ocrGuid_t popped = wp_to_pop->fctPtrs->pop(wp_to_pop,cost);
     if ( NULL_GUID == popped ) {
         // If popping failed, try to steal
-        ocrWorkpileIterator_t* it = steal_mapping_one_to_all_but_self(base, w);
+        ocrWorkpileIterator_t* it = steal_mapping_one_to_all_but_self(self, w);
         while ( it->hasNext(it) && (NULL_GUID == popped)) {
             ocrWorkpile_t * next = it->next(it);
-            popped = next->fctPtrs->steal(next);
+            // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
+            popped = next->fctPtrs->steal(next, cost);
         }
         // Note that we do not need to destruct the workpile
         // iterator as the HC implementation caches them.
     }
-    return popped;
+    // TODO sagnak, I am assuming the memory for count and edts are already allocated by here
+    *count = 1;
+    edts[0] = popped;
+    return 0;
 }
 
-void hc_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
+u8 hc_scheduler_give (ocrScheduler_t* base, u32 count, ocrGuid_t* edts, struct _ocrPolicyCtx_t *context ) {
     ocrWorker_t* w = NULL;
+    ocrGuid_t wid = context->sourceObj;
     deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     ocrWorkpile_t * wp_to_push = push_mapping_one_to_one(base, w);
-    wp_to_push->push(wp_to_push,tid);
+    // TODO sagnak; I am assuming the count is the count of edt guids being passed
+    u32 i = 0;
+    for ( ; i < count; ++i ) {
+        wp_to_push->fctPtrs->push(wp_to_push,edts[i]);
+    }
+    return 0;
 }
 
 /**!
  * Mapping function many-to-one to map a set of workpiles to a scheduler instance
  */
-void hc_ocr_module_map_workpiles_to_schedulers(void * self_module, ocrMappableKind kind,
-                                               u64 nb_instances, void ** ptr_instances) {
+void hc_ocr_module_map_workpiles_to_schedulers( ocrMappable_t * self_module, ocrMappableKind kind,
+                                               u64 nb_instances, ocrMappable_t ** ptr_instances) {
     // Checking mapping conforms to what we're expecting in this implementation
     assert(kind == OCR_WORKPILE);
     // allocate steal iterator cache
@@ -151,9 +160,6 @@ ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *
     base->fctPtrs = &(factory->schedulerFcts);
     //TODO these need to be moved to the factory schedulerFcts
     base->fctPtrs->destruct = destructSchedulerHc;
-    base->fctPtrs->pop_mapping = hc_scheduler_pop_mapping_one_to_one;
-    base->fctPtrs->push_mapping = hc_scheduler_push_mapping_one_to_one;
-    base->fctPtrs->steal_mapping = hc_scheduler_steal_mapping_one_to_all_but_self;
     base->fctPtrs->takeEdt = hc_scheduler_take;
     base->fctPtrs->giveEdt = hc_scheduler_give;
     //TODO END
@@ -175,18 +181,21 @@ ocrWorkpileIterator_t* steal_mapping_assert (ocrScheduler_t* base, ocrWorker_t* 
     return NULL;
 }
 
-ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
+u8 hc_placed_scheduler_take (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *count,
+                  ocrGuid_t *edts, struct _ocrPolicyCtx_t *context) {
     ocrWorker_t* w = NULL;
+    ocrGuid_t wid = context->sourceObj;
     deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     ocrGuid_t popped = NULL_GUID;
 
     int worker_id = get_worker_id(w);
 
-    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
+    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) self;
     if ( worker_id >= derived->worker_id_begin && worker_id <= derived->worker_id_end ) {
-        ocrWorkpile_t * wp_to_pop = base->fctPtrs->pop_mapping(base, w);
-        popped = wp_to_pop->fctPtrs->pop(wp_to_pop);
+        ocrWorkpile_t * wp_to_pop = pop_mapping_one_to_one(base, w);
+        // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
+        popped = wp_to_pop->fctPtrs->pop(wp_to_pop, cost);
         /*TODO sagnak I hard-coded a no intra-scheduler stealing here; BAD */
         if ( NULL_GUID == popped ) {
             // TODO sagnak steal from places
@@ -196,19 +205,28 @@ ocrGuid_t hc_placed_scheduler_take (ocrScheduler_t* base, ocrGuid_t wid ) {
     } else {
         // TODO sagnak oooh BAD BAD hardcoding yet again
         ocrWorkpile_t* victim = derived->pools[0];
-        popped = victim->fctPtrs->steal(victim);
+        // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
+        popped = victim->fctPtrs->steal(victim, cost);
     }
-
-    return popped;
+    // TODO sagnak, I am assuming the memory for count and edts are already allocated by here
+    *count = 1;
+    edts[0] = popped;
+    return 0;
 }
 
-void hc_placed_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
+u8 hc_placed_scheduler_give (ocrScheduler_t* base, u32 count, ocrGuid_t* edts, struct _ocrPolicyCtx_t *context ) {
     ocrWorker_t* w = NULL;
+    ocrGuid_t wid = context->sourceObj;
     deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     // TODO sagnak calculate which 'place' to push
     ocrWorkpile_t * wp_to_push = push_mapping_one_to_one(base, w);
-    wp_to_push->push(wp_to_push,tid);
+    // TODO sagnak; I am assuming the count is the count of edt guids being passed
+    u32 i = 0;
+    for ( ; i < count; ++i ) {
+        wp_to_push->fctPtrs->push(wp_to_push,edts[i]);
+    }
+    return 0;
 }
 
 ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
@@ -220,9 +238,6 @@ ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, ocrParamLi
     base->fctPtrs = &(factory->schedulerFcts);
     //TODO these need to be moved to the factory schedulerFcts
     base->fctPtrs->destruct = destructSchedulerHc;
-    base->fctPtrs->pop_mapping = hc_scheduler_pop_mapping_one_to_one;
-    base->fctPtrs->push_mapping = hc_scheduler_push_mapping_one_to_one;
-    base->fctPtrs->steal_mapping = hc_scheduler_steal_mapping_assert;
     base->fctPtrs->takeEdt = hc_placed_scheduler_take;
     base->fctPtrs->giveEdt = hc_placed_scheduler_give;
     //TODO END
