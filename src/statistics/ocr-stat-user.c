@@ -37,6 +37,7 @@
 #include "ocr-statistics.h"
 #include "ocr-config.h"
 #include "debug.h"
+#include "ocr-policy-domain-getter.h"
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -35,6 +35,7 @@
 #include "ocr-types.h"
 #include "ocr-guid.h"
 #include "ocr-worker.h"
+#include "ocr-policy-domain-getter.h"
 
 ocrGuid_t getCurrentEdt() {
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();

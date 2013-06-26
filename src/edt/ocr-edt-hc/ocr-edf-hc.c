@@ -39,6 +39,7 @@
 #include "ocr-event.h"
 #include "ocr-worker.h"
 #include "debug.h"
+#include "ocr-policy-domain-getter.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"

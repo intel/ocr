@@ -33,7 +33,9 @@
 #include <assert.h>
 
 #include "ocr-policy-domain.h"
-#include "ocr-task-event.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-task.h"
+#include "ocr-event.h"
 
 inline ocrTaskFactory_t* getTaskFactoryFromPd(ocrPolicyDomain_t *policy) {
   return policy->taskFactory;
