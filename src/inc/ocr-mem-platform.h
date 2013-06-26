@@ -56,7 +56,7 @@ typedef struct _paramListMemPlatformInst_t {
 /* OCR MEMORY PLATFORM                              */
 /****************************************************/
 
-typedef struct _ocrMemPlatform_t ocrMemPlatform_t;
+struct _ocrMemPlatform_t;
 
 typedef struct _ocrMemPlatformFcts_t {
     /**
