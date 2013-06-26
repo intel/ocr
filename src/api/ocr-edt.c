@@ -93,7 +93,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
         ocrWorker_t *worker = NULL;
         ocrTask_t *curTask = NULL;
 
-        deguidify(pd, ocr_get_current_worker_guid(), (u64*)&worker, NULL);
+        deguidify(pd, getCurrentWorkerContext()->sourceObj, (u64*)&worker, NULL);
         ocrGuid_t curTaskGuid = worker->fctPtrs->getCurrentEDT(worker);
         deguidify(pd, curTaskGuid, (u64*)&curTask, NULL);
 
@@ -163,7 +163,6 @@ ocrGuid_t ocrElsUserGet(u8 offset) {
 void ocrElsUserSet(u8 offset, ocrGuid_t data) {
     // User indexing start after runtime-reserved ELS slots
     offset = ELS_RUNTIME_SIZE + offset;
-    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
     ocrPolicyDomain_t * pd = getCurrentPD();
     ocrGuid_t edtGuid = getCurrentEDT();
     ocrTask_t * edt = NULL;

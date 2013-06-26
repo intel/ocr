@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "ocr-comp-platform.h"
 #include "ocr-policy-domain.h"
 #include "ocr-policy-domain-getter.h"
 #include "ocr-task.h"
@@ -129,7 +130,7 @@ void ocr_policy_domain_destruct(ocrPolicyDomain_t * policy) {
 }
 
 ocrPolicyDomain_t* get_current_policy_domain () {
-    ocrGuid_t worker_guid = ocr_get_current_worker_guid();
+    ocrGuid_t worker_guid = getCurrentWorkerContext()->sourceObj;
     ocrWorker_t * worker = NULL;
     deguidify(getCurrentPD(), worker_guid, (u64*)&worker, NULL);
 

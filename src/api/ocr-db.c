@@ -82,7 +82,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 
 #ifdef OCR_ENABLE_STATISTICS
     {
-        ocrGuid_t worker_guid = ocr_get_current_worker_guid();
+        ocrGuid_t worker_guid = getCurrentWorkerContext()->sourceObj;
         ocrWorker_t * worker = NULL;
         deguidify(getCurrentPD(), worker_guid, (u64*)&worker, NULL);
 
@@ -115,7 +115,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     
     deguidify(getCurrentPD(), db, (u64*)&dataBlock, NULL);
 
-    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+    ocrGuid_t workerGuid = getCurrentWorkerContext()->sourceObj;
     ocrWorker_t *worker = NULL;
     deguidify(getCurrentPD(), workerGuid, (u64*)&worker, NULL);
 
@@ -144,7 +144,7 @@ u8 ocrDbAcquire(ocrGuid_t db, void** addr, u16 flags) {
     ocrDataBlock_t *dataBlock = NULL;
     deguidify(getCurrentPD(), db, (u64*)&dataBlock, NULL);
 
-    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+    ocrGuid_t workerGuid = getCurrentWorkerContext()->sourceObj;
     ocrWorker_t *worker = NULL;
     deguidify(getCurrentPD(), workerGuid, (u64*)&worker, NULL);
 
@@ -170,7 +170,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
     ocrDataBlock_t *dataBlock = NULL;
     deguidify(getCurrentPD(), db, (u64*)&dataBlock, NULL);
 
-    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+    ocrGuid_t workerGuid = getCurrentWorkerContext()->sourceObj;
     ocrWorker_t *worker = NULL;
     deguidify(getCurrentPD(), workerGuid, (u64*)&worker, NULL);
 #ifdef OCR_ENABLE_STATISTICS
