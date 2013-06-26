@@ -698,8 +698,11 @@ void taskExecute ( ocrTask_t* base ) {
         derived->signalers = END_OF_LIST;
     }
 
+    ocrTaskTemplate_t * taskTemplate;
+    deguidify(getCurrentPD(), base->templateGuid, (u64*)&taskTemplate, NULL);
+
     //TODO: define when task template is resolved from its guid
-    ocrGuid_t retGuid = derived->p_function(base->paramc, base->params, base->paramv, nbdeps, depv);
+    ocrGuid_t retGuid = taskTemplate->executePtr(taskTemplate->paramc, base->params, base->paramv, nbdeps, depv);
 
     // edt user code is done, if any deps, release data-blocks
     if (nbdeps != 0) {
