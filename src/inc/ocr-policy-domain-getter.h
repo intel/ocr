@@ -40,6 +40,7 @@ struct _ocrLockFactory_t;
 struct _ocrGuidProvider_t;
 
 inline struct _ocrPolicyDomain_t* getCurrentPD();
+inline struct _ocrPolicyCtx_t* getCurrentWorkerContext();
 
 // Common functions on all policy domains (ie: not function pointers)
 inline struct _ocrTaskFactory_t*  getTaskFactoryFromPd(struct _ocrPolicyDomain_t *policy);

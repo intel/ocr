@@ -134,8 +134,6 @@ typedef struct {
 
 ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perType);
 
-extern void taskSchedule( ocrGuid_t guid, ocrTask_t* base, ocrGuid_t wid );
-
 extern void tryScheduleTask( ocrTask_t* base );
 
 #endif /* HC_H_ */

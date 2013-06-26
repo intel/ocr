@@ -39,12 +39,11 @@
 #include "ocr-event.h"
 #include "ocr-worker.h"
 #include "debug.h"
-#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
 #endif
-
 
 #define SEALED_LIST ((void *) -1)
 #define END_OF_LIST NULL
@@ -135,6 +134,8 @@ static void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int s
 static void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
 
 static void finishLatchCheckout(ocrEvent_t * base);
+
+static inline void taskSchedule(ocrGuid_t taskGuid);
 
 /******************************************************/
 /* OCR-HC Events Implementation                       */
@@ -591,8 +592,7 @@ void taskSignaled(ocrTask_t * base, ocrGuid_t data, int slot) {
     self->signalers[slot].guid = data;
     if (slot == (self->nbdeps-1)) {
         // All dependencies have been satisfied, schedule the edt
-        ocrGuid_t wid = ocr_get_current_worker_guid();
-        taskSchedule(base->guid, base, wid);
+        taskSchedule(base->guid);
     } else {
         // else register the edt on the next event to wait on
         slot++;
@@ -627,11 +627,10 @@ static void edtRegisterSignaler(ocrTask_t * base, ocrGuid_t signalerGuid, int sl
  * Warning: The caller must ensure all dependencies have been satisfied
  * Note: static function only meant to factorize code.
  */
-void taskSchedule( ocrGuid_t guid, ocrTask_t* base, ocrGuid_t wid ) {
-    ocrWorker_t* w = NULL;
-    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
-    ocrScheduler_t * scheduler = get_worker_scheduler(w);
-    scheduler->give(scheduler, wid, guid);
+static inline void taskSchedule( ocrGuid_t taskGuid ) {
+    ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
+    ocrPolicyDomain_t * pd = getCurrentPD();
+    pd->giveEdt(pd, 1, &taskGuid, ctx);
 }
 
 /**
@@ -640,7 +639,6 @@ void taskSchedule( ocrGuid_t guid, ocrTask_t* base, ocrGuid_t wid ) {
  * Warning: This method is to be called ONCE per task and there's no safeguard !
  */
 void tryScheduleTask( ocrTask_t* base ) {
-    ocrGuid_t wid = ocr_get_current_worker_guid();
     //DESIGN This is very much specific to the way we've chosen
     //       to handle event-to-task dependence, which needs some
     //       kind of bootstrapping. This could be done when the last
@@ -654,7 +652,7 @@ void tryScheduleTask( ocrTask_t* base ) {
         registerWaiter(self->signalers[0].guid, base->guid, 0);
     } else {
         // If there's no dependence, the task must be scheduled now.
-        taskSchedule(base->guid, base, wid);
+        taskSchedule(base->guid);
     }
 }
 
@@ -787,14 +785,12 @@ ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance) {
     ocrTaskFactory_t* base = (ocrTaskFactory_t*) derived;
     base->instantiate = newTaskHc;
     base->destruct =  destructTaskFactoryHc;
-
     // initialize singleton instance that carries hc implementation 
     // function pointers. Every instantiated task template will use 
     // this pointer to resolve functions implementations.
     derived->taskFctPtrs.destruct = destructTaskHc;
     derived->taskFctPtrs.execute = taskExecute;
     derived->taskFctPtrs.schedule = tryScheduleTask;
-
     return base;
 }
 
