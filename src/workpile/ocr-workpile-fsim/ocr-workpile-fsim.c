@@ -31,27 +31,6 @@
 
 #include "fsim.h"
 
-
-/******************************************************/
-/* OCR-FSIM-CE Message Workpile Factory               */
-/******************************************************/
-
-// Fwd declaration
-ocrWorkpile_t* newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance);
-
-void destructWorkpileFactoryFsimMessage(ocrWorkpileFactory_t * factory) {
-    free(factory);
-}
-
-ocrWorkpileFactory_t * newOcrWorkpileFactoryFsimMessage(ocrParamList_t *perType) {
-    ocrWorkpileFactoryFsimMessage_t* derived = (ocrWorkpileFactoryFsimMessage_t*) checkedMalloc(derived, sizeof(ocrWorkpileFactoryFsimMessage_t));
-    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
-    base->instantiate = newWorkpileFsimMessage;
-    base->destruct =  destructWorkpileFactoryFsimMessage;
-    return base;
-}
-
-
 /******************************************************/
 /* OCR-FSIM-CE Message Workpile                       */
 /******************************************************/
@@ -62,7 +41,7 @@ static void ce_message_workpile_destruct ( ocrWorkpile_t * base ) {
     free(derived);
 }
 
-static ocrGuid_t ce_message_workpile_pop ( ocrWorkpile_t * base ) {
+static ocrGuid_t ce_message_workpile_pop ( ocrWorkpile_t * base, ocrCost_t *cost) {
     ocrWorkpileFsimMessage_t* derived = (ocrWorkpileFsimMessage_t*) base;
     return (ocrGuid_t) deque_non_competing_pop_head(derived->deque);
 }
@@ -78,13 +57,30 @@ ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, ocrParamL
     ocrMappable_t * module_base = (ocrMappable_t *) base;
     module_base->mapFct = NULL;
     base->fctPtrs = &(factory->workpileFcts);
-    //TODO these need to be moved to the factory schedulerFcts
-    fctPtrs->destruct = ce_message_workpile_destruct;
-    fctPtrs->pop = ce_message_workpile_pop;
-    fctPtrs->push = ce_message_workpile_push;
-    fctPtrs->steal = ce_message_workpile_pop;
-    //TODO END
     derived->deque = (mpsc_deque_t *) malloc(sizeof(mpsc_deque_t));
     mpscDequeInit(derived->deque, (void *) NULL_GUID);
     return base;
 }
+
+
+/******************************************************/
+/* OCR-FSIM-CE Message Workpile Factory               */
+/******************************************************/
+
+void destructWorkpileFactoryFsimMessage(ocrWorkpileFactory_t * factory) {
+    free(factory);
+}
+
+ocrWorkpileFactory_t * newOcrWorkpileFactoryFsimMessage(ocrParamList_t *perType) {
+    ocrWorkpileFactoryFsimMessage_t* derived = (ocrWorkpileFactoryFsimMessage_t*) checkedMalloc(derived, sizeof(ocrWorkpileFactoryFsimMessage_t));
+    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
+    base->instantiate = newWorkpileFsimMessage;
+    base->destruct =  destructWorkpileFactoryFsimMessage;
+    base->workpileFcts.destruct = ce_message_workpile_destruct;
+    base->workpileFcts.pop = ce_message_workpile_pop;
+    base->workpileFcts.push = ce_message_workpile_push;
+    base->workpileFcts.steal = ce_message_workpile_pop;
+    return base;
+}
+
+

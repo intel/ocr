@@ -34,25 +34,6 @@
 
 
 /******************************************************/
-/* OCR-HC WorkPile Factory                            */
-/******************************************************/
-
-// Fwd declaration
-ocrWorkpile_t* newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance);
-
-void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
-    free(factory);
-}
-
-ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(ocrParamList_t *perType) {
-    ocrWorkpileFactoryHc_t* derived = (ocrWorkpileFactoryHc_t*) checkedMalloc(derived, sizeof(ocrWorkpileFactoryHc_t));
-    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
-    base->instantiate = newWorkpileHc;
-    base->destruct =  destructWorkpileFactoryHc;
-    return base;
-}
-
-/******************************************************/
 /* OCR-HC WorkPile                                    */
 /******************************************************/
 
@@ -62,7 +43,7 @@ static void hc_workpile_destruct ( ocrWorkpile_t * base ) {
     free(derived);
 }
 
-static ocrGuid_t hc_workpile_pop ( ocrWorkpile_t * base ) {
+static ocrGuid_t hc_workpile_pop ( ocrWorkpile_t * base, ocrCost_t *cost ) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
     return (ocrGuid_t) dequePop(derived->deque);
 }
@@ -72,7 +53,7 @@ static void hc_workpile_push (ocrWorkpile_t * base, ocrGuid_t g ) {
     dequePush(derived->deque, (void *)g);
 }
 
-static ocrGuid_t hc_workpile_steal ( ocrWorkpile_t * base ) {
+static ocrGuid_t hc_workpile_steal ( ocrWorkpile_t * base, ocrCost_t *cost ) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
     return (ocrGuid_t) deque_steal(derived->deque);
 }
@@ -83,13 +64,28 @@ ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *pe
     ocrMappable_t * module_base = (ocrMappable_t *) base;
     module_base->mapFct = NULL;
     base->fctPtrs = &(factory->workpileFcts);
-    //TODO these need to be moved to the factory schedulerFcts
-    fctPtrs->destruct = hc_workpile_destruct;
-    fctPtrs->pop = hc_workpile_pop;
-    fctPtrs->push = hc_workpile_push;
-    fctPtrs->steal = hc_workpile_steal;
-    //TODO END
     derived->deque = (deque_t *) checkedMalloc(derived->deque, sizeof(deque_t));
     dequeInit(derived->deque, (void *) NULL_GUID);
+    return base;
+}
+
+
+/******************************************************/
+/* OCR-HC WorkPile Factory                            */
+/******************************************************/
+
+void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
+    free(factory);
+}
+
+ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(ocrParamList_t *perType) {
+    ocrWorkpileFactoryHc_t* derived = (ocrWorkpileFactoryHc_t*) checkedMalloc(derived, sizeof(ocrWorkpileFactoryHc_t));
+    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
+    base->instantiate = newWorkpileHc;
+    base->destruct =  destructWorkpileFactoryHc;
+    base->workpileFcts.destruct = hc_workpile_destruct;
+    base->workpileFcts.pop = hc_workpile_pop;
+    base->workpileFcts.push = hc_workpile_push;
+    base->workpileFcts.steal = hc_workpile_steal;
     return base;
 }

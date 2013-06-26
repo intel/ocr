@@ -35,6 +35,7 @@
 #include "ocr-guid.h"
 #include "ocr-mappable.h"
 #include "ocr-utils.h"
+#include "ocr-tuning.h"
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -93,6 +94,7 @@ typedef struct _ocrWorkpileFactory_t {
     ocrWorkpile_t * (*instantiate) (struct _ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance);
 
     void (*destruct)(struct _ocrWorkpileFactory_t * factory);
+    ocrWorkpileFcts_t workpileFcts;
 } ocrWorkpileFactory_t;
 
 // TODO: Is this required??
