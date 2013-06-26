@@ -72,7 +72,7 @@ void xe_worker_destruct ( ocrWorker_t * base ) {
     pthread_cond_destroy( &xeWorker->isRunningCond );
     pthread_mutex_destroy( &xeWorker->isRunningMutex );
 
-    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
+    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider;
     guidProvider->fctPtrs->releaseGuid(guidProvider, base->guid);
     free(base);
 }

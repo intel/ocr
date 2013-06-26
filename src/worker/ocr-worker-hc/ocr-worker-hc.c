@@ -62,7 +62,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
 }
 
 void destructWorkerHc ( ocrWorker_t * base ) {
-        ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
+    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider;
     guidProvider->fctPtrs->releaseGuid(guidProvider, base->guid);
     free(base);
 }

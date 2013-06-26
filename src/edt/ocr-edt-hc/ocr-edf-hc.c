@@ -196,7 +196,7 @@ void destructEventHc ( ocrEvent_t* base ) {
     // Event's signaler/waiter must have been previously deallocated 
     // at some point before. For instance on satisfy.
     ocrEventHc_t* derived = (ocrEventHc_t*)base;
-    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
+    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider;
     guidProvider->fctPtrs->releaseGuid(guidProvider, base->guid);
     free(derived);
 }
@@ -571,7 +571,7 @@ void destructTaskHc ( ocrTask_t* base ) {
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcessDestruct(&(base->statProcess));
 #endif
-    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
+    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider;
     guidProvider->fctPtrs->releaseGuid(guidProvider, base->guid);
     free(derived);
 }
