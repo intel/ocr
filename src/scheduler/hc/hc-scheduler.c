@@ -181,7 +181,7 @@ ocrWorkpileIterator_t* steal_mapping_assert (ocrScheduler_t* base, ocrWorker_t* 
     return NULL;
 }
 
-u8 hc_placed_scheduler_take (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *count,
+u8 hc_placed_scheduler_take (ocrScheduler_t *base, struct _ocrCost_t *cost, u32 *count,
                   ocrGuid_t *edts, struct _ocrPolicyCtx_t *context) {
     ocrWorker_t* w = NULL;
     ocrGuid_t wid = context->sourceObj;
@@ -191,7 +191,7 @@ u8 hc_placed_scheduler_take (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 
 
     int worker_id = get_worker_id(w);
 
-    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) self;
+    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     if ( worker_id >= derived->worker_id_begin && worker_id <= derived->worker_id_end ) {
         ocrWorkpile_t * wp_to_pop = pop_mapping_one_to_one(base, w);
         // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
