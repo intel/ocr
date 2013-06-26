@@ -34,7 +34,7 @@
 #include <errno.h>
 #include "regular-datablock.h"
 #include "debug.h"
-#include "ocr-task-event.h"
+//#include "ocr-task-event.h"
 #include "ocr-guid.h"
 // TODO sagnak it feels as the policy exposure here should not have happened
 #include "ocr-policy-domain.h"
@@ -48,14 +48,14 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Acquiring DB @ 0x%lx (GUID: 0x%lx) from EDT 0x%lx (isInternal %d)\n",
+        PRINTF("VERB: Acquiring DB @ 0x%lluX (GUID: 0x%lluX) from EDT 0x%lluX (isInternal %d)\n",
                (u64)rself->ptr, rself->base.guid, edt, (u32)isInternal);
     }
 
     // Critical section
-    rself->lock->lock(rself->lock);
+    rself->lock->fctPtrs->lock(rself->lock);
     if(rself->attributes.freeRequested) {
-        rself->lock->unlock(rself->lock);
+        rself->lock->fctPtrs->unlock(rself->lock);
         return NULL;
     }
     u32 idForEdt = ocrGuidTrackerFind(&(rself->usersTracker), edt);
@@ -65,22 +65,22 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
         DO_DEBUG(DEBUG_LVL_VVERB) {
             PRINTF("VVERB: EDT already had acquired DB (pos %d)\n", idForEdt);
         }
-        rself->lock->unlock(rself->lock);
+        rself->lock->fctPtrs->unlock(rself->lock);
         return rself->ptr;
     }
 
     if(idForEdt > 63) {
-        rself->lock->unlock(rself->lock);
+        rself->lock->fctPtrs->unlock(rself->lock);
         return NULL;
     }
     rself->attributes.numUsers += 1;
     if(isInternal)
         rself->attributes.internalUsers += 1;
 
-    rself->lock->unlock(rself->lock);
+    rself->lock->fctPtrs->unlock(rself->lock);
     // End critical section
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Added EDT GUID 0x%lx at position %d. Have %d users and %d internal\n",
+        PRINTF("VERB: Added EDT GUID 0x%llx at position %d. Have %d users and %d internal\n",
                (u64)edt, idForEdt, rself->attributes.numUsers, rself->attributes.internalUsers);
     }
     return rself->ptr;
@@ -94,11 +94,11 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
     bool isTracked = true;
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Releasing DB @ 0x%lx (GUID 0x%lx) from EDT 0x%lx (%d) (internal: %d)\n",
+        PRINTF("VERB: Releasing DB @ 0x%llx (GUID 0x%llx) from EDT 0x%llx (%d) (internal: %d)\n",
                (u64)rself->ptr, rself->base.guid, edt, edtId, (u32)isInternal);
     }
     // Start critical section
-    rself->lock->lock(rself->lock);
+    rself->lock->fctPtrs->lock(rself->lock);
     if(edtId > 63 || rself->usersTracker.slots[edtId] != edt) {
         // We did not find it. The runtime may be
         // re-releasing it
@@ -108,7 +108,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
             isTracked = false;
         } else {
             // Definitely a problem here
-            rself->lock->unlock(rself->lock);
+            rself->lock->fctPtrs->unlock(rself->lock);
             return (u8)EACCES;
         }
     }
@@ -129,10 +129,10 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
        rself->attributes.internalUsers == 0 &&
        rself->attributes.freeRequested == 1) {
         // We need to actually free the data-block
-        rself->lock->unlock(rself->lock);
-        self->destruct(self);
+        rself->lock->fctPtrs->unlock(rself->lock);
+        self->fctPtrs->destruct(self);
     } else {
-        rself->lock->unlock(rself->lock);
+        rself->lock->fctPtrs->unlock(rself->lock);
     }
     // End critical section
 
@@ -144,17 +144,17 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
 
     u32 id = ocrGuidTrackerFind(&(rself->usersTracker), edt);
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Requesting a free for DB @ 0x%lx (GUID 0x%lx)\n",
+        PRINTF("VERB: Requesting a free for DB @ 0x%llx (GUID 0x%llx)\n",
                (u64)rself->ptr, rself->base.guid);
     }
     // Begin critical section
-    rself->lock->lock(rself->lock);
+    rself->lock->fctPtrs->lock(rself->lock);
     if(rself->attributes.freeRequested) {
-        rself->lock->unlock(rself->lock);
+        rself->lock->fctPtrs->unlock(rself->lock);
         return EPERM;
     }
     rself->attributes.freeRequested = 1;
-    rself->lock->unlock(rself->lock);
+    rself->lock->fctPtrs->unlock(rself->lock);
     // End critical section
 
 
@@ -165,12 +165,12 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
         // Now check if we can actually free the block
 
         // Critical section
-        rself->lock->lock(rself->lock);
+        rself->lock->fctPtrs->lock(rself->lock);
         if(rself->attributes.numUsers == 0 && rself->attributes.internalUsers == 0) {
-            rself->lock->unlock(rself->lock);
+            rself->lock->fctPtrs->unlock(rself->lock);
             regularDestruct(self);
         } else {
-            rself->lock->unlock(rself->lock);
+            rself->lock->fctPtrs->unlock(rself->lock);
         }
         // End critical section
     }
@@ -183,7 +183,7 @@ void regularDestruct(ocrDataBlock_t *self) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
     ASSERT(rself->attributes.numUsers == 0);
     ASSERT(rself->attributes.freeRequested == 1);
-    rself->lock->destruct(rself->lock);
+    rself->lock->fctPtrs->destruct(rself->lock);
 
     // Tell the allocator to free the data-block
     ocrAllocator_t *allocator = NULL;
@@ -192,7 +192,7 @@ void regularDestruct(ocrDataBlock_t *self) {
     DO_DEBUG(DEBUG_LVL_VERB) {
         PRINTF("VERB: Freeing DB @ 0x%lx (GUID: 0x%lx)\n", (u64)rself->ptr, rself->base.guid);
     }
-    allocator->free(allocator, rself->ptr);
+    allocator->fctPtrs->free(allocator, rself->ptr);
 
     // TODO: This is not pretty to be here but I can't put this in the ocrDbFree because
     // the semantics of ocrDbFree is that it will wait for all acquire/releases to have
@@ -207,7 +207,7 @@ void regularDestruct(ocrDataBlock_t *self) {
     free(rself);
 }
 
-ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactor_t *factory, ocrParamList_t *perInstance) {
+ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrParamList_t *perInstance) {
     paramListDataBlockInst_t *parameters = (paramListDataBlockInst_t*)perInstance;
 
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)
