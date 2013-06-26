@@ -9,6 +9,8 @@
 #include <ocr-datablock.h>
 #include <ocr-event.h>
 
+//#include <allocator/allocator-all.h>
+
 #define INI_GET_INT(KEY, VAR, DEF) VAR = (int) iniparser_getint(dict, KEY, DEF); if (VAR==DEF){ printf("Key %s not found or invalid!\n", KEY); }
 #define INI_GET_STR(KEY, VAR, DEF) VAR = (char *) iniparser_getstring(dict, KEY, DEF); if (!strcmp(VAR, DEF)){ printf("Key %s not found or invalid!\n", KEY); }
 #define TO_ENUM(VAR, STR, TYPE, TYPESTR, COUNT) {int kount; for (kount=0; kount<COUNT; kount++) {if (!strcmp(STR, TYPESTR[kount])) VAR=(TYPE)kount;} }
@@ -17,30 +19,30 @@
 
 //TODO: expand all the below to include all sections
 typedef enum {
-    allocator_type,
     memplatform_type,
     memtarget_type,
+    allocator_type,
 } type_enum;
 
 const char *type_str[] = {
-    "AllocatorType",
     "MemPlatformType",
     "MemTargetType",
+    "AllocatorType",
 };
 
 int type_counts[sizeof(type_str)/sizeof(const char *)];
 ocrParamList_t **type_params[sizeof(type_str)/sizeof(const char *)]; 
 
 typedef enum {
-    allocator_inst,
     memplatform_inst,
     memtarget_inst,
+    allocator_inst,
 } inst_enum;
 
 const char *inst_str[] = {
-    "AllocatorInst",
     "MemPlatformInst",
     "MemTargetInst",
+    "AllocatorInst",
 };
 
 int inst_counts[sizeof(inst_str)/sizeof(const char *)];
@@ -55,8 +57,8 @@ typedef struct {
 /* The above struct defines dependency "from" -> "to" using "refstr" as reference */
 
 dep_t deps[] = {
-    { 0, 2, "memtarget"},
-    { 2, 1, "memplatform"},
+    { 1, 0, "memplatform"},
+    { 2, 1, "memtarget"},
 };
 
 // TODO: expand to parse comma separated values & ranges iterating the below thru strtok with ,
@@ -91,13 +93,13 @@ int populate_type(ocrParamList_t **type_param, int index, int type_index, int ty
     printf("Populating %s count = %d; %d/%d\n", secname, index, type_index, type_count);
     switch (index) {
     case 0:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
-        break;
-    case 1:
         ALLOC_PARAM_LIST(type_param[type_index], paramListMemPlatformFact_t);
         break;
-    case 2:
+    case 1:
         ALLOC_PARAM_LIST(type_param[type_index], paramListMemTargetFact_t);
+        break;
+    case 2:
+        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
         break;
     default:
         printf("Error: %d index unexpected\n", type_index);
@@ -124,20 +126,10 @@ int populate_inst(ocrParamList_t **inst_param, int index, int inst_index, int in
     //TODO: case specific initialization
     switch (index) {
     case 0:
-        for (j = low; j<=high; j++) { 
-            paramListAllocatorInst_t *t;
-            ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
-            t = (paramListAllocatorInst_t *)inst_param[j];
-            snprintf(key, 64, "%s:%s", secname, "size");
-            INI_GET_INT(key, t->size, -1);
-            t->memtarget_count = 0;
-        }
-        break;
-    case 1:
         for (j = low; j<=high; j++) 
             ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformInst_t);
         break;
-    case 2:
+    case 1:
         for (j = low; j<=high; j++) {
             paramListMemTargetInst_t *t;
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
@@ -147,6 +139,16 @@ int populate_inst(ocrParamList_t **inst_param, int index, int inst_index, int in
             INI_GET_INT(key, t->start, -1);
             snprintf(key, 64, "%s:%s", secname, "mem_size");
             INI_GET_INT(key, t->size, -1);
+        }
+        break;
+    case 2:
+        for (j = low; j<=high; j++) { 
+            paramListAllocatorInst_t *t;
+            ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
+            t = (paramListAllocatorInst_t *)inst_param[j];
+            snprintf(key, 64, "%s:%s", secname, "size");
+            INI_GET_INT(key, t->size, -1);
+            t->memtarget_count = 0;
         }
         break;
     default:
@@ -163,9 +165,12 @@ int populate_inst(ocrParamList_t **inst_param, int index, int inst_index, int in
     for (j = low; j <= high; j++) {
         char found = 0;
         for (i = 0; i < type_counts[index]; i++) {
-            if (0 == strcmp(inst_param[j]->misc, type_params[index][i]->misc)) found = 1;
+            if (0 == strcmp(inst_params[index][j]->misc, type_params[index][i]->misc)) found = 1;
         }
-        if(found==0) printf("Unknown type (%s) encountered!\n", inst_param[j]->misc);
+        if(found==0) {
+            printf("Unknown type (%s) encountered!\n", inst_param[j]->misc);
+            return -1;
+        }
     }
 
     return 0;
@@ -175,20 +180,10 @@ void add_dependence (int fromtype, ocrParamList_t *from, ocrParamList_t *to, int
 {
     
     switch(fromtype) {
-    case 0: {
-            paramListAllocatorInst_t *t = (paramListAllocatorInst_t *)from;
-            printf("Allocator %s to %s\n", from->misc, to->misc);
-            if (t->memtarget_count == 0) {
-                t->memtarget_count = dependence_count;
-                t->memtargets = (paramListMemTargetInst_t *)malloc(sizeof(paramListMemTargetInst_t *)*dependence_count);
-            }
-            t->memtargets[dependence_index] = (paramListMemTargetInst_t *)to;
-            break;
-        }
-    case 1:
+    case 0:
         printf("Memplatform %s to %s\n", from->misc, to->misc);
         break;
-    case 2: {
+    case 1: {
             paramListMemTargetInst_t *t = (paramListMemTargetInst_t *)from;
             printf("Memtarget %s to %s\n", from->misc, to->misc);
             if (t->memplatform_count == 0) {
@@ -196,6 +191,16 @@ void add_dependence (int fromtype, ocrParamList_t *from, ocrParamList_t *to, int
                 t->memplatforms = (paramListMemPlatformInst_t *)malloc(sizeof(paramListMemPlatformInst_t *)*dependence_count);
             }
             t->memplatforms[dependence_index] = (paramListMemPlatformInst_t *)to;
+            break;
+        }
+    case 2: {
+            paramListAllocatorInst_t *t = (paramListAllocatorInst_t *)from;
+            printf("Allocator %s to %s\n", from->misc, to->misc);
+            if (t->memtarget_count == 0) {
+                t->memtarget_count = dependence_count;
+                t->memtargets = (paramListMemTargetInst_t *)malloc(sizeof(paramListMemTargetInst_t *)*dependence_count);
+            }
+            t->memtargets[dependence_index] = (paramListMemTargetInst_t *)to;
             break;
         }
     default:
@@ -327,11 +332,15 @@ int main(int argc, char *argv[])
         for (j = 0; j < total_types; j++) {
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) { 
                 if(inst_counts[j] && inst_params[j] == NULL) { 
-                    printf("Alloc %d instances of %s\n", inst_counts[j], inst_str[j]); 
+                    printf("Create %d instances of %s\n", inst_counts[j], inst_str[j]); 
                     inst_params[j] = (ocrParamList_t **)malloc(inst_counts[j] * sizeof(ocrParamList_t *));
                     count = 0;
                 }
                 populate_inst(inst_params[j], j, count++, inst_counts[j], dict, iniparser_getsecname(dict, i));
+		// FIXME: Construct the instance
+		// 1. Based on the instance params & the corresponding instance type, call the constructor
+		// FIXME: Add the dependences
+		// 1. Do the equivalent of build_deps except work on the constructed instances rather than the inst_param
             }
         }
     }
@@ -344,19 +353,19 @@ int main(int argc, char *argv[])
     }
 
     printf("---------------------------\n");
-    for(i = 0; i<type_counts[0]; i++) { dump_allocator_fact ((paramListAllocatorFact_t *)type_params[0][i]); }
+    for(i = 0; i<type_counts[2]; i++) { dump_allocator_fact ((paramListAllocatorFact_t *)type_params[2][i]); }
     printf("---------------------------\n");
 
     printf("---------------------------\n");
-    for(i = 0; i<type_counts[2]; i++) { dump_memtarget_fact ((paramListMemTargetFact_t *)type_params[2][i]); }
+    for(i = 0; i<type_counts[1]; i++) { dump_memtarget_fact ((paramListMemTargetFact_t *)type_params[1][i]); }
     printf("---------------------------\n");
 
     printf("---------------------------\n");
-    for(i = 0; i<inst_counts[0]; i++) { dump_allocator_inst ((paramListAllocatorInst_t *)inst_params[0][i]); }
+    for(i = 0; i<inst_counts[2]; i++) { dump_allocator_inst ((paramListAllocatorInst_t *)inst_params[2][i]); }
     printf("---------------------------\n");
 
     printf("---------------------------\n");
-    for(i = 0; i<inst_counts[2]; i++) { printf("%d, ", i); dump_memtarget_inst ((paramListMemTargetInst_t *)inst_params[2][i]); }
+    for(i = 0; i<inst_counts[1]; i++) { printf("%d, ", i); dump_memtarget_inst ((paramListMemTargetInst_t *)inst_params[1][i]); }
     printf("---------------------------\n");
 
     return 0;
