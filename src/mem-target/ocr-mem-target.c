@@ -34,12 +34,18 @@
 #include "debug.h"
 #include "ocr-mem-target.h"
 
-ocrMemTarget_t* newMemTarget(ocrMemTargetKind type) {
-    if(type == OCR_MEMTARGET_DEFAULT) type = ocrMemTargetDefaultKind;
-    switch(type) {
-    	// NOT YET IMPLEMENTED
-    default:
-        ASSERT(0);
-    }
+typedef enum _memTargetType_t {
+    //TODO
+    none_id
+} memTargetType_t;
+
+ocrMemTarget_t* newMemTarget(memTargetType_t type) {
+    // if(type == OCR_MEMTARGET_DEFAULT) type = ocrMemTargetDefaultKind;
+    // switch(type) {
+    // 	// NOT YET IMPLEMENTED
+    // default:
+    //     ASSERT(0);
+    // }
+    ASSERT(false && "newMemTarget not implemented");
     return NULL;
 }
