@@ -44,6 +44,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 /******************************************************/
 /* OCR ALLOCATOR TLSF IMPLEMENTATION                  */
