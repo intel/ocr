@@ -849,7 +849,7 @@ static u32 tlsfInit(u64 pgStart, u64 size) {
 
     if(poolRealSize < GminBlockRealSize || poolRealSize > GmaxBlockRealSize) {
         DO_DEBUG(DEBUG_LVL_WARN) {
-            PRINTF("WARN: Space mismatch allocating TLSF pool at 0x%lx of sz %d (user sz: %d)\n",
+            PRINTF("WARN: Space mismatch allocating TLSF pool at 0x%llX of sz %d (user sz: %d)\n",
                    pgStart, (u32)poolRealSize, (u32)(poolRealSize << ELEMENT_SIZE_LOG2));
             PRINTF("WARN: Sz must be at least %d and at most %d\n", GminBlockRealSize, GmaxBlockRealSize);
         }
@@ -857,7 +857,7 @@ static u32 tlsfInit(u64 pgStart, u64 size) {
     }
 
     DO_DEBUG(DEBUG_LVL_INFO) {
-        PRINTF("INFO: Allocating a TLSF pool at 0x%lx of sz %d (user sz: %d)\n",
+        PRINTF("INFO: Allocating a TLSF pool at 0x%llX of sz %d (user sz: %d)\n",
                pgStart, (u32)poolRealSize, (u32)(poolRealSize << ELEMENT_SIZE_LOG2));
     }
 
@@ -881,7 +881,7 @@ static u64 tlsfMalloc(u64 pgStart, u64 size) {
 
     if(allocSize == 0 && size != 0) {
         DO_DEBUG(DEBUG_LVL_VERB) {
-            PRINTF("VERB: tlsfMalloc @0x%lx returning NULL for too large size %ld\n",
+            PRINTF("VERB: tlsfMalloc @0x%llX returning NULL for too large size %lld\n",
                    pgStart, size);
         }
         return _NULL;
@@ -889,14 +889,14 @@ static u64 tlsfMalloc(u64 pgStart, u64 size) {
 
     freeBlock = findFreeBlockForRealSize(pgStart, allocSize, &flIndex, &slIndex);
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: tslf_malloc @0x%lx found a free block at 0x%lx\n", pgStart,
+        PRINTF("VERB: tslf_malloc @0x%llx found a free block at 0x%llx\n", pgStart,
                addressForBlock(GET_ADDRESS(freeBlock)));
     }
     /* header_t * */ u64 freeBlockPtr = GET_ADDRESS(freeBlock);
 
     if(IS_NULL(freeBlockPtr)) {
         DO_DEBUG(DEBUG_LVL_VERB) {
-            PRINTF("VERB: tlsfMalloc @ 0x%lx returning NULL for size %ld\n",
+            PRINTF("VERB: tlsfMalloc @ 0x%llx returning NULL for size %lld\n",
                    pgStart, size);
         }
         return _NULL;
@@ -908,7 +908,7 @@ static u64 tlsfMalloc(u64 pgStart, u64 size) {
     if(returnedSize > allocSize + GminBlockRealSize) {
         remainingBlock = splitBlock(pgStart, freeBlock, allocSize);
         DO_DEBUG(DEBUG_LVL_VERB) {
-            PRINTF("VERB: tlsfMalloc @0x%lx split block and re-added to free list 0x%lx\n", pgStart,
+            PRINTF("VERB: tlsfMalloc @0x%llx split block and re-added to free list 0x%llx\n", pgStart,
                    addressForBlock(GET_ADDRESS(remainingBlock)));
         }
         addFreeBlock(pgStart, remainingBlock);
@@ -918,7 +918,7 @@ static u64 tlsfMalloc(u64 pgStart, u64 size) {
 
     result = addressForBlock(freeBlockPtr);
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: tlsfMalloc @ 0x%lx returning 0x%lx for size %ld\n",
+        PRINTF("VERB: tlsfMalloc @ 0x%llx returning 0x%llx for size %lld\n",
                pgStart, result, size);
     }
     return result;
@@ -928,7 +928,7 @@ static void tlsfFree(u64 pgStart, u64 ptr) {
     headerAddr_t bl;
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: tlsfFree @ 0x%lx going to free 0x%lx\n",
+        PRINTF("VERB: tlsfFree @ 0x%llx going to free 0x%llx\n",
                pgStart, ptr);
     }
 
