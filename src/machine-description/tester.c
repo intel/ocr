@@ -134,11 +134,11 @@ int populate_inst(ocrParamList_t **inst_param, int index, int inst_index, int in
             paramListMemTargetInst_t *t;
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
             t = (paramListMemTargetInst_t *)inst_param[j];
-            t->memplatform_count = 0;
+           // t->memplatform_count = 0;
             snprintf(key, 64, "%s:%s", secname, "mem_start");
-            INI_GET_INT(key, t->start, -1);
+           // INI_GET_INT(key, t->start, -1);
             snprintf(key, 64, "%s:%s", secname, "mem_size");
-            INI_GET_INT(key, t->size, -1);
+           // INI_GET_INT(key, t->size, -1);
         }
         break;
     case 2:
@@ -148,7 +148,7 @@ int populate_inst(ocrParamList_t **inst_param, int index, int inst_index, int in
             t = (paramListAllocatorInst_t *)inst_param[j];
             snprintf(key, 64, "%s:%s", secname, "size");
             INI_GET_INT(key, t->size, -1);
-            t->memtarget_count = 0;
+            //t->memtarget_count = 0;
         }
         break;
     default:
@@ -186,21 +186,25 @@ void add_dependence (int fromtype, ocrParamList_t *from, ocrParamList_t *to, int
     case 1: {
             paramListMemTargetInst_t *t = (paramListMemTargetInst_t *)from;
             printf("Memtarget %s to %s\n", from->misc, to->misc);
+#if 0
             if (t->memplatform_count == 0) {
                 t->memplatform_count = dependence_count;
                 t->memplatforms = (paramListMemPlatformInst_t *)malloc(sizeof(paramListMemPlatformInst_t *)*dependence_count);
             }
             t->memplatforms[dependence_index] = (paramListMemPlatformInst_t *)to;
+#endif
             break;
         }
     case 2: {
             paramListAllocatorInst_t *t = (paramListAllocatorInst_t *)from;
             printf("Allocator %s to %s\n", from->misc, to->misc);
+#if 0
             if (t->memtarget_count == 0) {
                 t->memtarget_count = dependence_count;
                 t->memtargets = (paramListMemTargetInst_t *)malloc(sizeof(paramListMemTargetInst_t *)*dependence_count);
             }
             t->memtargets[dependence_index] = (paramListMemTargetInst_t *)to;
+#endif
             break;
         }
     default:
@@ -248,7 +252,7 @@ void dump_allocator_inst(paramListAllocatorInst_t *allocInst)
 {
     int j;
     if (allocInst == NULL) return;
-    printf("AllocInst: %s; %d; %d\t", allocInst->base.misc, allocInst->size, allocInst->memtarget_count);
+    printf("AllocInst: %s; %d\t", allocInst->base.misc, allocInst->size);
     printf("\n");
 }
 
@@ -261,7 +265,7 @@ void dump_memtarget_fact(paramListMemTargetFact_t *mtargetFact)
 void dump_memtarget_inst(paramListMemTargetInst_t *mtargetInst)
 {
     if (mtargetInst == NULL) return;
-    printf ("MemtargetInst: %s (%x:%x); %d\n", mtargetInst->base.misc, mtargetInst->start, mtargetInst->size, mtargetInst->memplatform_count);
+    printf ("MemtargetInst: %s\n", mtargetInst->base.misc);
 }
 
 void dump_memplatform_fact(paramListMemPlatformFact_t *mplatformFact)
@@ -338,7 +342,8 @@ int main(int argc, char *argv[])
                 }
                 populate_inst(inst_params[j], j, count++, inst_counts[j], dict, iniparser_getsecname(dict, i));
 		// FIXME: Construct the instance
-		// 1. Based on the instance params & the corresponding instance type, call the constructor
+		// 1. Based on the instance params & the corresponding instance type (converted from STR to enum), call the constructor
+		// 
 		// FIXME: Add the dependences
 		// 1. Do the equivalent of build_deps except work on the constructed instances rather than the inst_param
             }
