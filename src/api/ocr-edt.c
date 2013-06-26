@@ -149,11 +149,8 @@ u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
 ocrGuid_t ocrElsUserGet(u8 offset) {
     // User indexing start after runtime-reserved ELS slots
     offset = ELS_RUNTIME_SIZE + offset;
-    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
     ocrPolicyDomain_t * pd = getCurrentPD();
-    ocrWorker_t * worker = NULL;
-    deguidify(pd, workerGuid, (u64*)&(worker), NULL);
-    ocrGuid_t edtGuid = worker->fctPtrs->getCurrentEDT(worker);
+    ocrGuid_t edtGuid = getCurrentEDT();
     ocrTask_t * edt = NULL;
     deguidify(pd, edtGuid, (u64*)&(edt), NULL);
     return edt->els[offset];
@@ -168,9 +165,7 @@ void ocrElsUserSet(u8 offset, ocrGuid_t data) {
     offset = ELS_RUNTIME_SIZE + offset;
     ocrGuid_t workerGuid = ocr_get_current_worker_guid();
     ocrPolicyDomain_t * pd = getCurrentPD();
-    ocrWorker_t * worker = NULL;
-    deguidify(pd, workerGuid, (u64*)&(worker), NULL);
-    ocrGuid_t edtGuid = worker->fctPtrs->getCurrentEDT(worker);
+    ocrGuid_t edtGuid = getCurrentEDT();
     ocrTask_t * edt = NULL;
     deguidify(pd, edtGuid, (u64*)&(edt), NULL);
     edt->els[offset] = data;

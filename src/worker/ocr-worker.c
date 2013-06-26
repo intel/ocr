@@ -35,11 +35,21 @@
 #include "ocr-types.h"
 #include "ocr-guid.h"
 #include "ocr-worker.h"
-#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
+#include "ocr-comp-platform.h"
 
-ocrGuid_t getCurrentEdt() {
-    ocrGuid_t workerGuid = ocr_get_current_worker_guid();
+ocrGuid_t getCurrentEdtFromWorker() {
+    ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
+    ocrGuid_t workerGuid = ctx->sourceObj;
     ocrWorker_t *worker = NULL;
     deguidify(getCurrentPD(), workerGuid, (u64*)&(worker), NULL);
     return worker->fctPtrs->getCurrentEDT(worker);
+}
+
+void setCurrentEdtToWorker(ocrGuid_t edtGuid) {
+    ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
+    ocrGuid_t workerGuid = ctx->sourceObj;
+    ocrWorker_t *worker = NULL;
+    deguidify(getCurrentPD(), workerGuid, (u64*)&(worker), NULL);
+    worker->fctPtrs->setCurrentEDT(worker, edtGuid);
 }

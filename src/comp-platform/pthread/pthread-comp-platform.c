@@ -34,12 +34,10 @@
 #include "pthread-comp-platform.h"
 #include "ocr-comp-platform.h"
 #include "ocr-guid.h"
+#include "ocr-policy-domain.h"
 
 #include "debug.h"
 #include "ocr-macros.h"
-
-
-struct _ocrPolicyDomain_t;
 
 /**
  * @brief Structure stored on a per-thread basis to keep track of
@@ -47,8 +45,8 @@ struct _ocrPolicyDomain_t;
  */
 typedef struct {
     ocrGuid_t compTarget;
-    ocrGuid_t edt;
-    struct _ocrPolicyDomain_t * policyDomain;
+    ocrPolicyCtx_t * ctx;
+    ocrPolicyDomain_t * pd;
 } perThreadStorage_t;
 
 /**
@@ -145,37 +143,25 @@ static ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *facto
 /* OCR COMP PLATFORM PTHREAD FACTORY                  */
 /******************************************************/
 
-static ocrGuid_t getCurrentComputePthread() {
+static ocrPolicyCtx_t * getCurrentWorkerContextPthread() {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
-    return vals->compTarget;
+    return vals->ctx;
 }
 
-static ocrGuid_t getCurrentEDTPthread() {
+static void setCurrentWorkerContextPthread(ocrPolicyCtx_t *val) {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
-    return vals->edt;
-}
-
-struct _ocrPolicyDomain_t;
-struct _ocrPolicyDomain_t * getCurrentPDPthread() {
-    perThreadStorage_t *vals = pthread_getspecific(selfKey);
-    return vals->policyDomain;
-}
-
-static void setCurrentComputePthread(ocrGuid_t val) {
-    perThreadStorage_t *vals = pthread_getspecific(selfKey);
-    vals->compTarget = val;
+    vals->ctx = val;
     RESULT_ASSERT(pthread_setspecific(selfKey, vals), ==, 0);
 }
 
-static void setCurrentEDTPthread(ocrGuid_t val) {
+ocrPolicyDomain_t * getCurrentPDPthread() {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
-    vals->edt = val;
-    RESULT_ASSERT(pthread_setspecific(selfKey, vals), ==, 0);
+    return vals->pd;
 }
 
-static void setCurrentPDPthread(struct _ocrPolicyDomain_t *val) {
+static void setCurrentPDPthread(ocrPolicyDomain_t *val) {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
-    vals->policyDomain = val;
+    vals->pd = val;
     RESULT_ASSERT(pthread_setspecific(selfKey, vals), ==, 0);
 }
 
@@ -193,10 +179,8 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     base->platformFcts.start = &pthreadStart;
     base->platformFcts.stop = &pthreadStop;
 
-    getCurrentCompTarget = &getCurrentComputePthread;
-    setCurrentCompTarget = &setCurrentComputePthread;
-    getCurrentEDT = &getCurrentEDTPthread;
-    setCurrentEDT = &setCurrentEDTPthread;
+    getCurrentWorkerContext = &getCurrentWorkerContextPthread;
+    setCurrentWorkerContext = &setCurrentWorkerContextPthread;
     getCurrentPD = &getCurrentPDPthread;
     setCurrentPD = &setCurrentPDPthread;
 

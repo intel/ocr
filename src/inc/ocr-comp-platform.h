@@ -93,22 +93,9 @@ typedef struct _ocrCompPlatformFactory_t {
 /* UTILITY METHODS                                  */
 /****************************************************/
 
-/**
- * @brief Gets the current target the calling code is running on
- *
- * This function will get bound when platform factories are
- * created
- *
- * @warning Only the last binding will remain in effect
- */
-extern ocrGuid_t (*getCurrentCompTarget)();
-extern void (*setCurrentCompTarget)(ocrGuid_t guid);
-
-/**
- * @brief Gets the current EDT executing
- */
-extern ocrGuid_t (*getCurrentEDT)();
-extern void (*setCurrentEDT)(ocrGuid_t guid);
+struct _ocrPolicyCtx_t;
+extern struct _ocrPolicyCtx_t * (*getCurrentWorkerContext)();
+extern void (*setCurrentWorkerContext)(struct _ocrPolicyCtx_t *);
 
 struct _ocrPolicyDomain_t;
 /**

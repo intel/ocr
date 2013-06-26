@@ -40,6 +40,7 @@
 #include "ocr-task.h"
 #include "ocr-event.h"
 #include "ocr-comp-target.h"
+#include "ocr-comp-platform.h"
 #include "ocr-worker.h"
 #include "ocr-machine.h"
 #include "ocr-scheduler.h"

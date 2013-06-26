@@ -31,16 +31,13 @@
 
 #ifndef OCR_POLICY_DOMAIN_GETTER_H_
 #define OCR_POLICY_DOMAIN_GETTER_H_
-
+   
 struct _ocrPolicyDomain_t;
 struct _ocrTaskFactory_t;
 struct _ocrEventFactory_t;
 struct _ocrDataBlockFactory_t;
 struct _ocrLockFactory_t;
 struct _ocrGuidProvider_t;
-
-inline struct _ocrPolicyDomain_t* getCurrentPD();
-inline struct _ocrPolicyCtx_t* getCurrentWorkerContext();
 
 // Common functions on all policy domains (ie: not function pointers)
 inline struct _ocrTaskFactory_t*  getTaskFactoryFromPd(struct _ocrPolicyDomain_t *policy);

@@ -134,15 +134,6 @@ ocrScheduler_t * get_worker_scheduler(ocrWorker_t * worker);
  */
 void associate_comp_platform_and_worker(ocrWorker_t * worker);
 
-/*! \brief Get current calling context Worker's GUID
- *  \return GUID for the Worker instance that is executing the code context this function is called in
- */
-ocrGuid_t ocr_get_current_worker_guid();
-
-/*! \brief Get the currently executing worker and return the edt's guid it is currently executing.
- */
-ocrGuid_t getCurrentEDT();
-
 /* TODO sagnak restructure code in a more pleasant manner than this
  * exposing some HC worker implementations to be reused for the FSIM-like implementations */
 void hc_worker_create ( ocrWorker_t * base, void * perTypeConfig, void * perInstanceConfig);
@@ -153,5 +144,11 @@ bool hc_is_running_worker(ocrWorker_t * base);
 ocrGuid_t hc_getCurrentEDT (ocrWorker_t * base);
 void hc_setCurrentEDT (ocrWorker_t * base, ocrGuid_t curr_edt_guid);
 void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocrMappableKind kind, u64 nb_instances, void ** ptr_instances);
+
+/**
+ * @brief Gets the current EDT executing
+ */
+extern ocrGuid_t (*getCurrentEDT)();
+extern void (*setCurrentEDT)(ocrGuid_t guid);
 
 #endif /* __OCR_WORKER_H__ */
