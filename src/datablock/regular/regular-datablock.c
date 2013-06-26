@@ -52,7 +52,7 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Acquiring DB @ 0x%llx (GUID: 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (isInternal %d)\n",
+        PRINTF("VERB: Acquiring DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (isInternal %d)\n",
                (u64)rself->ptr, rself->base.guid, edt, (u32)isInternal);
     }
 
@@ -84,7 +84,7 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
     rself->lock->fctPtrs->unlock(rself->lock);
     // End critical section
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Added EDT GUID 0x%llx at position %d. Have %d users and %d internal\n",
+        PRINTF("VERB: Added EDT GUID 0x%"PRIx64" at position %d. Have %d users and %d internal\n",
                (u64)edt, idForEdt, rself->attributes.numUsers, rself->attributes.internalUsers);
     }
     return rself->ptr;
@@ -98,7 +98,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
     bool isTracked = true;
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Releasing DB @ 0x%llx (GUID 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (%d) (internal: %d)\n",
+        PRINTF("VERB: Releasing DB @ 0x%"PRIx64" (GUID 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (%d) (internal: %d)\n",
                (u64)rself->ptr, rself->base.guid, edt, edtId, (u32)isInternal);
     }
     // Start critical section
@@ -155,7 +155,7 @@ void regularDestruct(ocrDataBlock_t *self) {
     deguidify(getCurrentPD(), rself->allocatorGuid, (u64*)&allocator, NULL);
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Freeing DB @ 0x%llx (GUID: 0x%"PRIdPTR")\n", (u64)rself->ptr, rself->base.guid);
+        PRINTF("VERB: Freeing DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n", (u64)rself->ptr, rself->base.guid);
     }
     allocator->fctPtrs->free(allocator, rself->ptr);
 
@@ -177,7 +177,7 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
 
     u32 id = ocrGuidTrackerFind(&(rself->usersTracker), edt);
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Requesting a free for DB @ 0x%llx (GUID 0x%"PRIdPTR")\n",
+        PRINTF("VERB: Requesting a free for DB @ 0x%"PRIx64" (GUID 0x%"PRIdPTR")\n",
                (u64)rself->ptr, rself->base.guid);
     }
     // Begin critical section
@@ -247,7 +247,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrParamList
     // TODO: Use policy domain to create the lock
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Creating a datablock of size %ld @ 0x%llx (GUID: 0x%"PRIdPTR")\n",
+        PRINTF("VERB: Creating a datablock of size %ld @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n",
                size, (u64)rself->ptr, rself->base.guid);
     }
 
