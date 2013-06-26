@@ -32,7 +32,7 @@
 
 #include <stdlib.h>
 #include <errno.h>
-#include "regular.h"
+#include "regular-datablock.h"
 #include "debug.h"
 #include "ocr-task-event.h"
 #include "ocr-guid.h"
