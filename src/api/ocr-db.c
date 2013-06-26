@@ -46,6 +46,7 @@
 #include "ocr.h"
 #include "ocr-runtime.h"
 
+#include "ocr-policy-domain-getter.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -59,7 +60,17 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 
     // TODO: Currently location and allocator are ignored
     // ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_DEFAULT);
-    ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_PLACED);
+    // ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_PLACED);
+
+    // TODO: I need to get the current policy to figure out my allocator.
+    // Replace with allocator that is gotten from policy
+    //
+    ocrPolicyDomain_t* policy = getCurrentPD();
+    ocrDataBlockFactory_t* dbFactory = getDataBlockFactoryFromPd(policy);
+    // TODO sagnak, this has to be created by a parameter for data block allocator
+    paramListDataBlockInst_t* dbParams = NULL;
+    ocrDataBlock_t *createdDb = dbFactory->instantiate(dbFactory, (ocrParamList_t*)dbParams);
+    // createdDb->create(createdDb, policy->getAllocator(policy, location), len, flags, NULL);
 
 #ifdef OCR_ENABLE_STATISTICS
     // Create the statistics process for this DB.
@@ -69,19 +80,12 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     ocrStatsProcessRegisterFilter(&(createdDb->statProcess), (0x3F<<((u32)STATS_DB_CREATE-1)), t);
 #endif
 
-    // TODO: I need to get the current policy to figure out my allocator.
-    // Replace with allocator that is gotten from policy
-
-    ocrGuid_t worker_guid = ocr_get_current_worker_guid();
-    ocrWorker_t * worker = NULL;
-    deguidify(getCurrentPD(), worker_guid, (u64*)&worker, NULL);
-
-    ocrScheduler_t * scheduler = get_worker_scheduler(worker);
-    ocrPolicyDomain_t* policy = scheduler -> domain;
-    //TODO this should go through a db factory
-    createdDb->create(createdDb, policy->getAllocator(policy, location), len, flags, NULL);
 #ifdef OCR_ENABLE_STATISTICS
     {
+        ocrGuid_t worker_guid = ocr_get_current_worker_guid();
+        ocrWorker_t * worker = NULL;
+        deguidify(getCurrentPD(), worker_guid, (u64*)&worker, NULL);
+
         ocrTask_t *task = NULL;
         ocrGuid_t edtGuid = worker->fctPtrs->getCurrentEDT(worker);
         deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
