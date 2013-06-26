@@ -231,7 +231,9 @@ typedef struct _ocrPolicyDomain_t {
     void (*stop)(struct _ocrPolicyDomain_t *self);
 
     // TODO: Do we need a finish? What was it for
+    // TODO sagnak: we needed to separate the pausing of the workers and the executors
 
+    void (*finish)(struct _ocrPolicyDomain_t *self);
 
     /**
      * @brief Request the allocation of memory (a data-block)

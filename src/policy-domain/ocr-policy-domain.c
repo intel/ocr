@@ -129,6 +129,8 @@ void ocr_policy_domain_destruct(ocrPolicyDomain_t * policy) {
     free(policy);
 }
 
+/*
+ *
 ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
     assert(0 && "postponed policy handIn implementation");
     return NULL_GUID;
@@ -146,3 +148,4 @@ void policy_domain_handOut_assert ( ocrPolicyDomain_t * this, ocrGuid_t giverWor
 void policy_domain_receive_assert ( ocrPolicyDomain_t * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
     assert(0 && "postponed policy receive implementation");
 }
+*/

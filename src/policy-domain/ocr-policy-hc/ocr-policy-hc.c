@@ -34,16 +34,23 @@
 #include "hc.h"
 #include "ocr-policy-domain.h"
 
-void hc_policy_domain_create(ocrPolicyDomain_t * policy, void * configuration,
+void hc_policy_domain_create ( ocrPolicyDomain_t * policy, void * configuration,
+        u64 schedulerCount, u64 workerCount, u64 computeCount,
+        u64 workpileCount, u64 allocatorCount, u64 memoryCount,
+        ocrTaskFactory_t *taskFactory, ocrDataBlockFactory_t *dbFactory,
+        ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t *contextFactory, 
+        ocrCost_t *costFunction ) {
+    /*
                              ocrScheduler_t ** schedulers, ocrWorker_t ** workers,
                              ocrCompTarget_t ** computes, ocrWorkpile_t ** workpiles,
-                             ocrAllocator_t ** allocators, ocrMemPlatform_t ** memories) {
+                             ocrAllocator_t ** allocators, ocrMemTarget_t ** memories)
     policy->schedulers = schedulers;
     policy->workers = workers;
     policy->computes = computes;
     policy->workpiles = workpiles;
     policy->allocators = allocators;
     policy->memories = memories;
+    */
 }
 
 void hc_policy_domain_start(ocrPolicyDomain_t * policy) {
@@ -105,20 +112,16 @@ void hc_policy_domain_destruct(ocrPolicyDomain_t * policy) {
 
 }
 
-ocrGuid_t hc_policy_getAllocator(ocrPolicyDomain_t * policy, ocrLocation_t* location) {
-    return policy->allocators[0]->guid;
-}
-
 // Mapping function many-to-one to map a set of schedulers to a policy instance
-void hc_ocr_module_map_schedulers_to_policy (void * self_module, ocrMappableKind kind,
-                                             u64 nb_instances, void ** ptr_instances) {
+void hc_ocr_module_map_schedulers_to_policy (ocrMappable_t * self_module, ocrMappableKind kind,
+                                             u64 nb_instances, ocrMappable_t ** ptr_instances) {
     // Checking mapping conforms to what we're expecting in this implementation
     assert(kind == OCR_SCHEDULER);
 
     ocrPolicyDomain_t * policy = (ocrPolicyDomain_t *) self_module;
     int i = 0;
     for ( i = 0; i < nb_instances; ++i ) {
-        ocrScheduler_t* scheduler = ptr_instances[i];
+        ocrScheduler_t* scheduler = (ocrScheduler_t*)ptr_instances[i];
         scheduler->domain = policy;
     }
 }
@@ -142,13 +145,7 @@ ocrPolicyDomain_t * hc_policy_domain_constructor(u64 workpileCount,
     policy->finish = hc_policy_domain_finish;
     policy->stop = hc_policy_domain_stop;
     policy->destruct = hc_policy_domain_destruct;
-    policy->getAllocator = hc_policy_getAllocator;
     // no inter-policy domain for HC for now
-    policy->handOut = policy_domain_handOut_assert;
-    policy->receive = policy_domain_receive_assert;
-    policy->handIn = policy_domain_handIn_assert;
-    policy->extract = policy_domain_extract_assert;
-
     return policy;
 }
 
@@ -260,7 +257,6 @@ void leaf_place_policy_domain_constructor_helper ( ocrPolicyDomain_t * policy,
     policy->create = hc_policy_domain_create;
     policy->finish = hc_policy_domain_finish;
     policy->destruct = hc_policy_domain_destruct;
-    policy->getAllocator = hc_policy_getAllocator;
     // no inter-policy domain for HC for now
     policy->handOut = policy_domain_handOut_assert;
     policy->receive = policy_domain_receive_assert;
@@ -296,6 +292,7 @@ void ocr_module_map_nothing_to_place (void * self_module, ocrMappableKind kind,
     assert ( 0 && "We should not map anything on a place policy");
 }
 
+/*
 void place_policy_domain_create (ocrPolicyDomain_t * policy, void * configuration,
                                ocrScheduler_t ** schedulers, ocrWorker_t ** workers,
                                ocrCompTarget_t ** computes, ocrWorkpile_t ** workpiles,
@@ -306,6 +303,15 @@ void place_policy_domain_create (ocrPolicyDomain_t * policy, void * configuratio
     policy->workpiles = NULL;
     policy->allocators = NULL;
     policy->memories = NULL;
+}
+*/
+
+void place_policy_domain_create ( ocrPolicyDomain_t * policy, void * configuration,
+        u64 schedulerCount, u64 workerCount, u64 computeCount,
+        u64 workpileCount, u64 allocatorCount, u64 memoryCount,
+        ocrTaskFactory_t *taskFactory, ocrDataBlockFactory_t *dbFactory,
+        ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t *contextFactory, 
+        ocrCost_t *costFunction ) {
 }
 
 void place_policy_domain_destruct(ocrPolicyDomain_t * policy) {
