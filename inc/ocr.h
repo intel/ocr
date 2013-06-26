@@ -90,20 +90,7 @@ void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[] );
  * once and will call the runtime to be torn down
  *
  */
-void ocrFinish();
-
-/**
- * @brief Called by the 'main' program to clean-up the OCR
- * environment
- *
- * This call is the symmetric of ocrInit() and *waits* for the ocrFinish()
- * function to be called before completing. In other words, time-wise,
- * ocrInit() will be called, then ocrCleanup() which will wait until
- * ocrFinish() is called and then
- * ocrCleanup() will finish cleaning up and control will be returned
- * to the main program
- */
-void ocrCleanup();
+void ocrFinalize();
 
 /**
  * @}

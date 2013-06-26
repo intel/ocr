@@ -66,6 +66,6 @@ typedef struct _ocrDataBlockRegular_t {
     ocrGuidTracker_t usersTracker;
 } ocrDataBlockRegular_t;
 
-ocrDataBlockFactory_t* newDataBlockFactoryRegular(ocrParamList_t *perType);
+extern ocrDataBlockFactory_t* newDataBlockFactoryRegular(ocrParamList_t *perType);
 
 #endif /* __DATABLOCK_REGULAR_H__ */

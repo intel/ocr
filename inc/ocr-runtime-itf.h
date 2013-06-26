@@ -56,6 +56,6 @@ void ocrElsUserSet(u8 offset, ocrGuid_t data);
  *  @brief Get the currently executing edt.
  *  \return NULL_GUID if there's no edt running.
  **/
-ocrGuid_t getCurrentEdt();
+ocrGuid_t currentEdtUserGet();
 
 #endif /* OCR_RUNTIME_ITF_H_ */

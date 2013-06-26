@@ -29,11 +29,10 @@
 
 */
 
-#include <assert.h>
-
 #include "ocr-edt.h"
 #include "ocr-runtime.h"
 #include "ocr-guid.h"
+#include "debug.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -57,7 +56,7 @@ u8 ocrEventDestroy(ocrGuid_t eventGuid) {
 }
 
 u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/, u32 slot) {
-    assert(eventGuid != NULL_GUID);
+    ASSERT(eventGuid != NULL_GUID);
     ocrEvent_t * event = NULL;
     deguidify(getCurrentPD(), eventGuid, (u64*)&event, NULL);
     event->fctPtrs->satisfy(event, dataGuid, slot);
@@ -68,18 +67,49 @@ u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
     return ocrEventSatisfySlot(eventGuid, dataGuid, 0);
 }
 
-u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
-                u32 paramc, u64 * params, void** paramv,
-                u16 properties, u32 depc, ocrGuid_t* depv /*= NULL*/) {
+u8 ocrEdtTemplateCreate(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, u32 depc) {
+    ocrPolicyDomain_t *pd = getCurrentPD();
+    ocrTaskTemplateFactory_t* taskTemplateFactory = getTaskTemplateFactoryFromPd(pd);
+    ocrTaskTemplate_t* taskTemplate = taskTemplateFactory->instantiate(taskTemplateFactory,
+                                                                       funcPtr, paramc, depc);
+    *guid = taskTemplate->guid;
+    return 0;
+}
+
+u8 ocrEdtTemplateDestroy(ocrGuid_t guid) {
+    ocrPolicyDomain_t * pd = getCurrentPD();
+    ocrTaskTemplate_t * taskTemplate = NULL;
+    deguidify(pd, guid, (u64*)&taskTemplate, NULL);
+    taskTemplate->fctPtrs->destruct(taskTemplate);
+    return 0;
+}
+
+u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
+                u32 paramc, u64* paramv, u32 depc, ocrGuid_t *depv,
+                u16 properties, ocrGuid_t affinity, ocrGuid_t *outputEvent) {
 
     ocrPolicyDomain_t * pd = getCurrentPD();
-    //TODO the task template should be created in the user realm
-    ocrTaskTemplateFactory_t* taskTemplateFactory = getTaskTemplateFactoryFromPd(pd);
-    ocrTaskTemplate_t* taskTemplate = taskTemplateFactory->instantiate(taskTemplateFactory, funcPtr, paramc, depc);
-    ocrHint_t *hint = NULL;
+
+    ocrTaskTemplate_t *taskTemplate = NULL;
+    deguidify(pd, templateGuid, (u64*)&taskTemplate, NULL);
+    // TODO: Move this to runtime checks with error returned
+    ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && paramc != EDT_PARAM_DEF) ||
+           (taskTemplate->paramc != EDT_PARAM_UNK && taskTemplate->paramc == paramc));
+    ASSERT(((taskTemplate->depc == EDT_PARAM_UNK) && depc != EDT_PARAM_DEF) ||
+           (taskTemplate->depc != EDT_PARAM_UNK && taskTemplate->depc == depc));
+
+    if(paramc == EDT_PARAM_DEF) {
+        paramc = taskTemplate->paramc;
+    }
+    if(depc == EDT_PARAM_DEF) {
+        depc = taskTemplate->depc;
+    }
+
     ocrPolicyCtx_t *context = getCurrentWorkerContext();
-    pd->createEdt(pd, edtGuid, taskTemplate, params, paramv, properties, outputEvent, hint, context);
+    pd->createEdt(pd, edtGuid, taskTemplate, paramc, paramv, depc,
+                  properties, affinity, outputEvent, context);
     //TODO LIMITATION handle pre-built dependence vector
+    *edtGuid = task->guid;
 
 #ifdef OCR_ENABLE_STATISTICS
     ocrTask_t * task = NULL;
@@ -108,11 +138,11 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
 
     // If guids dependencies were provided, add them now
     if(depv != NULL) {
-        assert(depc != 0);
+        ASSERT(depc != 0);
         u32 i = 0;
         while(i < depc) {
             // TODO replace with a single runtime call with all dependencies
-            ocrAddDependence(depv[i], *edtGuid, i);
+            ocrAddDependence(depv[i], *edtGuid, i, DB_DEFAULT_MODE);
             i++;
         }
     }
@@ -121,13 +151,17 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
 }
 
 //TODO DEPR: impacts edtCreate and addDependence
-u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
-    ocrPolicyDomain_t * pd = getCurrentPD();
-    ocrTask_t * task = NULL;
-    deguidify(pd, edtGuid, (u64*)&task, NULL);
-    task->fctPtrs->schedule(task);
-    return 0;
-}
+// REC: Punt for now. Will revisit in a bit.
+// Only need to impact ocrAddDependence since it
+// is called in edtCreate
+
+// u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
+//     ocrPolicyDomain_t * pd = getCurrentPD();
+//     ocrTask_t * task = NULL;
+//     deguidify(pd, edtGuid, (u64*)&task, NULL);
+//     task->fctPtrs->schedule(task);
+//     return 0;
+// }
 
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     ocrPolicyDomain_t * pd = getCurrentPD();
@@ -137,12 +171,12 @@ u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     return 0;
 }
 
-    u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot) {
-    //TODO LIMITATION only support event as a guid source
-    ocr_event_t * event = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, source, (u64*)&event, NULL);
-    ocr_task_t * task = NULL;
-    globalGuidProvider->getVal(globalGuidProvider, destination, (u64*)&task, NULL);
+// TODO: Pass down the mode information!!
+u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
+                    ocrDbAccessMode_t mode) {
+    registerDependence(source, destination, slot);
+    return 0;
+}
 
 /**
    @brief Get @ offset in the currently running edt's local storage

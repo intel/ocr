@@ -81,6 +81,7 @@ typedef struct _ocrTaskTemplate_t {
     u32 paramc;
     u32 depc;
     ocrEdt_t executePtr;
+    ocrTaskTemplateFcts_t *fctPtrs;
 } ocrTaskTemplate_t;
 
 /****************************************************/
@@ -167,7 +168,8 @@ typedef struct _ocrTaskFactory_t {
      *
      */
     ocrTask_t* (*instantiate)(struct _ocrTaskFactory_t * factory, ocrTaskTemplate_t * edtTemplate,
-        u64 * params, void ** paramv, u16 properties, ocrGuid_t * outputEvent);
+                              u32 paramc, u64* paramv, u32 depc, ocrGuid_t *depv, u16 properties,
+                              ocrGuid_t affinity, ocrGuid_t *outputEvent);
 
     /*! \brief Virtual destructor for the TaskFactory interface
      */
