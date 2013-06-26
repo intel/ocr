@@ -631,14 +631,14 @@ static inline void taskSchedule( ocrGuid_t taskGuid ) {
     // Setting up the context 
     ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
     ocrPolicyDomain_t * pd = getCurrentPD();
-    ocrGuid_t workerGuid = pd->sourceObj;
+    ocrGuid_t workerGuid = ctx->sourceObj;
     ocrWorker_t * worker = NULL;
     deguidify(pd, workerGuid, (u64*)&worker, NULL);
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) worker;
-    contextTake->sourceId = hcWorker->id;
-    contextTake->destPD = pd->guid;
-    contextTake->destObj = NULL_GUID;
-    contextTake->type = PD_MSG_EDT_READY;
+    ctx->sourceId = hcWorker->id;
+    ctx->destPD = pd->guid;
+    ctx->destObj = NULL_GUID;
+    ctx->type = PD_MSG_EDT_READY;
     // give the edt to the policy domain
     pd->giveEdt(pd, 1, &taskGuid, ctx);
 }
