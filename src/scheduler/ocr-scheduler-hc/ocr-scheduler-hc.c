@@ -55,17 +55,17 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(ocrParamList_t *perType) {
     return base;
 }
 
-ocrWorkpile_t * hc_scheduler_pop_mapping_one_to_one (ocrScheduler_t* base, ocrWorker_t* w ) {
+inline ocrWorkpile_t * pop_mapping_one_to_one (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler ];
 }
 
-ocrWorkpile_t * hc_scheduler_push_mapping_one_to_one (ocrScheduler_t* base, ocrWorker_t* w ) {
+inline ocrWorkpile_t * push_mapping_one_to_one (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     return derived->pools[get_worker_id(w) % derived->n_workers_per_scheduler];
 }
 
-ocrWorkpileIterator_t* hc_scheduler_steal_mapping_one_to_all_but_self (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpileIterator_t* steal_mapping_one_to_all_but_self (ocrScheduler_t* base, ocrWorker_t* w ) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     ocrWorkpileIterator_t * steal_iterator = derived->steal_iterators[get_worker_id(w)];
     steal_iterator->reset(steal_iterator);
@@ -83,11 +83,11 @@ u8 ocrScheduler_t *self, ocrCost_t *cost, u32 *count,
     deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
     // First try to pop
     // ocrWorkpile_t * wp_to_pop = self->pop_mapping(self, w);
-    ocrWorkpile_t * wp_to_pop = hc_scheduler_pop_mapping_one_to_one(self, w);
+    ocrWorkpile_t * wp_to_pop = pop_mapping_one_to_one(self, w);
     ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
     if ( NULL_GUID == popped ) {
         // If popping failed, try to steal
-        ocrWorkpileIterator_t* it = base->steal_mapping(base, w);
+        ocrWorkpileIterator_t* it = steal_mapping_one_to_all_but_self(base, w);
         while ( it->hasNext(it) && (NULL_GUID == popped)) {
             ocrWorkpile_t * next = it->next(it);
             popped = next->fctPtrs->steal(next);
@@ -102,8 +102,8 @@ void hc_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t tid ) {
     ocrWorker_t* w = NULL;
     deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
-    ocrWorkpile_t * wp_to_push = base->push_mapping(base, w);
-    wp_to_push->fctPtrs->push(wp_to_push,tid);
+    ocrWorkpile_t * wp_to_push = push_mapping_one_to_one(base, w);
+    wp_to_push->push(wp_to_push,tid);
 }
 
 /**!
@@ -154,8 +154,8 @@ ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *
     base->fctPtrs->pop_mapping = hc_scheduler_pop_mapping_one_to_one;
     base->fctPtrs->push_mapping = hc_scheduler_push_mapping_one_to_one;
     base->fctPtrs->steal_mapping = hc_scheduler_steal_mapping_one_to_all_but_self;
-    base->fctPtrs->take = hc_scheduler_take;
-    base->fctPtrs->give = hc_scheduler_give;
+    base->fctPtrs->takeEdt = hc_scheduler_take;
+    base->fctPtrs->giveEdt = hc_scheduler_give;
     //TODO END
     paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
     derived->worker_id_begin = mapper->worker_id_begin;
@@ -170,7 +170,7 @@ ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *
 /* OCR-HC-PLACED SCHEDULER                            */
 /******************************************************/
 
-ocrWorkpileIterator_t* hc_scheduler_steal_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
+ocrWorkpileIterator_t* steal_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
     assert ( 0 && "We should not ask for a steal mapping from this scheduler");
     return NULL;
 }
@@ -207,8 +207,8 @@ void hc_placed_scheduler_give (ocrScheduler_t* base, ocrGuid_t wid, ocrGuid_t ti
     deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
 
     // TODO sagnak calculate which 'place' to push
-    ocrWorkpile_t * wp_to_push = base->push_mapping(base, w);
-    wp_to_push->fctPtrs->push(wp_to_push,tid);
+    ocrWorkpile_t * wp_to_push = push_mapping_one_to_one(base, w);
+    wp_to_push->push(wp_to_push,tid);
 }
 
 ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
@@ -223,8 +223,8 @@ ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, ocrParamLi
     base->fctPtrs->pop_mapping = hc_scheduler_pop_mapping_one_to_one;
     base->fctPtrs->push_mapping = hc_scheduler_push_mapping_one_to_one;
     base->fctPtrs->steal_mapping = hc_scheduler_steal_mapping_assert;
-    base->fctPtrs->take = hc_placed_scheduler_take;
-    base->fctPtrs->give = hc_placed_scheduler_give;
+    base->fctPtrs->takeEdt = hc_placed_scheduler_take;
+    base->fctPtrs->giveEdt = hc_placed_scheduler_give;
     //TODO END
 
     paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;

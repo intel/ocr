@@ -64,7 +64,7 @@ typedef struct {
     ocr_model_t * workpiles;
     ocrAllocatorModel_t * allocators;
     ocr_model_t * memories;
-    ocr_module_mapping_t * mappings;
+    ocrModuleMapping_t * mappings;
 } ocr_model_policy_t;
 
 typedef enum ocr_policy_model_kind_enum {
@@ -92,6 +92,6 @@ extern ocrWorker_t* master_worker;
 ocr_model_t* newModel ( int kind, int nInstances, void * perTypeConfig, void ** perInstanceConfig );
 
 // Helper function to build ocr module mapping
-ocr_module_mapping_t build_ocr_module_mapping(ocr_mapping_kind kind, ocrMappableKind from, ocrMappableKind to);
+ocrModuleMapping_t build_ocr_module_mapping(ocrMappingKind kind, ocrMappableKind from, ocrMappableKind to);
 
 #endif /* OCR_RUNTIME_MODEL_H_ */

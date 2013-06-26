@@ -40,6 +40,8 @@
 #include "ocr-config.h"
 #include "debug.h"
 
+#include "ocr-comp-platform.h"
+
 #include <string.h>
 #include <stdlib.h>
 
