@@ -95,13 +95,6 @@ void hc_setCurrentEDT (ocrWorker_t * base, ocrGuid_t curr_edt_guid) {
     hcWorker->currentEDT_guid = curr_edt_guid;
 }
 
-ocrGuid_t getCurrentEDT() {
-    ocrGuid_t wGuid = ocr_get_current_worker_guid();
-    ocrWorker_t *worker = NULL;
-    deguidify(getCurrentPD(), wGuid, (u64*)&worker, NULL);
-    return worker->fctPtrs->getCurrentEDT(worker);
-}
-
 /**
  * The computation worker routine that asks work to the scheduler
  */
