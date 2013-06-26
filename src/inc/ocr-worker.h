@@ -123,9 +123,6 @@ typedef struct _ocrWorkerFactory_t {
  *  \return identifier for this Worker
  */
 int get_worker_id (ocrWorker_t * worker);
-/*! \brief Getter for worker id member field
- */
-ocrGuid_t get_worker_guid(ocrWorker_t * worker);
 
 /*! \brief Getter for the scheduler, where this Worker works on
  *  \return Scheduler member field for Worker, the one this Worker works on

@@ -36,11 +36,6 @@
 #include "hc.h"
 #include "ocr-guid.h"
 
-/******************************************************/
-/* OCR-WORKER                                         */
-/******************************************************/
-
-ocrScheduler_t * get_worker_scheduler(ocrWorker_t * worker) { return worker->scheduler; }
 
 /******************************************************/
 /* OCR-HC WORKER                                      */
@@ -58,6 +53,12 @@ ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
     ocrWorkerFactory_t* base = (ocrWorkerFactory_t*) derived;
     base->instantiate = newWorkerHc;
     base->destruct =  destructWorkerFactoryHc;
+    base->workerFcts.destruct = destructWorkerHc;
+    base->workerFcts.start = hc_start_worker;
+    base->workerFcts.stop = hc_stop_worker;
+    base->workerFcts.isRunning = hc_is_running_worker;
+    base->workerFcts.getCurrentEDT = hc_getCurrentEDT;
+    base->workerFcts.setCurrentEDT = hc_setCurrentEDT;
     return base;
 }
 
@@ -100,15 +101,6 @@ ocrGuid_t getCurrentEDT() {
     return worker->fctPtrs->getCurrentEDT(worker);
 }
 
-void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocrMappableKind kind,
-                                           u64 nb_instances, void ** ptr_instances) {
-    // Checking mapping conforms to what we're expecting in this implementation
-    assert(kind == OCR_SCHEDULER);
-    assert(nb_instances == 1);
-    ocrWorker_t * worker = (ocrWorker_t *) self_module;
-    worker->scheduler = ((ocrScheduler_t **) ptr_instances)[0];
-}
-
 /**
  * The computation worker routine that asks work to the scheduler
  */
@@ -124,54 +116,44 @@ ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrParamList_t * perInst
     worker->currentEDT_guid = NULL_GUID;
 
     ocrWorker_t * base = (ocrWorker_t *) worker;
-    ocrMappable_t* module_base = (ocrMappable_t*) base;
-    module_base->mapFct = hc_ocr_module_map_scheduler_to_worker;
-
     base->guid = UNINITIALIZED_GUID;
     guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_WORKER);
-
-    base->scheduler = NULL;
     base->routine = worker_computation_routine;
     base->fctPtrs = &(factory->workerFcts);
-    //TODO these need to be moved to the factory schedulerFcts
-    base->fctPtrs->destruct = destructWorkerHc;
-    base->fctPtrs->start = hc_start_worker;
-    base->fctPtrs->stop = hc_stop_worker;
-    base->fctPtrs->isRunning = hc_is_running_worker;
-    base->fctPtrs->getCurrentEDT = hc_getCurrentEDT;
-    base->fctPtrs->setCurrentEDT = hc_setCurrentEDT;
-    //TODO END
     return base;
 }
 
-//TODO add this as function pointer or not ?
 // Convenient to have an id to index workers in pools
 int get_worker_id(ocrWorker_t * worker) {
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) worker;
     return hcWorker->id;
 }
 
-ocrGuid_t get_worker_guid(ocrWorker_t * worker) {
-    return worker->guid;
-}
-
-/******************************************************/
-/* OCR-HC Task Factory                                */
-/******************************************************/
-
-//TODO shall this be in namespace ocr-hc ?
 void * worker_computation_routine(void * arg) {
     ocrWorker_t * worker = (ocrWorker_t *) arg;
-    /* associate current thread with the worker */
+    // associate current thread with the worker
     associate_comp_platform_and_worker(worker);
-    ocrGuid_t workerGuid = get_worker_guid(worker);
-    ocrScheduler_t * scheduler = get_worker_scheduler(worker);
+    ocrGuid_t workerGuid = worker->guid;
+    //TODO assume someone did set that beforehand or shall we fetch it from mappable or something ?
+    ocrPolicyDomain_t * pd = getCurrentPD();
+    // Setting up this worker context to takeEdts
+    // This assumes workers are not relocatable
+    ocrPolicyCtxFactory_t * ctxFactory = pd->contextFactory;
+    ocrPolicyCtx_t * contextTake = ctxFactory->instantiate(ctxFactory);
+    contextTake->sourcePD = pd->guid;
+    contextTake->sourceObj = workerGuid;
+    contextTake->sourceId = get_worker_id(worker);
+    contextTake->destPD = pd->guid;
+    contextTake->destObj = NULL_GUID;
+    contextTake->type = PD_MSG_EDT_TAKE;
     log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(worker));
+    // Entering the worker loop
     while(worker->fctPtrs->isRunning(worker)) {
-        ocrGuid_t taskGuid = scheduler->take(scheduler, workerGuid);
+        ocrGuid_t taskGuid;
+        pd->takeEdt(pd, NULL, NULL, &taskGuid, contextTake);
         if (taskGuid != NULL_GUID) {
             ocrTask_t* curr_task = NULL;
-            deguidify(getCurrentPD(), taskGuid, (u64*)&(curr_task), NULL);
+            deguidify(pd, taskGuid, (u64*)&(curr_task), NULL);
             worker->fctPtrs->setCurrentEDT(worker,taskGuid);
             curr_task->fctPtrs->execute(curr_task);
             worker->fctPtrs->setCurrentEDT(worker, NULL_GUID);
