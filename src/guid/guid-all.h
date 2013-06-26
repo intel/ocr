@@ -29,13 +29,28 @@
 
 */
 
+#ifndef __GUID_ALL_H__
+#define __GUID_ALL_H__
+
 #include "ocr-guid.h"
-#include "ocr-policy-domain.h"
+#include "ocr-utils.h"
+#include "ptr/ptr.h"
 
-inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * guidRes, ocrGuidKind kind) {
-  return pd->getGuid(pd, guidRes, ptr, kind);
+typedef enum _guidType_t {
+    guidPtr_id
+} guidType_t;
+
+//TODO we'd need to follow the factory pattern here to be consistent with other modules
+ocrGuidProvider_t* newGuidProvider(guidType_t type, ocrParamList_t *perType) {
+    switch(type) {
+    case guidPtr_id:
+        return newGuidProviderPtr();
+    default:
+        ASSERT(0);
+    }
+    return NULL;
 }
 
-inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes, ocrGuidKind* kindRes) {
-  return pd->getInfoForGuid(pd, guid, ptrRes, kindRes);
-}
+
+
+#endif /* __GUID_ALL_H__ */
