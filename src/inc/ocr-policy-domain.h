@@ -394,8 +394,6 @@ typedef struct _ocrPolicyDomain_t {
 //                                 u64 computeCount,
 //                                 u64 nb_scheduler);
 
-// ocrPolicyDomain_t* get_current_policy_domain ();
-
 // ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
 // ocrGuid_t policy_domain_extract_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
 

@@ -129,17 +129,6 @@ void ocr_policy_domain_destruct(ocrPolicyDomain_t * policy) {
     free(policy);
 }
 
-ocrPolicyDomain_t* get_current_policy_domain () {
-    ocrGuid_t worker_guid = getCurrentWorkerContext()->sourceObj;
-    ocrWorker_t * worker = NULL;
-    deguidify(getCurrentPD(), worker_guid, (u64*)&worker, NULL);
-
-    ocrScheduler_t * scheduler = get_worker_scheduler(worker);
-    ocrPolicyDomain_t* policy_domain = scheduler -> domain;
-
-    return policy_domain;
-}
-
 ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
     assert(0 && "postponed policy handIn implementation");
     return NULL_GUID;
