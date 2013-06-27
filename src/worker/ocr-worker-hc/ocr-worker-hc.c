@@ -106,7 +106,7 @@ void * worker_computation_routine(void * arg);
 ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
     ocrWorkerHc_t * worker = checkedMalloc(worker, sizeof(ocrWorkerHc_t));
     worker->run = false;
-    worker->id = ((paramListWorkerHcInst_t*)perInstance)->worker_id;
+    worker->id = ((paramListWorkerHcInst_t*)perInstance)->workerId;
     worker->currentEDT_guid = NULL_GUID;
 
     ocrWorker_t * base = (ocrWorker_t *) worker;
