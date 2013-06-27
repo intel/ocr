@@ -30,7 +30,7 @@ include api/Makefile.inc
 include comp-platform/Makefile.inc
 include comp-target/Makefile.inc
 include datablock/Makefile.inc
-#include driver/Makefile.inc
+include driver/Makefile.inc
 include edt/Makefile.inc
 include guid/Makefile.inc
 include machine-description/Makefile.inc
