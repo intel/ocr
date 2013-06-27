@@ -169,36 +169,6 @@ typedef struct _ocrPolicyDomain_t {
                                                  * objective driven scheduling */
 
     /**
-     * @brief Create a policy domain
-     *
-     * Allocates the required space for the policy domain
-     * based on the counts passed as arguments. The 'schedulers',
-     * 'workers', 'computes', 'workpiles', 'allocators' and 'memories'
-     * data-structures must then be properly filled
-     *
-     * @param self                This policy
-     * @param configuration     An optional configuration
-     * @param schedulerCount    The number of schedulers
-     * @param workerCount       The number of workers
-     * @param computeCount      The number of compute targets
-     * @param workpileCount     The number of workpiles
-     * @param allocatorCount    The number of allocators
-     * @param memoryCount       The number of memory targets
-     * @param taskFactory       The factory to use to generate EDTs
-     * @param dbFactory         The factory to use to generate DBs
-     * @param eventFactory      The factory to use to generate events
-     * @param contextFactory    The factory to use to generate context
-     * @param guidProvider      The provider of GUIDs for this policy domain
-     * @param costFunction      The cost function used by this policy domain
-     */
-    void (*create)(struct _ocrPolicyDomain_t *self, void *configuration,
-                   u64 schedulerCount, u64 workerCount, u64 computeCount,
-                   u64 workpileCount, u64 allocatorCount, u64 memoryCount,
-                   ocrTaskFactory_t *taskFactory, ocrDataBlockFactory_t *dbFactory,
-                   ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t
-                   *contextFactory, ocrCost_t *costFunction);
-
-    /**
      * @brief Destroys (and frees any associated memory) this
      * policy domain
      *
@@ -371,30 +341,44 @@ typedef struct _ocrPolicyDomain_t {
 
 } ocrPolicyDomain_t;
 
-// /**!
-//  * Default destructor for ocr policy domain
-//  */
-// void ocr_policy_domain_destruct(ocrPolicyDomain_t * policy);
+/****************************************************/
+/* OCR POLICY DOMAIN FACTORY                        */
+/****************************************************/
 
-// /******************************************************/
-// /* OCR POLICY DOMAIN KINDS AND CONSTRUCTORS           */
-// /******************************************************/
+typedef struct _ocrPolicyDomainFactory_t {
+    ocrMappable_t module;
+    /**
+     * @brief Create a policy domain
+     *
+     * Allocates the required space for the policy domain
+     * based on the counts passed as arguments. The 'schedulers',
+     * 'workers', 'computes', 'workpiles', 'allocators' and 'memories'
+     * data-structures must then be properly filled
+     *
+     * @param self                This policy
+     * @param configuration     An optional configuration
+     * @param schedulerCount    The number of schedulers
+     * @param workerCount       The number of workers
+     * @param computeCount      The number of compute targets
+     * @param workpileCount     The number of workpiles
+     * @param allocatorCount    The number of allocators
+     * @param memoryCount       The number of memory targets
+     * @param taskFactory       The factory to use to generate EDTs
+     * @param dbFactory         The factory to use to generate DBs
+     * @param eventFactory      The factory to use to generate events
+     * @param contextFactory    The factory to use to generate context
+     * @param guidProvider      The provider of GUIDs for this policy domain
+     * @param costFunction      The cost function used by this policy domain
+     */
+    ocrPolicyDomain_t * (*instantiate) (struct _ocrPolicyDomain_t *self, void *configuration,
+                   u64 schedulerCount, u64 workerCount, u64 computeCount,
+                   u64 workpileCount, u64 allocatorCount, u64 memoryCount,
+                   ocrTaskFactory_t *taskFactory, ocrDataBlockFactory_t *dbFactory,
+                   ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t
+                   *contextFactory, ocrCost_t *costFunction);
 
-// typedef enum ocr_policy_domain_kind_enum {
-//     OCR_POLICY_HC = 1,
-//     OCR_POLICY_XE = 2,
-//     OCR_POLICY_CE = 3,
-//     OCR_POLICY_MASTERED_CE = 4,
-//     OCR_PLACE_POLICY = 5,
-//     OCR_LEAF_PLACE_POLICY = 6,
-//     OCR_MASTERED_LEAF_PLACE_POLICY = 7
-// } ocr_policy_domain_kind;
-
-// ocrPolicyDomain_t * newPolicyDomain(ocr_policy_domain_kind policyType,
-//                                 u64 workpileCount,
-//                                 u64 workerCount,
-//                                 u64 computeCount,
-//                                 u64 nb_scheduler);
+    void (*destruct)(struct _ocrPolicyDomainFactory_t * factory);
+} ocrPolicyDomainFactory_t;
 
 // ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
 // ocrGuid_t policy_domain_extract_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
