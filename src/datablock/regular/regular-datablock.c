@@ -244,7 +244,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrGuid_t al
 
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Creating a datablock of size %ld @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n",
+        PRINTF("VERB: Creating a datablock of size %"PRIu64" @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n",
                size, (u64)result->base.ptr, result->base.guid);
     }
 
