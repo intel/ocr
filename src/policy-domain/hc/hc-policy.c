@@ -218,6 +218,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     base->neighbors = NULL;
     
     //TODO populated by ini file factories. Need setters or something ?
+    base->guidProvider = NULL;
     base->schedulers = NULL;
     base->workers = NULL;
     base->computes = NULL;
@@ -226,6 +227,9 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     base->memories = NULL;
 
     // TODO Once we have a handle on a guidProvider get one for the PD
+    // Shall the provider be part of the constructor signature or is
+    // set later. In that case we need to move this code somewhere else
+    ASSERT(base->guidProvider != NULL);
     base->guid = UNINITIALIZED_GUID;
     guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_POLICY);
     return base;
