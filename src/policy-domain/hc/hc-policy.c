@@ -155,6 +155,21 @@ u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
     return 0;
 }
 
+void hcInform(ocrPolicyDomain_t *self, ocrGuid_t obj, const ocrPolicyCtx_t *context) {
+    //TODO not yet implemented
+    ASSERT(false);
+}
+
+u8 hcGetGuid(ocrPolicyDomain_t *self, ocrGuid_t *guid, u64 val, ocrGuidKind type) {
+    self->guidProvider->fctPtrs->getGuid(self->guidProvider, guid, val, type);
+    return 0;
+}
+
+u8 hcGetInfoForGuid(ocrPolicyDomain_t *self, ocrGuid_t guid, u64* val, ocrGuidKind* type) {
+    self->guidProvider->fctPtrs->getVal(self->guidProvider, guid, val, type);
+    return 0;
+}
+
 ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * configuration,
         u64 schedulerCount, u64 workerCount, u64 computeCount,
         u64 workpileCount, u64 allocatorCount, u64 memoryCount,
@@ -188,9 +203,9 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     base->finish = hcPolicyDomainFinish;
     base->allocateDb = NULL;
     base->createEdt = hcCreateEdt;
-    base->inform = NULL;
-    base->getGuid = NULL;
-    base->getInfoForGuid = NULL;
+    base->inform = hcInform;
+    base->getGuid = hcGetGuid;
+    base->getInfoForGuid = hcGetInfoForGuid;
     base->takeEdt = NULL;
     base->takeDb = NULL;
     base->giveEdt = NULL;
