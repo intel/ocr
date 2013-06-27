@@ -31,6 +31,7 @@
 #include "ocr-macros.h"
 #include "shared-mem-target.h"
 #include "ocr-mem-target.h"
+#include "ocr-mem-platform.h"
 #include "ocr-mappable.h"
 #include "debug.h"
 
@@ -46,7 +47,7 @@ void sharedMap(ocrMappable_t* self, ocrMappableKind kind, u64 instanceCount,
     ocrMemTarget_t *me = (ocrMemTarget_t*)self;
     me->memories = (ocrMemPlatform_t**)checkedMalloc(me->memories,
                                                      sizeof(ocrMemPlatform_t*));
-    me->memories[0] = instances[0];
+    me->memories[0] = (ocrMemPlatform_t*)(instances[0]);
     me->memoryCount = instanceCount;
 }
 
