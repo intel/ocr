@@ -148,15 +148,15 @@ typedef struct _ocrGuidProvider_t {
 /* OCR GUID PROVIDER FACTORY                        */
 /****************************************************/
 
-typedef struct _ocrGuidProviderFact_t {
+typedef struct _ocrGuidProviderFactory_t {
     ocrMappable_t base;
 
-    ocrGuidProvider_t* (*instantiate)(struct _ocrGuidProviderFact_t *factory, ocrParamList_t* perInstance);
+    ocrGuidProvider_t* (*instantiate)(struct _ocrGuidProviderFactory_t *factory, ocrParamList_t* perInstance);
 
-    void (*destruct)(struct _ocrGuidProviderFact_t *factory);
+    void (*destruct)(struct _ocrGuidProviderFactory_t *factory);
 
     ocrGuidProviderFcts_t providerFcts;
-} ocrGuidProviderFact_t;
+} ocrGuidProviderFactory_t;
 
 #define UNINITIALIZED_GUID ((ocrGuid_t)-2)
 

@@ -376,8 +376,7 @@ typedef struct _ocrPolicyDomainFactory_t {
                    u64 schedulerCount, u64 workerCount, u64 computeCount,
                    u64 workpileCount, u64 allocatorCount, u64 memoryCount,
                    ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory, ocrDataBlockFactory_t *dbFactory,
-                   ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t
-                   *contextFactory, ocrCost_t *costFunction);
+                   ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t *contextFactory, ocrCost_t *costFunction);
 
     void (*destruct)(struct _ocrPolicyDomainFactory_t * factory);
 } ocrPolicyDomainFactory_t;
