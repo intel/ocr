@@ -40,21 +40,6 @@
 /* OCR-HC SCHEDULER                                   */
 /******************************************************/
 
-// Fwd declaration
-ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance);
-
-static void destructSchedulerFactoryHc(ocrSchedulerFactory_t * factory) {
-    free(factory);
-}
-
-ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(ocrParamList_t *perType) {
-    ocrSchedulerFactoryHc_t* derived = (ocrSchedulerFactoryHc_t*) checkedMalloc(derived, sizeof(ocrSchedulerFactoryHc_t));
-    ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
-    base->instantiate = newSchedulerHc;
-    base->destruct =  destructSchedulerFactoryHc;
-    return base;
-}
-
 static inline ocrWorkpile_t * pop_mapping_one_to_one (ocrScheduler_t* base, u64 workerId ) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
     return derived->pools[workerId % derived->n_workers_per_scheduler ];
@@ -105,7 +90,7 @@ static u8 hcSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *c
     return 0;
 }
 
-u8 hc_scheduler_give (ocrScheduler_t* base, u32 count, ocrGuid_t* edts, struct _ocrPolicyCtx_t *context ) {
+u8 hcSchedulerGive (ocrScheduler_t* base, u32 count, ocrGuid_t* edts, struct _ocrPolicyCtx_t *context ) {
     // Source must be a worker guid
     u64 workerId = context->sourceId;
     ocrWorkpile_t * wp_to_push = push_mapping_one_to_one(base, workerId);
@@ -159,15 +144,25 @@ ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *
     ocrMappable_t * module_base = (ocrMappable_t *) base;
     module_base->mapFct = hc_ocr_module_map_workpiles_to_schedulers;
     base->fctPtrs = &(factory->schedulerFcts);
-    //TODO these need to be moved to the factory schedulerFcts
-    base->fctPtrs->destruct = destructSchedulerHc;
-    base->fctPtrs->takeEdt = hcSchedulerTake;
-    base->fctPtrs->giveEdt = hc_scheduler_give;
-    //TODO END
     paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
     derived->worker_id_begin = mapper->worker_id_begin;
     derived->worker_id_end = mapper->worker_id_end;
     derived->n_workers_per_scheduler = 1 + derived->worker_id_end - derived->worker_id_begin;
 
+    return base;
+}
+
+static void destructSchedulerFactoryHc(ocrSchedulerFactory_t * factory) {
+    free(factory);
+}
+
+ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(ocrParamList_t *perType) {
+    ocrSchedulerFactoryHc_t* derived = (ocrSchedulerFactoryHc_t*) checkedMalloc(derived, sizeof(ocrSchedulerFactoryHc_t));
+    ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
+    base->instantiate = newSchedulerHc;
+    base->destruct = destructSchedulerFactoryHc;
+    base->schedulerFcts.destruct = destructSchedulerHc;
+    base->schedulerFcts.takeEdt = hcSchedulerTake;
+    base->schedulerFcts.giveEdt = hcSchedulerGive;
     return base;
 }
