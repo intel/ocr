@@ -116,24 +116,15 @@ void * worker_computation_routine(void * arg) {
     //TODO arg needs to be the worker as well as the PD
     // Need to pass down a data-structure
     ocrWorker_t * worker = (ocrWorker_t *) arg;
-    ocrPolicyDomain_t * policy = NULL; //TODO
+    ocrPolicyDomain_t * pd = NULL; //TODO
+    ASSERT(false && "Policy domain not yet set");
     // associate current thread with the worker
-    associate_comp_platform_and_worker(policy, worker);
-
-    ocrGuid_t workerGuid = worker->guid;
-    //TODO assume someone did set that beforehand or shall we fetch it from mappable or something ?
-    ocrPolicyDomain_t * pd = getCurrentPD();
+    associate_comp_platform_and_worker(pd, worker);
     // Setting up this worker context to takeEdts
     // This assumes workers are not relocatable
-    ocrPolicyCtxFactory_t * ctxFactory = pd->contextFactory;
-    ocrPolicyCtx_t * contextTake = ctxFactory->instantiate(ctxFactory);
-    contextTake->sourcePD = pd->guid;
-    contextTake->sourceObj = workerGuid;
-    contextTake->sourceId = get_worker_id(worker);
-    contextTake->destPD = pd->guid;
-    contextTake->destObj = NULL_GUID;
-    contextTake->type = PD_MSG_EDT_TAKE;
     log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(worker));
+    ocrPolicyCtx_t * contextTake = pd->contextFactory->instantiate(pd->contextFactory);
+    contextTake->type = PD_MSG_EDT_TAKE;
     // Entering the worker loop
     while(worker->fctPtrs->isRunning(worker)) {
         ocrGuid_t taskGuid;

@@ -63,6 +63,9 @@ typedef enum {
     PD_MSG_GUID_REL    = 8, /**< Release a GUID */
 } ocrPolicyMsgType_t;
 
+
+struct _ocrPolicyDomain_t;
+
 /**
  * @brief Structure describing a "message" that is used to communicate between
  * policy domains in an asynchronous manner
@@ -85,6 +88,7 @@ typedef enum {
  */
 typedef struct _ocrPolicyCtx_t {
     ocrGuid_t sourcePD;      /**< Source policy domain */
+    struct _ocrPolicyDomain_t * PD; /**< current policy domain */
     ocrGuid_t sourceObj;     /**< Source object (worker for example) in the source PD */
     u64       sourceId;      /**< Internal ID to the source PD */
     ocrGuid_t destPD;        /**< Destination policy domain (after all eventual hops) */
