@@ -355,6 +355,29 @@ typedef struct _ocrPolicyDomain_t {
 
 } ocrPolicyDomain_t;
 
+#if 0
+ocrPolicyDomain_t bootstrapPD;
+
+u8 tempGetGuid(struct _ocrPolicyDomain_t * pd, ocrGuid_t *guid, u64 val,
+                  ocrGuidKind type, ocrPolicyCtx_t *context) {
+    *guid = (ocrGuid_t)0;
+    return 0;
+}
+
+ocrPolicyDomain_t *tempPD(void)
+{
+    static int first_time = 1;
+
+    if (first_time) {
+        first_time = 0;
+//        memset (&bootstrapPD, 0, sizeof(ocrPolicyDomain_t));
+        bootstrapPD.getGuid = &tempGetGuid;
+    }
+
+    return &bootstrapPD;
+}
+#endif
+
 /****************************************************/
 /* OCR POLICY DOMAIN FACTORY                        */
 /****************************************************/

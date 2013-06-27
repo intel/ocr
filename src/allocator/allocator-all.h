@@ -38,10 +38,15 @@
 #include "ocr-utils.h"
 #include "ocr-debug.h"
 
-// TODO: Bala will modify this
 typedef enum _allocatorType_t {
     allocatorTlsf_id,
+    allocatorMax_id
 } allocatorType_t;
+
+const char * allocator_types[] = {
+    "tlsf",
+    NULL
+};
 
 // TLSF allocator
 #include "allocator/tlsf/tlsf-allocator.h"

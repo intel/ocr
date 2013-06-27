@@ -2,17 +2,21 @@
 #include <string.h>
 #include <iniparser.h>
 
-#include <ocr-allocator.h>
-#include <ocr-comp-platform.h>
 #include <ocr-mem-platform.h>
 #include <ocr-mem-target.h>
+#include <ocr-allocator.h>
+#include <ocr-comp-platform.h>
+#include <ocr-comp-target.h>
+#include <ocr-worker.h>
+#include <ocr-workpile.h>
+#include <ocr-scheduler.h>
+#include <ocr-policy-domain.h>
 #include <ocr-datablock.h>
 #include <ocr-event.h>
 
-#ifndef ASSERT
-#define ASSERT(x) if (0) x
-#endif
-
+#include <mem-platform/mem-platform-all.h>
+#include <comp-platform/comp-platform-all.h>
+#include <mem-target/mem-target-all.h>
 #include <allocator/allocator-all.h>
 
 #define INI_GET_INT(KEY, VAR, DEF) VAR = (int) iniparser_getint(dict, KEY, DEF); if (VAR==DEF){ printf("Key %s not found or invalid!\n", KEY); }
@@ -26,31 +30,38 @@ typedef enum {
     memplatform_type,
     memtarget_type,
     allocator_type,
+    complatform_type,
 } type_enum;
 
 const char *type_str[] = {
     "MemPlatformType",
     "MemTargetType",
     "AllocatorType",
+    "CompPlatformType",
 };
 
 int type_counts[sizeof(type_str)/sizeof(const char *)];
 ocrParamList_t **type_params[sizeof(type_str)/sizeof(const char *)]; 
+char **factory_names[sizeof(type_str)/sizeof(const char *)];	// ~9 different kinds (memtarget, comptarget, etc.); each with diff names (tlsf, malloc, etc.); each pointing to a char*
+void **all_factories[sizeof(type_str)/sizeof(const char *)];
 
 typedef enum {
     memplatform_inst,
     memtarget_inst,
     allocator_inst,
+    complatform_inst,
 } inst_enum;
 
 const char *inst_str[] = {
     "MemPlatformInst",
     "MemTargetInst",
     "AllocatorInst",
+    "CompPlatformInst",
 };
 
 int inst_counts[sizeof(inst_str)/sizeof(const char *)];
 ocrParamList_t **inst_params[sizeof(inst_str)/sizeof(const char *)]; 
+ocrMappable_t **all_instances[sizeof(inst_str)/sizeof(const char *)];
 
 typedef struct {
     int from;
@@ -66,7 +77,7 @@ dep_t deps[] = {
 };
 
 // TODO: expand to parse comma separated values & ranges iterating the below thru strtok with ,
-// TODO: stretch goal, extend this to expressions
+// TODO: stretch goal, extend this to expressions: surely you're joking, Mr. Feynman
 int read_range(dictionary *dict, char *sec, char *field, int *low, int *high)
 {
     char key[64];
@@ -87,14 +98,13 @@ int read_range(dictionary *dict, char *sec, char *field, int *low, int *high)
     return count;
 }
 
-int populate_type(ocrParamList_t **type_param, int index, int type_index, int type_count, dictionary *dict, char *secname)
+char* populate_type(ocrParamList_t **type_param, int index, int type_index, int type_count, dictionary *dict, char *secname)
 {
     int i;
     char *typestr;
     char key[64];
 
     // TODO: populate type-specific fields
-    printf("Populating %s count = %d; %d/%d\n", secname, index, type_index, type_count);
     switch (index) {
     case 0:
         ALLOC_PARAM_LIST(type_param[type_index], paramListMemPlatformFact_t);
@@ -106,61 +116,162 @@ int populate_type(ocrParamList_t **type_param, int index, int type_index, int ty
         ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
         break;
     case 3:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListCompPlatformFact_t);
         break;
     case 4:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListCompTargetFact_t);
         break;
     case 5:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListWorkerFact_t);
         break;
     case 6:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListWorkpileFact_t);
         break;
     case 7:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListSchedulerFact_t);
         break;
     case 8:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+//        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t); TODO: policydomain
         break;
     default:
         printf("Error: %d index unexpected\n", type_index);
         break;
     }
 
-    snprintf(key, 64, "%s:%s", secname, "name");
-    INI_GET_STR (key, typestr, "");
-    type_param[type_index]->misc = strdup(typestr);
-
-    return 0; 
+     snprintf(key, 64, "%s:%s", secname, "name");
+     INI_GET_STR (key, typestr, "");
+    // TODO: change this to secname:misc type_param[type_index]->misc = strdup(typestr);
+    return strdup(typestr);
 }
 
-int populate_inst(ocrParamList_t **inst_param, int index, int inst_index, int inst_count, dictionary *dict, char *secname)
+ocrCompPlatformFactory_t *create_factory_compplatform(char *name, ocrParamList_t *paramlist)
+{
+    compPlatformType_t mytype = -1;
+    TO_ENUM (mytype, name, compPlatformType_t, compplatform_types, compPlatformMax_id);
+  
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a compplatform factory of type %d: %s\n", mytype, factory_names[3][mytype]); 
+        return newCompPlatformFactory(mytype, paramlist);
+    }
+}
+
+ocrMemPlatformFactory_t *create_factory_memplatform(char *name, ocrParamList_t *paramlist)
+{
+    memPlatformType_t mytype = -1;
+    TO_ENUM (mytype, name, memPlatformType_t, memplatform_types, memPlatformMax_id);
+  
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a memplatform factory of type %d: %s\n", mytype, factory_names[0][mytype]); 
+        return newMemPlatformFactory(mytype, paramlist);
+    }
+}
+
+ocrMemPlatformFactory_t *create_factory_memtarget(char *name, ocrParamList_t *paramlist)
+{
+    memTargetType_t mytype = -1;
+    TO_ENUM (mytype, name, memTargetType_t, memtarget_types, memTargetMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a memtarget factory of type %d: %s\n", mytype, factory_names[1][mytype]); 
+        return (ocrMemPlatformFactory_t *)newMemTargetFactory(mytype, paramlist);
+    }
+}
+
+ocrMemPlatformFactory_t *create_factory_allocator(char *name, ocrParamList_t *paramlist)
+{
+    allocatorType_t mytype = -1;
+    TO_ENUM (mytype, name, allocatorType_t, allocator_types, allocatorMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating an allocator factory of type %d: %s\n", mytype, factory_names[2][mytype]); 
+        return (ocrMemPlatformFactory_t *)newAllocatorFactory(mytype, paramlist);
+    }
+}
+
+void *create_factory (int index, char *factory_name, ocrParamList_t *paramlist)
+{
+    void *new_factory;
+
+    switch (index) {
+    case 0:
+        new_factory = (void *)create_factory_memplatform(factory_name, paramlist);
+        break;
+    case 1:
+        new_factory = (void *)create_factory_memtarget(factory_name, paramlist);
+        break;
+    case 2:
+        new_factory = (void *)create_factory_allocator(factory_name, paramlist);
+        break;
+    case 3:
+        new_factory = (void *)create_factory_compplatform(factory_name, paramlist);
+        break;
+    case 4:
+        break;
+    case 5:
+        break;
+    case 6:
+        break;
+    case 7:
+        break;
+    case 8:
+//        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t); TODO: policydomain
+        break;
+    default:
+        printf("Error: %d index unexpected\n", index);
+        break;
+    }
+}
+
+int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int index, int inst_index, int inst_count, dictionary *dict, char *secname)
 {
     int i, low, high, count, j;
     char *inststr;
     char key[64];
-
-    printf("Populating %s count = %d; %d/%d\n", secname, index, inst_index, inst_count);
+    void *factory;
 
     count = read_range(dict, secname, "id", &low, &high); 
 
-    //TODO: case specific initialization
+    snprintf(key, 64, "%s:%s", secname, "type");
+    INI_GET_STR (key, inststr, "");
+
+    for (i = 0; i < type_counts[index]; i++) {
+        if (factory_names[index][i] && (0 == strncmp(factory_names[index][i], inststr, strlen(factory_names[index][i])))) break;
+    }
+    if (factory_names[index][i] == NULL || strncmp(factory_names[index][i], inststr, strlen(factory_names[index][i]))) {
+        printf("Unknown type %s\n", inststr);
+        return 0;
+    }
+
+    // find factory based on i
+    factory = all_factories[index][i];
+
+    // Use the factory's instantiate() to create instance
+
     switch (index) {
     case 0:
-        for (j = low; j<=high; j++) 
+        for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformInst_t);
+            instance[j] = ((ocrMemPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created memplatform of type %s, index %d\n", inststr, j);
+        }
         break;
     case 1:
         for (j = low; j<=high; j++) {
             paramListMemTargetInst_t *t;
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
             t = (paramListMemTargetInst_t *)inst_param[j];
-           // t->memplatform_count = 0;
-            snprintf(key, 64, "%s:%s", secname, "mem_start");
-           // INI_GET_INT(key, t->start, -1);
-            snprintf(key, 64, "%s:%s", secname, "mem_size");
-           // INI_GET_INT(key, t->size, -1);
+            instance[j] = ((ocrMemTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created memtarget of type %s, index %d\n", inststr, j);
         }
         break;
     case 2:
@@ -168,9 +279,15 @@ int populate_inst(ocrParamList_t **inst_param, int index, int inst_index, int in
             paramListAllocatorInst_t *t;
             ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
             t = (paramListAllocatorInst_t *)inst_param[j];
-            snprintf(key, 64, "%s:%s", secname, "size");
-            INI_GET_INT(key, t->size, -1);
-            //t->memtarget_count = 0;
+            instance[j] = ((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created allocator of type %s, index %d\n", inststr, j);
+        }
+        break;
+    case 3:
+        for (j = low; j<=high; j++) {
+            ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
+            instance[j] = ((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created compplatform of type %s, index %d\n", inststr, j);
         }
         break;
     default:
@@ -187,7 +304,8 @@ int populate_inst(ocrParamList_t **inst_param, int index, int inst_index, int in
     for (j = low; j <= high; j++) {
         char found = 0;
         for (i = 0; i < type_counts[index]; i++) {
-            if (0 == strcmp(inst_params[index][j]->misc, type_params[index][i]->misc)) found = 1;
+            //if ((inst_params[index][j]->misc && type_params[index][i]->misc) && (0 == strcmp(inst_params[index][j]->misc, type_params[index][i]->misc))) found = 1;
+            if ((inst_params[index][j]->misc && factory_names[index][i]) && (0 == strcmp(inst_params[index][j]->misc, factory_names[index][i]))) found = 1;
         }
         if(found==0) {
             printf("Unknown type (%s) encountered!\n", inst_param[j]->misc);
@@ -198,37 +316,40 @@ int populate_inst(ocrParamList_t **inst_param, int index, int inst_index, int in
     return 0;
 }
 
-void add_dependence (int fromtype, ocrParamList_t *from, ocrParamList_t *to, int dependence_index, int dependence_count)
+void add_dependence (int fromtype, ocrMappable_t *frominstance, ocrParamList_t *fromparam, ocrMappable_t *toinstance, ocrParamList_t *toparam, int dependence_index, int dependence_count)
 {
     
     switch(fromtype) {
     case 0:
-        printf("Memplatform %s to %s\n", from->misc, to->misc);
+        printf("Unexpected: memplatform has no dependences! (incorrect dependence: %s to %s)\n", fromparam->misc, toparam->misc);
         break;
     case 1: {
-            paramListMemTargetInst_t *t = (paramListMemTargetInst_t *)from;
-            printf("Memtarget %s to %s\n", from->misc, to->misc);
-#if 0
-            if (t->memplatform_count == 0) {
-                t->memplatform_count = dependence_count;
-                t->memplatforms = (paramListMemPlatformInst_t *)malloc(sizeof(paramListMemPlatformInst_t *)*dependence_count);
+            paramListMemTargetInst_t *t = (paramListMemTargetInst_t *)fromparam;
+            ocrMemTarget_t *f = (ocrMemTarget_t *)frominstance;
+            printf("Memtarget %s to %s\n", fromparam->misc, toparam->misc);
+
+            if (f->memoryCount == 0) {
+                f->memoryCount = dependence_count;
+                f->memories = (ocrMemPlatform_t **)malloc(sizeof(ocrMemPlatform_t *) * dependence_count);
             }
-            t->memplatforms[dependence_index] = (paramListMemPlatformInst_t *)to;
-#endif
+            f->memories[dependence_index] = (ocrMemPlatform_t *)toinstance;
             break;
         }
     case 2: {
-            paramListAllocatorInst_t *t = (paramListAllocatorInst_t *)from;
-            printf("Allocator %s to %s\n", from->misc, to->misc);
-#if 0
-            if (t->memtarget_count == 0) {
-                t->memtarget_count = dependence_count;
-                t->memtargets = (paramListMemTargetInst_t *)malloc(sizeof(paramListMemTargetInst_t *)*dependence_count);
+            paramListAllocatorInst_t *t = (paramListAllocatorInst_t *)fromparam;
+            printf("Allocator %s to %s\n", fromparam->misc, toparam->misc);
+            ocrAllocator_t *f = (ocrAllocator_t *)frominstance;
+
+            if (f->memoryCount == 0) {
+                f->memoryCount = dependence_count;
+                f->memories = (ocrMemTarget_t **)malloc(sizeof(ocrMemTarget_t *) * dependence_count);
             }
-            t->memtargets[dependence_index] = (paramListMemTargetInst_t *)to;
-#endif
+            f->memories[dependence_index] = (ocrMemTarget_t *)toinstance;
             break;
         }
+    case 3:
+        printf("Unexpected: compplatform has no dependences! (incorrect dependence: %s to %s)\n", fromparam->misc, toparam->misc);
+        break;
     default:
         break;
     }
@@ -252,54 +373,12 @@ int build_deps (dictionary *dict, int A, int B, char *refstr)
                 for (k = l; k <= h; k++) {
                     // Connect A with B 
                     // printf("%s, id %d has dependence on %s, id %d\n", inst_str[A], j, inst_str[B], k);
-                    // TODO: populate the param that points to the ref
-                    add_dependence(A, inst_params[A][j], inst_params[B][k], k-l, h-l+1);
+                    add_dependence(A, all_instances[A][j], inst_params[A][j], all_instances[B][k], inst_params[B][k], k-l, h-l+1);
                 }
             }
         }
     }
     return 0;
-}
-
- 
-/* Utility functions to dump structs (for debug) */
-
-void dump_allocator_fact(paramListAllocatorFact_t *allocFact)
-{
-    if (allocFact == NULL) return;
-    printf("AllocFact: %s\n", allocFact->base.misc);
-}
-
-void dump_allocator_inst(paramListAllocatorInst_t *allocInst)
-{
-    int j;
-    if (allocInst == NULL) return;
-    printf("AllocInst: %s; %d\t", allocInst->base.misc, allocInst->size);
-    printf("\n");
-}
-
-void dump_memtarget_fact(paramListMemTargetFact_t *mtargetFact)
-{
-    if (mtargetFact == NULL) return;
-    printf ("MemtargetFact: %s\n", mtargetFact->base.misc);
-}
-
-void dump_memtarget_inst(paramListMemTargetInst_t *mtargetInst)
-{
-    if (mtargetInst == NULL) return;
-    printf ("MemtargetInst: %s\n", mtargetInst->base.misc);
-}
-
-void dump_memplatform_fact(paramListMemPlatformFact_t *mplatformFact)
-{
-    if (mplatformFact == NULL) return;
-    printf ("MemplatformFact: %s\n", mplatformFact->base.misc);
-}
-
-void dump_memplatform_inst(paramListMemPlatformInst_t *mplatformInst)
-{
-    if (mplatformInst == NULL) return;
-    printf ("MemplatformInst: %s\n", mplatformInst->base.misc);
 }
 
 /****************************************************************/
@@ -313,19 +392,17 @@ int main(int argc, char *argv[])
     char key[64];
     dictionary *dict = iniparser_load(argv[1]);
 
-//    printf("Sec %d\n", iniparser_getnsec(dict));
-//    for (i=0; i< iniparser_getnsec(dict); i++) printf("%s\n", iniparser_getsecname(dict, i));
-//    printf("Sec has %d entries\n", iniparser_getsecnkeys(dict, "allocator0"));
-
     total_types = sizeof(type_str)/sizeof(const char *);
 
     // INIT
     for (j = 0; j < total_types; j++) {
-        type_params[j] = NULL; type_counts[j] = 0;
+        type_params[j] = NULL; type_counts[j] = 0; factory_names[j] = NULL;
         inst_params[j] = NULL; inst_counts[j] = 0;
+        all_factories[j] = NULL; all_instances[j] = NULL;
     }
 
     // POPULATE TYPES
+    printf("========= Create factories ==========\n");
     for (i = 0; i < iniparser_getnsec(dict); i++)
         for (j = 0; j < total_types; j++)
             if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) type_counts[j]++;
@@ -334,11 +411,21 @@ int main(int argc, char *argv[])
         for (j = 0; j < total_types; j++) {
             if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) { 
                 if(type_counts[j] && type_params[j]==NULL) { 
-                    printf("Alloc %d types of %s\n", type_counts[j], type_str[j]); 
                     type_params[j] = (ocrParamList_t **)malloc(type_counts[j] * sizeof(ocrParamList_t *));
+                    factory_names[j] = (char **)malloc(type_counts[j] * sizeof(char *));
+                    all_factories[j] = (void **)malloc(type_counts[j] * sizeof(void *));
                     count = 0;
                 }
-                populate_type(type_params[j], j, count++, type_counts[j], dict, iniparser_getsecname(dict, i));
+		factory_names[j][count] = populate_type(type_params[j], j, count, type_counts[j], dict, iniparser_getsecname(dict, i));
+                // Create factories
+                all_factories[j][count] = create_factory(j, factory_names[j][count], type_params[j][count]);
+                if (all_factories[j][count] == NULL) {
+                    free(factory_names[j][count]);
+                    factory_names[j][count] = NULL;
+//                    if(type_params[j][count]->misc) free(type_params[j][count]->misc);
+//                    type_params[j][count]->misc = NULL;
+                }
+                count++;
             }
         }
     }
@@ -346,6 +433,7 @@ int main(int argc, char *argv[])
     printf("\n\n");
 
     // POPULATE INSTANCES
+    printf("========= Create instances ==========\n");
     for (i = 0; i < iniparser_getnsec(dict); i++)
         for (j = 0; j < total_types; j++)
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) { 
@@ -360,14 +448,10 @@ int main(int argc, char *argv[])
                 if(inst_counts[j] && inst_params[j] == NULL) { 
                     printf("Create %d instances of %s\n", inst_counts[j], inst_str[j]); 
                     inst_params[j] = (ocrParamList_t **)malloc(inst_counts[j] * sizeof(ocrParamList_t *));
+                    all_instances[j] = (ocrMappable_t **)malloc(inst_counts[j] * sizeof(ocrMappable_t *));
                     count = 0;
                 }
-                populate_inst(inst_params[j], j, count++, inst_counts[j], dict, iniparser_getsecname(dict, i));
-		// FIXME: Construct the instance
-		// 1. Based on the instance params & the corresponding instance type (converted from STR to enum), call the constructor
-		// 
-		// FIXME: Add the dependences
-		// 1. Do the equivalent of build_deps except work on the constructed instances rather than the inst_param
+                populate_inst(inst_params[j], all_instances[j], j, count++, inst_counts[j], dict, iniparser_getsecname(dict, i));
             }
         }
     }
@@ -375,25 +459,10 @@ int main(int argc, char *argv[])
     printf("\n\n");
 
     // BUILD DEPENDENCES
+    printf("========= Build dependences ==========\n");
     for (i = 0; i < sizeof(deps)/sizeof(dep_t); i++) {
         build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr);
     }
-
-    printf("---------------------------\n");
-    for(i = 0; i<type_counts[2]; i++) { dump_allocator_fact ((paramListAllocatorFact_t *)type_params[2][i]); }
-    printf("---------------------------\n");
-
-    printf("---------------------------\n");
-    for(i = 0; i<type_counts[1]; i++) { dump_memtarget_fact ((paramListMemTargetFact_t *)type_params[1][i]); }
-    printf("---------------------------\n");
-
-    printf("---------------------------\n");
-    for(i = 0; i<inst_counts[2]; i++) { dump_allocator_inst ((paramListAllocatorInst_t *)inst_params[2][i]); }
-    printf("---------------------------\n");
-
-    printf("---------------------------\n");
-    for(i = 0; i<inst_counts[1]; i++) { printf("%d, ", i); dump_memtarget_inst ((paramListMemTargetInst_t *)inst_params[1][i]); }
-    printf("---------------------------\n");
 
     return 0;
 }

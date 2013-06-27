@@ -39,8 +39,14 @@
 #include "ocr-utils.h"
 
 typedef enum _memPlatformType_t {
-    memPlatformMalloc_id
+    memPlatformMalloc_id,
+    memPlatformMax_id
 } memPlatformType_t;
+
+const char * memplatform_types[] = {
+    "malloc",
+    NULL
+};
 
 // Malloc memory platform
 #include "mem-platform/malloc/malloc-mem-platform.h"
@@ -58,6 +64,7 @@ inline ocrMemPlatformFactory_t *newMemPlatformFactory(memPlatformType_t type, oc
 }
 
 #endif /* __MEM_PLATFORM_ALL_H__ */
+#if 0
 extern ocrMemPlatform_t * newMemPlatformMalloc(ocrMemPlatformFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
 ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type, void * perTypeConfig, void * perInstanceConfig) {
@@ -71,3 +78,4 @@ ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type, void * perTypeConfig, 
     }
     return NULL;
 }
+#endif

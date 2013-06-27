@@ -180,7 +180,7 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
 
     getCurrentWorkerContext = &getCurrentWorkerContextPthread;
     setCurrentWorkerContext = &setCurrentWorkerContextPthread;
-    getCurrentPD = &getCurrentPDPthread;
+//    getCurrentPD = &getCurrentPDPthread;   FIXME: This needs to be moved elsewhere... start() maybe?
     setCurrentPD = &setCurrentPDPthread;
 
     return base;

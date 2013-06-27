@@ -53,3 +53,5 @@ void setCurrentEdtToWorker(ocrGuid_t edtGuid) {
     deguidify(getCurrentPD(), workerGuid, (u64*)&(worker), NULL);
     worker->fctPtrs->setCurrentEDT(worker, edtGuid);
 }
+
+void associate_comp_platform_and_worker(ocrWorker_t *worker) {}

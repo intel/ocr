@@ -38,7 +38,13 @@
 
 typedef enum _compPlatformType_t {
     compPlatformPthread_id,
+    compPlatformMax_id,
 } compPlatformType_t;
+
+const char * compplatform_types[] = {
+    "pthread",
+    NULL,
+};
 
 // Pthread compute platform
 #include "comp-platform/pthread/pthread-comp-platform.h"

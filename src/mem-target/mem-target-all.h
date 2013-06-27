@@ -39,8 +39,14 @@
 #include "ocr-utils.h"
 
 typedef enum _memTargetType_t {
-    memTargetShared_id
+    memTargetShared_id,
+    memTargetMax_id
 } memTargetType_t;
+
+const char * memtarget_types[] = {
+    "shared",
+    NULL
+};
 
 // Shared memory target
 #include "mem-target/shared/shared-mem-target.h"
@@ -58,6 +64,7 @@ inline ocrMemTargetFactory_t *newMemTargetFactory(memTargetType_t type, ocrParam
 }
 
 #endif /* __MEM_TARGET_ALL_H__ */
+/*
 extern ocrMemPlatform_t * newMemPlatformMalloc(ocrMemPlatformFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
 
 ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type, void * perTypeConfig, void * perInstanceConfig) {
@@ -71,3 +78,4 @@ ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type, void * perTypeConfig, 
     }
     return NULL;
 }
+*/

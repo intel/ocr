@@ -31,13 +31,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
+#include <string.h>
 #include "ocr-comp-platform.h"
 #include "ocr-guid.h"
+#include "ocr-policy-domain.h"
 
 struct _ocrPolicyDomain_t;
 struct _ocrPolicyCtx_t;
 
-struct _ocrPolicyDomain_t * (*getCurrentPD)() = NULL;
+struct _ocrPolicyDomain_t bootstrapPD;
+
+u8 tempGetGuid(struct _ocrPolicyDomain_t * pd, ocrGuid_t *guid, u64 val,
+                  ocrGuidKind type, struct _ocrPolicyCtx_t *context) {
+    *guid = (ocrGuid_t)0;
+    return 0;
+}
+
+struct _ocrPolicyDomain_t *tempPD(void)
+{
+    static int first_time = 1;
+
+    if (first_time) {
+        first_time = 0;
+//        memset (&bootstrapPD, 0, sizeof(ocrPolicyDomain_t));
+          bootstrapPD.getGuid = &tempGetGuid;
+    }
+    return &bootstrapPD;
+}
+
+extern struct _ocrPolicyDomain_t *tempPD(void);
+
+struct _ocrPolicyDomain_t * (*getCurrentPD)() = &tempPD;
+
 /**
  * This should return a cloned context of the currently executing worker
  */
@@ -47,4 +72,3 @@ ocrGuid_t (*getCurrentEDT)() = NULL;
 void (*setCurrentPD)(struct _ocrPolicyDomain_t*) = NULL;
 void (*setCurrentWorkerContext)(struct _ocrPolicyCtx_t *) = NULL;
 void (*setCurrentEDT)(ocrGuid_t) = NULL;
-
