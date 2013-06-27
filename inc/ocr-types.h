@@ -67,4 +67,13 @@ typedef intptr_t ocrGuid_t;
  */
 #define NULL_GUID ((ocrGuid_t)0x0)
 
+/**
+ * @brief Allocators that can be used to allocate
+ * within a data-block
+ */
+typedef enum {
+    NO_ALLOC = 0
+    /* Add others */
+} ocrInDbAllocator_t;
+
 #endif /* __OCR_TYPES_H__ */

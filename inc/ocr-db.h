@@ -41,15 +41,6 @@
 #define OCR_DB_CREATE_NO_ACQUIRE 0x1
 
 /**
- * @brief Allocators that can be used to allocate
- * within a data-block
- */
-typedef enum {
-    NO_ALLOC = 0
-    /* Add others */
-} ocrInDbAllocator_t;
-
-/**
  * @defgroup OCRDataBlock Data-block management for OCR
  * @brief Describes the data-block API for OCR
  *
