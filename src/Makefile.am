@@ -33,7 +33,7 @@ include datablock/Makefile.inc
 include driver/Makefile.inc
 include edt/Makefile.inc
 include guid/Makefile.inc
-include machine-description/Makefile.inc
+#include machine-description/Makefile.inc
 include mem-platform/Makefile.inc
 include mem-target/Makefile.inc
 include policy-domain/Makefile.inc
