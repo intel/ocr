@@ -67,6 +67,7 @@ static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     u64 i = 0;
     u64 workerCount = policy->workerCount;
     u64 computeCount = policy->computeCount;
+    ASSERT(workerCount == computeCount);
 
     //TODO workers could be responsible for starting the underlying target
     // Note: it's important to first logically start all workers.
@@ -138,7 +139,7 @@ static void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     for ( i = 0; i < policy->workerCount; ++i ) {
         memories[i]->fctPtrs->destruct(memories[i]);
     }
-    policy->guidProvider->fctPtrs->destruct(policy->guidProvider);
+
     // Simple hc policies don't have neighbors
     ASSERT(policy->neighbors == NULL);
 
@@ -148,12 +149,16 @@ static void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     policy->taskTemplateFactory->destruct(policy->taskTemplateFactory);
     policy->dbFactory->destruct(policy->dbFactory);
     policy->eventFactory->destruct(policy->eventFactory);
-    policy->contextFactory->destruct(policy->contextFactory);
 
     //Anticipate those to be null-impl for some time
     ASSERT(policy->lockFactory == NULL);
     ASSERT(policy->atomicFactory == NULL);
     ASSERT(policy->costFunction == NULL);
+
+    // Finish with those in case destruct implementation needs
+    // to releaseGuids or access context for some reasons
+    policy->contextFactory->destruct(policy->contextFactory);
+    policy->guidProvider->fctPtrs->destruct(policy->guidProvider);
 
     free(policy);
 }
