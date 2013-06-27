@@ -34,6 +34,11 @@
 #include "hc.h"
 #include "ocr-policy-domain.h"
 
+ocrPolicyDomainFactory_t * newPolicyDomainFactoryHc(ocrParamList_t *perType) {
+    //TODO
+    return NULL;
+}
+
 void hc_policy_domain_create ( ocrPolicyDomain_t * policy, void * configuration,
         u64 schedulerCount, u64 workerCount, u64 computeCount,
         u64 workpileCount, u64 allocatorCount, u64 memoryCount,

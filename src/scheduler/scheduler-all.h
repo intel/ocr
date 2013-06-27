@@ -46,7 +46,7 @@ extern ocrSchedulerFactory_t * newSchedulerFactoryHc(ocrParamList_t *perType);
 extern ocrSchedulerFactory_t * newSchedulerFactoryHcPlaced(ocrParamList_t *perType);
 extern ocrSchedulerFactory_t * newSchedulerFactoryFsimXE(ocrParamList_t *perType);
 extern ocrSchedulerFactory_t * newSchedulerFactoryFsimCE(ocrParamList_t *perType);
-
+  
 inline ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrParamList_t *perType) {
     switch(type) {
     case schedulerHc_id:

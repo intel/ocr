@@ -32,6 +32,22 @@
 #include "fsim.h"
 #include "ocr-policy-domain.h"
 
+
+ocrPolicyDomainFactory_t * newPolicyDomainFactoryFsimXE(ocrParamList_t *perType) {
+    //TODO
+    return NULL;
+}
+
+ocrPolicyDomainFactory_t * newPolicyDomainFactoryFsimCE(ocrParamList_t *perType) {
+    //TODO
+    return NULL;
+}
+
+ocrPolicyDomainFactory_t * newPolicyDomainFactoryFsimMasterCE(ocrParamList_t *perType) {
+    //TODO
+    return NULL;
+}
+
 void fsim_policy_domain_create(ocrPolicyDomain_t * policy, void * configuration,
                                ocrScheduler_t ** schedulers, ocrWorker_t ** workers,
                                ocrCompTarget_t ** computes, ocrWorkpile_t ** workpiles,

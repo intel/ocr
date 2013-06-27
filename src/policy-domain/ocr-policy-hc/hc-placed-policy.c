@@ -29,28 +29,19 @@
 
 */
 
-#include "ocr-comp-platform.h"
 #include "ocr-policy-domain.h"
-#include "ocr-policy-domain-getter.h"
-#include "ocr-task.h"
-#include "ocr-event.h"
 
-inline ocrTaskFactory_t* getTaskFactoryFromPd(ocrPolicyDomain_t *policy) {
-  return policy->taskFactory;
+ocrPolicyDomainFactory_t * newPolicyDomainFactoryHcPlaced(ocrParamList_t *perType) {
+	//TODO
+	return NULL;
 }
 
-inline ocrTaskTemplateFactory_t* getTaskTemplateFactoryFromPd(ocrPolicyDomain_t *policy) {
-  return policy->taskTemplateFactory;
+ocrPolicyDomainFactory_t * newPolicyDomainFactoryHcLeafPlace(ocrParamList_t *perType) {
+	//TODO
+	return NULL;
 }
 
-inline ocrEventFactory_t* getEventFactoryFromPd(ocrPolicyDomain_t *policy) {
- return policy->eventFactory;   
-}
-
-inline ocrDataBlockFactory_t* getDataBlockFactoryFromPd(ocrPolicyDomain_t *policy) {
-  return policy->dbFactory;
-}
-
-inline ocrLockFactory_t* getLockFactoryFromPd(ocrPolicyDomain_t *policy) {
-  return policy->lockFactory;
+ocrPolicyDomainFactory_t * newPolicyDomainFactoryHcMasterLeafPlace(ocrParamList_t *perType) {
+	//TODO
+	return NULL;
 }
