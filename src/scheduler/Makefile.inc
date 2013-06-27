@@ -8,6 +8,7 @@ libocr_la_LIBADD += libocr_scheduler_hc.la
 
 libocr_scheduler_hc_la_SOURCES = \
 $(OCR_SRC_SCHEDULER)/hc/hc-scheduler.c
+#$(OCR_SRC_SCHEDULER)/hc/hc-placed-scheduler.c
 
 libocr_scheduler_hc_la_CFLAGS = $(AM_CFLAGS)
 
