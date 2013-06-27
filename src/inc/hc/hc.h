@@ -49,6 +49,9 @@ typedef struct {
   ocrPolicyDomainFactory_t base;
 } ocrPolicyDomainHcFactory_t;
 
+typedef struct {
+  ocrPolicyDomain_t base;
+} ocrPolicyDomainHc_t;
 
 /******************************************************/
 /* OCR-HC COMP TARGET                                 */

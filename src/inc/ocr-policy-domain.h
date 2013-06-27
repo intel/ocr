@@ -355,25 +355,26 @@ typedef struct _ocrPolicyDomainFactory_t {
      * 'workers', 'computes', 'workpiles', 'allocators' and 'memories'
      * data-structures must then be properly filled
      *
-     * @param self                This policy
-     * @param configuration     An optional configuration
-     * @param schedulerCount    The number of schedulers
-     * @param workerCount       The number of workers
-     * @param computeCount      The number of compute targets
-     * @param workpileCount     The number of workpiles
-     * @param allocatorCount    The number of allocators
-     * @param memoryCount       The number of memory targets
-     * @param taskFactory       The factory to use to generate EDTs
-     * @param dbFactory         The factory to use to generate DBs
-     * @param eventFactory      The factory to use to generate events
-     * @param contextFactory    The factory to use to generate context
-     * @param guidProvider      The provider of GUIDs for this policy domain
-     * @param costFunction      The cost function used by this policy domain
+     * @param factory             This policy domain factory
+     * @param configuration       An optional configuration
+     * @param schedulerCount      The number of schedulers
+     * @param workerCount         The number of workers
+     * @param computeCount        The number of compute targets
+     * @param workpileCount       The number of workpiles
+     * @param allocatorCount      The number of allocators
+     * @param memoryCount         The number of memory targets
+     * @param taskFactory         The factory to use to generate EDTs
+     * @param taskTemplateFactory The factory to use to generate EDTs templates
+     * @param dbFactory           The factory to use to generate DBs
+     * @param eventFactory        The factory to use to generate events
+     * @param contextFactory      The factory to use to generate context
+     * @param guidProvider        The provider of GUIDs for this policy domain
+     * @param costFunction        The cost function used by this policy domain
      */
-    ocrPolicyDomain_t * (*instantiate) (struct _ocrPolicyDomain_t *self, void *configuration,
+    ocrPolicyDomain_t * (*instantiate) (struct _ocrPolicyDomainFactory_t *factory, void *configuration,
                    u64 schedulerCount, u64 workerCount, u64 computeCount,
                    u64 workpileCount, u64 allocatorCount, u64 memoryCount,
-                   ocrTaskFactory_t *taskFactory, ocrDataBlockFactory_t *dbFactory,
+                   ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory, ocrDataBlockFactory_t *dbFactory,
                    ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t
                    *contextFactory, ocrCost_t *costFunction);
 
