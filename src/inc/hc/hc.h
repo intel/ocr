@@ -40,6 +40,16 @@
 #include "deque.h"
 #include "hc_edf.h"
 
+//TODO sagnak this does not belong there
+extern ocrPolicyCtxFactory_t* newPolicyContextFactoryHC ( ocrParamList_t* params );
+
+typedef struct _ocrPolicyCtxHC_t {
+    ocrPolicyCtx_t base;
+} ocrPolicyCtxHC_t;
+
+typedef struct _ocrPolicyCtxFactoryHC_t {
+    ocrPolicyCtxFactory_t base;
+} ocrPolicyCtxFactoryHC_t;
 
 /******************************************************/
 /* OCR-HC POLICY DOMAIN                               */

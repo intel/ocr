@@ -41,7 +41,7 @@
 #include "ocr-task.h"
 #include "ocr-event.h"
 
-typedef enum _schedulerType_t {
+typedef enum _policyDomainType_t {
     policyDomainHc_id,
     policyDomainFsimXE_id,
     policyDomainFsimCE_id,
@@ -49,7 +49,7 @@ typedef enum _schedulerType_t {
     policyDomainHcPlaced_id,
     policyDomainHcLeafPlace_id,
     policyDomainHcMasterLeafPlace_id
-} schedulerType_t;
+} policyDomainType_t;
 
 extern ocrPolicyDomainFactory_t * newPolicyDomainFactoryHc(ocrParamList_t *perType);
 extern ocrPolicyDomainFactory_t * newPolicyDomainFactoryFsimXE(ocrParamList_t *perType);
@@ -76,7 +76,7 @@ inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type
     case policyDomainHcMasterLeafPlace_id:
         return newPolicyDomainFactoryHcMasterLeafPlace(perType);
     }
-    ASSERT(0);
+    assert(0);
     return NULL;
 }
 

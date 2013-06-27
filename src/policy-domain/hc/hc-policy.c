@@ -35,6 +35,22 @@
 #include "ocr-policy-domain.h"
 #include "debug.h"
 
+void destructOcrPolicyCtxFactoryHC ( ocrPolicyCtxFactory_t* self ) {
+}
+
+ocrPolicyCtx_t * instantiateOcrPolicyCtxFactoryHC ( ocrPolicyCtxFactory_t *factory ) {
+    ocrPolicyCtxHC_t* derived = checkedMalloc (derived, sizeof(ocrPolicyCtxHC_t));
+    return (ocrPolicyCtx_t*) derived;
+}
+
+ocrPolicyCtxFactory_t* newPolicyContextFactoryHC ( ocrParamList_t* params ) {
+    ocrPolicyCtxFactoryHC_t* derived = (ocrPolicyCtxFactoryHC_t*) checkedMalloc(derived, sizeof(ocrPolicyCtxFactoryHC_t));
+    ocrPolicyCtxFactory_t * base = (ocrPolicyCtxFactory_t *) derived;
+    base->instantiate = instantiateOcrPolicyCtxFactoryHC;
+    base->destruct = destructOcrPolicyCtxFactoryHC;
+    return base;
+}
+
 static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     //TODO this is still the old implementation
 

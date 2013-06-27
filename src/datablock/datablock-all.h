@@ -35,7 +35,8 @@
 #define __DATABLOCK_ALL_H__
 
 #include "ocr-datablock.h"
-#include "ocr-debug.h"
+// TODO sagnak: delete non-existant headers
+// #include "ocr-debug.h"
 #include "ocr-utils.h"
 
 // TODO: Bala will modify this
@@ -47,8 +48,9 @@ typedef enum _dataBlockType_t {
 // Regular datablock
 #include "datablock/regular/regular-datablock.h"
 
+// TODO sagnak: delete non-existant headers
 // Placed datablock
-#include "datablock/placed/placed-datablock.h"
+// #include "datablock/placed/placed-datablock.h"
 
 
 ocrDataBlockFactory_t* newDataBlockFactory(dataBlockType_t type, ocrParamList_t *typeArg) {
@@ -56,11 +58,12 @@ ocrDataBlockFactory_t* newDataBlockFactory(dataBlockType_t type, ocrParamList_t 
     case dataBlockRegular_id:
         return newDataBlockFactoryRegular(typeArg);
         break;
-    case dataBlockPlaced_id:
-        return newDataBlockFactoryPlaced(typeArg);
-        break;
+// TODO sagnak: delete non-existant parts 
+//    case dataBlockPlaced_id:
+//        return newDataBlockFactoryPlaced(typeArg);
+//        break;
     default:
-        ASSERT(0);
+        assert(0);
     }
     return NULL;
 }
