@@ -96,7 +96,7 @@ typedef struct _ocrPolicyCtx_t {
 
 typedef struct _ocrPolicyCtxFactory_t {
     ocrPolicyCtx_t * (*instantiate)(struct _ocrPolicyCtxFactory_t *factory);
-    void (*destruct)(struct _ocrPolicyCtx_t *self);
+    void (*destruct)(struct _ocrPolicyCtxFactory_t *self);
 } ocrPolicyCtxFactory_t;
 
 /**
