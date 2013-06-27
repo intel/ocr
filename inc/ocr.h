@@ -41,45 +41,20 @@
 #include "ocr-edt.h"
 
 /**
- * @defgroup OCRBoot Initialization and cleanup routines for OCR
- * @brief Describes how to instantiate and tear-down the runtime
- *
- * @{
- **/
-
-/**
- * @brief A convenience macro to initialize the runtime
- *
- * This macro will initialize the runtime and call the first 'main' EDT to be
- * invoked with the provided 'argc' and 'argv' argument. The user must also
- * provide all root C functions that will be called as EDTs
- *
- * @note 'argc' and 'argv' include both the arguments to be passed to
- * the main EDT as well as the OCR runtime arguments (if any). 'argc' and
- * 'argv' will be processed to remove OCR runtime arguments before they are
- * passed to the main EDT.
- *
- * @param argc      Pointer to the number of arguments (OCR + main EDT)
- * @param argv      Array of arguments (argc count)
- * @param ...       Function pointers that will be used as EDTs
- **/
-#define OCR_INIT(argc, argv, ...)					\
-    ({ocrEdt_t _fn_array[] = {__VA_ARGS__}; ocrInit(argc, argv, sizeof(_fn_array)/sizeof(_fn_array[0]), _fn_array);})
+ * A macro to define a convenient way to initialize the OCR runtime.
+ * The user needs to pass along the argc, argv arguments from the main function, as well as the list of pointers to all the functions
+ * in the program that are used as EDTs
+ */
+#define OCR_INIT(argc, argv, mainEdt)					\
+    do { ocrInit(argc, argv, mainEdt); } while(0);
 
 /**
  * @brief Initial function called by the C program to set-up the OCR
  * environment.
  *
- * This call is called by #OCR_INIT. It should be paired with
- * an ocrCleanup() call
- *
- * @param argc      Pointer to the number of arguments (OCR + main EDT)
- * @param argv      Array of arguments (argc count)
- * @param fnc       Number of function pointers (UNUSED)
- * @param funcs     Array of function pointers to be used as EDTs (UNUSED)
- *
- **/
-void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[] );
+ * This call should be paired with an ocrCleanup call
+ */
+void ocrInit(int * argc, char ** argv, ocrEdt_t mainEdt);
 
 /**
  * @brief Called by an EDT to indicate the end of an OCR

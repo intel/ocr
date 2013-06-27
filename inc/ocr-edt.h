@@ -229,7 +229,7 @@ u8 ocrEdtTemplateDestroy(ocrGuid_t guid);
  * @param paramv            Values for those parameters (copied in)
  * @param properties        Used to indicate if this is a finish EDT (EDT_PROP_FINISH).
  *                          Other uses reserved.
- * @param affinity          Affinity hint for this EDT
+ * @param affinity          Affinity container for this EDT. Can be NULL_GUID
  * @param depc              Number of dependences for this EDT
  * @param depv              Values for the GUIDs of the dependences (if known)
  *                          Use ocrAddDependence to add unknown ones or ones with

@@ -41,6 +41,15 @@
 #define OCR_DB_CREATE_NO_ACQUIRE 0x1
 
 /**
+ * @brief Allocators that can be used to allocate
+ * within a data-block
+ */
+typedef enum {
+    NO_ALLOC = 0
+    /* Add others */
+} ocrInDbAllocator_t;
+
+/**
  * @defgroup OCRDataBlock Data-block management for OCR
  * @brief Describes the data-block API for OCR
  *
@@ -75,7 +84,7 @@
  * @param len       Size in bytes of the block to allocate.
  * @param flags     If OCR_DB_CREATE_NO_ACQUIRE, the DB will be created but not
  *                  acquired (addr will be NULL). Future use are reserved
- * @param affinity  GUID to indicate the affinity of this created data-block
+ * @param affinity  GUID to indicate the affinity container of this DB.
  * @param location  Used as input to determine where to allocate memory and
  *                  on successful allocation will contain the location of
  *                  the actual allocation RAM, SP, or something NUMA. If NULL,

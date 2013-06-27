@@ -67,27 +67,4 @@ typedef intptr_t ocrGuid_t;
  */
 #define NULL_GUID ((ocrGuid_t)0x0)
 
-/**
- * @brief Description of a "location" for OCR
- *
- * A place is a logical (ie: not necessarily hardware
- * related) identification of proximity. It is used
- * to give hints/suggestions about scheduling and data-placement
- *
- * @warning This aspect of the runtime is still undefined (part of
- * tuning). Do not use: the name may also change.
- **/
-typedef struct {
-    ocrGuid_t locationId;
-} ocrLocation_t;
-
-/**
- * @brief Allocators that can be used to allocate
- * within a data-block
- */
-typedef enum {
-    NO_ALLOC = 0
-    /* Add others */
-} ocrInDbAllocator_t;
-
 #endif /* __OCR_TYPES_H__ */
