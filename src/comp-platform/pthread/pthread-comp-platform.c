@@ -80,7 +80,6 @@ static void* wrapperPthreadRun(void *arg) {
     return NULL;
 }
 
-
 static void pthreadDestruct (ocrCompPlatform_t * base) {
     free(base);
 }

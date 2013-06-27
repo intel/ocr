@@ -129,11 +129,6 @@ int get_worker_id (ocrWorker_t * worker);
  */
 ocrScheduler_t * get_worker_scheduler(ocrWorker_t * worker);
 
-/*! \brief Associate a worker to a comp-platform.
- *  \param[in] worker
- */
-void associate_comp_platform_and_worker(ocrWorker_t * worker);
-
 /* TODO sagnak restructure code in a more pleasant manner than this
  * exposing some HC worker implementations to be reused for the FSIM-like implementations */
 void hc_worker_create ( ocrWorker_t * base, void * perTypeConfig, void * perInstanceConfig);
