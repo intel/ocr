@@ -95,6 +95,7 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     //Anticipate those to be null-impl for some time
     ASSERT(policy->lockFactory == NULL);
     ASSERT(policy->atomicFactory == NULL);
+    ASSERT(policy->costFunction == NULL);
 
     // Destroying instances
     int i = 0;
