@@ -42,7 +42,7 @@
 
 #include "ocr-comp-platform.h"
 
-//#include <string.h>
+#include <string.h>
 //#include <stdlib.h>
 #include <inttypes.h>
 

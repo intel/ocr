@@ -30,23 +30,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include <stdlib.h>
-#include <errno.h>
+//#include <errno.h>
+
+#include "ocr-datablock.h"
 #include "regular-datablock.h"
 #include "debug.h"
-//#include "ocr-task-event.h"
 #include "ocr-guid.h"
-// TODO sagnak it feels as the policy exposure here should not have happened
-#include "ocr-policy-domain.h"
+#include "ocr-utils.h"
 
-#include "inttypes.h"
+#include "ocr-comp-platform.h"
+#include "ocr-sync.h"
+
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#endif
+
+#include <inttypes.h>
+#include "ocr-policy-domain.h"
 #include "ocr-policy-domain-getter.h"
 #include "ocr-macros.h"
-
-void regularCreate(ocrDataBlock_t *self, ocrGuid_t allocatorGuid, u64 size,
-                   u16 flags, void* configuration) {
-
-}
 
 void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
@@ -211,40 +213,34 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
     return 0;
 }
 
-// TODO sagnak to romain -> what the hell happened here below, two separate implementations merged under one?
-ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrParamList_t *perInstance) {
-    paramListDataBlockInst_t *parameters = (paramListDataBlockInst_t*)perInstance;
+ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrGuid_t allocator,
+                                    ocrGuid_t allocatorPD, u64 size, void* ptr,
+                                    u16 properties) {
 
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)
         checkedMalloc(result, sizeof(ocrDataBlockRegular_t));
 
+    ocrPolicyDomain_t *pd = getCurrentPD();
+
     result->base.guid = UNINITIALIZED_GUID;
-    result->base.allocator = parameters->allocator;
-    result->base.allocatorPD = parameters->allocPD;
-    result->base.size = parameters->size;
-    result->base.ptr = parameters->ptr;
-    result->base.properties = parameters->properties;
+    result->base.allocator = allocator;
+    result->base.allocatorPD = allocatorPD;
+    result->base.size = size;
+    result->base.ptr = ptr;
+    result->base.properties = properties;
     result->base.fctPtrs = &(factory->dataBlockFcts);
 
-    // TODO: Get GUID
-    //guidify(getCurrentPD(), &(result->base.guid), (u64)result, OCR_GUID_DB);
 
-    result->lock = NULL;
+    guidify(pd, &(result->base.guid), (u64)result, OCR_GUID_DB);
+
+    ocrLockFactory_t *lockFactory = getLockFactoryFromPd(pd);
+    result->lock = lockFactory->instantiate(lockFactory, NULL);
+
     result->attributes.flags = result->base.properties;
     rself->attributes.numUsers = 0;
     rself->attributes.freeRequested = 0;
     ocrGuidTrackerInit(&(rself->usersTracker));
 
-    ocrAllocator_t *allocator = NULL;
-
-    deguidify(getCurrentPD(), allocatorGuid, (u64*)&allocator, NULL);
-    ASSERT(allocator);
-    ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
-
-    rself->ptr = allocator->allocate(allocator, size);
-    rself->allocatorGuid = allocatorGuid;
-    rself->size = size;
-    // TODO: Use policy domain to create the lock
 
     DO_DEBUG(DEBUG_LVL_VERB) {
         PRINTF("VERB: Creating a datablock of size %ld @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n",

@@ -55,6 +55,8 @@ typedef struct _paramListTaskTemplateFact_t {
     ocrParamList_t base;
 } paramListTaskTemplateFact_t;
 
+struct _ocrTaskTemplate_t;
+
 /****************************************************/
 /* OCR TASK TEMPLATE                                */
 /****************************************************/
@@ -67,7 +69,7 @@ typedef struct _paramListTaskTemplateFact_t {
 typedef struct ocrTaskTemplateFcts_t {
     /*! \brief Virtual destructor for the Task interface
      */
-    void (*destruct) (struct _ocrTask_t* self);
+    void (*destruct) (struct _ocrTaskTemplate_t* self);
 } ocrTaskTemplateFcts_t;
 
 /*! \brief Abstract class to represent OCR task templates.

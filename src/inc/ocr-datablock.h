@@ -155,7 +155,8 @@ typedef struct _ocrDataBlockFactory_t {
      *
      */
     ocrDataBlock_t* (*instantiate)(struct _ocrDataBlockFactory_t *factory,
-                                   ocrParamList_t *perInstance);
+                                   ocrGuid_t allocator, ocrGuid_t allocatorPD,
+                                   u64 size, void* ptr, u16 properties);
     void (*destruct)(struct _ocrDataBlockFactory_t *factory);
 
     ocrDataBlockFcts_t dataBlockFcts;

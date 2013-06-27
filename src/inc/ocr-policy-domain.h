@@ -211,9 +211,11 @@ typedef struct _ocrPolicyDomain_t {
      * This call will be triggered by user code when a data-block
      * needs to be allocated
      *
-     * @param self                This policy domain
+     * @param self              This policy domain
      * @param guid              Contains the DB GUID on return for synchronous
      *                          calls
+     * @param ptr               Contains the address for accessing this DB on
+     *                          return for synchronous calls
      * @param size              Size of the DB requested
      * @param hint              Hint concerning where to allocate
      * @param context           Context for this call. This will be updated
@@ -230,8 +232,10 @@ typedef struct _ocrPolicyDomain_t {
      *     - 255 if the call is being processed asynchronously
      *     - TODO
      */
-    u8 (*allocateDb)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid, u64 size,
-                     ocrHint_t *hint, ocrPolicyCtx_t *context);
+    u8 (*allocateDb)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid,
+                     void** ptr, u64 size, u16 properties,
+                     ocrGuid_t affinity, ocrInDbAllocator_t allocator,
+                     ocrPolicyCtx_t *context);
 
     /**
      * @brief Request the creation of a task metadata (EDT)
@@ -248,6 +252,7 @@ typedef struct _ocrPolicyDomain_t {
                     ocrTaskTemplate_t * edtTemplate, u32 paramc, u64* paramv,
                     u32 depc, u16 properties, ocrGuid_t affinity,
                     ocrGuid_t * outputEvent, ocrPolicyCtx_t *context);
+
 
     /**
      * @brief Inform the policy domain of an event that does not require any
