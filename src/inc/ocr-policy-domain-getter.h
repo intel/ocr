@@ -40,7 +40,6 @@ struct _ocrLockFactory_t;
 struct _ocrGuidProvider_t;
 
 // Common functions on all policy domains (ie: not function pointers)
-inline struct _ocrTaskFactory_t*  getTaskFactoryFromPd(struct _ocrPolicyDomain_t *policy);
 inline struct _ocrTaskTemplateFactory_t*  getTaskTemplateFactoryFromPd(struct _ocrPolicyDomain_t *policy);
 inline struct _ocrEventFactory_t* getEventFactoryFromPd(struct _ocrPolicyDomain_t *policy);
 inline struct _ocrDataBlockFactory_t* getDataBlockFactoryFromPd(struct _ocrPolicyDomain_t *policy);

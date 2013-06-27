@@ -142,6 +142,19 @@ static void hc_ocr_module_map_schedulers_to_policy (ocrMappable_t * self_module,
     }
 }
 
+ocrTask_t* (*instantiate)(struct _ocrTaskFactory_t * factory, ocrTaskTemplate_t * edtTemplate,
+    u64 * params, void ** paramv, u16 properties, ocrGuid_t * outputEvent);
+
+u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
+     ocrTaskTemplate_t * edtTemplate, u64 * params, void ** paramv, 
+     u16 properties, ocrGuid_t * outputEvent, ocrHint_t *hint, ocrPolicyCtx_t *context) {
+    //TODO what does context is supposed to tell me ?
+    //TODO would it make sense to trickle down 'self' in instantiate ?
+    ocrTask_t * base = self->taskFactory->instantiate(self->taskFactory, edtTemplate, params, paramv, properties, outputEvent);
+    *guid = base->guid;
+    return 0;
+}
+
 ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * configuration,
         u64 schedulerCount, u64 workerCount, u64 computeCount,
         u64 workpileCount, u64 allocatorCount, u64 memoryCount,
@@ -174,7 +187,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     base->stop = hcPolicyDomainStop;
     base->finish = hcPolicyDomainFinish;
     base->allocateDb = NULL;
-    base->createEdt = NULL;
+    base->createEdt = hcCreateEdt;
     base->inform = NULL;
     base->getGuid = NULL;
     base->getInfoForGuid = NULL;

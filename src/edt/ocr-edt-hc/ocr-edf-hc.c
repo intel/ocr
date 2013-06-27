@@ -773,6 +773,7 @@ ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType) {
 
 ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, 
                     u64 * params, void** paramv, u16 properties, ocrGuid_t * outputEventPtr) {
+
     // Initialize a sticky outputEvent if requested (ptr not NULL)
     // i.e. the user gave a place-holder for the runtime to initialize and set an output event.
     ocrGuid_t outputEvent = (ocrGuid_t) outputEventPtr;

@@ -76,12 +76,14 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrEdt_t funcPtr,
     //TODO the task template should be created in the user realm
     ocrTaskTemplateFactory_t* taskTemplateFactory = getTaskTemplateFactoryFromPd(pd);
     ocrTaskTemplate_t* taskTemplate = taskTemplateFactory->instantiate(taskTemplateFactory, funcPtr, paramc, depc);
-    ocrTaskFactory_t* taskFactory = getTaskFactoryFromPd(pd);
+    ocrHint_t *hint = NULL;
+    ocrPolicyCtx_t *context = getCurrentWorkerContext();
+    pd->createEdt(pd, edtGuid, taskTemplate, params, paramv, properties, outputEvent, hint, context);
     //TODO LIMITATION handle pre-built dependence vector
-    ocrTask_t * task = taskFactory->instantiate(taskFactory, taskTemplate, params, paramv, properties, outputEvent);
-    *edtGuid = task->guid;
 
 #ifdef OCR_ENABLE_STATISTICS
+    ocrTask_t * task = NULL;
+    deguidify(pd, edtGuid, (u64*)&task, NULL);
     // Create the statistics process for this EDT and also update clocks properly
     ocrStatsProcessCreate(&(task->statProcess), *edtGuid);
     ocrStatsFilter_t *t = NEW_FILTER(simple);

@@ -244,8 +244,9 @@ typedef struct _ocrPolicyDomain_t {
      * @todo Add something about templates here and potentially
      * known dependences so that it can be optimally placed
      */
-    u8 (*createEdt)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid, ocrHint_t *hint,
-                    ocrPolicyCtx_t *context);
+    u8 (*createEdt)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid,
+                    ocrTaskTemplate_t * edtTemplate, u64 * params, void ** paramv, 
+                    u16 properties, ocrGuid_t * outputEvent, ocrHint_t *hint, ocrPolicyCtx_t *context);
 
     /**
      * @brief Inform the policy domain of an event that does not require any

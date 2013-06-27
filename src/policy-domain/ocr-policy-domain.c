@@ -35,10 +35,6 @@
 #include "ocr-task.h"
 #include "ocr-event.h"
 
-inline ocrTaskFactory_t* getTaskFactoryFromPd(ocrPolicyDomain_t *policy) {
-  return policy->taskFactory;
-}
-
 inline ocrTaskTemplateFactory_t* getTaskTemplateFactoryFromPd(ocrPolicyDomain_t *policy) {
   return policy->taskTemplateFactory;
 }
