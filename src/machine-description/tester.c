@@ -9,7 +9,11 @@
 #include <ocr-datablock.h>
 #include <ocr-event.h>
 
-//#include <allocator/allocator-all.h>
+#ifndef ASSERT
+#define ASSERT(x) if (0) x
+#endif
+
+#include <allocator/allocator-all.h>
 
 #define INI_GET_INT(KEY, VAR, DEF) VAR = (int) iniparser_getint(dict, KEY, DEF); if (VAR==DEF){ printf("Key %s not found or invalid!\n", KEY); }
 #define INI_GET_STR(KEY, VAR, DEF) VAR = (char *) iniparser_getstring(dict, KEY, DEF); if (!strcmp(VAR, DEF)){ printf("Key %s not found or invalid!\n", KEY); }
@@ -99,6 +103,24 @@ int populate_type(ocrParamList_t **type_param, int index, int type_index, int ty
         ALLOC_PARAM_LIST(type_param[type_index], paramListMemTargetFact_t);
         break;
     case 2:
+        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        break;
+    case 3:
+        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        break;
+    case 4:
+        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        break;
+    case 5:
+        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        break;
+    case 6:
+        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        break;
+    case 7:
+        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        break;
+    case 8:
         ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
         break;
     default:
