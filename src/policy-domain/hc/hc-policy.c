@@ -33,8 +33,10 @@
 #include "ocr-macros.h"
 #include "hc.h"
 #include "ocr-policy-domain.h"
+#include "debug.h"
 
 void hc_policy_domain_start(ocrPolicyDomain_t * policy) {
+    //TODO this is still the old implementation
 
     // Create Task and Event Factories
     policy->taskFactory = newTaskFactoryHc(NULL);
@@ -61,7 +63,7 @@ void hc_policy_domain_start(ocrPolicyDomain_t * policy) {
     associate_comp_platform_and_worker(policy->workers[0]);
 }
 
-void hc_policy_domain_finish(ocrPolicyDomain_t * policy) {
+static void hcPolicyDomainFinish(ocrPolicyDomain_t * policy) {
     // Note: As soon as worker '0' is stopped its thread is
     // free to fall-through in ocr_finalize() (see warning there)
     u64 i;
@@ -70,7 +72,7 @@ void hc_policy_domain_finish(ocrPolicyDomain_t * policy) {
     }
 }
 
-void hc_policy_domain_stop(ocrPolicyDomain_t * policy) {
+static void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
     // WARNING: Do not add code here unless you know what you're doing !!
     // If we are here, it means a codelet called ocrFinish which
     // logically stopped workers and can make thread '0' executes this
@@ -83,15 +85,46 @@ void hc_policy_domain_stop(ocrPolicyDomain_t * policy) {
     }
 }
 
-void hc_policy_domain_destruct(ocrPolicyDomain_t * policy) {
-    ocrTaskFactory_t** taskFactories = policy->taskFactories;
-    taskFactories[0]->destruct(taskFactories[0]);
-    free(taskFactories);
+void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
+    policy->taskFactory->destruct(policy->taskFactory);
+    policy->taskTemplateFactory->destruct(policy->taskTemplateFactory);
+    policy->dbFactory->destruct(policy->dbFactory);
+    policy->eventFactory->destruct(policy->eventFactory);
+    policy->contextFactory->destruct(policy->contextFactory);
 
-    ocrEventFactory_t** eventFactories = policy->eventFactories;
-    eventFactories[0]->destruct(eventFactories[0]);
-    free(eventFactories);
+    //Anticipate those to be null-impl for some time
+    ASSERT(policy->lockFactory == NULL);
+    ASSERT(policy->atomicFactory == NULL);
 
+    // Destroying instances
+    int i = 0;
+    ocrScheduler_t ** schedulers = policy->schedulers;
+    for ( i = 0; i < policy->schedulerCount; ++i ) {
+        schedulers[i]->fctPtrs->destruct(schedulers[i]);
+    }
+    ocrWorker_t ** workers = policy->workers;
+    for ( i = 0; i < policy->workerCount; ++i ) {
+        workers[i]->fctPtrs->destruct(workers[i]);
+    }
+    ocrCompTarget_t ** computes = policy->computes;
+    for ( i = 0; i < policy->workerCount; ++i ) {
+        computes[i]->fctPtrs->destruct(computes[i]);
+    }
+    ocrWorkpile_t ** workpiles = policy->workpiles;
+    for ( i = 0; i < policy->workerCount; ++i ) {
+        workpiles[i]->fctPtrs->destruct(workpiles[i]);
+    }
+    ocrAllocator_t ** allocators = policy->allocators;
+    for ( i = 0; i < policy->workerCount; ++i ) {
+        allocators[i]->fctPtrs->destruct(allocators[i]);
+    }
+    ocrMemTarget_t ** memories = policy->memories;
+    for ( i = 0; i < policy->workerCount; ++i ) {
+        memories[i]->fctPtrs->destruct(memories[i]);
+    }
+    policy->guidProvider->fctPtrs->destruct(policy->guidProvider);
+    // Simple hc policies don't have neighbors
+    ASSERT(policy->neighbors == NULL);
 }
 
 // Mapping function many-to-one to map a set of schedulers to a policy instance
@@ -135,10 +168,10 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     base->eventFactory = eventFactory;
     base->contextFactory = contextFactory;
 
-    base->destruct = hc_policy_domain_destruct;
+    base->destruct = hcPolicyDomainDestruct;
     base->start = hc_policy_domain_start;
-    base->stop = hc_policy_domain_stop;
-    base->finish = hc_policy_domain_finish;
+    base->stop = hcPolicyDomainStop;
+    base->finish = hcPolicyDomainFinish;
     base->allocateDb = NULL;
     base->createEdt = NULL;
     base->inform = NULL;
