@@ -35,7 +35,7 @@
 #include "ocr-policy-domain.h"
 #include "debug.h"
 
-void hc_policy_domain_start(ocrPolicyDomain_t * policy) {
+static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     //TODO this is still the old implementation
 
     // Create Task and Event Factories
@@ -74,7 +74,7 @@ static void hcPolicyDomainFinish(ocrPolicyDomain_t * policy) {
 
 static void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
     // WARNING: Do not add code here unless you know what you're doing !!
-    // If we are here, it means a codelet called ocrFinish which
+    // If we are here, it means an EDT called ocrFinish which
     // logically stopped workers and can make thread '0' executes this
     // code before joining the other threads.
 
@@ -85,18 +85,7 @@ static void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
     }
 }
 
-void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
-    policy->taskFactory->destruct(policy->taskFactory);
-    policy->taskTemplateFactory->destruct(policy->taskTemplateFactory);
-    policy->dbFactory->destruct(policy->dbFactory);
-    policy->eventFactory->destruct(policy->eventFactory);
-    policy->contextFactory->destruct(policy->contextFactory);
-
-    //Anticipate those to be null-impl for some time
-    ASSERT(policy->lockFactory == NULL);
-    ASSERT(policy->atomicFactory == NULL);
-    ASSERT(policy->costFunction == NULL);
-
+static void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     // Destroying instances
     int i = 0;
     ocrScheduler_t ** schedulers = policy->schedulers;
@@ -126,46 +115,102 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     policy->guidProvider->fctPtrs->destruct(policy->guidProvider);
     // Simple hc policies don't have neighbors
     ASSERT(policy->neighbors == NULL);
+
+    // Destruct factories after instances as the instances
+    // rely on a structure in the factory (the function pointers)
+    policy->taskFactory->destruct(policy->taskFactory);
+    policy->taskTemplateFactory->destruct(policy->taskTemplateFactory);
+    policy->dbFactory->destruct(policy->dbFactory);
+    policy->eventFactory->destruct(policy->eventFactory);
+    policy->contextFactory->destruct(policy->contextFactory);
+
+    //Anticipate those to be null-impl for some time
+    ASSERT(policy->lockFactory == NULL);
+    ASSERT(policy->atomicFactory == NULL);
+    ASSERT(policy->costFunction == NULL);
+
+    free(policy);
 }
 
 // Mapping function many-to-one to map a set of schedulers to a policy instance
-static void hc_ocr_module_map_schedulers_to_policy (ocrMappable_t * self_module, ocrMappableKind kind,
-                                             u64 nb_instances, ocrMappable_t ** ptr_instances) {
+static void hcOcrModuleMapSchedulersToPolicy (ocrMappable_t * self, ocrMappableKind kind,
+                                              u64 instanceCount, ocrMappable_t ** instances) {
     // Checking mapping conforms to what we're expecting in this implementation
-    assert(kind == OCR_SCHEDULER);
+    ASSERT(kind == OCR_SCHEDULER);
 
-    ocrPolicyDomain_t * policy = (ocrPolicyDomain_t *) self_module;
-    int i = 0;
-    for ( i = 0; i < nb_instances; ++i ) {
-        ocrScheduler_t* scheduler = (ocrScheduler_t*)ptr_instances[i];
+//    ocrPolicyDomain_t * policy = (ocrPolicyDomain_t *) self;
+//    int i = 0;
+    // TODO: Re-add?
+    /*
+    for ( i = 0; i < instanceCount; ++i ) {
+        ocrScheduler_t* scheduler = (ocrScheduler_t*)instances[i];
         scheduler->domain = policy;
     }
+    */
 }
 
-ocrTask_t* (*instantiate)(struct _ocrTaskFactory_t * factory, ocrTaskTemplate_t * edtTemplate,
-    u64 * params, void ** paramv, u16 properties, ocrGuid_t * outputEvent);
+static u8 hcAllocateDb(ocrPolicyDomain_t *self, ocrGuid_t *guid, void** ptr, u64 size,
+                       u16 properties, ocrGuid_t affinity, ocrInDbAllocator_t allocator,
+                       ocrPolicyCtx_t *context) {
 
-u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
-     ocrTaskTemplate_t * edtTemplate, u64 * params, void ** paramv, 
-     u16 properties, ocrGuid_t * outputEvent, ocrHint_t *hint, ocrPolicyCtx_t *context) {
+    // Currently a very simple model of just going through all allocators
+    u64 i;
+    void* result;
+    for(i=0; i < self->allocatorCount; ++i) {
+        result = self->allocators[i]->fctPtrs->allocate(self->allocators[i],
+                                                        size);
+        if(result) break;
+    }
+    // TODO: return error code. Requires our own errno to be clean
+    ocrDataBlock_t *block = self->dbFactory->instantiate(self->dbFactory,
+                                                         self->allocators[i]->guid, self->guid,
+                                                         size, result, properties, NULL);
+    *ptr = result;
+    *guid = block->guid;
+    return 0;
+}
+
+static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
+               ocrTaskTemplate_t * edtTemplate, u32 paramc, u64* paramv,
+               u32 depc, u16 properties, ocrGuid_t affinity,
+               ocrGuid_t * outputEvent, ocrPolicyCtx_t *context) {
     //TODO what does context is supposed to tell me ?
+    // REC: The context tells you who is creating the EDT for example
+    // It can also be extended to contain information (in inform() for ex)
     //TODO would it make sense to trickle down 'self' in instantiate ?
-    ocrTask_t * base = self->taskFactory->instantiate(self->taskFactory, edtTemplate, params, paramv, properties, outputEvent);
+    // REC: You have that in context
+    ocrTask_t * base = self->taskFactory->instantiate(self->taskFactory, edtTemplate, paramc,
+                                                      paramv, depc, properties, affinity,
+                                                      outputEvent, NULL);
     *guid = base->guid;
     return 0;
 }
 
-void hcInform(ocrPolicyDomain_t *self, ocrGuid_t obj, const ocrPolicyCtx_t *context) {
+static ocrLock_t* hcGetLock(ocrPolicyDomain_t *self, ocrPolicyCtx_t *context) {
+    return self->lockFactory->instantiate(self->lockFactory, NULL);
+}
+
+static ocrAtomic64_t* hcGetAtomic64(ocrPolicyDomain_t *self, ocrPolicyCtx_t *context) {
+    return self->atomicFactory->instantiate(self->atomicFactory, NULL);
+}
+
+static void hcInform(ocrPolicyDomain_t *self, ocrGuid_t obj, const ocrPolicyCtx_t *context) {
+    if(context->type == PD_MSG_GUID_REL) {
+        self->guidProvider->fctPtrs->releaseGuid(self->guidProvider, obj);
+        return;
+    }
     //TODO not yet implemented
     ASSERT(false);
 }
 
-u8 hcGetGuid(ocrPolicyDomain_t *self, ocrGuid_t *guid, u64 val, ocrGuidKind type) {
+static u8 hcGetGuid(ocrPolicyDomain_t *self, ocrGuid_t *guid, u64 val, ocrGuidKind type,
+                    ocrPolicyCtx_t *ctx) {
     self->guidProvider->fctPtrs->getGuid(self->guidProvider, guid, val, type);
     return 0;
 }
 
-u8 hcGetInfoForGuid(ocrPolicyDomain_t *self, ocrGuid_t guid, u64* val, ocrGuidKind* type) {
+static u8 hcGetInfoForGuid(ocrPolicyDomain_t *self, ocrGuid_t guid, u64* val,
+                           ocrGuidKind* type, ocrPolicyCtx_t *ctx) {
     self->guidProvider->fctPtrs->getVal(self->guidProvider, guid, val, type);
     return 0;
 }
@@ -173,8 +218,8 @@ u8 hcGetInfoForGuid(ocrPolicyDomain_t *self, ocrGuid_t guid, u64* val, ocrGuidKi
 static u8 hcTakeEdt(ocrPolicyDomain_t *self, ocrCost_t *cost, u32 *count,
                 ocrGuid_t *edts, ocrPolicyCtx_t *context) {
     self->schedulers[0]->fctPtrs->takeEdt(self->schedulers[0], cost, count, edts, context);
-    // When takeEdt is successful, it means there either was 
-    // work in the current worker's workpile, or that the scheduler 
+    // When takeEdt is successful, it means there either was
+    // work in the current worker's workpile, or that the scheduler
     // did work-stealing across workpiles.
     return 0;
 }
@@ -188,16 +233,16 @@ static u8 hcGiveEdt(ocrPolicyDomain_t *self, u32 count, ocrGuid_t *edts, ocrPoli
 ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * configuration,
         u64 schedulerCount, u64 workerCount, u64 computeCount,
         u64 workpileCount, u64 allocatorCount, u64 memoryCount,
-        ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory, 
-        ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory, 
+        ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory,
+        ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
         ocrPolicyCtxFactory_t *contextFactory, ocrCost_t *costFunction ) {
-    
-    //TODO missing guidProvider 
+
+    //TODO missing guidProvider
     ocrPolicyDomainHc_t * derived = (ocrPolicyDomainHc_t *) checkedMalloc(policy, sizeof(ocrPolicyDomainHc_t));
     ocrPolicyDomain_t * base = (ocrPolicyDomain_t *) derived;
 
-    ocrMappable_t * module_base = (ocrMappable_t *) policy;
-    module_base->mapFct = hc_ocr_module_map_schedulers_to_policy;
+    ocrMappable_t * moduleBase = (ocrMappable_t *) policy;
+    moduleBase->mapFct = hcOcrModuleMapSchedulersToPolicy;
 
     base->schedulerCount = schedulerCount;
     ASSERT(schedulerCount == 1); // Simplest HC PD implementation
@@ -214,10 +259,10 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     base->contextFactory = contextFactory;
 
     base->destruct = hcPolicyDomainDestruct;
-    base->start = hc_policy_domain_start;
+    base->start = hcPolicyDomainStart;
     base->stop = hcPolicyDomainStop;
     base->finish = hcPolicyDomainFinish;
-    base->allocateDb = NULL;
+    base->allocateDb = hcAllocateDb;
     base->createEdt = hcCreateEdt;
     base->inform = hcInform;
     base->getGuid = hcGetGuid;
@@ -227,12 +272,12 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     base->giveEdt = hcGiveEdt;
     base->giveDb = NULL;
     base->processResponse = NULL;
-    base->getLock = NULL;
-    base->getAtomic64 = NULL;
+    base->getLock = hcGetLock;
+    base->getAtomic64 = hcGetAtomic64;
 
     // no inter-policy domain for simple HC
     base->neighbors = NULL;
-    
+
     //TODO populated by ini file factories. Need setters or something ?
     base->guidProvider = NULL;
     base->schedulers = NULL;
@@ -251,8 +296,8 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     return base;
 }
 
-void destructPolicyDomainFactoryHc(ocrPolicyDomainFactory_t * factory) {
-    // nothing to do
+static void destructPolicyDomainFactoryHc(ocrPolicyDomainFactory_t * factory) {
+    free(factory);
 }
 
 ocrPolicyDomainFactory_t * newPolicyDomainFactoryHc(ocrParamList_t *perType) {
@@ -262,4 +307,3 @@ ocrPolicyDomainFactory_t * newPolicyDomainFactoryHc(ocrParamList_t *perType) {
     base->destruct =  destructPolicyDomainFactoryHc;
     return base;
 }
-

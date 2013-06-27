@@ -32,10 +32,14 @@
 #include "ocr-guid.h"
 #include "ocr-policy-domain.h"
 
-inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * guidRes, ocrGuidKind kind) {
-  return pd->getGuid(pd, guidRes, ptr, kind);
+// TODO: REC: Actually pass a context
+inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * guidRes,
+                  ocrGuidKind kind) {
+
+    return pd->getGuid(pd, guidRes, ptr, kind, NULL);
 }
 
-inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes, ocrGuidKind* kindRes) {
-  return pd->getInfoForGuid(pd, guid, ptrRes, kindRes);
+inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes,
+                    ocrGuidKind* kindRes) {
+    return pd->getInfoForGuid(pd, guid, ptrRes, kindRes, NULL);
 }

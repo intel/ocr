@@ -97,7 +97,7 @@ typedef struct _ocrAllocatorFcts_t {
      * @brief Frees a previously allocated block
      *
      * The block should have been allocated by the same
-     * allocator
+      * allocator
      *
      * @param self              Pointer to this allocator
      * @param address           Address to free

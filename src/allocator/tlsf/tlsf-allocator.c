@@ -867,10 +867,10 @@ static u32 tlsfInit(u64 pgStart, u64 size) {
     return 0;
 }
 
-static u32 tlsfResize(u64 pgStart, u64 newsize) {
-    return -1;
-    // TODO: Not implemented yet
-}
+//static u32 tlsfResize(u64 pgStart, u64 newsize) {
+//    return -1;
+//    // TODO: Not implemented yet
+//}
 
 static u64 tlsfMalloc(u64 pgStart, u64 size) {
     u64 result = 0ULL;
@@ -1025,11 +1025,15 @@ static void tlsfMap(ocrMappable_t* self, ocrMappableKind kind, u64 instanceCount
 
 void tlsfDestruct(ocrAllocator_t *self) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    if(rself->numMemories)
-        rself->memories[0]->free(rself->memories[0], (void*)rself->addr);
-    rself->lock->destruct(rself->lock);
-    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
-    guidProvider->releaseGuid(guidProvider, self->guid);
+    if(self->memoryCount)
+        self->memories[0]->fctPtrs->free(self->memories[0], (void*)rself->addr);
+    rself->lock->fctPtrs->destruct(rself->lock);
+    free(self->memories);
+
+    ocrPolicyDomain_t *pd = getCurrentPD();
+    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
+    ctx->type = PD_MSG_GUID_REL;
+    pd->inform(pd, self->guid, ctx);
     free(rself);
 }
 

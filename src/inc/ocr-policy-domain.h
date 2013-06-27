@@ -60,6 +60,7 @@ typedef enum {
     PD_MSG_DB_TAKE     = 5, /**< Take DBs (children of the PD make this call) */
     PD_MSG_EDT_STEAL   = 6, /**< Steal EDTs (from non-children PD) */
     PD_MSG_DB_STEAL    = 7, /**< Steal DBs (from non-children PD) */
+    PD_MSG_GUID_REL    = 8, /**< Release a GUID */
 } ocrPolicyMsgType_t;
 
 /**
@@ -277,10 +278,10 @@ typedef struct _ocrPolicyDomain_t {
      * @todo Write description, behaves as other functions
      */
     u8 (*getGuid)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid, u64 val,
-                  ocrGuidKind type);
+                  ocrGuidKind type, ocrPolicyCtx_t *context);
 
     u8 (*getInfoForGuid)(struct _ocrPolicyDomain_t *self, ocrGuid_t guid, u64* val,
-                         ocrGuidKind* type);
+                         ocrGuidKind* type, ocrPolicyCtx_t *context);
 
     /**
      * @brief Take one or more EDTs to execute
@@ -342,8 +343,8 @@ typedef struct _ocrPolicyDomain_t {
      */
     void (*processResponse)(struct _ocrPolicyDomain_t *self, ocrPolicyCtx_t *context);
 
-    ocrLock_t* (*getLock)(struct _ocrPolicyDomain_t *self);
-    ocrAtomic64_t* (*getAtomic64)(struct _ocrPolicyDomain_t *self);
+    ocrLock_t* (*getLock)(struct _ocrPolicyDomain_t *self, ocrPolicyCtx_t *context);
+    ocrAtomic64_t* (*getAtomic64)(struct _ocrPolicyDomain_t *self, ocrPolicyCtx_t *context);
 
     struct _ocrPolicyDomain_t** neighbors;
     u64 neighborCount;

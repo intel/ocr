@@ -140,8 +140,7 @@ typedef struct _ocrTask_t {
     ocrStatsProcess_t statProcess;
 #endif
     ocrGuid_t templateGuid; /**< GUID for the template of this task */
-    u64 * params;
-    void ** paramv;
+    u64* paramv;
     ocrGuid_t outputEvent; // Event to notify when the EDT is done
     // TODO: What about depv?? => This is implementation specific for now
     ocrGuid_t els[ELS_SIZE];
@@ -170,8 +169,8 @@ typedef struct _ocrTaskFactory_t {
      *
      */
     ocrTask_t* (*instantiate)(struct _ocrTaskFactory_t * factory, ocrTaskTemplate_t * edtTemplate,
-                              u32 paramc, u64* paramv, u32 depc, ocrGuid_t *depv, u16 properties,
-                              ocrGuid_t affinity, ocrGuid_t *outputEvent);
+                              u32 paramc, u64* paramv, u32 depc, u16 properties,
+                              ocrGuid_t affinity, ocrGuid_t *outputEvent, ocrParamList_t *perInstance);
 
     /*! \brief Virtual destructor for the TaskFactory interface
      */

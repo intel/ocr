@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-//#include <errno.h>
+#include <errno.h>
 
 #include "ocr-datablock.h"
 #include "regular-datablock.h"
@@ -152,9 +152,12 @@ void regularDestruct(ocrDataBlock_t *self) {
     ASSERT(rself->attributes.freeRequested == 1);
     rself->lock->fctPtrs->destruct(rself->lock);
 
+    ocrPolicyDomain_t *pd = getCurrentPD();
+    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
+    ctx->type = PD_MSG_GUID_REL;
     // Tell the allocator to free the data-block
     ocrAllocator_t *allocator = NULL;
-    deguidify(getCurrentPD(), rself->allocatorGuid, (u64*)&allocator, NULL);
+    deguidify(getCurrentPD(), rself->base.allocator, (u64*)&allocator, NULL);
 
     DO_DEBUG(DEBUG_LVL_VERB) {
         PRINTF("VERB: Freeing DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n", (u64)rself->ptr, rself->base.guid);
@@ -169,8 +172,7 @@ void regularDestruct(ocrDataBlock_t *self) {
     ocrStatsProcessDestruct(&(rself->base.statProcess));
 #endif
 
-    ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider();
-    guidProvider->releaseGuid(guidProvider, self->guid);
+    pd->inform(pd, self->guid, ctx);
     free(rself);
 }
 
@@ -215,12 +217,13 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
 
 ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrGuid_t allocator,
                                     ocrGuid_t allocatorPD, u64 size, void* ptr,
-                                    u16 properties) {
+                                    u16 properties, ocrParamList_t *perInstance) {
 
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)
         checkedMalloc(result, sizeof(ocrDataBlockRegular_t));
 
     ocrPolicyDomain_t *pd = getCurrentPD();
+    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
 
     result->base.guid = UNINITIALIZED_GUID;
     result->base.allocator = allocator;
@@ -231,20 +234,18 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrGuid_t al
     result->base.fctPtrs = &(factory->dataBlockFcts);
 
 
-    guidify(pd, &(result->base.guid), (u64)result, OCR_GUID_DB);
-
-    ocrLockFactory_t *lockFactory = getLockFactoryFromPd(pd);
-    result->lock = lockFactory->instantiate(lockFactory, NULL);
+    guidify(pd, (u64)result, &(result->base.guid), OCR_GUID_DB);
+    result->lock = pd->getLock(pd, ctx);
 
     result->attributes.flags = result->base.properties;
-    rself->attributes.numUsers = 0;
-    rself->attributes.freeRequested = 0;
-    ocrGuidTrackerInit(&(rself->usersTracker));
+    result->attributes.numUsers = 0;
+    result->attributes.freeRequested = 0;
+    ocrGuidTrackerInit(&(result->usersTracker));
 
 
     DO_DEBUG(DEBUG_LVL_VERB) {
         PRINTF("VERB: Creating a datablock of size %ld @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n",
-               size, (u64)rself->ptr, rself->base.guid);
+               size, (u64)result->base.ptr, result->base.guid);
     }
 
     return (ocrDataBlock_t*)result;
@@ -263,6 +264,10 @@ ocrDataBlockFactory_t *newDataBlockFactoryRegular(ocrParamList_t *perType) {
 
     base->instantiate = &newDataBlockRegular;
     base->destruct = &destructRegularFactory;
-    base->platformFcts.destruct = &regularDestruct;
+    base->dataBlockFcts.destruct = &regularDestruct;
+    base->dataBlockFcts.acquire = &regularAcquire;
+    base->dataBlockFcts.release = &regularRelease;
+    base->dataBlockFcts.free = &regularFree;
 
+    return base;
 }

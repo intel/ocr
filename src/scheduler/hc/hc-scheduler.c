@@ -75,8 +75,7 @@ ocrWorkpileIterator_t* steal_mapping_one_to_all_but_self (ocrScheduler_t* base, 
 static u8 hcSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *count,
                   ocrGuid_t *edts, ocrPolicyCtx_t *context) {
     // In this implementation (getCurrentPD == context->sourcePD)
-    ocrPolicyDomain_t * pd = getCurrentPD();
-    // Source must be a worker guid and we rely on indices to map 
+    // Source must be a worker guid and we rely on indices to map
     // workers to workpiles (one-to-one)
     u64 workerId = context->sourceId;
     // First try to pop
@@ -94,10 +93,10 @@ static u8 hcSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *c
         // Note that we do not need to destruct the workpile
         // iterator as the HC implementation caches them.
     }
-    // Int this implementation we expect the caller to have 
+    // Int this implementation we expect the caller to have
     // allocated memory for us since we can return at most one
     // guid (most likely store using the address of a local)
-    if (NULL_GUID != popped) { 
+    if (NULL_GUID != popped) {
       *count = 1;
       *edts = popped;
     } else {
@@ -172,5 +171,3 @@ ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *
 
     return base;
 }
-
-

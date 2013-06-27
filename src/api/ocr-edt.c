@@ -43,7 +43,8 @@
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     ocrPolicyDomain_t * pd = getCurrentPD();
     ocrEventFactory_t * eventFactory = getEventFactoryFromPd(pd);
-    ocrEvent_t * event = eventFactory->instantiate(eventFactory, eventType, takesArg);
+    ocrEvent_t * event = eventFactory->instantiate(eventFactory, eventType,
+                                                   takesArg, NULL);
     *guid = event->guid;
     return 0;
 }

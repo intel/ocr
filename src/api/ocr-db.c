@@ -66,11 +66,13 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     // Replace with allocator that is gotten from policy
     //
     ocrPolicyDomain_t* policy = getCurrentPD();
-    ocrDataBlockFactory_t* dbFactory = getDataBlockFactoryFromPd(policy);
-    // TODO sagnak, this has to be created by a parameter for data block allocator
-    paramListDataBlockInst_t* dbParams = NULL;
-    ocrDataBlock_t *createdDb = dbFactory->instantiate(dbFactory, (ocrParamList_t*)dbParams);
-    // createdDb->create(createdDb, policy->getAllocator(policy, location), len, flags, NULL);
+    ocrPolicyCtx_t* ctx = getCurrentWorkerContext();
+    // TODO: Pass ocrInDbAllocator_t down to the DB factory
+    policy->allocateDb(
+        policy, db, addr, len, flags, affinity, allocator, ctx);
+
+    ocrDataBlock_t* createdDb;
+    deguidify(policy, *db, (u64*)&createdDb, NULL);
 
 #ifdef OCR_ENABLE_STATISTICS
     // Create the statistics process for this DB.

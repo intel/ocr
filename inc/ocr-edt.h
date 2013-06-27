@@ -189,7 +189,7 @@ typedef struct {
  *
  * @warning The variable number of input parameters (paramc) may change in the future.
  **/
-typedef ocrGuid_t (*ocrEdt_t )( u32 paramc, u64* paramv[],
+typedef ocrGuid_t (*ocrEdt_t )( u32 paramc, u64* paramv,
                    u32 depc, ocrEdtDep_t depv[]);
 
 

@@ -194,7 +194,7 @@ static ocrEvent_t* eventConstructorInternal(ocrPolicyDomain_t * pd, ocrEventFact
 }
 
 void destructEventHc ( ocrEvent_t* base ) {
-    // Event's signaler/waiter must have been previously deallocated 
+    // Event's signaler/waiter must have been previously deallocated
     // at some point before. For instance on satisfy.
     ocrEventHc_t* derived = (ocrEventHc_t*)base;
     ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider;
@@ -455,7 +455,8 @@ static bool isFinishLatchOwner(ocrEvent_t * finishLatch, ocrGuid_t edtGuid) {
 /******************************************************/
 
 // takesArg indicates whether or not this event carries any data
-ocrEvent_t * newEventHc ( ocrEventFactory_t * factory, ocrEventTypes_t eventType, bool takesArg ) {
+ocrEvent_t * newEventHc ( ocrEventFactory_t * factory, ocrEventTypes_t eventType,
+                          bool takesArg, ocrParamList_t *perInstance) {
     ocrEvent_t * res = eventConstructorInternal(getCurrentPD(), factory, eventType, takesArg);
     return res;
 }
@@ -494,9 +495,10 @@ ocrEventFactory_t * newEventFactoryHc(void * config) {
 /* OCR-HC Task Implementation                         */
 /******************************************************/
 
-static void newTaskHcInternalCommon (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived, ocrTaskTemplate_t * taskTemplate,
-        u64 * params, void** paramv, ocrGuid_t outputEvent) {
-    u64 nbDeps = taskTemplate->depc;
+static void newTaskHcInternalCommon (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived,
+                                     ocrTaskTemplate_t * taskTemplate, u32 paramc,
+                                     u64* paramv, u32 depc, ocrGuid_t outputEvent) {
+    u32 nbDeps = depc;
     if (nbDeps == 0) {
         derived->signalers = END_OF_LIST;
     } else {
@@ -509,7 +511,6 @@ static void newTaskHcInternalCommon (ocrPolicyDomain_t * pd, ocrTaskHc_t* derive
     base->guid = UNINITIALIZED_GUID;
     guidify(pd, (u64)base, &(base->guid), OCR_GUID_EDT);
     base->templateGuid = taskTemplate->guid;
-    base->params = params;
     base->paramv = paramv;
     base->outputEvent = outputEvent;
     // Initialize ELS
@@ -519,10 +520,12 @@ static void newTaskHcInternalCommon (ocrPolicyDomain_t * pd, ocrTaskHc_t* derive
     }
 }
 
-static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomain_t * pd, ocrTaskTemplate_t * taskTemplate, 
-                                    u64 * params, void** paramv, u16 properties, ocrGuid_t outputEvent) {
+static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomain_t * pd,
+                                       ocrTaskTemplate_t * taskTemplate, u32 paramc,
+                                       u64* paramv, u32 depc, u16 properties,
+                                       ocrGuid_t affinity, ocrGuid_t outputEvent) {
     ocrTaskHc_t* newEdt = (ocrTaskHc_t*)checkedMalloc(newEdt, sizeof(ocrTaskHc_t));
-    newTaskHcInternalCommon(pd, newEdt, taskTemplate, params, paramv, outputEvent);
+    newTaskHcInternalCommon(pd, newEdt, taskTemplate, paramc, paramv, depc, outputEvent);
     ocrTask_t * newEdtBase = (ocrTask_t *) newEdt;
     // If we are creating a finish-edt
     if (hasProperty(properties, EDT_PROP_FINISH)) {
@@ -628,7 +631,7 @@ static void edtRegisterSignaler(ocrTask_t * base, ocrGuid_t signalerGuid, int sl
  * Note: static function only meant to factorize code.
  */
 static inline void taskSchedule( ocrGuid_t taskGuid ) {
-    // Setting up the context 
+    // Setting up the context
     ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
     ocrPolicyDomain_t * pd = getCurrentPD();
     ocrGuid_t workerGuid = ctx->sourceObj;
@@ -702,7 +705,8 @@ void taskExecute ( ocrTask_t* base ) {
     deguidify(getCurrentPD(), base->templateGuid, (u64*)&taskTemplate, NULL);
 
     //TODO: define when task template is resolved from its guid
-    ocrGuid_t retGuid = taskTemplate->executePtr(taskTemplate->paramc, base->params, base->paramv, nbdeps, depv);
+    ocrGuid_t retGuid = taskTemplate->executePtr(taskTemplate->paramc, base->paramv,
+                                                 nbdeps, depv);
 
     // edt user code is done, if any deps, release data-blocks
     if (nbdeps != 0) {
@@ -771,8 +775,10 @@ ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType) {
 /* OCR-HC Task Factory                                */
 /******************************************************/
 
-ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate, 
-                    u64 * params, void** paramv, u16 properties, ocrGuid_t * outputEventPtr) {
+ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplate,
+                      u32 paramc, u64* paramv, u32 depc, u16 properties,
+                      ocrGuid_t affinity, ocrGuid_t * outputEventPtr,
+                      ocrParamList_t *perInstance) {
 
     // Initialize a sticky outputEvent if requested (ptr not NULL)
     // i.e. the user gave a place-holder for the runtime to initialize and set an output event.
@@ -780,10 +786,11 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplat
     ocrPolicyDomain_t* pd = getCurrentPD();
     if (outputEvent != NULL_GUID) {
         ocrEventFactory_t * eventFactory = getEventFactoryFromPd(pd);
-        ocrEvent_t * event = newEventHc(eventFactory, OCR_EVENT_STICKY_T, false);
+        ocrEvent_t * event = newEventHc(eventFactory, OCR_EVENT_STICKY_T, false, NULL);
         *outputEventPtr = event->guid;
     }
-    ocrTaskHc_t* edt = newTaskHcInternal(factory, pd, taskTemplate, params, paramv, properties, outputEvent);
+    ocrTaskHc_t* edt = newTaskHcInternal(factory, pd, taskTemplate, paramc, paramv,
+                                         depc, properties, affinity, outputEvent);
     ocrTask_t* base = (ocrTask_t*) edt;
     base->fctPtrs = &(((ocrTaskFactoryHc_t *) factory)->taskFctPtrs);
     return base;
@@ -799,8 +806,8 @@ ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance) {
     ocrTaskFactory_t* base = (ocrTaskFactory_t*) derived;
     base->instantiate = newTaskHc;
     base->destruct =  destructTaskFactoryHc;
-    // initialize singleton instance that carries hc implementation 
-    // function pointers. Every instantiated task template will use 
+    // initialize singleton instance that carries hc implementation
+    // function pointers. Every instantiated task template will use
     // this pointer to resolve functions implementations.
     derived->taskFctPtrs.destruct = destructTaskHc;
     derived->taskFctPtrs.execute = taskExecute;
