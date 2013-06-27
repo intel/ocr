@@ -296,7 +296,9 @@ typedef struct _ocrPolicyDomain_t {
      * @param self        This policy domain
      * @param cost      An optional cost function provided by the taker
      * @param count     On return contains the number of EDTs taken (synchronous calls)
+     *                  Warning: no assumption here whether memory is allocated in caller or callee
      * @param edts      On return contains the EDTs taken (synchronous calls)
+     *                  Warning: no assumption here whether memory is allocated in caller or callee
      * @param context   Context for this call
      *
      * @return:

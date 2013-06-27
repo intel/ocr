@@ -146,8 +146,11 @@ void * worker_computation_routine(void * arg) {
         ocrGuid_t taskGuid;
         u32 count;
         pd->takeEdt(pd, NULL, &count, &taskGuid, contextTake);
-        ASSERT(count == 1); // remove that when we can take a bunch
-        if (taskGuid != NULL_GUID) {
+        // remove this when we can take a bunch and make sure there's
+        // an agreement whether it's the callee or the caller that 
+        // allocates the taskGuid array 
+        ASSERT(count <= 1);
+        if (count != 0) {
             ocrTask_t* curr_task = NULL;
             deguidify(pd, taskGuid, (u64*)&(curr_task), NULL);
             worker->fctPtrs->setCurrentEDT(worker,taskGuid);

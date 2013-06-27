@@ -170,6 +170,21 @@ u8 hcGetInfoForGuid(ocrPolicyDomain_t *self, ocrGuid_t guid, u64* val, ocrGuidKi
     return 0;
 }
 
+static u8 hcTakeEdt(ocrPolicyDomain_t *self, ocrCost_t *cost, u32 *count,
+                ocrGuid_t *edts, ocrPolicyCtx_t *context) {
+    self->schedulers[0]->fctPtrs->takeEdt(self->schedulers[0], cost, count, edts, context);
+    // When takeEdt is successful, it means there either was 
+    // work in the current worker's workpile, or that the scheduler 
+    // did work-stealing across workpiles.
+    return 0;
+}
+
+static u8 hcGiveEdt(ocrPolicyDomain_t *self, u32 count, ocrGuid_t *edts, ocrPolicyCtx_t *context) {
+    self->schedulers[0]->fctPtrs->giveEdt(self->schedulers[0], count, edts, context);
+    return 0;
+}
+
+
 ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * configuration,
         u64 schedulerCount, u64 workerCount, u64 computeCount,
         u64 workpileCount, u64 allocatorCount, u64 memoryCount,
@@ -185,6 +200,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     module_base->mapFct = hc_ocr_module_map_schedulers_to_policy;
 
     base->schedulerCount = schedulerCount;
+    ASSERT(schedulerCount == 1); // Simplest HC PD implementation
     base->workerCount = workerCount;
     base->computeCount = computeCount;
     base->workpileCount = workpileCount;
@@ -206,9 +222,9 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     base->inform = hcInform;
     base->getGuid = hcGetGuid;
     base->getInfoForGuid = hcGetInfoForGuid;
-    base->takeEdt = NULL;
+    base->takeEdt = hcTakeEdt;
     base->takeDb = NULL;
-    base->giveEdt = NULL;
+    base->giveEdt = hcGiveEdt;
     base->giveDb = NULL;
     base->processResponse = NULL;
     base->getLock = NULL;
@@ -235,7 +251,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     return base;
 }
 
-void destructPolicyDomainHc(ocrPolicyDomainFactory_t * factory) {
+void destructPolicyDomainFactoryHc(ocrPolicyDomainFactory_t * factory) {
     // nothing to do
 }
 
@@ -243,7 +259,7 @@ ocrPolicyDomainFactory_t * newPolicyDomainFactoryHc(ocrParamList_t *perType) {
     ocrPolicyDomainHcFactory_t* derived = (ocrPolicyDomainHcFactory_t*) checkedMalloc(derived, sizeof(ocrPolicyDomainHcFactory_t));
     ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) derived;
     base->instantiate = newPolicyDomainHc;
-    base->destruct =  destructPolicyDomainHc;
+    base->destruct =  destructPolicyDomainFactoryHc;
     return base;
 }
 
