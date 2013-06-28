@@ -39,7 +39,15 @@ typedef enum _workerType_t {
     workerHc_id,
     workerFsimXE_id,
     workerFsimCE_id,
+    workerMax_id,
 } workerType_t;
+
+const char * worker_types[] = {
+    "HC",
+    "XE",
+    "CE",
+    NULL
+};
 
 extern ocrWorker_t* newOcrWorkerFactoryHc(ocrParamList_t *perType);
 extern ocrWorker_t* newOcrWorkerFactoryFsimXE(ocrParamList_t *perType);
@@ -48,9 +56,9 @@ extern ocrWorker_t* newOcrWorkerFactoryFsimCE(ocrParamList_t *perType);
 inline ocrWorker_t * newWorkerFactory(workerType_t type, ocrParamList_t *perType) {
     switch(type) {
     case workerFsimXE_id:
-        return newOcrWorkerFactoryFsimXE(perType);
+    //DELME    return newOcrWorkerFactoryFsimXE(perType);
     case workerFsimCE_id:
-        return newOcrWorkerFactoryFsimCE(perType);
+    //DELME    return newOcrWorkerFactoryFsimCE(perType);
     case workerHc_id:
         return newOcrWorkerFactoryHc(perType);
     }

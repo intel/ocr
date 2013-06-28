@@ -37,7 +37,13 @@
 
 typedef enum _compTargetType_t {
     compTargetHc_id,
+    compTargetMax_id,
 } compTargetType_t;
+
+const char * comptarget_types[] = {
+    "HC",
+    NULL
+};
 
 // Pthread compute platform
 #include "comp-target/hc/hc-comp-target.h"

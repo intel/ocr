@@ -39,8 +39,17 @@ typedef enum _schedulerType_t {
     schedulerHc_id,
     schedulerHcPlaced_id,
     schedulerFsimXE_id,
-    schedulerFsimCE_id
+    schedulerFsimCE_id,
+    schedulerMax_id
 } schedulerType_t;
+
+const char * scheduler_types[] = {
+    "HC",
+    "HC_Placed", 
+    "XE",
+    "CE",
+    NULL
+};
 
 extern ocrSchedulerFactory_t * newSchedulerFactoryHc(ocrParamList_t *perType);
 extern ocrSchedulerFactory_t * newSchedulerFactoryHcPlaced(ocrParamList_t *perType);

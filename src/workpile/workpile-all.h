@@ -37,8 +37,15 @@
 
 typedef enum _workpileType_t {
     workpileHc_id,
-    workpileFsimMessage_id
+    workpileFsimMessage_id,
+    workpileMax_id,
 } workpileType_t;
+
+const char * workpile_types[] = {
+    "HC",
+    "FSIM",
+    NULL,
+};
 
 extern ocrWorkpileFactory_t* newOcrWorkpileFactoryHc(ocrParamList_t *perType);
 extern ocrWorkpileFactory_t* newOcrWorkpileFactoryFsimMessage(ocrParamList_t *perType);
@@ -48,7 +55,8 @@ inline ocrWorkpileFactory_t * newWorkpileFactory(workpileType_t type, ocrParamLi
     case workpileHc_id:
         return newOcrWorkpileFactoryHc(perType);
     case workpileFsimMessage_id:
-        return newOcrWorkpileFactoryFsimMessage(perType);
+    // DELME    return newOcrWorkpileFactoryFsimMessage(perType);
+        return newOcrWorkpileFactoryHc(perType);
     }
     ASSERT(0);
     return NULL;

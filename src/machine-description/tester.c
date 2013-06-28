@@ -18,6 +18,11 @@
 #include <comp-platform/comp-platform-all.h>
 #include <mem-target/mem-target-all.h>
 #include <allocator/allocator-all.h>
+#include <comp-target/comp-target-all.h>
+#include <workpile/workpile-all.h>
+#include <worker/worker-all.h>
+#include <scheduler/scheduler-all.h>
+#include <policy-domain/policy-domain-all.h>
 
 #define INI_GET_INT(KEY, VAR, DEF) VAR = (int) iniparser_getint(dict, KEY, DEF); if (VAR==DEF){ printf("Key %s not found or invalid!\n", KEY); }
 #define INI_GET_STR(KEY, VAR, DEF) VAR = (char *) iniparser_getstring(dict, KEY, DEF); if (!strcmp(VAR, DEF)){ printf("Key %s not found or invalid!\n", KEY); }
@@ -31,6 +36,11 @@ typedef enum {
     memtarget_type,
     allocator_type,
     complatform_type,
+    comptarget_type,
+    workpile_type,
+    worker_type,
+    scheduler_type,
+    policydomain_type,
 } type_enum;
 
 const char *type_str[] = {
@@ -38,6 +48,11 @@ const char *type_str[] = {
     "MemTargetType",
     "AllocatorType",
     "CompPlatformType",
+    "CompTargetType",
+    "WorkPileType",
+    "WorkerType",
+    "SchedulerType",
+    "PolicyDomainType",
 };
 
 int type_counts[sizeof(type_str)/sizeof(const char *)];
@@ -49,7 +64,12 @@ typedef enum {
     memplatform_inst,
     memtarget_inst,
     allocator_inst,
-    complatform_inst,
+    compplatform_inst,
+    comptarget_inst,
+    workpile_inst,
+    worker_inst,
+    scheduler_inst,
+    policydomain_inst,
 } inst_enum;
 
 const char *inst_str[] = {
@@ -57,6 +77,11 @@ const char *inst_str[] = {
     "MemTargetInst",
     "AllocatorInst",
     "CompPlatformInst",
+    "CompTargetInst",
+    "WorkPileInst",
+    "WorkerInst",
+    "SchedulerInst",
+    "PolicyDomainInst",
 };
 
 int inst_counts[sizeof(inst_str)/sizeof(const char *)];
@@ -74,6 +99,16 @@ typedef struct {
 dep_t deps[] = {
     { 1, 0, "memplatform"},
     { 2, 1, "memtarget"},
+    { 4, 3, "compplatform"},
+    { 6, 4, "comptarget"},
+    { 7, 5, "workpile"},
+    { 7, 6, "worker"},
+    { 8, 1, "memtarget"},
+    { 8, 2, "allocator"},
+    { 8, 4, "comptarget"},
+    { 8, 5, "worker"},
+    { 8, 6, "workpile"},
+    { 8, 7, "scheduler"},
 };
 
 // TODO: expand to parse comma separated values & ranges iterating the below thru strtok with ,
@@ -185,7 +220,7 @@ ocrMemPlatformFactory_t *create_factory_memtarget(char *name, ocrParamList_t *pa
     }
 }
 
-ocrMemPlatformFactory_t *create_factory_allocator(char *name, ocrParamList_t *paramlist)
+ocrAllocatorFactory_t *create_factory_allocator(char *name, ocrParamList_t *paramlist)
 {
     allocatorType_t mytype = -1;
     TO_ENUM (mytype, name, allocatorType_t, allocator_types, allocatorMax_id);
@@ -194,7 +229,72 @@ ocrMemPlatformFactory_t *create_factory_allocator(char *name, ocrParamList_t *pa
         return NULL;
     } else { 
         printf("Creating an allocator factory of type %d: %s\n", mytype, factory_names[2][mytype]); 
-        return (ocrMemPlatformFactory_t *)newAllocatorFactory(mytype, paramlist);
+        return (ocrAllocatorFactory_t *)newAllocatorFactory(mytype, paramlist);
+    }
+}
+
+ocrCompTargetFactory_t *create_factory_comptarget(char *name, ocrParamList_t *paramlist)
+{
+    compTargetType_t mytype = -1;
+    TO_ENUM (mytype, name, compTargetType_t, comptarget_types, compTargetMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a comptarget factory of type %d: %s\n", mytype, factory_names[4][mytype]); 
+        return (ocrCompTargetFactory_t *)newCompTargetFactory(mytype, paramlist);
+    }
+}
+
+ocrWorkpileFactory_t *create_factory_workpile(char *name, ocrParamList_t *paramlist)
+{
+    workpileType_t mytype = -1;
+    TO_ENUM (mytype, name, workpileType_t, workpile_types, workpileMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a workpile factory of type %d: %s\n", mytype, factory_names[5][mytype]); 
+        return (ocrWorkpileFactory_t *)newWorkpileFactory(mytype, paramlist);
+    }
+}
+
+ocrWorkerFactory_t *create_factory_worker(char *name, ocrParamList_t *paramlist)
+{
+    workerType_t mytype = -1;
+    TO_ENUM (mytype, name, workerType_t, worker_types, workerMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a worker factory of type %d: %s\n", mytype, factory_names[6][mytype]); 
+        return (ocrWorkerFactory_t *)newWorkerFactory(mytype, paramlist);
+    }
+}
+
+ocrSchedulerFactory_t *create_factory_scheduler(char *name, ocrParamList_t *paramlist)
+{
+    schedulerType_t mytype = -1;
+    TO_ENUM (mytype, name, schedulerType_t, scheduler_types, schedulerMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a scheduler factory of type %d: %s\n", mytype, factory_names[7][mytype]); 
+        return (ocrSchedulerFactory_t *)newSchedulerFactory(mytype, paramlist);
+    }
+}
+
+ocrPolicyDomainFactory_t *create_factory_policydomain(char *name, ocrParamList_t *paramlist)
+{
+    policyDomainType_t mytype = -1;
+    TO_ENUM (mytype, name, policyDomainType_t, policyDomain_types, policyDomainMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a worker factory of type %d: %s\n", mytype, factory_names[8][mytype]); 
+        return (ocrPolicyDomainFactory_t *)newPolicyDomainFactory(mytype, paramlist);
     }
 }
 
@@ -216,10 +316,13 @@ void *create_factory (int index, char *factory_name, ocrParamList_t *paramlist)
         new_factory = (void *)create_factory_compplatform(factory_name, paramlist);
         break;
     case 4:
+        new_factory = (void *)create_factory_comptarget(factory_name, paramlist);
         break;
     case 5:
+        new_factory = (void *)create_factory_workpile(factory_name, paramlist);
         break;
     case 6:
+        new_factory = (void *)create_factory_worker(factory_name, paramlist);
         break;
     case 7:
         break;
@@ -267,23 +370,56 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
         break;
     case 1:
         for (j = low; j<=high; j++) {
-            paramListMemTargetInst_t *t;
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
-            t = (paramListMemTargetInst_t *)inst_param[j];
             instance[j] = ((ocrMemTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created memtarget of type %s, index %d\n", inststr, j);
         }
         break;
     case 2:
         for (j = low; j<=high; j++) { 
-            paramListAllocatorInst_t *t;
             ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
-            t = (paramListAllocatorInst_t *)inst_param[j];
             instance[j] = ((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created allocator of type %s, index %d\n", inststr, j);
         }
         break;
     case 3:
+        for (j = low; j<=high; j++) {
+            ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
+            instance[j] = ((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created compplatform of type %s, index %d\n", inststr, j);
+        }
+        break;
+    case 4:
+        for (j = low; j<=high; j++) {
+            ALLOC_PARAM_LIST(inst_param[j], paramListCompTargetInst_t);
+            instance[j] = ((ocrCompTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created comptarget of type %s, index %d\n", inststr, j);
+        }
+        break;
+    case 5:
+        for (j = low; j<=high; j++) {
+            ALLOC_PARAM_LIST(inst_param[j], paramListWorkpileInst_t);
+            instance[j] = ((ocrWorkpileFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created workpile of type %s, index %d\n", inststr, j);
+        }
+        break;
+    case 6:
+        for (j = low; j<=high; j++) {
+            ALLOC_PARAM_LIST(inst_param[j], paramListWorkerInst_t);
+            instance[j] = ((ocrWorkerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created worker of type %s, index %d\n", inststr, j);
+        }
+        break;
+    case 7:
+        break;
+        for (j = low; j<=high; j++) {
+            ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
+            instance[j] = ((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created compplatform of type %s, index %d\n", inststr, j);
+        }
+        break;
+    case 8:
+        break;
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
             instance[j] = ((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
@@ -304,7 +440,6 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
     for (j = low; j <= high; j++) {
         char found = 0;
         for (i = 0; i < type_counts[index]; i++) {
-            //if ((inst_params[index][j]->misc && type_params[index][i]->misc) && (0 == strcmp(inst_params[index][j]->misc, type_params[index][i]->misc))) found = 1;
             if ((inst_params[index][j]->misc && factory_names[index][i]) && (0 == strcmp(inst_params[index][j]->misc, factory_names[index][i]))) found = 1;
         }
         if(found==0) {
@@ -422,8 +557,6 @@ int main(int argc, char *argv[])
                 if (all_factories[j][count] == NULL) {
                     free(factory_names[j][count]);
                     factory_names[j][count] = NULL;
-//                    if(type_params[j][count]->misc) free(type_params[j][count]->misc);
-//                    type_params[j][count]->misc = NULL;
                 }
                 count++;
             }
