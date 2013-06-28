@@ -55,7 +55,6 @@ inline ocrWorkpileFactory_t * newWorkpileFactory(workpileType_t type, ocrParamLi
     case workpileHc_id:
         return newOcrWorkpileFactoryHc(perType);
     case workpileFsimMessage_id:
-    default:
     // DELME    return newOcrWorkpileFactoryFsimMessage(perType);
         return newOcrWorkpileFactoryHc(perType);
     case workpileMax_id:
