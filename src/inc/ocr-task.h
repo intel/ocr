@@ -175,5 +175,7 @@ typedef struct _ocrTaskFactory_t {
     /*! \brief Virtual destructor for the TaskFactory interface
      */
     void (*destruct)(struct _ocrTaskFactory_t * factory);
+
+    ocrTaskFcts_t taskFcts;
 } ocrTaskFactory_t;
 #endif /* __OCR_TASK_H__ */

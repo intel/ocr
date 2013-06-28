@@ -40,6 +40,8 @@
 #include "ocr-statistics.h"
 #endif
 
+
+
 /*******************************************
  * Dependence Registration
  ******************************************/
@@ -175,5 +177,8 @@ event_list_t* event_list_constructor ();
  *  \param[inout] list The list to be freed (the 'list' pointer is invalid after this call)
  */
 void event_list_destructor ( event_list_t* list );
+
+// Define internal finish-latch event id after user-level events
+#define OCR_EVENT_FINISH_LATCH_T OCR_EVENT_T_MAX+1
 
 #endif /* __OCR_EVENT_H_ */

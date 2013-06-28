@@ -44,13 +44,13 @@ typedef struct {
     ocrEventFcts_t finishLatchFcts;
 } ocrEventFactoryHc_t;
 
-ocrEventFactory_t* newEventFactoryHc(void * config);
+ocrEventFactory_t* newEventFactoryHc(ocrParamList_t *perType);
 
 typedef struct reg_node_st {
     ocrGuid_t guid;
     int slot;
     struct reg_node_st* next ;
-} reg_node_t;
+} regNode_t;
 
 typedef struct ocrEventHc_t {
     ocrEvent_t base;
@@ -59,8 +59,8 @@ typedef struct ocrEventHc_t {
 
 typedef struct ocrEventHcAwaitable_t {
     ocrEventHc_t base;
-    volatile reg_node_t * waiters;
-    volatile reg_node_t * signalers;
+    volatile regNode_t * waiters;
+    volatile regNode_t * signalers;
     ocrGuid_t data;
 } ocrEventHcAwaitable_t;
 
@@ -76,8 +76,8 @@ typedef struct ocrEventHcLatch_t {
 typedef struct ocrEventHcFinishLatch_t {
     ocrEventHc_t base;
     // Dependences to be signaled
-    reg_node_t outputEventWaiter;
-    reg_node_t parentLatchWaiter; // Parent latch when nesting finish scope
+    regNode_t outputEventWaiter;
+    regNode_t parentLatchWaiter; // Parent latch when nesting finish scope
     ocrGuid_t ownerGuid; // finish-edt starting the finish scope
     volatile ocrGuid_t returnGuid;
     volatile int counter;
@@ -93,11 +93,9 @@ typedef struct {
  */
 typedef struct {
     ocrTask_t base;
-    reg_node_t * waiters;
-    reg_node_t * signalers; // Does not grow, set once when the task is created
+    regNode_t * waiters;
+    regNode_t * signalers; // Does not grow, set once when the task is created
     u64 nbdeps;
 } ocrTaskHc_t;
-
-void taskExecute ( ocrTask_t* base );
 
 #endif

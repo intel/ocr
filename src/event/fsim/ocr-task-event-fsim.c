@@ -42,14 +42,14 @@
 
 // This is doing pretty much what the hc implementation would do
 // There's no inheritance setup so it's a vague copy paste
-static void newTaskFsimInternal (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived, 
+static void newTaskFsimInternal (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived,
         ocrTaskTemplate_t * taskTemplate, u64 * params, void** paramv, ocrGuid_t outputEvent) {
     u32 nbDeps = taskTemplate->depc;
     if (nbDeps == 0) {
         derived->signalers = END_OF_LIST;
     } else {
         // Since we know how many dependences we have, preallocate signalers
-        derived->signalers = checkedMalloc(derived->signalers, sizeof(reg_node_t)*nbDeps);
+        derived->signalers = checkedMalloc(derived->signalers, sizeof(regNode_t)*nbDeps);
     }
     derived->waiters = END_OF_LIST;
     // Initialize base
@@ -131,8 +131,8 @@ ocrTaskFactory_t* newTaskFactoryFsim(ocrParamList_t* perInstance) {
     ocrTaskFactory_t* base = (ocrTaskFactory_t*) derived;
     base->instantiate = newTaskFsim;
     base->destruct =  destructTaskFactoryFsim;
-    // initialize singleton instance that carries hc implementation 
-    // function pointers. Every instantiated task template will use 
+    // initialize singleton instance that carries hc implementation
+    // function pointers. Every instantiated task template will use
     // this pointer to resolve functions implementations.
     baseHc->taskFctPtrs.destruct = destructTaskFsim;
     baseHc->taskFctPtrs.execute = taskExecute;
@@ -214,7 +214,7 @@ void * xe_worker_computation_routine (void * arg) {
             ocrPolicyDomainFsim_t* policy_domain = (ocrPolicyDomainFsim_t *) xeScheduler->domain;
             ocrTaskFactory_t* message_task_factory = policy_domain->taskMessageFactory;
             // the message to the CE says 'give me work' and notes who is asking for it
-            ocrTaskFsimMessage_t * derived = (ocrTaskFsimMessage_t *) 
+            ocrTaskFsimMessage_t * derived = (ocrTaskFsimMessage_t *)
                 message_task_factory->instantiate(message_task_factory, NULL, NULL, NULL, 0, NULL);
             derived -> type = GIVE_ME_WORK;
             derived -> from_worker_guid = workerGuid;
