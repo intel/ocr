@@ -56,6 +56,11 @@ void sharedDestruct(ocrMemTarget_t *self) {
     free(self);
 }
 
+struct _ocrPolicyDomain_t;
+static void sharedStart(ocrMemTarget_t *self, struct _ocrPolicyDomain_t * PD ) { }
+
+static void sharedStop(ocrMemTarget_t *self) { }
+
 void* sharedAllocate(ocrMemTarget_t *self, u64 size) {
     return self->memories[0]->fctPtrs->allocate(
         self->memories[0], size);
@@ -91,12 +96,12 @@ static void destructMemTargetFactoryShared(ocrMemTargetFactory_t *factory) {
 ocrMemTargetFactory_t *newMemTargetFactoryShared(ocrParamList_t *perType) {
     ocrMemTargetFactory_t *base = (ocrMemTargetFactory_t*)
         checkedMalloc(base, sizeof(ocrMemTargetFactoryShared_t));
-
     base->instantiate = &newMemTargetShared;
     base->destruct = &destructMemTargetFactoryShared;
     base->targetFcts.destruct = &sharedDestruct;
+    base->targetFcts.start = &sharedStart;
+    base->targetFcts.stop = &sharedStop;
     base->targetFcts.allocate = &sharedAllocate;
     base->targetFcts.free = &sharedFree;
-
     return base;
 }

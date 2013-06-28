@@ -63,7 +63,7 @@ static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
 
     // Start schedulers
     for(i = 0; i < schedulerCount; i++) {
-        policy->schedulers[i]->fctPtrs->start(policy->schedulers[i]);
+        policy->schedulers[i]->fctPtrs->start(policy->schedulers[i], policy);
     }
 
     //TODO workers could be responsible for starting the underlying target

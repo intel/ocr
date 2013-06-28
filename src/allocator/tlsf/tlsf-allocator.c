@@ -1037,6 +1037,10 @@ static void tlsfDestruct(ocrAllocator_t *self) {
     free(rself);
 }
 
+static void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) { }
+
+static void tlsfStop(ocrAllocator_t *self) { }
+
 static void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     rself->lock->fctPtrs->lock(rself->lock);
@@ -1097,6 +1101,8 @@ ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
     base->instantiate = newAllocatorTlsf;
     base->destruct =  &destructAllocatorFactoryTlsf;
     base->allocFcts.destruct = &tlsfDestruct;
+    base->allocFcts.start = &tlsfStart;
+    base->allocFcts.stop = &tlsfStop;
     base->allocFcts.allocate = &tlsfAllocate;
     base->allocFcts.free = &tlsfDeallocate;
     base->allocFcts.reallocate = &tlsfReallocate;

@@ -59,7 +59,7 @@ static void pthreadDestruct (ocrCompPlatform_t * base) {
     free(base);
 }
 
-static void pthreadStart(ocrCompPlatform_t * compPlatform, launchArg_t * launchArg) {
+static void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
 
     perThreadStorage_t *data = (perThreadStorage_t*)checkedMalloc(data, sizeof(perThreadStorage_t));

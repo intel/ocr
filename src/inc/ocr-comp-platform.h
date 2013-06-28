@@ -65,7 +65,7 @@ typedef struct _ocrCompPlatformFcts_t {
      * The function started will be 'routine' and it will be passed 'routineArg'
      * @todo There was something about a stack size...
      */
-    void (*start)(struct _ocrCompPlatform_t *self, launchArg_t * launchArg);
+    void (*start)(struct _ocrCompPlatform_t *self, struct _ocrPolicyDomain_t * PD, launchArg_t * launchArg);
 
     /**
      * @brief Stops this tread of execution

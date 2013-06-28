@@ -43,6 +43,11 @@ void mallocDestruct(ocrMemPlatform_t *self) {
     free(self);
 }
 
+struct _ocrPolicyDomain_t;
+static void mallocStart(ocrMemPlatform_t *self, struct _ocrPolicyDomain_t * PD ) { }
+
+static void mallocStop(ocrMemPlatform_t *self) { }
+
 void* mallocAllocate(ocrMemPlatform_t *self, u64 size) {
     return malloc(size);
 }
@@ -80,6 +85,8 @@ ocrMemPlatformFactory_t *newMemPlatformFactoryMalloc(ocrParamList_t *perType) {
     base->instantiate = &newMemPlatformMalloc;
     base->destruct = &destructMemPlatformFactoryMalloc;
     base->platformFcts.destruct = &mallocDestruct;
+    base->platformFcts.start = &mallocStart;
+    base->platformFcts.stop = &mallocStop;
     base->platformFcts.allocate = &mallocAllocate;
     base->platformFcts.free = &mallocFree;
 

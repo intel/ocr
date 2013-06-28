@@ -64,6 +64,7 @@ typedef struct _paramListAllocatorInst_t {
 /****************************************************/
 
 struct _ocrAllocator_t;
+struct _ocrPolicyDomain_t;
 
 /**
  * @brief Allocator function pointers
@@ -81,6 +82,11 @@ typedef struct _ocrAllocatorFcts_t {
      * @param self              Pointer to this allocator
      */
     void (*destruct)(struct _ocrAllocator_t* self);
+
+
+    void (*start)(struct _ocrAllocator_t* self, struct _ocrPolicyDomain_t * PD);
+
+    void (*stop)(struct _ocrAllocator_t* self);
 
     /**
      * @brief Actual allocation

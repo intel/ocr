@@ -57,6 +57,7 @@ typedef struct _paramListMemPlatformInst_t {
 /****************************************************/
 
 struct _ocrMemPlatform_t;
+struct _ocrPolicyDomain_t;
 
 typedef struct _ocrMemPlatformFcts_t {
     /**
@@ -65,6 +66,10 @@ typedef struct _ocrMemPlatformFcts_t {
      * @param self          Pointer to this low-memory provider
      */
     void (*destruct)(struct _ocrMemPlatform_t* self);
+
+    void (*start)(struct _ocrMemPlatform_t* self, struct _ocrPolicyDomain_t * PD);
+
+    void (*stop)(struct _ocrMemPlatform_t* self);
 
     /**
      * @brief Allocates a chunk of memory for the higher-level

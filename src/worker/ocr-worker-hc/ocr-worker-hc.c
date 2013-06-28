@@ -74,7 +74,7 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
       launchArg.PD = policy;
       u64 i = 0;
       for(i = 0; i < computeCount; i++) {
-        base->computes[i]->fctPtrs->start(base->computes[i], &launchArg);
+        base->computes[i]->fctPtrs->start(base->computes[i], policy, &launchArg);
       }
     } else {
       // Worker zero doesn't start the underlying thread since it is

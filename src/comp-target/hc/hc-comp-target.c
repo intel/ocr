@@ -33,6 +33,7 @@
 #include "ocr-comp-target.h"
 #include "hc-comp-target.h"
 #include "ocr-comp-platform.h"
+#include "ocr-policy-domain.h"
 #include "debug.h"
 
 static void mapCompTargetToPlatform(ocrMappable_t *self, ocrMappableKind kind,
@@ -53,9 +54,9 @@ static void hcDestruct(ocrCompTarget_t *compTarget) {
     free(compTarget);
 }
 
-static void hcStart(ocrCompTarget_t * compTarget, launchArg_t * launchArg) {
+static void hcStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
     ASSERT(compTarget->platformCount == 1);
-    compTarget->platforms[0]->fctPtrs->start(compTarget->platforms[0], launchArg);
+    compTarget->platforms[0]->fctPtrs->start(compTarget->platforms[0], PD, launchArg);
 }
 
 static void hcStop(ocrCompTarget_t * compTarget) {

@@ -57,6 +57,7 @@ typedef struct _paramListMemTargetInst_t {
 /****************************************************/
 
 struct _ocrMemTarget_t;
+struct _ocrPolicyDomain_t;
 
 typedef struct _ocrMemTargetFcts_t {
     /**
@@ -66,6 +67,9 @@ typedef struct _ocrMemTargetFcts_t {
      */
     void (*destruct)(struct _ocrMemTarget_t* self);
 
+    void (*start)(struct _ocrMemTarget_t* self, struct _ocrPolicyDomain_t * PD);
+
+    void (*stop)(struct _ocrMemTarget_t* self);
     /**
      * @brief Allocates a chunk of memory for the higher-level
      * allocators to manage

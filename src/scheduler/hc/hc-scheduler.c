@@ -58,7 +58,7 @@ static inline ocrWorkpileIterator_t* steal_mapping_one_to_all_but_self (ocrSched
     return steal_iterator;
 }
 
-void hcSchedulerStart(ocrScheduler_t * self) {
+void hcSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     ocrSchedulerHc_t * derived = (ocrSchedulerHc_t *) self;
     u64 workpileCount = self->workpileCount;
     ocrWorkpile_t ** workpiles = self->workpiles;

@@ -66,7 +66,7 @@ typedef struct _ocrCompTargetFcts_t {
     /*! \brief Starts a compute target
      *
      */
-    void (*start) (struct _ocrCompTarget_t * self, launchArg_t * launchArg);
+    void (*start) (struct _ocrCompTarget_t * self, struct _ocrPolicyDomain_t * PD, launchArg_t * launchArg);
 
     /*! \brief Stops this comp-target
      */
