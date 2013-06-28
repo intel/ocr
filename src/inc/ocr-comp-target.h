@@ -52,6 +52,12 @@ typedef struct _paramListCompTargetInst_t {
 /* OCR COMPUTE TARGET                               */
 /****************************************************/
 
+typedef struct _launchArg_t {
+  void *(*routine)(void*);
+  void * arg;
+  struct _ocrPolicyDomain_t * PD;
+} launchArg_t;
+
 struct _ocrCompTarget_t;
 
 typedef struct _ocrCompTargetFcts_t {
@@ -60,7 +66,7 @@ typedef struct _ocrCompTargetFcts_t {
     /*! \brief Starts a compute target
      *
      */
-    void (*start) (struct _ocrCompTarget_t * self);
+    void (*start) (struct _ocrCompTarget_t * self, launchArg_t * launchArg);
 
     /*! \brief Stops this comp-target
      */

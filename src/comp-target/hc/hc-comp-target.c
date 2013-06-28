@@ -53,9 +53,9 @@ static void hcDestruct(ocrCompTarget_t *compTarget) {
     free(compTarget);
 }
 
-static void hcStart(ocrCompTarget_t * compTarget) {
+static void hcStart(ocrCompTarget_t * compTarget, launchArg_t * launchArg) {
     ASSERT(compTarget->platformCount == 1);
-    compTarget->platforms[0]->fctPtrs->start(compTarget->platforms[0]);
+    compTarget->platforms[0]->fctPtrs->start(compTarget->platforms[0], launchArg);
 }
 
 static void hcStop(ocrCompTarget_t * compTarget) {

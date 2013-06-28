@@ -38,10 +38,18 @@
 #include "ocr-guid.h"
 #include "ocr-comp-platform.h"
 
-
 /******************************************************/
 /* OCR-HC WORKER                                      */
 /******************************************************/
+
+static void associate_comp_platform_and_worker(ocrPolicyDomain_t * policy, ocrWorker_t * worker) {
+    // This function must only be used when the contextFactory has its PD set
+    ocrPolicyCtx_t * ctx = policy->contextFactory->instantiate(policy->contextFactory);
+    ctx->sourceObj = worker->guid;
+    ctx->sourceId = ((ocrWorkerHc_t *) worker)->id;
+    setCurrentPD(policy);
+    setCurrentWorkerContext(ctx);
+}
 
 void destructWorkerHc ( ocrWorker_t * base ) {
     ocrGuidProvider_t * guidProvider = getCurrentPD()->guidProvider;
@@ -49,9 +57,31 @@ void destructWorkerHc ( ocrWorker_t * base ) {
     free(base);
 }
 
-void hcStartWorker(ocrWorker_t * base) {
+/**
+ * The computation worker routine that asks work to the scheduler
+ */
+void * worker_computation_routine(void * arg);
+
+void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
     hcWorker->run = true;
+    if (hcWorker->id != 0) {
+      u64 computeCount = base->computeCount;
+      // What the compute target will execute
+      launchArg_t launchArg;
+      launchArg.routine = worker_computation_routine;
+      launchArg.arg = base;
+      launchArg.PD = policy;
+      u64 i = 0;
+      for(i = 0; i < computeCount; i++) {
+        base->computes[i]->fctPtrs->start(base->computes[i], &launchArg);
+      }
+    } else {
+      // Worker zero doesn't start the underlying thread since it is
+      // falling through after that start. However, it stills need 
+      // to set its local storage data.
+      associate_comp_platform_and_worker(policy, base);
+    }
 }
 
 void hcStopWorker(ocrWorker_t * base) {
@@ -76,11 +106,6 @@ void hc_setCurrentEDT (ocrWorker_t * base, ocrGuid_t curr_edt_guid) {
 }
 
 /**
- * The computation worker routine that asks work to the scheduler
- */
-void * worker_computation_routine(void * arg);
-
-/**
  * Builds an instance of a HC worker
  */
 ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
@@ -103,21 +128,11 @@ int get_worker_id(ocrWorker_t * worker) {
     return hcWorker->id;
 }
 
-static void associate_comp_platform_and_worker(ocrPolicyDomain_t * policy, ocrWorker_t * worker) {
-    // This function must only be used when the contextFactory has its PD set
-    ocrPolicyCtx_t * ctx = policy->contextFactory->instantiate(policy->contextFactory);
-    ctx->sourceObj = worker->guid;
-    ctx->sourceId = 0;
-    setCurrentPD(policy);
-    setCurrentWorkerContext(ctx);
-}
-
 void * worker_computation_routine(void * arg) {
-    //TODO arg needs to be the worker as well as the PD
     // Need to pass down a data-structure
-    ocrWorker_t * worker = (ocrWorker_t *) arg;
-    ocrPolicyDomain_t * pd = NULL; //TODO
-    ASSERT(false && "Policy domain not yet set");
+    launchArg_t * launchArg = (launchArg_t *) arg;
+    ocrPolicyDomain_t * pd = launchArg->PD;
+    ocrWorker_t * worker = (ocrWorker_t *) launchArg->arg;
     // associate current thread with the worker
     associate_comp_platform_and_worker(pd, worker);
     // Setting up this worker context to takeEdts

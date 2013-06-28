@@ -51,15 +51,6 @@ ocrPolicyCtxFactory_t* newPolicyContextFactoryHC ( ocrParamList_t* params ) {
     return base;
 }
 
-static void associate_comp_platform_and_master_worker(ocrPolicyDomain_t * policy, ocrWorker_t * worker) {
-    // This function must only be used when the contextFactory has its PD set
-    ocrPolicyCtx_t * ctx = policy->contextFactory->instantiate(policy->contextFactory);
-    ctx->sourceObj = worker->guid;
-    ctx->sourceId = 0;
-    setCurrentPD(policy);
-    setCurrentWorkerContext(ctx);
-}
-
 static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     // The PD should have been brought up by now and everything instantiated
     // WARNING: Threads start should be the last thing we do here after
@@ -70,29 +61,23 @@ static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     u64 schedulerCount = policy->schedulerCount;
     ASSERT(workerCount == computeCount);
 
+    // Start schedulers
+    for(i = 0; i < schedulerCount; i++) {
+        policy->schedulers[i]->fctPtrs->start(policy->schedulers[i]);
+    }
+
     //TODO workers could be responsible for starting the underlying target
     // Note: it's important to first logically start all workers.
     // Once they are all up, start the runtime
     // Only start (N-1) workers as worker '0' is the current thread.
     for(i = 1; i < workerCount; i++) {
-        policy->workers[i]->fctPtrs->start(policy->workers[i]);
+        policy->workers[i]->fctPtrs->start(policy->workers[i], policy);
     }
 
-    // Start schedulers
-    for(i = 1; i < schedulerCount; i++) {
-        policy->schedulers[i]->fctPtrs->start(policy->schedulers[i]);
-    }
-
-    // Starts compute targets
-    // Only start (N-1) targets as target '0' will be the current thread.
-    for(i = 1; i < computeCount; i++) {
-        policy->computes[i]->fctPtrs->start(policy->computes[i]);
-    }
-    // Handle target '0' 
-    policy->workers[0]->fctPtrs->start(policy->workers[0]);
     // Need to associate thread and worker here, as current thread fall-through
     // in user code and may need to know which Worker it is associated to.
-    associate_comp_platform_and_master_worker(policy, policy->workers[0]);
+    // Handle target '0' 
+    policy->workers[0]->fctPtrs->start(policy->workers[0], policy);
 }
 
 

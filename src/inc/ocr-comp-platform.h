@@ -35,10 +35,13 @@
 #include "ocr-mappable.h"
 #include "ocr-utils.h"
 #include "ocr-guid.h"
+#include "ocr-comp-target.h"
+
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
 /****************************************************/
+
 typedef struct _paramListCompPlatformFact_t {
     ocrParamList_t base;
 } paramListCompPlatformFact_t;
@@ -51,6 +54,7 @@ typedef struct _paramListCompPlatformInst_t {
 /****************************************************/
 /* OCR COMPUTE PLATFORM                             */
 /****************************************************/
+
 struct _ocrCompPlatform_t;
 
 typedef struct _ocrCompPlatformFcts_t {
@@ -61,7 +65,7 @@ typedef struct _ocrCompPlatformFcts_t {
      * The function started will be 'routine' and it will be passed 'routineArg'
      * @todo There was something about a stack size...
      */
-    void (*start)(struct _ocrCompPlatform_t *self);
+    void (*start)(struct _ocrCompPlatform_t *self, launchArg_t * launchArg);
 
     /**
      * @brief Stops this tread of execution
@@ -75,6 +79,7 @@ typedef struct _ocrCompPlatform_t {
 
     ocrCompPlatformFcts_t *fctPtrs;
 } ocrCompPlatform_t;
+
 
 /****************************************************/
 /* OCR COMPUTE PLATFORM FACTORY                     */

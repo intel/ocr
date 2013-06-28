@@ -50,8 +50,6 @@ typedef struct {
     ocrCompPlatform_t base;
     pthread_t osThread;
     u64 stackSize;
-    void (*routine)(void*);
-    void* routineArg;
 } ocrCompPlatformPthread_t;
 
 typedef struct {

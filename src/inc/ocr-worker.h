@@ -61,7 +61,7 @@ typedef struct _ocrWorkerFcts_t {
 
     /*! \brief Start Worker
      */
-    void (*start) (struct _ocrWorker_t *self);
+    void (*start) (struct _ocrWorker_t *self, struct _ocrPolicyDomain_t * PD);
 
     /*! \brief Stop Worker
      */
@@ -95,7 +95,7 @@ typedef struct _ocrWorker_t {
     ocrMappable_t module;
     ocrGuid_t guid;
 
-    ocrCompTarget_t *computes; /**< Compute node(s) associated with this worker */
+    ocrCompTarget_t **computes; /**< Compute node(s) associated with this worker */
     u64 computeCount;          /**< Number of compute node(s) associated */
 
     /*! \brief Routine the worker executes
