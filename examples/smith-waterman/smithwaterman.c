@@ -71,20 +71,19 @@ typedef struct {
     ocrGuid_t bottom_right_event_guid;
 } Tile_t;
 
-ocrGuid_t smith_waterman_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t smith_waterman_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     int index, ii, jj;
 
     /* Unbox parameters */
-    intptr_t* typed_paramv = *paramv;
-    int i = (int) typed_paramv[0];
-    int j = (int) typed_paramv[1];
-    int tile_width = (int) typed_paramv[2];
-    int tile_height = (int) typed_paramv[3];
-    Tile_t** tile_matrix = (Tile_t**) typed_paramv[4];
-    signed char* string_1 = (signed char* ) typed_paramv[5];
-    signed char* string_2 = (signed char* ) typed_paramv[6];
-    int n_tiles_height = (int) typed_paramv[7];
-    int n_tiles_width = (int)typed_paramv[8];
+    int i = (int) paramv[0];
+    int j = (int) paramv[1];
+    int tile_width = (int) paramv[2];
+    int tile_height = (int) paramv[3];
+    Tile_t** tile_matrix = (Tile_t**) paramv[4];
+    signed char* string_1 = (signed char* ) paramv[5];
+    signed char* string_2 = (signed char* ) paramv[6];
+    int n_tiles_height = (int) paramv[7];
+    int n_tiles_width = (int)paramv[8];
 
     /* Get the input datablock data pointers acquired from dependences */
     int* left_tile_right_column = (int *) depv[0].ptr;
@@ -244,16 +243,57 @@ static void initialize_border_values( Tile_t** tile_matrix, int n_tiles_width, i
     }
 }
 
-u8 main_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+static void ioHandling ( void* marshalled, int* p_n_tiles_height, int* p_n_tiles_width, int* p_tile_width, int* p_tile_height, signed char** p_string_1, signed char** p_string_2) {
+    u64 argc = ((u64*) marshalled)[0];
 
-    intptr_t *typed_paramv = *paramv;
+    *p_tile_width = (int) atoi ((char*)(marshalled+((u64*) marshalled)[4])); //argv[3], offset in bytes
+    *p_tile_height = (int) atoi ((char*)(marshalled+((u64*) marshalled)[5])); //argv[4], offset in bytes
 
-    int n_tiles_height = (int)typed_paramv[0];
-    int n_tiles_width = (int)typed_paramv[1];
-    int tile_width = (int)typed_paramv[2];
-    int tile_height = (int)typed_paramv[3];
-    signed char* string_1 = (signed char*)typed_paramv[4];
-    signed char* string_2 = (signed char*)typed_paramv[5];
+    if ( argc < 5 ) {
+        fprintf(stderr, "Usage: %s fileName1 fileName2 tileWidth tileHeight\n", argv[0]);
+        exit(1);
+    }
+
+    char* file_name_1 = ((char*)(marshalled+((u64*) marshalled)[2])); //argv[1], offset in bytes
+    char* file_name_2 = ((char*)(marshalled+((u64*) marshalled)[3])); //argv[2], offset in bytes
+
+    FILE* file_1 = fopen(file_name_1, "r");
+    if (!file_1) { fprintf(stderr, "could not open file %s\n",file_name_1); exit(1); }
+    size_t n_char_in_file_1 = 0;
+    *p_string_1 = read_file(file_1, &n_char_in_file_1);
+    fprintf(stdout, "Size of input string 1 is %zu\n", n_char_in_file_1 );
+
+    FILE* file_2 = fopen(file_name_2, "r");
+    if (!file_2) { fprintf(stderr, "could not open file %s\n",file_name_2); exit(1); }
+    size_t n_char_in_file_2 = 0;
+    *p_string_2 = read_file(file_2, &n_char_in_file_2);
+    fprintf(stdout, "Size of input string 2 is %zu\n", n_char_in_file_2 );
+
+    fprintf(stdout, "Tile width is %d\n", *p_tile_width);
+    fprintf(stdout, "Tile height is %d\n", *p_tile_height);
+
+    *p_n_tiles_width = n_char_in_file_1 / *p_tile_width;
+    *p_n_tiles_height = n_char_in_file_2 / *p_tile_height;
+
+    fprintf(stdout, "Imported %d x %d tiles.\n", *p_n_tiles_width, *p_n_tiles_height);
+
+    fprintf(stdout, "Allocating tile matrix\n");
+}
+
+u8 mainEdt ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+
+    assert ( 0 == paramc );
+    assert ( 1 == depc );
+
+    int n_tiles_height;
+    int n_tiles_width;
+    int tile_width;
+    int tile_height;
+    signed char* string_1;
+    signed char* string_2;
+
+    ioHandling(depv[0].ptr, &n_tiles_height, &n_tiles_width, &tile_width, &tile_height, &string_1, &string_2);
+
     int i, j;
 
     Tile_t** tile_matrix = (Tile_t **) malloc(sizeof(Tile_t*)*(n_tiles_height+1));
@@ -269,30 +309,37 @@ u8 main_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t d
 
     fprintf(stdout, "Allocated tile matrix\n");
 
+    struct timeval a;
+    struct timeval b;
+
+    gettimeofday(&a, 0);
+
     initialize_border_values(tile_matrix, n_tiles_width, n_tiles_height, tile_width, tile_height);
 
+    ocrGuid_t smith_waterman_task_template_guid;
+    ocrEdtTemplateCreate(&smith_waterman_task_template_guid, smith_waterman_task, 9 /*paramc*/, 3 /*depc*/);
 
     for ( i = 1; i < n_tiles_height+1; ++i ) {
         for ( j = 1; j < n_tiles_width+1; ++j ) {
 
             /* Box function parameters and put them on the heap for lifetime */
-            intptr_t **p_paramv = (intptr_t **)malloc(sizeof(intptr_t*));
-            intptr_t *paramv = (intptr_t *)malloc(9*sizeof(intptr_t));
-            paramv[0]=(intptr_t) i;
-            paramv[1]=(intptr_t) j;
-            paramv[2]=(intptr_t) tile_width;
-            paramv[3]=(intptr_t) tile_height;
-            paramv[4]=(intptr_t) tile_matrix;
-            paramv[5]=(intptr_t) string_1;
-            paramv[6]=(intptr_t) string_2;
-            paramv[7]=(intptr_t) n_tiles_height;
-            paramv[8]=(intptr_t) n_tiles_width;
-            *p_paramv = paramv;
+            u64 *paramv = (u64*)malloc(9*sizeof(u64));
+            paramv[0]=(u64) i;
+            paramv[1]=(u64) j;
+            paramv[2]=(u64) tile_width;
+            paramv[3]=(u64) tile_height;
+            paramv[4]=(u64) tile_matrix;
+            paramv[5]=(u64) string_1;
+            paramv[6]=(u64) string_2;
+            paramv[7]=(u64) n_tiles_height;
+            paramv[8]=(u64) n_tiles_width;
 
             /* Create an event-driven tasks of smith_waterman tasks */
             ocrGuid_t task_guid;
-
-            ocrEdtCreate(&task_guid, smith_waterman_task, 9, NULL, (void **) p_paramv, PROPERTIES, 3, NULL, NULL_GUID);
+            ocrEdtCreate(&task_guid, smith_waterman_task_template_guid,
+                9 /*paramc, sagnak but does not the template know of this already?*/, paramv,
+                3 /*depc, sagnak but does not the template know of this already?*/, NULL /*depv*/,
+                PROPERTIES, NULL_GUID /*affinity*/, NULL /*outputEvent*/);
 
             /* add dependency to the EDT from the west tile's right column ready event */
             ocrAddDependence(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0);
@@ -304,77 +351,28 @@ u8 main_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t d
             ocrAddDependence(tile_matrix[i-1][j-1].bottom_right_event_guid, task_guid, 2);
 
             /* schedule task*/
-            ocrEdtSchedule(task_guid);
+            // ocrEdtSchedule(task_guid);
         }
     }
+
+    ocrCleanup();
+    gettimeofday(&b, 0);
+
+    printf("The computation took %f seconds\r\n",((b.tv_sec - a.tv_sec)*1000000+(b.tv_usec - a.tv_usec))*1.0/1000000);
     return 0;
 }
 
 int main ( int argc, char* argv[] ) {
+    OCR_INIT ( &argc, argv, mainEdt, smith_waterman_task );
 
-    OCR_INIT(&argc, argv, smith_waterman_task );
-    int i, j;
-
-    int tile_width = (int) atoi (argv[3]);
-    int tile_height = (int) atoi (argv[4]);
-
-    int n_tiles_width;
-    int n_tiles_height;
-
-    if ( argc < 5 ) {
-        fprintf(stderr, "Usage: %s fileName1 fileName2 tileWidth tileHeight\n", argv[0]);
-        exit(1);
-    }
-
-    signed char* string_1;
-    signed char* string_2;
-
-    char* file_name_1 = argv[1];
-    char* file_name_2 = argv[2];
-
-    FILE* file_1 = fopen(file_name_1, "r");
-    if (!file_1) { fprintf(stderr, "could not open file %s\n",file_name_1); exit(1); }
-    size_t n_char_in_file_1 = 0;
-    string_1 = read_file(file_1, &n_char_in_file_1);
-    fprintf(stdout, "Size of input string 1 is %zu\n", n_char_in_file_1 );
-
-    FILE* file_2 = fopen(file_name_2, "r");
-    if (!file_2) { fprintf(stderr, "could not open file %s\n",file_name_2); exit(1); }
-    size_t n_char_in_file_2 = 0;
-    string_2 = read_file(file_2, &n_char_in_file_2);
-    fprintf(stdout, "Size of input string 2 is %zu\n", n_char_in_file_2 );
-
-    fprintf(stdout, "Tile width is %d\n", tile_width);
-    fprintf(stdout, "Tile height is %d\n", tile_height);
-
-    n_tiles_width = n_char_in_file_1/tile_width;
-    n_tiles_height = n_char_in_file_2/tile_height;
-
-    fprintf(stdout, "Imported %d x %d tiles.\n", n_tiles_width, n_tiles_height);
-
-    fprintf(stdout, "Allocating tile matrix\n");
-
-    struct timeval a;
-    struct timeval b;
-
-    intptr_t **p_paramv = (intptr_t **)malloc(sizeof(intptr_t*));
-    intptr_t *paramv = (intptr_t *)malloc(6*sizeof(intptr_t));
-    paramv[0]=(intptr_t) n_tiles_height;
-    paramv[1]=(intptr_t) n_tiles_width;
-    paramv[2]=(intptr_t) tile_width;
-    paramv[3]=(intptr_t) tile_height;
-    paramv[4]=(intptr_t) string_1;
-    paramv[5]=(intptr_t) string_2;
-    *p_paramv = paramv;
-
-    gettimeofday(&a, 0);
-
-    ocrGuid_t main_task_guid;
-    ocrEdtCreate(&main_task_guid, main_task, 6, NULL, (void**)p_paramv, PROPERTIES, 0, NULL);
-    ocrEdtSchedule(main_task_guid);
-
-    ocrCleanup();
-    gettimeofday(&b, 0);
-    printf("The computation took %f seconds\r\n",((b.tv_sec - a.tv_sec)*1000000+(b.tv_usec - a.tv_usec))*1.0/1000000);
+    // TODO: sagnak This should be handled by OCR_INIT
+    // ocrGuid_t main_edt_template_guid;
+    // ocrEdtTemplateCreate(&main_edt_template_guid, mainEdt, 2 /*paramc*/, 1 /*depc*/);
+    // ocrGuid_t main_edt_guid;
+    // ocrEdtCreate(&main_edt_guid, main_edt_template_guid,
+    //            2 /*paramc, sagnak but does not the template know of this already?*/, paramv,
+    //            1 /*depc, sagnak but does not the template know of this already?*/, NULL /*depv*/,
+    //            PROPERTIES, NULL_GUID /*affinity*/, NULL /*outputEvent*/);
+    // ocrEdtSchedule(main_edt_guid);
     return 0;
 }
