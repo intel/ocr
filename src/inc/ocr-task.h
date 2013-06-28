@@ -33,6 +33,7 @@
 #define __OCR_TASK_H__
 
 #include "ocr-guid.h"
+#include "ocr-sync.h"
 #include "ocr-edt.h"
 #include "ocr-utils.h"
 
@@ -145,6 +146,7 @@ typedef struct _ocrTask_t {
     // TODO: What about depv?? => This is implementation specific for now
     ocrGuid_t els[ELS_SIZE];
     struct _ocrTaskFcts_t * fctPtrs;
+    ocrAtomic64_t* addedDepCounter;
 } ocrTask_t;
 
 /****************************************************/

@@ -369,6 +369,7 @@ static void newTaskHcInternalCommon (ocrPolicyDomain_t * pd, ocrTaskHc_t* derive
     base->templateGuid = taskTemplate->guid;
     base->paramv = paramv;
     base->outputEvent = outputEvent;
+    base->addedDepCounter = pd->getAtomic64(pd, NULL /*Context*/);
     // Initialize ELS
     int i = 0;
     while (i < ELS_SIZE) {
@@ -436,6 +437,7 @@ static void destructTaskHc ( ocrTask_t* base ) {
     ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
     ctx->type = PD_MSG_GUID_REL;
     pd->inform(pd, base->guid, ctx);
+    base->addedDepCounter->fctPtrs->destruct(base->addedDepCounter);
     free(derived);
 }
 
@@ -751,6 +753,11 @@ void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
         ocrTask_t * target = NULL;
         deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
         edtRegisterSignaler(target, signalerGuid, slot);
+        ocrTaskTemplate_t * template = NULL;
+        deguidify(getCurrentPD(), target->templateGuid, (u64*)&template, NULL);
+        if ( template->depc == target->addedDepCounter->fctPtrs->xadd(target->addedDepCounter,1) ) {
+            target->fctPtrs->schedule(target);
+        }
         return;
     // datablock to event registration => satisfy on the spot
     } else if (isDatablockGuid(signalerGuid)) {
