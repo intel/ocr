@@ -411,19 +411,17 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
         }
         break;
     case 7:
-        break;
         for (j = low; j<=high; j++) {
-            ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
-            instance[j] = ((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) printf("Created compplatform of type %s, index %d\n", inststr, j);
+            ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerInst_t);
+            instance[j] = ((ocrSchedulerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created scheduler of type %s, index %d\n", inststr, j);
         }
         break;
     case 8:
-        break;
         for (j = low; j<=high; j++) {
-            ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
-            instance[j] = ((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) printf("Created compplatform of type %s, index %d\n", inststr, j);
+            ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
+            instance[j] = ((ocrPolicyDomainFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created policy domain of type %s, index %d\n", inststr, j);
         }
         break;
     default:
