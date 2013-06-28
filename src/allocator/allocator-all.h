@@ -57,6 +57,7 @@ inline ocrAllocatorFactory_t *newAllocatorFactory(allocatorType_t type, ocrParam
     switch(type) {
     case allocatorTlsf_id:
         return newAllocatorFactoryTlsf(typeArg);
+    case allocatorMax_id:
     default:
         ASSERT(0);
         return NULL;

@@ -51,7 +51,7 @@ const char * scheduler_types[] = {
     NULL
 };
 
-extern ocrSchedulerFactory_t * newSchedulerFactoryHc(ocrParamList_t *perType);
+extern ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(ocrParamList_t *perType);
 extern ocrSchedulerFactory_t * newSchedulerFactoryHcPlaced(ocrParamList_t *perType);
 extern ocrSchedulerFactory_t * newSchedulerFactoryFsimXE(ocrParamList_t *perType);
 extern ocrSchedulerFactory_t * newSchedulerFactoryFsimCE(ocrParamList_t *perType);
@@ -66,8 +66,10 @@ inline ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrPara
         return newSchedulerFactoryFsimCE(perType);
     case schedulerHcPlaced_id:
         return newSchedulerFactoryHcPlaced(perType);
+    case schedulerMax_id:
+    default:
+        ASSERT(0);
     }
-    ASSERT(0);
     return NULL;
 }
 

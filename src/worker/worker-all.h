@@ -60,9 +60,11 @@ inline ocrWorker_t * newWorkerFactory(workerType_t type, ocrParamList_t *perType
     case workerFsimCE_id:
     //DELME    return newOcrWorkerFactoryFsimCE(perType);
     case workerHc_id:
-        return newOcrWorkerFactoryHc(perType);
+      return newOcrWorkerFactoryHc(perType);
+    case workerMax_id:
+    default:
+      ASSERT(0);
     }
-    ASSERT(0);
     return NULL;
 }
 

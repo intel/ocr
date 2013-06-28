@@ -40,16 +40,13 @@
 #include "ocr-types.h"
 #include "ocr-comp-target.h"
 #include "ocr-utils.h"
+#include "hc.h"
 
 typedef struct {
     paramListCompTargetInst_t base;
     void (*routine)(void*);
     void* routineArg;
 } paramListCompTargetHc_t;
-
-typedef struct {
-    ocrCompTargetFactory_t base;
-} ocrCompTargetFactoryHc_t;
 
 typedef struct {
     ocrCompTarget_t base;
