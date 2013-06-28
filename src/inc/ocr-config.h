@@ -89,11 +89,6 @@
 // //extern ocrLockKind		ocrLockCEKind;
 // extern ocrGuidProviderKind	ocrGuidProviderCEKind;
 
-// Factories
-ocrLockFactory_t        *GocrLockFactory;
-ocrAtomic64Factory_t    *GocrAtomic64Factory;
-ocrQueueFactory_t       *GocrQueueFactory;
-
 #ifdef OCR_ENABLE_STATISTICS
 // For now have a central statistics aggregator filter
 ocrStatsFilter_t   *GocrFilterAggregator;
