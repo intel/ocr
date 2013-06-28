@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <assert.h>
 #include "ocr.h"
 
 #define GAP_PENALTY -1
@@ -177,7 +178,7 @@ ocrGuid_t smith_waterman_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t d
     /* If this is the last tile (bottom right most tile), finish */
     if ( i == n_tiles_height && j == n_tiles_width ) {
         fprintf(stdout, "score: %d\n", curr_bottom_row[tile_width-1]);
-        ocrFinish();
+        ocrShutDown();
     }
     return NULL_GUID;
 }
@@ -354,7 +355,7 @@ ocrGuid_t mainEdt ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
         }
     }
 
-    ocrCleanup();
+    ocrFinalize();
     gettimeofday(&b, 0);
 
     printf("The computation took %f seconds\r\n",((b.tv_sec - a.tv_sec)*1000000+(b.tv_usec - a.tv_usec))*1.0/1000000);
