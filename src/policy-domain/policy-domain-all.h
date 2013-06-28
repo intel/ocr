@@ -74,7 +74,9 @@ inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type
     case policyDomainHcLeafPlace_id:
         return newPolicyDomainFactoryHcLeafPlace(perType);
     case policyDomainHcMasterLeafPlace_id:
-        return newPolicyDomainFactoryHcMasterLeafPlace(perType);
+//        return newPolicyDomainFactoryHcMasterLeafPlace(perType);
+    default:
+        return newPolicyDomainFactoryHc(perType);
     }
     assert(0);
     return NULL;

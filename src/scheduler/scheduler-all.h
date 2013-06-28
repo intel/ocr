@@ -65,7 +65,7 @@ inline ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrPara
     case schedulerFsimCE_id:
         return newSchedulerFactoryFsimCE(perType);
     case schedulerHcPlaced_id:
-        return newSchedulerFactoryHcPlaced(perType);
+//        return newSchedulerFactoryHcPlaced(perType);
     case schedulerMax_id:
     default:
         ASSERT(0);
