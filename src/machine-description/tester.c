@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <iniparser.h>
+#include <signal.h>
 
 #include <ocr-mem-platform.h>
 #include <ocr-mem-target.h>
@@ -23,6 +24,11 @@
 #include <worker/worker-all.h>
 #include <scheduler/scheduler-all.h>
 #include <policy-domain/policy-domain-all.h>
+#include <task/task-all.h>
+#include <event/event-all.h>
+#include <guid/guid-all.h>
+#include <datablock/datablock-all.h>
+#include <sync/sync-all.h>
 
 #define INI_GET_INT(KEY, VAR, DEF) VAR = (int) iniparser_getint(dict, KEY, DEF); if (VAR==DEF){ printf("Key %s not found or invalid!\n", KEY); }
 #define INI_GET_STR(KEY, VAR, DEF) VAR = (char *) iniparser_getstring(dict, KEY, DEF); if (!strcmp(VAR, DEF)){ printf("Key %s not found or invalid!\n", KEY); }
@@ -40,6 +46,7 @@ typedef enum {
     workpile_type,
     worker_type,
     scheduler_type,
+    guid_type,
     policydomain_type,
 } type_enum;
 
@@ -52,6 +59,7 @@ const char *type_str[] = {
     "WorkPileType",
     "WorkerType",
     "SchedulerType",
+    "GuidType",
     "PolicyDomainType",
 };
 
@@ -69,6 +77,7 @@ typedef enum {
     workpile_inst,
     worker_inst,
     scheduler_inst,
+    guid_inst,
     policydomain_inst,
 } inst_enum;
 
@@ -81,6 +90,7 @@ const char *inst_str[] = {
     "WorkPileInst",
     "WorkerInst",
     "SchedulerInst",
+    "GuidInst",
     "PolicyDomainInst",
 };
 
@@ -103,12 +113,13 @@ dep_t deps[] = {
     { 6, 4, "comptarget"},
     { 7, 5, "workpile"},
     { 7, 6, "worker"},
-    { 8, 1, "memtarget"},
-    { 8, 2, "allocator"},
-    { 8, 4, "comptarget"},
-    { 8, 5, "worker"},
-    { 8, 6, "workpile"},
-    { 8, 7, "scheduler"},
+    { 9, 1, "memtarget"},
+    { 9, 2, "allocator"},
+    { 9, 4, "comptarget"},
+    { 9, 5, "worker"},
+    { 9, 6, "workpile"},
+    { 9, 7, "scheduler"},
+    { 9, 8, "guid"},
 };
 
 // TODO: expand to parse comma separated values & ranges iterating the below thru strtok with ,
@@ -166,7 +177,10 @@ char* populate_type(ocrParamList_t **type_param, int index, int type_index, int 
         ALLOC_PARAM_LIST(type_param[type_index], paramListSchedulerFact_t);
         break;
     case 8:
-//        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t); TODO: policydomain
+        ALLOC_PARAM_LIST(type_param[type_index], paramListGuidProviderFact_t);
+        break;
+    case 9:
+        ALLOC_PARAM_LIST(type_param[type_index], paramListPolicyDomainFact_t);
         break;
     default:
         printf("Error: %d index unexpected\n", type_index);
@@ -298,6 +312,110 @@ ocrPolicyDomainFactory_t *create_factory_policydomain(char *name, ocrParamList_t
     }
 }
 
+ocrTaskFactory_t *create_factory_task(char *name, ocrParamList_t *paramlist)
+{
+    taskType_t mytype = -1;
+    TO_ENUM (mytype, name, taskType_t, task_types, taskMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a task factory of type %d\n", mytype); 
+        return (ocrTaskFactory_t *)newTaskFactory(mytype, paramlist);
+    }
+}
+
+ocrTaskTemplateFactory_t *create_factory_tasktemplate(char *name, ocrParamList_t *paramlist)
+{
+    taskTemplateType_t mytype = -1;
+    TO_ENUM (mytype, name, taskTemplateType_t, taskTemplate_types, taskTemplateMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a task template factory of type %d\n", mytype); 
+        return (ocrTaskTemplateFactory_t *)newTaskTemplateFactory(mytype, paramlist);
+    }
+}
+
+ocrDataBlockFactory_t *create_factory_datablock(char *name, ocrParamList_t *paramlist)
+{
+    dataBlockType_t mytype = -1;
+    TO_ENUM (mytype, name, dataBlockType_t, dataBlock_types, dataBlockMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a datablock factory of type %d\n", mytype); 
+        return (ocrDataBlockFactory_t *)newDataBlockFactory(mytype, paramlist);
+    }
+}
+
+ocrEventFactory_t *create_factory_event(char *name, ocrParamList_t *paramlist)
+{
+    eventType_t mytype = -1;
+    TO_ENUM (mytype, name, eventType_t, event_types, eventMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating an event factory of type %d\n", mytype); 
+        return (ocrEventFactory_t *)newEventFactory(mytype, paramlist);
+    }
+}
+
+ocrPolicyCtxFactory_t *create_factory_context(char *name, ocrParamList_t *paramlist)
+{
+    policyCtxType_t mytype = -1;
+    TO_ENUM (mytype, name, policyCtxType_t, policyCtx_types, policyCtxMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a policy ctx factory of type %d\n", mytype); 
+        return (ocrPolicyCtxFactory_t *)newPolicyCtxFactory(mytype, paramlist);
+    }
+}
+
+ocrGuidProviderFactory_t *create_factory_guid(char *name, ocrParamList_t *paramlist)
+{
+    guidType_t mytype = -1;
+    TO_ENUM (mytype, name, guidType_t, guid_types, guidMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a guid factory of type %d\n", mytype); 
+        return (ocrGuidProviderFactory_t *)newGuidProviderFactory(mytype, paramlist);
+    }
+}
+
+ocrLockFactory_t *create_factory_lock(char *name, ocrParamList_t *paramlist)
+{
+    syncType_t mytype = -1;
+    TO_ENUM (mytype, name, syncType_t, sync_types, syncMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating a lock factory of type %d\n", mytype); 
+        return (ocrLockFactory_t *)newLockFactory(mytype, paramlist);
+    }
+}
+
+ocrAtomic64Factory_t *create_factory_atomic64(char *name, ocrParamList_t *paramlist)
+{
+    syncType_t mytype = -1;
+    TO_ENUM (mytype, name, syncType_t, sync_types, syncMax_id);
+    if (mytype == -1) {
+        printf("Unrecognized type %s\n", name);
+        return NULL;
+    } else { 
+        printf("Creating an atomic64 factory of type %d\n", mytype); 
+        return (ocrAtomic64Factory_t *)newAtomic64Factory(mytype, paramlist);
+    }
+}
+
 void *create_factory (int index, char *factory_name, ocrParamList_t *paramlist)
 {
     void *new_factory;
@@ -325,9 +443,13 @@ void *create_factory (int index, char *factory_name, ocrParamList_t *paramlist)
         new_factory = (void *)create_factory_worker(factory_name, paramlist);
         break;
     case 7:
+        new_factory = (void *)create_factory_scheduler(factory_name, paramlist);
         break;
     case 8:
-//        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t); TODO: policydomain
+        new_factory = (void *)create_factory_guid(factory_name, paramlist);
+        break;
+    case 9:
+        new_factory = (void *)create_factory_policydomain(factory_name, paramlist);
         break;
     default:
         printf("Error: %d index unexpected\n", index);
@@ -419,9 +541,64 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
         break;
     case 8:
         for (j = low; j<=high; j++) {
-            ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
-            instance[j] = ((ocrPolicyDomainFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) printf("Created policy domain of type %s, index %d\n", inststr, j);
+            ALLOC_PARAM_LIST(inst_param[j], paramListGuidProviderInst_t);
+            instance[j] = ((ocrGuidProviderFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created guid provider of type %s, index %d\n", inststr, j);
+        }
+        break;
+    case 9:
+        for (j = low; j<=high; j++) {
+            ocrTaskFactory_t *tf;
+            ocrTaskTemplateFactory_t *ttf;
+            ocrDataBlockFactory_t *dbf;
+            ocrEventFactory_t *ef;
+            ocrPolicyCtxFactory_t *cf;
+            ocrGuidProvider_t *gf;
+            ocrLockFactory_t *lf;
+            ocrAtomic64Factory_t *af;
+            int low, high;
+
+            int schedulerCount, workerCount, computeCount, workpileCount, allocatorCount, memoryCount;
+            schedulerCount = read_range(dict, secname, "scheduler", &low, &high); 
+            workerCount = read_range(dict, secname, "worker", &low, &high); 
+            computeCount = read_range(dict, secname, "comptarget", &low, &high); 
+            workpileCount = read_range(dict, secname, "workpile", &low, &high); 
+            allocatorCount = read_range(dict, secname, "allocator", &low, &high); 
+            memoryCount = read_range(dict, secname, "memtarget", &low, &high); 
+          
+            snprintf(key, 64, "%s:%s", secname, "taskfactory");
+            INI_GET_STR (key, inststr, "");
+            tf = create_factory_task(inststr, NULL);
+
+            snprintf(key, 64, "%s:%s", secname, "tasktemplatefactory");
+            INI_GET_STR (key, inststr, "");
+            ttf = create_factory_tasktemplate(inststr, NULL);
+
+            snprintf(key, 64, "%s:%s", secname, "datablockfactory");
+            INI_GET_STR (key, inststr, "");
+            dbf = create_factory_datablock(inststr, NULL);
+
+            snprintf(key, 64, "%s:%s", secname, "eventfactory");
+            INI_GET_STR (key, inststr, "");
+            ef = create_factory_event(inststr, NULL);
+
+            snprintf(key, 64, "%s:%s", secname, "contextfactory");
+            INI_GET_STR (key, inststr, "");
+            cf = create_factory_context(inststr, NULL);
+
+            snprintf(key, 64, "%s:%s", secname, "sync");
+            INI_GET_STR (key, inststr, "");
+            lf = create_factory_lock(inststr, NULL);
+
+            snprintf(key, 64, "%s:%s", secname, "sync");
+            INI_GET_STR (key, inststr, "");
+            af = create_factory_atomic64(inststr, NULL);
+
+            ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t); 
+            instance[j] = ((ocrPolicyDomainFactory_t *)factory)->instantiate(factory, schedulerCount, 
+                            workerCount, computeCount, workpileCount, allocatorCount, memoryCount,
+                            tf, ttf, dbf, ef, cf, gf, lf, af, NULL, inst_param[j]);        
+            if (instance[j]) printf("Created policy domain of index %d\n", j);
         }
         break;
     default:

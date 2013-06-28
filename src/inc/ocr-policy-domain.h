@@ -47,6 +47,19 @@
 #include "ocr-tuning.h"
 #include "ocr-workpile.h"
 
+/****************************************************/
+/* PARAMETER LISTS                                  */
+/****************************************************/
+
+typedef struct _paramListPolicyDomainFact_t {
+    ocrParamList_t base;
+} paramListPolicyDomainFact_t;
+
+typedef struct _paramListPolicyDomainInst_t {
+    ocrParamList_t base;
+} paramListPolicyDomainInst_t;
+
+
 /******************************************************/
 /* OCR POLICY DOMAIN INTERFACE                        */
 /******************************************************/
@@ -355,29 +368,6 @@ typedef struct _ocrPolicyDomain_t {
 
 } ocrPolicyDomain_t;
 
-#if 0
-ocrPolicyDomain_t bootstrapPD;
-
-u8 tempGetGuid(struct _ocrPolicyDomain_t * pd, ocrGuid_t *guid, u64 val,
-                  ocrGuidKind type, ocrPolicyCtx_t *context) {
-    *guid = (ocrGuid_t)0;
-    return 0;
-}
-
-ocrPolicyDomain_t *tempPD(void)
-{
-    static int first_time = 1;
-
-    if (first_time) {
-        first_time = 0;
-//        memset (&bootstrapPD, 0, sizeof(ocrPolicyDomain_t));
-        bootstrapPD.getGuid = &tempGetGuid;
-    }
-
-    return &bootstrapPD;
-}
-#endif
-
 /****************************************************/
 /* OCR POLICY DOMAIN FACTORY                        */
 /****************************************************/
@@ -408,6 +398,7 @@ typedef struct _ocrPolicyDomainFactory_t {
      * @param guidProvider        The provider of GUIDs for this policy domain
      * @param costFunction        The cost function used by this policy domain
      */
+
     ocrPolicyDomain_t * (*instantiate) (struct _ocrPolicyDomainFactory_t *factory,
                                         u64 schedulerCount, u64 workerCount, u64 computeCount,
                                         u64 workpileCount, u64 allocatorCount, u64 memoryCount,

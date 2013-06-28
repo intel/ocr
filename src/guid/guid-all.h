@@ -37,8 +37,14 @@
 #include "debug.h"
 
 typedef enum _guidType_t {
-    guidPtr_id
+    guidPtr_id,
+    guidMax_id
 } guidType_t;
+
+const char * guid_types[] = {
+    "PTR",
+    NULL
+};
 
 // Ptr GUID provider
 #include "guid/ptr/ptr.h"

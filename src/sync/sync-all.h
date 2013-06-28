@@ -39,7 +39,13 @@
 
 typedef enum _syncType_t {
     syncX86_id,
+    syncMax_id
 } syncType_t;
+
+const char * sync_types[] = {
+    "X86",
+    NULL
+};
 
 #include "sync/x86/x86-sync.h"
 

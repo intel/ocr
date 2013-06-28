@@ -94,6 +94,28 @@ inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type
     return NULL;
 }
 
+typedef enum _policyCtxType_t {
+    policyCtxHc_id,
+    policyCtxMax_id
+} policyCtxType_t;
+
+const char * policyCtx_types [] = {
+    "HC",
+    NULL
+};
+
+extern ocrPolicyCtxFactory_t * newPolicyContextFactoryHC(ocrParamList_t *perType);
+
+inline ocrPolicyCtxFactory_t * newPolicyCtxFactory(policyCtxType_t type, ocrParamList_t *perType) {
+    switch(type) {
+    case policyCtxHc_id:
+        return newPolicyContextFactoryHC(perType);
+    default:
+        assert(0);
+    }
+    return NULL;
+}
+
 /*
  *
 ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {

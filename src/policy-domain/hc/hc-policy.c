@@ -307,7 +307,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->neighbors = NULL;
 
     //TODO populated by ini file factories. Need setters or something ?
-    base->guidProvider = NULL;
+//    base->guidProvider = NULL;
     base->schedulers = NULL;
     base->workers = NULL;
     base->computes = NULL;
@@ -316,8 +316,11 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->memories = NULL;
 
     base->guid = UNINITIALIZED_GUID;
+/*
     base->guidProvider->fctPtrs->getGuid(base->guidProvider, &(base->guid),
                                          (u64)base, OCR_GUID_POLICY);
+*/
+    guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_POLICY);
     return base;
 }
 

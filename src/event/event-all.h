@@ -40,8 +40,15 @@
 
 typedef enum _eventType_t {
     eventHc_id,
-    eventFsim_id
+    eventFsim_id,
+    eventMax_id
 } eventType_t;
+
+const char * event_types [] = {
+    "HC",
+    "FSIM",
+    NULL
+};
 
 // HC Event
 #include "hc.h"

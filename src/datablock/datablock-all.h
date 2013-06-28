@@ -39,11 +39,17 @@
 #include "debug.h"
 #include "ocr-utils.h"
 
-// TODO: Bala will modify this
 typedef enum _dataBlockType_t {
     dataBlockRegular_id,
-    dataBlockPlaced_id
+    dataBlockPlaced_id,
+    dataBlockMax_id
 } dataBlockType_t;
+
+const char * dataBlock_types [] = {
+    "Regular",
+    "Placed",
+    NULL
+};
 
 // Regular datablock
 #include "datablock/regular/regular-datablock.h"
