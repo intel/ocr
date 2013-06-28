@@ -44,7 +44,7 @@ typedef enum _guidType_t {
 #include "guid/ptr/ptr.h"
 
 // Add other GUID providers if needed
-inline ocrGuidProviderFactory_t *newGuidProviderFactory(guidType_t  type, ocrParamList_t *typeArg) {
+static inline ocrGuidProviderFactory_t *newGuidProviderFactory(guidType_t  type, ocrParamList_t *typeArg) {
     switch(type) {
     case guidPtr_id:
         return newGuidProviderFactoryPtr(typeArg);

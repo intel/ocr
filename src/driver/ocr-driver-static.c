@@ -18,6 +18,8 @@
 #include "workpile/workpile-all.h"
 
 
+extern ocrPolicyDomain_t * getCurrentPDPthread();
+
 int main(int argc, char ** argv) {
 
 
@@ -41,7 +43,7 @@ int main(int argc, char ** argv) {
 
     ocrParamList_t* guidProviderFactoryParams = NULL;
     ocrGuidProviderFactory_t *guidFactory = newGuidProviderFactoryPtr(guidProviderFactoryParams);
-    ocrGuidProvider_t guidProvider = guidFactory->instantiate(guidFactory, NULL);
+    ocrGuidProvider_t *guidProvider = guidFactory->instantiate(guidFactory, NULL);
 
     ocrParamList_t* lockFactoryParams = NULL;
     ocrLockFactory_t *lockFactory = newLockFactoryX86(lockFactoryParams);
@@ -87,30 +89,34 @@ int main(int argc, char ** argv) {
     memTarget->memories[0] = memPlatform;
 
     compTarget->platformCount = 1;
-    compTarget->platforms = (ocrMemPlatform_t**)malloc(sizeof(ocrMemPlatform_t*));
+    compTarget->platforms = (ocrCompPlatform_t**)malloc(sizeof(ocrCompPlatform_t*));
     compTarget->platforms[0] = compPlatform;
 
     // Create allocator and worker
     paramListAllocatorInst_t *allocatorParamList = (paramListAllocatorInst_t*)malloc(sizeof(paramListAllocatorInst_t));
     allocatorParamList->size = 32*1024*1024;
     ocrAllocatorFactory_t *allocatorFactory = newAllocatorFactoryTlsf(NULL);
-    ocrAllocator_t *allocator = allocatorFactory->instantiate(allocatorFactory, allocatorParamList);
-    ((ocrMappable_t*)allocator)->mapFct((ocrMappable_t*)allocator, OCR_MEM_TARGET, 1, &memTarget);
+    ocrAllocator_t *allocator = allocatorFactory->instantiate(allocatorFactory,
+                                                              (ocrParamList_t*)allocatorParamList);
+    ((ocrMappable_t*)allocator)->mapFct((ocrMappable_t*)allocator, OCR_MEM_TARGET, 1,
+                                        (ocrMappable_t**)&memTarget);
 
-    ocrWorkerFactory_t *workerFactory = newWorkerFactoryHc(NULL);
-    ocrWorker_t *worker = workerFactory->instantiate(workerFactory, NULL);
+//    ocrWorkerFactory_t *workerFactory = newOcrWorkerFactoryHc(NULL);
+//    ocrWorker_t *worker = workerFactory->instantiate(workerFactory, NULL);
+    ocrWorker_t *worker = newOcrWorkerFactoryHc(NULL);
     worker->computeCount = 1;
     worker->computes = (ocrCompTarget_t**)malloc(sizeof(ocrCompTarget_t*));
     worker->computes[0] = compTarget;
 
     // Create workpile and scheduler
-    ocrWorkpileFactory_t *workpileFactory = newWorkpileFactoryHc(NULL);
+    ocrWorkpileFactory_t *workpileFactory = newOcrWorkpileFactoryHc(NULL);
     ocrWorkpile_t* workpile = workpileFactory->instantiate(workpileFactory, NULL);
 
     paramListSchedulerHcInst_t *schedulerParamList = (paramListSchedulerHcInst_t*)malloc(sizeof(paramListSchedulerHcInst_t));
     schedulerParamList->worker_id_first = 0;
-    ocrSchedulerFactory_t *schedulerFactory = newSchedulerFactoryHc(NULL);
-    ocrScheduler_t *scheduler = schedulerFactory->instantiate(schedulerFactory, schedulerParamList);
+    ocrSchedulerFactory_t *schedulerFactory = newOcrSchedulerFactoryHc(NULL);
+    ocrScheduler_t *scheduler = schedulerFactory->instantiate(schedulerFactory,
+                                                              (ocrParamList_t*)schedulerParamList);
 
     scheduler->workpileCount = 1;
     scheduler->workpiles = (ocrWorkpile_t**)malloc(sizeof(ocrWorkpile_t*));
