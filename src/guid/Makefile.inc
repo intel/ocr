@@ -4,7 +4,6 @@ noinst_LTLIBRARIES += libocr_guid.la
 libocr_la_LIBADD += libocr_guid.la
 
 libocr_guid_la_SOURCES = \
-$(OCR_SRC_GUID)/ocr-function-id.c \
 $(OCR_SRC_GUID)/ocr-guid.c
 
 libocr_guid_la_CFLAGS = $(AM_CFLAGS)

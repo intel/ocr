@@ -46,10 +46,14 @@
  * @warning This will always restore OCR_GUID_NONE for the type.
  * In other words, it never stores the type
  */
-typedef struct _ocrGuidProviderPtr_t {
+typedef struct {
     ocrGuidProvider_t base;
 } ocrGuidProviderPtr_t;
 
-ocrGuidProvider_t* newGuidProviderPtr();
+typedef struct {
+    ocrGuidProviderFactory_t base;
+} ocrGuidProviderFactoryPtr_t;
+
+ocrGuidProviderFactory_t* newGuidProviderFactoryPtr(ocrParamList_t *typeArg);
 
 #endif /* __OCR_GUIDPROVIDER_PTR_H__ */

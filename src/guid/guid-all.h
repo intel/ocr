@@ -34,23 +34,23 @@
 
 #include "ocr-guid.h"
 #include "ocr-utils.h"
-#include "ptr/ptr.h"
+#include "ocr-debug.h"
 
 typedef enum _guidType_t {
     guidPtr_id
 } guidType_t;
 
-//TODO we'd need to follow the factory pattern here to be consistent with other modules
-ocrGuidProvider_t* newGuidProvider(guidType_t type, ocrParamList_t *perType) {
+// Ptr GUID provider
+#include "guid/ptr/ptr-guid.h"
+
+// Add other GUID providers if needed
+inline ocrGuidProviderFactory_t *newGuidProviderFactory(guidType_t  type, ocrParamList_t *typeArg) {
     switch(type) {
     case guidPtr_id:
-        return newGuidProviderPtr();
+        return newGuidProviderFactoryPtr(typeArg);
     default:
         ASSERT(0);
+        return NULL;
     }
-    return NULL;
 }
-
-
-
 #endif /* __GUID_ALL_H__ */

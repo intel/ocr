@@ -1023,7 +1023,7 @@ static void tlsfMap(ocrMappable_t* self, ocrMappableKind kind, u64 instanceCount
     RESULT_ASSERT(tlsfInit(rself->addr, rself->totalSize), ==, 0);
 }
 
-void tlsfDestruct(ocrAllocator_t *self) {
+static void tlsfDestruct(ocrAllocator_t *self) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     if(self->memoryCount)
         self->memories[0]->fctPtrs->free(self->memories[0], (void*)rself->addr);
@@ -1037,7 +1037,7 @@ void tlsfDestruct(ocrAllocator_t *self) {
     free(rself);
 }
 
-void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
+static void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     rself->lock->fctPtrs->lock(rself->lock);
     void* toReturn = (void*)tlsfMalloc(rself->addr, size);
@@ -1045,14 +1045,14 @@ void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
     return toReturn;
 }
 
-void tlsfDeallocate(ocrAllocator_t *self, void* address) {
+static void tlsfDeallocate(ocrAllocator_t *self, void* address) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     rself->lock->fctPtrs->lock(rself->lock);
     tlsfFree(rself->addr, (u64)address);
     rself->lock->fctPtrs->unlock(rself->lock);
 }
 
-void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
+static void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     rself->lock->fctPtrs->lock(rself->lock);
     void* toReturn = (void*)(tlsfRealloc(rself->addr, (u64)address, size));
@@ -1061,7 +1061,7 @@ void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
 }
 
 // Method to create the TLSF allocator
-ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_t *perInstance) {
+static ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_t *perInstance) {
 
     ocrAllocatorTlsf_t *result = (ocrAllocatorTlsf_t*)
         checkedMalloc(result, sizeof(ocrAllocatorTlsf_t));
