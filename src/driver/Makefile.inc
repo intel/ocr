@@ -4,9 +4,9 @@ noinst_LTLIBRARIES += libocr_driver.la
 libocr_la_LIBADD += libocr_driver.la
 
 libocr_driver_la_SOURCES = \
-$(OCR_SRC_DRIVER)/ocr-driver-static.c
+$(OCR_SRC_DRIVER)/ocr-driver-static.c \
+$(OCR_SRC_DRIVER)/ocr-driver.c
 #$(OCR_SRC_DRIVER)/ocr-config.c \
-$(OCR_SRC_DRIVER)/ocr-driver.c \
 #$(OCR_SRC_DRIVER)/ocr-runtime-model.c \
 #$(OCR_SRC_DRIVER)/ocr-models/ocr-model-flat.c \
 #$(OCR_SRC_DRIVER)/ocr-models/ocr-model-fsim.c  \

@@ -37,6 +37,11 @@
 #include "ocr-runtime.h"
 #include "ocr-config.h"
 #include "ocr-guid.h"
+// #include "sync/x86/x86.h"
+
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-stat-user.h"
+#endif
 
 u64 n_root_policy_nodes;
 ocrPolicyDomain_t ** root_policies;
@@ -45,36 +50,36 @@ ocrPolicyDomain_t ** root_policies;
 ocrWorker_t* master_worker;
 u64 gHackTotalMemSize;
 
-//TODO we should have an argument option parsing library
-/**!
- * Utility function to remove ocr arguments before handing argv
- * over to the user program
- */
-static void shift_arguments(int * argc, char ** argv, int start_offset, int shift_offset) {
-    int i = start_offset;
-    int j = shift_offset;
-    while ( j < *argc) {
-        argv[i++] = argv[j++];
-    }
+// //TODO we should have an argument option parsing library
+// /**!
+//  * Utility function to remove ocr arguments before handing argv
+//  * over to the user program
+//  */
+// static void shift_arguments(int * argc, char ** argv, int start_offset, int shift_offset) {
+//     int i = start_offset;
+//     int j = shift_offset;
+//     while ( j < *argc) {
+//         argv[i++] = argv[j++];
+//     }
 
-    *argc = (*argc - (shift_offset-start_offset));
-}
+//     *argc = (*argc - (shift_offset-start_offset));
+// }
 
-/**!
- * Check if we have a machine description passed as argument
- */
-static char * parseOcrOptions_MachineDescription(int * argc, char ** argv) {
-    int i = 0;
-    char * md_file = NULL;
-    while(i < *argc) {
-        if (strcmp(argv[i], "-md") == 0) {
-            md_file = argv[i+1];
-            shift_arguments(argc, argv, i, i+2);
-        }
-        i++;
-    }
-    return md_file;
-}
+// /**!
+//  * Check if we have a machine description passed as argument
+//  */
+// static char * parseOcrOptions_MachineDescription(int * argc, char ** argv) {
+//     int i = 0;
+//     char * md_file = NULL;
+//     while(i < *argc) {
+//         if (strcmp(argv[i], "-md") == 0) {
+//             md_file = argv[i+1];
+//             shift_arguments(argc, argv, i, i+2);
+//         }
+//         i++;
+//     }
+//     return md_file;
+// }
 
 /**!
  * Initialize the OCR runtime.
@@ -104,8 +109,8 @@ void ocrInit(int * argc, char ** argv, ocrEdt_t mainEdt) {
     // This should also generate modified arguments to pass to
     // the first EDT (future) kind of like for FSim.
     // For now I am calling them paramc and paramv
-    u32 paramc = 0;
-    u64* paramv = NULL;
+    // u32 paramc = 0;
+    // u64* paramv = NULL;
 
     /*
     char * md_file = parseOcrOptions_MachineDescription(argc, argv);
@@ -119,8 +124,8 @@ void ocrInit(int * argc, char ** argv, ocrEdt_t mainEdt) {
     */
 
     // Create and schedule the main EDT
-    ocrGuid_t mainEdtTemplate;
-    ocrGuid_t mainEdtGuid;
+    // ocrGuid_t mainEdtTemplate;
+    // ocrGuid_t mainEdtGuid;
 
     // TODO: REC: Add the creation once I have a PD
 }
@@ -131,63 +136,63 @@ void ocrFinish() {
     master_worker->fctPtrs->stop(master_worker);
 }
 
-static void recursive_policy_finish_helper ( ocrPolicyDomain_t* curr ) {
-    if ( curr ) {
-        int index = 0; // successor index
-        for ( ; index < curr->n_successors; ++index ) {
-            recursive_policy_finish_helper(curr->successors[index]);
-        }
-        curr->finish(curr);
-    }
-}
+// static void recursive_policy_finish_helper ( ocrPolicyDomain_t* curr ) {
+//     if ( curr ) {
+//         int index = 0; // successor index
+//         for ( ; index < curr->n_successors; ++index ) {
+//             recursive_policy_finish_helper(curr->successors[index]);
+//         }
+//         curr->finish(curr);
+//     }
+// }
 
-static void recursive_policy_stop_helper ( ocrPolicyDomain_t* curr ) {
-    if ( curr ) {
-        int index = 0; // successor index
-        for ( ; index < curr->n_successors; ++index ) {
-            recursive_policy_stop_helper(curr->successors[index]);
-        }
-        curr->stop(curr);
-    }
-}
+// static void recursive_policy_stop_helper ( ocrPolicyDomain_t* curr ) {
+//     if ( curr ) {
+//         int index = 0; // successor index
+//         for ( ; index < curr->n_successors; ++index ) {
+//             recursive_policy_stop_helper(curr->successors[index]);
+//         }
+//         curr->stop(curr);
+//     }
+// }
 
-static void recursive_policy_destruct_helper ( ocrPolicyDomain_t* curr ) {
-    if ( curr ) {
-        int index = 0; // successor index
-        for ( ; index < curr->n_successors; ++index ) {
-            recursive_policy_destruct_helper(curr->successors[index]);
-        }
-        curr->destruct(curr);
-    }
-}
+// static void recursive_policy_destruct_helper ( ocrPolicyDomain_t* curr ) {
+//     if ( curr ) {
+//         int index = 0; // successor index
+//         for ( ; index < curr->n_successors; ++index ) {
+//             recursive_policy_destruct_helper(curr->successors[index]);
+//         }
+//         curr->destruct(curr);
+//     }
+// }
 
-static inline void unravel () {
-    // current root policy index
-    int index = 0;
+// static inline void unravel () {
+//     // current root policy index
+//     int index = 0;
 
-    for ( index = 0; index < n_root_policy_nodes; ++index ) {
-        recursive_policy_finish_helper(root_policies[index]);
-    }
+//     for ( index = 0; index < n_root_policy_nodes; ++index ) {
+//         recursive_policy_finish_helper(root_policies[index]);
+//     }
 
-    for ( index = 0; index < n_root_policy_nodes; ++index ) {
-        recursive_policy_stop_helper(root_policies[index]);
-    }
+//     for ( index = 0; index < n_root_policy_nodes; ++index ) {
+//         recursive_policy_stop_helper(root_policies[index]);
+//     }
 
-    for ( index = 0; index < n_root_policy_nodes; ++index ) {
-        recursive_policy_destruct_helper(root_policies[index]);
-    }
-    // TODO this would be destroyed as part of the root policy
-    globalGuidProvider->destruct(globalGuidProvider);
-    free(root_policies);
-}
+//     for ( index = 0; index < n_root_policy_nodes; ++index ) {
+//         recursive_policy_destruct_helper(root_policies[index]);
+//     }
+//     // TODO this would be destroyed as part of the root policy
+//     globalGuidProvider->destruct(globalGuidProvider);
+//     free(root_policies);
+// }
 
 void ocrCleanup() {
-    master_worker->routine(master_worker);
-    // master_worker is done executing. 
-    // Proceed and stop other workers and the runtime.
-    unravel();
-#ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcessDestruct(&GfakeProcess);
-    GocrFilterAggregator->destruct(GocrFilterAggregator);
-#endif
+//     master_worker->routine(master_worker);
+//     // master_worker is done executing.
+//     // Proceed and stop other workers and the runtime.
+//     unravel();
+// #ifdef OCR_ENABLE_STATISTICS
+//     ocrStatsProcessDestruct(&GfakeProcess);
+//     GocrFilterAggregator->destruct(GocrFilterAggregator);
+// #endif
 }
