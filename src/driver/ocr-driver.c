@@ -267,3 +267,88 @@ void ocrFinalize() {
 //     GocrFilterAggregator->destruct(GocrFilterAggregator);
 // #endif
 }
+
+// TODO sagnak everything below is DUMB and RIDICULOUS and
+// will have to be undone and done again
+
+struct _ocrPolicyDomainLinkedListNode;
+typedef struct _ocrPolicyDomainLinkedListNode {
+    ocrPolicyDomain_t* pd;
+    struct _ocrPolicyDomainLinkedListNode* next;
+} ocrPolicyDomainLinkedListNode;
+
+// walkthrough the linked list and return TRUE if instance exists
+int isMember ( ocrPolicyDomainLinkedListNode *dummyHead, ocrPolicyDomainLinkedListNode *tail, ocrPolicyDomain_t* instance ) {
+    ocrPolicyDomainLinkedListNode* curr = dummyHead->next;
+    for ( ; NULL != curr && curr->pd != instance; curr = curr -> next ) {
+    }
+    return NULL != curr;
+}
+
+void recurseBuildDepthFirstSpanningTreeLinkedList ( ocrPolicyDomainLinkedListNode *dummyHead, ocrPolicyDomainLinkedListNode *tail, ocrPolicyDomain_t* currPD ) {
+    ocrPolicyDomainLinkedListNode *currNode = (ocrPolicyDomainLinkedListNode*) malloc(sizeof(ocrPolicyDomainLinkedListNode));
+    currNode -> pd = currPD;
+    currNode -> next = NULL;
+    tail -> next = currNode;
+    tail = currNode;
+
+    u64 neighborCount = currPD->neighborCount; 
+    u64 i = 0;
+    for ( ; i < neighborCount; ++i ) {
+        ocrPolicyDomain_t* currNeighbor = currPD->neighbors[i];
+        if ( !isMember(dummyHead,tail,currNeighbor) ) {
+            recurseBuildDepthFirstSpanningTreeLinkedList(dummyHead, tail, currNeighbor);
+        }
+    }
+}
+
+ocrPolicyDomainLinkedListNode *buildDepthFirstSpanningTreeLinkedList ( ocrPolicyDomain_t* currPD ) {
+    ocrPolicyDomainLinkedListNode *dummyHead = (ocrPolicyDomainLinkedListNode*) malloc(ocrPolicyDomainLinkedListNode);
+    ocrPolicyDomainLinkedListNode *tail = dummyHead;
+    dummyHead -> pd = NULL;
+    dummyHead -> next = NULL;
+
+    recurseBuildDepthFirstSpanningTreeLinkedList(dummyHead, tail, currPD);
+    ocrPolicyDomainLinkedListNode *head = dummyHead->next;
+    free(dummyHead);
+    return head;
+}
+
+void destructLinkedList ( ocrPolicyDomainLinkedListNode* head ) {
+    ocrPolicyDomainLinkedListNode *curr = head;
+    ocrPolicyDomainLinkedListNode *next = NULL;
+    while ( NULL != curr ) {
+        next = curr->next;
+        free(curr);
+        curr = next;
+    }
+}
+void linearTraverseShutDown ( ocrPolicyDomainLinkedListNode* curr ) {
+    ocrPolicyDomainLinkedListNode *head = curr;
+    for ( ; NULL != curr; curr = curr -> next ) {
+        ocrPolicyDomain_t* pd = curr->pd;
+        pd->stopWorkers(pd); /*TODO sagnak: rename*/
+    }
+    destructLinkedList(head);
+}
+
+void linearTraverseFinalize ( ocrPolicyDomainLinkedListNode* curr ) {
+    ocrPolicyDomainLinkedListNode *head = curr;
+    for ( ; NULL != curr; curr = curr -> next ) {
+        ocrPolicyDomain_t* pd = curr->pd;
+        pd->stopExecutors(pd); /*TODO sagnak: rename*/
+    }
+    destructLinkedList(head);
+}
+
+void ocrShutDown() {
+    ocrPolicyDomain_t* currPD = getCurrentPD();
+    ocrPolicyDomainLinkedListNode * spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(currPD); //N^2
+    linearTraverseShutDown(spanningTreeHead);
+}
+
+void ocrFinalize() {
+    ocrPolicyDomain_t* masterPD = getMasterPD();
+    ocrPolicyDomainLinkedListNode * spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(masterPD); //N^2
+    linearTraverseFinalize(spanningTreeHead);
+}
