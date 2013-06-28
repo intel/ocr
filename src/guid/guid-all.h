@@ -34,14 +34,14 @@
 
 #include "ocr-guid.h"
 #include "ocr-utils.h"
-#include "ocr-debug.h"
+#include "debug.h"
 
 typedef enum _guidType_t {
     guidPtr_id
 } guidType_t;
 
 // Ptr GUID provider
-#include "guid/ptr/ptr-guid.h"
+#include "guid/ptr/ptr.h"
 
 // Add other GUID providers if needed
 inline ocrGuidProviderFactory_t *newGuidProviderFactory(guidType_t  type, ocrParamList_t *typeArg) {

@@ -35,6 +35,7 @@
 #include "ocr-comp-platform.h"
 #include "ocr-guid.h"
 #include "ocr-policy-domain.h"
+#include "guid/guid-all.h"
 
 struct _ocrPolicyDomain_t;
 struct _ocrPolicyCtx_t;
@@ -43,8 +44,7 @@ struct _ocrPolicyDomain_t bootstrapPD;
 
 u8 tempGetGuid(struct _ocrPolicyDomain_t * pd, ocrGuid_t *guid, u64 val,
                   ocrGuidKind type, struct _ocrPolicyCtx_t *context) {
-    *guid = (ocrGuid_t)0;
-    return 0;
+    return pd->guidProvider->fctPtrs->getGuid(pd->guidProvider, guid, val, type);
 }
 
 struct _ocrPolicyDomain_t *tempPD(void)
@@ -53,8 +53,10 @@ struct _ocrPolicyDomain_t *tempPD(void)
 
     if (first_time) {
         first_time = 0;
-//        memset (&bootstrapPD, 0, sizeof(ocrPolicyDomain_t));
-          bootstrapPD.getGuid = &tempGetGuid;
+        ocrGuidProviderFactory_t * factory = newGuidProviderFactory(guidPtr_id, NULL);
+        ocrGuidProvider_t * guidProvider = factory->instantiate(factory, NULL);
+        bootstrapPD.guidProvider = guidProvider;
+        bootstrapPD.getGuid = &tempGetGuid;
     }
     return &bootstrapPD;
 }
