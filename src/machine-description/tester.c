@@ -116,8 +116,8 @@ dep_t deps[] = {
     { 9, 1, "memtarget"},
     { 9, 2, "allocator"},
     { 9, 4, "comptarget"},
-    { 9, 5, "worker"},
-    { 9, 6, "workpile"},
+    { 9, 5, "workpile"},
+    { 9, 6, "worker"},
     { 9, 7, "scheduler"},
     { 9, 8, "guid"},
 };
@@ -626,15 +626,18 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
     return 0;
 }
 
-void add_dependence (int fromtype, ocrMappable_t *frominstance, ocrParamList_t *fromparam, ocrMappable_t *toinstance, ocrParamList_t *toparam, int dependence_index, int dependence_count)
+void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrParamList_t *fromparam, ocrMappable_t *toinstance, ocrParamList_t *toparam, int dependence_index, int dependence_count)
 {
     
     switch(fromtype) {
     case 0:
-        printf("Unexpected: memplatform has no dependences! (incorrect dependence: %s to %s)\n", fromparam->misc, toparam->misc);
+    case 3:
+    case 5:
+    case 8:
+        printf("Unexpected: this should have no dependences! (incorrect dependence: %s to %s)\n", fromparam->misc, toparam->misc);
         break;
+
     case 1: {
-            paramListMemTargetInst_t *t = (paramListMemTargetInst_t *)fromparam;
             ocrMemTarget_t *f = (ocrMemTarget_t *)frominstance;
             printf("Memtarget %s to %s\n", fromparam->misc, toparam->misc);
 
@@ -646,7 +649,6 @@ void add_dependence (int fromtype, ocrMappable_t *frominstance, ocrParamList_t *
             break;
         }
     case 2: {
-            paramListAllocatorInst_t *t = (paramListAllocatorInst_t *)fromparam;
             printf("Allocator %s to %s\n", fromparam->misc, toparam->misc);
             ocrAllocator_t *f = (ocrAllocator_t *)frominstance;
 
@@ -657,9 +659,115 @@ void add_dependence (int fromtype, ocrMappable_t *frominstance, ocrParamList_t *
             f->memories[dependence_index] = (ocrMemTarget_t *)toinstance;
             break;
         }
-    case 3:
-        printf("Unexpected: compplatform has no dependences! (incorrect dependence: %s to %s)\n", fromparam->misc, toparam->misc);
-        break;
+    case 4: {
+            ocrCompTarget_t *f = (ocrCompTarget_t *)frominstance;
+            printf("CompTarget %s to %s\n", fromparam->misc, toparam->misc);
+
+            if (f->platformCount == 0) {
+                f->platformCount = dependence_count;
+                f->platforms = (ocrCompPlatform_t **)malloc(sizeof(ocrCompPlatform_t *) * dependence_count);
+            }
+            f->platforms[dependence_index] = (ocrCompPlatform_t *)toinstance;
+            break;
+        }
+    case 6: {
+            ocrWorker_t *f = (ocrWorker_t *)frominstance;
+            printf("Worker %s to %s\n", fromparam->misc, toparam->misc);
+
+            if (f->computeCount == 0) {
+                f->computeCount = dependence_count;
+                f->computes = (ocrCompTarget_t **)malloc(sizeof(ocrCompTarget_t *) * dependence_count);
+            }
+            f->computes[dependence_index] = (ocrCompTarget_t *)toinstance;
+            break;
+        }
+    case 7: {
+            ocrScheduler_t *f = (ocrScheduler_t *)frominstance;
+            printf("Scheduler %s to %s\n", fromparam->misc, toparam->misc);
+            switch (totype) {
+                case 5: {
+                        if (f->workpileCount == 0) {
+                            f->workpileCount = dependence_count;
+                            f->workpiles = (ocrWorkpile_t **)malloc(sizeof(ocrWorkpile_t *) * dependence_count);
+                        }
+                        f->workpiles[dependence_index] = (ocrWorkpile_t *)toinstance;
+                        break;
+                    }
+                case 6: {
+                        if (f->workerCount == 0) {
+                            f->workerCount = dependence_count;
+                            f->workers = (ocrWorker_t **)malloc(sizeof(ocrWorker_t *) * dependence_count);
+                        }
+                        f->workers[dependence_index] = (ocrWorker_t *)toinstance;
+                        break;
+                    }
+                default: 
+                        break;
+            }
+            break;
+        }
+    case 9: {
+            ocrPolicyDomain_t *f = (ocrPolicyDomain_t *)frominstance;
+            printf("PD %s to %s\n", fromparam->misc, toparam->misc);
+            switch (totype) {
+                case 1: {
+                        if (f->memories == NULL) {
+                            ASSERT(f->memoryCount == dependence_count);
+                            f->memories = (ocrMemTarget_t **)malloc(sizeof(ocrMemTarget_t *) * dependence_count);
+                        }
+                        f->memories[dependence_index] = (ocrMemTarget_t *)toinstance;
+                        break;
+                    }
+                case 2: {
+                        if (f->allocators == NULL) {
+                            ASSERT(f->allocatorCount == dependence_count);
+                            f->allocators = (ocrAllocator_t **)malloc(sizeof(ocrAllocator_t *) * dependence_count);
+                        }
+                        f->allocators[dependence_index] = (ocrAllocator_t *)toinstance;
+                        break;
+                    }
+                case 4: {
+                        if (f->computes == NULL) {
+                            ASSERT(f->computeCount == dependence_count);
+                            f->computes = (ocrCompTarget_t **)malloc(sizeof(ocrCompTarget_t *) * dependence_count);
+                        }
+                        f->computes[dependence_index] = (ocrCompTarget_t *)toinstance;
+                        break;
+                    }
+                case 5: {
+                        if (f->workpiles == NULL) {
+                            ASSERT(f->workpileCount == dependence_count);
+                            f->workpiles = (ocrWorkpile_t **)malloc(sizeof(ocrWorkpile_t *) * dependence_count);
+                        }
+                        f->workpiles[dependence_index] = (ocrWorkpile_t *)toinstance;
+                        break;
+                    }
+                case 6: {
+                        if (f->workers == NULL) {
+                            ASSERT(f->workerCount == dependence_count);
+                            f->workers = (ocrWorker_t **)malloc(sizeof(ocrWorker_t *) * dependence_count);
+                        }
+                        f->workers[dependence_index] = (ocrWorker_t *)toinstance;
+                        break;
+                    }
+                case 7: {
+                        ASSERT(dependence_count==1);
+                        /*	FIXME: GUID */
+                        break;
+                    }
+                case 8: {
+                        if (f->schedulers == NULL) {
+                            ASSERT(f->schedulerCount == dependence_count);
+                            f->schedulers = (ocrScheduler_t **)malloc(sizeof(ocrScheduler_t *) * dependence_count);
+                        }
+                        f->schedulers[dependence_index] = (ocrScheduler_t *)toinstance;
+                        break;
+                    }
+                default: 
+                        break;
+            }
+            break;
+        }
     default:
         break;
     }
@@ -683,7 +791,7 @@ int build_deps (dictionary *dict, int A, int B, char *refstr)
                 for (k = l; k <= h; k++) {
                     // Connect A with B 
                     // printf("%s, id %d has dependence on %s, id %d\n", inst_str[A], j, inst_str[B], k);
-                    add_dependence(A, all_instances[A][j], inst_params[A][j], all_instances[B][k], inst_params[B][k], k-l, h-l+1);
+                    add_dependence(A, B, all_instances[A][j], inst_params[A][j], all_instances[B][k], inst_params[B][k], k-l, h-l+1);
                 }
             }
         }
