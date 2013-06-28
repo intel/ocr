@@ -408,11 +408,15 @@ typedef struct _ocrPolicyDomainFactory_t {
      * @param guidProvider        The provider of GUIDs for this policy domain
      * @param costFunction        The cost function used by this policy domain
      */
-    ocrPolicyDomain_t * (*instantiate) (struct _ocrPolicyDomainFactory_t *factory, void *configuration,
-                   u64 schedulerCount, u64 workerCount, u64 computeCount,
-                   u64 workpileCount, u64 allocatorCount, u64 memoryCount,
-                   ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory, ocrDataBlockFactory_t *dbFactory,
-                   ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t *contextFactory, ocrCost_t *costFunction);
+    ocrPolicyDomain_t * (*instantiate) (struct _ocrPolicyDomainFactory_t *factory,
+                                        u64 schedulerCount, u64 workerCount, u64 computeCount,
+                                        u64 workpileCount, u64 allocatorCount, u64 memoryCount,
+                                        ocrTaskFactory_t *taskFactory,
+                                        ocrTaskTemplateFactory_t *taskTemplateFactory, ocrDataBlockFactory_t *dbFactory,
+                                        ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t *contextFactory,
+                                        ocrGuidProvider_t *guidProvider, ocrLockFactory_t *lockFactory,
+                                        ocrAtomic64Factory_t *atomicFactory,
+                                        ocrCost_t *costFunction, ocrParamList_t *perInstance);
 
     void (*destruct)(struct _ocrPolicyDomainFactory_t * factory);
 } ocrPolicyDomainFactory_t;

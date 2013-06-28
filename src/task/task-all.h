@@ -36,7 +36,7 @@
 
 #include "ocr-task.h"
 #include "ocr-utils.h"
-#include "ocr-debug.h"
+#include "debug.h"
 
 typedef enum _taskType_t {
     taskHc_id,
@@ -44,7 +44,8 @@ typedef enum _taskType_t {
 } taskType_t;
 
 // HC Task
-#include "task/hc/hc-task.h"
+#include "hc.h"
+#include "hc_edf.h"
 
 // Add other tasks using the same pattern as above
 

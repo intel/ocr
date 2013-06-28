@@ -35,8 +35,8 @@
 #define __DATABLOCK_ALL_H__
 
 #include "ocr-datablock.h"
-// TODO sagnak: delete non-existant headers
-// #include "ocr-debug.h"
+
+#include "debug.h"
 #include "ocr-utils.h"
 
 // TODO: Bala will modify this
@@ -58,7 +58,7 @@ ocrDataBlockFactory_t* newDataBlockFactory(dataBlockType_t type, ocrParamList_t 
     case dataBlockRegular_id:
         return newDataBlockFactoryRegular(typeArg);
         break;
-// TODO sagnak: delete non-existant parts 
+// TODO sagnak: delete non-existant parts
 //    case dataBlockPlaced_id:
 //        return newDataBlockFactoryPlaced(typeArg);
 //        break;

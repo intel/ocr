@@ -36,7 +36,7 @@
 
 #include "ocr-event.h"
 #include "ocr-utils.h"
-#include "ocr-debug.h"
+#include "debug.h"
 
 typedef enum _eventType_t {
     eventHc_id,
@@ -44,7 +44,8 @@ typedef enum _eventType_t {
 } eventType_t;
 
 // HC Event
-#include "event/hc/hc-event.h"
+#include "hc.h"
+#include "hc_edf.h"
 
 // Add other events using the same pattern as above
 

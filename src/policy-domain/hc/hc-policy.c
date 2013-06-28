@@ -76,7 +76,7 @@ static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
 
     // Need to associate thread and worker here, as current thread fall-through
     // in user code and may need to know which Worker it is associated to.
-    // Handle target '0' 
+    // Handle target '0'
     policy->workers[0]->fctPtrs->start(policy->workers[0], policy);
 }
 
@@ -252,12 +252,14 @@ static u8 hcGiveEdt(ocrPolicyDomain_t *self, u32 count, ocrGuid_t *edts, ocrPoli
 }
 
 
-ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * configuration,
-        u64 schedulerCount, u64 workerCount, u64 computeCount,
-        u64 workpileCount, u64 allocatorCount, u64 memoryCount,
-        ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory,
-        ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
-        ocrPolicyCtxFactory_t *contextFactory, ocrCost_t *costFunction ) {
+ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
+                                      u64 schedulerCount, u64 workerCount, u64 computeCount,
+                                      u64 workpileCount, u64 allocatorCount, u64 memoryCount,
+                                      ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory,
+                                      ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
+                                      ocrPolicyCtxFactory_t *contextFactory, ocrGuidProvider_t *guidProvider,
+                                      ocrLockFactory_t* lockFactory, ocrAtomic64Factory_t* atomicFactory,
+                                      ocrCost_t *costFunction, ocrParamList_t *perInstance) {
 
     //TODO missing guidProvider
     ocrPolicyDomainHc_t * derived = (ocrPolicyDomainHc_t *) checkedMalloc(policy, sizeof(ocrPolicyDomainHc_t));
@@ -279,6 +281,10 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     base->dbFactory = dbFactory;
     base->eventFactory = eventFactory;
     base->contextFactory = contextFactory;
+    base->guidProvider = guidProvider;
+    base->lockFactory = lockFactory;
+    base->atomicFactory = atomicFactory;
+    base->costFunction = costFunction;
 
     base->destruct = hcPolicyDomainDestruct;
     base->start = hcPolicyDomainStart;
@@ -309,12 +315,9 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy, void * 
     base->allocators = NULL;
     base->memories = NULL;
 
-    // TODO Once we have a handle on a guidProvider get one for the PD
-    // Shall the provider be part of the constructor signature or is
-    // set later. In that case we need to move this code somewhere else
-    ASSERT(base->guidProvider != NULL);
     base->guid = UNINITIALIZED_GUID;
-    guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_POLICY);
+    base->guidProvider->fctPtrs->getGuid(base->guidProvider, &(base->guid),
+                                         (u64)base, OCR_GUID_POLICY);
     return base;
 }
 

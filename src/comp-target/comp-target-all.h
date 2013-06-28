@@ -33,7 +33,7 @@
 
 #include "ocr-comp-target.h"
 #include "ocr-utils.h"
-#include "ocr-debug.h"
+#include "debug.h"
 
 typedef enum _compTargetType_t {
     compTargetHc_id,

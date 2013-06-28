@@ -1,8 +1,22 @@
 #include "ocr-runtime.h"
 
-#include "datablock/datablock-all.h"
 #include "policy-domain/policy-domain-all.h"
 #include "hc.h"
+#include "guid/guid-all.h"
+#include "task/task-all.h"
+#include "datablock/datablock-all.h"
+#include "event/event-all.h"
+#include "guid/guid-all.h"
+#include "sync/sync-all.h"
+#include "mem-platform/mem-platform-all.h"
+#include "comp-platform/comp-platform-all.h"
+#include "mem-target/mem-target-all.h"
+#include "comp-target/comp-target-all.h"
+#include "allocator/allocator-all.h"
+#include "scheduler/scheduler-all.h"
+#include "worker/worker-all.h"
+#include "workpile/workpile-all.h"
+
 
 int main(int argc, char ** argv) {
 
@@ -19,22 +33,113 @@ int main(int argc, char ** argv) {
     ocrParamList_t* dataBlockFactoryParams = NULL;
     ocrDataBlockFactory_t *dbFactory = newDataBlockFactoryRegular ( dataBlockFactoryParams );
 
-    /* this seems not to be ocrParamList_t*'ed yet */
     void* eventFactoryConfigParams = NULL;
     ocrEventFactory_t *eventFactory = newEventFactoryHc ( eventFactoryConfigParams );
 
     ocrParamList_t* policyContextFactoryParams = NULL;
     ocrPolicyCtxFactory_t *contextFactory = newPolicyContextFactoryHC ( policyContextFactoryParams );
 
+    ocrParamList_t* guidProviderFactoryParams = NULL;
+    ocrGuidProviderFactory_t *guidFactory = newGuidProviderFactoryPtr(guidProviderFactoryParams);
+    ocrGuidProvider_t guidProvider = guidFactory->instantiate(guidFactory, NULL);
+
+    ocrParamList_t* lockFactoryParams = NULL;
+    ocrLockFactory_t *lockFactory = newLockFactoryX86(lockFactoryParams);
+
+    ocrParamList_t* atomicFactoryParams = NULL;
+    ocrAtomic64Factory_t *atomicFactory = newAtomic64FactoryX86(atomicFactoryParams);
+
     ocrCost_t *costFunction = NULL;
 
     ocrPolicyDomain_t * rootPolicy = policyDomainFactory->instantiate(
-            policyDomainFactory /*factory*/, NULL /*configuration*/,
-            1 /*schedulerCount*/, 8/*workerCount*/, 8 /*computeCount*/,
-            8 /*workpileCount*/, 1 /*allocatorCount*/, 1 /*memoryCount*/,
-            taskFactory, taskTemplateFactory, dbFactory,
-            eventFactory, contextFactory, costFunction
-           );
+        policyDomainFactory /*factory*/,
+        1 /*schedulerCount*/, 1/*workerCount*/, 1 /*computeCount*/,
+        8 /*workpileCount*/, 1 /*allocatorCount*/, 1 /*memoryCount*/,
+        taskFactory, taskTemplateFactory, dbFactory,
+        eventFactory, contextFactory, guidProvider, lockFactory,
+        atomicFactory, costFunction, NULL
+        );
 
-	return 0;
+    // Get the platforms
+    ocrParamList_t *memPlatformFactoryParams = NULL;
+    ocrMemPlatformFactory_t *memPlatformFactory = newMemPlatformFactoryMalloc(memPlatformFactoryParams);
+
+    ocrParamList_t *compPlatformFactoryParams = NULL;
+    ocrCompPlatformFactory_t *compPlatformFactory = newCompPlatformFactoryPthread(compPlatformFactoryParams);
+
+    // Get plaform instances
+    ocrMemPlatform_t *memPlatform = memPlatformFactory->instantiate(memPlatformFactory, NULL);
+    ocrCompPlatform_t *compPlatform = compPlatformFactory->instantiate(compPlatformFactory, NULL);
+
+    // Now get the target factories and instances
+    ocrParamList_t *memTargetFactoryParams = NULL;
+    ocrMemTargetFactory_t *memTargetFactory = newMemTargetFactoryShared(memTargetFactoryParams);
+
+    ocrParamList_t *compTargetFactoryParams = NULL;
+    ocrCompTargetFactory_t *compTargetFactory = newCompTargetFactoryHc(compTargetFactoryParams);
+
+    ocrMemTarget_t *memTarget = memTargetFactory->instantiate(memTargetFactory, NULL);
+    ocrCompTarget_t *compTarget = compTargetFactory->instantiate(compTargetFactory, NULL);
+
+    // Link the platform and target
+    memTarget->memoryCount = 1;
+    memTarget->memories = (ocrMemPlatform_t**)malloc(sizeof(ocrMemPlatform_t*));
+    memTarget->memories[0] = memPlatform;
+
+    compTarget->platformCount = 1;
+    compTarget->platforms = (ocrMemPlatform_t**)malloc(sizeof(ocrMemPlatform_t*));
+    compTarget->platforms[0] = compPlatform;
+
+    // Create allocator and worker
+    paramListAllocatorInst_t *allocatorParamList = (paramListAllocatorInst_t*)malloc(sizeof(paramListAllocatorInst_t));
+    allocatorParamList->size = 32*1024*1024;
+    ocrAllocatorFactory_t *allocatorFactory = newAllocatorFactoryTlsf(NULL);
+    ocrAllocator_t *allocator = allocatorFactory->instantiate(allocatorFactory, allocatorParamList);
+    ((ocrMappable_t*)allocator)->mapFct((ocrMappable_t*)allocator, OCR_MEM_TARGET, 1, &memTarget);
+
+    ocrWorkerFactory_t *workerFactory = newWorkerFactoryHc(NULL);
+    ocrWorker_t *worker = workerFactory->instantiate(workerFactory, NULL);
+    worker->computeCount = 1;
+    worker->computes = (ocrCompTarget_t**)malloc(sizeof(ocrCompTarget_t*));
+    worker->computes[0] = compTarget;
+
+    // Create workpile and scheduler
+    ocrWorkpileFactory_t *workpileFactory = newWorkpileFactoryHc(NULL);
+    ocrWorkpile_t* workpile = workpileFactory->instantiate(workpileFactory, NULL);
+
+    paramListSchedulerHcInst_t *schedulerParamList = (paramListSchedulerHcInst_t*)malloc(sizeof(paramListSchedulerHcInst_t));
+    schedulerParamList->worker_id_first = 0;
+    ocrSchedulerFactory_t *schedulerFactory = newSchedulerFactoryHc(NULL);
+    ocrScheduler_t *scheduler = schedulerFactory->instantiate(schedulerFactory, schedulerParamList);
+
+    scheduler->workpileCount = 1;
+    scheduler->workpiles = (ocrWorkpile_t**)malloc(sizeof(ocrWorkpile_t*));
+    scheduler->workpiles[0] = workpile;
+
+    scheduler->workerCount = 1;
+    scheduler->workers = (ocrWorker_t**)malloc(sizeof(ocrWorker_t*));
+    scheduler->workers[0] = worker;
+
+    // Now set things up with the policy domain
+    rootPolicy->schedulers = (ocrScheduler_t**)malloc(sizeof(ocrScheduler_t*));
+    rootPolicy->schedulers[0] = scheduler;
+
+    rootPolicy->workers = (ocrWorker_t**)malloc(sizeof(ocrWorker_t*));
+    rootPolicy->workers[0] = worker;
+
+    rootPolicy->computes = (ocrCompTarget_t**)malloc(sizeof(ocrCompTarget_t*));
+    rootPolicy->computes[0] = compTarget;
+
+    rootPolicy->workpiles = (ocrWorkpile_t**)malloc(sizeof(ocrWorkpile_t*));
+    rootPolicy->workpiles[0] = workpile;
+
+    rootPolicy->allocators = (ocrAllocator_t**)malloc(sizeof(ocrAllocator_t*));
+    rootPolicy->allocators[0] = allocator;
+
+    rootPolicy->memories = (ocrMemTarget_t**)malloc(sizeof(ocrMemTarget_t*));
+    rootPolicy->memories[0] = memTarget;
+
+    getCurrentPD = getCurrentPDPthread;
+    rootPolicy->start(rootPolicy);
+    return 0;
 }
