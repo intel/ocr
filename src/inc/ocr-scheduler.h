@@ -41,6 +41,7 @@
 /****************************************************/
 /* PARAMETER LISTS                                  */
 /****************************************************/
+
 typedef struct _paramListSchedulerFact_t {
     ocrParamList_t base;
 } paramListSchedulerFact_t;
@@ -49,10 +50,6 @@ typedef struct _paramListSchedulerInst_t {
     ocrParamList_t base;
 } paramListSchedulerInst_t;
 
-
-// typedef ocrWorkpile_t * (*scheduler_pop_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
-// typedef ocrWorkpile_t * (*scheduler_push_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
-// typedef ocrWorkpileIterator_t* (*scheduler_steal_mapping_fct) (struct ocr_scheduler_struct*, struct ocrWorker_t*);
 
 /****************************************************/
 /* OCR SCHEDULER                                    */
@@ -65,13 +62,9 @@ struct _ocrPolicyCtx_t;
 typedef struct _ocrSchedulerFcts_t {
     void (*destruct)(struct _ocrScheduler_t *self);
 
-    // TODO: I am removing these for now as I think they can
-    // be internal to the other exposed functions (it seems they are called
-    // as sub-parts of take/give)
+    void (*start)(struct _ocrScheduler_t *self);
 
-    // scheduler_pop_mapping_fct pop_mapping;
-    // scheduler_push_mapping_fct push_mapping;
-    // scheduler_steal_mapping_fct steal_mapping;
+    void (*stop)(struct _ocrScheduler_t *self);
 
     /**
      * @brief Requests EDTs from this scheduler
@@ -97,8 +90,8 @@ typedef struct _ocrScheduler_t {
     ocrMappable_t module;
     ocrGuid_t guid;
 
-    struct _ocrWorker_t *workers;
-    struct _ocrWorkpile_t *workpiles;
+    struct _ocrWorker_t **workers;
+    struct _ocrWorkpile_t **workpiles;
     u64 workerCount;
     u64 workpileCount;
 

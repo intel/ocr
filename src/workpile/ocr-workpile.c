@@ -49,17 +49,17 @@ bool workpileIteratorHasNext (ocrWorkpileIterator_t * base) {
 }
 
 ocrWorkpile_t * workpileIteratorNext (ocrWorkpileIterator_t * base) {
-    int current = base->curr;
+    u64 current = base->curr;
     ocrWorkpile_t * toBeReturned = base->array[current];
     base->curr = (current+1) % base->mod;
     return toBeReturned;
 }
 
-ocrWorkpileIterator_t* workpileIteratorConstructor ( int i, u64 n_pools, ocrWorkpile_t ** pools ) {
+ocrWorkpileIterator_t* workpileIteratorConstructor ( u64 id, u64 workpileCount, ocrWorkpile_t ** workpiles ) {
     ocrWorkpileIterator_t* it = (ocrWorkpileIterator_t *) checkedMalloc(it, sizeof(ocrWorkpileIterator_t));
-    it->array = pools;
-    it->id = i;
-    it->mod = n_pools;
+    it->array = workpiles;
+    it->id = id;
+    it->mod = workpileCount;
     it->hasNext = workpileIteratorHasNext;
     it->next = workpileIteratorNext;
     it->reset = workpileIteratorReset;

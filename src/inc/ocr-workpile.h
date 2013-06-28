@@ -37,6 +37,7 @@
 #include "ocr-utils.h"
 #include "ocr-tuning.h"
 
+
 /****************************************************/
 /* PARAMETER LISTS                                  */
 /****************************************************/
@@ -85,6 +86,7 @@ typedef struct _ocrWorkpile_t {
     ocrWorkpileFcts_t *fctPtrs;
 } ocrWorkpile_t;
 
+
 /****************************************************/
 /* OCR WORKPILE FACTORY                             */
 /****************************************************/
@@ -97,7 +99,7 @@ typedef struct _ocrWorkpileFactory_t {
     ocrWorkpileFcts_t workpileFcts;
 } ocrWorkpileFactory_t;
 
-// TODO: Is this required??
+
 /****************************************************/
 /* OCR WORKPILE ITERATOR API                        */
 /****************************************************/
@@ -107,15 +109,15 @@ typedef struct ocrWorkpileIterator_t {
     ocrWorkpile_t * (*next) (struct ocrWorkpileIterator_t*);
     void (*reset) (struct ocrWorkpileIterator_t*);
     ocrWorkpile_t ** array;
-    int id;
-    int curr;
-    int mod;
+    u64 id;
+    u64 curr;
+    u64 mod;
 } ocrWorkpileIterator_t;
 
 void workpileIteratorReset (ocrWorkpileIterator_t * base);
 bool workpileIteratorHasNext (ocrWorkpileIterator_t * base);
 ocrWorkpile_t * workpileIteratorNext (ocrWorkpileIterator_t * base);
-ocrWorkpileIterator_t* workpileIteratorConstructor ( int i, u64 n_pools, ocrWorkpile_t ** pools );
+ocrWorkpileIterator_t* workpileIteratorConstructor ( u64 id, u64 n_pools, ocrWorkpile_t ** pools );
 void workpile_iterator_destructor (ocrWorkpileIterator_t* base);
 
 #endif /* __OCR_WORKPILE_H_ */

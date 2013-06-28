@@ -67,6 +67,7 @@ static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     u64 i = 0;
     u64 workerCount = policy->workerCount;
     u64 computeCount = policy->computeCount;
+    u64 schedulerCount = policy->schedulerCount;
     ASSERT(workerCount == computeCount);
 
     //TODO workers could be responsible for starting the underlying target
@@ -75,8 +76,13 @@ static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     // Only start (N-1) workers as worker '0' is the current thread.
     for(i = 1; i < workerCount; i++) {
         policy->workers[i]->fctPtrs->start(policy->workers[i]);
-
     }
+
+    // Start schedulers
+    for(i = 1; i < schedulerCount; i++) {
+        policy->schedulers[i]->fctPtrs->start(policy->schedulers[i]);
+    }
+
     // Starts compute targets
     // Only start (N-1) targets as target '0' will be the current thread.
     for(i = 1; i < computeCount; i++) {

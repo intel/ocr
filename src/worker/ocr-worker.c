@@ -42,7 +42,7 @@ ocrGuid_t getCurrentEdtFromWorker() {
     ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
     ocrGuid_t workerGuid = ctx->sourceObj;
     ocrWorker_t *worker = NULL;
-    deguidify(getCurrentPD(), workerGuid, (u64*)&(worker), NULL);
+    deguidify(ctx->PD, workerGuid, (u64*)&(worker), NULL);
     return worker->fctPtrs->getCurrentEDT(worker);
 }
 
@@ -50,7 +50,7 @@ void setCurrentEdtToWorker(ocrGuid_t edtGuid) {
     ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
     ocrGuid_t workerGuid = ctx->sourceObj;
     ocrWorker_t *worker = NULL;
-    deguidify(getCurrentPD(), workerGuid, (u64*)&(worker), NULL);
+    deguidify(ctx->PD, workerGuid, (u64*)&(worker), NULL);
     worker->fctPtrs->setCurrentEDT(worker, edtGuid);
 }
 

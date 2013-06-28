@@ -120,22 +120,16 @@ typedef struct {
 
 typedef struct {
     ocrScheduler_t scheduler;
-    u64 n_pools;
-    ocrWorkpile_t ** pools;
     // Note: cache steal iterators in hc's scheduler
     // Each worker has its own steal iterator instantiated
     // a sheduler's construction time.
     ocrWorkpileIterator_t ** steal_iterators;
-
-    int n_workers_per_scheduler;
-    u64 worker_id_begin;
-    u64 worker_id_end;
+    u64 worker_id_first;
 } ocrSchedulerHc_t;
 
 typedef struct _paramListSchedulerHcInst_t {
   paramListSchedulerInst_t base;
-  int worker_id_begin;
-  int worker_id_end;
+  int worker_id_first;
 } paramListSchedulerHcInst_t;
 
 /******************************************************/
