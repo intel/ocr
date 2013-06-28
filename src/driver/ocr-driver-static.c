@@ -2,7 +2,6 @@
 
 #include "policy-domain/policy-domain-all.h"
 #include "hc.h"
-#include "guid/guid-all.h"
 #include "task/task-all.h"
 #include "datablock/datablock-all.h"
 #include "event/event-all.h"
@@ -18,9 +17,12 @@
 #include "workpile/workpile-all.h"
 
 
+extern ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]);
+extern void ocrFinalize();
+
 extern ocrPolicyDomain_t * getCurrentPDPthread();
 
-int main(int argc, char ** argv) {
+void hack() {
 
 
     ocrParamList_t* policyDomainFactoryParams = NULL;
@@ -147,5 +149,13 @@ int main(int argc, char ** argv) {
 
     getCurrentPD = getCurrentPDPthread;
     rootPolicy->start(rootPolicy);
-    return 0;
+
+    // We now create the EDT and launch it
+    ocrGuid_t edtTemplateGuid, edtGuid;
+    ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 0);
+    ocrEdtCreate(&edtGuid, edtTemplateGuid, 0, /* paramv = */ NULL,
+                 /* depc = */ 0, /* depv = */ NULL,
+                 EDT_PROP_NONE, NULL_GUID, NULL);
+
+    ocrFinalize();
 }

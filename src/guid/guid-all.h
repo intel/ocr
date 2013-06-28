@@ -41,7 +41,7 @@ typedef enum _guidType_t {
     guidMax_id
 } guidType_t;
 
-const char * guid_types[] = {
+const char * guid_types[] __attribute__ ((weak)) = {
     "PTR",
     NULL
 };

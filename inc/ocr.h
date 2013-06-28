@@ -49,23 +49,43 @@
     do { ocrInit(argc, argv, mainEdt); } while(0);
 
 /**
- * @brief Initial function called by the C program to set-up the OCR
- * environment.
+ * @brief This function should be called by the main user code
+ * if present
  *
- * This call should be paired with an ocrCleanup call
+ * If a main function is defined, it should call ocrInit() to launch the runtime.
+ * The mainEdt EDT will be launched immediately by the runtime
+ *
+ * If a main function is not defined, the OCR library defines one
+ * which will immediately call the symbol 'mainEdt'
+ *
+ * This call is blocking until the runtime shuts down
  */
-void ocrInit(int * argc, char ** argv, ocrEdt_t mainEdt);
+void ocrInit(int argc, char ** argv, ocrEdt_t mainEdt, bool createFinishEdt);
 
 /**
  * @brief Called by an EDT to indicate the end of an OCR
  * execution
  *
- * This should be called by the last EDT to execute (it is
- * up to the user to determine this). It should only be called
- * once and will call the runtime to be torn down
+ * This call will cause the OCR runtime to shutdown
  *
+ * @note This call is not necessarily required if using ocrWait on
+ * a finish EDT from a sequential C code (ie: the ocrShutdown call will
+ * implicitly be encapsulated in the fact that the finish EDT returns)
  */
-void ocrFinalize();
+void ocrShutdown();
+
+/**
+ * @brief Waits for an output event to be satisfied
+ *
+ * @warning This call is meant to be called from sequential C code
+ * and is *NOT* supported on all implementations of OCR. This call runs
+ * contrary to the 'non-blocking EDT' philosophy so use with care
+ *
+ * @param outputEvent       Event to wait on
+ * @return A GUID to the data-block that was used to satisfy the
+ * event
+ */
+ocrGuid_t ocrWait(ocrGuid_t outputEvent);
 
 /**
  * @}

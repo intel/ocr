@@ -38,7 +38,8 @@
 
 #include "ocr-types.h"
 
-#define OCR_DB_CREATE_NO_ACQUIRE 0x1
+#define DB_PROP_NONE       ((u16)0x0)
+#define DB_PROP_NO_ACQUIRE ((u16)0x1)
 
 /**
  * @defgroup OCRDataBlock Data-block management for OCR
@@ -73,7 +74,7 @@
  *                  Will be NULL if the call fails
  * @param addr      On successful creation, contains the 64 bit address
  * @param len       Size in bytes of the block to allocate.
- * @param flags     If OCR_DB_CREATE_NO_ACQUIRE, the DB will be created but not
+ * @param flags     If DB_PROP_NO_ACQUIRE, the DB will be created but not
  *                  acquired (addr will be NULL). Future use are reserved
  * @param affinity  GUID to indicate the affinity container of this DB.
  * @param location  Used as input to determine where to allocate memory and

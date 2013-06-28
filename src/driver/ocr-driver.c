@@ -30,25 +30,27 @@
 */
 
 #include <stdlib.h>
-#include <assert.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "ocr-edt.h"
+#include "ocr-db.h"
+#include "ocr.h"
 
 #include "ocr-runtime.h"
 #include "ocr-config.h"
 #include "ocr-guid.h"
-// #include "sync/x86/x86.h"
+#include "ocr-utils.h"
+#include "debug.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-stat-user.h"
 #endif
 
-u64 n_root_policy_nodes;
-ocrPolicyDomain_t ** root_policies;
+extern void hack();
 
-// the runtime fork/join-er
-ocrWorker_t* master_worker;
-u64 gHackTotalMemSize;
+// Forward declaration
+void ocrFinalize();
 
 // //TODO we should have an argument option parsing library
 // /**!
@@ -90,7 +92,7 @@ u64 gHackTotalMemSize;
  *
  * Note: removes OCR options from argc / argv
  */
-void ocrInit(int * argc, char ** argv, ocrEdt_t mainEdt) {
+void ocrInit(int argc, char ** argv, ocrEdt_t mainEdt, bool createFinishEdt) {
     // REC: Hack, for now we just initialize the factories here.
     // See if we need to move some into policy domains and how to
     // initialize them
@@ -103,14 +105,6 @@ void ocrInit(int * argc, char ** argv, ocrEdt_t mainEdt) {
     // HUGE HUGE Hack
     ocrStatsProcessCreate(&GfakeProcess, 0);
 #endif
-
-    gHackTotalMemSize = 512*1024*1024; /* 64 MB default */
-    // TODO: Bala to replace with his parsing.
-    // This should also generate modified arguments to pass to
-    // the first EDT (future) kind of like for FSim.
-    // For now I am calling them paramc and paramv
-    // u32 paramc = 0;
-    // u64* paramv = NULL;
 
     /*
     char * md_file = parseOcrOptions_MachineDescription(argc, argv);
@@ -127,13 +121,91 @@ void ocrInit(int * argc, char ** argv, ocrEdt_t mainEdt) {
     // ocrGuid_t mainEdtTemplate;
     // ocrGuid_t mainEdtGuid;
 
-    // TODO: REC: Add the creation once I have a PD
+    // Parse parameters. The idea is to extract the ones relevant
+    // to the runtime and pass all the other ones down to the
+    // mainEdt
+
+    // TODO: Add code recognizing useful options. For now, pass
+    // everything in a heavy handed way so that it can handle
+    // the more complex case
+
+    ASSERT(argc < 64); // For now
+    u32 i;
+    u64* offsets = (u64*)malloc(argc*sizeof(u64));
+    u64 argsUsed = 0ULL;
+    u64 totalLength = 0;
+    u32 maxArg = 0;
+    // Gets all the possible offsets
+    for(i = 1; i < argc; ++i) {
+        // If the argument should be passed down
+        offsets[maxArg++] = totalLength*sizeof(char);
+        totalLength += strlen(argv[i]) + 1; // +1 for the NULL terminating char
+        argsUsed |= (1ULL<<(63-i));
+    }
+    --maxArg;
+    // Create the datablock containing the parameters
+    ocrGuid_t dbGuid;
+    void* dbPtr;
+
+    ocrDbCreate(&dbGuid, &dbPtr, totalLength + (maxArg + 1)*sizeof(u64),
+                DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+
+    // Copy in the values to the data-block. The format is as follows:
+    // - First 4 bytes encode the number of arguments (u64) (called argc)
+    // - After that, an array of argc u64 offsets is encoded.
+    // - The strings are then placed after that at the offsets encoded
+    //
+    // The use case is therefore as follows:
+    // - Cast the DB to a u64* and read the number of arguments and
+    //   offsets (or whatever offset you need)
+    // - Case the DB to a char* and access the char* at the offset
+    //   read. This will be a null terminated string.
+
+    // Copy the metadata
+    u64* dbAsU64 = (u64*)dbPtr;
+    dbAsU64[0] = (u64)maxArg;
+    u64 extraOffset = (maxArg + 1)*sizeof(u64);
+    for(i = 0; i < maxArg; ++i) {
+        dbAsU64[i+1] = offsets[i] + extraOffset;
+    }
+
+    // Copy the actual arguments
+    char* dbAsChar = (char*)dbPtr;
+    while(argsUsed) {
+        u32 pos = fls64(argsUsed);
+        argsUsed &= ~(1ULL<<pos);
+        strcpy(dbAsChar + extraOffset + offsets[63 - pos], argv[63 - pos]);
+    }
+
+    // We now create the EDT and launch it
+    ocrGuid_t edtTemplateGuid, edtGuid;
+    ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 1);
+    if(createFinishEdt) {
+        ocrGuid_t outputEvt;
+        ocrEdtCreate(&edtGuid, edtTemplateGuid, 0, /* paramv = */ NULL,
+                     /* depc = */ 1, /* depv = */ &dbGuid,
+                     EDT_PROP_FINISH, NULL_GUID, &outputEvt);
+          ocrWait(outputEvt);
+        ocrShutdown();
+    } else {
+        ocrEdtCreate(&edtGuid, edtTemplateGuid, 0, /* paramv = */ NULL,
+                     /* depc = */ 1, /* depv = */ &dbGuid,
+                     EDT_PROP_NONE, NULL_GUID, NULL);
+    }
+
+    ocrFinalize();
 }
 
-void ocrFinish() {
-    // This is called by the sink EDT and allow the master_worker
-    // to fall-through its worker routine code (see ocrCleanup)
-    master_worker->fctPtrs->stop(master_worker);
+int __attribute__ ((weak)) main(int argc, const char* argv[]) {
+
+//    ocrInit(argc, argv, &mainEdt, false);
+    hack();
+    return 0;
+}
+
+void ocrShutdown() {
+    // TODO: Sagnak working on it
+    ASSERT(0);
 }
 
 // static void recursive_policy_finish_helper ( ocrPolicyDomain_t* curr ) {
@@ -186,11 +258,10 @@ void ocrFinish() {
 //     free(root_policies);
 // }
 
-void ocrCleanup() {
-//     master_worker->routine(master_worker);
-//     // master_worker is done executing.
-//     // Proceed and stop other workers and the runtime.
-//     unravel();
+void ocrFinalize() {
+    // Sagnak working on it
+    ASSERT(0);
+
 // #ifdef OCR_ENABLE_STATISTICS
 //     ocrStatsProcessDestruct(&GfakeProcess);
 //     GocrFilterAggregator->destruct(GocrFilterAggregator);
