@@ -205,3 +205,11 @@ void ocrElsUserSet(u8 offset, ocrGuid_t data) {
     deguidify(pd, edtGuid, (u64*)&(edt), NULL);
     edt->els[offset] = data;
 }
+
+ocrGuid_t currentEdtUserGet() {
+      ocrPolicyDomain_t * pd = getCurrentPD();
+      if (pd != NULL) {
+        return getCurrentEDT();
+      }
+      return NULL_GUID;
+}
