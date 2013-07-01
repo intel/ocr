@@ -141,7 +141,6 @@ static ocrPolicyCtx_t * getCurrentWorkerContextPthread() {
 static void setCurrentWorkerContextPthread(ocrPolicyCtx_t *val) {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
     vals->ctx = val;
-    RESULT_ASSERT(pthread_setspecific(selfKey, vals), ==, 0);
 }
 
 ocrPolicyDomain_t * getCurrentPDPthread() {
@@ -149,10 +148,9 @@ ocrPolicyDomain_t * getCurrentPDPthread() {
     return vals->pd;
 }
 
-static void setCurrentPDPthread(ocrPolicyDomain_t *val) {
+void setCurrentPDPthread(ocrPolicyDomain_t *val) {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
     vals->pd = val;
-    RESULT_ASSERT(pthread_setspecific(selfKey, vals), ==, 0);
 }
 
 static void destructCompPlatformFactoryPthread(ocrCompPlatformFactory_t *factory) {
@@ -172,8 +170,6 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     base->platformFcts.stop = &pthreadStop;
     getCurrentWorkerContext = &getCurrentWorkerContextPthread;
     setCurrentWorkerContext = &setCurrentWorkerContextPthread;
-//    getCurrentPD = &getCurrentPDPthread;   FIXME: This needs to be moved elsewhere... start() maybe?
-    setCurrentPD = &setCurrentPDPthread;
 
     // Setup master thread function pointer in the pthread factory
     memcpy(&(derived->masterPlatformFcts), &(base->platformFcts), sizeof(ocrCompPlatformFcts_t));
