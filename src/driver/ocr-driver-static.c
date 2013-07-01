@@ -103,9 +103,10 @@ void hack() {
     ((ocrMappable_t*)allocator)->mapFct((ocrMappable_t*)allocator, OCR_MEM_TARGET, 1,
                                         (ocrMappable_t**)&memTarget);
 
-//    ocrWorkerFactory_t *workerFactory = newOcrWorkerFactoryHc(NULL);
-//    ocrWorker_t *worker = workerFactory->instantiate(workerFactory, NULL);
-    ocrWorker_t *worker = newOcrWorkerFactoryHc(NULL);
+    ocrWorkerFactory_t * workerFactory = newOcrWorkerFactoryHc(NULL);
+    paramListWorkerHcInst_t workerParam;
+    workerParam.workerId = 0;
+    ocrWorker_t *worker = workerFactory->instantiate(workerFactory, (ocrParamList_t *) &workerParam);
     worker->computeCount = 1;
     worker->computes = (ocrCompTarget_t**)malloc(sizeof(ocrCompTarget_t*));
     worker->computes[0] = compTarget;

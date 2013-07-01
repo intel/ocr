@@ -116,7 +116,6 @@ ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrParamList_t * perInst
     worker->run = false;
     worker->id = ((paramListWorkerHcInst_t*)perInstance)->workerId;
     worker->currentEDT_guid = NULL_GUID;
-
     ocrWorker_t * base = (ocrWorker_t *) worker;
     base->guid = UNINITIALIZED_GUID;
     guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_WORKER);

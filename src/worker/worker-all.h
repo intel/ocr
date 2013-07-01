@@ -49,11 +49,11 @@ const char * worker_types[] = {
     NULL
 };
 
-extern ocrWorker_t* newOcrWorkerFactoryHc(ocrParamList_t *perType);
-extern ocrWorker_t* newOcrWorkerFactoryFsimXE(ocrParamList_t *perType);
-extern ocrWorker_t* newOcrWorkerFactoryFsimCE(ocrParamList_t *perType);
+extern ocrWorkerFactory_t* newOcrWorkerFactoryHc(ocrParamList_t *perType);
+extern ocrWorkerFactory_t* newOcrWorkerFactoryFsimXE(ocrParamList_t *perType);
+extern ocrWorkerFactory_t* newOcrWorkerFactoryFsimCE(ocrParamList_t *perType);
 
-inline ocrWorker_t * newWorkerFactory(workerType_t type, ocrParamList_t *perType) {
+inline ocrWorkerFactory_t * newWorkerFactory(workerType_t type, ocrParamList_t *perType) {
     switch(type) {
     case workerFsimXE_id:
     //DELME    return newOcrWorkerFactoryFsimXE(perType);
