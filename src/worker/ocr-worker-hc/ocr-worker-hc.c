@@ -45,6 +45,8 @@
 static void associate_comp_platform_and_worker(ocrPolicyDomain_t * policy, ocrWorker_t * worker) {
     // This function must only be used when the contextFactory has its PD set
     ocrPolicyCtx_t * ctx = policy->contextFactory->instantiate(policy->contextFactory);
+    ctx->sourcePD = policy->guid;
+    ctx->PD = policy;
     ctx->sourceObj = worker->guid;
     ctx->sourceId = ((ocrWorkerHc_t *) worker)->id;
     setCurrentPD(policy);
