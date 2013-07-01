@@ -18,9 +18,10 @@
 
 
 extern ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]);
-extern void ocrFinalize();
+extern void ocrStop();
 
 extern ocrPolicyDomain_t * getCurrentPDPthread();
+extern void setCurrentPDPthread(ocrPolicyDomain_t *val);
 
 void hack() {
 
@@ -152,6 +153,7 @@ void hack() {
     rootPolicy->memories[0] = memTarget;
 
     getCurrentPD = getCurrentPDPthread;
+    setCurrentPD = setCurrentPDPthread;
     getMasterPD = getCurrentPDPthread;
     getCurrentEDT = getCurrentEdtFromWorker;
     setCurrentEDT = setCurrentEdtToWorker;
@@ -164,5 +166,5 @@ void hack() {
                  /* depc = */ 0, /* depv = */ NULL,
                  EDT_PROP_NONE, NULL_GUID, NULL);
 
-    ocrFinalize();
+    ocrStop();
 }
