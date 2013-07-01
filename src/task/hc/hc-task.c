@@ -615,6 +615,8 @@ ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory, ocrEdt_
     base->paramc = paramc;
     base->depc = depc;
     base->executePtr = executePtr;
+    base->guid = UNINITIALIZED_GUID;
+    guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_EDT_TEMPLATE);
     return base;
 }
 
