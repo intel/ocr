@@ -217,7 +217,7 @@ void wrap_up_task ( size_t n_dbs, const std::vector<ocrGuid_t>& dbs ) {
 			}
 		}
 	}
-    ocrFinish();
+    ocrShutdown();
 }
 
 int main( int argc, char* argv[] ) {

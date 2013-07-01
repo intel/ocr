@@ -79,7 +79,7 @@ ocrGuid_t autumn(u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t
     ocrDbDestroy(depv[0].guid);
 
     /* Last EDT to execute */
-    ocrFinish();
+    ocrShutdown();
     return NULL_GUID;
 }
 

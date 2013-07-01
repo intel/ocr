@@ -250,7 +250,7 @@ u8 wrap_up_task ( u32 paramc, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
                         }
                 }
         }
-    ocrFinish();
+    ocrShutdown();
 }
 
 int main( int argc, char* argv[] ) {

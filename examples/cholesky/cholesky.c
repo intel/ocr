@@ -203,32 +203,36 @@ u8 update_nondiagonal_task ( u32 paramc, u64 * params, void* paramv[], u32 depc,
 	free(aBlock2D);
 }
 
-u8 wrap_up_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
-	int i, j, i_b, j_b;
-	double* temp;
-	FILE* out = fopen("cholesky.out", "w");
+ocrGuid_t wrap_up_task ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+        int i, j, i_b, j_b;
+        double* temp;
+        FILE* out = fopen("cholesky.out", "w");
 
-	intptr_t *func_args = *paramv;
-	int numTiles = (int) func_args[0];
-	int tileSize = (int) func_args[1];
+        intptr_t *func_args = *paramv;
+        int numTiles = (int) func_args[0];
+        int tileSize = (int) func_args[1];
 
-	for ( i = 0; i < numTiles; ++i ) {
-		for( i_b = 0; i_b < tileSize; ++i_b) {
-			for ( j = 0; j <= i; ++j ) {
-				temp = (double*) (depv[i*(i+1)/2+j].ptr);
-				if(i != j) {
-					for(j_b = 0; j_b < tileSize; ++j_b) {
-						fprintf( out, "%lf ", temp[i_b*tileSize+j_b]);
-					}
-				} else {
-					for(j_b = 0; j_b <= i_b; ++j_b) {
-						fprintf( out, "%lf ", temp[i_b*tileSize+j_b]);
-					}
-				}
-			}
-		}
-	}
-	ocrFinish();
+        for ( i = 0; i < numTiles; ++i ) {
+                for( i_b = 0; i_b < tileSize; ++i_b) {
+                        for ( j = 0; j <= i; ++j ) {
+                                temp = (double*) (depv[i*(i+1)/2+j].ptr);
+                                if(i != j) {
+                                        for(j_b = 0; j_b < tileSize; ++j_b) {
+                                                fprintf( out, "%lf ", temp[i_b*tileSize+j_b]);
+                                        }
+                                } else {
+                                        for(j_b = 0; j_b <= i_b; ++j_b) {
+                                                fprintf( out, "%lf ", temp[i_b*tileSize+j_b]);
+                                        }
+                                }
+                        }
+                }
+        }
+        ocrShutdown();
+
+        gettimeofday(&b,0);
+        printf("The computation took %f seconds\r\n",((b.tv_sec - a.tv_sec)*1000000+(b.tv_usec - a.tv_usec))*1.0/1000000);
+	return NULL_GUID;
 }
 
 inline static void sequential_cholesky_task_prescriber ( int k, int tileSize, ocrGuid_t*** lkji_event_guids) {

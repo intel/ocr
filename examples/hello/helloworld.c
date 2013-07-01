@@ -37,18 +37,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define FLAGS 0xdead
 
-ocrGuid_t task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t taskForEdt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
     int* res = (int*)depv[0].ptr;
-    printf("In the task_for_edt with value %d\n", (*res));
+    printf("In the taskForEdt with value %d\n", (*res));
 
     // This is the last EDT to execute, terminate
-    ocrFinish();
+    ocrShutdown();
     return NULL_GUID;
 }
 
 int main (int argc, char ** argv) {
     ocrEdt_t fctPtrArray [1];
-    fctPtrArray[0] = &task_for_edt;
+    fctPtrArray[0] = &taskForEdt;
     ocrInit(&argc, argv, 1, fctPtrArray);
 
     // Current thread is '0' and goes on with user code.
@@ -58,7 +58,7 @@ int main (int argc, char ** argv) {
     // Creates the EDT
     ocrGuid_t edt_guid;
 
-    ocrEdtCreate(&edt_guid, task_for_edt, /*paramc=*/0, /*params=*/ NULL,
+    ocrEdtCreate(&edt_guid, taskForEdt, /*paramc=*/0, /*params=*/ NULL,
                  /*paramv=*/NULL, /*properties=*/0,
                  /*depc=*/1, /*depv=*/NULL, /*outEvent=*/NULL_GUID);
 
