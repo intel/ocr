@@ -39,39 +39,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * DESC: Satisfy latch-event incr/decr
  */
 
-ocrGuid_t task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // This is the last EDT to execute, terminate
-    ocrFinish();
+    ocrShutdown();
     return NULL_GUID;
 }
 
-int main (int argc, char ** argv) {
-    ocrEdt_t fctPtrArray [1];
-    fctPtrArray[0] = &task_for_edt;
-    ocrInit(&argc, argv, 1, fctPtrArray);
-
+ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // Current thread is '0' and goes on with user code.
     ocrGuid_t latchGuid;
     ocrEventCreate(&latchGuid, OCR_EVENT_LATCH_T, false);
 
     // Creates the EDT
     ocrGuid_t edtGuid;
-
-    ocrEdtCreate(&edtGuid, task_for_edt, /*paramc=*/0, /*params=*/ NULL,
-            /*paramv=*/NULL, /*properties=*/0,
-            /*depc=*/1, /*depv=*/NULL, /*outEvent=*/NULL_GUID);
+    ocrGuid_t taskForEdtTemplateGuid;
+    ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, 0 /*paramc*/, 1 /*depc*/);
+    ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
     // Register a dependence between an event and an edt
-    ocrAddDependence(latchGuid, edtGuid, 0);
-
-    // Schedule the EDT (will run when dependences satisfied)
-    ocrEdtSchedule(edtGuid);
+    ocrAddDependence(latchGuid, edtGuid, 0, DB_MODE_RO);
 
     // Satisfy
     ocrEventSatisfySlot(latchGuid, NULL_GUID, OCR_EVENT_LATCH_INCR_SLOT);
     ocrEventSatisfySlot(latchGuid, NULL_GUID, OCR_EVENT_LATCH_DECR_SLOT);
 
-    ocrCleanup();
-
-    return 0;
+    return NULL_GUID;
 }

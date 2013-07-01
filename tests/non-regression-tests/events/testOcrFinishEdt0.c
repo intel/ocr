@@ -41,21 +41,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * DESC: Simple finish-edt
  */
 
-ocrGuid_t main_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
-    ocrFinish();
+ocrGuid_t endEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+    ocrShutdown();
     return NULL_GUID;
 }
 
-int main (int argc, char ** argv) {
-    ocrEdt_t fctPtrArray [1];
-    fctPtrArray[0] = &main_edt;
-    ocrInit(&argc, argv, 1, fctPtrArray);
-    ocrGuid_t mainEdtGuid;
-    ocrEdtCreate(&mainEdtGuid, main_edt, /*paramc=*/0, /*params=*/ NULL,
-            /*paramv=*/NULL, /*properties=*/ EDT_PROP_FINISH, /*depc=*/0, NULL, NULL_GUID);
-    ocrEdtSchedule(mainEdtGuid);
-
-    ocrCleanup();
-
-    return 0;
+ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+    ocrGuid_t endEdtGuid;
+    ocrGuid_t endEdtTemplateGuid;
+    ocrEdtTemplateCreate(&endEdtTemplateGuid, endEdt, 0 /*paramc*/, 0 /*depc*/);
+    ocrEdtCreate(&endEdtGuid, endEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                    /*properties=*/ EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/NULL);
+    return NULL_GUID;
 }

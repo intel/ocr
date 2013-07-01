@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define N 100
 
-ocrGuid_t terminateEDT ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t terminateEDT(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     printf("Call Terminate\n");
     int * array = (int*) depv[1].ptr;
     int i = 0;
@@ -49,11 +49,11 @@ ocrGuid_t terminateEDT ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocr
         assert(array[i] == 1);
         i++;
     }
-    ocrFinish();
+    ocrShutdown();
     return NULL_GUID;
 }
 
-ocrGuid_t childEDT ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t childEDT(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t latchGuid = *((ocrGuid_t*) depv[0].ptr);
     int idx = *((int*) depv[1].ptr);
     int * array = (int*) depv[2].ptr;
@@ -66,7 +66,7 @@ ocrGuid_t childEDT ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtD
     return NULL_GUID;
 }
 
-ocrGuid_t mainEDT ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // Create a latch
     ocrGuid_t latchGuid;
     ocrEventCreate(&latchGuid, OCR_EVENT_LATCH_T, false);
@@ -74,23 +74,23 @@ ocrGuid_t mainEDT ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDe
     // Create a datablock to wrap the latch's guid
     ocrGuid_t *dbLatchPtr;
     ocrGuid_t dbLatchGuid;
-    ocrDbCreate(&dbLatchGuid,(void **)&dbLatchPtr, sizeof(ocrGuid_t), 0, NULL, NO_ALLOC);
+    ocrDbCreate(&dbLatchGuid,(void **)&dbLatchPtr, sizeof(ocrGuid_t), 0, NULL_GUID, NO_ALLOC);
     *dbLatchPtr = latchGuid;
 
     // Create an array children can write to so that the sink edt
     // can check each child did a write at their index.
     int *arrayPtr;
     ocrGuid_t arrayGuid;
-    ocrDbCreate(&arrayGuid,(void **)&arrayPtr, sizeof(int)*N, 0, NULL, NO_ALLOC);
+    ocrDbCreate(&arrayGuid,(void **)&arrayPtr, sizeof(int)*N, 0, NULL_GUID, NO_ALLOC);
 
     // Set up the sink edt, activated by the latch satisfaction
-    ocrGuid_t terminateGuid;
-    ocrEdtCreate(&terminateGuid, terminateEDT, /*paramc=*/0, /*params=*/ NULL,
-            /*paramv=*/NULL, /*properties=*/0,
-            /*depc=*/2, /*depv=*/NULL, /*outEvent=*/NULL_GUID);
-    ocrAddDependence(latchGuid, terminateGuid, 0);
-    ocrAddDependence(arrayGuid, terminateGuid, 1);
-    ocrEdtSchedule(terminateGuid);
+    ocrGuid_t terminateEDTGuid;
+    ocrGuid_t terminateEdtTemplateGuid;
+    ocrEdtTemplateCreate(&terminateEdtTemplateGuid, terminateEDT, 0 /*paramc*/, 2 /*depc*/);
+    ocrEdtCreate(&terminateEDTGuid, terminateEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
+    ocrAddDependence(latchGuid, terminateEDTGuid, 0, DB_MODE_RO);
+    ocrAddDependence(arrayGuid, terminateEDTGuid, 1, DB_MODE_RO);
 
     // Check in the current finish scope
     ocrEventSatisfySlot(latchGuid, NULL_GUID, OCR_EVENT_LATCH_INCR_SLOT);
@@ -103,41 +103,22 @@ ocrGuid_t mainEDT ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDe
 
         int *idxPtr;
         ocrGuid_t idxGuid;
-        ocrDbCreate(&idxGuid,(void **)&idxPtr, sizeof(int), 0, NULL, NO_ALLOC);
+        ocrDbCreate(&idxGuid,(void **)&idxPtr, sizeof(int), 0, NULL_GUID, NO_ALLOC);
         *idxPtr = i;
 
         ocrGuid_t childEdtGuid;
-        ocrEdtCreate(&childEdtGuid, childEDT, 0, NULL, NULL, 0,
-                    3, NULL, NULL_GUID);
-        ocrAddDependence(dbLatchGuid, childEdtGuid, 0);
-        ocrAddDependence(idxGuid, childEdtGuid, 1);
-        ocrAddDependence(arrayGuid, childEdtGuid, 2);
+        ocrGuid_t childEdtTemplateGuid;
+        ocrEdtTemplateCreate(&childEdtTemplateGuid, childEDT, 0 /*paramc*/, 3 /*depc*/);
+        ocrEdtCreate(&childEdtGuid, childEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
-        ocrEdtSchedule(childEdtGuid);
+        ocrAddDependence(dbLatchGuid, childEdtGuid, 0, DB_MODE_RO);
+        ocrAddDependence(idxGuid, childEdtGuid, 1, DB_MODE_RO);
+        ocrAddDependence(arrayGuid, childEdtGuid, 2, DB_MODE_ITW);
+
         i++;
     }
 
     ocrEventSatisfySlot(latchGuid, NULL_GUID, OCR_EVENT_LATCH_DECR_SLOT);
     return NULL_GUID;
-}
-
-int main (int argc, char ** argv) {
-    ocrEdt_t fctPtrArray [3];
-    fctPtrArray[0] = &terminateEDT;
-    fctPtrArray[1] = &childEDT;
-    fctPtrArray[2] = &mainEDT;
-    ocrInit(&argc, argv, 3, fctPtrArray);
-
-    // Creates the main EDT
-    ocrGuid_t mainEdtGuid;
-    ocrEdtCreate(&mainEdtGuid, mainEDT, /*paramc=*/0, /*params=*/ NULL,
-            /*paramv=*/NULL, /*properties=*/0,
-            /*depc=*/0, /*depv=*/NULL, /*outEvent=*/NULL_GUID);
-
-    // Schedule the EDT
-    ocrEdtSchedule(mainEdtGuid);
-
-    ocrCleanup();
-
-    return 0;
 }

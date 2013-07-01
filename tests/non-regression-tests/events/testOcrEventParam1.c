@@ -37,52 +37,45 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define FLAGS 0xdead
 
-ocrGuid_t task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
-    printf("In the task_for_edt with value %d\n", *((int *)(paramv[0])));
+ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+    printf("In the taskForEdt with value %d\n", *((int *)(paramv[0])));
     assert(paramc == 1);
-    assert(params[0] == sizeof(int));
-    assert(*((int *)(paramv[0])) == 32);
+    assert(paramv[0] == 32);
+    assert(*((u64*)depv[0].ptr) == 42);
     // This is the last EDT to execute, terminate
-    ocrFinish();
+    ocrShutdown();
     return NULL_GUID;
 }
 
-int main (int argc, char ** argv) {
-    ocrEdt_t fctPtrArray [1];
-    fctPtrArray[0] = &task_for_edt;
-    ocrInit(&argc, argv, 1, fctPtrArray);
-
+ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // Current thread is '0' and goes on with user code.
-    ocrGuid_t depv[1];
+    ocrGuid_t ndepv[1];
     ocrGuid_t event_guid;
     ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true);
-    depv[0] = event_guid;
+    ndepv[0] = event_guid;
 
     // Creates the EDT
-    u32 paramc = 1;
-    u64 params[1];
-    params[0] = sizeof(int);
-    int * paramv = (int *) malloc(sizeof(int));
-    paramv[0] = 32;
-    ocrGuid_t edt_guid;
+    u32 nparamc = 1;
+    u64 * nparamv = (u64 *) malloc(sizeof(u64));
+    nparamv[0] = 32;
 
-    // 'depv' stores dependencies, so no need to call
+    // 'ndepv' stores dependencies, so no need to call
     // ocrAddDependence later on to register events.
-    ocrEdtCreate(&edt_guid, task_for_edt, paramc, params, (void**) &paramv, 0, 1, depv, NULL_GUID);
+    ocrGuid_t edtGuid;
+    ocrGuid_t taskForEdtTemplateGuid;
+    ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, nparamc, 1 /*depc*/);
+    ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF, /*depv=*/ndepv,
+                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
     int *k;
     ocrGuid_t db_guid;
     ocrDbCreate(&db_guid,(void **) &k,
             sizeof(int), /*flags=*/FLAGS,
-            /*location=*/NULL,
+            /*location=*/NULL_GUID,
             NO_ALLOC);
     *k = 42;
 
     ocrEventSatisfy(event_guid, db_guid);
 
-    ocrEdtSchedule(edt_guid);
-
-    ocrCleanup();
-
-    return 0;
+    return NULL_GUID;
 }

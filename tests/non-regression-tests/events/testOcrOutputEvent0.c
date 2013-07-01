@@ -42,21 +42,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 // This edt is triggered when the output event of the other edt is satisfied by the runtime
-ocrGuid_t chained_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
-    ocrFinish(); // This is the last EDT to execute, terminate
+ocrGuid_t chainedEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+    ocrShutdown(); // This is the last EDT to execute, terminate
     return NULL_GUID;
 }
 
-ocrGuid_t task_for_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // When this edt terminates, the runtime will satisfy its output event automatically
     return NULL_GUID;
 }
 
-int main (int argc, char ** argv) {
-    ocrEdt_t fctPtrArray [1];
-    fctPtrArray[0] = &task_for_edt;
-    ocrInit(&argc, argv, 1, fctPtrArray);
-
+ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // Current thread is '0' and goes on with user code.
     ocrGuid_t event_guid;
     ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true);
@@ -64,35 +60,37 @@ int main (int argc, char ** argv) {
     // Setup output event
     ocrGuid_t output_event_guid;
     // Creates the parent EDT
-    ocrGuid_t edt_guid;
-    ocrEdtCreate(&edt_guid, task_for_edt, /*paramc=*/0, /*params=*/ NULL,
-            /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, &output_event_guid);
+    ocrGuid_t edtGuid;
+    ocrGuid_t taskForEdtTemplateGuid;
+    ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, 0 /*paramc*/, 1 /*depc*/);
+    ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                    /*properties=*/0, NULL_GUID, /*outEvent=*/&output_event_guid);
 
     // Setup edt input event
     ocrGuid_t input_event_guid;
     ocrEventCreate(&input_event_guid, OCR_EVENT_STICKY_T, true);
 
     // Create the chained EDT and add input and output events as dependences.
-    ocrGuid_t chained_edt_guid;
-    ocrEdtCreate(&chained_edt_guid, chained_edt, /*paramc=*/0, /*params=*/ NULL,
-            /*paramv=*/NULL, /*properties=*/0, /*depc=*/2, /*depv=*/NULL, NULL_GUID);
-    ocrAddDependence(output_event_guid, chained_edt_guid, 0);
-    ocrAddDependence(input_event_guid, chained_edt_guid, 1);
-    ocrEdtSchedule(chained_edt_guid);
+    ocrGuid_t chainedEdtGuid;
+    ocrGuid_t chainedEdtTemplateGuid;
+    ocrEdtTemplateCreate(&chainedEdtTemplateGuid, chainedEdt, 0 /*paramc*/, 2 /*depc*/);
+    ocrEdtCreate(&chainedEdtGuid, chainedEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                    /*properties=*/ EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/NULL);
+    ocrAddDependence(output_event_guid, chainedEdtGuid, 0, DB_MODE_RO);
+    ocrAddDependence(input_event_guid, chainedEdtGuid, 1, DB_MODE_RO);
 
     // parent edt: Add dependence, schedule and trigger
     // Note: we don't strictly need to have a dependence here, it's just
     // to get a little bit more control so as to when the root edt gets
     // a chance to be scheduled.
-    ocrAddDependence(event_guid, edt_guid, 0);
-    ocrEdtSchedule(edt_guid);
+    ocrAddDependence(event_guid, edtGuid, 0, DB_MODE_RO);
 
     // Transmit the parent edt's guid as a parameter to the chained edt
     // Build input db for the chained edt
     ocrGuid_t * guid_ref;
     ocrGuid_t db_guid;
-    ocrDbCreate(&db_guid,(void **) &guid_ref, sizeof(ocrGuid_t), /*flags=*/FLAGS, /*loc=*/NULL, NO_ALLOC);
-    *guid_ref = edt_guid;
+    ocrDbCreate(&db_guid,(void **) &guid_ref, sizeof(ocrGuid_t), /*flags=*/FLAGS, /*loc=*/NULL_GUID, NO_ALLOC);
+    *guid_ref = edtGuid;
     // Satisfy the input slot of the chained edt
     ocrEventSatisfy(input_event_guid, db_guid);
 
@@ -102,7 +100,5 @@ int main (int argc, char ** argv) {
     // dependencies will be satisfied.
     ocrEventSatisfy(event_guid, NULL_GUID);
 
-    ocrCleanup();
-
-    return 0;
+    return NULL_GUID;
 }

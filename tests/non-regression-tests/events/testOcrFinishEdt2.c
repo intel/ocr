@@ -45,97 +45,75 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 // This edt is triggered when the output event of the other edt is satisfied by the runtime
-ocrGuid_t terminate_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t terminateEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // TODO shouldn't be doing that... but need more support from output events to get a 'return' value from an edt
     assert(depv[0].guid != NULL_GUID);
-    int * array = (int*)depv[0].ptr;
-    int i = 0;
+    u64 * array = (u64*)depv[0].ptr;
+    u64 i = 0;
     while (i < N) {
         assert(array[i] == i);
         i++;
     }
-    ocrFinish(); // This is the last EDT to execute, terminate
+    ocrShutdown(); // This is the last EDT to execute, terminate
     return NULL_GUID;
 }
 
-ocrGuid_t updater_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t updaterEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // Retrieve id 
-    assert(paramc == 2);
-    assert(params[0] == (u64) sizeof(int));
-    assert(params[1] == (u64) sizeof(ocrGuid_t));
-    int id = *((int *) paramv[0]);
+    assert(paramc == 1);
+    u64 id = paramv[0];
     assert ((id>=0) && (id < N));
-    ocrGuid_t dbGuid = (ocrGuid_t) paramv[1];
-    // Since we passed the db guid through paramv, we need to acquire/release // it properly. This would have been done automatically through depv.
-    int * dbPtr;
-    ocrDbAcquire(dbGuid, (void **) &dbPtr, 0);
+    u64 * dbPtr = (u64 *) depv[0].ptr;
     dbPtr[id] = id;
-    ocrDbRelease(dbGuid);
-    free(params);
-    free(paramv);
-    // When we are done we return the guid to the array
-    // so that the chained edt can retrieve the db.
     return NULL_GUID;
 }
 
-ocrGuid_t main_edt ( u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
-    int i = 0;
+ocrGuid_t computeEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+    ocrGuid_t updaterEdtTemplateGuid;
+    ocrEdtTemplateCreate(&updaterEdtTemplateGuid, updaterEdt, 0 /*paramc*/, 1 /*depc*/);
+    u64 i = 0;
     while (i < N) {
         // Pass down the index to write to and the db guid through params
         // (Could also be done through dependences)
-        u32 nparamc = 2;
-        u64 * nparams = (u64*) malloc(sizeof(u64)*nparamc);
-        nparams[0] = (u64) sizeof(int);
-        nparams[1] = (u64) sizeof(ocrGuid_t);
-        int * idx = (int *) malloc(sizeof(int));
-        *idx = i;
-        void ** nparamv = (void **) malloc(sizeof(void *)*nparamc);
-        nparamv[0] = (void *) idx;
-        nparamv[1] = (void *) depv[0].guid;
-
+        u32 nparamc = 1;
+        u64* nparamv = (u64*) malloc(sizeof(void *)*nparamc);
+        nparamv[0] = i;
+        // Pass the guid we got fron depv to the updaterEdt through depv
         ocrGuid_t updaterEdtGuid;
-        ocrEdtCreate(&updaterEdtGuid, updater_edt, nparamc, nparams, nparamv, 0, 0, NULL, NULL_GUID);
-        ocrEdtSchedule(updaterEdtGuid);
+        ocrEdtCreate(&updaterEdtGuid, updaterEdtTemplateGuid, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF, &(depv[0].guid), 0, NULL_GUID, NULL_GUID);
         i++;
     }
     return depv[0].guid;
 }
 
-int main (int argc, char ** argv) {
-    ocrEdt_t fctPtrArray [3];
-    fctPtrArray[0] = &main_edt;
-    fctPtrArray[1] = &updater_edt;
-    fctPtrArray[2] = &terminate_edt;
-    ocrInit(&argc, argv, 3, fctPtrArray);
-
+ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t finishEdtOutputEventGuid;
-    ocrGuid_t mainEdtGuid;
-    ocrEdtCreate(&mainEdtGuid, main_edt, /*paramc=*/0, /*params=*/ NULL,
-            /*paramv=*/NULL, /*properties=*/ EDT_PROP_FINISH, /*depc=*/1, NULL, &finishEdtOutputEventGuid);
+    ocrGuid_t computeEdtGuid;
+    ocrGuid_t computeEdtTemplateGuid;
+    ocrEdtTemplateCreate(&computeEdtTemplateGuid, computeEdt, 0 /*paramc*/, 1 /*depc*/);
+    ocrEdtCreate(&computeEdtGuid, computeEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                    /*properties=*/ EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/&finishEdtOutputEventGuid);
 
     // Build a data-block to be shared with sub-edts
-    int * array;
+    u64 * array;
     ocrGuid_t dbGuid;
-    ocrDbCreate(&dbGuid,(void **) &array, sizeof(int)*N, FLAGS, NULL, NO_ALLOC);
+    ocrDbCreate(&dbGuid,(void **) &array, sizeof(u64)*N, FLAGS, NULL_GUID, NO_ALLOC);
 
     ocrGuid_t terminateEdtGuid;
-    ocrEdtCreate(&terminateEdtGuid, terminate_edt, /*paramc=*/0, /*params=*/ NULL, /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL, NULL_GUID);
-    ocrAddDependence(finishEdtOutputEventGuid, terminateEdtGuid, 0);
-    //ocrAddDependence(dbGuid, terminateEdtGuid, 1);
-    ocrEdtSchedule(terminateEdtGuid);
+    ocrGuid_t terminateEdtTemplateGuid;
+    ocrEdtTemplateCreate(&terminateEdtTemplateGuid, terminateEdt, 0 /*paramc*/, 1 /*depc*/);
+    ocrEdtCreate(&terminateEdtGuid, terminateEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
+    ocrAddDependence(finishEdtOutputEventGuid, terminateEdtGuid, 0, DB_MODE_RO);
     
     // Use an event to channel the db guid to the main edt
     // Could also pass it directly as a depv
     ocrGuid_t dbEventGuid;
     ocrEventCreate(&dbEventGuid, OCR_EVENT_STICKY_T, true);
 
-    ocrAddDependence(dbEventGuid, mainEdtGuid, 0);
-    
-    ocrEdtSchedule(mainEdtGuid);
+    ocrAddDependence(dbEventGuid, computeEdtGuid, 0, DB_MODE_RO);
 
     ocrEventSatisfy(dbEventGuid, dbGuid);
 
-    ocrCleanup();
-
-    return 0;
+    return NULL_GUID;
 }
