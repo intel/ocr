@@ -85,6 +85,9 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 }
 
 void hcStopWorker(ocrWorker_t * base) {
+    // Do not recursively stop comp-target, this will be
+    // done when the policy domain stops and allow thread '0'
+    // to join with the other threads
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
     hcWorker->run = false;
     log_worker(INFO, "Stopping worker %d\n", hcWorker->id);

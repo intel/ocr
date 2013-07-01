@@ -148,6 +148,7 @@ void hack() {
     rootPolicy->memories[0] = memTarget;
 
     getCurrentPD = getCurrentPDPthread;
+    getMasterPD = getCurrentPDPthread;
     rootPolicy->start(rootPolicy);
 
     // We now create the EDT and launch it

@@ -75,6 +75,7 @@ static void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * P
 }
 
 static void pthreadStop(ocrCompPlatform_t * compPlatform) {
+    // This code must be called by thread '0' to join on other threads
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
     RESULT_ASSERT(pthread_join(pthreadCompPlatform->osThread, NULL), ==, 0);
 }

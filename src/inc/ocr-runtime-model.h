@@ -37,7 +37,7 @@
 /**
  * This is our base model for components we want instantiate
  */
-typedef struct {
+typedef _ocr_model_t struct {
     int kind;
     u64 nb_instances;
     void * perTypeConfig;

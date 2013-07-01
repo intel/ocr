@@ -44,5 +44,6 @@ inline struct _ocrTaskTemplateFactory_t*  getTaskTemplateFactoryFromPd(struct _o
 inline struct _ocrEventFactory_t* getEventFactoryFromPd(struct _ocrPolicyDomain_t *policy);
 inline struct _ocrDataBlockFactory_t* getDataBlockFactoryFromPd(struct _ocrPolicyDomain_t *policy);
 inline struct _ocrLockFactory_t* getLockFactoryFromPd(struct _ocrPolicyDomain_t *policy);
+extern struct _ocrPolicyDomain_t * (*getMasterPD)();
 
 #endif /* OCR_POLICY_DOMAIN_GETTER_H_ */

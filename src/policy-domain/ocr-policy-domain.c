@@ -50,3 +50,6 @@ inline ocrDataBlockFactory_t* getDataBlockFactoryFromPd(ocrPolicyDomain_t *polic
 inline ocrLockFactory_t* getLockFactoryFromPd(ocrPolicyDomain_t *policy) {
   return policy->lockFactory;
 }
+
+struct _ocrPolicyDomain_t * (*getMasterPD)() = NULL;
+

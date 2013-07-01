@@ -82,9 +82,13 @@ static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
 
 
 static void hcPolicyDomainFinish(ocrPolicyDomain_t * policy) {
+    u64 i;
+    for ( i = 0; i < policy->schedulerCount; ++i ) {
+        policy->schedulers[i]->fctPtrs->stop(policy->schedulers[i]);
+    }
+
     // Note: As soon as worker '0' is stopped its thread is
     // free to fall-through in ocr_finalize() (see warning there)
-    u64 i;
     for ( i = 0; i < policy->workerCount; ++i ) {
         policy->workers[i]->fctPtrs->stop(policy->workers[i]);
     }
@@ -92,7 +96,7 @@ static void hcPolicyDomainFinish(ocrPolicyDomain_t * policy) {
 
 static void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
     // WARNING: Do not add code here unless you know what you're doing !!
-    // If we are here, it means an EDT called ocrFinish which
+    // If we are here, it means an EDT called ocrShutdown which
     // logically stopped workers and can make thread '0' executes this
     // code before joining the other threads.
 

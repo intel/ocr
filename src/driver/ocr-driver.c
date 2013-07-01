@@ -50,7 +50,7 @@
 extern void hack();
 
 // Forward declaration
-void ocrFinalize();
+void ocrStop();
 
 // //TODO we should have an argument option parsing library
 // /**!
@@ -193,11 +193,10 @@ void ocrInit(int argc, char ** argv, ocrEdt_t mainEdt, bool createFinishEdt) {
                      EDT_PROP_NONE, NULL_GUID, NULL);
     }
 
-    ocrFinalize();
+    ocrStop();
 }
 
 int __attribute__ ((weak)) main(int argc, const char* argv[]) {
-
 //    ocrInit(argc, argv, &mainEdt, false);
     hack();
     return 0;
@@ -258,16 +257,6 @@ void ocrShutdown() {
 //     free(root_policies);
 // }
 
-void ocrFinalize() {
-    // Sagnak working on it
-    ASSERT(0);
-
-// #ifdef OCR_ENABLE_STATISTICS
-//     ocrStatsProcessDestruct(&GfakeProcess);
-//     GocrFilterAggregator->destruct(GocrFilterAggregator);
-// #endif
-}
-
 // TODO sagnak everything below is DUMB and RIDICULOUS and
 // will have to be undone and done again
 
@@ -303,7 +292,8 @@ void recurseBuildDepthFirstSpanningTreeLinkedList ( ocrPolicyDomainLinkedListNod
 }
 
 ocrPolicyDomainLinkedListNode *buildDepthFirstSpanningTreeLinkedList ( ocrPolicyDomain_t* currPD ) {
-    ocrPolicyDomainLinkedListNode *dummyHead = (ocrPolicyDomainLinkedListNode*) malloc(ocrPolicyDomainLinkedListNode);
+
+    ocrPolicyDomainLinkedListNode *dummyHead = (ocrPolicyDomainLinkedListNode*) malloc(sizeof(ocrPolicyDomainLinkedListNode));
     ocrPolicyDomainLinkedListNode *tail = dummyHead;
     dummyHead -> pd = NULL;
     dummyHead -> next = NULL;
@@ -323,20 +313,20 @@ void destructLinkedList ( ocrPolicyDomainLinkedListNode* head ) {
         curr = next;
     }
 }
-void linearTraverseShutDown ( ocrPolicyDomainLinkedListNode* curr ) {
+void linearTraverseFinish( ocrPolicyDomainLinkedListNode* curr ) {
     ocrPolicyDomainLinkedListNode *head = curr;
     for ( ; NULL != curr; curr = curr -> next ) {
         ocrPolicyDomain_t* pd = curr->pd;
-        pd->stopWorkers(pd); /*TODO sagnak: rename*/
+        pd->finish(pd);
     }
     destructLinkedList(head);
 }
 
-void linearTraverseFinalize ( ocrPolicyDomainLinkedListNode* curr ) {
+void linearTraverseStop ( ocrPolicyDomainLinkedListNode* curr ) {
     ocrPolicyDomainLinkedListNode *head = curr;
     for ( ; NULL != curr; curr = curr -> next ) {
         ocrPolicyDomain_t* pd = curr->pd;
-        pd->stopExecutors(pd); /*TODO sagnak: rename*/
+        pd->stop(pd);
     }
     destructLinkedList(head);
 }
@@ -344,11 +334,15 @@ void linearTraverseFinalize ( ocrPolicyDomainLinkedListNode* curr ) {
 void ocrShutDown() {
     ocrPolicyDomain_t* currPD = getCurrentPD();
     ocrPolicyDomainLinkedListNode * spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(currPD); //N^2
-    linearTraverseShutDown(spanningTreeHead);
+    linearTraverseFinish(spanningTreeHead);
 }
 
-void ocrFinalize() {
+void ocrStop() {
     ocrPolicyDomain_t* masterPD = getMasterPD();
     ocrPolicyDomainLinkedListNode * spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(masterPD); //N^2
-    linearTraverseFinalize(spanningTreeHead);
+    linearTraverseStop(spanningTreeHead);
+// #ifdef OCR_ENABLE_STATISTICS
+//     ocrStatsProcessDestruct(&GfakeProcess);
+//     GocrFilterAggregator->destruct(GocrFilterAggregator);
+// #endif
 }
