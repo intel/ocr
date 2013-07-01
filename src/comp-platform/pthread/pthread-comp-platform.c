@@ -30,6 +30,7 @@
 */
 
 #include <pthread.h>
+#include <string.h>
 
 #include "pthread-comp-platform.h"
 #include "ocr-comp-platform.h"
@@ -59,19 +60,35 @@ static void pthreadDestruct (ocrCompPlatform_t * base) {
     free(base);
 }
 
+static void * pthreadRoutineWrapper(void * arg) {
+  // Wrapper routine to allow initialization of local storage
+  // before entering the worker routine.
+  perThreadStorage_t *data = (perThreadStorage_t*)checkedMalloc(data, sizeof(perThreadStorage_t));
+  RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
+  if (arg != NULL) {
+    launchArg_t * launchArg = (launchArg_t *) arg;
+    return launchArg->routine(arg);
+  }
+  return NULL;
+}
+
 static void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
-
-    perThreadStorage_t *data = (perThreadStorage_t*)checkedMalloc(data, sizeof(perThreadStorage_t));
-    RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
 
     pthread_attr_t attr;
     RESULT_ASSERT(pthread_attr_init(&attr), ==, 0);
     //Note this call may fail if the system doesn't like the stack size asked for.
     RESULT_ASSERT(pthread_attr_setstacksize(&attr, pthreadCompPlatform->stackSize), ==, 0);
     RESULT_ASSERT(pthread_create(&(pthreadCompPlatform->osThread),
-                                 &attr, launchArg->routine,
+                                 &attr, &pthreadRoutineWrapper,
                                  launchArg), ==, 0);
+}
+
+static void pthreadStartMaster(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
+    //ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
+    // This comp-platform represent the currently executing master thread.
+    // Pass NULL launchArgs so that the code sets the TLS but doesn't execute the worker routine.
+    pthreadRoutineWrapper(NULL);
 }
 
 static void pthreadStop(ocrCompPlatform_t * compPlatform) {
@@ -88,6 +105,7 @@ static void initializeKey() {
     RESULT_ASSERT(pthread_key_create(&selfKey, &destroyKey), ==, 0);
 }
 
+
 static ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
                                                  ocrParamList_t *perInstance) {
 
@@ -95,16 +113,19 @@ static ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *facto
     ocrCompPlatformPthread_t * compPlatformPthread = checkedMalloc(
         compPlatformPthread, sizeof(ocrCompPlatformPthread_t));
 
-    compPlatformPthread->base.module.mapFct = NULL;
-    compPlatformPthread->base.fctPtrs = &(factory->platformFcts);
-
-    if (perInstance != NULL) {
-        //TODO passed in configuration
-        //derived->stackSize = stackSize;
+    paramListCompPlatformPthread_t * params = 
+      (paramListCompPlatformPthread_t *) perInstance;
+    if ((params != NULL) && (params->isMasterThread)) {
+      // This particular instance is the master thread
+      ocrCompPlatformFactoryPthread_t * pthreadFactory = 
+        (ocrCompPlatformFactoryPthread_t *) factory;
+      compPlatformPthread->base.fctPtrs = &(pthreadFactory->masterPlatformFcts);
     } else {
-        compPlatformPthread->stackSize = 8388608;
+      // This is a regular thread, get regular function pointers
+      compPlatformPthread->base.fctPtrs = &(factory->platformFcts);
     }
-
+    compPlatformPthread->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
+    compPlatformPthread->base.module.mapFct = NULL;
     return (ocrCompPlatform_t*)compPlatformPthread;
 }
 
@@ -142,16 +163,25 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     ocrCompPlatformFactory_t *base = (ocrCompPlatformFactory_t*)
         checkedMalloc(base, sizeof(ocrCompPlatformFactoryPthread_t));
 
+    ocrCompPlatformFactoryPthread_t * derived = (ocrCompPlatformFactoryPthread_t *) base;
+
     base->instantiate = &newCompPlatformPthread;
     base->destruct = &destructCompPlatformFactoryPthread;
     base->platformFcts.destruct = &pthreadDestruct;
     base->platformFcts.start = &pthreadStart;
     base->platformFcts.stop = &pthreadStop;
-
     getCurrentWorkerContext = &getCurrentWorkerContextPthread;
     setCurrentWorkerContext = &setCurrentWorkerContextPthread;
 //    getCurrentPD = &getCurrentPDPthread;   FIXME: This needs to be moved elsewhere... start() maybe?
     setCurrentPD = &setCurrentPDPthread;
+
+    // Setup master thread function pointer in the pthread factory
+    memcpy(&(derived->masterPlatformFcts), &(base->platformFcts), sizeof(ocrCompPlatformFcts_t));
+    derived->masterPlatformFcts.start = &pthreadStartMaster;
+
+    paramListCompPlatformPthread_t * params = 
+      (paramListCompPlatformPthread_t *) perType;
+    derived->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
 
     return base;
 }

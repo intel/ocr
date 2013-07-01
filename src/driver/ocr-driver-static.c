@@ -68,13 +68,16 @@ void hack() {
     ocrParamList_t *memPlatformFactoryParams = NULL;
     ocrMemPlatformFactory_t *memPlatformFactory = newMemPlatformFactoryMalloc(memPlatformFactoryParams);
 
-    ocrParamList_t *compPlatformFactoryParams = NULL;
-    ocrCompPlatformFactory_t *compPlatformFactory = newCompPlatformFactoryPthread(compPlatformFactoryParams);
-
-    // Get plaform instances
+    // The first comp-platform represents the master thread, 
+    // others should have isMasterThread set to false
+    ocrCompPlatformFactory_t *compPlatformFactory = newCompPlatformFactoryPthread(NULL);
     ocrMemPlatform_t *memPlatform = memPlatformFactory->instantiate(memPlatformFactory, NULL);
-    ocrCompPlatform_t *compPlatform = compPlatformFactory->instantiate(compPlatformFactory, NULL);
-
+    // Get the master plaform instance
+    paramListCompPlatformPthread_t compPlatformMasterParams;
+    compPlatformMasterParams.isMasterThread = true;
+    compPlatformMasterParams.stackSize = 0; // will get pthread's default
+    ocrCompPlatform_t *compPlatform = compPlatformFactory->instantiate(compPlatformFactory, (ocrParamList_t *) &compPlatformMasterParams);
+ 
     // Now get the target factories and instances
     ocrParamList_t *memTargetFactoryParams = NULL;
     ocrMemTargetFactory_t *memTargetFactory = newMemTargetFactoryShared(memTargetFactoryParams);

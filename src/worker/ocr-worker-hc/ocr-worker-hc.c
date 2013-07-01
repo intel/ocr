@@ -65,18 +65,21 @@ void * worker_computation_routine(void * arg);
 void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
     hcWorker->run = true;
-    if (hcWorker->id != 0) {
-      u64 computeCount = base->computeCount;
-      // What the compute target will execute
-      launchArg_t launchArg;
-      launchArg.routine = worker_computation_routine;
-      launchArg.arg = base;
-      launchArg.PD = policy;
-      u64 i = 0;
-      for(i = 0; i < computeCount; i++) {
-        base->computes[i]->fctPtrs->start(base->computes[i], policy, &launchArg);
-      }
-    } else {
+
+    // Starts everybody, the first comp-platform has specific
+    // code to represent the master thread.
+    u64 computeCount = base->computeCount;
+    // What the compute target will execute
+    launchArg_t launchArg;
+    launchArg.routine = worker_computation_routine;
+    launchArg.arg = base;
+    launchArg.PD = policy;
+    u64 i = 0;
+    for(i = 0; i < computeCount; i++) {
+      base->computes[i]->fctPtrs->start(base->computes[i], policy, &launchArg);
+    } 
+
+    if (hcWorker->id == 0) {
       // Worker zero doesn't start the underlying thread since it is
       // falling through after that start. However, it stills need 
       // to set its local storage data.
