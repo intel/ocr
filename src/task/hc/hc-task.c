@@ -111,14 +111,11 @@ static bool hasProperty(u16 properties, u16 property) {
 #define ELS_SLOT_FINISH_LATCH 0
 
 static ocrTask_t * getCurrentTask() {
-    // TODO: we should be able to ASSERT there must be an edt when we'll have a main OCR EDT
     ocrGuid_t edtGuid = getCurrentEDT();
-    if (edtGuid != NULL_GUID) {
-        ocrTask_t * event = NULL;
-        deguidify(getCurrentPD(), edtGuid, (u64*)&event, NULL);
-        return event;
-    }
-    return NULL;
+    ASSERT(edtGuid != NULL_GUID);
+    ocrTask_t * event = NULL;
+    deguidify(getCurrentPD(), edtGuid, (u64*)&event, NULL);
+    return event;
 }
 
 //

@@ -146,4 +146,8 @@ void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocrMappableKind k
 extern ocrGuid_t (*getCurrentEDT)();
 extern void (*setCurrentEDT)(ocrGuid_t guid);
 
+// Get/Set CurrentEDT relying on the worker caching the info
+extern ocrGuid_t getCurrentEdtFromWorker();
+extern void setCurrentEdtToWorker(ocrGuid_t edtGuid);
+
 #endif /* __OCR_WORKER_H__ */

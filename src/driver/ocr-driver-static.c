@@ -153,6 +153,8 @@ void hack() {
 
     getCurrentPD = getCurrentPDPthread;
     getMasterPD = getCurrentPDPthread;
+    getCurrentEDT = getCurrentEdtFromWorker;
+    setCurrentEDT = setCurrentEdtToWorker;
     rootPolicy->start(rootPolicy);
 
     // We now create the EDT and launch it
