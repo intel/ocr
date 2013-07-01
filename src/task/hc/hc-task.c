@@ -112,10 +112,13 @@ static bool hasProperty(u16 properties, u16 property) {
 
 static ocrTask_t * getCurrentTask() {
     ocrGuid_t edtGuid = getCurrentEDT();
-    ASSERT(edtGuid != NULL_GUID);
-    ocrTask_t * event = NULL;
-    deguidify(getCurrentPD(), edtGuid, (u64*)&event, NULL);
-    return event;
+    // the bootstrap process launching mainEdt returns NULL_GUID for the current EDT
+    if (edtGuid != NULL_GUID) {
+        ocrTask_t * event = NULL;
+        deguidify(getCurrentPD(), edtGuid, (u64*)&event, NULL);
+        return event;
+    }
+    return NULL;
 }
 
 //
