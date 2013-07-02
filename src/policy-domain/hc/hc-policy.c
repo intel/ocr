@@ -38,7 +38,7 @@
 void destructOcrPolicyCtxFactoryHC ( ocrPolicyCtxFactory_t* self ) {
 }
 
-ocrPolicyCtx_t * instantiateOcrPolicyCtxFactoryHC ( ocrPolicyCtxFactory_t *factory ) {
+ocrPolicyCtx_t * instantiateOcrPolicyCtxFactoryHC ( ocrPolicyCtxFactory_t *factory, ocrParamList_t *perInstance) {
     ocrPolicyCtxHC_t* derived = checkedMalloc (derived, sizeof(ocrPolicyCtxHC_t));
     return (ocrPolicyCtx_t*) derived;
 }
@@ -231,6 +231,10 @@ static ocrAtomic64_t* hcGetAtomic64(ocrPolicyDomain_t *self, ocrPolicyCtx_t *con
     return self->atomicFactory->instantiate(self->atomicFactory, NULL);
 }
 
+static ocrPolicyCtx_t* hcGetContext(ocrPolicyDomain_t *self) {
+    return self->contextFactory->instantiate(self->contextFactory, NULL);
+}
+
 static void hcInform(ocrPolicyDomain_t *self, ocrGuid_t obj, const ocrPolicyCtx_t *context) {
     if(context->type == PD_MSG_GUID_REL) {
         self->guidProvider->fctPtrs->releaseGuid(self->guidProvider, obj);
@@ -317,6 +321,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->processResponse = NULL;
     base->getLock = hcGetLock;
     base->getAtomic64 = hcGetAtomic64;
+    base->getContext = hcGetContext;
 
     // no inter-policy domain for simple HC
     base->neighbors = NULL;
@@ -335,7 +340,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->guidProvider->fctPtrs->getGuid(base->guidProvider, &(base->guid),
                                          (u64)base, OCR_GUID_POLICY);
 */
-    guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_POLICY);
+    guidify(base, (u64)base, &(base->guid), OCR_GUID_POLICY);
     return base;
 }
 

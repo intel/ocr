@@ -55,7 +55,7 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
 
     DO_DEBUG(DEBUG_LVL_VERB) {
         PRINTF("VERB: Acquiring DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (isInternal %d)\n",
-               (u64)rself->ptr, rself->base.guid, edt, (u32)isInternal);
+               (u64)self->ptr, rself->base.guid, edt, (u32)isInternal);
     }
 
     // Critical section
@@ -72,7 +72,7 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
             PRINTF("VVERB: EDT already had acquired DB (pos %d)\n", idForEdt);
         }
         rself->lock->fctPtrs->unlock(rself->lock);
-        return rself->ptr;
+        return self->ptr;
     }
 
     if(idForEdt > 63) {
@@ -89,7 +89,7 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
         PRINTF("VERB: Added EDT GUID 0x%"PRIx64" at position %d. Have %d users and %d internal\n",
                (u64)edt, idForEdt, rself->attributes.numUsers, rself->attributes.internalUsers);
     }
-    return rself->ptr;
+    return self->ptr;
 }
 
 u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
@@ -101,7 +101,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
 
     DO_DEBUG(DEBUG_LVL_VERB) {
         PRINTF("VERB: Releasing DB @ 0x%"PRIx64" (GUID 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (%d) (internal: %d)\n",
-               (u64)rself->ptr, rself->base.guid, edt, edtId, (u32)isInternal);
+               (u64)self->ptr, rself->base.guid, edt, edtId, (u32)isInternal);
     }
     // Start critical section
     rself->lock->fctPtrs->lock(rself->lock);
@@ -160,9 +160,9 @@ void regularDestruct(ocrDataBlock_t *self) {
     deguidify(getCurrentPD(), rself->base.allocator, (u64*)&allocator, NULL);
 
     DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Freeing DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n", (u64)rself->ptr, rself->base.guid);
+        PRINTF("VERB: Freeing DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n", (u64)self->ptr, rself->base.guid);
     }
-    allocator->fctPtrs->free(allocator, rself->ptr);
+    allocator->fctPtrs->free(allocator, self->ptr);
 
     // TODO: This is not pretty to be here but I can't put this in the ocrDbFree because
     // the semantics of ocrDbFree is that it will wait for all acquire/releases to have
@@ -182,7 +182,7 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
     u32 id = ocrGuidTrackerFind(&(rself->usersTracker), edt);
     DO_DEBUG(DEBUG_LVL_VERB) {
         PRINTF("VERB: Requesting a free for DB @ 0x%"PRIx64" (GUID 0x%"PRIdPTR")\n",
-               (u64)rself->ptr, rself->base.guid);
+               (u64)self->ptr, rself->base.guid);
     }
     // Begin critical section
     rself->lock->fctPtrs->lock(rself->lock);

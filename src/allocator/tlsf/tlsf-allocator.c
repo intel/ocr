@@ -40,7 +40,7 @@
 #include "ocr-config.h"
 #include "debug.h"
 
-#include "ocr-comp-platform.h"
+#include "ocr-policy-domain-getter.h"
 
 #include <string.h>
 //#include <stdlib.h>
@@ -1079,8 +1079,11 @@ static ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrPar
 
     result->addr = result->poolAddr = 0ULL;
     result->totalSize = result->poolSize = perInstanceReal->size;
-    // TODO: Create the lock from the factory from the PD
-//    result->lock->create(result->lock, NULL);
+
+    ocrPolicyDomain_t *pd = getCurrentPD();
+    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
+
+    result->lock = pd->getLock(pd, ctx);
 
     result->base.module.mapFct = &tlsfMap;
 

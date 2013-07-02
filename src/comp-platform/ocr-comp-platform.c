@@ -36,11 +36,15 @@
 #include "ocr-guid.h"
 #include "ocr-policy-domain.h"
 #include "guid/guid-all.h"
+#include "ocr-macros.h"
+
 
 struct _ocrPolicyDomain_t;
 struct _ocrPolicyCtx_t;
 
+/*
 struct _ocrPolicyDomain_t bootstrapPD;
+struct _ocrPolicyCtx_t bootstrapCtx;
 
 u8 tempGetGuid(struct _ocrPolicyDomain_t * pd, ocrGuid_t *guid, u64 val,
                   ocrGuidKind type, struct _ocrPolicyCtx_t *context) {
@@ -57,20 +61,28 @@ struct _ocrPolicyDomain_t *tempPD(void)
         ocrGuidProvider_t * guidProvider = factory->instantiate(factory, NULL);
         bootstrapPD.guidProvider = guidProvider;
         bootstrapPD.getGuid = &tempGetGuid;
+        tempGetGuid(&bootstrapPD, &(bootstrapPD.guid), (u64)&bootstrapPD, OCR_GUID_POLICY, NULL);
     }
     return &bootstrapPD;
 }
 
-extern struct _ocrPolicyDomain_t *tempPD(void);
+struct _ocrPolicyCtx_t* tempGetContext(void) {
+    // HUGE HUGE HACK
+    static int firstTime = 1;
 
-struct _ocrPolicyDomain_t * (*getCurrentPD)() = &tempPD;
+    if(firstTime) {
+        firstTime = 0;
 
-/**
- * This should return a cloned context of the currently executing worker
- */
-struct _ocrPolicyCtx_t * (*getCurrentWorkerContext)() = NULL;
+        bootstrapCtx.PD = tempPD();
+        bootstrapCtx.sourcePD = bootstrapCtx.PD->guid;
+    }
+
+    struct _ocrPolicyCtx_t* result = checkedMalloc(result, sizeof(struct _ocrPolicyCtx_t*));
+    result->PD = bootstrapCtx.PD;
+    result->sourcePD = bootstrapCtx.sourcePD;
+    return result;
+}
+*/
+
 ocrGuid_t (*getCurrentEDT)() = NULL;
-
-void (*setCurrentPD)(struct _ocrPolicyDomain_t*) = NULL;
-void (*setCurrentWorkerContext)(struct _ocrPolicyCtx_t *) = NULL;
 void (*setCurrentEDT)(ocrGuid_t) = NULL;

@@ -44,7 +44,7 @@
 
 static void associate_comp_platform_and_worker(ocrPolicyDomain_t * policy, ocrWorker_t * worker) {
     // This function must only be used when the contextFactory has its PD set
-    ocrPolicyCtx_t * ctx = policy->contextFactory->instantiate(policy->contextFactory);
+    ocrPolicyCtx_t * ctx = policy->contextFactory->instantiate(policy->contextFactory, NULL);
     ctx->sourcePD = policy->guid;
     ctx->PD = policy;
     ctx->sourceObj = worker->guid;
@@ -80,11 +80,11 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     u64 i = 0;
     for(i = 0; i < computeCount; i++) {
       base->computes[i]->fctPtrs->start(base->computes[i], policy, launchArg);
-    } 
+    }
 
     if (hcWorker->id == 0) {
       // Worker zero doesn't start the underlying thread since it is
-      // falling through after that start. However, it stills need 
+      // falling through after that start. However, it stills need
       // to set its local storage data.
       associate_comp_platform_and_worker(policy, base);
     }
@@ -147,7 +147,7 @@ int get_worker_id(ocrWorker_t * worker) {
 }
 
 void worker_loop(ocrPolicyDomain_t * pd, ocrWorker_t * worker) {
-    ocrPolicyCtx_t * contextTake = pd->contextFactory->instantiate(pd->contextFactory);
+    ocrPolicyCtx_t * contextTake = pd->contextFactory->instantiate(pd->contextFactory, NULL);
     contextTake->type = PD_MSG_EDT_TAKE;
     // Entering the worker loop
     while(worker->fctPtrs->isRunning(worker)) {
@@ -155,8 +155,8 @@ void worker_loop(ocrPolicyDomain_t * pd, ocrWorker_t * worker) {
         u32 count;
         pd->takeEdt(pd, NULL, &count, &taskGuid, contextTake);
         // remove this when we can take a bunch and make sure there's
-        // an agreement whether it's the callee or the caller that 
-        // allocates the taskGuid array 
+        // an agreement whether it's the callee or the caller that
+        // allocates the taskGuid array
         ASSERT(count <= 1);
         if (count != 0) {
             ocrTask_t* curr_task = NULL;

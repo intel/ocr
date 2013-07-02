@@ -90,22 +90,9 @@ typedef struct _ocrCompPlatformFactory_t {
 
     void (*destruct)(struct _ocrCompPlatformFactory_t *factory);
 
+    void (*setIdentifyingFunctions)(struct _ocrCompPlatformFactory_t *factory);
+
     ocrCompPlatformFcts_t platformFcts;
 } ocrCompPlatformFactory_t;
-
-/****************************************************/
-/* UTILITY METHODS                                  */
-/****************************************************/
-
-struct _ocrPolicyCtx_t;
-extern struct _ocrPolicyCtx_t * (*getCurrentWorkerContext)();
-extern void (*setCurrentWorkerContext)(struct _ocrPolicyCtx_t *);
-
-struct _ocrPolicyDomain_t;
-/**
- * @brief Gets the current policy domain for the calling code
- */
-extern struct _ocrPolicyDomain_t * (*getCurrentPD)();
-extern void (*setCurrentPD)(struct _ocrPolicyDomain_t*);
 
 #endif /* __OCR_COMP_PLATFORM_H__ */

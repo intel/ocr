@@ -59,7 +59,6 @@ typedef struct _ocrDataBlockRegular_t {
     ocrDataBlock_t base;
 
     /* Data for the data-block */
-    void* ptr; /**< Current address for this data-block */
     ocrLock_t* lock; /**< Lock for this data-block */
     ocrDataBlockRegularAttr_t attributes; /**< Attributes for this data-block */
 

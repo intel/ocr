@@ -36,6 +36,8 @@
 #include "ocr-comp-platform.h"
 #include "ocr-guid.h"
 #include "ocr-policy-domain.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-worker.h"
 
 #include "debug.h"
 #include "ocr-macros.h"
@@ -126,11 +128,11 @@ static ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *facto
     ocrCompPlatformPthread_t * compPlatformPthread = checkedMalloc(
         compPlatformPthread, sizeof(ocrCompPlatformPthread_t));
 
-    paramListCompPlatformPthread_t * params = 
+    paramListCompPlatformPthread_t * params =
       (paramListCompPlatformPthread_t *) perInstance;
     if ((params != NULL) && (params->isMasterThread)) {
       // This particular instance is the master thread
-      ocrCompPlatformFactoryPthread_t * pthreadFactory = 
+      ocrCompPlatformFactoryPthread_t * pthreadFactory =
         (ocrCompPlatformFactoryPthread_t *) factory;
       compPlatformPthread->base.fctPtrs = &(pthreadFactory->masterPlatformFcts);
     } else {
@@ -156,18 +158,28 @@ static void setCurrentWorkerContextPthread(ocrPolicyCtx_t *val) {
     vals->ctx = val;
 }
 
-ocrPolicyDomain_t * getCurrentPDPthread() {
+static ocrPolicyDomain_t * getCurrentPDPthread() {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
     return vals->pd;
 }
 
-void setCurrentPDPthread(ocrPolicyDomain_t *val) {
+static void setCurrentPDPthread(ocrPolicyDomain_t *val) {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
     vals->pd = val;
 }
 
 static void destructCompPlatformFactoryPthread(ocrCompPlatformFactory_t *factory) {
     free(factory);
+}
+
+static void setIdentifyingFunctionsPthread(ocrCompPlatformFactory_t *factory) {
+    getCurrentPD = getCurrentPDPthread;
+    setCurrentPD = setCurrentPDPthread;
+    getMasterPD = getCurrentPDPthread;
+    getCurrentWorkerContext = getCurrentWorkerContextPthread;
+    setCurrentWorkerContext = setCurrentWorkerContextPthread;
+    getCurrentEDT = getCurrentEDTFromWorker;
+    setCurrentEDT = setCurrentEDTToWorker;
 }
 
 ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType) {
@@ -178,18 +190,17 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
 
     base->instantiate = &newCompPlatformPthread;
     base->destruct = &destructCompPlatformFactoryPthread;
+    base->setIdentifyingFunctions = &setIdentifyingFunctionsPthread;
     base->platformFcts.destruct = &pthreadDestruct;
     base->platformFcts.start = &pthreadStart;
     base->platformFcts.stop = &pthreadStop;
-    getCurrentWorkerContext = &getCurrentWorkerContextPthread;
-    setCurrentWorkerContext = &setCurrentWorkerContextPthread;
 
     // Setup master thread function pointer in the pthread factory
     memcpy(&(derived->masterPlatformFcts), &(base->platformFcts), sizeof(ocrCompPlatformFcts_t));
     derived->masterPlatformFcts.start = &pthreadStartMaster;
     derived->masterPlatformFcts.stop = &pthreadStopMaster;
 
-    paramListCompPlatformPthread_t * params = 
+    paramListCompPlatformPthread_t * params =
       (paramListCompPlatformPthread_t *) perType;
     derived->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
 

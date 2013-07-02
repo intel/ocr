@@ -113,7 +113,7 @@ typedef struct _ocrPolicyCtx_t {
 
 
 typedef struct _ocrPolicyCtxFactory_t {
-    ocrPolicyCtx_t * (*instantiate)(struct _ocrPolicyCtxFactory_t *factory);
+    ocrPolicyCtx_t * (*instantiate)(struct _ocrPolicyCtxFactory_t *factory, ocrParamList_t *perInstance);
     void (*destruct)(struct _ocrPolicyCtxFactory_t *self);
 } ocrPolicyCtxFactory_t;
 
@@ -360,8 +360,29 @@ typedef struct _ocrPolicyDomain_t {
      */
     void (*processResponse)(struct _ocrPolicyDomain_t *self, ocrPolicyCtx_t *context);
 
+    /**
+     * @brief Gets a lock to use
+     */
     ocrLock_t* (*getLock)(struct _ocrPolicyDomain_t *self, ocrPolicyCtx_t *context);
+
+    /**
+     * @brief Gets an atomic to use
+     */
     ocrAtomic64_t* (*getAtomic64)(struct _ocrPolicyDomain_t *self, ocrPolicyCtx_t *context);
+
+    /**
+     * @brief Gets a context for this policy domain
+     *
+     * This returns a new instance of a context. Another method of getting a
+     * context is to call getCurrentWorkerContext() which will return
+     * a copy of the cached worker's context. This function returns
+     * an empty context whereas the getCurrentWorkerContext() function
+     * returns a pre-filled out one (with the PD and source object
+     * information filled out)
+     *
+     * @param self          This policy domain
+     */
+    ocrPolicyCtx_t* (*getContext)(struct _ocrPolicyDomain_t *self);
 
     struct _ocrPolicyDomain_t** neighbors;
     u64 neighborCount;
@@ -411,6 +432,11 @@ typedef struct _ocrPolicyDomainFactory_t {
 
     void (*destruct)(struct _ocrPolicyDomainFactory_t * factory);
 } ocrPolicyDomainFactory_t;
+
+/****************************************************/
+/* UTILITY METHODS                                  */
+/****************************************************/
+
 
 // ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
 // ocrGuid_t policy_domain_extract_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );

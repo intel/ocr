@@ -151,7 +151,7 @@ extern ocrGuid_t (*getCurrentEDT)();
 extern void (*setCurrentEDT)(ocrGuid_t guid);
 
 // Get/Set CurrentEDT relying on the worker caching the info
-extern ocrGuid_t getCurrentEdtFromWorker();
-extern void setCurrentEdtToWorker(ocrGuid_t edtGuid);
+extern ocrGuid_t getCurrentEDTFromWorker();
+extern void setCurrentEDTToWorker(ocrGuid_t edtGuid);
 
 #endif /* __OCR_WORKER_H__ */

@@ -20,8 +20,6 @@
 extern ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]);
 extern void ocrStop();
 
-extern ocrPolicyDomain_t * getCurrentPDPthread();
-extern void setCurrentPDPthread(ocrPolicyDomain_t *val);
 
 void hack() {
 
@@ -65,11 +63,13 @@ void hack() {
         atomicFactory, costFunction, NULL
         );
 
+    setBootPD(rootPolicy);
+
     // Get the platforms
     ocrParamList_t *memPlatformFactoryParams = NULL;
     ocrMemPlatformFactory_t *memPlatformFactory = newMemPlatformFactoryMalloc(memPlatformFactoryParams);
 
-    // The first comp-platform represents the master thread, 
+    // The first comp-platform represents the master thread,
     // others should have isMasterThread set to false
     ocrCompPlatformFactory_t *compPlatformFactory = newCompPlatformFactoryPthread(NULL);
     ocrMemPlatform_t *memPlatform = memPlatformFactory->instantiate(memPlatformFactory, NULL);
@@ -78,7 +78,7 @@ void hack() {
     compPlatformMasterParams.isMasterThread = true;
     compPlatformMasterParams.stackSize = 0; // will get pthread's default
     ocrCompPlatform_t *compPlatform = compPlatformFactory->instantiate(compPlatformFactory, (ocrParamList_t *) &compPlatformMasterParams);
- 
+
     // Now get the target factories and instances
     ocrParamList_t *memTargetFactoryParams = NULL;
     ocrMemTargetFactory_t *memTargetFactory = newMemTargetFactoryShared(memTargetFactoryParams);
@@ -152,11 +152,8 @@ void hack() {
     rootPolicy->memories = (ocrMemTarget_t**)malloc(sizeof(ocrMemTarget_t*));
     rootPolicy->memories[0] = memTarget;
 
-    getCurrentPD = getCurrentPDPthread;
-    setCurrentPD = setCurrentPDPthread;
-    getMasterPD = getCurrentPDPthread;
-    getCurrentEDT = getCurrentEdtFromWorker;
-    setCurrentEDT = setCurrentEdtToWorker;
+    compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
+
     rootPolicy->start(rootPolicy);
     // We now create the EDT and launch it
     ocrGuid_t edtTemplateGuid, edtGuid;

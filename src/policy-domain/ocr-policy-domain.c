@@ -34,13 +34,34 @@
 #include "ocr-policy-domain-getter.h"
 #include "ocr-task.h"
 #include "ocr-event.h"
+#include "debug.h"
+
+static ocrPolicyDomain_t* bootPD = NULL;
+static ocrPolicyCtx_t* bootCtx = NULL;
+
+static ocrPolicyCtx_t* bootGetCurrentWorkerContext() {
+    ASSERT(bootCtx != NULL);
+    return bootCtx;
+}
+
+static ocrPolicyDomain_t* bootGetCurrentPD() {
+    ASSERT(bootPD != NULL);
+    return bootPD;
+
+}
+
+// TODO: Is this needed
+static ocrPolicyDomain_t* bootGetMasterPD() {
+    ASSERT(bootPD != NULL);
+    return bootPD;
+}
 
 inline ocrTaskTemplateFactory_t* getTaskTemplateFactoryFromPd(ocrPolicyDomain_t *policy) {
   return policy->taskTemplateFactory;
 }
 
 inline ocrEventFactory_t* getEventFactoryFromPd(ocrPolicyDomain_t *policy) {
- return policy->eventFactory;   
+ return policy->eventFactory;
 }
 
 inline ocrDataBlockFactory_t* getDataBlockFactoryFromPd(ocrPolicyDomain_t *policy) {
@@ -51,5 +72,18 @@ inline ocrLockFactory_t* getLockFactoryFromPd(ocrPolicyDomain_t *policy) {
   return policy->lockFactory;
 }
 
-struct _ocrPolicyDomain_t * (*getMasterPD)() = NULL;
 
+ocrPolicyCtx_t* (*getCurrentWorkerContext)() = NULL;
+void (*setCurrentWorkerContext)(ocrPolicyCtx_t*) = NULL;
+ocrPolicyDomain_t* (*getCurrentPD)() = NULL;
+void (*setCurrentPD)(ocrPolicyDomain_t*) = NULL;
+ocrPolicyDomain_t * (*getMasterPD)() = NULL;
+
+void setBootPD(ocrPolicyDomain_t *domain) {
+
+    bootPD = domain;
+    bootCtx = bootPD->getContext(bootPD);
+    getCurrentWorkerContext = bootGetCurrentWorkerContext;
+    getCurrentPD = bootGetCurrentPD;
+    getMasterPD = bootGetMasterPD;
+}
