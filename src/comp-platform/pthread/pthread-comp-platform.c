@@ -57,44 +57,57 @@ pthread_key_t selfKey;
 pthread_once_t selfKeyInitialized = PTHREAD_ONCE_INIT;
 
 static void pthreadDestruct (ocrCompPlatform_t * base) {
+    free(((ocrCompPlatformPthread_t*)base)->launchArg);
     free(base);
 }
 
+static void * pthreadRoutineExecute(launchArg_t * launchArg) {
+  return launchArg->routine(launchArg);
+}
+
 static void * pthreadRoutineWrapper(void * arg) {
+  ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) arg;
+  launchArg_t * launchArg = (launchArg_t *) pthreadCompPlatform->launchArg;
   // Wrapper routine to allow initialization of local storage
   // before entering the worker routine.
   perThreadStorage_t *data = (perThreadStorage_t*)checkedMalloc(data, sizeof(perThreadStorage_t));
   RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
-  if (arg != NULL) {
-    launchArg_t * launchArg = (launchArg_t *) arg;
-    return launchArg->routine(arg);
+  if (launchArg != NULL) {
+    return pthreadRoutineExecute(launchArg);
   }
   return NULL;
 }
 
 static void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
-
+    pthreadCompPlatform->launchArg = launchArg;
     pthread_attr_t attr;
     RESULT_ASSERT(pthread_attr_init(&attr), ==, 0);
     //Note this call may fail if the system doesn't like the stack size asked for.
     RESULT_ASSERT(pthread_attr_setstacksize(&attr, pthreadCompPlatform->stackSize), ==, 0);
     RESULT_ASSERT(pthread_create(&(pthreadCompPlatform->osThread),
                                  &attr, &pthreadRoutineWrapper,
-                                 launchArg), ==, 0);
-}
-
-static void pthreadStartMaster(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
-    //ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
-    // This comp-platform represent the currently executing master thread.
-    // Pass NULL launchArgs so that the code sets the TLS but doesn't execute the worker routine.
-    pthreadRoutineWrapper(NULL);
+                                 pthreadCompPlatform), ==, 0);
 }
 
 static void pthreadStop(ocrCompPlatform_t * compPlatform) {
     // This code must be called by thread '0' to join on other threads
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
     RESULT_ASSERT(pthread_join(pthreadCompPlatform->osThread, NULL), ==, 0);
+}
+
+static void pthreadStartMaster(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
+    // This comp-platform represent the currently executing master thread.
+    // Pass NULL launchArgs so that the code sets the TLS but doesn't execute the worker routine.
+    ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
+    pthreadCompPlatform->launchArg = NULL;
+    pthreadRoutineWrapper(pthreadCompPlatform);
+    pthreadCompPlatform->launchArg = launchArg;
+}
+
+static void pthreadStopMaster(ocrCompPlatform_t * compPlatform) {
+    ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
+    pthreadRoutineExecute(pthreadCompPlatform->launchArg);
 }
 
 static void destroyKey(void* arg) {
@@ -174,6 +187,7 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     // Setup master thread function pointer in the pthread factory
     memcpy(&(derived->masterPlatformFcts), &(base->platformFcts), sizeof(ocrCompPlatformFcts_t));
     derived->masterPlatformFcts.start = &pthreadStartMaster;
+    derived->masterPlatformFcts.stop = &pthreadStopMaster;
 
     paramListCompPlatformPthread_t * params = 
       (paramListCompPlatformPthread_t *) perType;

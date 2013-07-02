@@ -63,6 +63,10 @@ typedef struct _ocrWorkerFcts_t {
      */
     void (*start) (struct _ocrWorker_t *self, struct _ocrPolicyDomain_t * PD);
 
+    /*! \brief Query the worker to finish its work
+     */
+    void (*finish) (struct _ocrWorker_t *self);
+
     /*! \brief Stop Worker
      */
     void (*stop) (struct _ocrWorker_t *self);

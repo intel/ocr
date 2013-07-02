@@ -51,6 +51,7 @@ typedef struct {
 typedef struct {
     ocrCompPlatform_t base;
     pthread_t osThread;
+    launchArg_t * launchArg;
     u64 stackSize;
 } ocrCompPlatformPthread_t;
 

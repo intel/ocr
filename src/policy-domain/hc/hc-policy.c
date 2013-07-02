@@ -83,27 +83,30 @@ static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
 
 static void hcPolicyDomainFinish(ocrPolicyDomain_t * policy) {
     u64 i;
-    for ( i = 0; i < policy->schedulerCount; ++i ) {
-        policy->schedulers[i]->fctPtrs->stop(policy->schedulers[i]);
-    }
-
+    //TODO we should ask the scheduler to finish too
     // Note: As soon as worker '0' is stopped its thread is
-    // free to fall-through in ocr_finalize() (see warning there)
+    // free to fall-through and continue shutting down the policy domain
     for ( i = 0; i < policy->workerCount; ++i ) {
-        policy->workers[i]->fctPtrs->stop(policy->workers[i]);
+        policy->workers[i]->fctPtrs->finish(policy->workers[i]);
     }
 }
 
 static void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
+    // In HC, we MUST call stop on the master worker first.
+    // The master worker enters its work routine loop and will
+    // be unlocked by ocrShutdown
+
+    policy->workers[0]->fctPtrs->stop(policy->workers[0]);
     // WARNING: Do not add code here unless you know what you're doing !!
     // If we are here, it means an EDT called ocrShutdown which
-    // logically stopped workers and can make thread '0' executes this
+    // logically finished workers and can make thread '0' executes this
     // code before joining the other threads.
 
     // Thread '0' joins the other (N-1) threads.
+
     u64 i;
-    for (i = 1; i < policy->computeCount; i++) {
-        policy->computes[i]->fctPtrs->stop(policy->computes[i]);
+    for (i = 1; i < policy->workerCount; i++) {
+        policy->workers[i]->fctPtrs->stop(policy->workers[i]);
     }
 }
 
@@ -208,7 +211,15 @@ static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
     ocrTask_t * base = self->taskFactory->instantiate(self->taskFactory, edtTemplate, paramc,
                                                       paramv, depc, properties, affinity,
                                                       outputEvent, NULL);
+
+    // Check if the edt is ready to be scheduled
+    ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
+    if (derived->nbdeps == 0) {
+        base->fctPtrs->schedule(base);
+    }
+
     *guid = base->guid;
+
     return 0;
 }
 

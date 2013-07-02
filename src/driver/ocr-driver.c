@@ -202,11 +202,6 @@ int __attribute__ ((weak)) main(int argc, const char* argv[]) {
     return 0;
 }
 
-void ocrShutdown() {
-    // TODO: Sagnak working on it
-    ASSERT(0);
-}
-
 // static void recursive_policy_finish_helper ( ocrPolicyDomain_t* curr ) {
 //     if ( curr ) {
 //         int index = 0; // successor index
@@ -341,6 +336,8 @@ void ocrStop() {
     ocrPolicyDomain_t* masterPD = getMasterPD();
     ocrPolicyDomainLinkedListNode * spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(masterPD); //N^2
     linearTraverseStop(spanningTreeHead);
+    //TODO we need to start by stopping the master PD which
+    //controls stopping down PD located on the same machine.
 // #ifdef OCR_ENABLE_STATISTICS
 //     ocrStatsProcessDestruct(&GfakeProcess);
 //     GocrFilterAggregator->destruct(GocrFilterAggregator);

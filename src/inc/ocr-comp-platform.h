@@ -76,7 +76,6 @@ typedef struct _ocrCompPlatformFcts_t {
 
 typedef struct _ocrCompPlatform_t {
     ocrMappable_t module;
-
     ocrCompPlatformFcts_t *fctPtrs;
 } ocrCompPlatform_t;
 

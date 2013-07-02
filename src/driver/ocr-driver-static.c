@@ -59,7 +59,7 @@ void hack() {
     ocrPolicyDomain_t * rootPolicy = policyDomainFactory->instantiate(
         policyDomainFactory /*factory*/,
         1 /*schedulerCount*/, 1/*workerCount*/, 1 /*computeCount*/,
-        8 /*workpileCount*/, 1 /*allocatorCount*/, 1 /*memoryCount*/,
+        1 /*workpileCount*/, 1 /*allocatorCount*/, 1 /*memoryCount*/,
         taskFactory, taskTemplateFactory, dbFactory,
         eventFactory, contextFactory, guidProvider, lockFactory,
         atomicFactory, costFunction, NULL
@@ -158,13 +158,11 @@ void hack() {
     getCurrentEDT = getCurrentEdtFromWorker;
     setCurrentEDT = setCurrentEdtToWorker;
     rootPolicy->start(rootPolicy);
-
     // We now create the EDT and launch it
     ocrGuid_t edtTemplateGuid, edtGuid;
     ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 0);
     ocrEdtCreate(&edtGuid, edtTemplateGuid, 0, /* paramv = */ NULL,
                  /* depc = */ 0, /* depv = */ NULL,
                  EDT_PROP_NONE, NULL_GUID, NULL);
-
     ocrStop();
 }

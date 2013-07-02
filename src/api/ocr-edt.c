@@ -90,7 +90,6 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
                 u16 properties, ocrGuid_t affinity, ocrGuid_t *outputEvent) {
 
     ocrPolicyDomain_t * pd = getCurrentPD();
-
     ocrTaskTemplate_t *taskTemplate = NULL;
     deguidify(pd, templateGuid, (u64*)&taskTemplate, NULL);
     // TODO: Move this to runtime checks with error returned
