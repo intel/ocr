@@ -185,7 +185,8 @@ void ocrInit(int argc, char ** argv, ocrEdt_t mainEdt, bool createFinishEdt) {
         ocrEdtCreate(&edtGuid, edtTemplateGuid, 0, /* paramv = */ NULL,
                      /* depc = */ 1, /* depv = */ &dbGuid,
                      EDT_PROP_FINISH, NULL_GUID, &outputEvt);
-          ocrWait(outputEvt);
+        // TODO: Re-add when ocrWait is implemented
+//          ocrWait(outputEvt);
         ocrShutdown();
     } else {
         ocrEdtCreate(&edtGuid, edtTemplateGuid, 0, /* paramv = */ NULL,
@@ -276,7 +277,7 @@ void recurseBuildDepthFirstSpanningTreeLinkedList ( ocrPolicyDomainLinkedListNod
     tail -> next = currNode;
     tail = currNode;
 
-    u64 neighborCount = currPD->neighborCount; 
+    u64 neighborCount = currPD->neighborCount;
     u64 i = 0;
     for ( ; i < neighborCount; ++i ) {
         ocrPolicyDomain_t* currNeighbor = currPD->neighbors[i];
@@ -326,7 +327,7 @@ void linearTraverseStop ( ocrPolicyDomainLinkedListNode* curr ) {
     destructLinkedList(head);
 }
 
-void ocrShutDown() {
+void ocrShutdown() {
     ocrPolicyDomain_t* currPD = getCurrentPD();
     ocrPolicyDomainLinkedListNode * spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(currPD); //N^2
     linearTraverseFinish(spanningTreeHead);
