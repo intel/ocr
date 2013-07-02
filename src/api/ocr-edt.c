@@ -94,9 +94,9 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     deguidify(pd, templateGuid, (u64*)&taskTemplate, NULL);
     // TODO: Move this to runtime checks with error returned
     ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && paramc != EDT_PARAM_DEF) ||
-           (taskTemplate->paramc != EDT_PARAM_UNK && taskTemplate->paramc == paramc));
+           (taskTemplate->paramc != EDT_PARAM_UNK && (paramc == EDT_PARAM_DEF || taskTemplate->paramc == paramc)));
     ASSERT(((taskTemplate->depc == EDT_PARAM_UNK) && depc != EDT_PARAM_DEF) ||
-           (taskTemplate->depc != EDT_PARAM_UNK && taskTemplate->depc == depc));
+           (taskTemplate->depc != EDT_PARAM_UNK && (paramc == EDT_PARAM_DEF || taskTemplate->depc == depc)));
 
     if(paramc == EDT_PARAM_DEF) {
         paramc = taskTemplate->paramc;
