@@ -36,6 +36,10 @@
 #define INI_IS_RANGE(KEY) strstr((char *) iniparser_getstring(dict, KEY, ""), "-")
 #define INI_GET_RANGE(KEY, LOW, HIGH) sscanf(iniparser_getstring(dict, KEY, ""), "%d-%d", &LOW, &HIGH)
 
+ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
+{
+}
+
 //TODO: expand all the below to include all sections
 typedef enum {
     guid_type,
@@ -513,7 +517,13 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
         break;
     case 4:
         for (j = low; j<=high; j++) {
-            ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
+            // ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
+            // FIXME: for now assume it's HC
+            ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformPthread_t);
+            if (j == 0) {
+                ((paramListCompPlatformPthread_t *)inst_param[j])->isMasterThread = true;
+                ((paramListCompPlatformPthread_t *)inst_param[j])->stackSize = 0;
+            }
             instance[j] = ((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created compplatform of type %s, index %d\n", inststr, j);
         }
@@ -534,14 +544,24 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
         break;
     case 7:
         for (j = low; j<=high; j++) {
-            ALLOC_PARAM_LIST(inst_param[j], paramListWorkerInst_t);
+            //ALLOC_PARAM_LIST(inst_param[j], paramListWorkerInst_t);
+            // FIXME: for now assume it's HC
+            ALLOC_PARAM_LIST(inst_param[j], paramListWorkerHcInst_t);
+            if (j == 0) {
+                ((paramListWorkerHcInst_t *)inst_param[j])->workerId = 0;
+            }
             instance[j] = ((ocrWorkerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created worker of type %s, index %d\n", inststr, j);
         }
         break;
     case 8:
         for (j = low; j<=high; j++) {
-            ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerInst_t);
+            //ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerInst_t);
+            // FIXME: for now assume it's HC
+            ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerHcInst_t);
+            if (j == 0) {
+                ((paramListSchedulerHcInst_t *)inst_param[j])->worker_id_first = 0;
+            }
             instance[j] = ((ocrSchedulerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created scheduler of type %s, index %d\n", inststr, j);
         }
@@ -565,7 +585,7 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
             workpileCount = read_range(dict, secname, "workpile", &low, &high); 
             allocatorCount = read_range(dict, secname, "allocator", &low, &high); 
             memoryCount = read_range(dict, secname, "memtarget", &low, &high); 
-          
+         
             snprintf(key, 64, "%s:%s", secname, "taskfactory");
             INI_GET_STR (key, inststr, "");
             tf = create_factory_task(inststr, NULL);
@@ -594,11 +614,18 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
             INI_GET_STR (key, inststr, "");
             af = create_factory_atomic64(inststr, NULL);
 
+            // Ugly but special case
+            read_range(dict, secname, "guid", &low, &high); 
+            ASSERT (low == high);
+            gf = (ocrGuidProvider_t *)(all_instances[0][low]); // I'm very unhappy with this - referencing global. FIXME
+            ASSERT (gf);
+
             ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t); 
             instance[j] = ((ocrPolicyDomainFactory_t *)factory)->instantiate(factory, schedulerCount, 
                             workerCount, computeCount, workpileCount, allocatorCount, memoryCount,
                             tf, ttf, dbf, ef, cf, gf, lf, af, NULL, inst_param[j]);        
             if (instance[j]) printf("Created policy domain of index %d\n", j);
+            setBootPD((ocrPolicyDomain_t *)instance[j]);
         }
         break;
     default:
@@ -685,7 +712,7 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
             ocrScheduler_t *f = (ocrScheduler_t *)frominstance;
             printf("Scheduler %s to %s\n", fromparam->misc, toparam->misc);
             switch (totype) {
-                case 5: {
+                case 6: {
                         if (f->workpileCount == 0) {
                             f->workpileCount = dependence_count;
                             f->workpiles = (ocrWorkpile_t **)malloc(sizeof(ocrWorkpile_t *) * dependence_count);
@@ -693,7 +720,7 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
                         f->workpiles[dependence_index] = (ocrWorkpile_t *)toinstance;
                         break;
                     }
-                case 6: {
+                case 7: {
                         if (f->workerCount == 0) {
                             f->workerCount = dependence_count;
                             f->workers = (ocrWorker_t **)malloc(sizeof(ocrWorker_t *) * dependence_count);
@@ -708,9 +735,14 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
         }
     case 9: {
             ocrPolicyDomain_t *f = (ocrPolicyDomain_t *)frominstance;
-            printf("PD %s to %s\n", fromparam->misc, toparam->misc);
+            printf("PD %s to %s (%d)\n", fromparam->misc, toparam->misc, totype);
             switch (totype) {
-                case 1: {
+                case 0: {
+                        ASSERT(dependence_count==1);
+                        /*	Special case handled during PD creation  */
+                        break;
+                    }
+                case 2: {
                         if (f->memories == NULL) {
                             ASSERT(f->memoryCount == dependence_count);
                             f->memories = (ocrMemTarget_t **)malloc(sizeof(ocrMemTarget_t *) * dependence_count);
@@ -718,7 +750,7 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
                         f->memories[dependence_index] = (ocrMemTarget_t *)toinstance;
                         break;
                     }
-                case 2: {
+                case 3: {
                         if (f->allocators == NULL) {
                             ASSERT(f->allocatorCount == dependence_count);
                             f->allocators = (ocrAllocator_t **)malloc(sizeof(ocrAllocator_t *) * dependence_count);
@@ -726,7 +758,7 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
                         f->allocators[dependence_index] = (ocrAllocator_t *)toinstance;
                         break;
                     }
-                case 4: {
+                case 5: {
                         if (f->computes == NULL) {
                             ASSERT(f->computeCount == dependence_count);
                             f->computes = (ocrCompTarget_t **)malloc(sizeof(ocrCompTarget_t *) * dependence_count);
@@ -734,7 +766,7 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
                         f->computes[dependence_index] = (ocrCompTarget_t *)toinstance;
                         break;
                     }
-                case 5: {
+                case 6: {
                         if (f->workpiles == NULL) {
                             ASSERT(f->workpileCount == dependence_count);
                             f->workpiles = (ocrWorkpile_t **)malloc(sizeof(ocrWorkpile_t *) * dependence_count);
@@ -742,17 +774,12 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
                         f->workpiles[dependence_index] = (ocrWorkpile_t *)toinstance;
                         break;
                     }
-                case 6: {
+                case 7: {
                         if (f->workers == NULL) {
                             ASSERT(f->workerCount == dependence_count);
                             f->workers = (ocrWorker_t **)malloc(sizeof(ocrWorker_t *) * dependence_count);
                         }
                         f->workers[dependence_index] = (ocrWorker_t *)toinstance;
-                        break;
-                    }
-                case 7: {
-                        ASSERT(dependence_count==1);
-                        /*	FIXME: GUID */
                         break;
                     }
                 case 8: {
@@ -846,6 +873,10 @@ int main(int argc, char *argv[])
         }
     }
 
+    // FIXME: Ugly follows
+    ocrCompPlatformFactory_t *compPlatformFactory;
+    compPlatformFactory = (ocrCompPlatformFactory_t *) all_factories[4][0];
+    compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
     printf("\n\n");
 
     // POPULATE INSTANCES
@@ -879,6 +910,22 @@ int main(int argc, char *argv[])
     for (i = 0; i < sizeof(deps)/sizeof(dep_t); i++) {
         build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr);
     }
+
+    printf("\n\n");
+
+    // START EXECUTION
+    printf("========= Start execution ==========\n");
+
+    ocrPolicyDomain_t *rootPolicy;
+    rootPolicy = (ocrPolicyDomain_t *) all_instances[9][0]; // FIXME: Ugly
+    rootPolicy->start(rootPolicy);
+    // We now create the EDT and launch it
+    ocrGuid_t edtTemplateGuid, edtGuid;
+    ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 0);
+    ocrEdtCreate(&edtGuid, edtTemplateGuid, 0, /* paramv = */ NULL,
+           /* depc = */ 0, /* depv = */ NULL,
+           EDT_PROP_NONE, NULL_GUID, NULL);
+    ocrStop();
 
     return 0;
 }
