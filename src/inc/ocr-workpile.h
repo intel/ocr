@@ -56,9 +56,15 @@ typedef struct _paramListWorkpileInst_t {
 /****************************************************/
 
 struct _ocrWorkpile_t;
+struct _ocrPolicyDomain_t;
 
 typedef struct _ocrWorkpileFcts_t {
     void (*destruct)(struct _ocrWorkpile_t *self);
+
+    void (*start)(struct _ocrWorkpile_t *self, struct _ocrPolicyDomain_t *PD);
+
+    void (*stop)(struct _ocrWorkpile_t *self);
+
     /*! \brief Interface to extract a task from this pool
      *  \return GUID of the task that is extracted from this task pool
      */

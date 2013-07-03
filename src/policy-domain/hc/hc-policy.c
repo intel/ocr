@@ -77,6 +77,11 @@ static void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     u64 schedulerCount = policy->schedulerCount;
     ASSERT(workerCount == computeCount);
 
+    // Start the allocators
+    for(i = 0; i < policy->allocatorCount; ++i) {
+        policy->allocators[i]->fctPtrs->start(policy->allocators[i], policy);
+    }
+
     // Start schedulers
     for(i = 0; i < schedulerCount; i++) {
         policy->schedulers[i]->fctPtrs->start(policy->schedulers[i], policy);
@@ -138,19 +143,19 @@ static void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
         workers[i]->fctPtrs->destruct(workers[i]);
     }
     ocrCompTarget_t ** computes = policy->computes;
-    for ( i = 0; i < policy->workerCount; ++i ) {
+    for ( i = 0; i < policy->computeCount; ++i ) {
         computes[i]->fctPtrs->destruct(computes[i]);
     }
     ocrWorkpile_t ** workpiles = policy->workpiles;
-    for ( i = 0; i < policy->workerCount; ++i ) {
+    for ( i = 0; i < policy->workpileCount; ++i ) {
         workpiles[i]->fctPtrs->destruct(workpiles[i]);
     }
     ocrAllocator_t ** allocators = policy->allocators;
-    for ( i = 0; i < policy->workerCount; ++i ) {
+    for ( i = 0; i < policy->allocatorCount; ++i ) {
         allocators[i]->fctPtrs->destruct(allocators[i]);
     }
     ocrMemTarget_t ** memories = policy->memories;
-    for ( i = 0; i < policy->workerCount; ++i ) {
+    for ( i = 0; i < policy->memoryCount; ++i ) {
         memories[i]->fctPtrs->destruct(memories[i]);
     }
 

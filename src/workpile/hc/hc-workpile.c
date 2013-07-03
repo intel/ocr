@@ -43,6 +43,12 @@ static void hcWorkpileDestruct ( ocrWorkpile_t * base ) {
     free(derived);
 }
 
+static void hcWorkpileStart(ocrWorkpile_t *base, ocrPolicyDomain_t *PD) {
+}
+
+static void hcWorkpileStop(ocrWorkpile_t *base) {
+}
+
 static ocrGuid_t hcWorkpilePop ( ocrWorkpile_t * base, ocrCost_t *cost ) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
     return (ocrGuid_t) dequePop(derived->deque);
@@ -84,6 +90,8 @@ ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(ocrParamList_t *perType) {
     base->instantiate = newWorkpileHc;
     base->destruct =  destructWorkpileFactoryHc;
     base->workpileFcts.destruct = hcWorkpileDestruct;
+    base->workpileFcts.start = hcWorkpileStart;
+    base->workpileFcts.stop = hcWorkpileStop;
     base->workpileFcts.pop = hcWorkpilePop;
     base->workpileFcts.push = hcWorkpilePush;
     base->workpileFcts.steal = hcWorkpileSteal;

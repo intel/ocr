@@ -121,28 +121,6 @@ typedef struct _ocrWorkerFactory_t {
     ocrWorkerFcts_t workerFcts;
 } ocrWorkerFactory_t;
 
-// TODO: Check these functions and prune if required
-
-/*! \brief Getter for Worker id member field
- *  \return identifier for this Worker
- */
-int get_worker_id (ocrWorker_t * worker);
-
-/*! \brief Getter for the scheduler, where this Worker works on
- *  \return Scheduler member field for Worker, the one this Worker works on
- */
-ocrScheduler_t * get_worker_scheduler(ocrWorker_t * worker);
-
-/* TODO sagnak restructure code in a more pleasant manner than this
- * exposing some HC worker implementations to be reused for the FSIM-like implementations */
-void hc_worker_create ( ocrWorker_t * base, void * perTypeConfig, void * perInstanceConfig);
-void destructWorkerHc ( ocrWorker_t * base );
-void hc_start_worker(ocrWorker_t * base);
-void hc_stop_worker(ocrWorker_t * base);
-bool hc_is_running_worker(ocrWorker_t * base);
-ocrGuid_t hc_getCurrentEDT (ocrWorker_t * base);
-void hc_setCurrentEDT (ocrWorker_t * base, ocrGuid_t curr_edt_guid);
-void hc_ocr_module_map_scheduler_to_worker(void * self_module, ocrMappableKind kind, u64 nb_instances, void ** ptr_instances);
 
 /**
  * @brief Gets the current EDT executing

@@ -1006,26 +1006,6 @@ static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
     return result;
 }
 
-// Helper methods
-static void tlsfMap(ocrMappable_t* self, ocrMappableKind kind, u64 instanceCount,
-                    ocrMappable_t** ptrInstances) {
-
-    ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    ASSERT(instanceCount == 1); // Currently only support one underlying memory
-    ASSERT(rself->base.memoryCount == 0 && rself->base.memories == NULL); // Called only once
-    rself->base.memoryCount = instanceCount;
-    // TODO: Is this the best way...
-    rself->base.memories = (ocrMemTarget_t**)checkedMalloc(rself->base.memories,
-                                                           sizeof(ocrMemTarget_t*));
-    rself->base.memories[0] = ((ocrMemTarget_t**)ptrInstances)[0];
-
-    // Do the allocation
-    rself->addr = rself->poolAddr = (u64)(rself->base.memories[0]->fctPtrs->allocate(
-                                              rself->base.memories[0], rself->totalSize));
-    ASSERT(rself->addr);
-    RESULT_ASSERT(tlsfInit(rself->addr, rself->totalSize), ==, 0);
-}
-
 static void tlsfDestruct(ocrAllocator_t *self) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     if(self->memoryCount)
@@ -1041,7 +1021,15 @@ static void tlsfDestruct(ocrAllocator_t *self) {
     free(rself);
 }
 
-static void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) { }
+static void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
+    // Do the allocation
+    ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
+    ASSERT(self->memoryCount == 1);
+    rself->addr = rself->poolAddr = (u64)(rself->base.memories[0]->fctPtrs->allocate(
+                                              rself->base.memories[0], rself->totalSize));
+    ASSERT(rself->addr);
+    RESULT_ASSERT(tlsfInit(rself->addr, rself->totalSize), ==, 0);
+}
 
 static void tlsfStop(ocrAllocator_t *self) { }
 
@@ -1089,7 +1077,7 @@ static ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrPar
 
     result->lock = pd->getLock(pd, ctx);
 
-    result->base.module.mapFct = &tlsfMap;
+    result->base.module.mapFct = NULL;
 
     return (ocrAllocator_t*)result;
 }

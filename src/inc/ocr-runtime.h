@@ -42,7 +42,6 @@
 #include "ocr-comp-target.h"
 #include "ocr-comp-platform.h"
 #include "ocr-worker.h"
-#include "ocr-machine.h"
 #include "ocr-scheduler.h"
 #include "ocr-policy-domain.h"
 #include "ocr-policy-domain-getter.h"

@@ -104,8 +104,10 @@ void hack() {
     ocrAllocatorFactory_t *allocatorFactory = newAllocatorFactoryTlsf(NULL);
     ocrAllocator_t *allocator = allocatorFactory->instantiate(allocatorFactory,
                                                               (ocrParamList_t*)allocatorParamList);
-    ((ocrMappable_t*)allocator)->mapFct((ocrMappable_t*)allocator, OCR_MEM_TARGET, 1,
-                                        (ocrMappable_t**)&memTarget);
+
+    allocator->memoryCount = 1;
+    allocator->memories = (ocrMemTarget_t**)malloc(sizeof(ocrMemTarget_t*));
+    allocator->memories[0] = memTarget;
 
     ocrWorkerFactory_t * workerFactory = newOcrWorkerFactoryHc(NULL);
     paramListWorkerHcInst_t workerParam;
