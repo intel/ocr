@@ -41,7 +41,8 @@ ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     printf("In the taskForEdt with value %d\n", (int)paramv[0]);
     assert(paramc == 1);
     assert(paramv[0] == 32);
-    assert(*((u64*)depv[0].ptr) == 42);
+    void * ptr = depv[0].ptr;
+    assert(*((int*)ptr) == 42);
     // This is the last EDT to execute, terminate
     ocrShutdown();
     return NULL_GUID;

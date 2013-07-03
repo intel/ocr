@@ -41,7 +41,7 @@ ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     printf("In the taskForEdt with value %d\n", (int)paramv[0]);
     assert(paramc == 1);
     assert(paramv[0] == 32);
-    assert(*((u64*)depv[0].ptr) == 42);
+    assert(*((int*)depv[0].ptr) == 42);
     // This is the last EDT to execute, terminate
     ocrShutdown();
     return NULL_GUID;
@@ -66,10 +66,10 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // Register a dependence between an event and an edt
     ocrAddDependence(eventGuid, edtGuid, 0, DB_MODE_RO);
 
-    int *k;
+    u64 *k;
     ocrGuid_t dbGuid;
     ocrDbCreate(&dbGuid,(void **) &k,
-            sizeof(int), /*flags=*/FLAGS,
+            sizeof(u64), /*flags=*/FLAGS,
             /*location=*/NULL_GUID,
             NO_ALLOC);
     *k = 42;
