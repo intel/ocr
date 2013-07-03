@@ -294,7 +294,8 @@ void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot) {
         // side effect on code executing downwards.
         ocrTask_t * task = getCurrentTask();
         task->els[ELS_SLOT_FINISH_LATCH] = NULL_GUID;
-        // Notify waiters the latch is satisfied (We can extend that to a list // of waiters if we need to. (see R1))
+        // Notify waiters the latch is satisfied (We can extend that to a list 
+        // of waiters if we need to. (see R1))
         // Notify output event if any associated with the finish-edt
         regNode_t * outputEventWaiter = &(self->outputEventWaiter);
         if (outputEventWaiter->guid != NULL_GUID) {
@@ -654,6 +655,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplat
         ocrEventFactory_t * eventFactory = getEventFactoryFromPd(pd);
         ocrEvent_t * event = eventFactory->instantiate(eventFactory, OCR_EVENT_STICKY_T, false, NULL);
         *outputEventPtr = event->guid;
+        outputEvent = event->guid;
     }
     ocrTaskHc_t* edt = newTaskHcInternal(factory, pd, taskTemplate, paramc, paramv,
                                          depc, properties, affinity, outputEvent);
