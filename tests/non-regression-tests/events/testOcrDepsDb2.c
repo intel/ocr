@@ -27,7 +27,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-*/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,47 +35,47 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ocr.h"
 
-#define FLAGS 0xdead
+/**
+ * DESC: Test addDependence(db, event, slot); Satisfies event, triggers edt.
+ */
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    printf("In the taskForEdt with value %d\n", (int)paramv[0]);
-    assert(paramc == 1);
-    assert(paramv[0] == 32);
-    assert(*((u64*)depv[0].ptr) == 42);
+    int* res = (int*)depv[0].ptr;
+    printf("In the taskForEdt with value %d\n", (*res));
+    assert(*res == 42);
     // This is the last EDT to execute, terminate
     ocrShutdown();
     return NULL_GUID;
 }
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    // Current thread is '0' and goes on with user code.
-    ocrGuid_t ndepv[1];
-    ocrGuid_t eventGuid;
-    ocrEventCreate(&eventGuid, OCR_EVENT_STICKY_T, true);
-    ndepv[0] = eventGuid;
-
-    // Creates the EDT
-    u32 nparamc = 1;
-    u64 * nparamv = (u64 *) malloc(sizeof(u64));
-    nparamv[0] = 32;
-
-    // 'ndepv' stores dependencies, so no need to call
-    // ocrAddDependence later on to register events.
-    ocrGuid_t edtGuid;
-    ocrGuid_t taskForEdtTemplateGuid;
-    ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, nparamc, 1 /*depc*/);
-    ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF, /*depv=*/ndepv,
-                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
-
+    // Creates a data block
     int *k;
     ocrGuid_t dbGuid;
     ocrDbCreate(&dbGuid,(void **) &k,
-            sizeof(int), /*flags=*/FLAGS,
+            sizeof(int), /*flags=*/0,
             /*location=*/NULL_GUID,
             NO_ALLOC);
     *k = 42;
 
-    ocrEventSatisfy(eventGuid, dbGuid);
+    ocrGuid_t eventGuid;
+    ocrEventCreate(&eventGuid, OCR_EVENT_STICKY_T, true);
+
+    // Creates the EDT
+    ocrGuid_t edtGuid;
+    ocrGuid_t taskForEdtTemplateGuid;
+    ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, 0 /*paramc*/, 1 /*depc*/);
+    ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
+
+    ocrAddDependence(eventGuid, edtGuid, 0, DB_MODE_RO);
+
+    // Register a dependence between a db and an event
+    // (equivalent to directly satisfying the DB)
+    ocrAddDependence(dbGuid, eventGuid, 0, DB_MODE_RO);
+
+    // No need to satisfy as addDependence is equivalent to a satisfy
+    // when the source is a datablock 
 
     return NULL_GUID;
 }

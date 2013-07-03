@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr.h"
 
 /**
- * DESC: Test addDependence(db, event, slot); Satisfies event, triggers edt.
+ * DESC: Test addDependence(db, edt, slot); which should trigger the edt.
  */
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
@@ -58,9 +58,6 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
             NO_ALLOC);
     *k = 42;
 
-    ocrGuid_t eventGuid;
-    ocrEventCreate(&eventGuid, OCR_EVENT_STICKY_T, true);
-
     // Creates the EDT
     ocrGuid_t edtGuid;
     ocrGuid_t taskForEdtTemplateGuid;
@@ -68,14 +65,10 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
                     /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
-    ocrAddDependence(eventGuid, edtGuid, 0, DB_MODE_RO);
-
-    // Register a dependence between a db and an event
-    // (equivalent to directly satisfying the DB)
-    ocrAddDependence(dbGuid, eventGuid, 0, DB_MODE_RO);
-
+    // Register a dependence between a db and an edt
+    ocrAddDependence(dbGuid, edtGuid, 0, DB_MODE_RO);
+    
     // No need to satisfy as addDependence is equivalent to a satisfy
     // when the source is a datablock 
-
     return NULL_GUID;
 }

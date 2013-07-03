@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FLAGS 0xdead
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    printf("In the taskForEdt with value %d\n", *((int *)(paramv[0])));
+    printf("In the taskForEdt with value %d\n", (int)paramv[0]);
     assert(paramc == 1);
     assert(paramv[0] == 32);
     assert(*((u64*)depv[0].ptr) == 42);
@@ -49,13 +49,13 @@ ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // Current thread is '0' and goes on with user code.
-    ocrGuid_t event_guid;
-    ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true);
+    ocrGuid_t eventGuid;
+    ocrEventCreate(&eventGuid, OCR_EVENT_STICKY_T, true);
 
     // Creates the EDT
     u32 nparamc = 1;
     u64 * nparamv = (u64 *) malloc(sizeof(u64));
-    paramv[0] = 32;
+    nparamv[0] = 32;
 
     ocrGuid_t edtGuid;
     ocrGuid_t taskForEdtTemplateGuid;
@@ -64,17 +64,17 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
                     /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
     // Register a dependence between an event and an edt
-    ocrAddDependence(event_guid, edtGuid, 0, DB_MODE_RO);
+    ocrAddDependence(eventGuid, edtGuid, 0, DB_MODE_RO);
 
     int *k;
-    ocrGuid_t db_guid;
-    ocrDbCreate(&db_guid,(void **) &k,
+    ocrGuid_t dbGuid;
+    ocrDbCreate(&dbGuid,(void **) &k,
             sizeof(int), /*flags=*/FLAGS,
             /*location=*/NULL_GUID,
             NO_ALLOC);
     *k = 42;
 
-    ocrEventSatisfy(event_guid, db_guid);
+    ocrEventSatisfy(eventGuid, dbGuid);
 
     return NULL_GUID;
 }

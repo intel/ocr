@@ -44,30 +44,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ELS_OFFSET 0
 
 void someUserFunction() {
-    ocrGuid_t els_data_guid = ocrElsGet(ELS_OFFSET);
-    void * datum;
-    ocrDbAcquire(els_data_guid, &datum, 0);
-    assert(*((int *)datum) == 42);
-    ocrDbRelease(els_data_guid);
+    // ocrGuid_t els_data_guid = ocrElsGet(ELS_OFFSET);
+    // void * datum;
+    // ocrDbAcquire(els_data_guid, &datum, 0);
+    // assert(*((int *)datum) == 42);
+    // ocrDbRelease(els_data_guid);
 }
 
-ocrGuid_t(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    ocrGuid_t data = depv[0].guid;
-    ocrElsSet(ELS_OFFSET, data);
-    someUserFunction();
+ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+    // ocrGuid_t data = depv[0].guid;
+    // ocrElsSet(ELS_OFFSET, data);
+    // someUserFunction();
     // This is the last EDT to execute, terminate
     ocrShutdown();
     return NULL_GUID;
 }
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    ocrEdt_t fctPtrArray [1];
-    fctPtrArray[0] = &taskForEdt;
-    ocrInit(&argc, argv, 1, fctPtrArray);
-
     // Current thread is '0' and goes on with user code.
-    ocrGuid_t event_guid;
-    ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true);
+    ocrGuid_t eventGuid;
+    ocrEventCreate(&eventGuid, OCR_EVENT_STICKY_T, true);
 
     // Creates the EDT
     ocrGuid_t edtGuid;
@@ -75,19 +71,17 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, 0 /*paramc*/, 1 /*depc*/);
     ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, NULL, EDT_PARAM_DEF, NULL, 0, NULL_GUID, NULL);
     // Register a dependence between an event and an edt
-    ocrAddDependence(event_guid, edt_guid, 0);
+    ocrAddDependence(eventGuid, edtGuid, 0);
 
     int *k;
-    ocrGuid_t db_guid;
-    ocrDbCreate(&db_guid,(void **) &k,
+    ocrGuid_t dbGuid;
+    ocrDbCreate(&dbGuid,(void **) &k,
             sizeof(int), /*flags=*/FLAGS,
             /*location=*/NULL_GUID,
             NO_ALLOC);
     *k = 42;
 
-    ocrEventSatisfy(event_guid, db_guid);
-
-    ocrEdtSchedule(edt_guid);
+    ocrEventSatisfy(eventGuid, dbGuid);
 
     return NULL_GUID;
 }
@@ -95,6 +89,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 #else
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+    ocrShutdown();
     return NULL_GUID;
 }
 
