@@ -153,7 +153,8 @@ void regularDestruct(ocrDataBlock_t *self) {
     rself->lock->fctPtrs->destruct(rself->lock);
 
     ocrPolicyDomain_t *pd = getCurrentPD();
-    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
+    ocrPolicyCtx_t *orgCtx = getCurrentWorkerContext();
+    ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
     ctx->type = PD_MSG_GUID_REL;
     // Tell the allocator to free the data-block
     ocrAllocator_t *allocator = NULL;

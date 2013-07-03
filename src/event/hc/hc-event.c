@@ -134,10 +134,10 @@ void destructEventHc ( ocrEvent_t* base ) {
     // at some point before. For instance on satisfy.
     ocrEventHc_t* derived = (ocrEventHc_t*)base;
     ocrPolicyDomain_t *pd = getCurrentPD();
-    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
+    ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
+    ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
     ctx->type = PD_MSG_GUID_REL;
     pd->inform(pd, base->guid, ctx);
-
     free(derived);
 }
 

@@ -1031,7 +1031,8 @@ static void tlsfDestruct(ocrAllocator_t *self) {
     free(self->memories);
 
     ocrPolicyDomain_t *pd = getCurrentPD();
-    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
+    ocrPolicyCtx_t *orgCtx = getCurrentWorkerContext();
+    ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
     ctx->type = PD_MSG_GUID_REL;
     pd->inform(pd, self->guid, ctx);
     free(rself);

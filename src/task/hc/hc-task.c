@@ -436,7 +436,8 @@ static void destructTaskHc ( ocrTask_t* base ) {
     ocrStatsProcessDestruct(&(base->statProcess));
 #endif
     ocrPolicyDomain_t *pd = getCurrentPD();
-    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
+    ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
+    ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
     ctx->type = PD_MSG_GUID_REL;
     pd->inform(pd, base->guid, ctx);
     base->addedDepCounter->fctPtrs->destruct(base->addedDepCounter);
@@ -495,18 +496,15 @@ static void edtRegisterSignaler(ocrTask_t * base, ocrGuid_t signalerGuid, int sl
  */
 static inline void taskSchedule( ocrGuid_t taskGuid ) {
     // Setting up the context
-    ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
-    ocrPolicyDomain_t * pd = getCurrentPD();
-    ocrGuid_t workerGuid = ctx->sourceObj;
-    ocrWorker_t * worker = NULL;
-    deguidify(pd, workerGuid, (u64*)&worker, NULL);
-    ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) worker;
-    ctx->sourceId = hcWorker->id;
-    ctx->destPD = pd->guid;
+    ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
+    // Current worker schedulers to current policy domain
+    // TODO this can be cached somewhere if target/dest are static
+    ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
+    ctx->destPD = orgCtx->sourcePD;
     ctx->destObj = NULL_GUID;
     ctx->type = PD_MSG_EDT_READY;
     // give the edt to the policy domain
-    pd->giveEdt(pd, 1, &taskGuid, ctx);
+    orgCtx->PD->giveEdt(orgCtx->PD, 1, &taskGuid, ctx);
 }
 
 /**

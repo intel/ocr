@@ -107,7 +107,7 @@ typedef struct _ocrPolicyCtx_t {
     ocrGuid_t destPD;        /**< Destination policy domain (after all eventual hops) */
     ocrGuid_t destObj;       /**< Responding object (after all eventual hops) */
     ocrPolicyMsgType_t type; /**< Type of message */
-
+    struct _ocrPolicyCtx_t * (*clone)(struct _ocrPolicyCtx_t *self);
     void (*destruct)(struct _ocrPolicyCtx_t *self);
 } ocrPolicyCtx_t;
 

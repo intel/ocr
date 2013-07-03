@@ -147,13 +147,15 @@ int get_worker_id(ocrWorker_t * worker) {
 }
 
 void worker_loop(ocrPolicyDomain_t * pd, ocrWorker_t * worker) {
-    ocrPolicyCtx_t * contextTake = pd->contextFactory->instantiate(pd->contextFactory, NULL);
-    contextTake->type = PD_MSG_EDT_TAKE;
+    // Build and cache a take context
+    ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
+    ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
+    ctx->type = PD_MSG_EDT_TAKE;
     // Entering the worker loop
     while(worker->fctPtrs->isRunning(worker)) {
         ocrGuid_t taskGuid;
         u32 count;
-        pd->takeEdt(pd, NULL, &count, &taskGuid, contextTake);
+        pd->takeEdt(pd, NULL, &count, &taskGuid, ctx);
         // remove this when we can take a bunch and make sure there's
         // an agreement whether it's the callee or the caller that
         // allocates the taskGuid array

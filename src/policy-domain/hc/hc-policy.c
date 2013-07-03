@@ -30,23 +30,39 @@
 
 */
 
+#include <string.h>
+
 #include "ocr-macros.h"
 #include "hc.h"
 #include "ocr-policy-domain.h"
 #include "debug.h"
 
-void destructOcrPolicyCtxFactoryHC ( ocrPolicyCtxFactory_t* self ) {
+void destructOcrPolicyCtxHC ( ocrPolicyCtx_t* self ) {
+    free(self);
 }
 
-ocrPolicyCtx_t * instantiateOcrPolicyCtxFactoryHC ( ocrPolicyCtxFactory_t *factory, ocrParamList_t *perInstance) {
+ocrPolicyCtx_t * cloneOcrPolicyCtxHC (ocrPolicyCtx_t * ctxIn) {
+    ocrPolicyCtxHC_t* ctxOut = checkedMalloc (ctxOut, sizeof(ocrPolicyCtxHC_t));
+    memcpy(ctxOut, ctxIn, sizeof(ocrPolicyCtxHC_t));
+    return (ocrPolicyCtx_t*) ctxOut;
+}
+
+ocrPolicyCtx_t * instantiateOcrPolicyCtxHC ( ocrPolicyCtxFactory_t *factory, ocrParamList_t *perInstance) {
     ocrPolicyCtxHC_t* derived = checkedMalloc (derived, sizeof(ocrPolicyCtxHC_t));
+    ocrPolicyCtx_t * base = (ocrPolicyCtx_t *) derived;
+    base->clone = cloneOcrPolicyCtxHC;
+    base->destruct = destructOcrPolicyCtxHC;
     return (ocrPolicyCtx_t*) derived;
+}
+
+
+void destructOcrPolicyCtxFactoryHC ( ocrPolicyCtxFactory_t* self ) {
 }
 
 ocrPolicyCtxFactory_t* newPolicyContextFactoryHC ( ocrParamList_t* params ) {
     ocrPolicyCtxFactoryHC_t* derived = (ocrPolicyCtxFactoryHC_t*) checkedMalloc(derived, sizeof(ocrPolicyCtxFactoryHC_t));
     ocrPolicyCtxFactory_t * base = (ocrPolicyCtxFactory_t *) derived;
-    base->instantiate = instantiateOcrPolicyCtxFactoryHC;
+    base->instantiate = instantiateOcrPolicyCtxHC;
     base->destruct = destructOcrPolicyCtxFactoryHC;
     return base;
 }
