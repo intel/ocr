@@ -138,6 +138,7 @@ void destructEventHc ( ocrEvent_t* base ) {
     ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
     ctx->type = PD_MSG_GUID_REL;
     pd->inform(pd, base->guid, ctx);
+    printf("destroying event %p\n", derived);
     free(derived);
 }
 
@@ -317,7 +318,8 @@ ocrGuid_t finishLatchEventGet(ocrEvent_t * base, u32 slot) {
 
 // satisfies the incr slot of a finish latch event
 
-// satisfies the decr slot of a finish latch event
+// satisfies the decr slot of a finish latch event. Deallocate the latch
+// event if satisfied and set 'base' to NULL.
 static void finishLatchCheckout(ocrEvent_t * base) {
     finishLatchEventSatisfy(base, NULL_GUID, FINISH_LATCH_DECR_SLOT);
 }

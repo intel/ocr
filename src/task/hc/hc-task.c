@@ -308,7 +308,8 @@ void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot) {
             deguidify(getCurrentPD(), parentLatchWaiter->guid, (u64*)&parentLatch, NULL);
             finishLatchCheckout(parentLatch);
         }
-        // Since finish-latch is internal to finish-edt, and ELS is cleared, // there are no more pointers left to it, deallocate.
+        // Since finish-latch is internal to finish-edt, and ELS is cleared, 
+        // there are no more pointers left to it, deallocate.
         base->fctPtrs->destruct(base);
     }
 }
@@ -582,22 +583,24 @@ static void taskExecute ( ocrTask_t* base ) {
             }
         }
     }
-
+    bool satisfyOutputEvent = (base->outputEvent != NULL_GUID);
     // check out from current finish scope
     ocrEvent_t * curLatch = getFinishLatch(base);
-
     if (curLatch != NULL) {
         // if own the latch, then set the retGuid
         if (isFinishLatchOwner(curLatch, base->guid)) {
             ((ocrEventHcFinishLatch_t *) curLatch)->returnGuid = retGuid;
+            satisfyOutputEvent = false;
         }
-        finishLatchCheckout(curLatch);
         // If the edt is the last to checkout from the current finish scope,
-        // the latch event automatically satisfies the parent latch (if any) // and the output event associated with the current finish-edt (if any)
-    } 
-    // When the edt is not a finish-edt, nobody signals its output
-    // event but himself, do that now.
-    if ((base->outputEvent != NULL_GUID) && !isFinishLatchOwner(curLatch, base->guid)) {
+        // the latch event automatically satisfies the parent latch (if any) 
+        // and the output event associated with the current finish-edt (if any)
+        finishLatchCheckout(curLatch);
+    }
+
+    // !! Warning: curLatch might have been deallocated at that point !!
+
+    if (satisfyOutputEvent) {
         ocrEvent_t * outputEvent;
         deguidify(getCurrentPD(), base->outputEvent, (u64*)&outputEvent, NULL);
         // We know the output event must be of type single sticky since it is
