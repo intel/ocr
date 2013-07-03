@@ -61,13 +61,14 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtTemplateCreate(&terminateEdtTemplateGuid, terminateEdt, 0 /*paramc*/, 1 /*depc*/);
     ocrEdtCreate(&terminateEdtGuid, terminateEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
                     /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
-    ocrAddDependence(outputEventGuid, terminateEdtGuid, 0, DB_MODE_RO);
 
     ocrGuid_t userEdtGuid;
     ocrGuid_t userEdtTemplateGuid;
     ocrEdtTemplateCreate(&userEdtTemplateGuid, userEdt, 0 /*paramc*/, 0 /*depc*/);
     ocrEdtCreate(&userEdtGuid, userEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
                     /*properties=*/EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/&outputEventGuid);
-
+   
+    printf("Add dependence\n");
+    ocrAddDependence(outputEventGuid, terminateEdtGuid, 0, DB_MODE_RO);
     return NULL_GUID;
 }

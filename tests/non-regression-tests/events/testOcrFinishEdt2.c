@@ -70,7 +70,7 @@ ocrGuid_t updaterEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 ocrGuid_t computeEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t updaterEdtTemplateGuid;
-    ocrEdtTemplateCreate(&updaterEdtTemplateGuid, updaterEdt, 0 /*paramc*/, 1 /*depc*/);
+    ocrEdtTemplateCreate(&updaterEdtTemplateGuid, updaterEdt, 1 /*paramc*/, 1/*depc*/);
     u64 i = 0;
     while (i < N) {
         // Pass down the index to write to and the db guid through params

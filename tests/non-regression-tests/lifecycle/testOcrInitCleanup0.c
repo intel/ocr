@@ -46,20 +46,21 @@ ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     return NULL_GUID;
 }
 
-void test (int argc, char ** argv) {
+void test () {
     // Current thread is '0' and goes on with user code.
-    ocrGuid_t event_guid;
-    ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true);
+    ocrGuid_t eventGuid;
+    ocrEventCreate(&eventGuid, OCR_EVENT_STICKY_T, true);
 
     // Creates the EDT
     ocrGuid_t edtGuid;
     ocrGuid_t taskForEdtTemplateGuid;
     ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, 0 /*paramc*/, 1 /*depc*/);
-    ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, /*paramv=*/NULL, /*depv=*/NULL,
-                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL_GUID);
+
+    ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, 
+                 EDT_PARAM_DEF, /*depv=*/NULL, 0, NULL_GUID, NULL);
 
     // Register a dependence between an event and an edt
-    ocrAddDependence(event_guid, edt_guid, 0, DB_MODE_RO);
+    ocrAddDependence(eventGuid, edtGuid, 0, DB_MODE_RO);
     
     int *k;
     ocrGuid_t db_guid;
@@ -69,12 +70,14 @@ void test (int argc, char ** argv) {
             NO_ALLOC);
     *k = 42;
 
-    ocrEventSatisfy(event_guid, db_guid);
-
+    ocrEventSatisfy(eventGuid, db_guid);
+}
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    test(argc, argv);
-    test(argc, argv);
+    test();
+    //TODO this test needs to be updated if we have a way to
+    //call ocr as a library two times in a row.
+    //test(argc, argv);
 
     return NULL_GUID;
 }

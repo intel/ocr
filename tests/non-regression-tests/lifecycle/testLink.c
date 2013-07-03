@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "ocr.h"
 
-int main(int argc, char ** argv ) {
-	ocrInit(&argc,argv,NULL);
-	return 0;
+ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+    ocrShutdown();
+    return NULL_GUID;
 }
