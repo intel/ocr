@@ -240,6 +240,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrGuid_t al
 
     result->attributes.flags = result->base.properties;
     result->attributes.numUsers = 0;
+    result->attributes.internalUsers = 0;
     result->attributes.freeRequested = 0;
     ocrGuidTrackerInit(&(result->usersTracker));
 

@@ -804,23 +804,26 @@ static void initializePool(u64 pgStart, tlsfSize_t poolRealSize) {
     ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, mainBlock), sizeBlock),
             poolRealSize - 2*GusedBlockOverhead);
 
-    ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, mainBlock), prevFreeBlock), nullBlockAddr.value);
     ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, mainBlock), nextFreeBlock), nullBlockAddr.value);
 
+    // This code is from markBlockFree (it marks mainBlock as free)
+    // We paste it here to remove some of the actions on next/prev block
+    // which bother valgrind
+    {
+        u64 locationToWrite = ADDR_OF(pool_t, pgStart, mainBlock) +
+            ((poolRealSize - GusedBlockOverhead) << ELEMENT_SIZE_LOG2) - sizeof(tlsfSize_t);
+        ST_SIZE(locationToWrite, poolRealSize - 2*GusedBlockOverhead);
+
+        ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, mainBlock), prevFreeBlock), 0xBEEF);  // Some value that is not 0 or 1 for now
+    }
     FENCE_STORE;
-    markBlockFree(pgStart, ADDR_OF(pool_t, pgStart, mainBlock));
 
     // Add the sentinel
     u64 sentinel = (ADDR_OF(pool_t, pgStart, mainBlock) +
                     ((poolRealSize - GusedBlockOverhead) << ELEMENT_SIZE_LOG2));
 
-    // I am an idiot: store 0 in sizeBlock BEFORE calling markBlockUsed
-    // as markBlockUsed calls getNextBlock which uses the size!!!
     ST_SIZE(ADDR_OF(header_t, sentinel, sizeBlock), 0);
-    FENCE_STORE;
-    markBlockUsed(pgStart, sentinel);
-
-    markPrevBlockFree(sentinel);
+    ST_SIZE(ADDR_OF(header_t, sentinel, prevFreeBlock), 1); // This is mark prevBlockFree for sentinel
 
     // Initialize the nullBlock properly
     ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, nullBlock), sizeBlock), 0);
