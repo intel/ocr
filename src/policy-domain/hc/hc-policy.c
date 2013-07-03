@@ -213,8 +213,7 @@ static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
                                                       outputEvent, NULL);
 
     // Check if the edt is ready to be scheduled
-    ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
-    if (derived->nbdeps == 0) {
+    if (base->depc == 0) {
         base->fctPtrs->schedule(base);
     }
 

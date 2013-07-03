@@ -95,7 +95,6 @@ typedef struct {
     ocrTask_t base;
     regNode_t * waiters;
     regNode_t * signalers; // Does not grow, set once when the task is created
-    u64 nbdeps;
 } ocrTaskHc_t;
 
 #endif

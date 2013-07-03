@@ -354,12 +354,11 @@ static bool isFinishLatchOwner(ocrEvent_t * finishLatch, ocrGuid_t edtGuid) {
 static void newTaskHcInternalCommon (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived,
                                      ocrTaskTemplate_t * taskTemplate, u32 paramc,
                                      u64* paramv, u32 depc, ocrGuid_t outputEvent) {
-    u32 nbDeps = depc;
-    if (nbDeps == 0) {
+    if (depc == 0) {
         derived->signalers = END_OF_LIST;
     } else {
         // Since we know how many dependences we have, preallocate signalers
-        derived->signalers = checkedMalloc(derived->signalers, sizeof(regNode_t)*nbDeps);
+        derived->signalers = checkedMalloc(derived->signalers, sizeof(regNode_t)*depc);
     }
     derived->waiters = END_OF_LIST;
     // Initialize base
@@ -367,8 +366,10 @@ static void newTaskHcInternalCommon (ocrPolicyDomain_t * pd, ocrTaskHc_t* derive
     base->guid = UNINITIALIZED_GUID;
     guidify(pd, (u64)base, &(base->guid), OCR_GUID_EDT);
     base->templateGuid = taskTemplate->guid;
+    base->paramc = paramc;
     base->paramv = paramv;
     base->outputEvent = outputEvent;
+    base->depc = depc;
     base->addedDepCounter = pd->getAtomic64(pd, NULL /*Context*/);
     // Initialize ELS
     int i = 0;
@@ -454,7 +455,7 @@ static void taskSignaled(ocrTask_t * base, ocrGuid_t data, u32 slot) {
     // further references to the event's guid, which is good in general
     // and crucial for once-event since they are being destroyed on satisfy.
     self->signalers[slot].guid = data;
-    if (slot == (self->nbdeps-1)) {
+    if (slot == (base->depc-1)) {
         // All dependencies have been satisfied, schedule the edt
         taskSchedule(base->guid);
     } else {
@@ -519,7 +520,7 @@ static void tryScheduleTask( ocrTask_t* base ) {
     //       dependence slot is registered with a signaler, but then
     //       the semantic of the schedule function is weaker.
     ocrTaskHc_t* self = (ocrTaskHc_t*)base;
-    if (self->nbdeps != 0) {
+    if (base->depc != 0) {
         // Register the task on the first dependence. If all
         // dependences are here, the task is scheduled by
         // the dependence management code.
@@ -534,16 +535,19 @@ static void taskExecute ( ocrTask_t* base ) {
     ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
     // In this implementation each time a signaler has been satisfied, its guid
     // has been replaced by the db guid it has been satisfied with.
-    int nbdeps = derived->nbdeps;
+    u32 paramc = base->paramc;
+    u64 * paramv = base->paramv;
+    u64 depc = base->depc;
+    
     ocrEdtDep_t * depv = NULL;
     // If any dependencies, acquire their data-blocks
-    if (nbdeps != 0) {
+    if (depc != 0) {
         u64 i = 0;
         //TODO would be nice to resolve regNode into guids before
-        depv = (ocrEdtDep_t *) checkedMalloc(depv, sizeof(ocrEdtDep_t) * nbdeps);
+        depv = (ocrEdtDep_t *) checkedMalloc(depv, sizeof(ocrEdtDep_t) * depc);
         // Double-check we're not rescheduling an already executed edt
         ASSERT(derived->signalers != END_OF_LIST);
-        while ( i < nbdeps ) {
+        while ( i < depc ) {
             //TODO would be nice to standardize that on satisfy
             regNode_t * regNode = &(derived->signalers[i]);
             ocrGuid_t dbGuid = regNode->guid;
@@ -564,15 +568,14 @@ static void taskExecute ( ocrTask_t* base ) {
 
     ocrTaskTemplate_t * taskTemplate;
     deguidify(getCurrentPD(), base->templateGuid, (u64*)&taskTemplate, NULL);
-
     //TODO: define when task template is resolved from its guid
-    ocrGuid_t retGuid = taskTemplate->executePtr(taskTemplate->paramc, base->paramv,
-                                                 nbdeps, depv);
+    ocrGuid_t retGuid = taskTemplate->executePtr(paramc, paramv,
+                                                 depc, depv);
 
     // edt user code is done, if any deps, release data-blocks
-    if (nbdeps != 0) {
+    if (depc != 0) {
         u64 i = 0;
-        for(i=0; i<nbdeps; ++i) {
+        for(i=0; i<depc; ++i) {
             if(depv[i].guid != NULL_GUID) {
                 ocrDataBlock_t * db = NULL;
                 deguidify(getCurrentPD(), depv[i].guid, (u64*)&db, NULL);

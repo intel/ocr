@@ -141,7 +141,9 @@ typedef struct _ocrTask_t {
     ocrStatsProcess_t statProcess;
 #endif
     ocrGuid_t templateGuid; /**< GUID for the template of this task */
+    u32 paramc;
     u64* paramv;
+    u64 depc;
     ocrGuid_t outputEvent; // Event to notify when the EDT is done
     // TODO: What about depv?? => This is implementation specific for now
     ocrGuid_t els[ELS_SIZE];
