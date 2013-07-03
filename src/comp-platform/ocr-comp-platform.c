@@ -35,7 +35,6 @@
 #include "ocr-comp-platform.h"
 #include "ocr-guid.h"
 #include "ocr-policy-domain.h"
-#include "guid/guid-all.h"
 #include "ocr-macros.h"
 
 
