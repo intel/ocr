@@ -324,6 +324,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
 
     // no inter-policy domain for simple HC
     base->neighbors = NULL;
+    base->neighborCount = 0;
 
     //TODO populated by ini file factories. Need setters or something ?
 //    base->guidProvider = NULL;
