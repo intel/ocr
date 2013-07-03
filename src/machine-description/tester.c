@@ -38,6 +38,7 @@
 
 //TODO: expand all the below to include all sections
 typedef enum {
+    guid_type,
     memplatform_type,
     memtarget_type,
     allocator_type,
@@ -46,11 +47,11 @@ typedef enum {
     workpile_type,
     worker_type,
     scheduler_type,
-    guid_type,
     policydomain_type,
 } type_enum;
 
 const char *type_str[] = {
+    "GuidType",
     "MemPlatformType",
     "MemTargetType",
     "AllocatorType",
@@ -59,7 +60,6 @@ const char *type_str[] = {
     "WorkPileType",
     "WorkerType",
     "SchedulerType",
-    "GuidType",
     "PolicyDomainType",
 };
 
@@ -69,6 +69,7 @@ char **factory_names[sizeof(type_str)/sizeof(const char *)];	// ~9 different kin
 void **all_factories[sizeof(type_str)/sizeof(const char *)];
 
 typedef enum {
+    guid_inst,
     memplatform_inst,
     memtarget_inst,
     allocator_inst,
@@ -77,11 +78,11 @@ typedef enum {
     workpile_inst,
     worker_inst,
     scheduler_inst,
-    guid_inst,
     policydomain_inst,
 } inst_enum;
 
 const char *inst_str[] = {
+    "GuidInst",
     "MemPlatformInst",
     "MemTargetInst",
     "AllocatorInst",
@@ -90,7 +91,6 @@ const char *inst_str[] = {
     "WorkPileInst",
     "WorkerInst",
     "SchedulerInst",
-    "GuidInst",
     "PolicyDomainInst",
 };
 
@@ -107,19 +107,19 @@ typedef struct {
 /* The above struct defines dependency "from" -> "to" using "refstr" as reference */
 
 dep_t deps[] = {
-    { 1, 0, "memplatform"},
-    { 2, 1, "memtarget"},
-    { 4, 3, "compplatform"},
-    { 6, 4, "comptarget"},
-    { 7, 5, "workpile"},
-    { 7, 6, "worker"},
-    { 9, 1, "memtarget"},
-    { 9, 2, "allocator"},
-    { 9, 4, "comptarget"},
-    { 9, 5, "workpile"},
-    { 9, 6, "worker"},
-    { 9, 7, "scheduler"},
-    { 9, 8, "guid"},
+    { 2, 1, "memplatform"},
+    { 3, 2, "memtarget"},
+    { 5, 4, "compplatform"},
+    { 7, 5, "comptarget"},
+    { 8, 6, "workpile"},
+    { 8, 7, "worker"},
+    { 9, 0, "guid"},
+    { 9, 2, "memtarget"},
+    { 9, 3, "allocator"},
+    { 9, 5, "comptarget"},
+    { 9, 6, "workpile"},
+    { 9, 7, "worker"},
+    { 9, 8, "scheduler"},
 };
 
 // TODO: expand to parse comma separated values & ranges iterating the below thru strtok with ,
@@ -153,31 +153,31 @@ char* populate_type(ocrParamList_t **type_param, int index, int type_index, int 
     // TODO: populate type-specific fields
     switch (index) {
     case 0:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListMemPlatformFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListGuidProviderFact_t);
         break;
     case 1:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListMemTargetFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListMemPlatformFact_t);
         break;
     case 2:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListMemTargetFact_t);
         break;
     case 3:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListCompPlatformFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListAllocatorFact_t);
         break;
     case 4:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListCompTargetFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListCompPlatformFact_t);
         break;
     case 5:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListWorkerFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListCompTargetFact_t);
         break;
     case 6:
         ALLOC_PARAM_LIST(type_param[type_index], paramListWorkpileFact_t);
         break;
     case 7:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListSchedulerFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListWorkerFact_t);
         break;
     case 8:
-        ALLOC_PARAM_LIST(type_param[type_index], paramListGuidProviderFact_t);
+        ALLOC_PARAM_LIST(type_param[type_index], paramListSchedulerFact_t);
         break;
     case 9:
         ALLOC_PARAM_LIST(type_param[type_index], paramListPolicyDomainFact_t);
@@ -202,7 +202,7 @@ ocrCompPlatformFactory_t *create_factory_compplatform(char *name, ocrParamList_t
         printf("Unrecognized type %s\n", name);
         return NULL;
     } else { 
-        printf("Creating a compplatform factory of type %d: %s\n", mytype, factory_names[3][mytype]); 
+        printf("Creating a compplatform factory of type %d: %s\n", mytype, factory_names[4][mytype]); 
         return newCompPlatformFactory(mytype, paramlist);
     }
 }
@@ -216,7 +216,7 @@ ocrMemPlatformFactory_t *create_factory_memplatform(char *name, ocrParamList_t *
         printf("Unrecognized type %s\n", name);
         return NULL;
     } else { 
-        printf("Creating a memplatform factory of type %d: %s\n", mytype, factory_names[0][mytype]); 
+        printf("Creating a memplatform factory of type %d: %s\n", mytype, factory_names[1][mytype]); 
         return newMemPlatformFactory(mytype, paramlist);
     }
 }
@@ -229,7 +229,7 @@ ocrMemPlatformFactory_t *create_factory_memtarget(char *name, ocrParamList_t *pa
         printf("Unrecognized type %s\n", name);
         return NULL;
     } else { 
-        printf("Creating a memtarget factory of type %d: %s\n", mytype, factory_names[1][mytype]); 
+        printf("Creating a memtarget factory of type %d: %s\n", mytype, factory_names[2][mytype]); 
         return (ocrMemPlatformFactory_t *)newMemTargetFactory(mytype, paramlist);
     }
 }
@@ -242,7 +242,7 @@ ocrAllocatorFactory_t *create_factory_allocator(char *name, ocrParamList_t *para
         printf("Unrecognized type %s\n", name);
         return NULL;
     } else { 
-        printf("Creating an allocator factory of type %d: %s\n", mytype, factory_names[2][mytype]); 
+        printf("Creating an allocator factory of type %d: %s\n", mytype, factory_names[3][mytype]); 
         return (ocrAllocatorFactory_t *)newAllocatorFactory(mytype, paramlist);
     }
 }
@@ -255,7 +255,7 @@ ocrCompTargetFactory_t *create_factory_comptarget(char *name, ocrParamList_t *pa
         printf("Unrecognized type %s\n", name);
         return NULL;
     } else { 
-        printf("Creating a comptarget factory of type %d: %s\n", mytype, factory_names[4][mytype]); 
+        printf("Creating a comptarget factory of type %d: %s\n", mytype, factory_names[5][mytype]); 
         return (ocrCompTargetFactory_t *)newCompTargetFactory(mytype, paramlist);
     }
 }
@@ -268,7 +268,7 @@ ocrWorkpileFactory_t *create_factory_workpile(char *name, ocrParamList_t *paraml
         printf("Unrecognized type %s\n", name);
         return NULL;
     } else { 
-        printf("Creating a workpile factory of type %d: %s\n", mytype, factory_names[5][mytype]); 
+        printf("Creating a workpile factory of type %d: %s\n", mytype, factory_names[6][mytype]); 
         return (ocrWorkpileFactory_t *)newWorkpileFactory(mytype, paramlist);
     }
 }
@@ -281,7 +281,7 @@ ocrWorkerFactory_t *create_factory_worker(char *name, ocrParamList_t *paramlist)
         printf("Unrecognized type %s\n", name);
         return NULL;
     } else { 
-        printf("Creating a worker factory of type %d: %s\n", mytype, factory_names[6][mytype]); 
+        printf("Creating a worker factory of type %d: %s\n", mytype, factory_names[7][mytype]); 
         return (ocrWorkerFactory_t *)newWorkerFactory(mytype, paramlist);
     }
 }
@@ -294,7 +294,7 @@ ocrSchedulerFactory_t *create_factory_scheduler(char *name, ocrParamList_t *para
         printf("Unrecognized type %s\n", name);
         return NULL;
     } else { 
-        printf("Creating a scheduler factory of type %d: %s\n", mytype, factory_names[7][mytype]); 
+        printf("Creating a scheduler factory of type %d: %s\n", mytype, factory_names[8][mytype]); 
         return (ocrSchedulerFactory_t *)newSchedulerFactory(mytype, paramlist);
     }
 }
@@ -307,7 +307,7 @@ ocrPolicyDomainFactory_t *create_factory_policydomain(char *name, ocrParamList_t
         printf("Unrecognized type %s\n", name);
         return NULL;
     } else { 
-        printf("Creating a worker factory of type %d: %s\n", mytype, factory_names[8][mytype]); 
+        printf("Creating a worker factory of type %d: %s\n", mytype, factory_names[9][mytype]); 
         return (ocrPolicyDomainFactory_t *)newPolicyDomainFactory(mytype, paramlist);
     }
 }
@@ -422,31 +422,31 @@ void *create_factory (int index, char *factory_name, ocrParamList_t *paramlist)
 
     switch (index) {
     case 0:
-        new_factory = (void *)create_factory_memplatform(factory_name, paramlist);
+        new_factory = (void *)create_factory_guid(factory_name, paramlist);
         break;
     case 1:
-        new_factory = (void *)create_factory_memtarget(factory_name, paramlist);
+        new_factory = (void *)create_factory_memplatform(factory_name, paramlist);
         break;
     case 2:
-        new_factory = (void *)create_factory_allocator(factory_name, paramlist);
+        new_factory = (void *)create_factory_memtarget(factory_name, paramlist);
         break;
     case 3:
-        new_factory = (void *)create_factory_compplatform(factory_name, paramlist);
+        new_factory = (void *)create_factory_allocator(factory_name, paramlist);
         break;
     case 4:
-        new_factory = (void *)create_factory_comptarget(factory_name, paramlist);
+        new_factory = (void *)create_factory_compplatform(factory_name, paramlist);
         break;
     case 5:
-        new_factory = (void *)create_factory_workpile(factory_name, paramlist);
+        new_factory = (void *)create_factory_comptarget(factory_name, paramlist);
         break;
     case 6:
-        new_factory = (void *)create_factory_worker(factory_name, paramlist);
+        new_factory = (void *)create_factory_workpile(factory_name, paramlist);
         break;
     case 7:
-        new_factory = (void *)create_factory_scheduler(factory_name, paramlist);
+        new_factory = (void *)create_factory_worker(factory_name, paramlist);
         break;
     case 8:
-        new_factory = (void *)create_factory_guid(factory_name, paramlist);
+        new_factory = (void *)create_factory_scheduler(factory_name, paramlist);
         break;
     case 9:
         new_factory = (void *)create_factory_policydomain(factory_name, paramlist);
@@ -485,65 +485,65 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
     switch (index) {
     case 0:
         for (j = low; j<=high; j++) {
+            ALLOC_PARAM_LIST(inst_param[j], paramListGuidProviderInst_t);
+            instance[j] = ((ocrGuidProviderFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            if (instance[j]) printf("Created guid provider of type %s, index %d\n", inststr, j);
+        }
+        break;
+    case 1:
+        for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformInst_t);
             instance[j] = ((ocrMemPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created memplatform of type %s, index %d\n", inststr, j);
         }
         break;
-    case 1:
+    case 2:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
             instance[j] = ((ocrMemTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created memtarget of type %s, index %d\n", inststr, j);
         }
         break;
-    case 2:
+    case 3:
         for (j = low; j<=high; j++) { 
             ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
             instance[j] = ((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created allocator of type %s, index %d\n", inststr, j);
         }
         break;
-    case 3:
+    case 4:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
             instance[j] = ((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created compplatform of type %s, index %d\n", inststr, j);
         }
         break;
-    case 4:
+    case 5:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListCompTargetInst_t);
             instance[j] = ((ocrCompTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created comptarget of type %s, index %d\n", inststr, j);
         }
         break;
-    case 5:
+    case 6:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListWorkpileInst_t);
             instance[j] = ((ocrWorkpileFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created workpile of type %s, index %d\n", inststr, j);
         }
         break;
-    case 6:
+    case 7:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListWorkerInst_t);
             instance[j] = ((ocrWorkerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created worker of type %s, index %d\n", inststr, j);
         }
         break;
-    case 7:
+    case 8:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerInst_t);
             instance[j] = ((ocrSchedulerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created scheduler of type %s, index %d\n", inststr, j);
-        }
-        break;
-    case 8:
-        for (j = low; j<=high; j++) {
-            ALLOC_PARAM_LIST(inst_param[j], paramListGuidProviderInst_t);
-            instance[j] = ((ocrGuidProviderFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) printf("Created guid provider of type %s, index %d\n", inststr, j);
         }
         break;
     case 9:
@@ -631,13 +631,13 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
     
     switch(fromtype) {
     case 0:
-    case 3:
-    case 5:
-    case 8:
+    case 1:
+    case 4:
+    case 6:
         printf("Unexpected: this should have no dependences! (incorrect dependence: %s to %s)\n", fromparam->misc, toparam->misc);
         break;
 
-    case 1: {
+    case 2: {
             ocrMemTarget_t *f = (ocrMemTarget_t *)frominstance;
             printf("Memtarget %s to %s\n", fromparam->misc, toparam->misc);
 
@@ -648,7 +648,7 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
             f->memories[dependence_index] = (ocrMemPlatform_t *)toinstance;
             break;
         }
-    case 2: {
+    case 3: {
             printf("Allocator %s to %s\n", fromparam->misc, toparam->misc);
             ocrAllocator_t *f = (ocrAllocator_t *)frominstance;
 
@@ -659,7 +659,7 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
             f->memories[dependence_index] = (ocrMemTarget_t *)toinstance;
             break;
         }
-    case 4: {
+    case 5: {
             ocrCompTarget_t *f = (ocrCompTarget_t *)frominstance;
             printf("CompTarget %s to %s\n", fromparam->misc, toparam->misc);
 
@@ -670,7 +670,7 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
             f->platforms[dependence_index] = (ocrCompPlatform_t *)toinstance;
             break;
         }
-    case 6: {
+    case 7: {
             ocrWorker_t *f = (ocrWorker_t *)frominstance;
             printf("Worker %s to %s\n", fromparam->misc, toparam->misc);
 
@@ -681,7 +681,7 @@ void add_dependence (int fromtype, int totype, ocrMappable_t *frominstance, ocrP
             f->computes[dependence_index] = (ocrCompTarget_t *)toinstance;
             break;
         }
-    case 7: {
+    case 8: {
             ocrScheduler_t *f = (ocrScheduler_t *)frominstance;
             printf("Scheduler %s to %s\n", fromparam->misc, toparam->misc);
             switch (totype) {
