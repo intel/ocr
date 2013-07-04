@@ -38,6 +38,8 @@
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
+ ocrShutdown();
+ return NULL_GUID;
 }
 
 //TODO: expand all the below to include all sections
@@ -490,28 +492,29 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
     case 0:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListGuidProviderInst_t);
-            instance[j] = ((ocrGuidProviderFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            instance[j] = (ocrMappable_t *)((ocrGuidProviderFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created guid provider of type %s, index %d\n", inststr, j);
         }
         break;
     case 1:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformInst_t);
-            instance[j] = ((ocrMemPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            instance[j] = (ocrMappable_t *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created memplatform of type %s, index %d\n", inststr, j);
         }
         break;
     case 2:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
-            instance[j] = ((ocrMemTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            instance[j] = (ocrMappable_t *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created memtarget of type %s, index %d\n", inststr, j);
         }
         break;
     case 3:
         for (j = low; j<=high; j++) { 
             ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
-            instance[j] = ((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            ((paramListAllocatorInst_t *)inst_param[j])->size = 33554432;
+            instance[j] = (ocrMappable_t *)((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created allocator of type %s, index %d\n", inststr, j);
         }
         break;
@@ -524,21 +527,21 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
                 ((paramListCompPlatformPthread_t *)inst_param[j])->isMasterThread = true;
                 ((paramListCompPlatformPthread_t *)inst_param[j])->stackSize = 0;
             }
-            instance[j] = ((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            instance[j] = (ocrMappable_t *)((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created compplatform of type %s, index %d\n", inststr, j);
         }
         break;
     case 5:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListCompTargetInst_t);
-            instance[j] = ((ocrCompTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            instance[j] = (ocrMappable_t *)((ocrCompTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created comptarget of type %s, index %d\n", inststr, j);
         }
         break;
     case 6:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListWorkpileInst_t);
-            instance[j] = ((ocrWorkpileFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            instance[j] = (ocrMappable_t *)((ocrWorkpileFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created workpile of type %s, index %d\n", inststr, j);
         }
         break;
@@ -550,7 +553,7 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
             if (j == 0) {
                 ((paramListWorkerHcInst_t *)inst_param[j])->workerId = 0;
             }
-            instance[j] = ((ocrWorkerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            instance[j] = (ocrMappable_t *)((ocrWorkerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created worker of type %s, index %d\n", inststr, j);
         }
         break;
@@ -562,7 +565,7 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
             if (j == 0) {
                 ((paramListSchedulerHcInst_t *)inst_param[j])->worker_id_first = 0;
             }
-            instance[j] = ((ocrSchedulerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
+            instance[j] = (ocrMappable_t *)((ocrSchedulerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
             if (instance[j]) printf("Created scheduler of type %s, index %d\n", inststr, j);
         }
         break;
@@ -621,7 +624,7 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int ind
             ASSERT (gf);
 
             ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t); 
-            instance[j] = ((ocrPolicyDomainFactory_t *)factory)->instantiate(factory, schedulerCount, 
+            instance[j] = (ocrMappable_t *)((ocrPolicyDomainFactory_t *)factory)->instantiate(factory, schedulerCount, 
                             workerCount, computeCount, workpileCount, allocatorCount, memoryCount,
                             tf, ttf, dbf, ef, cf, gf, lf, af, NULL, inst_param[j]);        
             if (instance[j]) printf("Created policy domain of index %d\n", j);
@@ -873,10 +876,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    // FIXME: Ugly follows
-    ocrCompPlatformFactory_t *compPlatformFactory;
-    compPlatformFactory = (ocrCompPlatformFactory_t *) all_factories[4][0];
-    compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
     printf("\n\n");
 
     // POPULATE INSTANCES
@@ -890,7 +889,7 @@ int main(int argc, char *argv[])
             }
           
     for (i = 0; i < iniparser_getnsec(dict); i++) {
-        for (j = 0; j < total_types; j++) {
+        for (j = total_types-1; j >= 0; j--) {
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) { 
                 if(inst_counts[j] && inst_params[j] == NULL) { 
                     printf("Create %d instances of %s\n", inst_counts[j], inst_str[j]); 
@@ -902,6 +901,11 @@ int main(int argc, char *argv[])
             }
         }
     }
+
+    // FIXME: Ugly follows
+    ocrCompPlatformFactory_t *compPlatformFactory;
+    compPlatformFactory = (ocrCompPlatformFactory_t *) all_factories[4][0];
+    compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
 
     printf("\n\n");
 
