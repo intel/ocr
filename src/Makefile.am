@@ -1,7 +1,7 @@
 SUBDIRS =
 
 # Includes folder we need when compiling ocr
-OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/hc -I$(top_srcdir)/src/inc/fsim
+OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/hc -I$(top_srcdir)/src/inc/fsim -I$(top_srcdir)/src/machine-description/iniparser/src
 
 # cflags: important to define that otherwise we inherit default values too
 CFLAGS = -Wall -g -O0
@@ -33,7 +33,7 @@ include datablock/Makefile.inc
 include driver/Makefile.inc
 include event/Makefile.inc
 include guid/Makefile.inc
-#include machine-description/Makefile.inc
+include machine-description/Makefile.inc
 include mem-platform/Makefile.inc
 include mem-target/Makefile.inc
 include policy-domain/Makefile.inc

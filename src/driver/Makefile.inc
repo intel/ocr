@@ -11,7 +11,7 @@ $(OCR_SRC_DRIVER)/ocr-driver.c
 #$(OCR_SRC_DRIVER)/ocr-models/ocr-model-flat.c \
 #$(OCR_SRC_DRIVER)/ocr-models/ocr-model-fsim.c  \
 #$(OCR_SRC_DRIVER)/ocr-models/ocr-model-thor.c
-libocr_driver_la_CFLAGS = $(AM_CFLAGS)
+libocr_driver_la_CFLAGS = $(AM_CFLAGS) $(INIPARSER_CFLAGS)
 
 #
 # OCR-HC driver implementation
