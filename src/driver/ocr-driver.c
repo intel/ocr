@@ -47,7 +47,7 @@
 #include "ocr-stat-user.h"
 #endif
 
-extern void hack();
+extern void hack(const char *inifile);
 
 // Forward declaration
 void ocrStop();
@@ -199,7 +199,7 @@ void ocrInit(int argc, char ** argv, ocrEdt_t mainEdt, bool createFinishEdt) {
 
 int __attribute__ ((weak)) main(int argc, const char* argv[]) {
 //    ocrInit(argc, argv, &mainEdt, false);
-    hack();
+    hack(argv[1]);
     return 0;
 }
 

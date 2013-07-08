@@ -1,21 +1,4 @@
 #include "ocr-runtime.h"
-/*
-#include "policy-domain/policy-domain-all.h"
-#include "hc.h"
-#include "task/task-all.h"
-#include "datablock/datablock-all.h"
-#include "event/event-all.h"
-#include "guid/guid-all.h"
-#include "sync/sync-all.h"
-#include "mem-platform/mem-platform-all.h"
-#include "comp-platform/comp-platform-all.h"
-#include "mem-target/mem-target-all.h"
-#include "comp-target/comp-target-all.h"
-#include "allocator/allocator-all.h"
-#include "scheduler/scheduler-all.h"
-#include "worker/worker-all.h"
-#include "workpile/workpile-all.h"
-*/
 #include "machine-description/ocr-machine.h"
 
 const char *type_str[] = {
@@ -71,10 +54,9 @@ extern int read_range(dictionary *dict, char *sec, char *field, int *low, int *h
 extern ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]);
 extern void ocrStop();
 
-void hack() {
+void hack(const char *inifile) {
     int i, j, count;
-    //dictionary *dict = iniparser_load(argv[1]);
-    dictionary *dict = iniparser_load("static.cfg");
+    dictionary *dict = iniparser_load(inifile);
 
     int type_counts[sizeof(type_str)/sizeof(const char *)];
     ocrParamList_t **type_params[sizeof(type_str)/sizeof(const char *)];
