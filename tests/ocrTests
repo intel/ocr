@@ -25,7 +25,7 @@ ARGS="-makefile ${ARGS}"
 
 # Get default tests options from env
 export OCR_CFLAGS="${OCR_CFLAGS}"
-export OCR_FLAGS="${OCR_FLAGS}"
+export OCR_FLAGS="`pwd`/../src/machine-description/machine.cfg"
 
 #
 #handling options

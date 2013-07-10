@@ -419,7 +419,7 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
     case compplatform_type:
         for (j = low; j<=high; j++) {
             // ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
-            // FIXME: for now assume it's HC
+            // FIXME: for now assume it's Pthread
             ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformPthread_t);
             if (j == 0) {
                 ((paramListCompPlatformPthread_t *)inst_param[j])->isMasterThread = true;
