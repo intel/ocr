@@ -1,6 +1,6 @@
-#ifndef _CONFIG_H_
+#ifndef __OCR_MACHINE_H_
 
-#define _CONFIG_H_
+#define __OCR_MACHINE_H_
 #include <stdio.h>
 #include <string.h>
 #include <iniparser.h>
@@ -30,6 +30,8 @@ typedef enum {
     scheduler_type,
     policydomain_type,
 } type_enum;
+
+/* Dependence information (from->to) referenced by refstr */
 
 typedef struct {
     type_enum from;

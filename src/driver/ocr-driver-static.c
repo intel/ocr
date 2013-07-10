@@ -27,7 +27,6 @@ const char *inst_str[] = {
     "PolicyDomainInst",
 };
 
-/* The above struct defines dependence "from" -> "to" using "refstr" as reference */
 /* The below array defines the list of dependences */
 
 dep_t deps[] = {
@@ -47,7 +46,7 @@ dep_t deps[] = {
 };
 
 extern char* populate_type(ocrParamList_t *type_param, type_enum index, dictionary *dict, char *secname);
-int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *type_counts, char ***factory_names, void ***all_factories, ocrMappable_t ***all_instances, type_enum index, int inst_index, int inst_count, dictionary *dict, char *secname);
+int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *type_counts, char ***factory_names, void ***all_factories, ocrMappable_t ***all_instances, type_enum index, dictionary *dict, char *secname);
 extern int build_deps (dictionary *dict, int A, int B, char *refstr, ocrMappable_t ***all_instances, ocrParamList_t ***inst_params);
 extern void *create_factory (type_enum index, char *factory_name, ocrParamList_t *paramlist);
 extern int read_range(dictionary *dict, char *sec, char *field, int *low, int *high);
@@ -69,17 +68,21 @@ void hack(const char *inifile) {
     int total_types = sizeof(type_str)/sizeof(const char *);
 
     // INIT
-        for (j = 0; j < total_types; j++) {
+    for (j = 0; j < total_types; j++) {
         type_params[j] = NULL; type_counts[j] = 0; factory_names[j] = NULL;
         inst_params[j] = NULL; inst_counts[j] = 0;
         all_factories[j] = NULL; all_instances[j] = NULL;
     }
 
     // POPULATE TYPES
-   printf("========= Create factories ==========\n");
-    for (i = 0; i < iniparser_getnsec(dict); i++)
-        for (j = 0; j < total_types; j++)
-            if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) type_counts[j]++;
+    printf("========= Create factories ==========\n");
+    for (i = 0; i < iniparser_getnsec(dict); i++) {
+        for (j = 0; j < total_types; j++) {
+            if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) {
+                type_counts[j]++;
+            }
+        }
+    }
 
     for (i = 0; i < iniparser_getnsec(dict); i++) {
         for (j = 0; j < total_types; j++) {
@@ -105,13 +108,15 @@ void hack(const char *inifile) {
 
     // POPULATE INSTANCES
     printf("========= Create instances ==========\n");
-    for (i = 0; i < iniparser_getnsec(dict); i++)
-        for (j = 0; j < total_types; j++)
+    for (i = 0; i < iniparser_getnsec(dict); i++) {
+        for (j = 0; j < total_types; j++) {
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) {
                 int low, high, count;
                 count = read_range(dict, iniparser_getsecname(dict, i), "id", &low, &high);
                 inst_counts[j]+=count;
             }
+        }
+    }
 
     for (i = 0; i < iniparser_getnsec(dict); i++) {
         for (j = total_types-1; j >= 0; j--) {
@@ -122,14 +127,14 @@ void hack(const char *inifile) {
                     all_instances[j] = (ocrMappable_t **)malloc(inst_counts[j] * sizeof(ocrMappable_t *));
                     count = 0;
                 }
-                populate_inst(inst_params[j], all_instances[j], type_counts, factory_names, all_factories, all_instances, j, count++, inst_counts[j], dict, iniparser_getsecname(dict, i));
+                populate_inst(inst_params[j], all_instances[j], type_counts, factory_names, all_factories, all_instances, j, dict, iniparser_getsecname(dict, i));
             }
         }
     }
 
     // FIXME: Ugly follows
-   ocrCompPlatformFactory_t *compPlatformFactory;
-    compPlatformFactory = (ocrCompPlatformFactory_t *) all_factories[4][0];
+    ocrCompPlatformFactory_t *compPlatformFactory;
+    compPlatformFactory = (ocrCompPlatformFactory_t *) all_factories[compplatform_type][0];
     compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
 
     printf("\n\n");
@@ -146,7 +151,7 @@ void hack(const char *inifile) {
     printf("========= Start execution ==========\n");
 
     ocrPolicyDomain_t *rootPolicy;
-    rootPolicy = (ocrPolicyDomain_t *) all_instances[9][0]; // FIXME: Ugly
+    rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0]; // FIXME: Ugly
     rootPolicy->start(rootPolicy);
     // We now create the EDT and launch it
     ocrGuid_t edtTemplateGuid, edtGuid;
