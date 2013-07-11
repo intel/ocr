@@ -33,23 +33,45 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#ifndef __OCR_H__
-#define __OCR_H__
+#ifndef __OCR_LIB_H__
+#define __OCR_LIB_H__
 
-#include "ocr-types.h"
 #include "ocr-db.h"
-#include "ocr-edt.h"
+
+typedef struct _ocrConfig_t {
+    int userArgc;
+    char ** userArgv;
+    const char * iniFile;
+} ocrConfig_t;
 
 /**
- * @brief Called by an EDT to indicate the end of an OCR
- * execution
- *
- * This call will cause the OCR runtime to shutdown
- *
- * @note This call is not necessarily required if using ocrWait on
- * a finish EDT from a sequential C code (ie: the ocrShutdown call will
- * implicitly be encapsulated in the fact that the finish EDT returns)
+ * @brief OCR library mode - Initialize OCR
  */
-void ocrShutdown();
+void ocrInit(ocrConfig_t * ocrConfig);
 
-#endif /* __OCR_H__ */
+/**
+ * @brief OCR library mode - Parse arguments and extract OCR options
+ * Note: Removes OCR parameters from argv and updates argc.
+ */
+void ocrParseArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig);
+
+/**
+ * @brief OCR library mode - Terminates OCR execution
+ * This call bring down the runtime after ocrShutdown has been called by an EDT
+ */
+void ocrFinalize();
+
+/**
+ * @brief OCR library mode - Waits for an output event to be satisfied
+ *
+ * @warning This call is meant to be called from sequential C code
+ * and is *NOT* supported on all implementations of OCR. This call runs
+ * contrary to the 'non-blocking EDT' philosophy so use with care
+ *
+ * @param outputEvent       Event to wait on
+ * @return A GUID to the data-block that was used to satisfy the
+ * event
+ */
+ocrGuid_t ocrWait(ocrGuid_t outputEvent);
+
+#endif /* __OCR_LIB_H__ */

@@ -36,99 +36,227 @@
 #include "ocr-edt.h"
 #include "ocr-db.h"
 #include "ocr.h"
+#include "ocr-lib.h"
 
 #include "ocr-runtime.h"
 #include "ocr-config.h"
 #include "ocr-guid.h"
 #include "ocr-utils.h"
 #include "debug.h"
+#include "machine-description/ocr-machine.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-stat-user.h"
 #endif
 
-extern void hack(const char *inifile);
 
-// Forward declaration
-void ocrStop();
+const char *type_str[] = {
+    "GuidType",
+    "MemPlatformType",
+    "MemTargetType",
+    "AllocatorType",
+    "CompPlatformType",
+    "CompTargetType",
+    "WorkPileType",
+    "WorkerType",
+    "SchedulerType",
+    "PolicyDomainType",
+};
 
-// //TODO we should have an argument option parsing library
-// /**!
-//  * Utility function to remove ocr arguments before handing argv
-//  * over to the user program
-//  */
-// static void shift_arguments(int * argc, char ** argv, int start_offset, int shift_offset) {
-//     int i = start_offset;
-//     int j = shift_offset;
-//     while ( j < *argc) {
-//         argv[i++] = argv[j++];
-//     }
+const char *inst_str[] = {
+    "GuidInst",
+    "MemPlatformInst",
+    "MemTargetInst",
+    "AllocatorInst",
+    "CompPlatformInst",
+    "CompTargetInst",
+    "WorkPileInst",
+    "WorkerInst",
+    "SchedulerInst",
+    "PolicyDomainInst",
+};
 
-//     *argc = (*argc - (shift_offset-start_offset));
-// }
+/* The below array defines the list of dependences */
 
-// /**!
-//  * Check if we have a machine description passed as argument
-//  */
-// static char * parseOcrOptions_MachineDescription(int * argc, char ** argv) {
-//     int i = 0;
-//     char * md_file = NULL;
-//     while(i < *argc) {
-//         if (strcmp(argv[i], "-md") == 0) {
-//             md_file = argv[i+1];
-//             shift_arguments(argc, argv, i, i+2);
-//         }
-//         i++;
-//     }
-//     return md_file;
-// }
+dep_t deps[] = {
+    { memtarget_type, memplatform_type, "memplatform"},
+    { allocator_type, memtarget_type, "memtarget"},
+    { comptarget_type, compplatform_type, "compplatform"},
+    { worker_type, comptarget_type, "comptarget"},
+    { scheduler_type, workpile_type, "workpile"},
+    { scheduler_type, worker_type, "worker"},
+    { policydomain_type, guid_type, "guid"},
+    { policydomain_type, memtarget_type, "memtarget"},
+    { policydomain_type, allocator_type, "allocator"},
+    { policydomain_type, comptarget_type, "comptarget"},
+    { policydomain_type, workpile_type, "workpile"},
+    { policydomain_type, worker_type, "worker"},
+    { policydomain_type, scheduler_type, "scheduler"},
+};
 
-/**!
- * Initialize the OCR runtime.
- * @param argc number of command line options
- * @param argv Pointer to options
- * @param fnc Number of function pointers (UNUSED)
- * @param funcs array of function pointers to be used as edts (UNUSED)
- *
- * Note: removes OCR options from argc / argv
- */
-void ocrInit(int argc, char ** argv, ocrEdt_t mainEdt, bool createFinishEdt) {
-    // REC: Hack, for now we just initialize the factories here.
-    // See if we need to move some into policy domains and how to
-    // initialize them
-    // Do this first to make sure that stuff that depends on it works :)
+extern char* populate_type(ocrParamList_t *type_param, type_enum index, dictionary *dict, char *secname);
+int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *type_counts, char ***factory_names, void ***all_factories, ocrMappable_t ***all_instances, type_enum index, dictionary *dict, char *secname);
+extern int build_deps (dictionary *dict, int A, int B, char *refstr, ocrMappable_t ***all_instances, ocrParamList_t ***inst_params);
+extern void *create_factory (type_enum index, char *factory_name, ocrParamList_t *paramlist);
+extern int read_range(dictionary *dict, char *sec, char *field, int *low, int *high);
+extern ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]);
 
-#ifdef OCR_ENABLE_STATISTICS
-    GocrFilterAggregator = NEW_FILTER(filedump);
-    GocrFilterAggregator->create(GocrFilterAggregator, NULL, NULL);
+static void bringUpRuntime(const char *inifile) {
+    int i, j, count;
+    dictionary *dict = iniparser_load(inifile);
 
-    // HUGE HUGE Hack
-    ocrStatsProcessCreate(&GfakeProcess, 0);
-#endif
+    int type_counts[sizeof(type_str)/sizeof(const char *)];
+    ocrParamList_t **type_params[sizeof(type_str)/sizeof(const char *)];
+    char **factory_names[sizeof(type_str)/sizeof(const char *)];        // ~9 different kinds (memtarget, comptarget, etc.); each with diff names (tlsf, malloc, etc.); each pointing to a char*
+    void **all_factories[sizeof(type_str)/sizeof(const char *)];
 
-    /*
-    char * md_file = parseOcrOptions_MachineDescription(argc, argv);
-    if ( md_file != NULL && !strncmp(md_file,"fsim",5) ) {
-        ocrInitPolicyModel(OCR_POLICY_MODEL_FSIM, md_file);
-    } else if ( md_file != NULL && !strncmp(md_file,"thor",4) ) {
-        ocrInitPolicyModel(OCR_POLICY_MODEL_THOR, md_file);
-    } else {
-        ocrInitPolicyModel(OCR_POLICY_MODEL_FLAT, md_file);
+    int inst_counts[sizeof(inst_str)/sizeof(const char *)];
+    ocrParamList_t **inst_params[sizeof(inst_str)/sizeof(const char *)];
+    ocrMappable_t **all_instances[sizeof(inst_str)/sizeof(const char *)];
+    int total_types = sizeof(type_str)/sizeof(const char *);
+
+    // INIT
+    for (j = 0; j < total_types; j++) {
+        type_params[j] = NULL; type_counts[j] = 0; factory_names[j] = NULL;
+        inst_params[j] = NULL; inst_counts[j] = 0;
+        all_factories[j] = NULL; all_instances[j] = NULL;
     }
-    */
 
-    // Create and schedule the main EDT
-    // ocrGuid_t mainEdtTemplate;
-    // ocrGuid_t mainEdtGuid;
+    // POPULATE TYPES
+    printf("========= Create factories ==========\n");
+    for (i = 0; i < iniparser_getnsec(dict); i++) {
+        for (j = 0; j < total_types; j++) {
+            if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) {
+                type_counts[j]++;
+            }
+        }
+    }
 
-    // Parse parameters. The idea is to extract the ones relevant
-    // to the runtime and pass all the other ones down to the
-    // mainEdt
+    for (i = 0; i < iniparser_getnsec(dict); i++) {
+        for (j = 0; j < total_types; j++) {
+            if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) {
+                if(type_counts[j] && type_params[j]==NULL) {
+                    type_params[j] = (ocrParamList_t **)malloc(type_counts[j] * sizeof(ocrParamList_t *));
+                    factory_names[j] = (char **)malloc(type_counts[j] * sizeof(char *));
+                    all_factories[j] = (void **)malloc(type_counts[j] * sizeof(void *));
+                    count = 0;
+                }
+                factory_names[j][count] = populate_type(type_params[j][count], j, dict, iniparser_getsecname(dict, i));
+                all_factories[j][count] = create_factory(j, factory_names[j][count], type_params[j][count]);
+                if (all_factories[j][count] == NULL) {
+                    free(factory_names[j][count]);
+                    factory_names[j][count] = NULL;
+                }
+                count++;
+            }
+        }
+    }
 
-    // TODO: Add code recognizing useful options. For now, pass
-    // everything in a heavy handed way so that it can handle
-    // the more complex case
+    printf("\n\n");
 
+    // POPULATE INSTANCES
+    printf("========= Create instances ==========\n");
+    for (i = 0; i < iniparser_getnsec(dict); i++) {
+        for (j = 0; j < total_types; j++) {
+            if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) {
+                int low, high, count;
+                count = read_range(dict, iniparser_getsecname(dict, i), "id", &low, &high);
+                inst_counts[j]+=count;
+            }
+        }
+    }
+
+    for (i = 0; i < iniparser_getnsec(dict); i++) {
+        for (j = total_types-1; j >= 0; j--) {
+            if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) {
+                if(inst_counts[j] && inst_params[j] == NULL) {
+                    printf("Create %d instances of %s\n", inst_counts[j], inst_str[j]);
+                    inst_params[j] = (ocrParamList_t **)malloc(inst_counts[j] * sizeof(ocrParamList_t *));
+                    all_instances[j] = (ocrMappable_t **)malloc(inst_counts[j] * sizeof(ocrMappable_t *));
+                    count = 0;
+                }
+                populate_inst(inst_params[j], all_instances[j], type_counts, factory_names, all_factories, all_instances, j, dict, iniparser_getsecname(dict, i));
+            }
+        }
+    }
+
+    // FIXME: Ugly follows
+    ocrCompPlatformFactory_t *compPlatformFactory;
+    compPlatformFactory = (ocrCompPlatformFactory_t *) all_factories[compplatform_type][0];
+    compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
+
+    printf("\n\n");
+
+    // BUILD DEPENDENCES
+    printf("========= Build dependences ==========\n");
+    for (i = 0; i < sizeof(deps)/sizeof(dep_t); i++) {
+        build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr, all_instances, inst_params);
+    }
+    
+    printf("\n\n");
+
+    // START EXECUTION
+    printf("========= Start execution ==========\n");
+
+    ocrPolicyDomain_t *rootPolicy;
+    rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0]; // FIXME: Ugly
+    rootPolicy->start(rootPolicy);
+}
+
+static inline void checkNextArgExists(int i, int argc, char * option) {
+    if (i == argc) {
+        printf("No argument for ocr option %s\n", option);
+        ASSERT(false);
+    }
+}
+
+void ocrParseArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig) {
+    int cur = 1;
+    int userArgs = argc;
+    char * ocrOptPrefix = "-ocr:";
+    int ocrOptPrefixLg = strlen(ocrOptPrefix);
+
+    while(cur < argc) {
+        const char * arg = argv[cur];
+        if (strncmp(ocrOptPrefix, arg, ocrOptPrefixLg) == 0) {
+            // This is an OCR option
+            const char * ocrArg = arg+ocrOptPrefixLg;
+            if (strcmp("cfg", ocrArg) == 0) {
+                checkNextArgExists(cur, argc, "cfg");
+                ocrConfig->iniFile = argv[cur+1];
+                argv[cur] = NULL;
+                argv[cur+1] = NULL;
+                cur++; // skip param
+                userArgs-=2;          
+            }
+        }
+        cur++;
+    }
+    // Pack argument list
+    cur = 0;
+    int head = 0;
+    while(cur < argc) {
+        if(argv[cur] != NULL) {
+            if (cur == head) {
+                head++;
+            } else {
+                argv[head] = argv[cur];
+                argv[cur] = NULL;
+                head++;
+            }
+        }
+        cur++;
+    }
+    ocrConfig->userArgc = userArgs;
+    ocrConfig->userArgv = (char **) argv;
+}
+
+/**
+ * @param argc Number of user-level arguments to pack in a DB
+ * @param argv The actual arguments
+ */
+static ocrGuid_t packUserArgumentsInDb(int argc, char ** argv) {
+  // Now prepare arguments for the mainEdt 
     ASSERT(argc < 64); // For now
     u32 i;
     u64* offsets = (u64*)malloc(argc*sizeof(u64));
@@ -136,7 +264,7 @@ void ocrInit(int argc, char ** argv, ocrEdt_t mainEdt, bool createFinishEdt) {
     u64 totalLength = 0;
     u32 maxArg = 0;
     // Gets all the possible offsets
-    for(i = 1; i < argc; ++i) {
+    for(i = 0; i < argc; ++i) {
         // If the argument should be passed down
         offsets[maxArg++] = totalLength*sizeof(char);
         totalLength += strlen(argv[i]) + 1; // +1 for the NULL terminating char
@@ -177,81 +305,56 @@ void ocrInit(int argc, char ** argv, ocrEdt_t mainEdt, bool createFinishEdt) {
         strcpy(dbAsChar + extraOffset + offsets[63 - pos], argv[63 - pos]);
     }
 
-    // We now create the EDT and launch it
-    ocrGuid_t edtTemplateGuid, edtGuid;
-    ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 1);
-    if(createFinishEdt) {
-        ocrGuid_t outputEvt;
-        ocrEdtCreate(&edtGuid, edtTemplateGuid, 0, /* paramv = */ NULL,
-                     /* depc = */ 1, /* depv = */ &dbGuid,
-                     EDT_PROP_FINISH, NULL_GUID, &outputEvt);
-        // TODO: Re-add when ocrWait is implemented
-//          ocrWait(outputEvt);
-        ocrShutdown();
-    } else {
-        ocrEdtCreate(&edtGuid, edtTemplateGuid, 0, /* paramv = */ NULL,
-                     /* depc = */ 1, /* depv = */ &dbGuid,
-                     EDT_PROP_NONE, NULL_GUID, NULL);
-    }
+    return dbGuid;
+}
 
-    ocrStop();
+/**!
+ * Setup and starts the OCR runtime.
+ * @param ocrConfig Data-structure containing runtime options
+ */
+void ocrInit(ocrConfig_t * ocrConfig) {
+
+    const char * iniFile = ocrConfig->iniFile;
+    ASSERT(iniFile != NULL);
+
+    bringUpRuntime(iniFile);
+
+    // At this point the runtime is up
+#ifdef OCR_ENABLE_STATISTICS
+    GocrFilterAggregator = NEW_FILTER(filedump);
+    GocrFilterAggregator->create(GocrFilterAggregator, NULL, NULL);
+
+    // HUGE HUGE Hack
+    ocrStatsProcessCreate(&GfakeProcess, 0);
+#endif
 }
 
 int __attribute__ ((weak)) main(int argc, const char* argv[]) {
-//    ocrInit(argc, argv, &mainEdt, false);
-    hack(argv[1]);
+    // Parse parameters. The idea is to extract the ones relevant
+    // to the runtime and pass all the other ones down to the mainEdt
+    ocrConfig_t ocrConfig;
+    ocrParseArgs(argc, argv, &ocrConfig);
+
+    // Setup up the runtime 
+    ocrInit(&ocrConfig);
+
+    ocrGuid_t userArgsDbGuid = packUserArgumentsInDb(ocrConfig.userArgc, ocrConfig.userArgv);
+
+    // Here the runtime is fully functional
+
+    // Prepare the mainEdt for scheduling
+    // We now create the EDT and launch it
+    ocrGuid_t edtTemplateGuid, edtGuid;
+    ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 1);
+    ocrEdtCreate(&edtGuid, edtTemplateGuid, EDT_PARAM_DEF, /* paramv = */ NULL,
+                /* depc = */ EDT_PARAM_DEF, /* depv = */ &userArgsDbGuid,
+                EDT_PROP_NONE, NULL_GUID, NULL);
+
+
+    ocrFinalize();
+
     return 0;
 }
-
-// static void recursive_policy_finish_helper ( ocrPolicyDomain_t* curr ) {
-//     if ( curr ) {
-//         int index = 0; // successor index
-//         for ( ; index < curr->n_successors; ++index ) {
-//             recursive_policy_finish_helper(curr->successors[index]);
-//         }
-//         curr->finish(curr);
-//     }
-// }
-
-// static void recursive_policy_stop_helper ( ocrPolicyDomain_t* curr ) {
-//     if ( curr ) {
-//         int index = 0; // successor index
-//         for ( ; index < curr->n_successors; ++index ) {
-//             recursive_policy_stop_helper(curr->successors[index]);
-//         }
-//         curr->stop(curr);
-//     }
-// }
-
-// static void recursive_policy_destruct_helper ( ocrPolicyDomain_t* curr ) {
-//     if ( curr ) {
-//         int index = 0; // successor index
-//         for ( ; index < curr->n_successors; ++index ) {
-//             recursive_policy_destruct_helper(curr->successors[index]);
-//         }
-//         curr->destruct(curr);
-//     }
-// }
-
-// static inline void unravel () {
-//     // current root policy index
-//     int index = 0;
-
-//     for ( index = 0; index < n_root_policy_nodes; ++index ) {
-//         recursive_policy_finish_helper(root_policies[index]);
-//     }
-
-//     for ( index = 0; index < n_root_policy_nodes; ++index ) {
-//         recursive_policy_stop_helper(root_policies[index]);
-//     }
-
-//     for ( index = 0; index < n_root_policy_nodes; ++index ) {
-//         recursive_policy_destruct_helper(root_policies[index]);
-//     }
-//     // TODO this would be destroyed as part of the root policy
-//     globalGuidProvider->destruct(globalGuidProvider);
-//     free(root_policies);
-// }
 
 // TODO sagnak everything below is DUMB and RIDICULOUS and
 // will have to be undone and done again
@@ -333,7 +436,7 @@ void ocrShutdown() {
     linearTraverseFinish(spanningTreeHead);
 }
 
-void ocrStop() {
+void ocrFinalize() {
     ocrPolicyDomain_t* masterPD = getMasterPD();
     ocrPolicyDomainLinkedListNode * spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(masterPD); //N^2
     linearTraverseStop(spanningTreeHead);

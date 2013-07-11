@@ -929,7 +929,7 @@ int main(int argc, char *argv[])
     ocrEdtCreate(&edtGuid, edtTemplateGuid, 0, /* paramv = */ NULL,
            /* depc = */ 0, /* depv = */ NULL,
            EDT_PROP_NONE, NULL_GUID, NULL);
-    ocrStop();
+    ocrFinalize();
 
     return 0;
 }
