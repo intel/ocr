@@ -100,7 +100,12 @@ extern int build_deps (dictionary *dict, int A, int B, char *refstr, ocrMappable
 extern void *create_factory (type_enum index, char *factory_name, ocrParamList_t *paramlist);
 extern int read_range(dictionary *dict, char *sec, char *field, int *low, int *high);
 
-extern __attribute__ ((weak)) ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]);
+ocrGuid_t __attribute__ ((weak)) mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+    // This is just to make the linker happy and shouldn't be executed
+    printf("error: no mainEdt defined.\n");
+    ASSERT(false);
+    return NULL_GUID;
+}
 
 static void bringUpRuntime(const char *inifile) {
     int i, j, count;
