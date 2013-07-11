@@ -11,12 +11,18 @@ AUX_DIST = \
 
 library_includedir=$(includedir)
 library_include_HEADERS = inc/ocr-db.h inc/ocr-edt.h inc/ocr-tuning.h \
-inc/ocr-types.h inc/ocr.h inc/ocr-lib.h
+inc/ocr-types.h inc/ocr.h
 
 # Distribute runtime interface headers - set by configure
 if INCLUDE_RUNTIME_ITF_HEADERS
 library_include_HEADERS += src/inc/ocr-runtime-itf.h src/inc/ocr-guid.h
 endif
+
+# Distribute OCR library interface headers - set by configure
+if INCLUDE_OCR_LIBRARY_ITF_HEADERS
+library_include_HEADERS += src/inc/ocr-lib.h
+endif
+
 
 MAINTAINERCLEANFILES = Makefile.in \
 	aclocal.m4 \

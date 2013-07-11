@@ -99,7 +99,8 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
 extern int build_deps (dictionary *dict, int A, int B, char *refstr, ocrMappable_t ***all_instances, ocrParamList_t ***inst_params);
 extern void *create_factory (type_enum index, char *factory_name, ocrParamList_t *paramlist);
 extern int read_range(dictionary *dict, char *sec, char *field, int *low, int *high);
-extern ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]);
+
+extern __attribute__ ((weak)) ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]);
 
 static void bringUpRuntime(const char *inifile) {
     int i, j, count;

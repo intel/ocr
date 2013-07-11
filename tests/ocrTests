@@ -39,6 +39,9 @@ while [[ $# -gt 0 ]]; do
     elif [[ "$1" = "-run-itf-ext" ]]; then
         shift
         RUNTIME_ITF_EXT=yes
+    elif [[ "$1" = "-ocr-library-itf" ]]; then
+        shift
+        OCR_LIBRARY_ITF=yes
     elif [[ "$1" = "-valgrind" && $# -ge 2 ]]; then
         shift
         WRAPPER="valgrind"
@@ -70,6 +73,9 @@ export INCLUDES="-I${OCR_INSTALL}/include"
 export CFLAGS=" -Wall -g -Werror "
 if [ -n "${RUNTIME_ITF_EXT}" ]; then
     CFLAGS="$CFLAGS -DRUNTIME_ITF_EXT=1"
+fi
+if [ -n "${OCR_LIBRARY_ITF}" ]; then
+    CFLAGS="$CFLAGS -DOCR_LIBRARY_ITF=1"
 fi
 export LDFLAGS="-L${OCR_INSTALL}/lib -locr"
 export OCR_TESTS_BIN_OUTPUT=

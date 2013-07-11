@@ -82,6 +82,16 @@ AS_IF([test "x$with_els" != xno],
 # Check if we need to distribute runtime headers
 AM_CONDITIONAL([INCLUDE_RUNTIME_ITF_HEADERS], [test x$with_els != xno])
 
+AC_ARG_ENABLE(els, 
+    AS_HELP_STRING([--enable-ocrlib],
+    [enable OCR library headers]),
+    [with_ocrlib=$enableval], 
+    [with_ocrlib=no;])
+
+# Check if we need to distribute OCR library headers
+AM_CONDITIONAL([INCLUDE_OCR_LIBRARY_ITF_HEADERS], [test x$with_ocrlib != xno])
+
+
 #
 # Config file to process
 #
