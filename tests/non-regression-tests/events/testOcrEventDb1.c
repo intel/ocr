@@ -27,20 +27,21 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
- */
-
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
 #include "ocr.h"
 
-#define FLAGS 0xdead
+/**
+ * DESC: Test satisfy event with a NULL_GUID
+ */
+
+int edtCalled = 0;
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    int* res = (int*)depv[0].ptr;
-    printf("In the taskForEdt with value %d\n", (*res));
-    assert(*res == 42);
+    edtCalled = 1;
     // This is the last EDT to execute, terminate
     ocrShutdown();
     return NULL_GUID;
@@ -61,15 +62,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // Register a dependence between an event and an edt
     ocrAddDependence(event_guid, edtGuid, 0, DB_MODE_RO);
 
-    int *k;
-    ocrGuid_t db_guid;
-    ocrDbCreate(&db_guid,(void **) &k,
-            sizeof(int), /*flags=*/FLAGS,
-            /*location=*/NULL_GUID,
-            NO_ALLOC);
-    *k = 42;
-
-    ocrEventSatisfy(event_guid, db_guid);
+    ocrEventSatisfy(event_guid, NULL_GUID);
 
     return NULL_GUID;
 }

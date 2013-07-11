@@ -27,26 +27,39 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-*/
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
 #include "ocr.h"
 
-int edtCalled = 0;
+/**
+ * DESC: Test addDependence(db, event, slot) equivalent to directly satisfy the event
+ */
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    edtCalled = 1;
+    int* res = (int*)depv[0].ptr;
+    printf("In the taskForEdt with value %d\n", (*res));
+    assert(*res == 42);
     // This is the last EDT to execute, terminate
     ocrShutdown();
     return NULL_GUID;
 }
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    // Current thread is '0' and goes on with user code.
-    ocrGuid_t event_guid;
-    ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true);
+    // Creates a data block
+    int *k;
+    ocrGuid_t dbGuid;
+    ocrDbCreate(&dbGuid,(void **) &k,
+            sizeof(int), /*flags=*/0,
+            /*location=*/NULL_GUID,
+            NO_ALLOC);
+    *k = 42;
+
+    ocrGuid_t eventGuid;
+    ocrEventCreate(&eventGuid, OCR_EVENT_STICKY_T, true);
 
     // Creates the EDT
     ocrGuid_t edtGuid;
@@ -55,10 +68,14 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
                     /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
-    // Register a dependence between an event and an edt
-    ocrAddDependence(event_guid, edtGuid, 0, DB_MODE_RO);
+    ocrAddDependence(eventGuid, edtGuid, 0, DB_MODE_RO);
 
-    ocrEventSatisfy(event_guid, NULL_GUID);
+    // Register a dependence between a db and an event
+    // (equivalent to directly satisfying the DB)
+    ocrAddDependence(dbGuid, eventGuid, 0, DB_MODE_RO);
+
+    // No need to satisfy as addDependence is equivalent to a satisfy
+    // when the source is a datablock 
 
     return NULL_GUID;
 }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Rice University
+    /* Copyright (c) 2012, Rice University
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -36,10 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr.h"
 
 /**
- * DESC: Test satisfy event with db
+ * DESC: Test addDependence(db, edt, slot); which should trigger the edt.
  */
-
-#define FLAGS 0xdead
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     int* res = (int*)depv[0].ptr;
@@ -51,9 +49,14 @@ ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 }
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    // Current thread is '0' and goes on with user code.
-    ocrGuid_t event_guid;
-    ocrEventCreate(&event_guid, OCR_EVENT_STICKY_T, true);
+    // Creates a data block
+    int *k;
+    ocrGuid_t dbGuid;
+    ocrDbCreate(&dbGuid,(void **) &k,
+            sizeof(int), /*flags=*/0,
+            /*location=*/NULL_GUID,
+            NO_ALLOC);
+    *k = 42;
 
     // Creates the EDT
     ocrGuid_t edtGuid;
@@ -62,17 +65,10 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
                     /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
-    // Register a dependence between an event and an edt
-    ocrAddDependence(event_guid, edtGuid, 0, DB_MODE_RO);
-
-    int *k;
-    ocrGuid_t db_guid;
-    ocrDbCreate(&db_guid,(void **) &k,
-            sizeof(int), /*flags=*/FLAGS,
-            /*location=*/NULL_GUID,
-            NO_ALLOC);
-    *k = 42;
-
-    ocrEventSatisfy(event_guid, db_guid);
+    // Register a dependence between a db and an edt
+    ocrAddDependence(dbGuid, edtGuid, 0, DB_MODE_RO);
+    
+    // No need to satisfy as addDependence is equivalent to a satisfy
+    // when the source is a datablock 
     return NULL_GUID;
 }

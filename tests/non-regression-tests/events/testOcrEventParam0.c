@@ -35,13 +35,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ocr.h"
 
+/**
+ * DESC: Test passing paramv to ocrEdtCreate
+ */
+
 #define FLAGS 0xdead
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    printf("In the taskForEdt with value %d\n", (int)paramv[0]);
+    printf("In the taskForEdt with value %d\n", (int) paramv[0]);
     assert(paramc == 1);
     assert(paramv[0] == 32);
-    assert(*((int*)depv[0].ptr) == 42);
+    assert(*((u64*)depv[0].ptr) == 42);
     // This is the last EDT to execute, terminate
     ocrShutdown();
     return NULL_GUID;
