@@ -50,11 +50,14 @@ struct _ocrPolicyDomain_t;
  * List of components you can enable / disable logging
  */
 #define LOGGER_WORKER 1
+#define LOGGER_EVENT 2
+#define LOGGER_TASK 3
 
 /*
  * Loggers levels
  */
 #define LOG_LEVEL_INFO 1
+#define LOG_LEVEL_DBG 2
 
 /*
  * Current logging level

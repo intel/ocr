@@ -105,5 +105,7 @@ typedef struct {
 #define FINISH_LATCH_DECR_SLOT 0
 #define FINISH_LATCH_INCR_SLOT 1
 
+// Define internal finish-latch event id after user-level events
+#define OCR_EVENT_FINISH_LATCH_T OCR_EVENT_T_MAX+1
 
 #endif
