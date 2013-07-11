@@ -572,7 +572,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
 
     case memtarget_type: {
             ocrMemTarget_t *f = (ocrMemTarget_t *)frominstance;
-            // printf("Memtarget %d to %d\n", fromtype, totype);
+            //printf("Memtarget %d to %d\n", fromtype, totype);
 
             if (f->memoryCount == 0) {
                 f->memoryCount = dependence_count;
@@ -582,8 +582,8 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
             break;
         }
     case allocator_type: {
-            // printf("Allocator %d to %d\n", fromtype, totype);
             ocrAllocator_t *f = (ocrAllocator_t *)frominstance;
+            //printf("Allocator %d to %d\n", fromtype, totype);
 
             if (f->memoryCount == 0) {
                 f->memoryCount = dependence_count;
@@ -594,7 +594,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
         }
     case comptarget_type: {
             ocrCompTarget_t *f = (ocrCompTarget_t *)frominstance;
-            // printf("CompTarget %d to %d\n", fromtype, totype);
+            //printf("CompTarget %d to %d\n", fromtype, totype);
 
             if (f->platformCount == 0) {
                 f->platformCount = dependence_count;
@@ -605,7 +605,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
         }
     case worker_type: {
             ocrWorker_t *f = (ocrWorker_t *)frominstance;
-            // printf("Worker %d to %d\n", fromtype, totype);
+            //printf("Worker %d to %d\n", fromtype, totype);
 
             if (f->computeCount == 0) {
                 f->computeCount = dependence_count;
@@ -616,7 +616,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
         }
     case scheduler_type: {
             ocrScheduler_t *f = (ocrScheduler_t *)frominstance;
-            // printf("Scheduler %d to %d\n", fromtype, totype);
+            //printf("Scheduler %d to %d\n", fromtype, totype);
             switch (totype) {
                 case workpile_type: {
                         if (f->workpileCount == 0) {
@@ -719,10 +719,15 @@ int build_deps (dictionary *dict, int A, int B, char *refstr, ocrMappable_t ***a
             for (j = low; j <= high; j++) {
                 // Parse corresponding dependences from secname
                 read_range(dict, iniparser_getsecname(dict, i), refstr, &l, &h);
-                // Fetch corresponding instances of B
-                for (k = l; k <= h; k++) {
-                    // Connect A with B 
-                    add_dependence(A, B, all_instances[A][j], inst_params[A][j], all_instances[B][k], inst_params[B][k], k-l, h-l+1);
+                // Connect A with B 
+                // FIXME: only rough heuristic for now: if |from| == |to| then 1:1, else all:all
+                if (h-l == high-low) {
+                    k = l+j-low;
+                    add_dependence(A, B, all_instances[A][j], inst_params[A][j], all_instances[B][k], inst_params[B][k], 0, 1);
+                } else {
+                    for (k = l; k <= h; k++) {
+                        add_dependence(A, B, all_instances[A][j], inst_params[A][j], all_instances[B][k], inst_params[B][k], k-l, h-l+1);
+                    }
                 }
             }
         }
