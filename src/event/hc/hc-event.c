@@ -267,9 +267,6 @@ static ocrGuid_t latchEventGet(ocrEvent_t * base, u32 slot) {
 // OCR-HC Finish-Latch Events Implementation
 //
 
-#define FINISH_LATCH_DECR_SLOT 0
-#define FINISH_LATCH_INCR_SLOT 1
-
 // Requirements:
 //  R1) All dependences (what the finish latch will satisfy) are provided at creation. This implementation DOES NOT support outstanding registrations.
 //  R2) Number of incr and decr signaled on the event MUST BE equal.
@@ -301,8 +298,9 @@ static void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot)
             deguidify(getCurrentPD(), parentLatchWaiter->guid, (u64*)&parentLatch, NULL);
             finishLatchCheckout(parentLatch);
         }
-        // Since finish-latch is internal to finish-edt, and ELS is cleared, // there are no more pointers left to it, deallocate.
-        destructEventHc(base);
+        // Since finish-latch is internal to finish-edt, and ELS is cleared, 
+        // there are no more pointers left to it, deallocate.
+        base->fctPtrs->destruct(base);
     }
 }
 

@@ -97,4 +97,13 @@ typedef struct {
     regNode_t * signalers; // Does not grow, set once when the task is created
 } ocrTaskHc_t;
 
+
+/******************************************************/
+/* OCR-HC Events                                      */
+/******************************************************/
+
+#define FINISH_LATCH_DECR_SLOT 0
+#define FINISH_LATCH_INCR_SLOT 1
+
+
 #endif

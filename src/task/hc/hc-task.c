@@ -131,187 +131,20 @@ void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
 
 void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
 
-static void finishLatchCheckout(ocrEvent_t * base);
-
 static inline void taskSchedule(ocrGuid_t taskGuid);
-
-//
-// OCR-HC Single Events Implementation
-//
-
-// Set a single event data guid
-// Warning: Concurrent with registration on sticky event.
-static regNode_t * singleEventPut(ocrEventHcAwaitable_t * self, ocrGuid_t data ) {
-    // TODO This is not enough to always detect concurrent puts.
-    ASSERT (self->data == UNINITIALIZED_DATA && "violated single assignment property for EDFs");
-    self->data = data;
-    // list of entities waiting on the event
-    volatile regNode_t* waiters = self->waiters;
-    // 'put' may be concurrent to another entity trying to register to this event
-    // Try to cas the waiters list to SEALED_LIST to let other know the 'put' has occurred.
-    while ( !__sync_bool_compare_and_swap( &(self->waiters), waiters, SEALED_LIST)) {
-        // If we failed to cas, it means a new node has been inserted
-        // in front of the registration list, so update our pointer and try again.
-        waiters = self->waiters;
-    }
-    // return the most up to date head on the registration list
-    // (no more adds possible once SEALED_LIST has been set)
-    ASSERT(self->waiters == SEALED_LIST);
-    return (regNode_t *) waiters;
-}
-
-// This is setting a sticky event's data
-// slotEvent is ignored for stickies.
-void singleEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slotEvent) {
-    ocrEventHc_t * hcSelf = (ocrEventHc_t *) base;
-    ocrEventHcAwaitable_t * self = (ocrEventHcAwaitable_t *) base;
-
-    // Whether it is a once, idem or sticky, unitialized means it's the first
-    // time we try to satisfy the event. Note: It's a very loose check, the 
-    // 'Put' implementation must do more work to detect races on data.
-    if (self->data == UNINITIALIZED_DATA) {
-        // Single events don't have slots, just put the data
-        regNode_t * waiters = singleEventPut(self, data);
-        // Put must have sealed the waiters list and returned it
-        // Note: Here the design is not great, 'put' CAS and returns the 
-        //       waiters list but does not handle the signaler list which 
-        //       is ok for now because it's not used.
-        ASSERT(waiters != SEALED_LIST);
-        ASSERT(self->data != UNINITIALIZED_DATA);
-        // Need to signal other entities waiting on the event
-        regNode_t * waiter = waiters;
-        while (waiter != END_OF_LIST) {
-            // Note: in general it's better to read from self->data in case
-            //       the event does some post processing on the input data
-            signalWaiter(waiter->guid, self->data, waiter->slot);
-            waiters = waiter;
-            waiter = waiter->next;
-            free(waiters); // Release waiter node
-        }
-        if (hcSelf->kind == OCR_EVENT_ONCE_T) {
-            // once-events die after satisfy has been called
-            base->fctPtrs->destruct(base);
-        }
-    } else {
-        // once-events cannot survive down here
-        // idem-events ignore extra satisfy
-        if (hcSelf->kind == OCR_EVENT_STICKY_T) {
-            ASSERT(false && "error: Multiple satisfy on a sticky event");
-        }
-    }
-}
 
 // Internal signal/wait notification
 // Signal a sticky event some data arrived (on its unique slot)
 static void singleEventSignaled(ocrEvent_t * self, ocrGuid_t data, int slot) {
     // Single event signaled by another entity, call its satisfy method.
-    singleEventSatisfy(self, data, slot);
-}
-
-ocrGuid_t singleEventGet (ocrEvent_t * base, u32 slot) {
-    ocrEventHcAwaitable_t * self = (ocrEventHcAwaitable_t*) base;
-    return (self->data == UNINITIALIZED_DATA) ? ERROR_GUID : self->data;
-}
-
-
-//
-// OCR-HC Latch Events Implementation
-//
-
-
-// Runs concurrently with registration on latch
-void latchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot) {
-    ASSERT((slot == OCR_EVENT_LATCH_DECR_SLOT) || (slot == OCR_EVENT_LATCH_INCR_SLOT));
-    ocrEventHcLatch_t * latch = (ocrEventHcLatch_t *) base;
-    int incr = (slot == OCR_EVENT_LATCH_DECR_SLOT) ? -1 : 1;
-    int count;
-    do {
-        count = latch->counter;
-    } while(!__sync_bool_compare_and_swap(&(latch->counter), count, count+incr));
-
-    if ((count+incr) == 0) {
-        ocrEventHcAwaitable_t * self = (ocrEventHcAwaitable_t *) base;
-        //TODO add API to seal a list
-        //TODO: do we need volatile here ?
-        // CAS the wait-list
-        volatile regNode_t* waiters = self->waiters;
-        // satisfy is concurrent with registration on the event
-        // Try to cas the waiters list to SEALED_LIST to let others know the
-        // latch has been satisfied
-        while ( !__sync_bool_compare_and_swap( &(self->waiters), waiters, SEALED_LIST)) {
-            // If we failed to cas, it means a new node has been inserted
-            // in front of the registration list, so update our pointer and try again.
-            waiters = self->waiters;
-        }
-        ASSERT(self->waiters == SEALED_LIST);
-        regNode_t * waiter = (regNode_t*) waiters;
-        // Go over the list and notify waiters
-        while (waiter != END_OF_LIST) {
-            // For now latch events don't have any data output
-            signalWaiter(waiter->guid, NULL_GUID, waiter->slot);
-            waiters = waiter;
-            waiter = waiter->next;
-            free((regNode_t*) waiters); // Release waiter node
-        }
-    }
+    self->fctPtrs->satisfy(self, data, slot);
 }
 
 // Internal signal/wait notification
 // Signal a latch event some data arrived on one of its
 static void latchEventSignaled(ocrEvent_t * self, ocrGuid_t data, int slot) {
     // latch event signaled by another entity, call its satisfy method.
-    latchEventSatisfy(self, data, slot);
-}
-
-// Latch-event doesn't have an output value
-ocrGuid_t latchEventGet(ocrEvent_t * base, u32 slot) {
-    return NULL_GUID;
-}
-
-
-//
-// OCR-HC Finish-Latch Events Implementation
-//
-
-#define FINISH_LATCH_DECR_SLOT 0
-#define FINISH_LATCH_INCR_SLOT 1
-
-// Requirements:
-//  R1) All dependences (what the finish latch will satisfy) are provided at creation. This implementation DOES NOT support outstanding registrations.
-//  R2) Number of incr and decr signaled on the event MUST BE equal.
-void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot) {
-    ASSERT((slot == FINISH_LATCH_DECR_SLOT) || (slot == FINISH_LATCH_INCR_SLOT));
-    ocrEventHcFinishLatch_t * self = (ocrEventHcFinishLatch_t *) base;
-    int incr = (slot == FINISH_LATCH_DECR_SLOT) ? -1 : 1;
-    int count;
-    do {
-        count = self->counter;
-    } while(!__sync_bool_compare_and_swap(&(self->counter), count, count+incr));
-
-    // No possible race when we reached 0 (see R2)
-    if ((count+incr) == 0) {
-        // Important to void the ELS at that point, to make sure there's no 
-        // side effect on code executing downwards.
-        ocrTask_t * task = getCurrentTask();
-        task->els[ELS_SLOT_FINISH_LATCH] = NULL_GUID;
-        // Notify waiters the latch is satisfied (We can extend that to a list 
-        // of waiters if we need to. (see R1))
-        // Notify output event if any associated with the finish-edt
-        regNode_t * outputEventWaiter = &(self->outputEventWaiter);
-        if (outputEventWaiter->guid != NULL_GUID) {
-            signalWaiter(outputEventWaiter->guid, self->returnGuid, outputEventWaiter->slot);
-        }
-        // Notify the parent latch if any
-        regNode_t * parentLatchWaiter = &(self->parentLatchWaiter);
-        if (parentLatchWaiter->guid != NULL_GUID) {
-            ocrEvent_t * parentLatch;
-            deguidify(getCurrentPD(), parentLatchWaiter->guid, (u64*)&parentLatch, NULL);
-            finishLatchCheckout(parentLatch);
-        }
-        // Since finish-latch is internal to finish-edt, and ELS is cleared, 
-        // there are no more pointers left to it, deallocate.
-        base->fctPtrs->destruct(base);
-    }
+    self->fctPtrs->satisfy(self, data, slot);
 }
 
 /******************************************************/
@@ -320,12 +153,12 @@ void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot) {
 
 // satisfies the incr slot of a finish latch event
 static void finishLatchCheckin(ocrEvent_t * base) {
-    finishLatchEventSatisfy(base, NULL_GUID, FINISH_LATCH_INCR_SLOT);
+     base->fctPtrs->satisfy(base, NULL_GUID, FINISH_LATCH_INCR_SLOT);
 }
 
 // satisfies the decr slot of a finish latch event
 static void finishLatchCheckout(ocrEvent_t * base) {
-    finishLatchEventSatisfy(base, NULL_GUID, FINISH_LATCH_DECR_SLOT);
+    base->fctPtrs->satisfy(base, NULL_GUID, FINISH_LATCH_DECR_SLOT);
 }
 
 static void setFinishLatch(ocrTask_t * edt, ocrGuid_t latchGuid) {
@@ -606,7 +439,7 @@ static void taskExecute ( ocrTask_t* base ) {
         // We know the output event must be of type single sticky since it is
         // internally allocated by the runtime
         ASSERT(isEventSingleGuid(base->outputEvent));
-        singleEventSatisfy(outputEvent, retGuid, 0);
+        outputEvent->fctPtrs->satisfy(outputEvent, retGuid, 0);
     }
 }
 
@@ -774,12 +607,8 @@ void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
         deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
         // This looks a duplicate of signalWaiter, however there hasn't
         // been any signal strictly speaking, hence calling satisfy directly
-        if (isEventSingleGuid(waiterGuid)) {
-            singleEventSatisfy(target, signalerGuid, slot);
-        } else {
-            ASSERT(isEventLatchGuid(waiterGuid));
-            latchEventSatisfy(target, signalerGuid, slot);
-        }
+        ASSERT(isEventSingleGuid(waiterGuid) || isEventLatchGuid(waiterGuid));
+        target->fctPtrs->satisfy(target, signalerGuid, slot);
         return;
     }
     // Remaining legal registrations is event-to-event, but this is
