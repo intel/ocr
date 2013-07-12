@@ -53,13 +53,10 @@ typedef u8 bool;
 #endif /* __cplusplus */
 
 /**
- * @brief Opaque type uniquely identifying objects in OCR
- *
- * A globally-unique identifier used by the runtime to identify
- * objects. The type is convertible to a 64 bit value but its exact
- * meaning may change depending on the specific implementation.
-  **/
-typedef intptr_t ocrGuid_t;
+ * @brief Type describing the unique identifier of most
+ * objects in OCR (EDTs, data-blocks, etc).
+ **/
+typedef intptr_t ocrGuid_t; /**< GUID type */
 //typedef u64 ocrGuid_t;
 
 /**
@@ -72,7 +69,7 @@ typedef intptr_t ocrGuid_t;
  * within a data-block
  */
 typedef enum {
-    NO_ALLOC = 0
+    NO_ALLOC = 0 /**< No allocation inside data-blocks
     /* Add others */
 } ocrInDbAllocator_t;
 

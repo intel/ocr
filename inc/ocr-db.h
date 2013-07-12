@@ -38,8 +38,6 @@
 
 #include "ocr-types.h"
 
-#define DB_PROP_NONE       ((u16)0x0)
-#define DB_PROP_NO_ACQUIRE ((u16)0x1)
 
 /**
  * @defgroup OCRDataBlock Data-block management for OCR
@@ -63,28 +61,28 @@
  * @{
  **/
 
+#define DB_PROP_NONE       ((u16)0x0) /**< Property for a data-block indicating no special behavior */
+#define DB_PROP_NO_ACQUIRE ((u16)0x1) /**< Property for a data-block indicating that the data-block
+                                       *   is just being created but does not need to be acquired
+                                       *   at the same time (creation for another EDT)
+                                       */
+
 /**
  * @brief Request the creation of a data-block
  *
  * On successful creation, the returned memory location will
  * be 8 byte aligned. ocrDbCreate also implicitly acquires the data-block
- * for the calling EDT
+ * for the calling EDT unless DB_PROP_NO_ACQUIRE is specified
  *
  * @param db        On successful creation, contains the GUID for the newly created data-block.
  *                  Will be NULL if the call fails
  * @param addr      On successful creation, contains the 64 bit address
+ *                  if DB_PROP_NO_ACQUIRE is not specified
  * @param len       Size in bytes of the block to allocate.
  * @param flags     If DB_PROP_NO_ACQUIRE, the DB will be created but not
  *                  acquired (addr will be NULL). Future use are reserved
  * @param affinity  GUID to indicate the affinity container of this DB.
- * @param location  Used as input to determine where to allocate memory and
- *                  on successful allocation will contain the location of
- *                  the actual allocation RAM, SP, or something NUMA. If NULL,
- *                  allocate in a default location and does not give any information
- *                  on the actual location
- * @param allocator Allocator to use to allocate memory within the data-block. If not NO_ALLOC,
- *                  on creation, the data-block will be properly initialized to be used as
- *                  a heap for the allocator specified
+ * @param allocator Allocator to use to allocate within the data-block
  *
  * @return a status code on failure and 0 on success. On failure will return one of:
  *      - ENXIO : Affinity is invalid
@@ -135,7 +133,7 @@ u8 ocrDbDestroy(ocrGuid_t db);
  *
  * The functionality of ocrDbRelease is implicitly contained in:
  *      - ocrDbDestroy()
- *      - EDT exit (only for EDTs implicitly acquired on entry)
+ *      - EDT exit
  *
  * @note ocrDbRelease should only be called *once* at most.
  *
@@ -195,16 +193,28 @@ u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset);
 /**
  * @brief Copies data between two data-blocks in an asynchronous manner
  *
- * This call will trigger the creation of an EDT which will perform a copy from a source data-block
- * into a destination data-block. Once the copy is complete,
- * the event with GUID ‘completionEvt’ will be satisfied. That event will carry the destination data-block
+ * This call will trigger the creation of an EDT which will perform a copy from
+ * a source data-block into a destination data-block. Once the copy is complete,
+ * the event with GUID 'completionEvt'' will be satisfied. That event will carry
+ * the destination data-block
  *
- * The type of GUID passed in as source also determines the starting point of the copy:
- *    - if it is an event GUID, the EDT will be available to run when that event is satisfied. The data-block carried by
- *       that event will be used as the source data-block
+ * The type of GUID passed in as source also determines the starting point of
+ * the copy:
+ *    - if it is an event GUID, the EDT will be available to run when that
+ *      event is satisfied. The data-block carried by that event will be
+ *      used as the source data-block
  *    - if it is a data-block GUID, the EDT is immediately available to run.
  *
- * @param [TODO: Explain parameters but they should be pretty self-explanatory]
+ * @param destination           Data-block to copy to (must already be created
+ *                              and large enough to contain copy)
+ * @param destinationOffset     Where to start the copy in the destination (in bytes)
+ * @param source                Data-block to copy from
+ * @param sourceOffset          Where to start the copy from in the source (in bytes)
+ * @param size                  How many bytes to copy
+ * @param copyType              Reserved
+ * @param completionEvt         (Returned) Event that will be satisfied when the
+ *                              copy is successful
+ *
  * @return 0 on success or the following error codes:
  *    - EINVAL: Invalid values for one of the arguments
  *    - EPERM: Overlapping data-blocks
@@ -212,7 +222,7 @@ u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset);
  *
  * @todo Not supported at this point
  */
-u8 ocrDbCopy(ocrGuid_t destination,u64 destinationOffset, ocrGuid_t source,
+u8 ocrDbCopy(ocrGuid_t destination, u64 destinationOffset, ocrGuid_t source,
              u64 sourceOffset, u64 size, u64 copyType, ocrGuid_t * completionEvt);
 
 /**

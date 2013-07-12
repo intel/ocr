@@ -58,7 +58,7 @@ typedef enum {
     OCR_EVENT_STICKY_T,  /**< The event exists until explicitly destroyed with
                           * ocrEventDestroy(). Multiple satisfactions result
                           * in an error */
-    OCR_EVENT_LATCH_T,   /**< The latch event can't be satisfied on either
+    OCR_EVENT_LATCH_T,   /**< The latch event can be satisfied on either
                           * its the DECR or INCR slot. When it reaches zero,
                           * it is satisfied. */
     OCR_EVENT_T_MAX      /**< Marker */
@@ -66,10 +66,11 @@ typedef enum {
 
 
 /**
- * @brief 'Slots' for latch events
+ * @brief "Slots" for latch events
  *
- * A #OCR_EVENT_LATCH_T has two slots, a 'decrement' slot
- * and an 'increment' slot which are defined here
+ * A latch event will be satisfied when it has received a number of
+ * "satisfactions" on its DECR_SLOT equal to 1 + the number of "satisfactions"
+ * on its INCR_SLOT
  */
 typedef enum {
     OCR_EVENT_LATCH_DECR_SLOT = 0, /**< The decrement slot */
@@ -124,14 +125,26 @@ u8 ocrEventDestroy(ocrGuid_t guid);
  *                an argument and one is given or if the event takes an argument and none
  *                is given
  *
+ * An event satisfaction without the optional data-block can be viewed as a pure
+ * control dependence whereas one with a data-block is a control+data dependence
+ *
  * @note On satisfaction, a OCR_EVENT_ONCE_T event will pass the GUID of the
  * optional attached data-block to all EDTs/Events waiting on it at that time
  * and the event will destroy itself. For OCR_EVENT_IDEM_T and OCR_EVENT_STICKY_T,
  * the event will be satisfied for all EDTs/Events currently waiting on it
- * as well as any future EDT/Event that adds it as a dependence.
+ * as well as any future EDT/Event that adds it as a dependence until it is destroyed
  **/
 u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=NULL_GUID*/);
 
+/**
+ * @brief Similar to ocrEventSatisfy() but with the slot information
+ *
+ * This call is used primarily for latch events.
+ * ocrEventSatisfySlot(eventGuid, dataGuid, 0) is equivalent to
+ * ocrEventSatisfy(eventGuid, dataGuid)
+ *
+ * @see ocrEventSatisfy()
+ */
 u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=NULL_GUID*/, u32 slot /*=0*/);
 
 /**
@@ -142,7 +155,6 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=NULL_GUID*/, u
  * @defgroup OCREDT Event Driven Task Management
  * @brief APIs to manage the EDT in OCR
  *
- * @todo Re-evaluate the notion of event types (post 0.7 version)
  * @{
  **/
 
@@ -157,12 +169,10 @@ typedef struct {
 } ocrEdtDep_t;
 
 
-//
-// EDTs properties bits
-//
 
-#define EDT_PROP_NONE   ((u16) 0x0)
-#define EDT_PROP_FINISH ((u16) 0x1)
+#define EDT_PROP_NONE   ((u16) 0x0) /**< Property bits indicating a regular EDT */
+#define EDT_PROP_FINISH ((u16) 0x1) /**< Property bits indicating a FINISH EDT */
+
 /**
  * @brief Constant indicating that the number of parameters to an EDT template
  * is unknown
@@ -171,7 +181,7 @@ typedef struct {
 
 /**
  * @brief Constant indicating that the number of parameters to an EDT
- * is the same as the one specified in the template
+ * is the same as the one specified in its template
  */
 #define EDT_PARAM_DEF   ((u32)-1)
 
@@ -183,7 +193,8 @@ typedef struct {
  * @param depc            Number of dependences (either DBs or events)
  * @param depv            Values of the dependences. Can be NULL_GUID if a pure control-flow event
  *                        was used as a dependence
- * @return Error code (0 on success)
+ * @return The GUID of a data-block to pass along on the output event of
+ * the EDT (or NULL_GUID)
  **/
 typedef ocrGuid_t (*ocrEdt_t )( u32 paramc, u64* paramv,
                    u32 depc, ocrEdtDep_t depv[]);
@@ -222,17 +233,17 @@ u8 ocrEdtTemplateDestroy(ocrGuid_t guid);
  * @param guid              Returned value: GUID of the newly created EDT type
  * @param templateGuid      GUID of the template to use for this EDT
  * @param paramc            Number of non-DB 64 bit values. Set to 'EDT_PARAM_DEF' if
-                            follows the 'paramc' template specification. Set to the 
-                            actual number of arguments to be passed if 'EDT_PARAM_UNK' 
-                            has been given as the template's 'paramc' value.
+ *                          follows the 'paramc' template specification. Set to the
+ *                          actual number of arguments to be passed if 'EDT_PARAM_UNK'
+ *                          has been given as the template's 'paramc' value.
  * @param paramv            Values for those parameters (copied in)
  * @param properties        Used to indicate if this is a finish EDT (EDT_PROP_FINISH).
  *                          Other uses reserved.
  * @param affinity          Affinity container for this EDT. Can be NULL_GUID
  * @param depc              Number of dependences for this EDT. Set to 'EDT_PARAM_DEF' if
-                            follows the 'depc' template specification. Set to the actual 
-                            number of arguments to be passed if 'EDT_PARAM_UNK' has been 
-                            given as the template's 'depc' value.
+ *                          it follows the 'depc' template specification. Set to the actual
+ *                          number of arguments to be passed if 'EDT_PARAM_UNK' has been
+ *                          given as the template's 'depc' value.
  * @param depv              Values for the GUIDs of the dependences (if known)
  *                          Use ocrAddDependence to add unknown ones or ones with
  *                          a mode other than the default DB_MODE_ITW

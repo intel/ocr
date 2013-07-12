@@ -32,30 +32,46 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef OCR_RUNTIME_ITF_H_
 #define OCR_RUNTIME_ITF_H_
 
+/**
+ * @defgroup OCRRuntimeItf Interface for runtimes built on top of OCR
+ * @brief Defines additional API for runtime implementers
+ *
+ * @warning These APIs are not fully supported at this time
+ * and should be used with caution
+
+ * @{
+ **/
+
 #include "ocr-types.h"
 #include "ocr-guid.h"
 
-/**
- * @file OCR Runtime interface: Defines additional API for runtime implementers.
- */
 
 /**
  *  @brief Get @ offset in the currently running edt's local storage
- *  \return NULL_GUID if there's no ELS support.
- *  \attention Must be call from within an edt code.
+ *
+ *  @param offset Offset in the ELS to fetch
+ *  @return NULL_GUID if there's no ELS support.
+ *  @warning Must be called from within an EDT code.
  **/
 ocrGuid_t ocrElsUserGet(u8 offset);
 
 /**
  *  @brief Set data @ offset in the currently running edt's local storage
- *  \remark no-op if there's no ELS support
+ *  @param offset Offset in the ELS to set
+ *  @param data   Value to write at that offset
+ *
+ *  @note No-op if there's no ELS support
  **/
 void ocrElsUserSet(u8 offset, ocrGuid_t data);
 
 /**
  *  @brief Get the currently executing edt.
- *  \return NULL_GUID if there's no edt running.
+ *  @return NULL_GUID if there is no EDT running.
  **/
 ocrGuid_t currentEdtUserGet();
+
+/**
+ * @}
+ */
 
 #endif /* OCR_RUNTIME_ITF_H_ */
