@@ -46,18 +46,22 @@ typedef struct _ocrConfig_t {
 
 /**
  * @brief OCR library mode - Initialize OCR
+ * @param ocrConfig The configuration to use to bring this OCR instance up.
  */
 void ocrInit(ocrConfig_t * ocrConfig);
 
 /**
  * @brief OCR library mode - Parse arguments and extract OCR options
- * Note: Removes OCR parameters from argv and updates argc.
+ * @param argc The number of elements in argv.
+ * @param argv Array of char * argumetns.
+ * @param ocrConfig Pointer to an ocrConfig ocrParseArgs will populate.
+ * Warning: Removes OCR parameters from argv and pack elements.
  */
 void ocrParseArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig);
 
 /**
  * @brief OCR library mode - Terminates OCR execution
- * This call bring down the runtime after ocrShutdown has been called by an EDT
+ * This call bring down the runtime after ocrShutdown has been called by an EDT.
  */
 void ocrFinalize();
 
@@ -69,8 +73,7 @@ void ocrFinalize();
  * contrary to the 'non-blocking EDT' philosophy so use with care
  *
  * @param outputEvent       Event to wait on
- * @return A GUID to the data-block that was used to satisfy the
- * event
+ * @return A GUID to the data-block that was used to satisfy the event
  */
 ocrGuid_t ocrWait(ocrGuid_t outputEvent);
 
