@@ -38,6 +38,22 @@
 
 #include "ocr-db.h"
 
+
+/**
+ * @defgroup OCRLibrary OCR used as a Library
+ * @brief Describes the OCR as library API
+ *
+ * When OCR is used as a library, the user need to
+ * explicitly bring up and tear down the runtime.
+ *
+ * @{
+ **/
+
+/**
+ * @brief Data-structure holding configuration elements for the runtime
+ *
+ * Members of the struct can be filed by calling ocrParseArgs or be manually set.
+ */
 typedef struct _ocrConfig_t {
     int userArgc;
     char ** userArgv;
@@ -76,5 +92,9 @@ void ocrFinalize();
  * @return A GUID to the data-block that was used to satisfy the event
  */
 ocrGuid_t ocrWait(ocrGuid_t outputEvent);
+
+/**
+ * @}
+ */
 
 #endif /* __OCR_LIB_H__ */

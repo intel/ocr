@@ -114,8 +114,7 @@ u8 ocrEventDestroy(ocrGuid_t guid);
  *       using ocrAddDependence with a data-block as the source
  *
  * @param eventGuid       GUID of event to satisfy
- * @param dataGuid        GUID of data to pass along or INVALID_GUID if no data
- *
+ * @param dataGuid        GUID of data to pass along or NULL_GUID if no data
  * @return 0 on success and an error code on failure:
  *     - ENOMEM: Returned if there is not enough memory. This is usually caused by
  *               a programmer error (two events to a unique slot and both events are
@@ -131,9 +130,9 @@ u8 ocrEventDestroy(ocrGuid_t guid);
  * the event will be satisfied for all EDTs/Events currently waiting on it
  * as well as any future EDT/Event that adds it as a dependence.
  **/
-u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=INVALID_GUID*/);
+u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=NULL_GUID*/);
 
-u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=INVALID_GUID*/, u32 slot /*=0*/);
+u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=NULL_GUID*/, u32 slot /*=0*/);
 
 /**
    @}
@@ -182,12 +181,9 @@ typedef struct {
  * @param paramc          Number of non-DB or non-event parameters. Can be used to pass u64 values
  * @param paramv          Values for the u64 values
  * @param depc            Number of dependences (either DBs or events)
- * @param depv            Values of the dependences. Can be INVAL_GUID/NULL if not known at
- *                        this point
- *
- * @return A GUID that will be passed to anyone waiting on the completion of the EDT
- *
- * @warning The variable number of input parameters (paramc) may change in the future.
+ * @param depv            Values of the dependences. Can be NULL_GUID if a pure control-flow event
+ *                        was used as a dependence
+ * @return Error code (0 on success)
  **/
 typedef ocrGuid_t (*ocrEdt_t )( u32 paramc, u64* paramv,
                    u32 depc, ocrEdtDep_t depv[]);
@@ -198,7 +194,7 @@ typedef ocrGuid_t (*ocrEdt_t )( u32 paramc, u64* paramv,
  *
  * An EDT template encapsulates the code that will be executed
  * by the EDT. It needs to be created only once for each function that will serve
- * as an EDT
+ * as an EDT.
  *
  * @param guid              Returned value: GUID of the newly created EDT Template
  * @param funcPtr           Function to execute as the EDT
@@ -225,12 +221,18 @@ u8 ocrEdtTemplateDestroy(ocrGuid_t guid);
  *
  * @param guid              Returned value: GUID of the newly created EDT type
  * @param templateGuid      GUID of the template to use for this EDT
- * @param paramc            Number of non-DB 64 bit values
+ * @param paramc            Number of non-DB 64 bit values. Set to 'EDT_PARAM_DEF' if
+                            follows the 'paramc' template specification. Set to the 
+                            actual number of arguments to be passed if 'EDT_PARAM_UNK' 
+                            has been given as the template's 'paramc' value.
  * @param paramv            Values for those parameters (copied in)
  * @param properties        Used to indicate if this is a finish EDT (EDT_PROP_FINISH).
  *                          Other uses reserved.
  * @param affinity          Affinity container for this EDT. Can be NULL_GUID
- * @param depc              Number of dependences for this EDT
+ * @param depc              Number of dependences for this EDT. Set to 'EDT_PARAM_DEF' if
+                            follows the 'depc' template specification. Set to the actual 
+                            number of arguments to be passed if 'EDT_PARAM_UNK' has been 
+                            given as the template's 'depc' value.
  * @param depv              Values for the GUIDs of the dependences (if known)
  *                          Use ocrAddDependence to add unknown ones or ones with
  *                          a mode other than the default DB_MODE_ITW
