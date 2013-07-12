@@ -161,10 +161,10 @@ static void destructSchedulerHc(ocrScheduler_t * scheduler) {
     ocrSchedulerHc_t * derived = (ocrSchedulerHc_t *) scheduler;
     u64 workpileCount = scheduler->workpileCount;
     ocrWorkpileIterator_t ** steal_iterators = derived->steal_iterators;
+    // Workpiles are deallocated by the policy domain
     u64 i = 0;
     while(i < workpileCount) {
         workpile_iterator_destructor(steal_iterators[i]);
-        scheduler->workpiles[i]->fctPtrs->destruct(scheduler->workpiles[i]);
         i++;
     }
     free(steal_iterators);
