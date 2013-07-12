@@ -54,8 +54,7 @@ const char * dataBlock_types [] = {
 // Regular datablock
 #include "datablock/regular/regular-datablock.h"
 
-// TODO sagnak: delete non-existant headers
-// Placed datablock
+// Placed datablock (not ported as of now)
 // #include "datablock/placed/placed-datablock.h"
 
 
@@ -64,12 +63,11 @@ ocrDataBlockFactory_t* newDataBlockFactory(dataBlockType_t type, ocrParamList_t 
     case dataBlockRegular_id:
         return newDataBlockFactoryRegular(typeArg);
         break;
-// TODO sagnak: delete non-existant parts
-//    case dataBlockPlaced_id:
+    case dataBlockPlaced_id:
 //        return newDataBlockFactoryPlaced(typeArg);
 //        break;
     default:
-        assert(0);
+        ASSERT(0);
     }
     return NULL;
 }

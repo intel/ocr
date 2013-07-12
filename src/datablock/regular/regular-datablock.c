@@ -31,6 +31,7 @@
  **/
 
 #include <errno.h>
+#include <stdlib.h>
 
 #include "ocr-datablock.h"
 #include "regular-datablock.h"

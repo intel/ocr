@@ -32,14 +32,12 @@
 #ifndef __POLICY_DOMAIN_ALL_H_
 #define __POLICY_DOMAIN_ALL_H_
 
-#include <stdlib.h>
-#include <assert.h>
-
 #include "ocr-comp-platform.h"
 #include "ocr-policy-domain.h"
 #include "ocr-policy-domain-getter.h"
 #include "ocr-task.h"
 #include "ocr-event.h"
+#include "debug.h"
 
 typedef enum _policyDomainType_t {
     policyDomainHc_id,
@@ -90,7 +88,7 @@ inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type
     default:
         return newPolicyDomainFactoryHc(perType);
     }
-    assert(0);
+    ASSERT(0);
     return NULL;
 }
 
@@ -111,7 +109,7 @@ inline ocrPolicyCtxFactory_t * newPolicyCtxFactory(policyCtxType_t type, ocrPara
     case policyCtxHc_id:
         return newPolicyContextFactoryHC(perType);
     default:
-        assert(0);
+        ASSERT(0);
     }
     return NULL;
 }

@@ -30,11 +30,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <stdlib.h>
-#include <assert.h>
-
 #include "ocr-macros.h"
+#include "ocr-types.h"
 #include "deque.h"
 #include "hc_sysdep.h"
+#include "debug.h"
 
 void dequeInit(deque_t * deq, void * init_value) {
     deq->head = 0;
@@ -43,7 +43,7 @@ void dequeInit(deque_t * deq, void * init_value) {
     deq->buffer->capacity = INIT_DEQUE_CAPACITY;
     deq->buffer->data = (volatile void **) checkedMalloc(deq->buffer->data, sizeof(void*)*INIT_DEQUE_CAPACITY);
     volatile void ** data = deq->buffer->data;
-    int i=0;
+    s32 i=0;
     while(i < INIT_DEQUE_CAPACITY) {
         data[i] = init_value;
         i++;
@@ -54,19 +54,19 @@ void dequeInit(deque_t * deq, void * init_value) {
  * push an entry onto the tail of the deque
  */
 void dequePush(deque_t* deq, void* entry) {
-	int n = deq->buffer->capacity;
-	int size = deq->tail - deq->head;
-	if (size == n) { /* deque looks full */
-		/* may not grow the deque if some interleaving steal occur */
-		assert("DEQUE full, increase deque's size" && 0);
-	}
-	n = (deq->tail) % deq->buffer->capacity;
-	deq->buffer->data[n] = entry;
+        s32 n = deq->buffer->capacity;
+        s32 size = deq->tail - deq->head;
+        if (size == n) { /* deque looks full */
+                /* may not grow the deque if some interleaving steal occur */
+                ASSERT("DEQUE full, increase deque's size" && 0);
+        }
+        n = (deq->tail) % deq->buffer->capacity;
+        deq->buffer->data[n] = entry;
 
 #ifdef __powerpc64__
-	hc_mfence();
-#endif 
-	deq->tail++;
+        hc_mfence();
+#endif
+        deq->tail++;
 }
 
 void dequeDestroy(deque_t* deq) {
@@ -83,7 +83,7 @@ void mpscDequeInit(mpsc_deque_t* deq, void * init_value) {
     deq->buffer->capacity = INIT_DEQUE_CAPACITY;
     deq->buffer->data = (volatile void **) malloc(sizeof(void*)*INIT_DEQUE_CAPACITY);
     volatile void ** data = deq->buffer->data;
-    int i=0;
+    s32 i=0;
     while(i < INIT_DEQUE_CAPACITY) {
         data[i] = init_value;
         i++;
@@ -91,16 +91,16 @@ void mpscDequeInit(mpsc_deque_t* deq, void * init_value) {
 }
 
 void deque_locked_push(mpsc_deque_t* deq, void* entry) {
-    int success = 0;
-    int capacity = deq->buffer->capacity;
+    s32 success = 0;
+    s32 capacity = deq->buffer->capacity;
 
-    while (!success) { 
-        int size = deq->tail - deq->head;
-        if (capacity == size) { 
-            assert("DEQUE full, increase deque's size" && 0);
+    while (!success) {
+        s32 size = deq->tail - deq->head;
+        if (capacity == size) {
+            ASSERT("DEQUE full, increase deque's size" && 0);
         }
 
-        if ( hc_cas(&deq->push, 0, 1) ) { 
+        if ( hc_cas(&deq->push, 0, 1) ) {
             success = 1;
             deq->buffer->data[ deq->tail % capacity ] = entry;
             hc_mfence();
@@ -111,8 +111,8 @@ void deque_locked_push(mpsc_deque_t* deq, void* entry) {
 }
 
 void * deque_non_competing_pop_head (mpsc_deque_t* deq ) {
-    int head = deq->head;
-    int tail = deq->tail;
+    s32 head = deq->head;
+    s32 tail = deq->tail;
     void * rt = NULL;
 
     if ((tail - head) > 0) {
@@ -127,67 +127,67 @@ void * deque_non_competing_pop_head (mpsc_deque_t* deq ) {
  * the steal protocol
  */
 void * deque_steal(deque_t * deq) {
-	int head;
-	/* Cannot read deq->buffer[head] here
-	 * Can happen that head=tail=0, then the owner of the deq pushes
-	 * a new task when stealer is here in the code, resulting in head=0, tail=1
-	 * All other checks down-below will be valid, but the old value of the buffer head
-	 * would be returned by the steal rather than the new pushed value.
-	 */
+        s32 head;
+        /* Cannot read deq->buffer[head] here
+         * Can happen that head=tail=0, then the owner of the deq pushes
+         * a new task when stealer is here in the code, resulting in head=0, tail=1
+         * All other checks down-below will be valid, but the old value of the buffer head
+         * would be returned by the steal rather than the new pushed value.
+         */
 
-	buffer_t * buffer;
-	int tail;
-	void * rt;
+        buffer_t * buffer;
+        s32 tail;
+        void * rt;
 
-	ici:
-	head = deq->head;
-	tail = deq->tail;
-	if ((tail - head) <= 0) {
-		return NULL;
-	}
+        ici:
+        head = deq->head;
+        tail = deq->tail;
+        if ((tail - head) <= 0) {
+                return NULL;
+        }
 
-	buffer = deq->buffer;
-	rt = (void *) ((void **) buffer->data)[head % buffer->capacity];
-	if(buffer != deq->buffer) {
-		/* if buffer addr has changed the deque has been resized, we need to start over */
-		goto ici;
-	}
+        buffer = deq->buffer;
+        rt = (void *) ((void **) buffer->data)[head % buffer->capacity];
+        if(buffer != deq->buffer) {
+                /* if buffer addr has changed the deque has been resized, we need to start over */
+                goto ici;
+        }
 
-	/* compete with other thieves and possibly the owner (if the size == 1) */
-	if (hc_cas(&deq->head, head, head + 1)) { /* competing */
-		return rt;
-	}
-	return NULL;
+        /* compete with other thieves and possibly the owner (if the size == 1) */
+        if (hc_cas(&deq->head, head, head + 1)) { /* competing */
+                return rt;
+        }
+        return NULL;
 }
 
 /*
  * pop the task out of the deque from the tail
  */
 void * dequePop(deque_t * deq) {
-	hc_mfence();
-	int tail = deq->tail;
-	tail--;
-	deq->tail = tail;
-	hc_mfence();
-	int head = deq->head;
-	int n = deq->buffer->capacity;
+        hc_mfence();
+        s32 tail = deq->tail;
+        tail--;
+        deq->tail = tail;
+        hc_mfence();
+        s32 head = deq->head;
+        s32 n = deq->buffer->capacity;
 
-	int size = tail - head;
-	if (size < 0) {
-		deq->tail = deq->head;
-		return NULL;
-	}
-	void * rt = (void*) deq->buffer->data[(tail) % n];
+        s32 size = tail - head;
+        if (size < 0) {
+                deq->tail = deq->head;
+                return NULL;
+        }
+        void * rt = (void*) deq->buffer->data[(tail) % n];
 
-	if (size > 0) {
-		return rt;
-	}
+        if (size > 0) {
+                return rt;
+        }
 
-	/* now size == 1, I need to compete with the thieves */
-	if (!hc_cas(&deq->head, head, head + 1))
-		rt = NULL; /* losing in competition */
+        /* now size == 1, I need to compete with the thieves */
+        if (!hc_cas(&deq->head, head, head + 1))
+                rt = NULL; /* losing in competition */
 
-	/* now the deque is empty */
-	deq->tail = deq->head;
-	return rt;
+        /* now the deque is empty */
+        deq->tail = deq->head;
+        return rt;
 }

@@ -41,47 +41,5 @@
 struct _ocrPolicyDomain_t;
 struct _ocrPolicyCtx_t;
 
-/*
-struct _ocrPolicyDomain_t bootstrapPD;
-struct _ocrPolicyCtx_t bootstrapCtx;
-
-u8 tempGetGuid(struct _ocrPolicyDomain_t * pd, ocrGuid_t *guid, u64 val,
-                  ocrGuidKind type, struct _ocrPolicyCtx_t *context) {
-    return pd->guidProvider->fctPtrs->getGuid(pd->guidProvider, guid, val, type);
-}
-
-struct _ocrPolicyDomain_t *tempPD(void)
-{
-    static int first_time = 1;
-
-    if (first_time) {
-        first_time = 0;
-        ocrGuidProviderFactory_t * factory = newGuidProviderFactory(guidPtr_id, NULL);
-        ocrGuidProvider_t * guidProvider = factory->instantiate(factory, NULL);
-        bootstrapPD.guidProvider = guidProvider;
-        bootstrapPD.getGuid = &tempGetGuid;
-        tempGetGuid(&bootstrapPD, &(bootstrapPD.guid), (u64)&bootstrapPD, OCR_GUID_POLICY, NULL);
-    }
-    return &bootstrapPD;
-}
-
-struct _ocrPolicyCtx_t* tempGetContext(void) {
-    // HUGE HUGE HACK
-    static int firstTime = 1;
-
-    if(firstTime) {
-        firstTime = 0;
-
-        bootstrapCtx.PD = tempPD();
-        bootstrapCtx.sourcePD = bootstrapCtx.PD->guid;
-    }
-
-    struct _ocrPolicyCtx_t* result = checkedMalloc(result, sizeof(struct _ocrPolicyCtx_t*));
-    result->PD = bootstrapCtx.PD;
-    result->sourcePD = bootstrapCtx.sourcePD;
-    return result;
-}
-*/
-
 ocrGuid_t (*getCurrentEDT)() = NULL;
 void (*setCurrentEDT)(ocrGuid_t) = NULL;

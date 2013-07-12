@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <assert.h>
 
 // This is just in case we want to avoid checking sys calls.

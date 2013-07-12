@@ -30,7 +30,6 @@
 */
 
 #include <stdlib.h>
-#include <assert.h>
 
 #include "ocr-macros.h"
 #include "ocr-types.h"

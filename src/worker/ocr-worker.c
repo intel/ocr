@@ -29,9 +29,6 @@
 
 */
 
-#include <assert.h>
-#include <stdlib.h>
-
 #include "ocr-types.h"
 #include "ocr-guid.h"
 #include "ocr-worker.h"

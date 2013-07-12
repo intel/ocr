@@ -31,6 +31,7 @@
 
 #include <pthread.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "pthread-comp-platform.h"
 #include "ocr-comp-platform.h"
