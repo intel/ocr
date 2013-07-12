@@ -108,6 +108,7 @@ u8 hcSchedulerYield (ocrScheduler_t* self, ocrGuid_t workerGuid,
         }
     }
     *returnGuid = result;
+    free(ctx);
     return 0;
 }
 

@@ -179,6 +179,7 @@ void worker_loop(ocrPolicyDomain_t * pd, ocrWorker_t * worker) {
             task->fctPtrs->destruct(task);
         }
     }
+    free(ctx);
 }
 
 void * worker_computation_routine(void * arg) {

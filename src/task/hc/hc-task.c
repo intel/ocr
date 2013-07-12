@@ -298,6 +298,7 @@ static void destructTaskHc ( ocrTask_t* base ) {
     ctx->type = PD_MSG_GUID_REL;
     pd->inform(pd, base->guid, ctx);
     base->addedDepCounter->fctPtrs->destruct(base->addedDepCounter);
+    free(ctx);
     free(derived);
 }
 
@@ -368,6 +369,7 @@ static inline void taskSchedule( ocrGuid_t taskGuid ) {
     ctx->type = PD_MSG_EDT_READY;
     // give the edt to the policy domain
     orgCtx->PD->giveEdt(orgCtx->PD, 1, &taskGuid, ctx);
+    free(ctx);
 }
 
 /**
