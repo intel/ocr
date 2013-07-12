@@ -38,42 +38,6 @@
 struct _ocrPolicyDomain_t;
 
 /******************************************************/
-/* LOGGING FACILITY                                   */
-/******************************************************/
-
-/*
- * Default logging output to stdout
- */
-#define ocr_log_print(...) fprintf(stdout, __VA_ARGS__);
-
-/*
- * List of components you can enable / disable logging
- */
-#define LOGGER_WORKER 1
-#define LOGGER_EVENT 2
-#define LOGGER_TASK 3
-
-/*
- * Loggers levels
- */
-#define LOG_LEVEL_INFO 1
-#define LOG_LEVEL_DBG 2
-
-/*
- * Current logging level
- */
-#define LOG_LEVEL_CURRENT 1
-
-#define ocr_log(type, level, fmt, ...)                                  \
-    if ((LOGGER_ ## type) && ((LOG_LEVEL_ ## level) <= LOG_LEVEL_CURRENT)) \
-    { ocr_log_print(fmt, __VA_ARGS__);}
-
-/*
- * Convenience macro to log worker-related events
- */
-#define log_worker(level, fmt, ...) ocr_log(WORKER, level, fmt, __VA_ARGS__)
-
-/******************************************************/
 /* PARAMETER LISTS                                    */
 /******************************************************/
 

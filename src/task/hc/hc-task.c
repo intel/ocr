@@ -48,12 +48,14 @@
 #define UNINITIALIZED_DATA ((ocrGuid_t) -2)
 
 
+#define DEBUG_TYPE TASK
+
 //
 // Guid-kind checkers for convenience
 //
 
 bool isDatablockGuid(ocrGuid_t guid) {
-    if (NULL_GUID == guid) { 
+    if (NULL_GUID == guid) {
         return false;
     }
     ocrGuidKind kind;
@@ -62,7 +64,7 @@ bool isDatablockGuid(ocrGuid_t guid) {
 }
 
 bool isEventGuid(ocrGuid_t guid) {
-    if (NULL_GUID == guid) { 
+    if (NULL_GUID == guid) {
         return false;
     }
     ocrGuidKind kind;
@@ -71,7 +73,7 @@ bool isEventGuid(ocrGuid_t guid) {
 }
 
 bool isEdtGuid(ocrGuid_t guid) {
-    if (NULL_GUID == guid) { 
+    if (NULL_GUID == guid) {
         return false;
     }
     ocrGuidKind kind;
@@ -239,7 +241,9 @@ static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomai
         hcLatch->ownerGuid = newEdtBase->guid;
         ocrEvent_t * parentLatch = getFinishLatch(getCurrentTask());
         if (parentLatch != NULL) {
-            ocr_log(TASK, INFO, "[TASK:checkin] %lu on parent flatch %lu\n", newEdtBase->guid, parentLatch->guid);
+            DO_DEBUG(DEBUG_LVL_INFO)
+                DEBUG("Checkin 0x%lx on parent flatch 0x%lx\n", newEdtBase->guid, parentLatch->guid);
+            END_DEBUG
             // Check in current finish latch
             finishLatchCheckin(parentLatch);
             // Link the new latch to the parent's decrement slot
@@ -251,7 +255,9 @@ static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomai
             hcLatch->parentLatchWaiter.guid = NULL_GUID;
             hcLatch->parentLatchWaiter.slot = -1;
         }
-        ocr_log(TASK, INFO, "[TASK:checkin] %lu on self flatch %lu\n", newEdtBase->guid, latch->guid);
+        DO_DEBUG(DEBUG_LVL_INFO)
+            DEBUG("Checkin 0x%lx on self flatch 0x%lx\n", newEdtBase->guid, latch->guid);
+        END_DEBUG
         // Check in the new finish scope
         finishLatchCheckin(latch);
         // Set edt's ELS to the new latch
@@ -266,7 +272,9 @@ static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomai
         // but is not a finish-edt itself, just register to the scope
         ocrEvent_t * curLatch = getFinishLatch(getCurrentTask());
         if (curLatch != NULL) {
-            ocr_log(TASK, INFO, "[TASK:checkin] %lu on current flatch %lu\n", newEdtBase->guid, curLatch->guid);
+            DO_DEBUG(DEBUG_LVL_INFO)
+                DEBUG("Checkin 0x%lx on current flatch 0x%lx\n", newEdtBase->guid, curLatch->guid);
+            END_DEBUG
             // Check in current finish latch
             finishLatchCheckin(curLatch);
             // Transmit finish-latch to newly created edt
@@ -277,7 +285,9 @@ static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomai
 }
 
 static void destructTaskHc ( ocrTask_t* base ) {
-    ocr_log(TASK, INFO, "[TASK:destroy] %lu\n", base->guid);
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Destroy 0x%lx\n", base->guid);
+    END_DEBUG
     ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcessDestruct(&(base->statProcess));
@@ -329,7 +339,9 @@ static void edtRegisterSignaler(ocrTask_t * base, ocrGuid_t signalerGuid, int sl
     node->slot = slot;
     // No need to chain nodes here, will use index
     node->next = NULL;
-    ocr_log(TASK, INFO, "[TASK:addDependence] from:%lu to:%lu slot:%d\n", signalerGuid, base->guid, slot);
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("AddDependence from 0x%lx to 0x%lx slot %d\n", signalerGuid, base->guid, slot);
+    END_DEBUG
 }
 
 
@@ -343,7 +355,9 @@ static void edtRegisterSignaler(ocrTask_t * base, ocrGuid_t signalerGuid, int sl
  * Note: static function only meant to factorize code.
  */
 static inline void taskSchedule( ocrGuid_t taskGuid ) {
-    ocr_log(TASK, INFO, "[TASK:schedule] %lu\n", taskGuid);
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Schedule 0x%lx\n", taskGuid);
+    END_DEBUG
     // Setting up the context
     ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
     // Current worker schedulers to current policy domain
@@ -380,14 +394,16 @@ static void tryScheduleTask( ocrTask_t* base ) {
 }
 
 static void taskExecute ( ocrTask_t* base ) {
-    ocr_log(TASK, INFO, "[TASK:execute] %lu\n", base->guid);
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Execute 0x%lx\n", base->guid);
+    END_DEBUG
     ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
     // In this implementation each time a signaler has been satisfied, its guid
     // has been replaced by the db guid it has been satisfied with.
     u32 paramc = base->paramc;
     u64 * paramv = base->paramv;
     u64 depc = base->depc;
-    
+
     ocrEdtDep_t * depv = NULL;
     // If any dependencies, acquire their data-blocks
     if (depc != 0) {
@@ -442,9 +458,11 @@ static void taskExecute ( ocrTask_t* base ) {
             satisfyOutputEvent = false;
         }
         // If the edt is the last to checkout from the current finish scope,
-        // the latch event automatically satisfies the parent latch (if any) 
+        // the latch event automatically satisfies the parent latch (if any)
         // and the output event associated with the current finish-edt (if any)
-        ocr_log(TASK, INFO, "[TASK:checkout] %lu on flatch %lu\n", base->guid, curLatch->guid);
+        DO_DEBUG(DEBUG_LVL_INFO)
+            DEBUG("Checkout 0x%lx on flatch 0x%lx\n", base->guid, curLatch->guid);
+        END_DEBUG
         finishLatchCheckout(curLatch);
     }
 
@@ -512,7 +530,9 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplat
                                          depc, properties, affinity, outputEvent);
     ocrTask_t* base = (ocrTask_t*) edt;
     base->fctPtrs = &(((ocrTaskFactoryHc_t *) factory)->taskFctPtrs);
-    ocr_log(TASK, INFO, "[TASK:create] %lu depc:%d outputEvent:%lu\n", base->guid, depc, outputEvent);
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Create 0x%lx depc %d outputEvent 0x%lx\n", base->guid, depc, outputEvent);
+    END_DEBUG
     return base;
 }
 
@@ -557,7 +577,9 @@ static void awaitableEventRegisterWaiter(ocrEventHcAwaitable_t * self, ocrGuid_t
         }
         if (curHead != SEALED_LIST) {
             // Insertion successful, we're done
-            ocr_log(TASK, INFO, "[EVENT:addDependence] from:%lu to:%lu slot:%d\n", (((ocrEvent_t*)self)->guid), waiter, slot);
+            DO_DEBUG(DEBUG_LVL_INFO)
+                DEBUG("AddDependence from 0x%lx to 0x%lx slot %d\n", (((ocrEvent_t*)self)->guid), waiter, slot);
+            END_DEBUG
             return;
         }
         //else list has been sealed by a concurrent satisfy

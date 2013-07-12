@@ -48,6 +48,7 @@
 #define END_OF_LIST NULL
 #define UNINITIALIZED_DATA ((ocrGuid_t) -2)
 
+#define DEBUG_TYPE EVENT
 
 /******************************************************/
 /* OCR-HC Debug                                       */
@@ -147,14 +148,18 @@ static ocrEvent_t* eventConstructorInternal(ocrPolicyDomain_t * pd, ocrEventFact
     base->fctPtrs = eventFctPtrs;
     base->guid = UNINITIALIZED_GUID;
     guidify(pd, (u64)base, &(base->guid), OCR_GUID_EVENT);
-    ocr_log(EVENT, INFO, "%s%s] %lu\n", "[EVENT:create:", eventTypeToString(base), base->guid);
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Create %s: 0x%lx\n", eventTypeToString(base), base->guid);
+    END_DEBUG
     return base;
 }
 
 void destructEventHc ( ocrEvent_t* base ) {
     // Event's signaler/waiter must have been previously deallocated
     // at some point before. For instance on satisfy.
-    ocr_log(EVENT, INFO, "%s%s] %lu\n", "[EVENT:destroy:", eventTypeToString(base), base->guid);
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Destroy %s: 0x%lx\n", eventTypeToString(base), base->guid);
+    END_DEBUG;
     ocrEventHc_t* derived = (ocrEventHc_t*)base;
     ocrPolicyDomain_t *pd = getCurrentPD();
     ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
@@ -200,7 +205,9 @@ static void singleEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slotEvent)
     // time we try to satisfy the event. Note: It's a very loose check, the
     // 'Put' implementation must do more work to detect races on data.
     if (self->data == UNINITIALIZED_DATA) {
-        ocr_log(EVENT, INFO, "%s%s] %lu %s %lu\n", "[EVENT:satisfy:", eventTypeToString(base), base->guid, "with", data);
+        DO_DEBUG(DEBUG_LVL_INFO)
+            DEBUG("Satisfy %s: 0x%lx with 0x%lx\n", eventTypeToString(base), base->guid, data);
+        END_DEBUG
         // Single events don't have slots, just put the data
         regNode_t * waiters = singleEventPut(self, data);
         // Put must have sealed the waiters list and returned it
@@ -253,9 +260,13 @@ static void latchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot) {
         count = latch->counter;
     } while(!__sync_bool_compare_and_swap(&(latch->counter), count, count+incr));
 
-    ocr_log(EVENT, INFO, "%s%s] %lu %s\n", "[EVENT:satisfy:", eventTypeToString(base), base->guid, ((slot == OCR_EVENT_LATCH_DECR_SLOT) ? "decr" : "incr"));
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Satisfy %s: 0x%lx %s\n", eventTypeToString(base), base->guid, ((slot == OCR_EVENT_LATCH_DECR_SLOT) ? "decr":"incr"));
+    END_DEBUG
     if ((count+incr) == 0) {
-        ocr_log(EVENT, INFO, "%s%s] %lu %s\n", "[EVENT:satisfy:", eventTypeToString(base), base->guid, "reached zero");
+        DO_DEBUG(DEBUG_LVL_INFO)
+            DEBUG("Satisfy %s: 0x%lx reached zero\n", eventTypeToString(base), base->guid);
+        END_DEBUG
         ocrEventHcAwaitable_t * self = (ocrEventHcAwaitable_t *) base;
         //TODO add API to seal a list
         //TODO: do we need volatile here ?
@@ -303,10 +314,14 @@ static void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot)
     do {
         count = self->counter;
     } while(!__sync_bool_compare_and_swap(&(self->counter), count, count+incr));
-    ocr_log(EVENT, DBG, "%s%s] %lu %s\n", "[EVENT:satisfy:", eventTypeToString(base), base->guid, ((slot == OCR_EVENT_LATCH_DECR_SLOT) ? "decr" : "incr"));
+    DO_DEBUG(DEBUG_LVL_VERB)
+        DEBUG("Satisfy %s: 0x%lx %s\n", eventTypeToString(base), base->guid, ((slot == OCR_EVENT_LATCH_DECR_SLOT)? "decr":"incr"));
+    END_DEBUG
     // No possible race when we reached 0 (see R2)
     if ((count+incr) == 0) {
-        ocr_log(EVENT, INFO, "%s%s] %lu %s\n", "[EVENT:satisfy:", eventTypeToString(base), base->guid, "reached zero");
+        DO_DEBUG(DEBUG_LVL_INFO)
+            DEBUG("Satisfy %s: 0x%lx reached zero\n", eventTypeToString(base), base->guid);
+        END_DEBUG
         // Important to void the ELS at that point, to make sure there's no
         // side effect on code executing downwards.
         ocrTask_t * task = getCurrentTask();
@@ -324,7 +339,7 @@ static void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot)
             deguidify(getCurrentPD(), parentLatchWaiter->guid, (u64*)&parentLatch, NULL);
             finishLatchCheckout(parentLatch);
         }
-        // Since finish-latch is internal to finish-edt, and ELS is cleared, 
+        // Since finish-latch is internal to finish-edt, and ELS is cleared,
         // there are no more pointers left to it, deallocate.
         base->fctPtrs->destruct(base);
     }

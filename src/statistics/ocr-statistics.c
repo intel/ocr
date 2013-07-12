@@ -44,6 +44,7 @@
 // would be setup in ocr-driver.c
 //#include "ocr-driver.h"
 
+#define DEBUG_TYPE STATS
 // Forward declaration
 static u8 intProcessMessage(ocrStatsProcess_t *dst);
 
@@ -72,18 +73,18 @@ void ocrStatsProcessCreate(ocrStatsProcess_t *self, ocrGuid_t guid) {
     self->filterCounts = (u64*)malloc(sizeof(u64)*(STATS_EVT_MAX+1));
     for(i = 0; i < (u64)STATS_EVT_MAX + 1; ++i) self->filterCounts[i] = 0ULL;
 
-    DO_DEBUG(DEBUG_LVL_INFO) {
-        PRINTF("INFO: Created a StatsProcess (0x%lx) for object with GUID 0x%lx\n", (u64)self, guid);
-    }
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Created a StatsProcess (0x%lx) for object with GUID 0x%lx\n", (u64)self, guid);
+    END_DEBUG
 }
 
 void ocrStatsProcessDestruct(ocrStatsProcess_t *self) {
     u64 i;
     u32 j;
 
-    DO_DEBUG(DEBUG_LVL_INFO) {
-        PRINTF("INFO: Destroying StatsProcess 0x%lx (GUID: 0x%lx)\n", (u64)self, self->me);
-    }
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Destroying StatsProcess 0x%lx (GUID: 0x%lx)\n", (u64)self, self->me);
+    END_DEBUG
 
     // Make sure we process all remaining messages
     while(!self->processing->trylock(self->processing)) ;
@@ -116,10 +117,10 @@ void ocrStatsProcessDestruct(ocrStatsProcess_t *self) {
 void ocrStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
                                    ocrStatsFilter_t *filter) {
 
-    DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Registering filter 0x%lx with process 0x%lx for mask 0x%lx\n",
+    DO_DEBUG(DEBUG_LVL_VERB)
+        DEBUG("Registering filter 0x%lx with process 0x%lx for mask 0x%lx\n",
                (u64)filter, (u64)self, bitMask);
-    }
+    END_DEBUG
     u32 countAlloc, countPresent;
 
     while(bitMask) {
@@ -133,10 +134,10 @@ void ocrStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
         // Check to make sure we have enough room to add this filter
         countPresent = (u32)(self->filterCounts[bitSet] & 0xFFFFFFFF);
         countAlloc = (u32)(self->filterCounts[bitSet] >> 32);
-        // DO_DEBUG(DEBUG_LVL_VVERB) {
-        //     PRINTF("VVERB: For type %ld, have %d present and %d allocated (from 0x%lx)\n",
+        // DO_DEBUG(DEBUG_LVL_VVERB)
+        //     DEBUG("For type %ld, have %d present and %d allocated (from 0x%lx)\n",
         //            bitSet, countPresent, countAlloc, self->filterCounts[bitSet]);
-        // }
+        // END_DEBUG
         if(countAlloc <= countPresent) {
             // Allocate using an exponential model
             if(countAlloc)
@@ -154,10 +155,10 @@ void ocrStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
 
         // Set the counter properly again
         self->filterCounts[bitSet] = ((u64)countAlloc << 32) | (countPresent);
-        // DO_DEBUG(DEBUG_LVL_VVERB) {
-        //     PRINTF("VVERB: Setting final counter for %ld to 0x%lx\n",
+        // DO_DEBUG(DEBUG_LVL_VVERB)
+        //     DEBUG("Setting final counter for %ld to 0x%lx\n",
         //            bitSet, self->filterCounts[bitSet]);
-        // }
+        // END_DEBUG
     }
     // Do the same thing for bit 0. Only do it once so we only free things once
     countPresent = (u32)(self->filterCounts[0] & 0xFFFFFFFF);
@@ -187,35 +188,35 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
 
 
     u64 tickVal = (src->tick += 1);
-    DO_DEBUG(DEBUG_LVL_VVERB) {
-        PRINTF("VERB: Message from 0x%lx with timestamp %ld\n", src->me, tickVal);
-    }
+    DO_DEBUG(DEBUG_LVL_VVERB)
+        DEBUG("Message from 0x%lx with timestamp %ld\n", src->me, tickVal);
+    END_DEBUG
     msg->tick = tickVal;
     msg->state = 0;
     ASSERT(msg->src == src->me);
     ASSERT(msg->dest == dst->me);
 
-    DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: Message 0x%lx -> 0x%lx of type %d (0x%lx)\n",
-               src->me, dst->me, (int)msg->type, (u64)msg);
-    }
+    DO_DEBUG(DEBUG_LVL_VERB)
+        DEBUG("Message 0x%lx -> 0x%lx of type %d (0x%lx)\n",
+              src->me, dst->me, (int)msg->type, (u64)msg);
+    END_DEBUG
     // Push the message into the messages queue
     dst->messages->pushTail(dst->messages, (u64)msg);
 
     // Now try to get the lock on processing
     if(dst->processing->trylock(dst->processing)) {
         // We grabbed the lock
-        DO_DEBUG(DEBUG_LVL_VERB) {
-            PRINTF("VERB: Message 0x%lx -> 0x%lx: grabbing processing lock\n", src->me, dst->me);
-        }
+        DO_DEBUG(DEBUG_LVL_VERB)
+            DEBUG("Message 0x%lx -> 0x%lx: grabbing processing lock\n", src->me, dst->me);
+        END_DEBUG
         u32 count = 5; // TODO: Make configurable
         while(count-- > 0) {
             if(!intProcessMessage(dst))
                 break;
         }
-        DO_DEBUG(DEBUG_LVL_VERB) {
-            PRINTF("VERB: Finished processing messages for 0x%lx\n", dst->me);
-        }
+        DO_DEBUG(DEBUG_LVL_VERB)
+            DEBUG("Finished processing messages for 0x%lx\n", dst->me);
+        END_DEBUG
         // Unlock
         dst->processing->unlock(dst->processing);
     }
@@ -225,18 +226,18 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
                           ocrStatsMessage_t *msg) {
 
     u64 tickVal = (src->tick += 1);
-    DO_DEBUG(DEBUG_LVL_VVERB) {
-        PRINTF("VERB: SYNC Message from 0x%lx with timestamp %ld\n", src->me, tickVal);
-    }
+    DO_DEBUG(DEBUG_LVL_VVERB)
+        DEBUG("SYNC Message from 0x%lx with timestamp %ld\n", src->me, tickVal);
+    END_DEBUG
     msg->tick = tickVal;
     msg->state = 1;
     ASSERT(msg->src == src->me);
     ASSERT(msg->dest == dst->me);
 
-    DO_DEBUG(DEBUG_LVL_VERB) {
-        PRINTF("VERB: SYNC Message 0x%lx -> 0x%lx of type %d (0x%lx)\n",
-               src->me, dst->me, (int)msg->type, (u64)msg);
-    }
+    DO_DEBUG(DEBUG_LVL_VERB)
+        DEBUG("SYNC Message 0x%lx -> 0x%lx of type %d (0x%lx)\n",
+              src->me, dst->me, (int)msg->type, (u64)msg);
+    END_DEBUG
     // Push the message into the messages queue
     dst->messages->pushTail(dst->messages, (u64)msg);
 
@@ -249,9 +250,9 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     while(1) {
         if(dst->processing->trylock(dst->processing)) {
             // We grabbed the lock
-            DO_DEBUG(DEBUG_LVL_VERB) {
-                PRINTF("VERB: Message 0x%lx -> 0x%lx: grabbing processing lock\n", src->me, dst->me);
-            }
+            DO_DEBUG(DEBUG_LVL_VERB)
+                DEBUG("Message 0x%lx -> 0x%lx: grabbing processing lock\n", src->me, dst->me);
+            END_DEBUG
             s32 count = 5; // TODO: Make configurable
             // Process at least count and at least until we get to our message
             // EXTREMELY RARE PROBLEM of count running over for REALLY deep queues
@@ -259,9 +260,9 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
                 if(!intProcessMessage(dst) && (msg->state == 2))
                     break;
             }
-            DO_DEBUG(DEBUG_LVL_VERB) {
-                PRINTF("VERB: Finished processing messages for 0x%lx\n", dst->me);
-            }
+            DO_DEBUG(DEBUG_LVL_VERB)
+                DEBUG("Finished processing messages for 0x%lx\n", dst->me);
+            END_DEBUG
             // Unlock
             dst->processing->unlock(dst->processing);
 
@@ -275,9 +276,9 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     ASSERT(msg->state == 2);
     ASSERT(msg->tick >= src->tick);
     src->tick = msg->tick;
-    DO_DEBUG(DEBUG_LVL_VVERB) {
-        PRINTF("VVERB: Sync tick out: %ld\n", src->tick);
-    }
+    DO_DEBUG(DEBUG_LVL_VVERB)
+        DEBUG("Sync tick out: %ld\n", src->tick);
+    END_DEBUG
     msg->destruct(msg);
 }
 
@@ -299,15 +300,15 @@ static u8 intProcessMessage(ocrStatsProcess_t *dst) {
     ocrStatsMessage_t* msg = (ocrStatsMessage_t*)dst->messages->popHead(dst->messages);
 
     if(msg) {
-        DO_DEBUG(DEBUG_LVL_VERB) {
-            PRINTF("VERB: Processing message 0x%lx for 0x%lx\n",
-                   (u64)msg, dst->me);
-        }
+        DO_DEBUG(DEBUG_LVL_VERB)
+            DEBUG("Processing message 0x%lx for 0x%lx\n",
+                  (u64)msg, dst->me);
+        END_DEBUG
         u64 newTick = msg->tick > (dst->tick + 1)?msg->tick:(dst->tick + 1);
         msg->tick = dst->tick = newTick;
-        DO_DEBUG(DEBUG_LVL_VVERB) {
-            PRINTF("VVERB: Message tick is %ld\n", msg->tick);
-        }
+        DO_DEBUG(DEBUG_LVL_VVERB)
+            DEBUG("Message tick is %ld\n", msg->tick);
+        END_DEBUG
 
         u32 type = (u32)msg->type;
         u32 countFilter = dst->filterCounts[type] & 0xFFFFFFFF;
@@ -316,10 +317,10 @@ static u8 intProcessMessage(ocrStatsProcess_t *dst) {
             // this message type
             ocrStatsFilter_t **myFilters =  dst->filters[type];
             while(countFilter-- > 0) {
-                DO_DEBUG(DEBUG_LVL_VVERB) {
-                    PRINTF("VVERB: Sending message 0x%lx to filter 0x%lx\n",
-                           (u64)msg, (u64)myFilters[countFilter]);
-                }
+                DO_DEBUG(DEBUG_LVL_VVERB)
+                    DEBUG("Sending message 0x%lx to filter 0x%lx\n",
+                          (u64)msg, (u64)myFilters[countFilter]);
+                END_DEBUG
                 myFilters[countFilter]->notify(myFilters[countFilter], msg);
             }
         }

@@ -6,7 +6,33 @@ OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/s
 # cflags: important to define that otherwise we inherit default values too
 CFLAGS = -Wall -g -O0
 #CFLAGS +=-DOCR_ENABLE_STATISTICS
-CFLAGS +=-DOCR_DEBUG -DOCR_DEBUG_LEVEL=DEBUG_LVL_VVERB
+
+# Debug flags
+
+# Enable debug
+CFLAGS += -DOCR_DEBUG
+# Define level
+CFLAGS += -DOCR_DEBUG_LEVEL=DEBUG_LVL_VVERB
+# Define which modules you want for debugging
+# You can optionally define an individual debuging level by
+# defining DEBUG_LVL_XXX like OCR_DEBUG_LEVEL. If not defined,
+# the default will be used
+CFLAGS += -DOCR_DEBUG_ALLOCATOR -DDEBUG_LVL_ALLOCATOR=DEBUG_LVL_VVERB
+CFLAGS += -DOCR_DEBUG_COMP_PLATFORM
+CFLAGS += -DOCR_DEBUG_COMP_TARGET
+CFLAGS += -DOCR_DEBUG_DATABLOCK
+CFLAGS += -DOCR_DEBUG_EVENT
+CFLAGS += -DOCR_DEBUG_GUID
+CFLAGS += -DOCR_DEBUG_MACHINE
+CFLAGS += -DOCR_DEBUG_MEM_PLATFORM
+CFLAGS += -DOCR_DEBUG_MEM_TARGET
+CFLAGS += -DOCR_DEBUG_POLICY
+CFLAGS += -DOCR_DEBUG_SCHEDULER
+CFLAGS += -DOCR_DEBUG_STATS
+CFLAGS += -DOCR_DEBUG_SYNC
+CFLAGS += -DOCR_DEBUG_TASK
+CFLAGS += -DOCR_DEBUG_WORKER
+CFLAGS += -DOCR_DEBUG_WORKPILE
 
 # additional cflags for ocr modules
 OCR_CFLAGS =

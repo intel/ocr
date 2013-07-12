@@ -38,6 +38,8 @@
 #include "ocr-guid.h"
 #include "ocr-comp-platform.h"
 
+#define DEBUG_TYPE WORKER
+
 /******************************************************/
 /* OCR-HC WORKER                                      */
 /******************************************************/
@@ -96,7 +98,9 @@ void hcFinishWorker(ocrWorker_t * base) {
     // to join with the other threads
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
     hcWorker->run = false;
-    log_worker(INFO, "Finishing worker routine %d\n", hcWorker->id);
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Finishing worker routine %d\n", hcWorker->id);
+    END_DEBUG
 }
 
 void hcStopWorker(ocrWorker_t * base) {
@@ -106,7 +110,9 @@ void hcStopWorker(ocrWorker_t * base) {
     for(i = 0; i < computeCount; i++) {
       base->computes[i]->fctPtrs->stop(base->computes[i]);
     }
-    log_worker(INFO, "Stopping worker %d\n", ((ocrWorkerHc_t *) base)->id);
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Stopping worker %d\n", ((ocrWorkerHc_t *)base)->id);
+    END_DEBUG
 }
 
 bool hc_is_running_worker(ocrWorker_t * base) {
@@ -184,7 +190,9 @@ void * worker_computation_routine(void * arg) {
     associate_comp_platform_and_worker(pd, worker);
     // Setting up this worker context to takeEdts
     // This assumes workers are not relocatable
-    log_worker(INFO, "Starting scheduler routine of worker %d\n", get_worker_id(worker));
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Starting scheduler routine of worker %d\n", get_worker_id(worker));
+    END_DEBUG
     worker_loop(pd, worker);
     return NULL;
 }
@@ -193,7 +201,9 @@ void * master_worker_computation_routine(void * arg) {
     launchArg_t * launchArg = (launchArg_t *) arg;
     ocrPolicyDomain_t * pd = launchArg->PD;
     ocrWorker_t * worker = (ocrWorker_t *) launchArg->arg;
-    log_worker(INFO, "Starting scheduler routine of master worker %d\n", get_worker_id(worker));
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("Starting scheduler routine of master worker %d\n", get_worker_id(worker));
+    END_DEBUG
     worker_loop(pd, worker);
     return NULL;
 }
