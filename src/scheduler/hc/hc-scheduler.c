@@ -34,7 +34,7 @@
 #include "ocr-macros.h"
 #include "ocr-runtime.h"
 #include "hc.h"
-
+#include "debug.h"
 
 /******************************************************/
 /* OCR-HC SCHEDULER                                   */
@@ -76,6 +76,39 @@ void hcSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
 
 void hcSchedulerStop(ocrScheduler_t * self) {
   // nothing to do here
+}
+
+u8 hcSchedulerYield (ocrScheduler_t* self, ocrGuid_t workerGuid, 
+                       ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid, 
+                       ocrGuid_t * returnGuid,
+                       ocrPolicyCtx_t *context) {
+    // We do not yet take advantage of knowing which EDT we are yielding for.
+    ocrPolicyDomain_t * pd = context->PD;
+    ocrWorker_t * worker = NULL;
+    deguidify(pd, workerGuid, (u64*)&(worker), NULL);
+    // Retrieve currently executing edt's guid
+    ocrEvent_t * eventToYieldFor = NULL;
+    deguidify(pd, eventToYieldForGuid, (u64*)&(eventToYieldFor), NULL);
+
+    ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
+    ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
+    ctx->type = PD_MSG_EDT_TAKE;
+
+    ocrGuid_t result = ERROR_GUID;
+    //This only works for single events, not latches
+    ASSERT(isEventSingleGuid(eventToYieldForGuid));
+    while((result = eventToYieldFor->fctPtrs->get(eventToYieldFor, 0)) == ERROR_GUID) {
+        u32 count;
+        ocrGuid_t taskGuid;
+        pd->takeEdt(pd, NULL, &count, &taskGuid, ctx);
+        ocrTask_t* task = NULL;
+        deguidify(pd, taskGuid, (u64*)&(task), NULL);
+        if (taskGuid != NULL_GUID) {
+            worker->fctPtrs->execute(worker, task, taskGuid, yieldingEdtGuid);
+        }
+    }
+    *returnGuid = result;
+    return 0;
 }
 
 static u8 hcSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *count,
@@ -157,6 +190,7 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(ocrParamList_t *perType) {
     base->destruct = destructSchedulerFactoryHc;
     base->schedulerFcts.start = hcSchedulerStart;
     base->schedulerFcts.stop = hcSchedulerStop;
+    base->schedulerFcts.yield = hcSchedulerYield;
     base->schedulerFcts.destruct = destructSchedulerHc;
     base->schedulerFcts.takeEdt = hcSchedulerTake;
     base->schedulerFcts.giveEdt = hcSchedulerGive;

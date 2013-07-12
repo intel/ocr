@@ -146,6 +146,12 @@ int get_worker_id(ocrWorker_t * worker) {
     return hcWorker->id;
 }
 
+static void hcExecuteWorker(ocrWorker_t * worker, ocrTask_t* task, ocrGuid_t taskGuid, ocrGuid_t currentTaskGuid) {
+    worker->fctPtrs->setCurrentEDT(worker, taskGuid);
+    task->fctPtrs->execute(task);
+    worker->fctPtrs->setCurrentEDT(worker, currentTaskGuid);
+}
+
 void worker_loop(ocrPolicyDomain_t * pd, ocrWorker_t * worker) {
     // Build and cache a take context
     ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
@@ -161,12 +167,10 @@ void worker_loop(ocrPolicyDomain_t * pd, ocrWorker_t * worker) {
         // allocates the taskGuid array
         ASSERT(count <= 1);
         if (count != 0) {
-            ocrTask_t* curr_task = NULL;
-            deguidify(pd, taskGuid, (u64*)&(curr_task), NULL);
-            worker->fctPtrs->setCurrentEDT(worker,taskGuid);
-            curr_task->fctPtrs->execute(curr_task);
-            worker->fctPtrs->setCurrentEDT(worker, NULL_GUID);
-            curr_task->fctPtrs->destruct(curr_task);
+            ocrTask_t* task = NULL;
+            deguidify(pd, taskGuid, (u64*)&(task), NULL);
+            worker->fctPtrs->execute(worker, task, taskGuid, NULL_GUID);
+            task->fctPtrs->destruct(task);
         }
     }
 }
@@ -210,6 +214,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
     base->destruct =  destructWorkerFactoryHc;
     base->workerFcts.destruct = destructWorkerHc;
     base->workerFcts.start = hcStartWorker;
+    base->workerFcts.execute = hcExecuteWorker;
     base->workerFcts.finish = hcFinishWorker;
     base->workerFcts.stop = hcStopWorker;
     base->workerFcts.isRunning = hc_is_running_worker;

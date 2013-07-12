@@ -62,7 +62,7 @@ struct _ocrPolicyDomain_t;
 /*
  * Current logging level
  */
-#define LOG_LEVEL_CURRENT 0
+#define LOG_LEVEL_CURRENT 1
 
 #define ocr_log(type, level, fmt, ...)                                  \
     if ((LOGGER_ ## type) && ((LOG_LEVEL_ ## level) <= LOG_LEVEL_CURRENT)) \

@@ -352,6 +352,13 @@ typedef struct _ocrPolicyDomain_t {
                  ocrPolicyCtx_t *context);
 
     /**
+     * @brief Inform the policy domain a worker is waiting for an event to complete
+     */
+    u8 (*waitForEvent) (struct _ocrPolicyDomain_t *self, ocrGuid_t workerGuid,
+                       ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
+                       ocrGuid_t * returnGuid, ocrPolicyCtx_t *context);
+
+    /**
      * @brief Called for asynchronous calls when the call has been
      * processed.
      *

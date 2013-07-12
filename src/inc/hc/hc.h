@@ -150,4 +150,19 @@ typedef struct {
 
 ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perType);
 
+
+//
+// Guid-kind checkers for convenience
+//
+
+bool isDatablockGuid(ocrGuid_t guid);
+
+bool isEventGuid(ocrGuid_t guid);
+
+bool isEdtGuid(ocrGuid_t guid);
+
+bool isEventLatchGuid(ocrGuid_t guid);
+
+bool isEventSingleGuid(ocrGuid_t guid);
+
 #endif /* HC_H_ */

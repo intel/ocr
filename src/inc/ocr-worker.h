@@ -54,6 +54,7 @@ typedef struct _paramListWorkerInst_t {
 /******************************************************/
 
 struct _ocrWorker_t;
+struct _ocrTask_t;
 
 typedef struct _ocrWorkerFcts_t {
     //TODO deal with worker id
@@ -70,6 +71,10 @@ typedef struct _ocrWorkerFcts_t {
     /*! \brief Stop Worker
      */
     void (*stop) (struct _ocrWorker_t *self);
+
+    /*! \brief Executes a task
+     */
+    void (*execute)(struct _ocrWorker_t * worker, struct _ocrTask_t* task, ocrGuid_t taskGuid, ocrGuid_t currentTaskGuid);
 
     /*! \brief Check if Worker is still running
      *  \return true if the Worker is running, false otherwise

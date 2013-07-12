@@ -243,6 +243,12 @@ static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
     return 0;
 }
 
+static u8 hcWaitForEvent(ocrPolicyDomain_t *self, ocrGuid_t workerGuid,
+                       ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
+                       ocrGuid_t * returnGuid, ocrPolicyCtx_t *context) {
+    return self->schedulers[0]->fctPtrs->yield(self->schedulers[0], workerGuid, yieldingEdtGuid, eventToYieldForGuid, returnGuid, context);
+}
+
 static ocrLock_t* hcGetLock(ocrPolicyDomain_t *self, ocrPolicyCtx_t *context) {
     return self->lockFactory->instantiate(self->lockFactory, NULL);
 }
@@ -334,6 +340,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->inform = hcInform;
     base->getGuid = hcGetGuid;
     base->getInfoForGuid = hcGetInfoForGuid;
+    base->waitForEvent = hcWaitForEvent;
     base->takeEdt = hcTakeEdt;
     base->takeDb = NULL;
     base->giveEdt = hcGiveEdt;

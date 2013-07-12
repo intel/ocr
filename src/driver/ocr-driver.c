@@ -356,7 +356,6 @@ int __attribute__ ((weak)) main(int argc, const char* argv[]) {
                 /* depc = */ EDT_PARAM_DEF, /* depv = */ &userArgsDbGuid,
                 EDT_PROP_NONE, NULL_GUID, NULL);
 
-
     ocrFinalize();
 
     return 0;

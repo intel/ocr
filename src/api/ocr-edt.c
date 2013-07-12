@@ -149,6 +149,20 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     return 0;
 }
 
+ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
+    ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
+    ocrPolicyDomain_t * pd = ctx->PD;
+
+    ocrGuid_t workerGuid = ctx->sourceObj;
+    ocrGuid_t yieldingEdtGuid = getCurrentEDT();
+    // The guid returned by eventGuid on completion
+    ocrGuid_t returnGuid;
+    // This call should return only when the event 'eventToYieldForGuid' is satisfied
+    pd->waitForEvent(pd, workerGuid, yieldingEdtGuid, eventToYieldForGuid, &returnGuid, ctx);
+
+    return returnGuid;
+}
+
 //TODO DEPR: impacts edtCreate and addDependence
 // REC: Punt for now. Will revisit in a bit.
 // Only need to impact ocrAddDependence since it
