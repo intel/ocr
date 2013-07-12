@@ -451,6 +451,7 @@ void ocrFinalize() {
     ocrPolicyDomain_t* masterPD = getMasterPD();
     ocrPolicyDomainLinkedListNode * spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(masterPD); //N^2
     linearTraverseStop(spanningTreeHead);
+    masterPD->destruct(masterPD);
     //TODO we need to start by stopping the master PD which
     //controls stopping down PD located on the same machine.
 // #ifdef OCR_ENABLE_STATISTICS

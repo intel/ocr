@@ -108,7 +108,7 @@ u8 hcSchedulerYield (ocrScheduler_t* self, ocrGuid_t workerGuid,
         }
     }
     *returnGuid = result;
-    free(ctx);
+    ctx->destruct(ctx);
     return 0;
 }
 
@@ -164,6 +164,7 @@ static void destructSchedulerHc(ocrScheduler_t * scheduler) {
     u64 i = 0;
     while(i < workpileCount) {
         workpile_iterator_destructor(steal_iterators[i]);
+        scheduler->workpiles[i]->fctPtrs->destruct(scheduler->workpiles[i]);
         i++;
     }
     free(steal_iterators);

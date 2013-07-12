@@ -149,7 +149,7 @@ void destructEventHc ( ocrEvent_t* base ) {
     ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
     ctx->type = PD_MSG_GUID_REL;
     pd->inform(pd, base->guid, ctx);
-    free(ctx);
+    ctx->destruct(ctx);
     free(derived);
 }
 

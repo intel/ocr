@@ -39,7 +39,7 @@
 
 static void hcWorkpileDestruct ( ocrWorkpile_t * base ) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
-    free(derived->deque);
+    dequeDestroy(derived->deque);
     free(derived);
 }
 

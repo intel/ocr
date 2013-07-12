@@ -168,10 +168,10 @@ static void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     policy->taskTemplateFactory->destruct(policy->taskTemplateFactory);
     policy->dbFactory->destruct(policy->dbFactory);
     policy->eventFactory->destruct(policy->eventFactory);
+    policy->lockFactory->destruct(policy->lockFactory);
+    policy->atomicFactory->destruct(policy->atomicFactory);
 
     //Anticipate those to be null-impl for some time
-    ASSERT(policy->lockFactory == NULL);
-    ASSERT(policy->atomicFactory == NULL);
     ASSERT(policy->costFunction == NULL);
 
     // Finish with those in case destruct implementation needs

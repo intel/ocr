@@ -50,6 +50,11 @@ static void mapCompTargetToPlatform(ocrMappable_t *self, ocrMappableKind kind,
 }
 
 static void hcDestruct(ocrCompTarget_t *compTarget) {
+    int i = 0;
+    while(i < compTarget->platformCount) {
+      compTarget->platforms[i]->fctPtrs->destruct(compTarget->platforms[i]);
+      i++;
+    }
     free(compTarget->platforms);
     free(compTarget);
 }

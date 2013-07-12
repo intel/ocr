@@ -51,6 +51,7 @@ void dequeInit(deque_t * deq, void * init_value);
 void * deque_steal(deque_t * deq);
 void dequePush(deque_t* deq, void* entry);
 void * dequePop(deque_t * deq);
+void dequeDestroy(deque_t* deq);
 
 typedef struct locked_deque {
         volatile int head;

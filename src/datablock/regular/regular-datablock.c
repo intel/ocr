@@ -176,7 +176,7 @@ void regularDestruct(ocrDataBlock_t *self) {
 #endif
 
     pd->inform(pd, self->guid, ctx);
-    free(ctx);
+    ctx->destruct(ctx);
     free(rself);
 }
 

@@ -69,6 +69,12 @@ void dequePush(deque_t* deq, void* entry) {
 	deq->tail++;
 }
 
+void dequeDestroy(deque_t* deq) {
+	free(deq->buffer->data);
+	free(deq->buffer);
+	free(deq);
+}
+
 void mpscDequeInit(mpsc_deque_t* deq, void * init_value) {
     deq->head = 0;
     deq->tail = 0;
