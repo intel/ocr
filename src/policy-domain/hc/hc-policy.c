@@ -182,23 +182,6 @@ static void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     free(policy);
 }
 
-// Mapping function many-to-one to map a set of schedulers to a policy instance
-static void hcOcrModuleMapSchedulersToPolicy (ocrMappable_t * self, ocrMappableKind kind,
-                                              u64 instanceCount, ocrMappable_t ** instances) {
-    // Checking mapping conforms to what we're expecting in this implementation
-    ASSERT(kind == OCR_SCHEDULER);
-
-//    ocrPolicyDomain_t * policy = (ocrPolicyDomain_t *) self;
-//    int i = 0;
-    // TODO: Re-add?
-    /*
-    for ( i = 0; i < instanceCount; ++i ) {
-        ocrScheduler_t* scheduler = (ocrScheduler_t*)instances[i];
-        scheduler->domain = policy;
-    }
-    */
-}
-
 static u8 hcAllocateDb(ocrPolicyDomain_t *self, ocrGuid_t *guid, void** ptr, u64 size,
                        u16 properties, ocrGuid_t affinity, ocrInDbAllocator_t allocator,
                        ocrPolicyCtx_t *context) {
@@ -224,22 +207,14 @@ static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
                ocrTaskTemplate_t * edtTemplate, u32 paramc, u64* paramv,
                u32 depc, u16 properties, ocrGuid_t affinity,
                ocrGuid_t * outputEvent, ocrPolicyCtx_t *context) {
-    //TODO what does context is supposed to tell me ?
-    // REC: The context tells you who is creating the EDT for example
-    // It can also be extended to contain information (in inform() for ex)
-    //TODO would it make sense to trickle down 'self' in instantiate ?
-    // REC: You have that in context
     ocrTask_t * base = self->taskFactory->instantiate(self->taskFactory, edtTemplate, paramc,
                                                       paramv, depc, properties, affinity,
                                                       outputEvent, NULL);
-
     // Check if the edt is ready to be scheduled
     if (base->depc == 0) {
         base->fctPtrs->schedule(base);
     }
-
     *guid = base->guid;
-
     return 0;
 }
 
@@ -306,12 +281,8 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
                                       ocrLockFactory_t* lockFactory, ocrAtomic64Factory_t* atomicFactory,
                                       ocrCost_t *costFunction, ocrParamList_t *perInstance) {
 
-    //TODO missing guidProvider
     ocrPolicyDomainHc_t * derived = (ocrPolicyDomainHc_t *) checkedMalloc(policy, sizeof(ocrPolicyDomainHc_t));
     ocrPolicyDomain_t * base = (ocrPolicyDomain_t *) derived;
-
-    ocrMappable_t * moduleBase = (ocrMappable_t *) policy;
-    moduleBase->mapFct = hcOcrModuleMapSchedulersToPolicy;
 
     base->schedulerCount = schedulerCount;
     ASSERT(schedulerCount == 1); // Simplest HC PD implementation
@@ -355,7 +326,6 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->neighborCount = 0;
 
     //TODO populated by ini file factories. Need setters or something ?
-//    base->guidProvider = NULL;
     base->schedulers = NULL;
     base->workers = NULL;
     base->computes = NULL;
@@ -364,10 +334,6 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->memories = NULL;
 
     base->guid = UNINITIALIZED_GUID;
-/*
-    base->guidProvider->fctPtrs->getGuid(base->guidProvider, &(base->guid),
-                                         (u64)base, OCR_GUID_POLICY);
-*/
     guidify(base, (u64)base, &(base->guid), OCR_GUID_POLICY);
     return base;
 }

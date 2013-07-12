@@ -116,7 +116,6 @@ typedef struct _ocrTaskFcts_t {
     /*! \brief Virtual destructor for the Task interface
      */
     void (*destruct) (struct _ocrTask_t* self);
-    //TODO would like to keep distinction between execute and schedule for now to avoid confusion
     /*! \brief Interface to execute the underlying computation of a task
      */
     void (*execute) (struct _ocrTask_t* self);
@@ -144,8 +143,8 @@ typedef struct _ocrTask_t {
     u32 paramc;
     u64* paramv;
     u64 depc;
+    // depv and the associated bookeeping are implementation specific
     ocrGuid_t outputEvent; // Event to notify when the EDT is done
-    // TODO: What about depv?? => This is implementation specific for now
     ocrGuid_t els[ELS_SIZE];
     struct _ocrTaskFcts_t * fctPtrs;
     ocrAtomic64_t* addedDepCounter;
