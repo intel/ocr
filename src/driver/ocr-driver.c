@@ -49,6 +49,7 @@
 #include "ocr-stat-user.h"
 #endif
 
+#define DEBUG_TYPE INIPARSING
 
 const char *type_str[] = {
     "GuidType",
@@ -129,7 +130,9 @@ static void bringUpRuntime(const char *inifile) {
     }
 
     // POPULATE TYPES
-    printf("========= Create factories ==========\n");
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("========= Create factories ==========\n");
+    END_DEBUG
     for (i = 0; i < iniparser_getnsec(dict); i++) {
         for (j = 0; j < total_types; j++) {
             if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) {
@@ -158,10 +161,11 @@ static void bringUpRuntime(const char *inifile) {
         }
     }
 
-    printf("\n\n");
-
     // POPULATE INSTANCES
-    printf("========= Create instances ==========\n");
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("========= Create instances ==========\n");
+    END_DEBUG
+
     for (i = 0; i < iniparser_getnsec(dict); i++) {
         for (j = 0; j < total_types; j++) {
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) {
@@ -176,7 +180,9 @@ static void bringUpRuntime(const char *inifile) {
         for (j = total_types-1; j >= 0; j--) {
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) {
                 if(inst_counts[j] && inst_params[j] == NULL) {
-                    printf("Create %d instances of %s\n", inst_counts[j], inst_str[j]);
+                    DO_DEBUG(DEBUG_LVL_INFO)
+                        DEBUG("Create %d instances of %s\n", inst_counts[j], inst_str[j]);
+                    END_DEBUG
                     inst_params[j] = (ocrParamList_t **)malloc(inst_counts[j] * sizeof(ocrParamList_t *));
                     all_instances[j] = (ocrMappable_t **)malloc(inst_counts[j] * sizeof(ocrMappable_t *));
                     count = 0;
@@ -191,19 +197,19 @@ static void bringUpRuntime(const char *inifile) {
     compPlatformFactory = (ocrCompPlatformFactory_t *) all_factories[compplatform_type][0];
     compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
 
-    printf("\n\n");
-
     // BUILD DEPENDENCES
-    printf("========= Build dependences ==========\n");
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("========= Build dependences ==========\n");
+    END_DEBUG
+
     for (i = 0; i < sizeof(deps)/sizeof(dep_t); i++) {
         build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr, all_instances, inst_params);
     }
     
-    printf("\n\n");
-
     // START EXECUTION
-    printf("========= Start execution ==========\n");
-
+    DO_DEBUG(DEBUG_LVL_INFO)
+        DEBUG("========= Start execution ==========\n");
+    END_DEBUG
     ocrPolicyDomain_t *rootPolicy;
     rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0]; // FIXME: Ugly
     rootPolicy->start(rootPolicy);

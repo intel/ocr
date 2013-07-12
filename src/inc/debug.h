@@ -156,6 +156,16 @@
 #define DEBUG_LVL_GUID OCR_DEBUG_LVL
 #endif
 
+#ifdef OCR_DEBUG_INIPARSING
+#define OCR_DEBUG_INIPARSING 1
+#else
+#define OCR_DEBUG_INIPARSING 0
+#endif
+#define OCR_DEBUG_INIPARSING_STR "INI-PARSING"
+#ifndef DEBUG_LVL_INIPARSING
+#define DEBUG_LVL_INIPARSING OCR_DEBUG_LVL
+#endif
+
 #ifdef OCR_DEBUG_MACHINE
 #define OCR_DEBUG_MACHINE 1
 #else
@@ -263,7 +273,7 @@
 #define OCR_ASSERT
 
 #define DO_DEBUG_TYPE(type, level) \
-    if(OCR_DEBUG_##type && level <= DEBUG_LVL_##type) {   \
+    if(OCR_DEBUG_##type  && level <= OCR_DEBUG_LEVEL && level <= DEBUG_LVL_##type) {   \
         static const char* __type __attribute__((unused)) = OCR_DEBUG_##type##_STR; \
         static const char* __level __attribute__((unused)) = OCR_DEBUG_##level##_STR;
 
