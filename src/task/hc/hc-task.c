@@ -121,13 +121,13 @@ static bool hasProperty(u16 properties, u16 property) {
 // This must be consistent with the ELS size the runtime is compiled with
 #define ELS_SLOT_FINISH_LATCH 0
 
-static ocrTask_t * getCurrentTask() {
+ocrTask_t * getCurrentTask() {
     ocrGuid_t edtGuid = getCurrentEDT();
     // the bootstrap process launching mainEdt returns NULL_GUID for the current EDT
     if (edtGuid != NULL_GUID) {
-        ocrTask_t * event = NULL;
-        deguidify(getCurrentPD(), edtGuid, (u64*)&event, NULL);
-        return event;
+        ocrTask_t * task = NULL;
+        deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
+        return task;
     }
     return NULL;
 }
@@ -172,11 +172,11 @@ static void finishLatchCheckout(ocrEvent_t * base) {
     base->fctPtrs->satisfy(base, NULL_GUID, FINISH_LATCH_DECR_SLOT);
 }
 
-static void setFinishLatch(ocrTask_t * edt, ocrGuid_t latchGuid) {
+void setFinishLatch(ocrTask_t * edt, ocrGuid_t latchGuid) {
     edt->els[ELS_SLOT_FINISH_LATCH] = latchGuid;
 }
 
-static ocrEvent_t * getFinishLatch(ocrTask_t * edt) {
+ocrEvent_t * getFinishLatch(ocrTask_t * edt) {
     if (edt != NULL) { //  NULL happens in main when there's no edt yet
         ocrGuid_t latchGuid = edt->els[ELS_SLOT_FINISH_LATCH];
         if (latchGuid != NULL_GUID) {

@@ -122,12 +122,12 @@ bool hc_is_running_worker(ocrWorker_t * base) {
 
 ocrGuid_t hc_getCurrentEDT (ocrWorker_t * base) {
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
-    return hcWorker->currentEDT_guid;
+    return hcWorker->currentEDTGuid;
 }
 
 void hc_setCurrentEDT (ocrWorker_t * base, ocrGuid_t curr_edt_guid) {
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
-    hcWorker->currentEDT_guid = curr_edt_guid;
+    hcWorker->currentEDTGuid = curr_edt_guid;
 }
 
 /**
@@ -137,7 +137,7 @@ ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrParamList_t * perInst
     ocrWorkerHc_t * worker = checkedMalloc(worker, sizeof(ocrWorkerHc_t));
     worker->run = false;
     worker->id = ((paramListWorkerHcInst_t*)perInstance)->workerId;
-    worker->currentEDT_guid = NULL_GUID;
+    worker->currentEDTGuid = NULL_GUID;
     ocrWorker_t * base = (ocrWorker_t *) worker;
     base->guid = UNINITIALIZED_GUID;
     guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_WORKER);

@@ -57,7 +57,6 @@ struct _ocrWorker_t;
 struct _ocrTask_t;
 
 typedef struct _ocrWorkerFcts_t {
-    //TODO deal with worker id
     void (*destruct) (struct _ocrWorker_t *self);
 
     /*! \brief Start Worker

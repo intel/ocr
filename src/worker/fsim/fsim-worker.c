@@ -85,7 +85,7 @@ ocrWorker_t* newWorkerFsimXE (ocrWorkerFactory_t * factory, ocrParamList_t * per
     ocrWorkerHc_t * hcWorker = &(xeWorker->hcBase);
     hcWorker->run = false;
     hcWorker->id = ((paramListWorkerFsimInst_t*)perInstance)->worker_id;
-    hcWorker->currentEDT_guid = NULL_GUID;
+    hcWorker->currentEDTGuid = NULL_GUID;
 
     ocrWorker_t * base = (ocrWorker_t *) hcWorker;
     ocrMappable_t* module_base = (ocrMappable_t*) base;
@@ -138,7 +138,7 @@ ocrWorker_t* newWorkerFsimCE (ocrWorkerFactory_t * factory, ocrParamList_t * per
     ocrWorkerHc_t * worker = (ocrWorkerHc_t *) malloc(sizeof(ocrWorkerHc_t));
     worker->run = false;
     worker->id = ((paramListWorkerFsimInst_t*)perInstance)->worker_id;
-    worker->currentEDT_guid = NULL_GUID;
+    worker->currentEDTGuid = NULL_GUID;
 
     ocrWorker_t * base = (ocrWorker_t *) worker;
     ocrMappable_t* module_base = (ocrMappable_t*) base;

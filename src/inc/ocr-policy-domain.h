@@ -218,9 +218,15 @@ typedef struct _ocrPolicyDomain_t {
      */
     void (*stop)(struct _ocrPolicyDomain_t *self);
 
-    // TODO: Do we need a finish? What was it for
-    // TODO sagnak: we needed to separate the pausing of the workers and the executors
-
+    /**
+     * @brief Finish the execution of the policy domain
+     *
+     * Ask the policy domain to wrap up currently executing
+     * task and shutdown workers. This is typically something 
+     * ocrShutdown would call.
+     *
+     * @param self                This policy domain
+     */
     void (*finish)(struct _ocrPolicyDomain_t *self);
 
     /**

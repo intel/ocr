@@ -51,44 +51,6 @@
 #include "ocr-statistics.h"
 #endif
 
-// TODO commented to simplify debugging 
-// // Default kinds of ocr modules
-// extern ocr_comp_target_kind ocr_comp_target_default_kind;
-// extern ocr_worker_kind ocr_worker_default_kind;
-// extern ocr_scheduler_kind ocr_scheduler_default_kind;
-// extern ocrWorkpileKind ocr_workpile_default_kind;
-// extern ocrAllocatorKind ocrAllocatorDefaultKind;
-// extern ocrMemPlatformKind ocrMemPlatformDefaultKind;
-// extern ocrDataBlockKind ocrDataBlockDefaultKind;
-// //extern ocrLockKind ocrLockDefaultKind;
-// extern ocrGuidProviderKind ocrGuidProviderDefaultKind;
-
-// // Default values to configure ocr
-// extern u32 ocr_config_default_nb_hardware_threads;
-
-// // XE kinds of ocr modules
-// extern ocr_comp_target_kind	ocr_comp_target_xe_kind;
-// extern ocr_worker_kind		ocr_worker_xe_kind;
-// extern ocr_scheduler_kind	ocr_scheduler_xe_kind;
-// extern ocrWorkpileKind	ocr_workpile_xe_kind;
-// extern ocrAllocatorKind		ocrAllocatorXEKind;
-// extern ocrMemPlatformKind		ocrMemPlatformXEKind;
-// extern ocrDataBlockKind		ocrDataBlockXEKind;
-// //extern ocrLockKind		ocrLockXEKind;
-// extern ocrGuidProviderKind	ocrGuidProviderXEKind;
-
-// // CE kinds of ocr modules
-// extern ocr_comp_target_kind	ocr_comp_target_ce_kind;
-// extern ocr_worker_kind		ocr_worker_ce_kind;
-// extern ocr_scheduler_kind	ocr_scheduler_ce_kind;
-// extern ocrWorkpileKind	ocr_workpile_ce_work_kind;
-// extern ocrWorkpileKind	ocr_workpile_ce_message_kind;
-// extern ocrAllocatorKind		ocrAllocatorCEKind;
-// extern ocrMemPlatformKind		ocrMemPlatformCEKind;
-// extern ocrDataBlockKind		ocrDataBlockCEKind;
-// //extern ocrLockKind		ocrLockCEKind;
-// extern ocrGuidProviderKind	ocrGuidProviderCEKind;
-
 #ifdef OCR_ENABLE_STATISTICS
 // For now have a central statistics aggregator filter
 ocrStatsFilter_t   *GocrFilterAggregator;

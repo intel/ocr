@@ -108,7 +108,6 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     ocrPolicyCtx_t *context = getCurrentWorkerContext();
     pd->createEdt(pd, edtGuid, taskTemplate, paramc, paramv, depc,
                   properties, affinity, outputEvent, context);
-    //TODO LIMITATION handle pre-built dependence vector
 
 #ifdef OCR_ENABLE_STATISTICS
     ocrTask_t * task = NULL;
@@ -162,19 +161,6 @@ ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
 
     return returnGuid;
 }
-
-//TODO DEPR: impacts edtCreate and addDependence
-// REC: Punt for now. Will revisit in a bit.
-// Only need to impact ocrAddDependence since it
-// is called in edtCreate
-
-// u8 ocrEdtSchedule(ocrGuid_t edtGuid) {
-//     ocrPolicyDomain_t * pd = getCurrentPD();
-//     ocrTask_t * task = NULL;
-//     deguidify(pd, edtGuid, (u64*)&task, NULL);
-//     task->fctPtrs->schedule(task);
-//     return 0;
-// }
 
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     ocrPolicyDomain_t * pd = getCurrentPD();

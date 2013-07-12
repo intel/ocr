@@ -72,23 +72,6 @@ static char * eventTypeToString(ocrEvent_t * base) {
     }
 }
 
-/******************************************************/
-/* OCR-HC ELS Slots Declaration                       */
-/******************************************************/
-
-// This must be consistent with the ELS size the runtime is compiled with
-#define ELS_SLOT_FINISH_LATCH 0
-
-static ocrTask_t * getCurrentTask() {
-    // TODO: we should be able to assert there must be an edt when we'll have a main OCR EDT
-    ocrGuid_t edtGuid = getCurrentEDT();
-    if (edtGuid != NULL_GUID) {
-        ocrTask_t * event = NULL;
-        deguidify(getCurrentPD(), edtGuid, (u64*)&event, NULL);
-        return event;
-    }
-    return NULL;
-}
 
 //
 // forward declarations
@@ -325,7 +308,7 @@ static void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot)
         // Important to void the ELS at that point, to make sure there's no
         // side effect on code executing downwards.
         ocrTask_t * task = getCurrentTask();
-        task->els[ELS_SLOT_FINISH_LATCH] = NULL_GUID;
+        setFinishLatch(task, NULL_GUID);
         // Notify waiters the latch is satisfied (We can extend that to a list // of waiters if we need to. (see R1))
         // Notify output event if any associated with the finish-edt
         regNode_t * outputEventWaiter = &(self->outputEventWaiter);

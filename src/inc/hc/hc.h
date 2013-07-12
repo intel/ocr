@@ -40,9 +40,6 @@
 #include "deque.h"
 #include "hc_edf.h"
 
-//TODO sagnak this does not belong there
-extern ocrPolicyCtxFactory_t* newPolicyContextFactoryHC ( ocrParamList_t* params );
-
 typedef struct _ocrPolicyCtxHC_t {
     ocrPolicyCtx_t base;
 } ocrPolicyCtxHC_t;
@@ -87,12 +84,13 @@ typedef struct _paramListWorkerHcInst_t {
 
 typedef struct {
     ocrWorker_t worker;
-    //TODO this is a convenience to map workers to workpiles
+    // The HC implementation relies on integer ids to
+    // map workers, schedulers and workpiles together
     int id;
-    //TODO shall these stay here or go up ?
+    // Flag the worker checksto now if he's running
     bool run;
     // reference to the EDT this worker is currently executing
-    ocrGuid_t currentEDT_guid;
+    ocrGuid_t currentEDTGuid;
 } ocrWorkerHc_t;
 
 

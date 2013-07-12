@@ -108,4 +108,18 @@ typedef struct {
 // Define internal finish-latch event id after user-level events
 #define OCR_EVENT_FINISH_LATCH_T OCR_EVENT_T_MAX+1
 
+
+/*! \brief Convenience method to get the currently executing task.
+ * Relies on getCurrentEDT() and deguidify the EDT's guid.
+ */
+ocrTask_t * getCurrentTask();
+
+/*! \brief Get the Finish Latch registered with an EDT
+ */
+ocrEvent_t * getFinishLatch(ocrTask_t * edt);
+
+/*! \brief Set the Finish Latch of an EDT
+ */
+void setFinishLatch(ocrTask_t * edt, ocrGuid_t latchGuid);
+
 #endif
