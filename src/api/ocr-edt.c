@@ -139,7 +139,6 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
         ASSERT(depc != 0);
         u32 i = 0;
         while(i < depc) {
-            // TODO replace with a single runtime call with all dependencies
             ocrAddDependence(depv[i], *edtGuid, i, DB_DEFAULT_MODE);
             i++;
         }
