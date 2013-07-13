@@ -231,11 +231,11 @@ static void freeUpRuntime (void)
         }
         free (all_factories[i]);
     }
-
+/*
     for (i = 0; i < total_types; i++)
         for (j = 0; j < inst_counts[i]; j++) 
             free_instance(all_instances[i][j], i);
-
+*/
     for (i = 0; i < total_types; i++) {
         for (j = 0; j < inst_counts[i]; j++) {
             if(inst_params[i][j]) 
