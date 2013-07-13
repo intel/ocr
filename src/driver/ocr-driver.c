@@ -95,11 +95,12 @@ dep_t deps[] = {
     { policydomain_type, scheduler_type, "scheduler"},
 };
 
-extern char* populate_type(ocrParamList_t *type_param, type_enum index, dictionary *dict, char *secname);
+extern char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *dict, char *secname);
 int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *type_counts, char ***factory_names, void ***all_factories, ocrMappable_t ***all_instances, type_enum index, dictionary *dict, char *secname);
 extern int build_deps (dictionary *dict, int A, int B, char *refstr, ocrMappable_t ***all_instances, ocrParamList_t ***inst_params);
 extern void *create_factory (type_enum index, char *factory_name, ocrParamList_t *paramlist);
 extern int read_range(dictionary *dict, char *sec, char *field, int *low, int *high);
+extern void free_instance(ocrMappable_t *instance, type_enum inst_type);
 
 ocrGuid_t __attribute__ ((weak)) mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // This is just to make the linker happy and shouldn't be executed
@@ -108,19 +109,19 @@ ocrGuid_t __attribute__ ((weak)) mainEdt(u32 paramc, u64* paramv, u32 depc, ocrE
     return NULL_GUID;
 }
 
+void **all_factories[sizeof(type_str)/sizeof(const char *)];
+ocrMappable_t **all_instances[sizeof(inst_str)/sizeof(const char *)];
+int total_types = sizeof(type_str)/sizeof(const char *);
+int type_counts[sizeof(type_str)/sizeof(const char *)];
+int inst_counts[sizeof(inst_str)/sizeof(const char *)];
+ocrParamList_t **type_params[sizeof(type_str)/sizeof(const char *)];
+char **factory_names[sizeof(type_str)/sizeof(const char *)];        // ~9 different kinds (memtarget, comptarget, etc.); each with diff names (tlsf, malloc, etc.); each pointing to a char*
+ocrParamList_t **inst_params[sizeof(inst_str)/sizeof(const char *)];
+
 static void bringUpRuntime(const char *inifile) {
-    int i, j, count;
+    int i, j, count, nsec;
     dictionary *dict = iniparser_load(inifile);
 
-    int type_counts[sizeof(type_str)/sizeof(const char *)];
-    ocrParamList_t **type_params[sizeof(type_str)/sizeof(const char *)];
-    char **factory_names[sizeof(type_str)/sizeof(const char *)];        // ~9 different kinds (memtarget, comptarget, etc.); each with diff names (tlsf, malloc, etc.); each pointing to a char*
-    void **all_factories[sizeof(type_str)/sizeof(const char *)];
-
-    int inst_counts[sizeof(inst_str)/sizeof(const char *)];
-    ocrParamList_t **inst_params[sizeof(inst_str)/sizeof(const char *)];
-    ocrMappable_t **all_instances[sizeof(inst_str)/sizeof(const char *)];
-    int total_types = sizeof(type_str)/sizeof(const char *);
 
     // INIT
     for (j = 0; j < total_types; j++) {
@@ -133,7 +134,9 @@ static void bringUpRuntime(const char *inifile) {
     DO_DEBUG(DEBUG_LVL_INFO)
         DEBUG("========= Create factories ==========\n");
     END_DEBUG
-    for (i = 0; i < iniparser_getnsec(dict); i++) {
+
+    nsec = iniparser_getnsec(dict);
+    for (i = 0; i < nsec; i++) {
         for (j = 0; j < total_types; j++) {
             if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) {
                 type_counts[j]++;
@@ -141,16 +144,16 @@ static void bringUpRuntime(const char *inifile) {
         }
     }
 
-    for (i = 0; i < iniparser_getnsec(dict); i++) {
+    for (i = 0; i < nsec; i++) {
         for (j = 0; j < total_types; j++) {
             if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) {
                 if(type_counts[j] && type_params[j]==NULL) {
-                    type_params[j] = (ocrParamList_t **)malloc(type_counts[j] * sizeof(ocrParamList_t *));
-                    factory_names[j] = (char **)malloc(type_counts[j] * sizeof(char *));
-                    all_factories[j] = (void **)malloc(type_counts[j] * sizeof(void *));
+                    type_params[j] = (ocrParamList_t **)calloc(1, type_counts[j] * sizeof(ocrParamList_t *));
+                    factory_names[j] = (char **)calloc(1, type_counts[j] * sizeof(char *));
+                    all_factories[j] = (void **)calloc(1, type_counts[j] * sizeof(void *));
                     count = 0;
                 }
-                factory_names[j][count] = populate_type(type_params[j][count], j, dict, iniparser_getsecname(dict, i));
+                factory_names[j][count] = populate_type(&type_params[j][count], j, dict, iniparser_getsecname(dict, i));
                 all_factories[j][count] = create_factory(j, factory_names[j][count], type_params[j][count]);
                 if (all_factories[j][count] == NULL) {
                     free(factory_names[j][count]);
@@ -166,7 +169,7 @@ static void bringUpRuntime(const char *inifile) {
         DEBUG("========= Create instances ==========\n");
     END_DEBUG
 
-    for (i = 0; i < iniparser_getnsec(dict); i++) {
+    for (i = 0; i < nsec; i++) {
         for (j = 0; j < total_types; j++) {
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) {
                 int low, high, count;
@@ -176,15 +179,15 @@ static void bringUpRuntime(const char *inifile) {
         }
     }
 
-    for (i = 0; i < iniparser_getnsec(dict); i++) {
+    for (i = 0; i < nsec; i++) {
         for (j = total_types-1; j >= 0; j--) {
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) {
                 if(inst_counts[j] && inst_params[j] == NULL) {
                     DO_DEBUG(DEBUG_LVL_INFO)
                         DEBUG("Create %d instances of %s\n", inst_counts[j], inst_str[j]);
                     END_DEBUG
-                    inst_params[j] = (ocrParamList_t **)malloc(inst_counts[j] * sizeof(ocrParamList_t *));
-                    all_instances[j] = (ocrMappable_t **)malloc(inst_counts[j] * sizeof(ocrMappable_t *));
+                    inst_params[j] = (ocrParamList_t **)calloc(1, inst_counts[j] * sizeof(ocrParamList_t *));
+                    all_instances[j] = (ocrMappable_t **)calloc(1, inst_counts[j] * sizeof(ocrMappable_t *));
                     count = 0;
                 }
                 populate_inst(inst_params[j], all_instances[j], type_counts, factory_names, all_factories, all_instances, j, dict, iniparser_getsecname(dict, i));
@@ -205,6 +208,7 @@ static void bringUpRuntime(const char *inifile) {
     for (i = 0; i < sizeof(deps)/sizeof(dep_t); i++) {
         build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr, all_instances, inst_params);
     }
+    dictionary_del (dict);
     
     // START EXECUTION
     DO_DEBUG(DEBUG_LVL_INFO)
@@ -213,6 +217,34 @@ static void bringUpRuntime(const char *inifile) {
     ocrPolicyDomain_t *rootPolicy;
     rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0]; // FIXME: Ugly
     rootPolicy->start(rootPolicy);
+}
+
+static void freeUpRuntime (void)
+{
+    int i, j;
+
+    for (i = 0; i < total_types; i++) {
+        for (j = 0; j < type_counts[i]; j++) {
+            free (all_factories[i][j]);
+            free (type_params[i][j]);
+            free (factory_names[i][j]);
+        }
+        free (all_factories[i]);
+    }
+
+    for (i = 0; i < total_types; i++)
+        for (j = 0; j < inst_counts[i]; j++) 
+            free_instance(all_instances[i][j], i);
+
+    for (i = 0; i < total_types; i++) {
+        for (j = 0; j < inst_counts[i]; j++) {
+            if(inst_params[i][j]) 
+                free (inst_params[i][j]);
+        }
+        if(inst_params[i]) 
+            free (inst_params[i]);
+        free (all_instances[i]);
+    }
 }
 
 static inline void checkNextArgExists(int i, int argc, char * option) {
@@ -452,6 +484,7 @@ void ocrFinalize() {
     ocrPolicyDomainLinkedListNode * spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(masterPD); //N^2
     linearTraverseStop(spanningTreeHead);
     masterPD->destruct(masterPD);
+    freeUpRuntime();
     //TODO we need to start by stopping the master PD which
     //controls stopping down PD located on the same machine.
 // #ifdef OCR_ENABLE_STATISTICS

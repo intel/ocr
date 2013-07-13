@@ -59,7 +59,7 @@ typedef struct _ocrParamList_t {
 
 #define ALLOC_PARAM_LIST(result, type)                  \
     do {                                                \
-        result = (ocrParamList_t *) malloc(sizeof(type));          \
+        result = (ocrParamList_t *) calloc(1, sizeof(type));          \
         ocrParamList_t *_t = (ocrParamList_t*)result;   \
         _t->size = (u64)sizeof(type);                   \
     } while(0);
