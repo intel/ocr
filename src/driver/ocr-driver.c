@@ -282,7 +282,7 @@ static ocrGuid_t packUserArgumentsInDb(int argc, char ** argv) {
         totalLength += strlen(argv[i]) + 1; // +1 for the NULL terminating char
         argsUsed |= (1ULL<<(63-i));
     }
-    --maxArg;
+    //--maxArg;
     // Create the datablock containing the parameters
     ocrGuid_t dbGuid;
     void* dbPtr;
