@@ -237,53 +237,6 @@ static void freeUpRuntime (void)
     }
 }
 
-static inline void checkNextArgExists(int i, int argc, char * option) {
-    if (i == argc) {
-        printf("No argument for ocr option %s\n", option);
-        ASSERT(false);
-    }
-}
-
-void ocrParseArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig) {
-    int cur = 1;
-    int userArgs = argc;
-    char * ocrOptPrefix = "-ocr:";
-    int ocrOptPrefixLg = strlen(ocrOptPrefix);
-
-    while(cur < argc) {
-        const char * arg = argv[cur];
-        if (strncmp(ocrOptPrefix, arg, ocrOptPrefixLg) == 0) {
-            // This is an OCR option
-            const char * ocrArg = arg+ocrOptPrefixLg;
-            if (strcmp("cfg", ocrArg) == 0) {
-                checkNextArgExists(cur, argc, "cfg");
-                ocrConfig->iniFile = argv[cur+1];
-                argv[cur] = NULL;
-                argv[cur+1] = NULL;
-                cur++; // skip param
-                userArgs-=2;
-            }
-        }
-        cur++;
-    }
-    // Pack argument list
-    cur = 0;
-    int head = 0;
-    while(cur < argc) {
-        if(argv[cur] != NULL) {
-            if (cur == head) {
-                head++;
-            } else {
-                argv[head] = argv[cur];
-                argv[cur] = NULL;
-                head++;
-            }
-        }
-        cur++;
-    }
-    ocrConfig->userArgc = userArgs;
-    ocrConfig->userArgv = (char **) argv;
-}
 
 /**
  * @param argc Number of user-level arguments to pack in a DB
