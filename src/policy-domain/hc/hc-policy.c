@@ -32,23 +32,23 @@
 
 #include <string.h>
 
-#include "ocr-macros.h"
-#include "hc.h"
-#include "ocr-policy-domain.h"
 #include "debug.h"
+#include "ocr-macros.h"
+#include "ocr-policy-domain.h"
+#include "policy-domain/hc/hc-policy.h"
 
-void destructOcrPolicyCtxHC ( ocrPolicyCtx_t* self ) {
+static void destructOcrPolicyCtxHC ( ocrPolicyCtx_t* self ) {
     free(self);
 }
 
-ocrPolicyCtx_t * cloneOcrPolicyCtxHC (ocrPolicyCtx_t * ctxIn) {
-    ocrPolicyCtxHC_t* ctxOut = checkedMalloc (ctxOut, sizeof(ocrPolicyCtxHC_t));
-    memcpy(ctxOut, ctxIn, sizeof(ocrPolicyCtxHC_t));
+static ocrPolicyCtx_t * cloneOcrPolicyCtxHC (ocrPolicyCtx_t * ctxIn) {
+    ocrPolicyCtxHc_t* ctxOut = checkedMalloc (ctxOut, sizeof(ocrPolicyCtxHc_t));
+    memcpy(ctxOut, ctxIn, sizeof(ocrPolicyCtxHc_t));
     return (ocrPolicyCtx_t*) ctxOut;
 }
 
-ocrPolicyCtx_t * instantiateOcrPolicyCtxHC ( ocrPolicyCtxFactory_t *factory, ocrParamList_t *perInstance) {
-    ocrPolicyCtxHC_t* derived = checkedMalloc (derived, sizeof(ocrPolicyCtxHC_t));
+static ocrPolicyCtx_t * instantiateOcrPolicyCtxHC ( ocrPolicyCtxFactory_t *factory, ocrParamList_t *perInstance) {
+    ocrPolicyCtxHc_t* derived = checkedMalloc (derived, sizeof(ocrPolicyCtxHc_t));
     ocrPolicyCtx_t * base = (ocrPolicyCtx_t *) derived;
     base->clone = cloneOcrPolicyCtxHC;
     base->destruct = destructOcrPolicyCtxHC;
@@ -56,11 +56,11 @@ ocrPolicyCtx_t * instantiateOcrPolicyCtxHC ( ocrPolicyCtxFactory_t *factory, ocr
 }
 
 
-void destructOcrPolicyCtxFactoryHC ( ocrPolicyCtxFactory_t* self ) {
+static void destructOcrPolicyCtxFactoryHC ( ocrPolicyCtxFactory_t* self ) {
 }
 
-ocrPolicyCtxFactory_t* newPolicyContextFactoryHC ( ocrParamList_t* params ) {
-    ocrPolicyCtxFactoryHC_t* derived = (ocrPolicyCtxFactoryHC_t*) checkedMalloc(derived, sizeof(ocrPolicyCtxFactoryHC_t));
+ocrPolicyCtxFactory_t* newPolicyCtxFactoryHc ( ocrParamList_t* params ) {
+    ocrPolicyCtxFactoryHc_t* derived = (ocrPolicyCtxFactoryHc_t*) checkedMalloc(derived, sizeof(ocrPolicyCtxFactoryHc_t));
     ocrPolicyCtxFactory_t * base = (ocrPolicyCtxFactory_t *) derived;
     base->instantiate = instantiateOcrPolicyCtxHC;
     base->destruct = destructOcrPolicyCtxFactoryHC;
@@ -204,9 +204,10 @@ static u8 hcAllocateDb(ocrPolicyDomain_t *self, ocrGuid_t *guid, void** ptr, u64
 }
 
 static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
-               ocrTaskTemplate_t * edtTemplate, u32 paramc, u64* paramv,
-               u32 depc, u16 properties, ocrGuid_t affinity,
-               ocrGuid_t * outputEvent, ocrPolicyCtx_t *context) {
+                      ocrTaskTemplate_t * edtTemplate, u32 paramc, u64* paramv,
+                      u32 depc, u16 properties, ocrGuid_t affinity,
+                      ocrGuid_t * outputEvent, ocrPolicyCtx_t *context) {
+
     ocrTask_t * base = self->taskFactory->instantiate(self->taskFactory, edtTemplate, paramc,
                                                       paramv, depc, properties, affinity,
                                                       outputEvent, NULL);
@@ -214,6 +215,26 @@ static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
     if (base->depc == 0) {
         base->fctPtrs->schedule(base);
     }
+    *guid = base->guid;
+    return 0;
+}
+
+static u8 hcCreateEdtTemplate(ocrPolicyDomain_t *self, ocrGuid_t *guid,
+                              ocrEdt_t func, u32 paramc, u32 depc, ocrPolicyCtx_t *context) {
+
+
+    ocrTaskTemplate_t *base = self->taskTemplateFactory->instantiate(self->taskTemplateFactory,
+                                                                     func, paramc, depc, NULL);
+    *guid = base->guid;
+    return 0;
+}
+
+static u8 hcCreateEvent(ocrPolicyDomain_t *self, ocrGuid_t *guid,
+                        ocrEventTypes_t type, bool takesArg, ocrPolicyCtx_t *context) {
+
+
+    ocrEvent_t *base = self->eventFactory->instantiate(self->eventFactory,
+                                                              type, takesArg, NULL);
     *guid = base->guid;
     return 0;
 }
@@ -308,6 +329,8 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->finish = hcPolicyDomainFinish;
     base->allocateDb = hcAllocateDb;
     base->createEdt = hcCreateEdt;
+    base->createEdtTemplate = hcCreateEdtTemplate;
+    base->createEvent = hcCreateEvent;
     base->inform = hcInform;
     base->getGuid = hcGetGuid;
     base->getInfoForGuid = hcGetInfoForGuid;
@@ -343,7 +366,7 @@ static void destructPolicyDomainFactoryHc(ocrPolicyDomainFactory_t * factory) {
 }
 
 ocrPolicyDomainFactory_t * newPolicyDomainFactoryHc(ocrParamList_t *perType) {
-    ocrPolicyDomainHcFactory_t* derived = (ocrPolicyDomainHcFactory_t*) checkedMalloc(derived, sizeof(ocrPolicyDomainHcFactory_t));
+    ocrPolicyDomainFactoryHc_t* derived = (ocrPolicyDomainFactoryHc_t*) checkedMalloc(derived, sizeof(ocrPolicyDomainFactoryHc_t));
     ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) derived;
     base->instantiate = newPolicyDomainHc;
     base->destruct =  destructPolicyDomainFactoryHc;

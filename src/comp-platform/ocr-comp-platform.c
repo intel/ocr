@@ -31,15 +31,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include <string.h>
 #include "ocr-comp-platform.h"
-#include "ocr-guid.h"
 #include "ocr-policy-domain.h"
-#include "ocr-macros.h"
-
-
-struct _ocrPolicyDomain_t;
-struct _ocrPolicyCtx_t;
 
 ocrGuid_t (*getCurrentEDT)() = NULL;
 void (*setCurrentEDT)(ocrGuid_t) = NULL;

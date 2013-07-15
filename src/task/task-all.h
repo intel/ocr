@@ -34,9 +34,9 @@
 #ifndef __TASK_ALL_H__
 #define __TASK_ALL_H__
 
+#include "debug.h"
 #include "ocr-task.h"
 #include "ocr-utils.h"
-#include "debug.h"
 
 typedef enum _taskType_t {
     taskHc_id,
@@ -63,8 +63,7 @@ const char * taskTemplate_types [] = {
 };
 
 // HC Task
-#include "hc.h"
-#include "hc_edf.h"
+#include "task/hc/hc-task.h"
 
 // Add other tasks using the same pattern as above
 
@@ -74,8 +73,8 @@ inline ocrTaskFactory_t *newTaskFactory(taskType_t type, ocrParamList_t *typeArg
         return newTaskFactoryHc(typeArg);
     default:
         ASSERT(0);
-        return NULL;
     };
+    return NULL;
 }
 
 inline ocrTaskTemplateFactory_t *newTaskTemplateFactory(taskTemplateType_t type, ocrParamList_t *typeArg) {

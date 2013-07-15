@@ -34,9 +34,8 @@
 #ifndef __DATABLOCK_ALL_H__
 #define __DATABLOCK_ALL_H__
 
-#include "ocr-datablock.h"
-
 #include "debug.h"
+#include "ocr-datablock.h"
 #include "ocr-utils.h"
 
 typedef enum _dataBlockType_t {

@@ -32,10 +32,10 @@
 #ifndef __OCR_WORKER_H__
 #define __OCR_WORKER_H__
 
-#include "ocr-guid.h"
+#include "ocr-comp-target.h"
 #include "ocr-mappable.h"
 #include "ocr-scheduler.h"
-#include "ocr-comp-target.h"
+#include "ocr-types.h"
 
 /****************************************************/
 /* PARAMETER LISTS                                  */

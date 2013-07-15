@@ -1,22 +1,24 @@
 #ifndef __OCR_MACHINE_H_
 
 #define __OCR_MACHINE_H_
+
+#include "iniparser.h"
+#include "ocr-allocator.h"
+#include "ocr-comp-platform.h"
+#include "ocr-comp-target.h"
+#include "ocr-datablock.h"
+#include "ocr-event.h"
+#include "ocr-mem-platform.h"
+#include "ocr-mem-target.h"
+#include "ocr-policy-domain.h"
+#include "ocr-scheduler.h"
+#include "ocr-worker.h"
+#include "ocr-workpile.h"
+
 #include <stdio.h>
 #include <string.h>
-#include <iniparser.h>
 #include <signal.h>
 
-#include <ocr-mem-platform.h>
-#include <ocr-mem-target.h>
-#include <ocr-allocator.h>
-#include <ocr-comp-platform.h>
-#include <ocr-comp-target.h>
-#include <ocr-worker.h>
-#include <ocr-workpile.h>
-#include <ocr-scheduler.h>
-#include <ocr-policy-domain.h>
-#include <ocr-datablock.h>
-#include <ocr-event.h>
 
 typedef enum {
     guid_type,

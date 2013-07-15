@@ -35,12 +35,11 @@
 #ifndef __COMP_TARGET_HC_H__
 #define __COMP_TARGET_HC_H__
 
-#include <pthread.h>
-
-#include "ocr-types.h"
 #include "ocr-comp-target.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
-#include "hc.h"
+
+#include <pthread.h>
 
 typedef struct {
     paramListCompTargetInst_t base;
@@ -55,6 +54,10 @@ typedef struct {
     void* routineArg;
 } ocrCompTargetHc_t;
 
-extern ocrCompTargetFactory_t* newCompTargetFactoryHc(ocrParamList_t *perType);
+typedef struct {
+    ocrCompTargetFactory_t base;
+} ocrCompTargetFactoryHc_t;
+
+ocrCompTargetFactory_t* newCompTargetFactoryHc(ocrParamList_t *perType);
 
 #endif /* __COMP_TARGET_HC_H__ */

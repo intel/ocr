@@ -35,12 +35,14 @@
 #ifndef __COMP_PLATFORM_PTHREAD_H__
 #define __COMP_PLATFORM_PTHREAD_H__
 
-#include <pthread.h>
 
-#include "ocr-types.h"
 #include "ocr-comp-platform.h"
 #include "ocr-comp-target.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
+
+#include <pthread.h>
+
 
 typedef struct {
     ocrCompPlatformFactory_t base;

@@ -29,15 +29,17 @@
 
 */
 
-#include "ocr-macros.h"
-#include "hc_edf.h"
-#include "ocr-datablock.h"
-#include "ocr-utils.h"
-#include "ocr-task.h"
-#include "ocr-event.h"
-#include "ocr-worker.h"
 #include "debug.h"
+#include "event/hc/hc-event.h"
+#include "ocr-datablock.h"
+#include "ocr-event.h"
+#include "ocr-macros.h"
+#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
+#include "ocr-task.h"
+#include "ocr-utils.h"
+#include "ocr-worker.h"
+#include "task/hc/hc-task.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -54,51 +56,19 @@
 // Guid-kind checkers for convenience
 //
 
-bool isDatablockGuid(ocrGuid_t guid) {
-    if (NULL_GUID == guid) {
-        return false;
-    }
-    ocrGuidKind kind;
-    guidKind(getCurrentPD(),guid, &kind);
-    return kind == OCR_GUID_DB;
-}
 
-bool isEventGuid(ocrGuid_t guid) {
-    if (NULL_GUID == guid) {
-        return false;
+//
+// Convenience functions to get the EDT and deguidify it
+//
+static inline ocrTask_t * getCurrentTask() {
+    ocrGuid_t edtGuid = getCurrentEDT();
+    // the bootstrap process launching mainEdt returns NULL_GUID for the current EDT
+    if (edtGuid != NULL_GUID) {
+        ocrTask_t * task = NULL;
+        deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
+        return task;
     }
-    ocrGuidKind kind;
-    guidKind(getCurrentPD(),guid, &kind);
-    return kind == OCR_GUID_EVENT;
-}
-
-bool isEdtGuid(ocrGuid_t guid) {
-    if (NULL_GUID == guid) {
-        return false;
-    }
-    ocrGuidKind kind;
-    guidKind(getCurrentPD(),guid, &kind);
-    return kind == OCR_GUID_EDT;
-}
-
-bool isEventLatchGuid(ocrGuid_t guid) {
-    if(isEventGuid(guid)) {
-        ocrEventHc_t * event = NULL;
-        deguidify(getCurrentPD(), guid, (u64*)&event, NULL);
-        return (event->kind == OCR_EVENT_LATCH_T);
-    }
-    return false;
-}
-
-bool isEventSingleGuid(ocrGuid_t guid) {
-    if(isEventGuid(guid)) {
-        ocrEventHc_t * event = NULL;
-        deguidify(getCurrentPD(), guid, (u64*)&event, NULL);
-        return ((event->kind == OCR_EVENT_ONCE_T)
-            || (event->kind == OCR_EVENT_IDEM_T)
-            || (event->kind == OCR_EVENT_STICKY_T));
-    }
-    return false;
+    return NULL;
 }
 
 
@@ -120,17 +90,6 @@ static bool hasProperty(u16 properties, u16 property) {
 
 // This must be consistent with the ELS size the runtime is compiled with
 #define ELS_SLOT_FINISH_LATCH 0
-
-ocrTask_t * getCurrentTask() {
-    ocrGuid_t edtGuid = getCurrentEDT();
-    // the bootstrap process launching mainEdt returns NULL_GUID for the current EDT
-    if (edtGuid != NULL_GUID) {
-        ocrTask_t * task = NULL;
-        deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
-        return task;
-    }
-    return NULL;
-}
 
 //
 // forward declarations
@@ -164,12 +123,12 @@ static void latchEventSignaled(ocrEvent_t * self, ocrGuid_t data, int slot) {
 
 // satisfies the incr slot of a finish latch event
 static void finishLatchCheckin(ocrEvent_t * base) {
-     base->fctPtrs->satisfy(base, NULL_GUID, FINISH_LATCH_INCR_SLOT);
+     base->fctPtrs->satisfy(base, NULL_GUID, OCR_EVENT_LATCH_INCR_SLOT);
 }
 
 // satisfies the decr slot of a finish latch event
 static void finishLatchCheckout(ocrEvent_t * base) {
-    base->fctPtrs->satisfy(base, NULL_GUID, FINISH_LATCH_DECR_SLOT);
+    base->fctPtrs->satisfy(base, NULL_GUID, OCR_EVENT_LATCH_DECR_SLOT);
 }
 
 void setFinishLatch(ocrTask_t * edt, ocrGuid_t latchGuid) {
@@ -233,9 +192,13 @@ static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomai
     ocrTask_t * newEdtBase = (ocrTask_t *) newEdt;
     // If we are creating a finish-edt
     if (hasProperty(properties, EDT_PROP_FINISH)) {
-        ocrEventFactory_t * eventFactory = getEventFactoryFromPd(pd);
-        ocrEvent_t * latch = eventFactory->instantiate(eventFactory, OCR_EVENT_FINISH_LATCH_T,
-                                                       false, NULL);
+        ocrPolicyCtx_t *context = getCurrentWorkerContext();
+
+        ocrGuid_t latchGuid;
+        pd->createEvent(pd, &latchGuid, OCR_EVENT_FINISH_LATCH_T,
+                        false, context);
+        ocrEvent_t *latch = NULL;
+        deguidify(pd, latchGuid, (u64*)&latch, NULL);
         ocrEventHcFinishLatch_t * hcLatch = (ocrEventHcFinishLatch_t *) latch;
         // Set the owner of the latch
         hcLatch->ownerGuid = newEdtBase->guid;
@@ -250,7 +213,7 @@ static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomai
             // When this finish scope is done, the parent scope is signaled.
             // DESIGN can modify the finish latch to have a standard list of regnode and just addDependence
             hcLatch->parentLatchWaiter.guid = parentLatch->guid;
-            hcLatch->parentLatchWaiter.slot = FINISH_LATCH_DECR_SLOT;
+            hcLatch->parentLatchWaiter.slot = OCR_EVENT_LATCH_DECR_SLOT;
         } else {
             hcLatch->parentLatchWaiter.guid = NULL_GUID;
             hcLatch->parentLatchWaiter.slot = -1;
@@ -485,7 +448,8 @@ static void taskExecute ( ocrTask_t* base ) {
 /* OCR-HC Task Template Factory                       */
 /******************************************************/
 
-ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory, ocrEdt_t executePtr, u32 paramc, u32 depc) {
+ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory,
+                                      ocrEdt_t executePtr, u32 paramc, u32 depc, ocrParamList_t *perInstance) {
     ocrTaskTemplateHc_t* template = (ocrTaskTemplateHc_t*) checkedMalloc(template, sizeof(ocrTaskTemplateHc_t));
     ocrTaskTemplate_t * base = (ocrTaskTemplate_t *) template;
     base->paramc = paramc;
@@ -524,10 +488,10 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplat
     ocrGuid_t outputEvent = (ocrGuid_t) outputEventPtr;
     ocrPolicyDomain_t* pd = getCurrentPD();
     if (outputEvent != NULL_GUID) {
-        ocrEventFactory_t * eventFactory = getEventFactoryFromPd(pd);
-        ocrEvent_t * event = eventFactory->instantiate(eventFactory, OCR_EVENT_STICKY_T, false, NULL);
-        *outputEventPtr = event->guid;
-        outputEvent = event->guid;
+        ocrPolicyCtx_t *context = getCurrentWorkerContext();
+        pd->createEvent(pd, outputEventPtr, OCR_EVENT_STICKY_T, false,
+                        context);
+        outputEvent = *outputEventPtr;
     }
     ocrTaskHc_t* edt = newTaskHcInternal(factory, pd, taskTemplate, paramc, paramv,
                                          depc, properties, affinity, outputEvent);

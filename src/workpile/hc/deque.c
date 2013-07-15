@@ -29,12 +29,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdlib.h>
+#include "debug.h"
+#include "hc-sysdep.h"
 #include "ocr-macros.h"
 #include "ocr-types.h"
-#include "deque.h"
-#include "hc_sysdep.h"
-#include "debug.h"
+#include "workpile/hc/deque.h"
+
+#include <stdlib.h>
 
 void dequeInit(deque_t * deq, void * init_value) {
     deq->head = 0;

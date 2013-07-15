@@ -28,36 +28,34 @@
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#ifndef __COMP_TARGET_ALL_H__
-#define __COMP_TARGET_ALL_H__
 
-#include "debug.h"
-#include "ocr-comp-target.h"
+#ifndef __HC_WORKER_H__
+#define __HC_WORKER_H__
+
+#include "ocr-types.h"
 #include "ocr-utils.h"
+#include "ocr-worker.h"
 
-typedef enum _compTargetType_t {
-    compTargetHc_id,
-    compTargetMax_id,
-} compTargetType_t;
+typedef struct {
+    ocrWorkerFactory_t base;
+} ocrWorkerFactoryHc_t;
 
-const char * comptarget_types[] = {
-    "HC",
-    NULL
-};
+typedef struct _paramListWorkerHcInst_t {
+    paramListWorkerInst_t base;
+    u32 workerId;
+} paramListWorkerHcInst_t;
 
-// Pthread compute platform
-#include "comp-target/hc/hc-comp-target.h"
+typedef struct {
+    ocrWorker_t worker;
+    // The HC implementation relies on integer ids to
+    // map workers, schedulers and workpiles together
+    u32 id;
+    // Flag the worker checksto now if he's running
+    bool run;
+    // reference to the EDT this worker is currently executing
+    ocrGuid_t currentEDTGuid;
+} ocrWorkerHc_t;
 
-// Add other compute targets using the same pattern as above
+ocrWorkerFactory_t* newOcrWorkerFactoryHc(ocrParamList_t *perType);
 
-inline ocrCompTargetFactory_t *newCompTargetFactory(compTargetType_t type, ocrParamList_t *typeArg) {
-    switch(type) {
-    case compTargetHc_id:
-        return newCompTargetFactoryHc(typeArg);
-    default:
-        ASSERT(0);
-        return NULL;
-    };
-}
-
-#endif /* __COMP_TARGET_ALL_H__ */
+#endif /* __HC_WORKER_H__ */

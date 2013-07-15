@@ -27,13 +27,15 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include <stdlib.h>
-#include "ocr-macros.h"
-#include "shared-mem-target.h"
-#include "ocr-mem-target.h"
-#include "ocr-mem-platform.h"
-#include "ocr-mappable.h"
 #include "debug.h"
+#include "mem-target/shared/shared-mem-target.h"
+#include "ocr-macros.h"
+#include "ocr-mappable.h"
+#include "ocr-mem-platform.h"
+#include "ocr-mem-target.h"
+
+#include <stdlib.h>
+
 
 
 /******************************************************/

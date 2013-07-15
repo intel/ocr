@@ -31,20 +31,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include <stdlib.h>
-#include "tlsf-allocator.h"
+#include "debug.h"
 #include "ocr-macros.h"
 #include "ocr-mappable.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
-#include "ocr-guid.h"
-#include "ocr-config.h"
-#include "debug.h"
+#include "tlsf-allocator.h"
 
-#include "ocr-policy-domain-getter.h"
-
-#include <string.h>
 #include <inttypes.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define DEBUG_TYPE ALLOCATOR
 

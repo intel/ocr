@@ -29,21 +29,22 @@
 
 */
 
+
+#include "debug.h"
+#include "machine-description/ocr-machine.h"
+#include "ocr-config.h"
+#include "ocr-db.h"
+#include "ocr-edt.h"
+#include "ocr-lib.h"
+#include "ocr-runtime.h"
+#include "ocr-types.h"
+#include "ocr-utils.h"
+#include "ocr.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "ocr-edt.h"
-#include "ocr-db.h"
-#include "ocr.h"
-#include "ocr-lib.h"
-
-#include "ocr-runtime.h"
-#include "ocr-config.h"
-#include "ocr-guid.h"
-#include "ocr-utils.h"
-#include "debug.h"
-#include "machine-description/ocr-machine.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-stat-user.h"
@@ -209,7 +210,6 @@ static void bringUpRuntime(const char *inifile) {
         build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr, all_instances, inst_params);
     }
     dictionary_del (dict);
-    
     // START EXECUTION
     DO_DEBUG(DEBUG_LVL_INFO)
         DEBUG("========= Start execution ==========\n");
@@ -233,15 +233,15 @@ static void freeUpRuntime (void)
     }
 /*
     for (i = 0; i < total_types; i++)
-        for (j = 0; j < inst_counts[i]; j++) 
+        for (j = 0; j < inst_counts[i]; j++)
             free_instance(all_instances[i][j], i);
 */
     for (i = 0; i < total_types; i++) {
         for (j = 0; j < inst_counts[i]; j++) {
-            if(inst_params[i][j]) 
+            if(inst_params[i][j])
                 free (inst_params[i][j]);
         }
-        if(inst_params[i]) 
+        if(inst_params[i])
             free (inst_params[i]);
         free (all_instances[i]);
     }
@@ -271,7 +271,7 @@ void ocrParseArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig) {
                 argv[cur] = NULL;
                 argv[cur+1] = NULL;
                 cur++; // skip param
-                userArgs-=2;          
+                userArgs-=2;
             }
         }
         cur++;
@@ -300,7 +300,7 @@ void ocrParseArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig) {
  * @param argv The actual arguments
  */
 static ocrGuid_t packUserArgumentsInDb(int argc, char ** argv) {
-  // Now prepare arguments for the mainEdt 
+  // Now prepare arguments for the mainEdt
     ASSERT(argc < 64); // For now
     u32 i;
     u64* offsets = (u64*)malloc(argc*sizeof(u64));
@@ -379,7 +379,7 @@ int __attribute__ ((weak)) main(int argc, const char* argv[]) {
     ocrConfig_t ocrConfig;
     ocrParseArgs(argc, argv, &ocrConfig);
 
-    // Setup up the runtime 
+    // Setup up the runtime
     ocrInit(&ocrConfig);
 
     ocrGuid_t userArgsDbGuid = packUserArgumentsInDb(ocrConfig.userArgc, ocrConfig.userArgv);

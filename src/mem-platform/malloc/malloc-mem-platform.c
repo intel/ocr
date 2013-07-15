@@ -27,13 +27,14 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include <stdlib.h>
-#include "ocr-macros.h"
-#include "malloc-mem-platform.h"
-#include "ocr-mem-platform.h"
-#include "ocr-mappable.h"
-#include "debug.h"
 
+#include "debug.h"
+#include "mem-platform/malloc/malloc-mem-platform.h"
+#include "ocr-macros.h"
+#include "ocr-mappable.h"
+#include "ocr-mem-platform.h"
+
+#include <stdlib.h>
 
 /******************************************************/
 /* OCR MEM PLATFORM MALLOC IMPLEMENTATION             */

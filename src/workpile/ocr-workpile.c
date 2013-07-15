@@ -29,11 +29,11 @@
 
 */
 
-#include <stdlib.h>
-
 #include "ocr-macros.h"
 #include "ocr-types.h"
 #include "ocr-workpile.h"
+
+#include <stdlib.h>
 
 /******************************************************/
 /* OCR Workpile iterator                              */
@@ -54,7 +54,7 @@ ocrWorkpile_t * workpileIteratorNext (ocrWorkpileIterator_t * base) {
     return toBeReturned;
 }
 
-ocrWorkpileIterator_t* workpileIteratorConstructor ( u64 id, u64 workpileCount, ocrWorkpile_t ** workpiles ) {
+ocrWorkpileIterator_t* newWorkpileIterator ( u64 id, u64 workpileCount, ocrWorkpile_t ** workpiles ) {
     ocrWorkpileIterator_t* it = (ocrWorkpileIterator_t *) checkedMalloc(it, sizeof(ocrWorkpileIterator_t));
     it->array = workpiles;
     it->id = id;
@@ -67,6 +67,6 @@ ocrWorkpileIterator_t* workpileIteratorConstructor ( u64 id, u64 workpileCount, 
     return it;
 }
 
-void workpile_iterator_destructor (ocrWorkpileIterator_t* base) {
+void workpileIteratorDestruct (ocrWorkpileIterator_t* base) {
     free(base);
 }

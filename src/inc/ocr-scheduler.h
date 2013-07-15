@@ -32,10 +32,9 @@
 #ifndef __OCR_SCHEDULER_H__
 #define __OCR_SCHEDULER_H__
 
-#include "ocr-guid.h"
+#include "ocr-mappable.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
-#include "ocr-mappable.h"
 
 
 /****************************************************/
@@ -66,8 +65,8 @@ typedef struct _ocrSchedulerFcts_t {
 
     void (*stop)(struct _ocrScheduler_t *self);
 
-    u8 (*yield)(struct _ocrScheduler_t *self, ocrGuid_t workerGuid, 
-                       ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid, 
+    u8 (*yield)(struct _ocrScheduler_t *self, ocrGuid_t workerGuid,
+                       ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
                        ocrGuid_t * returnGuid, struct _ocrPolicyCtx_t *context);
     /**
      * @brief Requests EDTs from this scheduler

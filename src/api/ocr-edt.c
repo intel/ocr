@@ -29,23 +29,21 @@
 
 */
 
-#include "ocr-edt.h"
-#include "ocr-runtime.h"
-#include "ocr-guid.h"
 #include "debug.h"
+#include "ocr-edt.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
+#include "ocr-runtime.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
 #include "ocr-stat-user.h"
-#include "ocr-config.h"
 #endif
 
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     ocrPolicyDomain_t * pd = getCurrentPD();
-    ocrEventFactory_t * eventFactory = getEventFactoryFromPd(pd);
-    ocrEvent_t * event = eventFactory->instantiate(eventFactory, eventType,
-                                                   takesArg, NULL);
-    *guid = event->guid;
+    ocrPolicyCtx_t *context = getCurrentWorkerContext();
+    pd->createEvent(pd, guid,eventType, takesArg, context);
     return 0;
 }
 
@@ -70,10 +68,9 @@ u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
 
 u8 ocrEdtTemplateCreate(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, u32 depc) {
     ocrPolicyDomain_t *pd = getCurrentPD();
-    ocrTaskTemplateFactory_t* taskTemplateFactory = getTaskTemplateFactoryFromPd(pd);
-    ocrTaskTemplate_t* taskTemplate = taskTemplateFactory->instantiate(taskTemplateFactory,
-                                                                       funcPtr, paramc, depc);
-    *guid = taskTemplate->guid;
+    ocrPolicyCtx_t *context = getCurrentWorkerContext();
+    pd->createEdtTemplate(pd, guid, funcPtr, paramc, depc, context);
+
     return 0;
 }
 

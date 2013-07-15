@@ -36,8 +36,8 @@
 #ifndef __OCR_MEM_TARGET_H__
 #define __OCR_MEM_TARGET_H__
 
-#include "ocr-types.h"
 #include "ocr-mappable.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
 
 /****************************************************/

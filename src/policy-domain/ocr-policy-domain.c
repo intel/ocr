@@ -29,12 +29,10 @@
 
 */
 
-#include "ocr-comp-platform.h"
-#include "ocr-policy-domain.h"
-#include "ocr-policy-domain-getter.h"
-#include "ocr-task.h"
-#include "ocr-event.h"
 #include "debug.h"
+#include "ocr-comp-platform.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
 
 static ocrPolicyDomain_t* bootPD = NULL;
 static ocrPolicyCtx_t* bootCtx = NULL;
@@ -50,28 +48,10 @@ static ocrPolicyDomain_t* bootGetCurrentPD() {
 
 }
 
-// TODO: Is this needed
 static ocrPolicyDomain_t* bootGetMasterPD() {
     ASSERT(bootPD != NULL);
     return bootPD;
 }
-
-inline ocrTaskTemplateFactory_t* getTaskTemplateFactoryFromPd(ocrPolicyDomain_t *policy) {
-  return policy->taskTemplateFactory;
-}
-
-inline ocrEventFactory_t* getEventFactoryFromPd(ocrPolicyDomain_t *policy) {
- return policy->eventFactory;
-}
-
-inline ocrDataBlockFactory_t* getDataBlockFactoryFromPd(ocrPolicyDomain_t *policy) {
-  return policy->dbFactory;
-}
-
-inline ocrLockFactory_t* getLockFactoryFromPd(ocrPolicyDomain_t *policy) {
-  return policy->lockFactory;
-}
-
 
 ocrPolicyCtx_t* (*getCurrentWorkerContext)() = NULL;
 void (*setCurrentWorkerContext)(ocrPolicyCtx_t*) = NULL;

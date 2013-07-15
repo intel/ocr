@@ -32,12 +32,9 @@
 #ifndef __POLICY_DOMAIN_ALL_H_
 #define __POLICY_DOMAIN_ALL_H_
 
-#include "ocr-comp-platform.h"
-#include "ocr-policy-domain.h"
-#include "ocr-policy-domain-getter.h"
-#include "ocr-task.h"
-#include "ocr-event.h"
 #include "debug.h"
+#include "ocr-policy-domain.h"
+#include "ocr-utils.h"
 
 typedef enum _policyDomainType_t {
     policyDomainHc_id,
@@ -61,13 +58,7 @@ const char * policyDomain_types [] = {
     NULL
 };
 
-extern ocrPolicyDomainFactory_t * newPolicyDomainFactoryHc(ocrParamList_t *perType);
-extern ocrPolicyDomainFactory_t * newPolicyDomainFactoryFsimXE(ocrParamList_t *perType);
-extern ocrPolicyDomainFactory_t * newPolicyDomainFactoryFsimCE(ocrParamList_t *perType);
-extern ocrPolicyDomainFactory_t * newPolicyDomainFactoryFsimMasterCE(ocrParamList_t *perType);
-extern ocrPolicyDomainFactory_t * newPolicyDomainFactoryHcPlaced(ocrParamList_t *perType);
-extern ocrPolicyDomainFactory_t * newPolicyDomainFactoryHcLeafPlace(ocrParamList_t *perType);
-extern ocrPolicyDomainFactory_t * newPolicyDomainFactoryHcMasterLeafPlace(ocrParamList_t *perType);
+#include "policy-domain/hc/hc-policy.h"
 
 inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type, ocrParamList_t *perType) {
     switch(type) {
@@ -86,9 +77,8 @@ inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type
     case policyDomainHcMasterLeafPlace_id:
 //        return newPolicyDomainFactoryHcMasterLeafPlace(perType);
     default:
-        return newPolicyDomainFactoryHc(perType);
+        ASSERT(0);
     }
-    ASSERT(0);
     return NULL;
 }
 
@@ -102,12 +92,10 @@ const char * policyCtx_types [] = {
     NULL
 };
 
-extern ocrPolicyCtxFactory_t * newPolicyContextFactoryHC(ocrParamList_t *perType);
-
 inline ocrPolicyCtxFactory_t * newPolicyCtxFactory(policyCtxType_t type, ocrParamList_t *perType) {
     switch(type) {
     case policyCtxHc_id:
-        return newPolicyContextFactoryHC(perType);
+        return newPolicyCtxFactoryHc(perType);
     default:
         ASSERT(0);
     }

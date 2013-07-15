@@ -30,7 +30,10 @@
 */
 
 #include "ocr-macros.h"
-#include "hc.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
+#include "ocr-workpile.h"
+#include "workpile/hc/hc-workpile.h"
 
 
 /******************************************************/
@@ -64,7 +67,7 @@ static ocrGuid_t hcWorkpileSteal ( ocrWorkpile_t * base, ocrCost_t *cost ) {
     return (ocrGuid_t) deque_steal(derived->deque);
 }
 
-ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
+static ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) checkedMalloc(derived, sizeof(ocrWorkpileHc_t));
     ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
     ocrMappable_t * module_base = (ocrMappable_t *) base;
@@ -80,7 +83,7 @@ ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *pe
 /* OCR-HC WorkPile Factory                            */
 /******************************************************/
 
-void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
+static void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
     free(factory);
 }
 

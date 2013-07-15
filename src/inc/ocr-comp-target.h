@@ -32,8 +32,8 @@
 #ifndef __OCR_COMP_TARGET_H__
 #define __OCR_COMP_TARGET_H__
 
-#include "ocr-guid.h"
 #include "ocr-mappable.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
 
 /****************************************************/

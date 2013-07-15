@@ -31,11 +31,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include <stdlib.h>
+
+#include "debug.h"
 #include "ocr-macros.h"
 #include "ocr-types.h"
-#include "x86-sync.h"
-#include "debug.h"
+#include "sync/x86/x86-sync.h"
+
+#include <stdlib.h>
 
 /* x86 lock */
 static void destructLockX86(ocrLock_t* self) {

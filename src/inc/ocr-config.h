@@ -39,13 +39,7 @@
 #ifndef __OCR_CONFIG_H__
 #define __OCR_CONFIG_H__
 
-#include "ocr-comp-target.h"
-#include "ocr-worker.h"
-#include "ocr-scheduler.h"
-#include "ocr-policy-domain.h"
-#include "ocr-workpile.h"
-#include "ocr-guid.h"
-#include "ocr-sync.h"
+// TODO: This file will be rendered obsolete soon
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"

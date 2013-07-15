@@ -31,57 +31,58 @@
 
 #include <stdlib.h>
 
-#include "ocr-macros.h"
-#include "ocr-runtime.h"
-#include "hc.h"
 #include "debug.h"
+#include "ocr-macros.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
+#include "scheduler/hc/hc-scheduler.h"
 
 /******************************************************/
 /* OCR-HC SCHEDULER                                   */
 /******************************************************/
 
-static inline ocrWorkpile_t * pop_mapping_one_to_one (ocrScheduler_t* base, u64 workerId ) {
-    u64 idx = (workerId - ((ocrSchedulerHc_t*)base)->worker_id_first);
+static inline ocrWorkpile_t * popMappingOneToOne (ocrScheduler_t* base, u64 workerId ) {
+    u64 idx = (workerId - ((ocrSchedulerHc_t*)base)->workerIdFirst);
     return base->workpiles[idx];
 }
 
-static inline ocrWorkpile_t * push_mapping_one_to_one (ocrScheduler_t* base, u64 workerId ) {
-    u64 idx = (workerId - ((ocrSchedulerHc_t*)base)->worker_id_first);
+static inline ocrWorkpile_t * pushMappingOneToOne (ocrScheduler_t* base, u64 workerId ) {
+    u64 idx = (workerId - ((ocrSchedulerHc_t*)base)->workerIdFirst);
     return base->workpiles[idx];
 }
 
-static inline ocrWorkpileIterator_t* steal_mapping_one_to_all_but_self (ocrScheduler_t* base, u64 workerId ) {
-    u64 idx = (workerId - ((ocrSchedulerHc_t*)base)->worker_id_first);
+static inline ocrWorkpileIterator_t* stealMappingOneToAllButSelf (ocrScheduler_t* base, u64 workerId ) {
+    u64 idx = (workerId - ((ocrSchedulerHc_t*)base)->workerIdFirst);
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) base;
-    ocrWorkpileIterator_t * steal_iterator = derived->steal_iterators[idx];
-    steal_iterator->reset(steal_iterator);
-    return steal_iterator;
+    ocrWorkpileIterator_t * stealIterator = derived->stealIterators[idx];
+    stealIterator->reset(stealIterator);
+    return stealIterator;
 }
 
-void hcSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
+static void hcSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     ocrSchedulerHc_t * derived = (ocrSchedulerHc_t *) self;
     u64 workpileCount = self->workpileCount;
     ocrWorkpile_t ** workpiles = self->workpiles;
     // allocate steal iterator cache
-    ocrWorkpileIterator_t ** steal_iterators_cache = checkedMalloc(steal_iterators_cache, sizeof(ocrWorkpileIterator_t *)*workpileCount);
+    ocrWorkpileIterator_t ** stealIteratorsCache = checkedMalloc(stealIteratorsCache, sizeof(ocrWorkpileIterator_t *)*workpileCount);
     // Initialize steal iterator cache
     u64 i = 0;
     while(i < workpileCount) {
         // Note: here we assume workpile 'i' will match worker 'i' => Not great
-        steal_iterators_cache[i] = workpileIteratorConstructor(i, workpileCount, workpiles);
+        stealIteratorsCache[i] = newWorkpileIterator(i, workpileCount, workpiles);
         i++;
     }
-    derived->steal_iterators = steal_iterators_cache;
+    derived->stealIterators = stealIteratorsCache;
 }
 
-void hcSchedulerStop(ocrScheduler_t * self) {
+static void hcSchedulerStop(ocrScheduler_t * self) {
   // nothing to do here
 }
 
-u8 hcSchedulerYield (ocrScheduler_t* self, ocrGuid_t workerGuid, 
-                       ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid, 
-                       ocrGuid_t * returnGuid,
-                       ocrPolicyCtx_t *context) {
+static u8 hcSchedulerYield (ocrScheduler_t* self, ocrGuid_t workerGuid,
+                            ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
+                            ocrGuid_t * returnGuid,
+                            ocrPolicyCtx_t *context) {
     // We do not yet take advantage of knowing which EDT we are yielding for.
     ocrPolicyDomain_t * pd = context->PD;
     ocrWorker_t * worker = NULL;
@@ -113,18 +114,18 @@ u8 hcSchedulerYield (ocrScheduler_t* self, ocrGuid_t workerGuid,
 }
 
 static u8 hcSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *count,
-                  ocrGuid_t *edts, ocrPolicyCtx_t *context) {
+                           ocrGuid_t *edts, ocrPolicyCtx_t *context) {
     // In this implementation (getCurrentPD == context->sourcePD)
     // Source must be a worker guid and we rely on indices to map
     // workers to workpiles (one-to-one)
     u64 workerId = context->sourceId;
     // First try to pop
-    ocrWorkpile_t * wp_to_pop = pop_mapping_one_to_one(self, workerId);
+    ocrWorkpile_t * wp_to_pop = popMappingOneToOne(self, workerId);
     // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
     ocrGuid_t popped = wp_to_pop->fctPtrs->pop(wp_to_pop,cost);
     if ( NULL_GUID == popped ) {
         // If popping failed, try to steal
-        ocrWorkpileIterator_t* it = steal_mapping_one_to_all_but_self(self, workerId);
+        ocrWorkpileIterator_t* it = stealMappingOneToAllButSelf(self, workerId);
         while ( it->hasNext(it) && (NULL_GUID == popped)) {
             ocrWorkpile_t * next = it->next(it);
             // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
@@ -145,10 +146,10 @@ static u8 hcSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *c
     return 0;
 }
 
-u8 hcSchedulerGive (ocrScheduler_t* base, u32 count, ocrGuid_t* edts, struct _ocrPolicyCtx_t *context ) {
+static u8 hcSchedulerGive (ocrScheduler_t* base, u32 count, ocrGuid_t* edts, struct _ocrPolicyCtx_t *context ) {
     // Source must be a worker guid
     u64 workerId = context->sourceId;
-    ocrWorkpile_t * wp_to_push = push_mapping_one_to_one(base, workerId);
+    ocrWorkpile_t * wp_to_push = pushMappingOneToOne(base, workerId);
     u32 i = 0;
     for ( ; i < count; ++i ) {
         wp_to_push->fctPtrs->push(wp_to_push,edts[i]);
@@ -160,24 +161,24 @@ static void destructSchedulerHc(ocrScheduler_t * scheduler) {
     // Free the workpile steal iterator cache
     ocrSchedulerHc_t * derived = (ocrSchedulerHc_t *) scheduler;
     u64 workpileCount = scheduler->workpileCount;
-    ocrWorkpileIterator_t ** steal_iterators = derived->steal_iterators;
+    ocrWorkpileIterator_t ** stealIterators = derived->stealIterators;
     // Workpiles are deallocated by the policy domain
     u64 i = 0;
     while(i < workpileCount) {
-        workpile_iterator_destructor(steal_iterators[i]);
+        workpileIteratorDestruct(stealIterators[i]);
         i++;
     }
-    free(steal_iterators);
+    free(stealIterators);
     // free self (workpiles are not allocated by the scheduler)
     free(scheduler);
 }
 
-ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
+static ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
     ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) checkedMalloc(derived, sizeof(ocrSchedulerHc_t));
     ocrScheduler_t* base = (ocrScheduler_t*)derived;
     base->fctPtrs = &(factory->schedulerFcts);
     paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
-    derived->worker_id_first = mapper->worker_id_first;
+    derived->workerIdFirst = mapper->workerIdFirst;
     return base;
 }
 

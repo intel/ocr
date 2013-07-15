@@ -1,29 +1,32 @@
+#include "allocator/allocator-all.h"
+#include "comp-platform/comp-platform-all.h"
+#include "comp-target/comp-target-all.h"
+#include "datablock/datablock-all.h"
+#include "debug.h"
+#include "event/event-all.h"
+#include "guid/guid-all.h"
+#include "machine-description/ocr-machine.h"
+#include "mem-platform/mem-platform-all.h"
+#include "mem-target/mem-target-all.h"
+#include "ocr-types.h"
+#include "policy-domain/policy-domain-all.h"
+#include "scheduler/scheduler-all.h"
+#include "sync/sync-all.h"
+#include "task/task-all.h"
+#include "worker/worker-all.h"
+#include "workpile/workpile-all.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <iniparser.h>
 #include <signal.h>
-#include "ocr-machine.h"
 
-#include <mem-platform/mem-platform-all.h>
-#include <comp-platform/comp-platform-all.h>
-#include <mem-target/mem-target-all.h>
-#include <allocator/allocator-all.h>
-#include <comp-target/comp-target-all.h>
-#include <workpile/workpile-all.h>
-#include <worker/worker-all.h>
-#include <scheduler/scheduler-all.h>
-#include <policy-domain/policy-domain-all.h>
-#include <task/task-all.h>
-#include <event/event-all.h>
-#include <guid/guid-all.h>
-#include <datablock/datablock-all.h>
-#include <sync/sync-all.h>
 
 #define MAX_KEY_SZ 64
 #define DEBUG_TYPE INIPARSING
 
 #define INI_GET_BOOL(KEY, VAR, DEF) \
-    VAR = (int) iniparser_getboolean(dict, KEY, DEF); \
+    VAR = (s32) iniparser_getboolean(dict, KEY, DEF); \
     if (VAR==DEF) { \
         DO_DEBUG(DEBUG_LVL_WARN) \
             DEBUG("Key %s not found or invalid!\n", KEY); \
@@ -31,7 +34,7 @@
     }
 
 #define INI_GET_INT(KEY, VAR, DEF) \
-    VAR = (int) iniparser_getint(dict, KEY, DEF); \
+    VAR = (s32) iniparser_getint(dict, KEY, DEF); \
     if (VAR==DEF) {\
         DO_DEBUG(DEBUG_LVL_WARN) \
             DEBUG("Key %s not found or invalid!\n", KEY); \
@@ -47,7 +50,7 @@
     }
 
 #define TO_ENUM(VAR, STR, TYPE, TYPESTR, COUNT) \
-    int kount; \
+    s32 kount; \
     for (kount=0; kount<COUNT; kount++) \
         if (!strcmp(STR, TYPESTR[kount])) \
             VAR=(TYPE)kount;
@@ -62,11 +65,11 @@ extern const char *inst_str[];
 
 // TODO: expand to parse comma separated values & ranges iterating the below thru strtok with ,
 // TODO: stretch goal, extend this to expressions: surely you're joking, Mr. Feynman
-int read_range(dictionary *dict, char *sec, char *field, int *low, int *high) {
+s32 read_range(dictionary *dict, char *sec, char *field, s32 *low, s32 *high) {
     char key[MAX_KEY_SZ];
-    int value;
-    int lo, hi;
-    int count;
+    s32 value;
+    s32 lo, hi;
+    s32 count;
 
     snprintf(key, MAX_KEY_SZ, "%s:%s", sec, field);
     if (INI_IS_RANGE(key)) {
@@ -74,7 +77,7 @@ int read_range(dictionary *dict, char *sec, char *field, int *low, int *high) {
         count = hi-lo+1;
     } else {
         INI_GET_INT(key, value, -1);
-        count = 1; 
+        count = 1;
         lo = hi = value;
     }
     *low = lo; *high = hi;
@@ -85,7 +88,7 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
     char *typestr;
     char key[MAX_KEY_SZ];
     int value = 0;
-    
+
     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "name");
     INI_GET_STR (key, typestr, "");
 
@@ -108,13 +111,13 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
             TO_ENUM (mytype, typestr, compPlatformType_t, compplatform_types, compPlatformMax_id);
             switch (mytype) {
                 case compPlatformPthread_id: {
-                    ALLOC_PARAM_LIST(*type_param, paramListCompPlatformPthread_t); 
+                    ALLOC_PARAM_LIST(*type_param, paramListCompPlatformPthread_t);
                     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
                     INI_GET_INT (key, value, -1);
                     ((paramListCompPlatformPthread_t *)(*type_param))->stackSize = (value==-1)?0:value;
                 }
                 break;
-                default: 
+                default:
                     ALLOC_PARAM_LIST(*type_param, paramListCompPlatformFact_t);
                     break;
             }
@@ -154,9 +157,9 @@ ocrCompPlatformFactory_t *create_factory_compplatform (char *name, ocrParamList_
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a compplatform factory of type %d\n", mytype); 
+            DEBUG("Creating a compplatform factory of type %d\n", mytype);
         END_DEBUG
         return newCompPlatformFactory(mytype, paramlist);
     }
@@ -165,15 +168,15 @@ ocrCompPlatformFactory_t *create_factory_compplatform (char *name, ocrParamList_
 ocrMemPlatformFactory_t *create_factory_memplatform (char *name, ocrParamList_t *paramlist) {
     memPlatformType_t mytype = -1;
     TO_ENUM (mytype, name, memPlatformType_t, memplatform_types, memPlatformMax_id);
-  
+
     if (mytype == -1) {
         DO_DEBUG(DEBUG_LVL_WARN)
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a memplatform factory of type %d\n", mytype); 
+            DEBUG("Creating a memplatform factory of type %d\n", mytype);
         END_DEBUG
         return newMemPlatformFactory(mytype, paramlist);
     }
@@ -187,9 +190,9 @@ ocrMemPlatformFactory_t *create_factory_memtarget(char *name, ocrParamList_t *pa
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a memtarget factory of type %d\n", mytype); 
+            DEBUG("Creating a memtarget factory of type %d\n", mytype);
         END_DEBUG
         return (ocrMemPlatformFactory_t *)newMemTargetFactory(mytype, paramlist);
     }
@@ -203,9 +206,9 @@ ocrAllocatorFactory_t *create_factory_allocator(char *name, ocrParamList_t *para
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating an allocator factory of type %d\n", mytype); 
+            DEBUG("Creating an allocator factory of type %d\n", mytype);
         END_DEBUG
         return (ocrAllocatorFactory_t *)newAllocatorFactory(mytype, paramlist);
     }
@@ -219,9 +222,9 @@ ocrCompTargetFactory_t *create_factory_comptarget(char *name, ocrParamList_t *pa
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a comptarget factory of type %d\n", mytype); 
+            DEBUG("Creating a comptarget factory of type %d\n", mytype);
         END_DEBUG
         return (ocrCompTargetFactory_t *)newCompTargetFactory(mytype, paramlist);
     }
@@ -235,9 +238,9 @@ ocrWorkpileFactory_t *create_factory_workpile(char *name, ocrParamList_t *paraml
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a workpile factory of type %d\n", mytype); 
+            DEBUG("Creating a workpile factory of type %d\n", mytype);
         END_DEBUG
         return (ocrWorkpileFactory_t *)newWorkpileFactory(mytype, paramlist);
     }
@@ -251,9 +254,9 @@ ocrWorkerFactory_t *create_factory_worker(char *name, ocrParamList_t *paramlist)
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a worker factory of type %d\n", mytype); 
+            DEBUG("Creating a worker factory of type %d\n", mytype);
         END_DEBUG
         return (ocrWorkerFactory_t *)newWorkerFactory(mytype, paramlist);
     }
@@ -267,9 +270,9 @@ ocrSchedulerFactory_t *create_factory_scheduler(char *name, ocrParamList_t *para
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a scheduler factory of type %d\n", mytype); 
+            DEBUG("Creating a scheduler factory of type %d\n", mytype);
         END_DEBUG
         return (ocrSchedulerFactory_t *)newSchedulerFactory(mytype, paramlist);
     }
@@ -283,9 +286,9 @@ ocrPolicyDomainFactory_t *create_factory_policydomain(char *name, ocrParamList_t
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a worker factory of type %d\n", mytype); 
+            DEBUG("Creating a worker factory of type %d\n", mytype);
         END_DEBUG
         return (ocrPolicyDomainFactory_t *)newPolicyDomainFactory(mytype, paramlist);
     }
@@ -297,12 +300,12 @@ ocrTaskFactory_t *create_factory_task(char *name, ocrParamList_t *paramlist) {
     if (mytype == -1) {
         DO_DEBUG(DEBUG_LVL_INFO)
             DEBUG("Unrecognized type %s\n", name);
-        END_DEBUG 
+        END_DEBUG
         return NULL;
     } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a task factory of type %d\n", mytype); 
-        END_DEBUG 
+            DEBUG("Creating a task factory of type %d\n", mytype);
+        END_DEBUG
         return (ocrTaskFactory_t *)newTaskFactory(mytype, paramlist);
     }
 }
@@ -315,10 +318,10 @@ ocrTaskTemplateFactory_t *create_factory_tasktemplate(char *name, ocrParamList_t
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a task template factory of type %d\n", mytype); 
-        END_DEBUG 
+            DEBUG("Creating a task template factory of type %d\n", mytype);
+        END_DEBUG
         return (ocrTaskTemplateFactory_t *)newTaskTemplateFactory(mytype, paramlist);
     }
 }
@@ -331,10 +334,10 @@ ocrDataBlockFactory_t *create_factory_datablock(char *name, ocrParamList_t *para
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a datablock factory of type %d\n", mytype); 
-        END_DEBUG 
+            DEBUG("Creating a datablock factory of type %d\n", mytype);
+        END_DEBUG
         return (ocrDataBlockFactory_t *)newDataBlockFactory(mytype, paramlist);
     }
 }
@@ -347,10 +350,10 @@ ocrEventFactory_t *create_factory_event(char *name, ocrParamList_t *paramlist) {
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating an event factory of type %d\n", mytype); 
-        END_DEBUG 
+            DEBUG("Creating an event factory of type %d\n", mytype);
+        END_DEBUG
         return (ocrEventFactory_t *)newEventFactory(mytype, paramlist);
     }
 }
@@ -363,10 +366,10 @@ ocrPolicyCtxFactory_t *create_factory_context(char *name, ocrParamList_t *paraml
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a policy ctx factory of type %d\n", mytype); 
-        END_DEBUG 
+            DEBUG("Creating a policy ctx factory of type %d\n", mytype);
+        END_DEBUG
         return (ocrPolicyCtxFactory_t *)newPolicyCtxFactory(mytype, paramlist);
     }
 }
@@ -379,10 +382,10 @@ ocrGuidProviderFactory_t *create_factory_guid(char *name, ocrParamList_t *paraml
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a guid factory of type %d\n", mytype); 
-        END_DEBUG 
+            DEBUG("Creating a guid factory of type %d\n", mytype);
+        END_DEBUG
         return (ocrGuidProviderFactory_t *)newGuidProviderFactory(mytype, paramlist);
     }
 }
@@ -395,10 +398,10 @@ ocrLockFactory_t *create_factory_lock(char *name, ocrParamList_t *paramlist) {
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating a lock factory of type %d\n", mytype); 
-        END_DEBUG 
+            DEBUG("Creating a lock factory of type %d\n", mytype);
+        END_DEBUG
         return (ocrLockFactory_t *)newLockFactory(mytype, paramlist);
     }
 }
@@ -411,10 +414,10 @@ ocrAtomic64Factory_t *create_factory_atomic64(char *name, ocrParamList_t *paraml
             DEBUG("Unrecognized type %s\n", name);
         END_DEBUG
         return NULL;
-    } else { 
+    } else {
         DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Creating an atomic64 factory of type %d\n", mytype); 
-        END_DEBUG 
+            DEBUG("Creating an atomic64 factory of type %d\n", mytype);
+        END_DEBUG
         return (ocrAtomic64Factory_t *)newAtomic64Factory(mytype, paramlist);
     }
 }
@@ -462,14 +465,14 @@ void *create_factory (type_enum index, char *factory_name, ocrParamList_t *param
     return new_factory;
 }
 
-int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *type_counts, char ***factory_names, void ***all_factories, ocrMappable_t ***all_instances, type_enum index, dictionary *dict, char *secname) {
-    int i, low, high, j;
+s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *type_counts, char ***factory_names, void ***all_factories, ocrMappable_t ***all_instances, type_enum index, dictionary *dict, char *secname) {
+    s32 i, low, high, j;
     char *inststr;
     char key[MAX_KEY_SZ];
     void *factory;
-    int value;
+    s32 value;
 
-    read_range(dict, secname, "id", &low, &high); 
+    read_range(dict, secname, "id", &low, &high);
 
     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "type");
     INI_GET_STR (key, inststr, "");
@@ -493,8 +496,8 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
     case guid_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListGuidProviderInst_t);
-            instance[j] = (ocrMappable_t *)((ocrGuidProviderFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) 
+            instance[j] = (ocrMappable_t *)((ocrGuidProviderFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            if (instance[j])
                 DO_DEBUG(DEBUG_LVL_INFO)
                     DEBUG("Created guid provider of type %s, index %d\n", inststr, j);
                 END_DEBUG
@@ -503,8 +506,8 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
     case memplatform_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformInst_t);
-            instance[j] = (ocrMappable_t *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) 
+            instance[j] = (ocrMappable_t *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            if (instance[j])
                 DO_DEBUG(DEBUG_LVL_INFO)
                     DEBUG("Created memplatform of type %s, index %d\n", inststr, j);
                 END_DEBUG
@@ -513,21 +516,21 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
     case memtarget_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
-            instance[j] = (ocrMappable_t *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) 
+            instance[j] = (ocrMappable_t *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            if (instance[j])
                 DO_DEBUG(DEBUG_LVL_INFO)
                     DEBUG("Created memtarget of type %s, index %d\n", inststr, j);
                 END_DEBUG
         }
         break;
     case allocator_type:
-        for (j = low; j<=high; j++) { 
+        for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
             INI_GET_INT (key, value, -1);
             ((paramListAllocatorInst_t *)inst_param[j])->size = value;
-            instance[j] = (ocrMappable_t *)((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) 
+            instance[j] = (ocrMappable_t *)((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            if (instance[j])
                 DO_DEBUG(DEBUG_LVL_INFO)
                     DEBUG("Created allocator of type %s, index %d\n", inststr, j);
                 END_DEBUG
@@ -546,8 +549,8 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
             INI_GET_INT (key, value, -1);
             ((paramListCompPlatformPthread_t *)inst_param[j])->stackSize = value;
 
-            instance[j] = (ocrMappable_t *)((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) 
+            instance[j] = (ocrMappable_t *)((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            if (instance[j])
                 DO_DEBUG(DEBUG_LVL_INFO)
                     DEBUG("Created compplatform of type %s, index %d\n", inststr, j);
                 END_DEBUG
@@ -556,8 +559,8 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
     case comptarget_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListCompTargetInst_t);
-            instance[j] = (ocrMappable_t *)((ocrCompTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) 
+            instance[j] = (ocrMappable_t *)((ocrCompTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            if (instance[j])
                 DO_DEBUG(DEBUG_LVL_INFO)
                     DEBUG("Created comptarget of type %s, index %d\n", inststr, j);
                 END_DEBUG
@@ -566,8 +569,8 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
     case workpile_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListWorkpileInst_t);
-            instance[j] = (ocrMappable_t *)((ocrWorkpileFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) 
+            instance[j] = (ocrMappable_t *)((ocrWorkpileFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            if (instance[j])
                 DO_DEBUG(DEBUG_LVL_INFO)
                     DEBUG("Created workpile of type %s, index %d\n", inststr, j);
                 END_DEBUG
@@ -581,8 +584,8 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "workerid");
             INI_GET_INT (key, value, -1);
             ((paramListWorkerHcInst_t *)inst_param[j])->workerId = value; // TODO: just use id(j) rather than a separate key ?
-            instance[j] = (ocrMappable_t *)((ocrWorkerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) 
+            instance[j] = (ocrMappable_t *)((ocrWorkerFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            if (instance[j])
                 DO_DEBUG(DEBUG_LVL_INFO)
                     DEBUG("Created worker of type %s, index %d\n", inststr, j);
                 END_DEBUG
@@ -595,9 +598,9 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
             ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerHcInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "workeridfirst");
             INI_GET_INT (key, value, -1);
-            ((paramListSchedulerHcInst_t *)inst_param[j])->worker_id_first = value;
-            instance[j] = (ocrMappable_t *)((ocrSchedulerFactory_t *)factory)->instantiate(factory, inst_param[j]);        
-            if (instance[j]) 
+            ((paramListSchedulerHcInst_t *)inst_param[j])->workerIdFirst = value;
+            instance[j] = (ocrMappable_t *)((ocrSchedulerFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            if (instance[j])
                 DO_DEBUG(DEBUG_LVL_INFO)
                     DEBUG("Created scheduler of type %s, index %d\n", inststr, j);
                 END_DEBUG
@@ -613,16 +616,16 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
             ocrGuidProvider_t *gf;
             ocrLockFactory_t *lf;
             ocrAtomic64Factory_t *af;
-            int low, high;
+            s32 low, high;
 
-            int schedulerCount, workerCount, computeCount, workpileCount, allocatorCount, memoryCount;
-            schedulerCount = read_range(dict, secname, "scheduler", &low, &high); 
-            workerCount = read_range(dict, secname, "worker", &low, &high); 
-            computeCount = read_range(dict, secname, "comptarget", &low, &high); 
-            workpileCount = read_range(dict, secname, "workpile", &low, &high); 
-            allocatorCount = read_range(dict, secname, "allocator", &low, &high); 
-            memoryCount = read_range(dict, secname, "memtarget", &low, &high); 
-         
+            s32 schedulerCount, workerCount, computeCount, workpileCount, allocatorCount, memoryCount;
+            schedulerCount = read_range(dict, secname, "scheduler", &low, &high);
+            workerCount = read_range(dict, secname, "worker", &low, &high);
+            computeCount = read_range(dict, secname, "comptarget", &low, &high);
+            workpileCount = read_range(dict, secname, "workpile", &low, &high);
+            allocatorCount = read_range(dict, secname, "allocator", &low, &high);
+            memoryCount = read_range(dict, secname, "memtarget", &low, &high);
+
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "taskfactory");
             INI_GET_STR (key, inststr, "");
             tf = create_factory_task(inststr, NULL);
@@ -652,16 +655,16 @@ int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *ty
             af = create_factory_atomic64(inststr, NULL);
 
             // Ugly but special case
-            read_range(dict, secname, "guid", &low, &high); 
+            read_range(dict, secname, "guid", &low, &high);
             ASSERT (low == high);
             gf = (ocrGuidProvider_t *)(all_instances[0][low]); // Very special case: FIXME
             ASSERT (gf);
 
-            ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t); 
-            instance[j] = (ocrMappable_t *)((ocrPolicyDomainFactory_t *)factory)->instantiate(factory, schedulerCount, 
+            ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
+            instance[j] = (ocrMappable_t *)((ocrPolicyDomainFactory_t *)factory)->instantiate(factory, schedulerCount,
                             workerCount, computeCount, workpileCount, allocatorCount, memoryCount,
-                            tf, ttf, dbf, ef, cf, gf, lf, af, NULL, inst_param[j]);        
-            if (instance[j]) 
+                            tf, ttf, dbf, ef, cf, gf, lf, af, NULL, inst_param[j]);
+            if (instance[j])
                 DO_DEBUG(DEBUG_LVL_INFO)
                     DEBUG("Created policy domain of index %d\n", j);
                 END_DEBUG
@@ -725,7 +728,7 @@ void free_instance (ocrMappable_t *instance, type_enum mytype)
     }
 }
 
-void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *frominstance, ocrParamList_t *fromparam, ocrMappable_t *toinstance, ocrParamList_t *toparam, int dependence_index, int dependence_count) {
+void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *frominstance, ocrParamList_t *fromparam, ocrMappable_t *toinstance, ocrParamList_t *toparam, s32 dependence_index, s32 dependence_count) {
     switch(fromtype) {
     case guid_type:
     case memplatform_type:
@@ -810,7 +813,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
                         f->workers[dependence_index] = (ocrWorker_t *)toinstance;
                         break;
                     }
-                default: 
+                default:
                         break;
             }
             break;
@@ -874,7 +877,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
                         f->schedulers[dependence_index] = (ocrScheduler_t *)toinstance;
                         break;
                     }
-                default: 
+                default:
                         break;
             }
             break;
@@ -884,20 +887,20 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
     }
 }
 
-int build_deps (dictionary *dict, int A, int B, char *refstr, ocrMappable_t ***all_instances, ocrParamList_t ***inst_params) {
-    int i, j, k;
-    int low, high;
-    int l, h;
+s32 build_deps (dictionary *dict, s32 A, s32 B, char *refstr, ocrMappable_t ***all_instances, ocrParamList_t ***inst_params) {
+    s32 i, j, k;
+    s32 low, high;
+    s32 l, h;
 
     for (i = 0; i < iniparser_getnsec(dict); i++) {
         // Go thru the secnames looking for instances of A
-        if (strncasecmp(inst_str[A], iniparser_getsecname(dict, i), strlen(inst_str[A]))==0) { 
+        if (strncasecmp(inst_str[A], iniparser_getsecname(dict, i), strlen(inst_str[A]))==0) {
             // For each secname, look up corresponding instance of A through id
             read_range(dict, iniparser_getsecname(dict, i), "id", &low, &high);
             for (j = low; j <= high; j++) {
                 // Parse corresponding dependences from secname
                 read_range(dict, iniparser_getsecname(dict, i), refstr, &l, &h);
-                // Connect A with B 
+                // Connect A with B
                 // FIXME: only rough heuristic for now: if |from| == |to| then 1:1, else all:all
                 if (h-l == high-low) {
                     k = l+j-low;

@@ -32,9 +32,9 @@
 #ifndef __GUID_ALL_H__
 #define __GUID_ALL_H__
 
-#include "ocr-guid.h"
-#include "ocr-utils.h"
 #include "debug.h"
+#include "ocr-types.h"
+#include "ocr-utils.h"
 
 typedef enum _guidType_t {
     guidPtr_id,
@@ -47,7 +47,7 @@ const char * guid_types[] __attribute__ ((weak)) = {
 };
 
 // Ptr GUID provider
-#include "guid/ptr/ptr.h"
+#include "guid/ptr/ptr-guid.h"
 
 // Add other GUID providers if needed
 static inline ocrGuidProviderFactory_t *newGuidProviderFactory(guidType_t  type, ocrParamList_t *typeArg) {
@@ -56,7 +56,7 @@ static inline ocrGuidProviderFactory_t *newGuidProviderFactory(guidType_t  type,
         return newGuidProviderFactoryPtr(typeArg);
     default:
         ASSERT(0);
-        return NULL;
     }
+    return NULL;
 }
 #endif /* __GUID_ALL_H__ */

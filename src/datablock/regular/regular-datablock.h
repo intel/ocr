@@ -34,10 +34,10 @@
 #ifndef __DATABLOCK_REGULAR_H__
 #define __DATABLOCK_REGULAR_H__
 
-#include "ocr-types.h"
-#include "ocr-datablock.h"
 #include "ocr-allocator.h"
+#include "ocr-datablock.h"
 #include "ocr-sync.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
 
 typedef struct {

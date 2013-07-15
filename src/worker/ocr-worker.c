@@ -29,11 +29,11 @@
 
 */
 
-#include "ocr-types.h"
 #include "ocr-guid.h"
-#include "ocr-worker.h"
-#include "ocr-policy-domain.h"
 #include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
+#include "ocr-types.h"
+#include "ocr-worker.h"
 
 ocrGuid_t getCurrentEDTFromWorker() {
     ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
@@ -51,4 +51,4 @@ void setCurrentEDTToWorker(ocrGuid_t edtGuid) {
     worker->fctPtrs->setCurrentEDT(worker, edtGuid);
 }
 
-void associate_comp_platform_and_worker(ocrWorker_t *worker) {}
+//void associate_comp_platform_and_worker(ocrWorker_t *worker) {}

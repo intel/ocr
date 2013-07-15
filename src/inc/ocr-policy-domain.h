@@ -32,19 +32,19 @@
 #ifndef OCR_POLICY_DOMAIN_H_
 #define OCR_POLICY_DOMAIN_H_
 
-#include "ocr-types.h"
-#include "ocr-guid.h"
-#include "ocr-scheduler.h"
-#include "ocr-comp-target.h"
-#include "ocr-worker.h"
 #include "ocr-allocator.h"
-#include "ocr-mem-target.h"
+#include "ocr-comp-target.h"
 #include "ocr-datablock.h"
-#include "ocr-sync.h"
-#include "ocr-mappable.h"
 #include "ocr-event.h"
+#include "ocr-guid.h"
+#include "ocr-mappable.h"
+#include "ocr-mem-target.h"
+#include "ocr-scheduler.h"
+#include "ocr-sync.h"
 #include "ocr-task.h"
 #include "ocr-tuning.h"
+#include "ocr-types.h"
+#include "ocr-worker.h"
 #include "ocr-workpile.h"
 
 /****************************************************/
@@ -222,7 +222,7 @@ typedef struct _ocrPolicyDomain_t {
      * @brief Finish the execution of the policy domain
      *
      * Ask the policy domain to wrap up currently executing
-     * task and shutdown workers. This is typically something 
+     * task and shutdown workers. This is typically something
      * ocrShutdown would call.
      *
      * @param self                This policy domain
@@ -277,7 +277,17 @@ typedef struct _ocrPolicyDomain_t {
                     u32 depc, u16 properties, ocrGuid_t affinity,
                     ocrGuid_t * outputEvent, ocrPolicyCtx_t *context);
 
+    /**
+     * @brief Request the creation of a task-template metadata
+     */
+    u8 (*createEdtTemplate)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid,
+                           ocrEdt_t funcPtr, u32 paramc, u32 depc, ocrPolicyCtx_t *context);
 
+    /**
+     * @brief Request the creation of an event
+     */
+    u8 (*createEvent)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid,
+                      ocrEventTypes_t type, bool takesArg, ocrPolicyCtx_t *context);
     /**
      * @brief Inform the policy domain of an event that does not require any
      * further processing
@@ -446,15 +456,8 @@ typedef struct _ocrPolicyDomainFactory_t {
     void (*destruct)(struct _ocrPolicyDomainFactory_t * factory);
 } ocrPolicyDomainFactory_t;
 
-/****************************************************/
-/* UTILITY METHODS                                  */
-/****************************************************/
-
-
-// ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
-// ocrGuid_t policy_domain_extract_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid );
-
-// void policy_domain_handOut_assert ( ocrPolicyDomain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
-// void policy_domain_receive_assert ( ocrPolicyDomain_t * thisPolicy, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid );
+#define __GUID_END_MARKER__
+#include "ocr-guid-end.h"
+#undef __GUID_END_MARKER__
 
 #endif /* OCR_POLICY_DOMAIN_H_ */

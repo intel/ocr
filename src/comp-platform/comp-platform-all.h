@@ -32,9 +32,9 @@
 #ifndef __COMP_PLATFORM_ALL_H__
 #define __COMP_PLATFORM_ALL_H__
 
+#include "debug.h"
 #include "ocr-comp-platform.h"
 #include "ocr-utils.h"
-#include "debug.h"
 
 typedef enum _compPlatformType_t {
     compPlatformPthread_id,

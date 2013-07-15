@@ -29,28 +29,18 @@
 
 */
 
-#ifndef EDF_H
-#define EDF_H
+#ifndef __HC_EVENT_H__
+#define __HC_EVENT_H__
 
-#include "ocr-runtime.h"
+#include "hc/hc.h"
+#include "ocr-event.h"
 #include "ocr-types.h"
-
-/******************************************************/
-/* OCR-HC Event Factory                               */
-/******************************************************/
+#include "ocr-utils.h"
 
 typedef struct {
     ocrEventFactory_t base_factory;
     ocrEventFcts_t finishLatchFcts;
 } ocrEventFactoryHc_t;
-
-ocrEventFactory_t* newEventFactoryHc(ocrParamList_t *perType);
-
-typedef struct reg_node_st {
-    ocrGuid_t guid;
-    int slot;
-    struct reg_node_st* next ;
-} regNode_t;
 
 typedef struct ocrEventHc_t {
     ocrEvent_t base;
@@ -83,43 +73,6 @@ typedef struct ocrEventHcFinishLatch_t {
     volatile int counter;
 } ocrEventHcFinishLatch_t;
 
-/*! \brief Event Driven Task(EDT) template implementation
- */
-typedef struct {
-    ocrTaskTemplate_t base;
-} ocrTaskTemplateHc_t;
+ocrEventFactory_t* newEventFactoryHc(ocrParamList_t *perType);
 
-/*! \brief Event Driven Task(EDT) implementation for OCR Tasks
- */
-typedef struct {
-    ocrTask_t base;
-    regNode_t * waiters;
-    regNode_t * signalers; // Does not grow, set once when the task is created
-} ocrTaskHc_t;
-
-
-/******************************************************/
-/* OCR-HC Events                                      */
-/******************************************************/
-
-#define FINISH_LATCH_DECR_SLOT 0
-#define FINISH_LATCH_INCR_SLOT 1
-
-// Define internal finish-latch event id after user-level events
-#define OCR_EVENT_FINISH_LATCH_T OCR_EVENT_T_MAX+1
-
-
-/*! \brief Convenience method to get the currently executing task.
- * Relies on getCurrentEDT() and deguidify the EDT's guid.
- */
-ocrTask_t * getCurrentTask();
-
-/*! \brief Get the Finish Latch registered with an EDT
- */
-ocrEvent_t * getFinishLatch(ocrTask_t * edt);
-
-/*! \brief Set the Finish Latch of an EDT
- */
-void setFinishLatch(ocrTask_t * edt, ocrGuid_t latchGuid);
-
-#endif
+#endif /* __HC_EVENT_H__ */

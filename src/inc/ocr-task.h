@@ -32,9 +32,9 @@
 #ifndef __OCR_TASK_H__
 #define __OCR_TASK_H__
 
-#include "ocr-guid.h"
-#include "ocr-sync.h"
 #include "ocr-edt.h"
+#include "ocr-sync.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
 
 #ifdef OCR_ENABLE_STATISTICS
@@ -93,7 +93,7 @@ typedef struct _ocrTaskTemplate_t {
 
 typedef struct _ocrTaskTemplateFactory_t {
     ocrTaskTemplate_t* (*instantiate)(struct _ocrTaskTemplateFactory_t * factory, ocrEdt_t fctPtr,
-                                      u32 paramc, u32 depc);
+                                      u32 paramc, u32 depc, ocrParamList_t *perInstance);
 
     /*! \brief Virtual destructor for the TaskTemplateFactory interface
      */

@@ -28,36 +28,23 @@
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#ifndef __COMP_TARGET_ALL_H__
-#define __COMP_TARGET_ALL_H__
+#ifndef __HC_WORKPILE_H__
+#define __HC_WORKPILE_H__
 
-#include "debug.h"
-#include "ocr-comp-target.h"
 #include "ocr-utils.h"
+#include "ocr-workpile.h"
+#include "workpile/hc/deque.h"
 
-typedef enum _compTargetType_t {
-    compTargetHc_id,
-    compTargetMax_id,
-} compTargetType_t;
+typedef struct {
+    ocrWorkpileFactory_t base;
+} ocrWorkpileFactoryHc_t;
 
-const char * comptarget_types[] = {
-    "HC",
-    NULL
-};
+typedef struct {
+    ocrWorkpile_t base;
+    deque_t * deque;
+} ocrWorkpileHc_t;
 
-// Pthread compute platform
-#include "comp-target/hc/hc-comp-target.h"
+ocrWorkpileFactory_t* newOcrWorkpileFactoryHc(ocrParamList_t *perType);
 
-// Add other compute targets using the same pattern as above
 
-inline ocrCompTargetFactory_t *newCompTargetFactory(compTargetType_t type, ocrParamList_t *typeArg) {
-    switch(type) {
-    case compTargetHc_id:
-        return newCompTargetFactoryHc(typeArg);
-    default:
-        ASSERT(0);
-        return NULL;
-    };
-}
-
-#endif /* __COMP_TARGET_ALL_H__ */
+#endif /* __HC_WORKPILE_H__ */

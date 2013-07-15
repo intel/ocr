@@ -31,27 +31,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "ocr-db.h"
-#include "ocr-datablock.h"
-#include "ocr-allocator.h"
-#include "ocr-worker.h"
-#include "ocr-policy-domain.h"
+
+
 #include "debug.h"
-#include "ocr-guid.h"
+#include "ocr-allocator.h"
+#include "ocr-datablock.h"
+#include "ocr-db.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
+
 #include <errno.h>
+
 #if (__STDC_HOSTED__ == 1)
 #include <string.h>
 #endif
 
-#include "ocr.h"
-#include "ocr-runtime.h"
-
-#include "ocr-policy-domain-getter.h"
-
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
 #include "ocr-stat-user.h"
-#include "ocr-config.h"
 #endif
 
 

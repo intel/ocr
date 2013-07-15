@@ -29,14 +29,17 @@
 
 */
 
+
+#include "debug.h"
+#include "ocr-comp-platform.h"
+#include "ocr-runtime.h"
+#include "ocr-types.h"
+#include "ocr-worker.h"
+#include "worker/hc/hc-worker.h"
+
 #include <pthread.h>
 #include <stdio.h>
 
-#include "debug.h"
-#include "ocr-runtime.h"
-#include "hc.h"
-#include "ocr-guid.h"
-#include "ocr-comp-platform.h"
 
 #define DEBUG_TYPE WORKER
 

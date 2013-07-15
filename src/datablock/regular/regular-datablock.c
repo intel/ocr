@@ -30,26 +30,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include <errno.h>
-#include <stdlib.h>
 
-#include "ocr-datablock.h"
-#include "regular-datablock.h"
+#include "datablock/regular/regular-datablock.h"
 #include "debug.h"
-#include "ocr-guid.h"
-#include "ocr-utils.h"
-
 #include "ocr-comp-platform.h"
+#include "ocr-datablock.h"
+#include "ocr-macros.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
 #include "ocr-sync.h"
+#include "ocr-utils.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
 #endif
 
+#include <errno.h>
+#include <stdlib.h>
 #include <inttypes.h>
-#include "ocr-policy-domain.h"
-#include "ocr-policy-domain-getter.h"
-#include "ocr-macros.h"
+
 
 #define DEBUG_TYPE DATABLOCK
 

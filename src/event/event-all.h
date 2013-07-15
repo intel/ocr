@@ -34,9 +34,9 @@
 #ifndef __EVENT_ALL_H__
 #define __EVENT_ALL_H__
 
+#include "debug.h"
 #include "ocr-event.h"
 #include "ocr-utils.h"
-#include "debug.h"
 
 typedef enum _eventType_t {
     eventHc_id,
@@ -51,8 +51,7 @@ const char * event_types [] = {
 };
 
 // HC Event
-#include "hc.h"
-#include "hc_edf.h"
+#include "event/hc/hc-event.h"
 
 // Add other events using the same pattern as above
 

@@ -32,10 +32,10 @@
 #ifndef __OCR_COMP_PLATFORM_H__
 #define __OCR_COMP_PLATFORM_H__
 
-#include "ocr-mappable.h"
-#include "ocr-utils.h"
-#include "ocr-guid.h"
 #include "ocr-comp-target.h"
+#include "ocr-mappable.h"
+#include "ocr-types.h"
+#include "ocr-utils.h"
 
 
 /****************************************************/

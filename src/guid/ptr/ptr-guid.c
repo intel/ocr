@@ -31,10 +31,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
-#include "ptr.h"
 #include "debug.h"
+#include "guid/ptr/ptr-guid.h"
 #include "ocr-macros.h"
+
+#include <stdlib.h>
 
 typedef struct {
     ocrGuid_t guid;

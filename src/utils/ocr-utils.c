@@ -31,11 +31,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
-#include <stdlib.h>
-
-#include "ocr-utils.h"
-#include "ocr-types.h"
 #include "debug.h"
+#include "ocr-types.h"
+#include "ocr-utils.h"
+
+#include <stdlib.h>
 
 
 /******************************************************/

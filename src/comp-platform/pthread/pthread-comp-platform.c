@@ -29,19 +29,18 @@
 
 */
 
-#include <pthread.h>
-#include <string.h>
-#include <stdlib.h>
 
-#include "pthread-comp-platform.h"
-#include "ocr-comp-platform.h"
-#include "ocr-guid.h"
-#include "ocr-policy-domain.h"
-#include "ocr-policy-domain-getter.h"
-#include "ocr-worker.h"
 
 #include "debug.h"
 #include "ocr-macros.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
+#include "ocr-worker.h"
+#include "pthread-comp-platform.h"
+
+#include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
 
 /**
  * @brief Structure stored on a per-thread basis to keep track of

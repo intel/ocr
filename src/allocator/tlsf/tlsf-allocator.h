@@ -35,9 +35,9 @@
 #ifndef __ALLOCATOR_TLSF_H__
 #define __ALLOCATOR_TLSF_H__
 
-#include "ocr-types.h"
 #include "ocr-allocator.h"
 #include "ocr-sync.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
 
 typedef struct {

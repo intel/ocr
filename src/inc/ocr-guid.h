@@ -162,10 +162,21 @@ typedef struct _ocrGuidProviderFactory_t {
 
 #define ERROR_GUID ((ocrGuid_t)-1)
 
-inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, ocrGuidKind * kindRes);
+/****************************************************/
+/* OCR GUID CONVENIENCE FUNCTIONS                   */
+/****************************************************/
 
-inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * guidRes, ocrGuidKind kind);
-
-inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes, ocrGuidKind* kind);
+static inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid,
+                          ocrGuidKind* kindRes) __attribute__((unused));
+// TODO: REC: Actually pass a context
+static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * guidRes,
+                         ocrGuidKind kind) __attribute__((unused));
+static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes,
+                           ocrGuidKind* kindRes) __attribute__((unused));
+static inline bool isDatablockGuid(ocrGuid_t guid) __attribute__((unused));
+static inline bool isEventGuid(ocrGuid_t guid) __attribute__((unused));
+static inline bool isEdtGuid(ocrGuid_t guid) __attribute__((unused));
+static inline bool isEventLatchGuid(ocrGuid_t guid) __attribute__((unused));
+static inline bool isEventSingleGuid(ocrGuid_t guid) __attribute__((unused));
 
 #endif /* __OCR_GUID__H_ */

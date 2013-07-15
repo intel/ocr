@@ -32,6 +32,8 @@
 #ifndef HC_SYSDEP_H_
 #define HC_SYSDEP_H_
 
+// TODO: This probably has to move to platform or something
+
 //
 // I386
 //

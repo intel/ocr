@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdlib.h>
 
 // This is just in case we want to avoid checking sys calls.
 #define OCR_CHECK_SYSCALL 1

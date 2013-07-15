@@ -28,36 +28,38 @@
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#ifndef __COMP_TARGET_ALL_H__
-#define __COMP_TARGET_ALL_H__
+#ifndef __HC_TASK_H__
+#define __HC_TASK_H__
 
-#include "debug.h"
-#include "ocr-comp-target.h"
+#include "hc/hc.h"
+#include "ocr-task.h"
 #include "ocr-utils.h"
 
-typedef enum _compTargetType_t {
-    compTargetHc_id,
-    compTargetMax_id,
-} compTargetType_t;
+/*! \brief Event Driven Task(EDT) template implementation
+ */
+typedef struct {
+    ocrTaskTemplate_t base;
+} ocrTaskTemplateHc_t;
 
-const char * comptarget_types[] = {
-    "HC",
-    NULL
-};
+/*! \brief Event Driven Task(EDT) implementation for OCR Tasks
+ */
+typedef struct {
+    ocrTask_t base;
+    regNode_t * waiters;
+    regNode_t * signalers; // Does not grow, set once when the task is created
+} ocrTaskHc_t;
 
-// Pthread compute platform
-#include "comp-target/hc/hc-comp-target.h"
+typedef struct {
+    ocrTaskTemplateFactory_t baseFactory;
+} ocrTaskTemplateFactoryHc_t;
 
-// Add other compute targets using the same pattern as above
+ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType);
 
-inline ocrCompTargetFactory_t *newCompTargetFactory(compTargetType_t type, ocrParamList_t *typeArg) {
-    switch(type) {
-    case compTargetHc_id:
-        return newCompTargetFactoryHc(typeArg);
-    default:
-        ASSERT(0);
-        return NULL;
-    };
-}
+typedef struct {
+    ocrTaskFactory_t baseFactory;
+    // singleton the factory passes on to each task instance
+    ocrTaskFcts_t taskFctPtrs;
+} ocrTaskFactoryHc_t;
 
-#endif /* __COMP_TARGET_ALL_H__ */
+ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perType);
+#endif /* __HC_TASK_H__ */

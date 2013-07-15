@@ -29,16 +29,17 @@
 
 */
 
-#include "ocr-macros.h"
-#include "hc.h"
-#include "hc_edf.h"
-#include "ocr-datablock.h"
-#include "ocr-utils.h"
-#include "ocr-task.h"
-#include "ocr-event.h"
-#include "ocr-worker.h"
 #include "debug.h"
+#include "event/hc/hc-event.h"
+#include "ocr-datablock.h"
+#include "ocr-edt.h"
+#include "ocr-event.h"
+#include "ocr-macros.h"
+#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
+#include "ocr-task.h"
+#include "ocr-utils.h"
+#include "ocr-worker.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -55,8 +56,7 @@
 /******************************************************/
 
 static char * eventTypeToString(ocrEvent_t * base) {
-    ocrEventHc_t * hcImpl =  (ocrEventHc_t *) base;
-    ocrEventTypes_t type = hcImpl->kind;
+    ocrEventTypes_t type = base->kind;
     if(type == OCR_EVENT_ONCE_T) {
         return "once";
     } else if (type == OCR_EVENT_IDEM_T) {
@@ -72,16 +72,27 @@ static char * eventTypeToString(ocrEvent_t * base) {
     }
 }
 
+//
+// Convenience function to get the current EDT and deguidify it
+//
+static inline ocrTask_t * getCurrentTask() {
+    ocrGuid_t edtGuid = getCurrentEDT();
+    // the bootstrap process launching mainEdt returns NULL_GUID for the current EDT
+    if (edtGuid != NULL_GUID) {
+        ocrTask_t * task = NULL;
+        deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
+        return task;
+    }
+    return NULL;
+}
 
 //
 // forward declarations
 //
-
-extern void taskSignaled(ocrTask_t * base, ocrGuid_t data, u32 slot);
-
 extern void signalWaiter(ocrGuid_t waiterGuid, ocrGuid_t data, u32 slot);
-
+extern void setFinishLatch(ocrTask_t * edt, ocrGuid_t latchGuid);
 static void finishLatchCheckout(ocrEvent_t * base);
+
 
 /******************************************************/
 /* OCR-HC Events Implementation                       */
@@ -124,8 +135,7 @@ static ocrEvent_t* eventConstructorInternal(ocrPolicyDomain_t * pd, ocrEventFact
     }
 
     // Initialize ocrEventHc_t
-    ocrEventHc_t * hcImpl =  (ocrEventHc_t *) base;
-    hcImpl->kind = eventType;
+    base->kind = eventType;
 
     // Initialize ocrEvent_t base
     base->fctPtrs = eventFctPtrs;
@@ -137,7 +147,7 @@ static ocrEvent_t* eventConstructorInternal(ocrPolicyDomain_t * pd, ocrEventFact
     return base;
 }
 
-void destructEventHc ( ocrEvent_t* base ) {
+static void destructEventHc ( ocrEvent_t* base ) {
     // Event's signaler/waiter must have been previously deallocated
     // at some point before. For instance on satisfy.
     DO_DEBUG(DEBUG_LVL_INFO)
@@ -182,7 +192,6 @@ static regNode_t * singleEventPut(ocrEventHcAwaitable_t * self, ocrGuid_t data )
 // This is setting a sticky event's data
 // slotEvent is ignored for stickies.
 static void singleEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slotEvent) {
-    ocrEventHc_t * hcSelf = (ocrEventHc_t *) base;
     ocrEventHcAwaitable_t * self = (ocrEventHcAwaitable_t *) base;
 
     // Whether it is a once, idem or sticky, unitialized means it's the first
@@ -210,14 +219,14 @@ static void singleEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slotEvent)
             waiter = waiter->next;
             free(waiters); // Release waiter node
         }
-        if (hcSelf->kind == OCR_EVENT_ONCE_T) {
+        if (base->kind == OCR_EVENT_ONCE_T) {
             // once-events die after satisfy has been called
             destructEventHc(base);
         }
     } else {
         // once-events cannot survive down here
         // idem-events ignore extra satisfy
-        if (hcSelf->kind == OCR_EVENT_STICKY_T) {
+        if (base->kind == OCR_EVENT_STICKY_T) {
             ASSERT(false && "error: Multiple satisfy on a sticky event");
         }
     }
@@ -291,9 +300,9 @@ static ocrGuid_t latchEventGet(ocrEvent_t * base, u32 slot) {
 //  R1) All dependences (what the finish latch will satisfy) are provided at creation. This implementation DOES NOT support outstanding registrations.
 //  R2) Number of incr and decr signaled on the event MUST BE equal.
 static void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot) {
-    ASSERT((slot == FINISH_LATCH_DECR_SLOT) || (slot == FINISH_LATCH_INCR_SLOT));
+    ASSERT((slot == OCR_EVENT_LATCH_DECR_SLOT) || (slot == OCR_EVENT_LATCH_INCR_SLOT));
     ocrEventHcFinishLatch_t * self = (ocrEventHcFinishLatch_t *) base;
-    u32 incr = (slot == FINISH_LATCH_DECR_SLOT) ? -1 : 1;
+    u32 incr = (slot == OCR_EVENT_LATCH_DECR_SLOT) ? -1 : 1;
     u32 count;
     do {
         count = self->counter;
@@ -330,7 +339,7 @@ static void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot)
 }
 
 // Finish-latch event doesn't have an output value
-ocrGuid_t finishLatchEventGet(ocrEvent_t * base, u32 slot) {
+static ocrGuid_t finishLatchEventGet(ocrEvent_t * base, u32 slot) {
     return NULL_GUID;
 }
 
@@ -344,7 +353,7 @@ ocrGuid_t finishLatchEventGet(ocrEvent_t * base, u32 slot) {
 // satisfies the decr slot of a finish latch event. Deallocate the latch
 // event if satisfied and set 'base' to NULL.
 static void finishLatchCheckout(ocrEvent_t * base) {
-    finishLatchEventSatisfy(base, NULL_GUID, FINISH_LATCH_DECR_SLOT);
+    finishLatchEventSatisfy(base, NULL_GUID, OCR_EVENT_LATCH_DECR_SLOT);
 }
 
 /******************************************************/
@@ -352,13 +361,13 @@ static void finishLatchCheckout(ocrEvent_t * base) {
 /******************************************************/
 
 // takesArg indicates whether or not this event carries any data
-ocrEvent_t * newEventHc ( ocrEventFactory_t * factory, ocrEventTypes_t eventType,
-                          bool takesArg, ocrParamList_t *perInstance) {
+static ocrEvent_t * newEventHc ( ocrEventFactory_t * factory, ocrEventTypes_t eventType,
+                                 bool takesArg, ocrParamList_t *perInstance) {
     ocrEvent_t * res = eventConstructorInternal(getCurrentPD(), factory, eventType, takesArg);
     return res;
 }
 
-void destructEventFactoryHc ( ocrEventFactory_t * base ) {
+static void destructEventFactoryHc ( ocrEventFactory_t * base ) {
      free(base);
 }
 

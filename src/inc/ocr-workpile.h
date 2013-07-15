@@ -32,10 +32,10 @@
 #ifndef __OCR_WORKPILE_H_
 #define __OCR_WORKPILE_H_
 
-#include "ocr-guid.h"
 #include "ocr-mappable.h"
-#include "ocr-utils.h"
 #include "ocr-tuning.h"
+#include "ocr-types.h"
+#include "ocr-utils.h"
 
 
 /****************************************************/
@@ -123,7 +123,7 @@ typedef struct ocrWorkpileIterator_t {
 void workpileIteratorReset (ocrWorkpileIterator_t * base);
 bool workpileIteratorHasNext (ocrWorkpileIterator_t * base);
 ocrWorkpile_t * workpileIteratorNext (ocrWorkpileIterator_t * base);
-ocrWorkpileIterator_t* workpileIteratorConstructor ( u64 id, u64 n_pools, ocrWorkpile_t ** pools );
-void workpile_iterator_destructor (ocrWorkpileIterator_t* base);
+ocrWorkpileIterator_t* newWorkpileIterator( u64 id, u64 workpileCount, ocrWorkpile_t ** workpiles );
+void workpileIteratorDestruct(ocrWorkpileIterator_t* base);
 
 #endif /* __OCR_WORKPILE_H_ */

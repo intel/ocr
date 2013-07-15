@@ -28,36 +28,33 @@
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#ifndef __COMP_TARGET_ALL_H__
-#define __COMP_TARGET_ALL_H__
 
-#include "debug.h"
-#include "ocr-comp-target.h"
+#ifndef __HC_SCHEDULER_H__
+#define __HC_SCHEDULER_H__
+
+#include "ocr-scheduler.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
+#include "ocr-workpile.h"
 
-typedef enum _compTargetType_t {
-    compTargetHc_id,
-    compTargetMax_id,
-} compTargetType_t;
+typedef struct {
+    ocrSchedulerFactory_t base;
+} ocrSchedulerFactoryHc_t;
 
-const char * comptarget_types[] = {
-    "HC",
-    NULL
-};
+typedef struct {
+    ocrScheduler_t scheduler;
+    // Note: cache steal iterators in hc's scheduler
+    // Each worker has its own steal iterator instantiated
+    // a sheduler's construction time.
+    ocrWorkpileIterator_t ** stealIterators;
+    u64 workerIdFirst;
+} ocrSchedulerHc_t;
 
-// Pthread compute platform
-#include "comp-target/hc/hc-comp-target.h"
+typedef struct _paramListSchedulerHcInst_t {
+    paramListSchedulerInst_t base;
+    u64 workerIdFirst;
+} paramListSchedulerHcInst_t;
 
-// Add other compute targets using the same pattern as above
+ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(ocrParamList_t *perType);
 
-inline ocrCompTargetFactory_t *newCompTargetFactory(compTargetType_t type, ocrParamList_t *typeArg) {
-    switch(type) {
-    case compTargetHc_id:
-        return newCompTargetFactoryHc(typeArg);
-    default:
-        ASSERT(0);
-        return NULL;
-    };
-}
-
-#endif /* __COMP_TARGET_ALL_H__ */
+#endif /* __HC_SCHEDULER_H__ */

@@ -33,18 +33,6 @@
 #define OCR_POLICY_DOMAIN_GETTER_H_
 
 struct _ocrPolicyDomain_t;
-struct _ocrTaskFactory_t;
-struct _ocrEventFactory_t;
-struct _ocrDataBlockFactory_t;
-struct _ocrLockFactory_t;
-struct _ocrGuidProvider_t;
-struct _ocrPolicyCtx_t;
-
-// Common functions on all policy domains (ie: not function pointers)
-inline struct _ocrTaskTemplateFactory_t*  getTaskTemplateFactoryFromPd(struct _ocrPolicyDomain_t *policy);
-inline struct _ocrEventFactory_t* getEventFactoryFromPd(struct _ocrPolicyDomain_t *policy);
-inline struct _ocrDataBlockFactory_t* getDataBlockFactoryFromPd(struct _ocrPolicyDomain_t *policy);
-inline struct _ocrLockFactory_t* getLockFactoryFromPd(struct _ocrPolicyDomain_t *policy);
 
 // Function pointers determining who is who
 extern struct _ocrPolicyCtx_t * (*getCurrentWorkerContext)();
@@ -75,6 +63,6 @@ extern struct _ocrPolicyDomain_t * (*getMasterPD)();
  * @param domain    Domain to use as the boot PD
  * @return nothing
  */
-void setBootPD(ocrPolicyDomain_t* domain);
+void setBootPD(struct _ocrPolicyDomain_t* domain);
 
 #endif /* OCR_POLICY_DOMAIN_GETTER_H_ */

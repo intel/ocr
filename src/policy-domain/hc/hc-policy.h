@@ -29,22 +29,32 @@
 
 */
 
-#include "ocr-guid.h"
+#ifndef __HC_POLICY_H__
+#define __HC_POLICY_H__
+
 #include "ocr-policy-domain.h"
+#include "ocr-utils.h"
 
-inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, ocrGuidKind* kindRes) {
-    u64 ptrRes;
-    return pd->getInfoForGuid(pd, guid, &ptrRes, kindRes, NULL);
-}
+typedef struct _ocrPolicyCtxHc_t {
+    ocrPolicyCtx_t base;
+} ocrPolicyCtxHc_t;
 
-// TODO: REC: Actually pass a context
-inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * guidRes,
-                  ocrGuidKind kind) {
+typedef struct _ocrPolicyCtxFactoryHc_t {
+    ocrPolicyCtxFactory_t base;
+} ocrPolicyCtxFactoryHc_t;
 
-    return pd->getGuid(pd, guidRes, ptr, kind, NULL);
-}
+/******************************************************/
+/* OCR-HC POLICY DOMAIN                               */
+/******************************************************/
 
-inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes,
-                    ocrGuidKind* kindRes) {
-    return pd->getInfoForGuid(pd, guid, ptrRes, kindRes, NULL);
-}
+typedef struct {
+    ocrPolicyDomainFactory_t base;
+} ocrPolicyDomainFactoryHc_t;
+
+typedef struct {
+    ocrPolicyDomain_t base;
+} ocrPolicyDomainHc_t;
+
+ocrPolicyDomainFactory_t *newPolicyDomainFactoryHc(ocrParamList_t *perType);
+ocrPolicyCtxFactory_t *newPolicyCtxFactoryHc(ocrParamList_t *perType);
+#endif /* __HC_POLICY_H__ */

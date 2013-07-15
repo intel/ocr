@@ -32,8 +32,9 @@
 #ifndef __OCR_EVENT_H__
 #define __OCR_EVENT_H__
 
-#include "ocr-guid.h"
 #include "ocr-edt.h"
+#include "ocr-mappable.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
 
 #ifdef OCR_ENABLE_STATISTICS
@@ -41,6 +42,8 @@
 #endif
 
 
+// Define internal finish-latch event id after user-level events
+#define OCR_EVENT_FINISH_LATCH_T OCR_EVENT_T_MAX+1
 
 /*******************************************
  * Dependence Registration
@@ -90,9 +93,11 @@ typedef struct ocr_event_fcts_struct {
  */
 typedef struct _ocrEvent_t {
     ocrGuid_t guid; /**< GUID for this event */
-    #ifdef OCR_ENABLE_STATISTICS
+#ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t statProcess;
-    #endif
+#endif
+
+    ocrEventTypes_t kind;
     /*! \brief Holds function pointer to the event interface
      */
     ocrEventFcts_t *fctPtrs;

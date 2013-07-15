@@ -35,9 +35,9 @@
 #ifndef __OCR_DATABLOCK_H__
 #define __OCR_DATABLOCK_H__
 
-#include "ocr-types.h"
-#include "ocr-guid.h"
 #include "ocr-allocator.h"
+#include "ocr-types.h"
+#include "ocr-utils.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"

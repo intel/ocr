@@ -34,9 +34,9 @@
 #ifndef __OCR_ALLOCATOR_H__
 #define __OCR_ALLOCATOR_H__
 
-#include "ocr-types.h"
-#include "ocr-mem-target.h"
 #include "ocr-mappable.h"
+#include "ocr-mem-target.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
 
 

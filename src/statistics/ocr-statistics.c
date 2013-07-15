@@ -34,9 +34,9 @@
 
 #ifdef OCR_ENABLE_STATISTICS
 
-#include "ocr-statistics.h"
-#include "ocr-config.h"
 #include "debug.h"
+#include "ocr-config.h"
+#include "ocr-statistics.h"
 
 #include <stdlib.h>
 #include <string.h>

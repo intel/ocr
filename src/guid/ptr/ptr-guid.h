@@ -56,4 +56,8 @@ typedef struct {
 
 ocrGuidProviderFactory_t* newGuidProviderFactoryPtr(ocrParamList_t *typeArg);
 
+#define __GUID_END_MARKER__
+#include "ocr-guid-end.h"
+#undef __GUID_END_MARKER__
+
 #endif /* __OCR_GUIDPROVIDER_PTR_H__ */

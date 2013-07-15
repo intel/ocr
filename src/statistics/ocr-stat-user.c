@@ -33,11 +33,11 @@
 */
 
 #ifdef OCR_ENABLE_STATISTICS
+#include "debug.h"
+#include "ocr-config.h"
+#include "ocr-policy-domain-getter.h"
 #include "ocr-stat-user.h"
 #include "ocr-statistics.h"
-#include "ocr-config.h"
-#include "debug.h"
-#include "ocr-policy-domain-getter.h"
 
 #include <stdlib.h>
 #include <stdio.h>

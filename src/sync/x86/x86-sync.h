@@ -35,8 +35,8 @@
 #ifndef __SYNC_X86_H__
 #define __SYNC_X86_H__
 
-#include "ocr-types.h"
 #include "ocr-sync.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
 
 typedef struct {
@@ -68,12 +68,8 @@ typedef struct {
     ocrQueueFactory_t base;
 } ocrQueueFactoryX86_t;
 
-extern ocrLockFactory_t *newLockFactoryX86(ocrParamList_t *typeArg);
-extern ocrAtomic64Factory_t *newAtomic64FactoryX86(ocrParamList_t *typeArg);
-extern ocrQueueFactory_t *newQueueFactoryX86(ocrParamList_t *typeArg);
+ocrLockFactory_t *newLockFactoryX86(ocrParamList_t *typeArg);
+ocrAtomic64Factory_t *newAtomic64FactoryX86(ocrParamList_t *typeArg);
+ocrQueueFactory_t *newQueueFactoryX86(ocrParamList_t *typeArg);
 
 #endif /* __SYNC_X86_H__ */
-
-
-
-

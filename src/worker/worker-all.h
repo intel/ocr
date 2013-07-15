@@ -32,8 +32,8 @@
 #ifndef __WORKER_ALL_H__
 #define __WORKER_ALL_H__
 
-#include "ocr-worker.h"
 #include "ocr-utils.h"
+#include "ocr-worker.h"
 
 typedef enum _workerType_t {
     workerHc_id,
@@ -49,9 +49,8 @@ const char * worker_types[] = {
     NULL
 };
 
-extern ocrWorkerFactory_t* newOcrWorkerFactoryHc(ocrParamList_t *perType);
-extern ocrWorkerFactory_t* newOcrWorkerFactoryFsimXE(ocrParamList_t *perType);
-extern ocrWorkerFactory_t* newOcrWorkerFactoryFsimCE(ocrParamList_t *perType);
+#include "worker/hc/hc-worker.h"
+
 
 inline ocrWorkerFactory_t * newWorkerFactory(workerType_t type, ocrParamList_t *perType) {
     switch(type) {
@@ -61,7 +60,6 @@ inline ocrWorkerFactory_t * newWorkerFactory(workerType_t type, ocrParamList_t *
     //DELME    return newOcrWorkerFactoryFsimCE(perType);
     case workerHc_id:
       return newOcrWorkerFactoryHc(perType);
-    case workerMax_id:
     default:
       ASSERT(0);
     }

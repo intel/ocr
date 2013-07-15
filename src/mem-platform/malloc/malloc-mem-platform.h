@@ -31,8 +31,8 @@
 #ifndef __MEM_PLATFORM_MALLOC_H__
 #define __MEM_PLATFORM_MALLOC_H__
 
-#include "ocr-types.h"
 #include "ocr-mem-platform.h"
+#include "ocr-types.h"
 #include "ocr-utils.h"
 
 typedef struct {
