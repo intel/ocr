@@ -24,7 +24,7 @@ compile_pp:
 	g++ $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).cpp -o $(PROG)$(SUFFIX)
 
 run:
-	./$(PROG)$(SUFFIX) ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
+	./$(PROG)$(SUFFIX) -ocr:cfg ${OCR_INSTALL}/../src/machine-description/machine.cfg ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
 
 clean:
 	-rm -Rf *.o $(PROG)$(SUFFIX) cholesky.out
