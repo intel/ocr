@@ -132,9 +132,7 @@ static void bringUpRuntime(const char *inifile) {
     }
 
     // POPULATE TYPES
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("========= Create factories ==========\n");
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_INFO, "========= Create factories ==========\n");
 
     nsec = iniparser_getnsec(dict);
     for (i = 0; i < nsec; i++) {
@@ -166,9 +164,7 @@ static void bringUpRuntime(const char *inifile) {
     }
 
     // POPULATE INSTANCES
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("========= Create instances ==========\n");
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_INFO, "========= Create instances ==========\n");
 
     for (i = 0; i < nsec; i++) {
         for (j = 0; j < total_types; j++) {
@@ -184,9 +180,7 @@ static void bringUpRuntime(const char *inifile) {
         for (j = total_types-1; j >= 0; j--) {
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) {
                 if(inst_counts[j] && inst_params[j] == NULL) {
-                    DO_DEBUG(DEBUG_LVL_INFO)
-                        DEBUG("Create %d instances of %s\n", inst_counts[j], inst_str[j]);
-                    END_DEBUG
+                    DPRINTF(DEBUG_LVL_INFO, "Create %d instances of %s\n", inst_counts[j], inst_str[j]);
                     inst_params[j] = (ocrParamList_t **)calloc(1, inst_counts[j] * sizeof(ocrParamList_t *));
                     all_instances[j] = (ocrMappable_t **)calloc(1, inst_counts[j] * sizeof(ocrMappable_t *));
                     count = 0;
@@ -202,18 +196,14 @@ static void bringUpRuntime(const char *inifile) {
     compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
 
     // BUILD DEPENDENCES
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("========= Build dependences ==========\n");
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_INFO, "========= Build dependences ==========\n");
 
     for (i = 0; i < sizeof(deps)/sizeof(dep_t); i++) {
         build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr, all_instances, inst_params);
     }
     dictionary_del (dict);
     // START EXECUTION
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("========= Start execution ==========\n");
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_INFO, "========= Start execution ==========\n");
     ocrPolicyDomain_t *rootPolicy;
     rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0]; // FIXME: Ugly
     rootPolicy->start(rootPolicy);

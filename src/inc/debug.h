@@ -41,10 +41,8 @@
 #include <assert.h>
 
 
-#define PRINTF(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
+#define PRINTF(format, ...) do { fprintf(stderr, format, ## __VA_ARGS__); } while(0);
 
-// TODO: Re-add the worker thing once I figure out a way to not make it segfault
-#define DEBUG(format, ...) fprintf(stderr, "%s(%s) W 0: " format, __type, __level, /*(u64)getCurrentWorkerContext()->sourceObj,*/ ## __VA_ARGS__)
 
 #ifdef OCR_DEBUG
 /**
@@ -278,13 +276,23 @@
         static const char* __level __attribute__((unused)) = OCR_DEBUG_##level##_STR;
 
 
+// TODO: Re-add the worker thing once I figure out a way to not make it segfault
+#define DEBUG(format, ...) do { fprintf(stderr, "%s(%s) W 0: " format, __type, __level, /*(u64)getCurrentWorkerContext()->sourceObj,*/ ## __VA_ARGS__); } while(0);
+#define DPRINTF_TYPE(type, level, format, ...) do { fprintf(stderr, OCR_DEBUG_##type##_STR "(" OCR_DEBUG_##level##_STR ") W 0: " format, \
+                                                            /*(u64)getCurrentWorkerContext()->sourceObj, */ ## __VA_ARGS__); } while(0);
+
 #else
 #define DO_DEBUG_TYPE(level) if(0) {
+#define DEBUG(format, ...)
+#define DPRINTF_TYPE(type, level, format, ...)
 #endif /* OCR_DEBUG */
 
 #define DO_DEBUG_TYPE_INT(type, level) DO_DEBUG_TYPE(type, level)
-
 #define DO_DEBUG(level) DO_DEBUG_TYPE_INT(DEBUG_TYPE, level)
+
+#define DPRINTF_TYPE_INT(type, level, format, ...) DPRINTF_TYPE(type, level, format, ## __VA_ARGS__)
+#define DPRINTF(level, format, ...) DPRINTF_TYPE_INT(DEBUG_TYPE, level, format, ## __VA_ARGS__)
+
 #define END_DEBUG }
 
 #ifdef OCR_STATUS

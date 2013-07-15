@@ -141,18 +141,14 @@ static ocrEvent_t* eventConstructorInternal(ocrPolicyDomain_t * pd, ocrEventFact
     base->fctPtrs = eventFctPtrs;
     base->guid = UNINITIALIZED_GUID;
     guidify(pd, (u64)base, &(base->guid), OCR_GUID_EVENT);
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("Create %s: 0x%lx\n", eventTypeToString(base), base->guid);
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_INFO, "Create %s: 0x%lx\n", eventTypeToString(base), base->guid);
     return base;
 }
 
 static void destructEventHc ( ocrEvent_t* base ) {
     // Event's signaler/waiter must have been previously deallocated
     // at some point before. For instance on satisfy.
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("Destroy %s: 0x%lx\n", eventTypeToString(base), base->guid);
-    END_DEBUG;
+    DPRINTF(DEBUG_LVL_INFO, "Destroy %s: 0x%lx\n", eventTypeToString(base), base->guid);
     ocrEventHc_t* derived = (ocrEventHc_t*)base;
     ocrPolicyDomain_t *pd = getCurrentPD();
     ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
@@ -198,9 +194,7 @@ static void singleEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slotEvent)
     // time we try to satisfy the event. Note: It's a very loose check, the
     // 'Put' implementation must do more work to detect races on data.
     if (self->data == UNINITIALIZED_DATA) {
-        DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Satisfy %s: 0x%lx with 0x%lx\n", eventTypeToString(base), base->guid, data);
-        END_DEBUG
+        DPRINTF(DEBUG_LVL_INFO, "Satisfy %s: 0x%lx with 0x%lx\n", eventTypeToString(base), base->guid, data);
         // Single events don't have slots, just put the data
         regNode_t * waiters = singleEventPut(self, data);
         // Put must have sealed the waiters list and returned it
@@ -253,13 +247,9 @@ static void latchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot) {
         count = latch->counter;
     } while(!__sync_bool_compare_and_swap(&(latch->counter), count, count+incr));
 
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("Satisfy %s: 0x%lx %s\n", eventTypeToString(base), base->guid, ((slot == OCR_EVENT_LATCH_DECR_SLOT) ? "decr":"incr"));
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_INFO, "Satisfy %s: 0x%lx %s\n", eventTypeToString(base), base->guid, ((slot == OCR_EVENT_LATCH_DECR_SLOT) ? "decr":"incr"));
     if ((count+incr) == 0) {
-        DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Satisfy %s: 0x%lx reached zero\n", eventTypeToString(base), base->guid);
-        END_DEBUG
+        DPRINTF(DEBUG_LVL_INFO, "Satisfy %s: 0x%lx reached zero\n", eventTypeToString(base), base->guid);
         ocrEventHcAwaitable_t * self = (ocrEventHcAwaitable_t *) base;
         //TODO add API to seal a list
         //TODO: do we need volatile here ?
@@ -307,14 +297,10 @@ static void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot)
     do {
         count = self->counter;
     } while(!__sync_bool_compare_and_swap(&(self->counter), count, count+incr));
-    DO_DEBUG(DEBUG_LVL_VERB)
-        DEBUG("Satisfy %s: 0x%lx %s\n", eventTypeToString(base), base->guid, ((slot == OCR_EVENT_LATCH_DECR_SLOT)? "decr":"incr"));
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_VERB, "Satisfy %s: 0x%lx %s\n", eventTypeToString(base), base->guid, ((slot == OCR_EVENT_LATCH_DECR_SLOT)? "decr":"incr"));
     // No possible race when we reached 0 (see R2)
     if ((count+incr) == 0) {
-        DO_DEBUG(DEBUG_LVL_INFO)
-            DEBUG("Satisfy %s: 0x%lx reached zero\n", eventTypeToString(base), base->guid);
-        END_DEBUG
+        DPRINTF(DEBUG_LVL_INFO, "Satisfy %s: 0x%lx reached zero\n", eventTypeToString(base), base->guid);
         // Important to void the ELS at that point, to make sure there's no
         // side effect on code executing downwards.
         ocrTask_t * task = getCurrentTask();

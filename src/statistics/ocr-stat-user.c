@@ -92,23 +92,17 @@ static void simpleFilterCreate(ocrStatsFilter_t *self, ocrStatsFilter_t *parent,
     rself->base.parent = parent;
     rself->count = 0;
     rself->maxCount = 8; // Make a configurable number
-    DO_DEBUG(DEBUG_LVL_VERB)
-        DEBUG("Created a simple filter @ 0x%lx with parent 0x%lx\n", (u64)self, (u64)parent);
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_VERB, "Created a simple filter @ 0x%lx with parent 0x%lx\n", (u64)self, (u64)parent);
     rself->messages = (intSimpleMessageNode_t*)malloc(sizeof(intSimpleMessageNode_t)*rself->maxCount);
 }
 
 static void simpleFilterDestruct(ocrStatsFilter_t *self) {
     FILTER_TYPE(simple)* rself = (FILTER_TYPE(simple)*)self;
 
-    DO_DEBUG(DEBUG_LVL_VERB)
-        DEBUG("Destroying simple filter @ 0x%lx\n", (u64)self);
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_VERB, "Destroying simple filter @ 0x%lx\n", (u64)self);
     // We alert our parent
     if(rself->base.parent) {
-        DO_DEBUG(DEBUG_LVL_VVERB)
-            DEBUG("Filter @ 0x%lx merging with parent 0x%lx\n", (u64)self, (u64)(rself->base.parent));
-        END_DEBUG
+        DPRINTF(DEBUG_LVL_VVERB, "Filter @ 0x%lx merging with parent 0x%lx\n", (u64)self, (u64)(rself->base.parent));
         return rself->base.parent->merge(rself->base.parent, self, 1);
     } else {
         // Here, we destroy ourself
@@ -151,10 +145,8 @@ static void simpleFilterNotify(ocrStatsFilter_t *self, const ocrStatsMessage_t *
         memcpy(t, rself->messages, (rself->count - 1)*sizeof(intSimpleMessageNode_t));
         rself->messages = t;
     }
-    DO_DEBUG(DEBUG_LVL_VVERB)
-        DEBUG("Filter @ 0x%lx received message (%ld): %ld -> %ld of type %d\n",
-              (u64)self, rself->count, mess->src, mess->dest, (u32)mess->type);
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_VVERB, "Filter @ 0x%lx received message (%ld): %ld -> %ld of type %d\n",
+            (u64)self, rself->count, mess->src, mess->dest, (u32)mess->type);
     intSimpleMessageNode_t* tmess = &(rself->messages[rself->count++]);
     tmess->tick = mess->tick;
     tmess->src = mess->src;
@@ -182,18 +174,14 @@ static void fileDumpFilterCreate(ocrStatsFilter_t *self, ocrStatsFilter_t *paren
         rself->outFile = fopen((char*)configuration, "w");
     else
         rself->outFile = fopen("ocrStats.log", "w");
-    DO_DEBUG(DEBUG_LVL_VERB)
-        DEBUG("Created a file-dump filter @ 0x%lx with file 0x%lx\n", (u64)self, (u64)rself->outFile);
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_VERB, "Created a file-dump filter @ 0x%lx with file 0x%lx\n", (u64)self, (u64)rself->outFile);
     ASSERT(rself->outFile);
 }
 
 static void fileDumpFilterDestruct(ocrStatsFilter_t *self) {
     FILTER_TYPE(filedump)* rself = (FILTER_TYPE(filedump)*)self;
 
-    DO_DEBUG(DEBUG_LVL_VERB)
-        DEBUG("Destroying file-dump filter @ 0x%lx\n", (u64)self);
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_VERB, "Destroying file-dump filter @ 0x%lx\n", (u64)self);
     // We close out the output file
     if(rself->outFile) {
         fclose(rself->outFile);
@@ -219,9 +207,7 @@ static void fileDumpFilterMerge(ocrStatsFilter_t *self, ocrStatsFilter_t *other,
     // This is when we need to basically dump all information from this filter in the file
     FILTER_TYPE(filedump)* rself = (FILTER_TYPE(filedump)*)self;
 
-    DO_DEBUG(DEBUG_LVL_VERB)
-        DEBUG("Filter @ 0x%lx received merging from filter 0x%lx\n", (u64)self, (u64)other);
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_VERB, "Filter @ 0x%lx received merging from filter 0x%lx\n", (u64)self, (u64)other);
 
     if(rself->outFile) {
         char* outString;

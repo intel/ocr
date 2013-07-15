@@ -84,14 +84,14 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     launchArg->PD = policy;
     u64 i = 0;
     for(i = 0; i < computeCount; i++) {
-      base->computes[i]->fctPtrs->start(base->computes[i], policy, launchArg);
+        base->computes[i]->fctPtrs->start(base->computes[i], policy, launchArg);
     }
 
     if (hcWorker->id == 0) {
-      // Worker zero doesn't start the underlying thread since it is
-      // falling through after that start. However, it stills need
-      // to set its local storage data.
-      associate_comp_platform_and_worker(policy, base);
+        // Worker zero doesn't start the underlying thread since it is
+        // falling through after that start. However, it stills need
+        // to set its local storage data.
+        associate_comp_platform_and_worker(policy, base);
     }
 }
 
@@ -101,9 +101,7 @@ void hcFinishWorker(ocrWorker_t * base) {
     // to join with the other threads
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
     hcWorker->run = false;
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("Finishing worker routine %d\n", hcWorker->id);
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_INFO, "Finishing worker routine %d\n", hcWorker->id);
 }
 
 void hcStopWorker(ocrWorker_t * base) {
@@ -111,11 +109,9 @@ void hcStopWorker(ocrWorker_t * base) {
     u64 i = 0;
     // This code should be called by the master thread to join others
     for(i = 0; i < computeCount; i++) {
-      base->computes[i]->fctPtrs->stop(base->computes[i]);
+        base->computes[i]->fctPtrs->stop(base->computes[i]);
     }
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("Stopping worker %d\n", ((ocrWorkerHc_t *)base)->id);
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_INFO, "Stopping worker %d\n", ((ocrWorkerHc_t *)base)->id);
 }
 
 bool hc_is_running_worker(ocrWorker_t * base) {
@@ -194,9 +190,7 @@ void * worker_computation_routine(void * arg) {
     associate_comp_platform_and_worker(pd, worker);
     // Setting up this worker context to takeEdts
     // This assumes workers are not relocatable
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("Starting scheduler routine of worker %d\n", get_worker_id(worker));
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %d\n", get_worker_id(worker));
     worker_loop(pd, worker);
     return NULL;
 }
@@ -205,9 +199,7 @@ void * master_worker_computation_routine(void * arg) {
     launchArg_t * launchArg = (launchArg_t *) arg;
     ocrPolicyDomain_t * pd = launchArg->PD;
     ocrWorker_t * worker = (ocrWorker_t *) launchArg->arg;
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("Starting scheduler routine of master worker %d\n", get_worker_id(worker));
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of master worker %d\n", get_worker_id(worker));
     worker_loop(pd, worker);
     return NULL;
 }

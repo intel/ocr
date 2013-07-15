@@ -852,19 +852,14 @@ static u32 tlsfInit(u64 pgStart, u64 size) {
         ((poolHeaderSize + ELEMENT_SIZE_BYTES - 1) >> ELEMENT_SIZE_LOG2);
 
     if(poolRealSize < GminBlockRealSize || poolRealSize > GmaxBlockRealSize) {
-        DO_DEBUG(DEBUG_LVL_WARN)
-            DEBUG("Space mismatch allocating TLSF pool at 0x%"PRIx64" of sz %d (user sz: %d)\n",
-                  pgStart, (u32)poolRealSize, (u32)(poolRealSize << ELEMENT_SIZE_LOG2));
-            DEBUG("Sz must be at least %d and at most %d\n", GminBlockRealSize, GmaxBlockRealSize);
-        END_DEBUG
+        DPRINTF(DEBUG_LVL_WARN, "Space mismatch allocating TLSF pool at 0x%"PRIx64" of sz %d (user sz: %d)\n",
+                pgStart, (u32)poolRealSize, (u32)(poolRealSize << ELEMENT_SIZE_LOG2));
+        DPRINTF(DEBUG_LVL_WARN, "Sz must be at least %d and at most %d\n", GminBlockRealSize, GmaxBlockRealSize);
         return -1; // Can't allocate pool
     }
 
-    DO_DEBUG(DEBUG_LVL_INFO)
-        DEBUG("Allocating a TLSF pool at 0x%"PRIx64" of sz %d (user sz: %d)\n",
-              pgStart, (u32)poolRealSize, (u32)(poolRealSize << ELEMENT_SIZE_LOG2));
-    END_DEBUG
-
+    DPRINTF(DEBUG_LVL_INFO,"Allocating a TLSF pool at 0x%"PRIx64" of sz %d (user sz: %d)\n",
+            pgStart, (u32)poolRealSize, (u32)(poolRealSize << ELEMENT_SIZE_LOG2));
 
     initializePool(pgStart, poolRealSize);
 
@@ -885,25 +880,19 @@ static u64 tlsfMalloc(u64 pgStart, u64 size) {
     allocSize = getRealSizeOfRequest(size);
 
     if(allocSize == 0 && size != 0) {
-        DO_DEBUG(DEBUG_LVL_VERB)
-            DEBUG("tlsfMalloc @0x%"PRIx64" returning NULL for too large size %"PRIu64"\n",
-                  pgStart, size);
-        END_DEBUG
+        DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @0x%"PRIx64" returning NULL for too large size %"PRIu64"\n",
+                pgStart, size);
         return _NULL;
     }
 
     freeBlock = findFreeBlockForRealSize(pgStart, allocSize, &flIndex, &slIndex);
-    DO_DEBUG(DEBUG_LVL_VERB)
-        DEBUG("tslf_malloc @0x%"PRIx64" found a free block at 0x%"PRIx64"\n", pgStart,
-              addressForBlock(GET_ADDRESS(freeBlock)));
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_VERB, "tslf_malloc @0x%"PRIx64" found a free block at 0x%"PRIx64"\n", pgStart,
+            addressForBlock(GET_ADDRESS(freeBlock)));
     /* header_t * */ u64 freeBlockPtr = GET_ADDRESS(freeBlock);
 
     if(IS_NULL(freeBlockPtr)) {
-        DO_DEBUG(DEBUG_LVL_VERB)
-            DEBUG("tlsfMalloc @ 0x%"PRIx64" returning NULL for size %"PRIu64"\n",
-                  pgStart, size);
-        END_DEBUG
+        DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @ 0x%"PRIx64" returning NULL for size %"PRIu64"\n",
+                pgStart, size);
         return _NULL;
     }
     removeFreeBlock(pgStart, freeBlock);
@@ -912,30 +901,24 @@ static u64 tlsfMalloc(u64 pgStart, u64 size) {
 
     if(returnedSize > allocSize + GminBlockRealSize) {
         remainingBlock = splitBlock(pgStart, freeBlock, allocSize);
-        DO_DEBUG(DEBUG_LVL_VERB)
-            DEBUG("tlsfMalloc @0x%"PRIx64" split block and re-added to free list 0x%"PRIx64"\n", pgStart,
-                  addressForBlock(GET_ADDRESS(remainingBlock)));
-        END_DEBUG
+        DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @0x%"PRIx64" split block and re-added to free list 0x%"PRIx64"\n", pgStart,
+                addressForBlock(GET_ADDRESS(remainingBlock)));
         addFreeBlock(pgStart, remainingBlock);
     }
 
     markBlockUsed(pgStart, freeBlockPtr);
 
     result = addressForBlock(freeBlockPtr);
-    DO_DEBUG(DEBUG_LVL_VERB)
-        DEBUG("tlsfMalloc @ 0x%"PRIx64" returning 0x%"PRIx64" for size %"PRIu64"\n",
-              pgStart, result, size);
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @ 0x%"PRIx64" returning 0x%"PRIx64" for size %"PRIu64"\n",
+            pgStart, result, size);
     return result;
 }
 
 static void tlsfFree(u64 pgStart, u64 ptr) {
     headerAddr_t bl;
 
-    DO_DEBUG(DEBUG_LVL_VERB)
-        DEBUG("tlsfFree @ 0x%"PRIx64" going to free 0x%"PRIx64"\n",
-              pgStart, ptr);
-    END_DEBUG
+    DPRINTF(DEBUG_LVL_VERB, "tlsfFree @ 0x%"PRIx64" going to free 0x%"PRIx64"\n",
+            pgStart, ptr);
 
     bl = blockForAddress(pgStart, ptr);
 
