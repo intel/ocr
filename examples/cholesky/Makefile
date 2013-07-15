@@ -5,6 +5,21 @@ CFLAGS= -g
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr -lm
 OCR_INPUT=${OCR_INPUT_HOME}
 
+ifndef OCR_INSTALL
+$(error OCR_INSTALL not set)
+endif
+
+ifndef OCR_CONFIG
+OCR_CONFIG=${OCR_INSTALL}/config/default.cfg
+$(warning OCR_CONFIG not set, defaulting to ${OCR_CONFIG})
+endif
+
+ifndef OCR_INPUT_HOME
+$(error OCR_INPUT_HOME not set)
+endif
+
+OCR_RUN_FLAGS=-ocr:cfg ${OCR_CONFIG}
+
 all: compile run
 all-test: compile run verify
 
@@ -24,7 +39,7 @@ compile_pp:
 	g++ $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).cpp -o $(PROG)$(SUFFIX)
 
 run:
-	./$(PROG)$(SUFFIX) -ocr:cfg ${OCR_INSTALL}/../src/machine-description/machine.cfg ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
+	./$(PROG)$(SUFFIX) $(OCR_RUN_FLAGS) ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
 
 clean:
 	-rm -Rf *.o $(PROG)$(SUFFIX) cholesky.out
