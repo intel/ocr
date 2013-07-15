@@ -581,9 +581,9 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
             //ALLOC_PARAM_LIST(inst_param[j], paramListWorkerInst_t);
             // FIXME: for now assume it's HC
             ALLOC_PARAM_LIST(inst_param[j], paramListWorkerHcInst_t);
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "workerid");
-            INI_GET_INT (key, value, -1);
-            ((paramListWorkerHcInst_t *)inst_param[j])->workerId = value; // TODO: just use id(j) rather than a separate key ?
+            //snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "workerid");
+            //INI_GET_INT (key, value, -1);
+            ((paramListWorkerHcInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
             instance[j] = (ocrMappable_t *)((ocrWorkerFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DO_DEBUG(DEBUG_LVL_INFO)
