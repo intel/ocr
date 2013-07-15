@@ -5,6 +5,9 @@ noinst_LTLIBRARIES += libocr_api.la
 libocr_la_LIBADD += libocr_api.la
 
 libocr_api_la_SOURCES = \
-$(OCR_SRC_API)/ocr-db.c $(OCR_SRC_API)/ocr-edt.c
+$(OCR_SRC_API)/ocr.c \
+$(OCR_SRC_API)/ocr-db.c \
+$(OCR_SRC_API)/ocr-edt.c \
+$(OCR_SRC_API)/ocr-lib.c
 
 libocr_api_la_CFLAGS = $(AM_CFLAGS)

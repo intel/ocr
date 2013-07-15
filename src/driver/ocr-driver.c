@@ -119,7 +119,7 @@ ocrParamList_t **type_params[sizeof(type_str)/sizeof(const char *)];
 char **factory_names[sizeof(type_str)/sizeof(const char *)];        // ~9 different kinds (memtarget, comptarget, etc.); each with diff names (tlsf, malloc, etc.); each pointing to a char*
 ocrParamList_t **inst_params[sizeof(inst_str)/sizeof(const char *)];
 
-static void bringUpRuntime(const char *inifile) {
+void bringUpRuntime(const char *inifile) {
     int i, j, count, nsec;
     dictionary *dict = iniparser_load(inifile);
 
@@ -209,9 +209,9 @@ static void bringUpRuntime(const char *inifile) {
     rootPolicy->start(rootPolicy);
 }
 
-static void freeUpRuntime (void)
+void freeUpRuntime (void)
 {
-    int i, j;
+    u32 i, j;
 
     for (i = 0; i < total_types; i++) {
         for (j = 0; j < type_counts[i]; j++) {
@@ -296,27 +296,6 @@ static ocrGuid_t packUserArgumentsInDb(int argc, char ** argv) {
     return dbGuid;
 }
 
-/**!
- * Setup and starts the OCR runtime.
- * @param ocrConfig Data-structure containing runtime options
- */
-void ocrInit(ocrConfig_t * ocrConfig) {
-
-    const char * iniFile = ocrConfig->iniFile;
-    ASSERT(iniFile != NULL);
-
-    bringUpRuntime(iniFile);
-
-    // At this point the runtime is up
-#ifdef OCR_ENABLE_STATISTICS
-    GocrFilterAggregator = NEW_FILTER(filedump);
-    GocrFilterAggregator->create(GocrFilterAggregator, NULL, NULL);
-
-    // HUGE HUGE Hack
-    ocrStatsProcessCreate(&GfakeProcess, 0);
-#endif
-}
-
 int __attribute__ ((weak)) main(int argc, const char* argv[]) {
     // Parse parameters. The idea is to extract the ones relevant
     // to the runtime and pass all the other ones down to the mainEdt
@@ -343,24 +322,25 @@ int __attribute__ ((weak)) main(int argc, const char* argv[]) {
     return 0;
 }
 
+// Tearing down the PD
+
 // TODO sagnak everything below is DUMB and RIDICULOUS and
 // will have to be undone and done again
-
-struct _ocrPolicyDomainLinkedListNode;
 typedef struct _ocrPolicyDomainLinkedListNode {
     ocrPolicyDomain_t* pd;
     struct _ocrPolicyDomainLinkedListNode* next;
 } ocrPolicyDomainLinkedListNode;
 
 // walkthrough the linked list and return TRUE if instance exists
-int isMember ( ocrPolicyDomainLinkedListNode *dummyHead, ocrPolicyDomainLinkedListNode *tail, ocrPolicyDomain_t* instance ) {
+static s32 isMember ( ocrPolicyDomainLinkedListNode *dummyHead, ocrPolicyDomainLinkedListNode *tail, ocrPolicyDomain_t* instance ) {
     ocrPolicyDomainLinkedListNode* curr = dummyHead->next;
     for ( ; NULL != curr && curr->pd != instance; curr = curr -> next ) {
     }
     return NULL != curr;
 }
 
-void recurseBuildDepthFirstSpanningTreeLinkedList ( ocrPolicyDomainLinkedListNode *dummyHead, ocrPolicyDomainLinkedListNode *tail, ocrPolicyDomain_t* currPD ) {
+static void recurseBuildDepthFirstSpanningTreeLinkedList (ocrPolicyDomainLinkedListNode *dummyHead,
+                                                   ocrPolicyDomainLinkedListNode *tail, ocrPolicyDomain_t* currPD ) {
     ocrPolicyDomainLinkedListNode *currNode = (ocrPolicyDomainLinkedListNode*) malloc(sizeof(ocrPolicyDomainLinkedListNode));
     currNode -> pd = currPD;
     currNode -> next = NULL;
@@ -377,7 +357,7 @@ void recurseBuildDepthFirstSpanningTreeLinkedList ( ocrPolicyDomainLinkedListNod
     }
 }
 
-ocrPolicyDomainLinkedListNode *buildDepthFirstSpanningTreeLinkedList ( ocrPolicyDomain_t* currPD ) {
+static ocrPolicyDomainLinkedListNode *buildDepthFirstSpanningTreeLinkedList ( ocrPolicyDomain_t* currPD ) {
 
     ocrPolicyDomainLinkedListNode *dummyHead = (ocrPolicyDomainLinkedListNode*) malloc(sizeof(ocrPolicyDomainLinkedListNode));
     ocrPolicyDomainLinkedListNode *tail = dummyHead;
@@ -390,7 +370,7 @@ ocrPolicyDomainLinkedListNode *buildDepthFirstSpanningTreeLinkedList ( ocrPolicy
     return head;
 }
 
-void destructLinkedList ( ocrPolicyDomainLinkedListNode* head ) {
+static void destructLinkedList ( ocrPolicyDomainLinkedListNode* head ) {
     ocrPolicyDomainLinkedListNode *curr = head;
     ocrPolicyDomainLinkedListNode *next = NULL;
     while ( NULL != curr ) {
@@ -399,7 +379,8 @@ void destructLinkedList ( ocrPolicyDomainLinkedListNode* head ) {
         curr = next;
     }
 }
-void linearTraverseFinish( ocrPolicyDomainLinkedListNode* curr ) {
+
+static void linearTraverseFinish( ocrPolicyDomainLinkedListNode* curr ) {
     ocrPolicyDomainLinkedListNode *head = curr;
     for ( ; NULL != curr; curr = curr -> next ) {
         ocrPolicyDomain_t* pd = curr->pd;
@@ -408,7 +389,7 @@ void linearTraverseFinish( ocrPolicyDomainLinkedListNode* curr ) {
     destructLinkedList(head);
 }
 
-void linearTraverseStop ( ocrPolicyDomainLinkedListNode* curr ) {
+static void linearTraverseStop ( ocrPolicyDomainLinkedListNode* curr ) {
     ocrPolicyDomainLinkedListNode *head = curr;
     for ( ; NULL != curr; curr = curr -> next ) {
         ocrPolicyDomain_t* pd = curr->pd;
@@ -417,22 +398,12 @@ void linearTraverseStop ( ocrPolicyDomainLinkedListNode* curr ) {
     destructLinkedList(head);
 }
 
-void ocrShutdown() {
-    ocrPolicyDomain_t* currPD = getCurrentPD();
-    ocrPolicyDomainLinkedListNode * spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(currPD); //N^2
-    linearTraverseFinish(spanningTreeHead);
+void stopAllPD(ocrPolicyDomain_t *pd) {
+    ocrPolicyDomainLinkedListNode *spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(pd); // N^2
+    linearTraverseStop(spanningTreeHead);
 }
 
-void ocrFinalize() {
-    ocrPolicyDomain_t* masterPD = getMasterPD();
-    ocrPolicyDomainLinkedListNode * spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(masterPD); //N^2
-    linearTraverseStop(spanningTreeHead);
-    masterPD->destruct(masterPD);
-    freeUpRuntime();
-    //TODO we need to start by stopping the master PD which
-    //controls stopping down PD located on the same machine.
-// #ifdef OCR_ENABLE_STATISTICS
-//     ocrStatsProcessDestruct(&GfakeProcess);
-//     GocrFilterAggregator->destruct(GocrFilterAggregator);
-// #endif
+void finishAllPD(ocrPolicyDomain_t *pd) {
+    ocrPolicyDomainLinkedListNode *spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(pd);
+    linearTraverseFinish(spanningTreeHead);
 }

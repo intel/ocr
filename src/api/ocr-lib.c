@@ -29,17 +29,12 @@
 
 */
 
-
 #include "debug.h"
 #include "machine-description/ocr-machine.h"
-#include "ocr-config.h"
-#include "ocr-db.h"
-#include "ocr-edt.h"
 #include "ocr-lib.h"
-#include "ocr-runtime.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
-#include "ocr.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -50,28 +45,28 @@ enum {
     OPT_NONE, OPT_CONFIG, OPT_VERSION, OPT_HELP
 };
 
+// Helper methods
 static struct options {
     char *flag;
     char *env_flag;
-    int option;
+    s32 option;
     char *help;
 } ocrOptionDesc[] = {
-        {
-                "cfg", "OCR_CONFIG", OPT_CONFIG, "-ocr:cfg <file> : the OCR runtime configuration file to use."
-        },
-        {
-                "version", "", OPT_VERSION, "-ocr:version : print OCR version"
-        },
-        {
-                "help", "", OPT_HELP, "-ocr:help : print this message"
-        },
-        {
-                NULL, NULL, 0, NULL
-        }
+    {
+        "cfg", "OCR_CONFIG", OPT_CONFIG, "-ocr:cfg <file> : the OCR runtime configuration file to use."
+    },
+    {
+        "version", "", OPT_VERSION, "-ocr:version : print OCR version"
+    },
+    {
+        "help", "", OPT_HELP, "-ocr:help : print this message"
+    },
+    {
+        NULL, NULL, 0, NULL
+    }
 };
 
-static void printHelp(void)
-{
+static void printHelp(void) {
     struct options *p;
 
     fprintf(stderr, "Usage: program [<OCR options>] [<program options>]\n");
@@ -85,8 +80,7 @@ static void printHelp(void)
     fprintf(stderr, "https://github.com/01org/ocr\n");
 }
 
-static void printVersion(void)
-{
+static void printVersion(void) {
     fprintf(stderr, "Open Community Runtime (OCR) %s%s\n", "0.8", "");
 }
 
@@ -94,12 +88,12 @@ static void setIniFile(ocrConfig_t * ocrConfig, const char * value) {
     struct stat st;
     if (stat(value, &st) != 0) {
         fprintf(stderr, "error: cannot find runtime configuration file: %s\n", value);
-        exit(1);        
+        exit(1);
     }
     ocrConfig->iniFile = value;
 }
 
-static inline void checkNextArgExists(int i, int argc, char * option) {
+static inline void checkNextArgExists(s32 i, s32 argc, char * option) {
     if (i == argc) {
         printf("No argument for OCR option %s\n", option);
         ASSERT(false);
@@ -109,7 +103,7 @@ static inline void checkNextArgExists(int i, int argc, char * option) {
 static void checkOcrOption(ocrConfig_t * ocrConfig) {
     if (ocrConfig->iniFile == NULL) {
         fprintf(stderr, "error: no runtime configuration file provided\n");
-        exit(1);        
+        exit(1);
     }
 }
 
@@ -130,12 +124,12 @@ static void readFromEnv(ocrConfig_t * ocrConfig) {
     }
 }
 
-int readFromArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig) {
+static s32 readFromArgs(s32 argc, const char* argv[], ocrConfig_t * ocrConfig) {
     // Override any env variable with command line option
-    int cur = 1;
-    int userArgs = argc;
+    s32 cur = 1;
+    s32 userArgs = argc;
     char * ocrOptPrefix = "-ocr:";
-    int ocrOptPrefixLg = strlen(ocrOptPrefix);
+    s32 ocrOptPrefixLg = strlen(ocrOptPrefix);
     while(cur < argc) {
         const char * arg = argv[cur];
         if (strncmp(ocrOptPrefix, arg, ocrOptPrefixLg) == 0) {
@@ -169,8 +163,36 @@ static void ocrConfigInit(ocrConfig_t * ocrConfig) {
     ocrConfig->iniFile = NULL;
 }
 
-void ocrParseArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig) {
-    
+// Public methods
+
+// All these externs are in ocr-driver.c.
+extern void bringUpRuntime(const char *inifile);
+extern void freeUpRuntime();
+extern void stopAllPD(ocrPolicyDomain_t *pd);
+
+/**!
+ * Setup and starts the OCR runtime.
+ * @param ocrConfig Data-structure containing runtime options
+ */
+void ocrInit(ocrConfig_t * ocrConfig) {
+
+    const char * iniFile = ocrConfig->iniFile;
+    ASSERT(iniFile != NULL);
+
+    bringUpRuntime(iniFile);
+
+    // At this point the runtime is up
+#ifdef OCR_ENABLE_STATISTICS
+    GocrFilterAggregator = NEW_FILTER(filedump);
+    GocrFilterAggregator->create(GocrFilterAggregator, NULL, NULL);
+
+    // HUGE HUGE Hack
+    ocrStatsProcessCreate(&GfakeProcess, 0);
+#endif
+}
+
+void ocrParseArgs(s32 argc, const char* argv[], ocrConfig_t * ocrConfig) {
+
     // Zero-ed the ocrConfig
     ocrConfigInit(ocrConfig);
 
@@ -178,14 +200,14 @@ void ocrParseArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig) {
     readFromEnv(ocrConfig);
 
     // Override any env variable with command line args
-    int userArgs = readFromArgs(argc, argv, ocrConfig);
+    s32 userArgs = readFromArgs(argc, argv, ocrConfig);
 
     // Check for mandatory options
     checkOcrOption(ocrConfig);
 
     // Pack argument list
-    int cur = 0;
-    int head = 0;
+    s32 cur = 0;
+    s32 head = 0;
     while(cur < argc) {
         if(argv[cur] != NULL) {
             if (cur == head) {
@@ -200,4 +222,31 @@ void ocrParseArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig) {
     }
     ocrConfig->userArgc = userArgs;
     ocrConfig->userArgv = (char **) argv;
+}
+
+void ocrFinalize() {
+    ocrPolicyDomain_t* masterPD = getMasterPD();
+    stopAllPD(masterPD);
+    masterPD->destruct(masterPD);
+    freeUpRuntime();
+    //TODO we need to start by stopping the master PD which
+    //controls stopping down PD located on the same machine.
+// #ifdef OCR_ENABLE_STATISTICS
+//     ocrStatsProcessDestruct(&GfakeProcess);
+//     GocrFilterAggregator->destruct(GocrFilterAggregator);
+// #endif
+}
+
+ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
+    ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
+    ocrPolicyDomain_t * pd = ctx->PD;
+
+    ocrGuid_t workerGuid = ctx->sourceObj;
+    ocrGuid_t yieldingEdtGuid = getCurrentEDT();
+    // The guid returned by eventGuid on completion
+    ocrGuid_t returnGuid;
+    // This call should return only when the event 'eventToYieldForGuid' is satisfied
+    pd->waitForEvent(pd, workerGuid, yieldingEdtGuid, eventToYieldForGuid, &returnGuid, ctx);
+
+    return returnGuid;
 }
