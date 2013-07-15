@@ -12,6 +12,8 @@
 #define FLAGS 0xdead
 #define PROPERTIES 0xdead
 
+struct timeval startTimer;
+
 enum Nucleotide {GAP=0, ADENINE, CYTOSINE, GUANINE, THYMINE};
 
 signed char char_mapping ( char c ) {
@@ -178,7 +180,11 @@ ocrGuid_t smith_waterman_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t d
     /* If this is the last tile (bottom right most tile), finish */
     if ( i == n_tiles_height && j == n_tiles_width ) {
         fprintf(stdout, "score: %d\n", curr_bottom_row[tile_width-1]);
-        ocrShutDown();
+        struct timeval stopTimer;
+        gettimeofday(&stopTimer, 0);
+        printf("The computation took %f seconds\r\n",((stopTimer.tv_sec - startTimer.tv_sec)*1000000+(stopTimer.tv_usec - startTimer.tv_usec))*1.0/1000000);
+
+        ocrShutdown();
     }
     return NULL_GUID;
 }
@@ -309,10 +315,7 @@ ocrGuid_t mainEdt ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 
     fprintf(stdout, "Allocated tile matrix\n");
 
-    struct timeval a;
-    struct timeval b;
-
-    gettimeofday(&a, 0);
+    gettimeofday(&startTimer, 0);
 
     initialize_border_values(tile_matrix, n_tiles_width, n_tiles_height, tile_width, tile_height);
 
@@ -355,24 +358,5 @@ ocrGuid_t mainEdt ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
         }
     }
 
-    ocrFinalize();
-    gettimeofday(&b, 0);
-
-    printf("The computation took %f seconds\r\n",((b.tv_sec - a.tv_sec)*1000000+(b.tv_usec - a.tv_usec))*1.0/1000000);
     return NULL_GUID;
-}
-
-int main ( int argc, char* argv[] ) {
-    OCR_INIT ( &argc, argv, mainEdt );
-
-    // TODO: sagnak This should be handled by OCR_INIT
-    // ocrGuid_t main_edt_template_guid;
-    // ocrEdtTemplateCreate(&main_edt_template_guid, mainEdt, 2 /*paramc*/, 1 /*depc*/);
-    // ocrGuid_t main_edt_guid;
-    // ocrEdtCreate(&main_edt_guid, main_edt_template_guid,
-    //            2 /*paramc, sagnak but does not the template know of this already?*/, paramv,
-    //            1 /*depc, sagnak but does not the template know of this already?*/, NULL /*depv*/,
-    //            PROPERTIES, NULL_GUID /*affinity*/, NULL /*outputEvent*/);
-    // ocrEdtSchedule(main_edt_guid);
-    return 0;
 }
