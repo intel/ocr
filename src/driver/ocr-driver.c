@@ -273,7 +273,7 @@ static ocrGuid_t packUserArgumentsInDb(int argc, char ** argv) {
     // The use case is therefore as follows:
     // - Cast the DB to a u64* and read the number of arguments and
     //   offsets (or whatever offset you need)
-    // - Case the DB to a char* and access the char* at the offset
+    // - Cast the DB to a char* and access the char* at the offset
     //   read. This will be a null terminated string.
 
     // Copy the metadata
