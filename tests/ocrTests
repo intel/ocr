@@ -25,7 +25,6 @@ ARGS="-makefile ${ARGS}"
 
 # Get default tests options from env
 export OCR_CFLAGS="${OCR_CFLAGS}"
-export OCR_FLAGS=" -ocr:cfg `pwd`/../src/machine-description/machine.cfg"
 
 #
 #handling options
@@ -79,6 +78,13 @@ if [ -n "${OCR_LIBRARY_ITF}" ]; then
 fi
 export LDFLAGS="-L${OCR_INSTALL}/lib -locr"
 export OCR_TESTS_BIN_OUTPUT=
+
+if [ -z "${OCR_CONFIG}" ]; then
+export OCR_CONFIG=${OCR_INSTALL}/config/default.cfg
+	echo "OCR_CONFIG is not set, defaulting to ${OCR_CONFIG}"
+fi
+
+export OCR_FLAGS=" -ocr:cfg ${OCR_CONFIG}"
 
 #
 #checking options
