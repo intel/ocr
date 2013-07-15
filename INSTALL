@@ -8,10 +8,6 @@ Build requirements:
     - automake 1.9
     - pkg-config 0.21
 
-OCR requirements:
-    
-    - libxml2 2.4
-
 
 ******************
 ** Installation **
@@ -36,7 +32,7 @@ OCR requirements:
 
 ** Installation information
 
-The './install.sh' script is convenience build scripts, it ALWAYS
+The './install.sh' script is a convenience build scripts, it ALWAYS
 runs the following steps:
     
     - aclocal

@@ -25,6 +25,56 @@ See the 'INSTALL' file
 
 
 ******************************
+** Using OCR     		    **
+******************************
+
+This section's instructions requires you have set the 
+OCR_INSTALL environment variable as described in the 
+INSTALL file.
+
+
+*** Compiling code
+
+OCR is built as a library your program must link with.
+The actual command line may differ on different OS and compilers.
+
+The following command line can be used on a typical Linux X86 
+distribution with gcc. It generates a binary named 'helloworld'
+that links with the OCR library.
+
+	$> gcc -L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr -o helloworld helloworld.c
+
+
+*** Running code
+
+OCR needs a runtime configuration file that describes how
+the runtime must be layed out for the particular machine it
+is executed on.
+
+A default configuration file and some examples are provided 
+under ${OCR_INSTALL}/config
+
+The configuration file can be given to the runtime either
+through the OCR_CONFIG environment variable or through the
+command line parameter -ocr:cfg <filename>
+
+Note: command line parameters always override values defined 
+in environment variables.
+
+Using environment variable options:
+
+	$> OCR_CONFIG=<filename>; ./helloworld
+
+Using command line options:
+
+	$> ./helloworld -ocr:cfg <filename>
+
+>To get a list of available OCR options:
+
+	$> ./helloworld -ocr:help
+
+
+******************************
 ** Testing the distribution **
 ******************************
 
@@ -46,9 +96,7 @@ using the 'ocrTestsExamples' script.
 ***********************
 
 - The deque-based workpile does not resize automatically
-    - the macro INC_DEQUE_CAPACITY defined deque.h can be customized
-- Only support events of kind 'sticky'
-- ocrEdtCreate, doesn't handle depv yet (pass a db which is already satisfied)
+    - the macro INC_DEQUE_CAPACITY defined in deque.h can be customized
 
 *******************
 ** Documentation **
