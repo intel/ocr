@@ -9,7 +9,7 @@ libocr_la_LIBADD += libocr_event_hc.la
 libocr_event_hc_la_SOURCES = \
 $(OCR_SRC_EVENT)/hc/hc-event.c
 
-libocr_even_hc_la_CFLAGS = $(AM_CFLAGS)
+libocr_event_hc_la_CFLAGS = $(AM_CFLAGS)
 
 #
 # OCR-FSIM scheduler implementation
