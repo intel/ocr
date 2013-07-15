@@ -349,6 +349,7 @@ static ocrGuid_t packUserArgumentsInDb(int argc, char ** argv) {
         strcpy(dbAsChar + extraOffset + offsets[63 - pos], argv[63 - pos]);
     }
 
+    free(offsets);
     return dbGuid;
 }
 
