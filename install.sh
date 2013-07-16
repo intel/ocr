@@ -66,7 +66,7 @@ fi
 cd ${COMPTREE}
 
 # Distribute ocr-lib.h header
-OCR_CONF_OPTS=--enable-ocrlib
+OCR_CONF_OPTS="--enable-ocrlib"
 
 ../configure ${INSTALL_ROOT} ${OCR_CONF_OPTS}
 check_error "$?" "Configure failed";
