@@ -271,15 +271,19 @@
 #define OCR_ASSERT
 
 #define DO_DEBUG_TYPE(type, level) \
-    if(OCR_DEBUG_##type  && level <= OCR_DEBUG_LEVEL && level <= DEBUG_LVL_##type) {   \
-        static const char* __type __attribute__((unused)) = OCR_DEBUG_##type##_STR; \
+    if(OCR_DEBUG_##type  && level <= DEBUG_LVL_##type) {                               \
+        static const char* __type __attribute__((unused)) = OCR_DEBUG_##type##_STR;    \
         static const char* __level __attribute__((unused)) = OCR_DEBUG_##level##_STR;
 
 
 // TODO: Re-add the worker thing once I figure out a way to not make it segfault
 #define DEBUG(format, ...) do { fprintf(stderr, "%s(%s) W 0: " format, __type, __level, /*(u64)getCurrentWorkerContext()->sourceObj,*/ ## __VA_ARGS__); } while(0);
-#define DPRINTF_TYPE(type, level, format, ...) do { fprintf(stderr, OCR_DEBUG_##type##_STR "(" OCR_DEBUG_##level##_STR ") W 0: " format, \
-                                                            /*(u64)getCurrentWorkerContext()->sourceObj, */ ## __VA_ARGS__); } while(0);
+#define DPRINTF_TYPE(type, level, format, ...) do {                                              \
+        if(OCR_DEBUG_##type && level <= DEBUG_LVL_##type) {                                      \
+            fprintf(stderr, OCR_DEBUG_##type##_STR "(" OCR_DEBUG_##level##_STR ") W 0: " format, \
+                    /*(u64)getCurrentWorkerContext()->sourceObj, */ ## __VA_ARGS__);             \
+        }                                                                                        \
+    } while(0);
 
 #else
 #define DO_DEBUG_TYPE(level) if(0) {

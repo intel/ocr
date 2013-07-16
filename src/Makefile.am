@@ -12,12 +12,12 @@ CFLAGS = -Wall -g -O0
 # Enable debug
 CFLAGS += -DOCR_DEBUG
 # Define level
-CFLAGS += -DOCR_DEBUG_LEVEL=DEBUG_LVL_NONE
+CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_NONE
 # Define which modules you want for debugging
 # You can optionally define an individual debuging level by
 # defining DEBUG_LVL_XXX like OCR_DEBUG_LEVEL. If not defined,
 # the default will be used
-CFLAGS += -DOCR_DEBUG_ALLOCATOR -DDEBUG_LVL_ALLOCATOR=DEBUG_LVL_VVERB
+CFLAGS += -DOCR_DEBUG_ALLOCATOR #-DDEBUG_LVL_ALLOCATOR=DEBUG_LVL_VVERB
 CFLAGS += -DOCR_DEBUG_COMP_PLATFORM
 CFLAGS += -DOCR_DEBUG_COMP_TARGET
 CFLAGS += -DOCR_DEBUG_DATABLOCK
