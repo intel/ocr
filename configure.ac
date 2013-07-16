@@ -2,7 +2,7 @@
 AC_PREREQ([2.59])
 
 # define distribution properties
-AC_INIT([ocr], [0.7], [ocr-dev@lists.01.org])
+AC_INIT([ocr], [0.8], [ocr-dev@lists.01.org])
 
 # check if srcdir is correct
 AC_CONFIG_SRCDIR([inc/ocr.h])
@@ -97,6 +97,7 @@ AM_CONDITIONAL([INCLUDE_OCR_LIBRARY_ITF_HEADERS], [test x$with_ocrlib != xno])
 #
 AC_CONFIG_FILES([
 Makefile
+machine-configs/Makefile
 src/Makefile
 ])
 

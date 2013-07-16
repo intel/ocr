@@ -1,5 +1,5 @@
 
-SUBDIRS = src
+SUBDIRS = machine-configs src
 
 AUX_DIST = \
 	$(ac_aux_dir)/config.guess		\
@@ -22,7 +22,6 @@ endif
 if INCLUDE_OCR_LIBRARY_ITF_HEADERS
 library_include_HEADERS += src/inc/ocr-lib.h
 endif
-
 
 MAINTAINERCLEANFILES = Makefile.in \
 	aclocal.m4 \
