@@ -9,7 +9,7 @@ AC_CONFIG_SRCDIR([inc/ocr.h])
 
 AC_CONFIG_AUX_DIR([config])
 
-AM_INIT_AUTOMAKE([1.9 tar-ustar no-define foreign dist-bzip2])
+AM_INIT_AUTOMAKE([1.9 tar-ustar no-define foreign dist-bzip2 subdir-objects])
 
 AC_COPYRIGHT([todo_copyright_info])
 
@@ -31,7 +31,7 @@ PKG_CHECK_MODULES(XML, libxml-2.0 >= 2.4)
 #   - mpi
 #
 
-# BEGIN MPI support
+# BEGIN MPI support 
 
 # Specify which MPI installation should be used
 AC_ARG_WITH([mpi], [AS_HELP_STRING([--with-mpi=PATH], [ Specify the MPI installation to use. ])], 

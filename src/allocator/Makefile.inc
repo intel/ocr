@@ -1,10 +1,9 @@
-OCR_SRC_ALLOCATOR=allocator
 
 noinst_LTLIBRARIES += libocr_allocator_tlsf.la
 libocr_la_LIBADD += libocr_allocator_tlsf.la
 
 libocr_allocator_tlsf_la_SOURCES = \
-$(OCR_SRC_ALLOCATOR)/tlsf/tlsf-allocator.c
+allocator/tlsf/tlsf-allocator.c
 
 # bypass -Werror from top-level makefile to pass 
 # compilation on 32 bits systems

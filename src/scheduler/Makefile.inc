@@ -1,4 +1,3 @@
-OCR_SRC_SCHEDULER=scheduler
 
 #
 # OCR-HC scheduler implementation
@@ -7,8 +6,8 @@ noinst_LTLIBRARIES += libocr_scheduler_hc.la
 libocr_la_LIBADD += libocr_scheduler_hc.la
 
 libocr_scheduler_hc_la_SOURCES = \
-$(OCR_SRC_SCHEDULER)/hc/hc-scheduler.c
-#$(OCR_SRC_SCHEDULER)/hc/hc-placed-scheduler.c
+scheduler/hc/hc-scheduler.c
+#scheduler/hc/hc-placed-scheduler.c
 
 libocr_scheduler_hc_la_CFLAGS = $(AM_CFLAGS)
 
@@ -19,6 +18,6 @@ libocr_scheduler_hc_la_CFLAGS = $(AM_CFLAGS)
 #libocr_la_LIBADD += libocr_scheduler_fsim.la
 
 #libocr_scheduler_fsim_la_SOURCES = \
-#$(OCR_SRC_SCHEDULER)/fsim/fsim-scheduler.c
+#scheduler/fsim/fsim-scheduler.c
 
 #libocr_scheduler_fsim_la_CFLAGS = $(AM_CFLAGS)
