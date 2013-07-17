@@ -86,7 +86,7 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "name");
     INI_GET_STR (key, typestr, "");
 
-    // TODO: populate type-specific fields as-needed
+    // TODO: populate type-specific fields as-needed; see compplatform_type for an example
     switch (index) {
     case guid_type:
         ALLOC_PARAM_LIST(*type_param, paramListGuidProviderFact_t);
@@ -113,7 +113,7 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
                 break;
                 default:
                     ALLOC_PARAM_LIST(*type_param, paramListCompPlatformFact_t);
-                    break;
+                break;
             }
         }
         break;
@@ -450,16 +450,24 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
         break;
     case compplatform_type:
         for (j = low; j<=high; j++) {
-            // ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
 
-            // FIXME: for now assume it's Pthread
-            ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformPthread_t);
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "ismasterthread");
-            INI_GET_BOOL (key, value, -1);
-            ((paramListCompPlatformPthread_t *)inst_param[j])->isMasterThread = value;
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
-            INI_GET_INT (key, value, -1);
-            ((paramListCompPlatformPthread_t *)inst_param[j])->stackSize = value;
+            compPlatformType_t mytype = -1;
+            TO_ENUM (mytype, inststr, compPlatformType_t, compplatform_types, compPlatformMax_id);
+            switch (mytype) {
+                case compPlatformPthread_id: {
+                    ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformPthread_t);
+                    snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "ismasterthread");
+                    INI_GET_BOOL (key, value, -1);
+                    ((paramListCompPlatformPthread_t *)inst_param[j])->isMasterThread = value;
+                    snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
+                    INI_GET_INT (key, value, -1);
+                    ((paramListCompPlatformPthread_t *)inst_param[j])->stackSize = (value==-1)?0:value;
+                }
+                break;
+                default:
+                    ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
+                break;
+            }
 
             instance[j] = (ocrMappable_t *)((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
@@ -484,12 +492,20 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
         break;
     case worker_type:
         for (j = low; j<=high; j++) {
-            //ALLOC_PARAM_LIST(inst_param[j], paramListWorkerInst_t);
-            // FIXME: for now assume it's HC
-            ALLOC_PARAM_LIST(inst_param[j], paramListWorkerHcInst_t);
-            //snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "workerid");
-            //INI_GET_INT (key, value, -1);
-            ((paramListWorkerHcInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
+
+            workerType_t mytype = -1;
+            TO_ENUM (mytype, inststr, workerType_t, worker_types, workerMax_id);
+            switch (mytype) {
+                case workerHc_id: {
+                    ALLOC_PARAM_LIST(inst_param[j], paramListWorkerHcInst_t);
+                    ((paramListWorkerHcInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
+                }
+                break;
+                default:
+                    ALLOC_PARAM_LIST(inst_param[j], paramListWorkerInst_t);
+                break;
+            }
+
             instance[j] = (ocrMappable_t *)((ocrWorkerFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created worker of type %s, index %d\n", inststr, j);
@@ -497,12 +513,21 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
         break;
     case scheduler_type:
         for (j = low; j<=high; j++) {
-            //ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerInst_t);
-            // FIXME: for now assume it's HC
-            ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerHcInst_t);
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "workeridfirst");
-            INI_GET_INT (key, value, -1);
-            ((paramListSchedulerHcInst_t *)inst_param[j])->workerIdFirst = value;
+            schedulerType_t mytype = -1;
+            TO_ENUM (mytype, inststr, schedulerType_t, scheduler_types, schedulerMax_id);
+            switch (mytype) {
+                case schedulerHc_id: {
+                    ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerHcInst_t);
+                    snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "workeridfirst");
+                    INI_GET_INT (key, value, -1);
+                    ((paramListSchedulerHcInst_t *)inst_param[j])->workerIdFirst = value;
+                }
+                break;
+                default:
+                    ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerInst_t);
+                break;
+            }
+
             instance[j] = (ocrMappable_t *)((ocrSchedulerFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created scheduler of type %s, index %d\n", inststr, j);
@@ -558,8 +583,8 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
 
             // Ugly but special case
             read_range(dict, secname, "guid", &low, &high);
-            ASSERT (low == high);
-            gf = (ocrGuidProvider_t *)(all_instances[0][low]); // Very special case: FIXME
+            ASSERT (low == high);  // We don't expect more than one guid provider
+            gf = (ocrGuidProvider_t *)(all_instances[guid_type][low]);
             ASSERT (gf);
 
             ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
@@ -784,7 +809,7 @@ s32 build_deps (dictionary *dict, s32 A, s32 B, char *refstr, ocrMappable_t ***a
                 // Parse corresponding dependences from secname
                 read_range(dict, iniparser_getsecname(dict, i), refstr, &l, &h);
                 // Connect A with B
-                // FIXME: only rough heuristic for now: if |from| == |to| then 1:1, else all:all
+                // Using a rough heuristic for now: if |from| == |to| then 1:1, else all:all TODO: What else makes sense here?
                 if (h-l == high-low) {
                     k = l+j-low;
                     add_dependence(A, B, all_instances[A][j], inst_params[A][j], all_instances[B][k], inst_params[B][k], 0, 1);

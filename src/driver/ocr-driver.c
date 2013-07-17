@@ -190,9 +190,12 @@ void bringUpRuntime(const char *inifile) {
         }
     }
 
-    // FIXME: Ugly follows
+    // Special case: register compPlatformFactory's functions
     ocrCompPlatformFactory_t *compPlatformFactory;
     compPlatformFactory = (ocrCompPlatformFactory_t *) all_factories[compplatform_type][0];
+    if (type_counts[compplatform_type] != 1) {
+        DPRINTF(DEBUG_LVL_WARN, "Only the first type of CompPlatform is used. If you don't want this behavior, please reorder!\n");
+    }
     compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
 
     // BUILD DEPENDENCES
@@ -205,7 +208,10 @@ void bringUpRuntime(const char *inifile) {
     // START EXECUTION
     DPRINTF(DEBUG_LVL_INFO, "========= Start execution ==========\n");
     ocrPolicyDomain_t *rootPolicy;
-    rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0]; // FIXME: Ugly
+    rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0]; 
+    if (inst_counts[policydomain_type] != 1) {
+        DPRINTF(DEBUG_LVL_WARN, "Only the first policy domain is started for execution. Rest is currently ignored!\n");
+    }
     rootPolicy->start(rootPolicy);
 }
 
