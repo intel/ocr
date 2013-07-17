@@ -43,8 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 
 #include "ocr-types.h"
-#include "ocr-guid.h"
-
 
 /**
  *  @brief Get @ offset in the currently running edt's local storage

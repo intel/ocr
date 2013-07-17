@@ -15,7 +15,7 @@ inc/ocr-types.h inc/ocr.h
 
 # Distribute runtime interface headers - set by configure
 if INCLUDE_RUNTIME_ITF_HEADERS
-library_include_HEADERS += inc/ocr-runtime-itf.h src/inc/ocr-guid.h
+library_include_HEADERS += inc/ocr-runtime-itf.h
 endif
 
 # Distribute OCR library interface headers - set by configure
