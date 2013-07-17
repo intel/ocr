@@ -17,6 +17,7 @@ AC_COPYRIGHT([todo_copyright_info])
 AC_REVISION([$Revision: 0.1 $])
 
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_LIBTOOL
 AC_LANG(C)
 
@@ -89,7 +90,7 @@ AC_ARG_ENABLE(rtapi,
 
 AS_IF([test "x$with_rtapi" != xno],
       [ AC_MSG_NOTICE([OCR Runtime API header requested]) ], 
-      [ ]) 
+      [ AC_MSG_NOTICE([OCR Runtime API header not requested]) ])
 
 # Check if we need to distribute runtime headers
 AM_CONDITIONAL([INCLUDE_RUNTIME_ITF_HEADERS], [test x$with_els != xno -o x$with_rtapi != xno])
@@ -102,7 +103,7 @@ AC_ARG_ENABLE(ocrlib,
 
 AS_IF([test "x$with_ocrlib" != xno],
       [ AC_MSG_NOTICE([OCR-lib header requested]) ], 
-      [ ]) 
+      [ AC_MSG_NOTICE([OCR-lib header not requested]) ])
 
 # Check if we need to distribute OCR library headers
 AM_CONDITIONAL([INCLUDE_OCR_LIBRARY_ITF_HEADERS], [test x$with_ocrlib != xno])
