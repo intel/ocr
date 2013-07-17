@@ -1,3 +1,26 @@
+/**
+ * Copyright (c) 2000-2011 by Nicolas Devillard.
+ * MIT License
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
+
 /*-------------------------------------------------------------------------*/
 /**
    @file    dictionary.c
@@ -13,7 +36,7 @@
 /*---------------------------------------------------------------------------
                                 Includes
  ---------------------------------------------------------------------------*/
-#include "dictionary.h"
+#include "external/dictionary.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +61,7 @@
 static void * mem_double(void * ptr, int size)
 {
     void * newptr ;
- 
+
     newptr = calloc(2*size, 1);
     if (newptr==NULL) {
         return NULL ;
@@ -224,7 +247,7 @@ int dictionary_set(dictionary * d, const char * key, const char * val)
     unsigned    hash ;
 
     if (d==NULL || key==NULL) return -1 ;
-    
+
     /* Compute hash for this key */
     hash = dictionary_hash(key) ;
     /* Find if value is already in dictionary */
@@ -367,7 +390,7 @@ int main(int argc, char *argv[])
     /* Allocate dictionary */
     printf("allocating...\n");
     d = dictionary_new(0);
-    
+
     /* Set values in dictionary */
     printf("setting %d values...\n", NVALS);
     for (i=0 ; i<NVALS ; i++) {

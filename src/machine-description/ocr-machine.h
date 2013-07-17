@@ -2,7 +2,7 @@
 
 #define __OCR_MACHINE_H_
 
-#include "iniparser.h"
+#include "external/iniparser.h"
 #include "ocr-allocator.h"
 #include "ocr-comp-platform.h"
 #include "ocr-comp-target.h"

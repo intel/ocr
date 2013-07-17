@@ -1,3 +1,9 @@
+This LICENSE file applies to all files in this directory (and any sub-directories)
+except for: iniparser.h, dictionary.h, iniparser.c, dictionary.c. Please see
+those files for their license information.
+
+Copyright (c) 2012-2013, Intel Corporation & Rice University
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
@@ -8,7 +14,7 @@ met:
      copyright notice, this list of conditions and the following
      disclaimer in the documentation and/or other materials provided
      with the distribution.
-3.  Neither the name of Intel Corporation
+3.  Neither the name of Intel Corporation, Rice University
      nor the names of its contributors may be used to endorse or
      promote products derived from this software without specific
      prior written permission.
@@ -24,3 +30,15 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The following people contributed to this distribution:
+    - Zoran Budimlic (Rice University)
+    - Vincent Cave (Rice University)
+    - Sanjay Chatterjee (Rice University)
+    - Romain Cledat (Intel Corporation)
+    - Ivan Ganev (Intel Corporation)
+    - Rob Knauerhase (Intel Corporation)
+    - Vivek Sarkar (Rice University)
+    - Dipanjan Sengupta (Intel Corporation)
+    - Bala Seshasayee (Intel Corporation)
+    - Sagnak Tasirlar (Rice University and Intel Corporation)

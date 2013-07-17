@@ -4,6 +4,7 @@
 #include "datablock/datablock-all.h"
 #include "debug.h"
 #include "event/event-all.h"
+#include "external/iniparser.h"
 #include "guid/guid-all.h"
 #include "machine-description/ocr-machine.h"
 #include "mem-platform/mem-platform-all.h"
@@ -18,7 +19,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <iniparser.h>
 #include <signal.h>
 
 

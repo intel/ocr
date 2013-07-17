@@ -1,3 +1,25 @@
+/**
+ * Copyright (c) 2000-2011 by Nicolas Devillard.
+ * MIT License
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -8,7 +30,7 @@
 /*--------------------------------------------------------------------------*/
 /*---------------------------- Includes ------------------------------------*/
 #include <ctype.h>
-#include "iniparser.h"
+#include "external/iniparser.h"
 
 /*---------------------------- Defines -------------------------------------*/
 #define ASCIILINESZ         (1024)
@@ -75,9 +97,9 @@ static char * strstrip(const char * s)
 {
     static char l[ASCIILINESZ+1];
     char * last ;
-    
+
     if (s==NULL) return NULL ;
-    
+
     while (isspace((int)*s) && *s) s++;
     memset(l, 0, ASCIILINESZ+1);
     strcpy(l, s);
@@ -292,7 +314,7 @@ int iniparser_getsecnkeys(dictionary * d, char * s)
     for (j=0 ; j<d->size ; j++) {
         if (d->key[j]==NULL)
             continue ;
-        if (!strncmp(d->key[j], keym, seclen+1)) 
+        if (!strncmp(d->key[j], keym, seclen+1))
             nkeys++;
     }
 
@@ -310,7 +332,7 @@ int iniparser_getsecnkeys(dictionary * d, char * s)
   This function queries a dictionary and finds all keys in a given section.
   Each pointer in the returned char pointer-to-pointer is pointing to
   a string allocated in the dictionary; do not free or modify them.
-  
+
   This function returns NULL in case of error.
  */
 /*--------------------------------------------------------------------------*/
@@ -334,7 +356,7 @@ char ** iniparser_getseckeys(dictionary * d, char * s)
 
     seclen  = (int)strlen(s);
     sprintf(keym, "%s:", s);
-    
+
     i = 0;
 
     for (j=0 ; j<d->size ; j++) {
@@ -557,7 +579,7 @@ static line_status iniparser_line(
     char * section,
     char * key,
     char * value)
-{   
+{
     line_status sta ;
     char        line[ASCIILINESZ+1];
     int         len ;
@@ -571,7 +593,7 @@ static line_status iniparser_line(
         sta = LINE_EMPTY ;
     } else if (line[0]=='#' || line[0]==';') {
         /* Comment line */
-        sta = LINE_COMMENT ; 
+        sta = LINE_COMMENT ;
     } else if (line[0]=='[' && line[len-1]==']') {
         /* Section name */
         sscanf(line, "[%[^]]", section);
