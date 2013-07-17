@@ -36,6 +36,7 @@
 #include "ocr-event.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
+#include "ocr-sync.h"
 
 typedef struct {
     ocrEventFactory_t base_factory;
@@ -58,8 +59,14 @@ typedef struct ocrEventHcSingle_t {
     ocrEventHcAwaitable_t base;
 } ocrEventHcSingle_t;
 
+typedef struct ocrEventHcOnce_t {
+    ocrEventHcAwaitable_t base;
+    ocrAtomic64_t * nbEdtRegistered;
+} ocrEventHcOnce_t;
+
 typedef struct ocrEventHcLatch_t {
     ocrEventHcAwaitable_t base;
+    //TODO use ocrAtomic but overhead may suck
     volatile int counter;
 } ocrEventHcLatch_t;
 
@@ -70,6 +77,7 @@ typedef struct ocrEventHcFinishLatch_t {
     regNode_t parentLatchWaiter; // Parent latch when nesting finish scope
     ocrGuid_t ownerGuid; // finish-edt starting the finish scope
     volatile ocrGuid_t returnGuid;
+    //TODO use ocrAtomic but overhead may suck
     volatile int counter;
 } ocrEventHcFinishLatch_t;
 

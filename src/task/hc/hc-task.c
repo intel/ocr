@@ -49,13 +49,7 @@
 #define END_OF_LIST NULL
 #define UNINITIALIZED_DATA ((ocrGuid_t) -2)
 
-
 #define DEBUG_TYPE TASK
-
-//
-// Guid-kind checkers for convenience
-//
-
 
 //
 // Convenience functions to get the EDT and deguidify it
@@ -266,6 +260,19 @@ static void taskSignaled(ocrTask_t * base, ocrGuid_t data, u32 slot) {
     // current signal frontier, since it is the only signaler
     // the edt is registered with at that time.
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
+    ocrGuid_t signalerGuid = self->signalers[slot].guid;
+
+    if (isEventGuidOfKind(signalerGuid, OCR_EVENT_ONCE_T)) {
+        ocrEventHcOnce_t * onceEvent = NULL;
+        deguidify(getCurrentPD(), signalerGuid, (u64*)&onceEvent, NULL);
+        DPRINTF(DEBUG_LVL_INFO, "Decrement ONCE event reference %lx \n", signalerGuid);
+        onceEvent->nbEdtRegistered->fctPtrs->xadd(onceEvent->nbEdtRegistered, -1);
+        if(onceEvent->nbEdtRegistered->fctPtrs->val(onceEvent->nbEdtRegistered) == 0) {
+            // deallocate once event
+            ocrEvent_t * base = (ocrEvent_t *) onceEvent;
+            base->fctPtrs->destruct(base);
+        }
+    }
     // Replace the signaler's guid by the data guid, this to avoid
     // further references to the event's guid, which is good in general
     // and crucial for once-event since they are being destroyed on satisfy.
@@ -539,6 +546,15 @@ static void awaitableEventRegisterWaiter(ocrEventHcAwaitable_t * self, ocrGuid_t
     signalWaiter(waiter, self->data, slot);
 }
 
+// Registers an edt to a once event by incrementing an atomic counter
+// The event is deallocated only after being satisfied and all waiters 
+// have been notified
+static void onceEventRegisterEdtWaiter(ocrEvent_t * self, ocrGuid_t waiter, int slot) {
+    ocrEventHcOnce_t* onceImpl = (ocrEventHcOnce_t*) self;
+    DPRINTF(DEBUG_LVL_INFO, "Increment ONCE event reference %lx \n", self->guid);
+    onceImpl->nbEdtRegistered->fctPtrs->xadd(onceImpl->nbEdtRegistered, 1);
+}
+
 //These are essentially switches to dispatch call to the correct implementation
 
 void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
@@ -554,6 +570,13 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
         deguidify(getCurrentPD(), signalerGuid, (u64*)&target, NULL);
         awaitableEventRegisterWaiter(target, waiterGuid, slot);
         return;
+    }
+    // ONCE event must know who are consuming them so that 
+    // they are not deallocated prematurely 
+    if (isEventGuidOfKind(signalerGuid, OCR_EVENT_ONCE_T) && isEdtGuid(waiterGuid)) {
+        ocrEvent_t * signalerEvent;
+        deguidify(getCurrentPD(), signalerGuid, (u64*)&signalerEvent, NULL);
+        onceEventRegisterEdtWaiter(signalerEvent, waiterGuid, slot);
     }
 
     // SIGNAL MODE:

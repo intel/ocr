@@ -106,4 +106,13 @@ static inline bool isEventSingleGuid(ocrGuid_t guid) {
     return false;
 }
 
+static inline bool isEventGuidOfKind(ocrGuid_t guid, ocrEventTypes_t eventKind) {
+    if (isEventGuid(guid)) {
+        ocrEvent_t * event = NULL;
+        deguidify(getCurrentPD(), guid, (u64*)&event, NULL);
+        return event->kind == eventKind;
+    }
+    return false;
+}
+
 #endif /* __OCR_GUID_END_H__ */

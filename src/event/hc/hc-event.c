@@ -126,7 +126,14 @@ static ocrEvent_t* eventConstructorInternal(ocrPolicyDomain_t * pd, ocrEventFact
                 (eventType == OCR_EVENT_IDEM_T) ||
                 (eventType == OCR_EVENT_STICKY_T)) &&
                 "error: Unsupported type of event");
-        ocrEventHcSingle_t* eventImpl = (ocrEventHcSingle_t*) checkedMalloc(eventImpl, sizeof(ocrEventHcSingle_t));
+        ocrEventHcSingle_t* eventImpl;
+        if (eventType == OCR_EVENT_ONCE_T) {
+            ocrEventHcOnce_t* onceImpl = (ocrEventHcOnce_t*) checkedMalloc(eventImpl, sizeof(ocrEventHcOnce_t));        
+            onceImpl->nbEdtRegistered = pd->getAtomic64(pd, NULL);
+            eventImpl = (ocrEventHcSingle_t*) onceImpl;
+        } else {
+            eventImpl = (ocrEventHcSingle_t*) checkedMalloc(eventImpl, sizeof(ocrEventHcSingle_t));
+        }
         (eventImpl->base).waiters = END_OF_LIST;
         (eventImpl->base).signalers = END_OF_LIST;
         (eventImpl->base).data = UNINITIALIZED_DATA;
@@ -155,6 +162,10 @@ static void destructEventHc ( ocrEvent_t* base ) {
     ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
     ctx->type = PD_MSG_GUID_REL;
     pd->inform(pd, base->guid, ctx);
+    if(base->kind == OCR_EVENT_ONCE_T) {
+        ocrEventHcOnce_t * onceEvent = (ocrEventHcOnce_t *) base;
+        onceEvent->nbEdtRegistered->fctPtrs->destruct(onceEvent->nbEdtRegistered);
+    }
     ctx->destruct(ctx);
     free(derived);
 }
@@ -212,10 +223,6 @@ static void singleEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slotEvent)
             waiters = waiter;
             waiter = waiter->next;
             free(waiters); // Release waiter node
-        }
-        if (base->kind == OCR_EVENT_ONCE_T) {
-            // once-events die after satisfy has been called
-            destructEventHc(base);
         }
     } else {
         // once-events cannot survive down here
