@@ -35,10 +35,10 @@ while [[ $# -gt 0 ]]; do
 		shift
 		TEST_DIR=("$@")
 		shift
-    elif [[ "$1" = "-run-itf-ext" ]]; then
+    elif [[ "$1" = "-rtapi" ]]; then
         shift
         RUNTIME_ITF_EXT=yes
-    elif [[ "$1" = "-ocr-library-itf" ]]; then
+    elif [[ "$1" = "-ocrlib" ]]; then
         shift
         OCR_LIBRARY_ITF=yes
     elif [[ "$1" = "-valgrind" && $# -ge 2 ]]; then
