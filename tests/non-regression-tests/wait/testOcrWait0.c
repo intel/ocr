@@ -35,8 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ocr.h"
 
-// Only tested when ocr runtime interface is available
-#ifdef RUNTIME_ITF_EXT
+// Only tested when ocr-lib interface is available
+#ifdef OCR_LIBRARY_ITF
 
 #include "ocr-runtime-itf.h"
 
