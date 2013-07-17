@@ -1,3 +1,10 @@
+/*
+ * This file is subject to the license agreement located in the file LICENSE
+ * and cannot be distributed without it. This notice cannot be
+ * removed or modified.
+ */
+
+
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
@@ -49,12 +56,12 @@ void ocrModelInitThor(char * mdFile) {
     thor_root_policy_domains[0]->successors = thor_l3_policy_domains;
     thor_root_policy_domains[0]->n_predecessors = 0;
     thor_root_policy_domains[0]->predecessors = NULL;
-    thor_root_policy_domains[0]->id = breadthFirstLabel++; 
+    thor_root_policy_domains[0]->id = breadthFirstLabel++;
 
     u64 idx = 0;
     for ( idx = 0; idx < n_L3s; ++idx ) {
         ocrPolicyDomain_t *curr = thor_l3_policy_domains[idx];
-        curr->id = breadthFirstLabel++; 
+        curr->id = breadthFirstLabel++;
 
         curr->n_successors = n_L2s_per_L3;
         curr->successors = &(thor_l2_policy_domains[idx*n_L2s_per_L3]);
@@ -64,7 +71,7 @@ void ocrModelInitThor(char * mdFile) {
 
     for ( idx = 0; idx < n_L2s; ++idx ) {
         ocrPolicyDomain_t *curr = thor_l2_policy_domains[idx];
-        curr->id = breadthFirstLabel++; 
+        curr->id = breadthFirstLabel++;
 
         curr->n_successors = n_L1s_per_L2;
         curr->successors = &(thor_l1_policy_domains[idx*n_L1s_per_L2]);
@@ -81,7 +88,7 @@ void ocrModelInitThor(char * mdFile) {
         }
         idx = 0;
         ocrPolicyDomain_t *curr = thor_l1_policy_domains[idx];
-        curr->id = breadthFirstLabel++; 
+        curr->id = breadthFirstLabel++;
 
         curr->n_successors = n_workers_per_L1;
         curr->successors = nasty_successor_buffering;
@@ -91,7 +98,7 @@ void ocrModelInitThor(char * mdFile) {
 
     for ( idx = 1; idx < n_L1s; ++idx ) {
         ocrPolicyDomain_t *curr = thor_l1_policy_domains[idx];
-        curr->id = breadthFirstLabel++; 
+        curr->id = breadthFirstLabel++;
 
         curr->n_successors = n_workers_per_L1;
         curr->successors = &(thor_worker_policy_domains[idx*n_workers_per_L1 - 1]);
@@ -99,11 +106,11 @@ void ocrModelInitThor(char * mdFile) {
         curr->predecessors = &(thor_l2_policy_domains[idx/n_L1s_per_L2]);
     }
 
-    // idx = 0 condition for ( idx = 1; idx < n_workers; ++idx ) 
+    // idx = 0 condition for ( idx = 1; idx < n_workers; ++idx )
     {
         idx = 0;
         ocrPolicyDomain_t *curr = thor_mastered_worker_policy_domains[idx];
-        curr->id = breadthFirstLabel++; 
+        curr->id = breadthFirstLabel++;
         curr->n_successors = 0;
         curr->successors = NULL;
         curr->n_predecessors = 1;
@@ -112,7 +119,7 @@ void ocrModelInitThor(char * mdFile) {
 
     for ( idx = 1; idx < n_workers; ++idx ) {
         ocrPolicyDomain_t *curr = thor_worker_policy_domains[idx-1];
-        curr->id = breadthFirstLabel++; 
+        curr->id = breadthFirstLabel++;
 
         curr->n_successors = 0;
         curr->successors = NULL;

@@ -142,9 +142,7 @@ typedef struct _ocrAllocatorFactory_t {
      * to it.
      *
      * @param factory       Pointer to this factory
-     * @param size          Total size of the memory to manage with
-     *                      this allocator
-     * @param
+     * @param instanceArg   Arguments specific for the allocator instance
      */
     struct _ocrAllocator_t * (*instantiate)(struct _ocrAllocatorFactory_t * factory,
                                             ocrParamList_t *instanceArg);

@@ -1,3 +1,10 @@
+/*
+ * This file is subject to the license agreement located in the file LICENSE
+ * and cannot be distributed without it. This notice cannot be
+ * removed or modified.
+ */
+
+
 #include "allocator/allocator-all.h"
 #include "comp-platform/comp-platform-all.h"
 #include "comp-target/comp-target-all.h"
