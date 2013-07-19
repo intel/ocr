@@ -9,6 +9,7 @@
  */
 
 
+#include "debug.h"
 #include "ocr-macros.h"
 #include "ocr-mappable.h"
 #include "ocr-policy-domain-getter.h"
