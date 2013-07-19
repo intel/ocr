@@ -44,7 +44,6 @@ struct _ocrEvent_t;
  */
 typedef struct _ocrEventFcts_t {
 
-typedef struct ocr_event_fcts_struct {
     /*! \brief Virtual destructor for the Event interface
      */
     void (*destruct)(struct _ocrEvent_t* self);

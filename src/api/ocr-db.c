@@ -165,11 +165,11 @@ u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset) {
 }
 
 struct ocrDbCopy_args {
-	ocrGuid_t destination;
-	u64 destinationOffset; 
-	ocrGuid_t source; 
-	u64 sourceOffset; 
-	u64 size;
+    ocrGuid_t destination;
+    u64 destinationOffset;
+    ocrGuid_t source;
+    u64 sourceOffset;
+    u64 size;
 } ocrDbCopy_args;
 
 // TODO: Re-enable

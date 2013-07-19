@@ -276,7 +276,7 @@
 
 #ifdef OCR_STATUS
 #define STATUS(format, ...)                                             \
-    PRINTF"##OCR-STATUS %s:%d " format, __FILE__, __LINE__,##__VA_ARGS__);
+    PRINTF("##OCR-STATUS %s:%d " format, __FILE__, __LINE__,##__VA_ARGS__);
 #else
 #define STATUS(format, ...)
 #endif /* OCR_STATUS */

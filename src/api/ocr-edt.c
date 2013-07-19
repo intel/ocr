@@ -116,7 +116,6 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
             i++;
         }
     }
-#endif
     return 0;
 }
 

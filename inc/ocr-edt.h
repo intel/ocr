@@ -146,7 +146,6 @@ typedef struct {
 } ocrEdtDep_t;
 
 
-
 #define EDT_PROP_NONE   ((u16) 0x0) /**< Property bits indicating a regular EDT */
 #define EDT_PROP_FINISH ((u16) 0x1) /**< Property bits indicating a FINISH EDT */
 

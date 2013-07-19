@@ -53,7 +53,6 @@ ocr_model_policy_t * ocrInitPolicyModel(ocr_policy_model_kind policyModelKind, c
 
 ocrPolicyDomain_t ** instantiateModel(ocr_model_policy_t * model);
 
-
 void destructOcrModelPolicy(ocr_model_policy_t *);
 
 // THIS IS A HACK RIGHT NOW TO GET THE MEMORY SIZE IN ONE LARGE CHUNK

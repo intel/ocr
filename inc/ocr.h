@@ -84,4 +84,7 @@ u64 getArgc(void* dbPtr);
  */
 char* getArgv(void* dbPtr, u64 count);
 
+/**
+ * @}
+ **/
 #endif /* __OCR_H__ */

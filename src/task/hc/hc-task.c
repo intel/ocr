@@ -40,7 +40,6 @@ static inline ocrTask_t * getCurrentTask() {
     return NULL;
 }
 
-
 //
 // EDT Properties Utilities
 //
@@ -196,7 +195,7 @@ static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomai
         hcLatch->outputEventWaiter.guid = outputEvent;
         hcLatch->outputEventWaiter.slot = 0;
     } else {
-        // If the currently executing edt is in a finish scope, 
+        // If the currently executing edt is in a finish scope,
         // but is not a finish-edt itself, just register to the scope
         ocrEvent_t * curLatch = getFinishLatch(getCurrentTask());
         if (curLatch != NULL) {
@@ -231,7 +230,7 @@ static void taskSignaled(ocrTask_t * base, ocrGuid_t data, u32 slot) {
     // An EDT has a list of signalers, but only register
     // incrementally as signals arrive.
     // Assumption: signal frontier is initialized at slot zero
-    // Whenever we receive a signal, it can only be from the 
+    // Whenever we receive a signal, it can only be from the
     // current signal frontier, since it is the only signaler
     // the edt is registered with at that time.
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
@@ -307,7 +306,7 @@ static inline void taskSchedule( ocrGuid_t taskGuid ) {
 
 /**
  * @brief Tries to schedules a task by registering to its first dependence.
- * If no dependence, schedule the task right-away 
+ * If no dependence, schedule the task right-away
  * Warning: This method is to be called ONCE per task and there's no safeguard !
  */
 static void tryScheduleTask( ocrTask_t* base ) {
@@ -522,7 +521,7 @@ static void awaitableEventRegisterWaiter(ocrEventHcAwaitable_t * self, ocrGuid_t
 }
 
 // Registers an edt to a once event by incrementing an atomic counter
-// The event is deallocated only after being satisfied and all waiters 
+// The event is deallocated only after being satisfied and all waiters
 // have been notified
 static void onceEventRegisterEdtWaiter(ocrEvent_t * self, ocrGuid_t waiter, int slot) {
     ocrEventHcOnce_t* onceImpl = (ocrEventHcOnce_t*) self;
@@ -546,8 +545,8 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
         awaitableEventRegisterWaiter(target, waiterGuid, slot);
         return;
     }
-    // ONCE event must know who are consuming them so that 
-    // they are not deallocated prematurely 
+    // ONCE event must know who are consuming them so that
+    // they are not deallocated prematurely
     if (isEventGuidOfKind(signalerGuid, OCR_EVENT_ONCE_T) && isEdtGuid(waiterGuid)) {
         ocrEvent_t * signalerEvent;
         deguidify(getCurrentPD(), signalerGuid, (u64*)&signalerEvent, NULL);

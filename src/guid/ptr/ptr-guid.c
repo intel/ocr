@@ -36,7 +36,7 @@ static u8 ptrGetVal(ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKi
     ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *) guid;
     *val = (u64) guidInst->guid;
     if(kind)
-        *kind = (ocrGuidKind)((u64)(guid) & 0x7);
+        *kind = guidInst->kind;
     return 0;
 }
 

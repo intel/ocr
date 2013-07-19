@@ -1,9 +1,9 @@
 OCR_INPUT_HOME=.
 PROG=cholesky
 SUFFIX=.exe
-CFLAGS= -g
+CFLAGS= -O2
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr -lm
-OCR_INPUT=${OCR_INPUT_HOME}
+OCR_INPUT=${OCR_INPUT_HOME}/cholesky
 
 ifndef OCR_INSTALL
 $(error OCR_INSTALL not set)
@@ -40,6 +40,9 @@ compile_pp:
 
 run:
 	./$(PROG)$(SUFFIX) $(OCR_RUN_FLAGS) ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
+
+run.omp.task:
+	./$(PROG).omp.task$(SUFFIX) ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
 
 clean:
 	-rm -Rf *.o $(PROG)$(SUFFIX) cholesky.out

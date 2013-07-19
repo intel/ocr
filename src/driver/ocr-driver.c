@@ -183,7 +183,7 @@ void bringUpRuntime(const char *inifile) {
     // START EXECUTION
     DPRINTF(DEBUG_LVL_INFO, "========= Start execution ==========\n");
     ocrPolicyDomain_t *rootPolicy;
-    rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0]; 
+    rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0];
     if (inst_counts[policydomain_type] != 1) {
         DPRINTF(DEBUG_LVL_WARN, "Only the first policy domain is started for execution. Rest is currently ignored!\n");
     }
@@ -217,7 +217,6 @@ void freeUpRuntime (void)
         free (all_instances[i]);
     }
 }
-
 
 /**
  * @param argc Number of user-level arguments to pack in a DB

@@ -14,6 +14,7 @@
 #define PROPERTIES 0xdead
 
 
+struct timeval a,b;
 
 ocrGuid_t sequential_cholesky_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     int index = 0, iB = 0, jB = 0, kB = 0, jBB = 0;
