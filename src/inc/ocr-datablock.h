@@ -19,22 +19,24 @@
 #include "ocr-statistics.h"
 #endif
 
+
 /****************************************************/
 /* OCR PARAMETER LISTS                              */
 /****************************************************/
 
 typedef struct _paramListDataBlockFact_t {
-    ocrParamList_t base;
+    ocrParamList_t base;    /**< Base class */
 } paramListDataBlockFact_t;
 
 typedef struct _paramListDataBlockInst_t {
-    ocrParamList_t base;
+    ocrParamList_t base;    /**< Base class */
     ocrGuid_t allocator;    /**< Allocator that created this data-block */
     ocrGuid_t allocPD;      /**< Policy-domain of the allocator */
-    u64 size;
+    u64 size;               /**< data-block size */
     void* ptr;              /**< Initial location for the data-block */
-    u16 flags;
+    u16 properties;         /**< Properties for the data-block */
 } paramListDataBlockInst_t;
+
 
 /****************************************************/
 /* OCR DATABLOCK                                    */
@@ -105,10 +107,9 @@ typedef struct _ocrDataBlockFcts_t {
  * This describes the internal representation of
  * a data-block and the meta-data that is associated
  * with it for book-keeping
- *
  **/
 typedef struct _ocrDataBlock_t {
-    ocrGuid_t guid;
+    ocrGuid_t guid; /**< The guid of this data-block */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t statProcess;
 #endif
@@ -117,26 +118,40 @@ typedef struct _ocrDataBlock_t {
     u64 size;               /**< Size of the data-block */
     void* ptr;              /**< Current location for this data-block */
     u16 properties;         /**< Properties for the data-block */
-    ocrDataBlockFcts_t *fctPtrs;
+    ocrDataBlockFcts_t *fctPtrs; /**< Function Pointers for this data-block */
 } ocrDataBlock_t;
+
 
 /****************************************************/
 /* OCR DATABLOCK FACTORY                            */
 /****************************************************/
 
-typedef struct _ocrDataBlockFactory_t {
-    ocrMappable_t module;
+/**
+ * @brief data-block factory
+ */
+ typedef struct _ocrDataBlockFactory_t {
     /**
-     * @brief Creates a data-block to represent the memory of size 'size'
+     * @brief Creates a data-block to represent a chunk of memory
      *
-     */
+     * @param factory       Pointer to this factory
+     * @param allocator     Allocator guid used to allocate memory
+     * @param allocPD       Policy-domain of the allocator
+     * @param size          data-block size
+     * @param ptr           Pointer to the memory to use (created through an allocator)
+     * @param properties    Properties for the data-block
+     * @param instanceArg   Arguments specific for this instance
+     **/
     ocrDataBlock_t* (*instantiate)(struct _ocrDataBlockFactory_t *factory,
                                    ocrGuid_t allocator, ocrGuid_t allocatorPD,
                                    u64 size, void* ptr, u16 properties,
-                                   ocrParamList_t *perInstance);
+                                   ocrParamList_t *instanceArg);
+    /**
+     * @brief Factory destructor
+     * @param factory       Pointer to the factory to destroy.
+     */
     void (*destruct)(struct _ocrDataBlockFactory_t *factory);
 
-    ocrDataBlockFcts_t dataBlockFcts;
+    ocrDataBlockFcts_t dataBlockFcts; /**< Function pointers created instances should use */
 } ocrDataBlockFactory_t;
 
 #endif /* __OCR_DATABLOCK_H__ */

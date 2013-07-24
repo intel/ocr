@@ -1,3 +1,7 @@
+/**
+ * @brief OCR interface to events
+ **/
+
 /*
  * This file is subject to the license agreement located in the file LICENSE
  * and cannot be distributed without it. This notice cannot be
@@ -21,17 +25,22 @@
 // Define internal finish-latch event id after user-level events
 #define OCR_EVENT_FINISH_LATCH_T OCR_EVENT_T_MAX+1
 
+
 /*******************************************
  * Dependence Registration
+ 
  ******************************************/
 void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
+
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
 /****************************************************/
+
 typedef struct _paramListEventFact_t {
     ocrParamList_t base;
 } paramListEventFact_t;
+
 
 /****************************************************/
 /* OCR EVENT                                        */

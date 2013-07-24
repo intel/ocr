@@ -37,6 +37,7 @@ typedef struct _paramListAllocatorInst_t {
     u64 size;
 } paramListAllocatorInst_t;
 
+
 /****************************************************/
 /* OCR ALLOCATOR                                    */
 /****************************************************/
@@ -81,7 +82,7 @@ typedef struct _ocrAllocatorFcts_t {
      * @brief Frees a previously allocated block
      *
      * The block should have been allocated by the same
-      * allocator
+     * allocator
      *
      * @param self              Pointer to this allocator
      * @param address           Address to free
@@ -134,7 +135,6 @@ typedef struct _ocrAllocator_t {
  * @brief Allocator factory
  */
 typedef struct _ocrAllocatorFactory_t {
-    ocrMappable_t module; /**< Base "class" for the allocator factory */
     /**
      * @brief Allocator factory
      *
@@ -146,7 +146,11 @@ typedef struct _ocrAllocatorFactory_t {
      */
     struct _ocrAllocator_t * (*instantiate)(struct _ocrAllocatorFactory_t * factory,
                                             ocrParamList_t *instanceArg);
-
+    /**
+     * @brief Allocator factory destructor
+     *
+     * @param factory       Pointer to the factory to destruct.
+     */
     void (*destruct)(struct _ocrAllocatorFactory_t * factory);
 
     ocrAllocatorFcts_t allocFcts;
