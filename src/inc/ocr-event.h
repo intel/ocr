@@ -28,8 +28,15 @@
 
 /*******************************************
  * Dependence Registration
- 
  ******************************************/
+
+   /**
+    * @brief Registers dependence between two guids.
+    *
+    * @param signalerGuid          Guid 'signaling'
+    * @param waiterGuid            The guid to be satisfied
+    * @param slot                  The slot to signal the waiterGuid on.
+    */
 void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
 
 
@@ -47,44 +54,45 @@ typedef struct _paramListEventFact_t {
 /****************************************************/
 
 struct _ocrEvent_t;
+
 /*! \brief Abstract class to represent OCR events function pointers
  *
- *  This class provides the interface for the underlying implementation to conform.
+ *  This class provides the interface for the underlying implementation to conform with.
  */
 typedef struct _ocrEventFcts_t {
-
     /*! \brief Virtual destructor for the Event interface
+     *  \param[in] self          Pointer to this event
      */
     void (*destruct)(struct _ocrEvent_t* self);
 
     /*! \brief Interface to get the GUID of the entity that satisfied an event.
-     *  \return GUID of the entity that satisfied this event
+     *  \param[in] self          Pointer to this event
+     *  \param[in] slot          The slot of the event to get from
+     *  \return GUID of the entity the event has been satisfied with
      */
     ocrGuid_t (*get) (struct _ocrEvent_t* self, u32 slot);
 
     /*! \brief Interface to satisfy the event
-     *  \param[in]  db   GUID to satisfy this event with (or NULL_GUID)
-     *  \param[in]  slot Input slot for this event (for latch events for example)
+     *  \param[in] self          Pointer to this event
+     *  \param[in] db            GUID to satisfy this event with (or NULL_GUID)
+     *  \param[in] slot          Input slot for this event
      */
     void (*satisfy)(struct _ocrEvent_t* self, ocrGuid_t db, u32 slot);
 } ocrEventFcts_t;
 
 /*! \brief Abstract class to represent OCR events.
  *
- *  This class provides the interface for the underlying implementation to conform.
- *  Events can be satisfied once with a GUID, can be polled for what GUID satisfied the event,
- *  and can be registered to by a task.
+ *  Events can be satisfied with a GUID, polled for 
+ *  what GUID satisfied the event and registered to
+ *  other events or edts.
  */
 typedef struct _ocrEvent_t {
     ocrGuid_t guid; /**< GUID for this event */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t statProcess;
 #endif
-
-    ocrEventTypes_t kind;
-    /*! \brief Holds function pointer to the event interface
-     */
-    ocrEventFcts_t *fctPtrs;
+    ocrEventTypes_t kind;  /**< The kind of this event instance */
+    ocrEventFcts_t *fctPtrs;  /**< Function pointers for this instance */
 } ocrEvent_t;
 
 
@@ -94,18 +102,23 @@ typedef struct _ocrEvent_t {
 
 /*! \brief Abstract factory class to create OCR events.
  *
- *  This class provides an interface to create Event instances with a non-static create function
- *  to allow runtime implementers to choose to have state in their derived ocrEventFactory_t classes.
+ *  This class provides an interface to create Event instances 
+ *  with a non-static instantiate function to allow runtime implementers 
+ *  to choose to have state in their derived ocrEventFactory_t classes.
  */
 typedef struct _ocrEventFactory_t {
-    ocrMappable_t module;
     /*! \brief Instantiates an Event and returns its corresponding GUID
-     *  \return Event metadata for the instantiated event
+     *  \param[in] factory          Pointer to this factory
+     *  \param[in] eventType        Type of event to instantiate
+     *  \param[in] takesArg         Does the event will take an argument
+     *  \param[in] instanceArg      Arguments specific for this instance
+     *  \return a new instance of an event
      */
     ocrEvent_t* (*instantiate)(struct _ocrEventFactory_t* factory, ocrEventTypes_t eventType,
-                               bool takesArg, ocrParamList_t *perInstance);
+                               bool takesArg, ocrParamList_t *instanceArg);
 
-    /*! \brief Virtual destructor for the ocrEventFactory_t interface
+    /*! \brief Virtual destructor for the factory
+     *  \param[in] factory          Pointer to this factory
      */
     void (*destruct)(struct _ocrEventFactory_t* factory);
 
