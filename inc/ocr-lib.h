@@ -12,7 +12,9 @@
 
 #ifndef __OCR_LIB_H__
 #define __OCR_LIB_H__
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "ocr-db.h"
 
 
@@ -73,5 +75,8 @@ ocrGuid_t ocrWait(ocrGuid_t outputEvent);
 /**
  * @}
  */
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __OCR_LIB_H__ */

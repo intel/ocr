@@ -12,7 +12,9 @@
 
 #ifndef __OCR_EDT_H__
 #define __OCR_EDT_H__
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "ocr-types.h"
 
 /**
@@ -317,4 +319,8 @@ u8 ocrAddDependence(ocrGuid_t source,
 /**
    @}
 **/
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* __OCR_EDT_H__ */

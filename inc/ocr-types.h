@@ -28,6 +28,9 @@ typedef int8_t   s8;
 #define false 0
 typedef u8 bool;
 #endif /* __cplusplus */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief Type describing the unique identifier of most
@@ -50,4 +53,7 @@ typedef enum {
     /* Add others */
 } ocrInDbAllocator_t;
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* __OCR_TYPES_H__ */

@@ -10,9 +10,13 @@
 
 #ifndef __OCR_TUNING_H__
 #define __OCR_TUNING_H__
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 // places include RAM, SP, or NUMA if available
 
-
+#ifdef __cplusplus
+}
+#endif
 /** TODO **/
 #endif /* __OCR_TUNING_H__ */

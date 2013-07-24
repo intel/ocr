@@ -7,7 +7,9 @@
 
 #ifndef OCR_RUNTIME_ITF_H_
 #define OCR_RUNTIME_ITF_H_
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 /**
  * @defgroup OCRRuntimeItf Interface for runtimes built on top of OCR
  * @brief Defines additional API for runtime implementers
@@ -47,5 +49,8 @@ ocrGuid_t currentEdtUserGet();
 /**
  * @}
  */
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* OCR_RUNTIME_ITF_H_ */

@@ -11,6 +11,9 @@
 
 #ifndef __OCR_DB_H__
 #define __OCR_DB_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "ocr-types.h"
 
@@ -257,4 +260,8 @@ u8 ocrDbCopy(ocrGuid_t destination, u64 destinationOffset, ocrGuid_t source, u64
 /**
  * @}
  */
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* __OCR_DB_H__ */
