@@ -170,6 +170,31 @@ u8 ocrDbMalloc(ocrGuid_t guid, u64 size, void** addr);
 u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset);
 
 /**
+ * @brief Frees memory allocated through ocrDbMalloc
+ *
+ * @param guid              DB to free from
+ * @param addr              Address to free
+ *
+ * @warning The address passed here must have been
+ * allocated before the release of the containing data-block. Use
+ * ocrDbFreeOffset if allocating and freeing across EDTs for
+ * example
+ *
+ * @todo Not supported at this point
+ */
+u8 ocrDbFree(ocrGuid_t guid, void* addr);
+
+/**
+ * @brief Frees memory allocated through ocrDbMallocOffset
+ *
+ * @param guid              DB to free from
+ * @param offset            Offset to free
+ *
+ * @todo Not supported at this point
+ */
+u8 ocrDbFreeOffset(ocrGuid_t guid, u64 offset);
+
+/**
  * @brief Copies data between two data-blocks in an asynchronous manner
  *
  * This call will trigger the creation of an EDT which will perform a copy from
@@ -203,59 +228,6 @@ u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset);
  */
 u8 ocrDbCopy(ocrGuid_t destination, u64 destinationOffset, ocrGuid_t source,
              u64 sourceOffset, u64 size, u64 copyType, ocrGuid_t * completionEvt);
-
-/**
- * @brief Frees memory allocated through ocrDbMalloc
- *
- * @param guid              DB to free from
- * @param addr              Address to free
- *
- * @warning The address passed here must have been
- * allocated before the release of the containing data-block. Use
- * ocrDbFreeOffset if allocating and freeing across EDTs for
- * example
- *
- * @todo Not supported at this point
- */
-u8 ocrDbFree(ocrGuid_t guid, void* addr);
-
-/**
- * @brief Frees memory allocated through ocrDbMallocOffset
- *
- * @param guid              DB to free from
- * @param offset            Offset to free
- *
- * @todo Not supported at this point
- */
-u8 ocrDbFreeOffset(ocrGuid_t guid, u64 offset);
-
-/**
- * @brief Copies data between two data-blocks in an asynchronous manner
- *
- * This call will trigger the creation of an EDT which will perform a copy from a source data-block
- * into a destination data-block. Once the copy is complete,
- * the event with GUID 'completionEvt'' will be satisfied. That event will carry the destination data-block.
- *
- * The type of GUID passed in as source also determines the starting point of the copy:
- *    - if it is an event GUID, the EDT will be available to run when that event is satisfied. The data-block carried by
- *       that event will be used as the source data-block
- *    - if it is a data-block GUID, the EDT is immediately available to run.
- *
- * @param destination           GUID of the data-block to copy to
- * @param destinationOffset     Starting offset within the destination to copy to
- * @param source                GUID of an event or data-block to copy from
- * @param sourceOffset          Starting offset within the source to copy from
- * @param size                  Number of bytes to copy
- * @param copyType              Reserved for future use
- * @param completionEvt         If non NULL, returns the GUID of the event that will be
- *                              satisfied when the copy is completed.
- *
- * @return 0 on success or the following error codes:
- *    - EINVAL: Invalid values for one of the arguments
- *    - EPERM: Overlapping data-blocks
- *    - ENOMEM: Destination too small to copy into or source too small to copy from
- */
-u8 ocrDbCopy(ocrGuid_t destination, u64 destinationOffset, ocrGuid_t source, u64 sourceOffset, u64 size, u64 copyType, ocrGuid_t * completionEvt);
 
 /**
  * @}
