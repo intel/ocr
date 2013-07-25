@@ -77,9 +77,10 @@ static u8 hcSchedulerYield (ocrScheduler_t* self, ocrGuid_t workerGuid,
         u32 count;
         ocrGuid_t taskGuid;
         pd->takeEdt(pd, NULL, &count, &taskGuid, ctx);
-        ocrTask_t* task = NULL;
-        deguidify(pd, taskGuid, (u64*)&(task), NULL);
-        if (taskGuid != NULL_GUID) {
+        ASSERT(count <= 1); // >1 not yet supported
+        if (count != 0) {
+            ocrTask_t* task = NULL;
+            deguidify(pd, taskGuid, (u64*)&(task), NULL);
             worker->fctPtrs->execute(worker, task, taskGuid, yieldingEdtGuid);
         }
     }
