@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
+u8 startMemStat = 0;
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-stat-user.h"
@@ -297,6 +298,7 @@ int __attribute__ ((weak)) main(int argc, const char* argv[]) {
                 /* depc = */ EDT_PARAM_DEF, /* depv = */ &userArgsDbGuid,
                 EDT_PROP_NONE, NULL_GUID, NULL);
 
+    startMemStat = 1;
     ocrFinalize();
 
     return 0;

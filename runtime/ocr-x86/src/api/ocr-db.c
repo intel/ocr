@@ -16,6 +16,9 @@
 #include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 
+#include "callback.h"
+extern u8 startMemStat; 
+
 #include <errno.h>
 
 #if (__STDC_HOSTED__ == 1)
@@ -81,6 +84,20 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
         *addr = NULL;
     }
     if(*addr == NULL) return ENOMEM;
+
+    *db = createdDb->guid;
+
+    if(startMemStat)
+    {
+        ocrTask_t *curTask = NULL;
+	ocrWorker_t *worker = NULL;
+	deguidify(getCurrentPD(), getCurrentWorkerContext()->sourceObj, (u64*)&worker, NULL);
+	ocrGuid_t curTaskGuid = worker->fctPtrs->getCurrentEDT(worker);
+	deguidify(getCurrentPD(), curTaskGuid, (u64*)&curTask, NULL);
+
+	//deguidify(getCurrentPD(), getCurrentEDT(), (u64*)&curTask, NULL);
+	addQueue(db, *addr, len, curTask);
+    }
 
     return 0;
 }
