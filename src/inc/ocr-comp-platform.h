@@ -90,9 +90,7 @@ typedef struct _ocrCompPlatform_t {
  */
 typedef struct _ocrCompPlatformFactory_t {
     /**
-     * @brief comp-platform factory
-     *
-     * Initiates a new comp-platform and returns a pointer to it.
+     * @brief Instantiate a new comp-platform and returns a pointer to it.
      *
      * @param factory       Pointer to this factory
      * @param instanceArg   Arguments specific for this instance

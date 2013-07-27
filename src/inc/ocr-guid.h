@@ -27,16 +27,25 @@ typedef enum {
     OCR_GUID_WORKER = 7
 } ocrGuidKind;
 
+
 /****************************************************/
 /* OCR PARAMETER LISTS                              */
 /****************************************************/
+
+/**
+ * @brief Parameter list to create a guid provider factory
+ */
 typedef struct _paramListGuidProviderFact_t {
     ocrParamList_t base;
 } paramListGuidProviderFact_t;
 
+/**
+ * @brief Parameter list to create a guid provider instance
+ */
 typedef struct _paramListGuidProviderInst_t {
     ocrParamList_t base;
 } paramListGuidProviderInst_t;
+
 
 /****************************************************/
 /* OCR GUID PROVIDER                                */
@@ -44,6 +53,12 @@ typedef struct _paramListGuidProviderInst_t {
 
 struct _ocrGuidProvider_t;
 
+/**
+ * @brief GUID provider function pointers
+ *
+ * The function pointers are separate from the GUID provider instance to allow 
+ * for the sharing of function pointers for GUID provider from the same factory
+ */
 typedef struct _ocrGuidProviderFcts_t {
     /**
      * @brief Destructor equivalent
@@ -56,40 +71,39 @@ typedef struct _ocrGuidProviderFcts_t {
     void (*destruct)(struct _ocrGuidProvider_t* self);
 
     /**
-     * @brief Returns a GUID for an object of type 'type'
+     * @brief Allocates a GUID for an object of kind 'kind'
      * and associates the value val.
      *
      * The GUID provider basically associates a value with the
-     * GUID (can be a pointer to the metadata for example). This
-     * creates an association
+     * GUID (can be a pointer to the metadata for example).
      *
-     * @param self          Pointer to this GUID provider
-     * @param guid          GUID returned
-     * @param val           Value to be associated
-     * @param type          Type of the object that will be associated with the GUID
+     * \param[in] self          Pointer to this GUID provider
+     * \param[out] guid         GUID returned
+     * \param[in] val           Value to be associated
+     * \param[in] kind          Kind of the object that will be associated with the GUID
      * @return 0 on success or an error code
      */
     u8 (*getGuid)(struct _ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val,
-                  ocrGuidKind type);
+                  ocrGuidKind kind);
 
     /**
-     * @brief Returns the associated value for the GUID 'guid'
+     * @brief Resolve the associated value to the GUID 'guid'
      *
-     * @param self          Pointer to this GUID provider
-     * @param guid          GUID to "translate"
-     * @param val           Value to return
-     * @param kind          Kind to return. Can be NULL if the user does not care about the kind
+     * \param[in] self          Pointer to this GUID provider
+     * \param[in] guid          GUID to resolve
+     * \param[out] val          Parameter-result for the value to return
+     * \param[out] kind         Parameter-result for the GUID's kind. Can be NULL if the user does not care about the kind
      *
      * @return 0 on success or an error code
      */
     u8 (*getVal)(struct _ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKind* kind);
 
     /**
-     * @brief Returns the kind of a GUID
+     * @brief Resolve the kind of a GUID
      *
-     * @param self          Pointer to this GUID provider
-     * @param guid          GUID to get the type of
-     * @param kind          Kind returned. Can be NULL if the user does not care about the kind
+     * \param[in] self          Pointer to this GUID provider
+     * \param[in] guid          GUID to get the kind of
+     * \param[out] kind         Parameter-result for the GUID's kind.
      * @return 0 on success or an error code
      */
     u8 (*getKind)(struct _ocrGuidProvider_t* self, ocrGuid_t guid, ocrGuidKind* kind);
@@ -97,8 +111,8 @@ typedef struct _ocrGuidProviderFcts_t {
     /**
      * @brief Releases the GUID
      *
-     * This potentially allows the GUID provider to re-issue this same GUID
-     * for a different object
+     * Whether the GUID provider will re-issue this same GUID for a different
+     * object is implementation dependent.
      *
      * @param self          Pointer to this GUID provider
      * @param guid          GUID to release
@@ -108,7 +122,7 @@ typedef struct _ocrGuidProviderFcts_t {
 } ocrGuidProviderFcts_t;
 
 /**
- * @brief Provider for GUIDs for the system
+ * @brief GUIDs Provider for the system
  *
  * GUIDs should be unique and are used to
  * identify and locate objects (and their associated
@@ -117,28 +131,40 @@ typedef struct _ocrGuidProviderFcts_t {
  * support different address spaces (in the future)
  */
 typedef struct _ocrGuidProvider_t {
-    ocrMappable_t module;
-
-    ocrGuidProviderFcts_t *fctPtrs;
+    ocrMappable_t module; /**< Base "class" */
+    ocrGuidProviderFcts_t *fctPtrs; /**< Function pointers for this instance */
 } ocrGuidProvider_t;
+
 
 /****************************************************/
 /* OCR GUID PROVIDER FACTORY                        */
 /****************************************************/
 
+/**
+ * @brief GUID provider factory
+ */
 typedef struct _ocrGuidProviderFactory_t {
-    ocrMappable_t base;
+    /**
+     * @brief Instantiate a new GUID provider and returns a pointer to it.
+     *
+     * @param factory       Pointer to this factory
+     * @param instanceArg   Arguments specific for this instance
+     */
+    ocrGuidProvider_t* (*instantiate)(struct _ocrGuidProviderFactory_t *factory, ocrParamList_t* instanceArg);
 
-    ocrGuidProvider_t* (*instantiate)(struct _ocrGuidProviderFactory_t *factory, ocrParamList_t* perInstance);
-
+    /**
+     * @brief GUID provider factory destructor
+     * @param factory       Pointer to the factory to destroy.
+     */
     void (*destruct)(struct _ocrGuidProviderFactory_t *factory);
 
-    ocrGuidProviderFcts_t providerFcts;
+    ocrGuidProviderFcts_t providerFcts; /**< Function pointers created instances should use */
 } ocrGuidProviderFactory_t;
 
 #define UNINITIALIZED_GUID ((ocrGuid_t)-2)
 
 #define ERROR_GUID ((ocrGuid_t)-1)
+
 
 /****************************************************/
 /* OCR GUID CONVENIENCE FUNCTIONS                   */

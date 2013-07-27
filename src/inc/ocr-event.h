@@ -44,6 +44,9 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
 /* PARAMETER LISTS                                  */
 /****************************************************/
 
+/**
+ * @brief Parameter list to create an event factory
+ */
 typedef struct _paramListEventFact_t {
     ocrParamList_t base;
 } paramListEventFact_t;
@@ -100,11 +103,8 @@ typedef struct _ocrEvent_t {
 /* OCR EVENT FACTORY                                */
 /****************************************************/
 
-/*! \brief Abstract factory class to create OCR events.
- *
- *  This class provides an interface to create Event instances 
- *  with a non-static instantiate function to allow runtime implementers 
- *  to choose to have state in their derived ocrEventFactory_t classes.
+/**
+ * @brief events factory
  */
 typedef struct _ocrEventFactory_t {
     /*! \brief Instantiates an Event and returns its corresponding GUID
