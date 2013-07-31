@@ -20,6 +20,8 @@
 #include "ocr-statistics.h"
 #endif
 
+#include <string.h>
+
 #define SEALED_LIST ((void *) -1)
 #define END_OF_LIST NULL
 #define UNINITIALIZED_DATA ((ocrGuid_t) -2)
@@ -140,7 +142,12 @@ static void newTaskHcInternalCommon (ocrPolicyDomain_t * pd, ocrTaskHc_t* derive
     guidify(pd, (u64)base, &(base->guid), OCR_GUID_EDT);
     base->templateGuid = taskTemplate->guid;
     base->paramc = paramc;
-    base->paramv = paramv;
+    if(paramc) {
+        base->paramv = checkedMalloc(base->paramv, sizeof(u64)*base->paramc);
+        memcpy(base->paramv, paramv, sizeof(u64)*base->paramc);
+    } else {
+        base->paramv = NULL;
+    }
     base->outputEvent = outputEvent;
     base->depc = depc;
     base->addedDepCounter = pd->getAtomic64(pd, NULL /*Context*/);
@@ -381,6 +388,8 @@ static void taskExecute ( ocrTask_t* base ) {
         }
         free(depv);
     }
+    if(paramv)
+        free(paramv); // Free the parameter array (we copied them in)
     bool satisfyOutputEvent = (base->outputEvent != NULL_GUID);
     // check out from current finish scope
     ocrEvent_t * curLatch = getFinishLatch(base);
