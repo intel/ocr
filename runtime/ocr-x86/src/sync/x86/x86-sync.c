@@ -163,12 +163,9 @@ static u64 pushTailX86(ocrQueue_t *self, u64 val) {
 }
 
 /* x86 queue factory */
-static ocrQueue_t* newQueueX86(ocrQueueFactory_t *factory, ocrParamList_t *perInstance) {
+static ocrQueue_t* newQueueX86(ocrQueueFactory_t *factory, u64 maxQueueSize, ocrParamList_t *perInstance) {
     ocrQueueX86_t *result = (ocrQueueX86_t*)checkedMalloc(result, sizeof(ocrQueueX86_t));
-//    u64 reqSize = (u64)config;
-    u64 reqSize = 32; // TODO: Add config if needed and if we want to keep this!!
-//    if(!reqSize) reqSize = 32; // Hard coded for now, make a constant somewhere
-
+    u64 reqSize = maxQueueSize;
 
     result->base.fctPtrs = &(factory->queueFcts);
     result->head = result->tail = 0ULL;
@@ -183,7 +180,7 @@ static void destructQueueFactoryX86(ocrQueueFactory_t *self) {
     free(self);
 }
 
-ocrQueueFactory_t* newQueueFactoryX86(ocrParamList_t *perType) {
+ocrQueueFactory_t* newQueueFactoryX86(u64 maxQueueSize, ocrParamList_t *perType) {
     ocrQueueFactory_t *result = (ocrQueueFactory_t*)checkedMalloc(
         result, sizeof(ocrQueueFactoryX86_t));
     result->destruct = &destructQueueFactoryX86;

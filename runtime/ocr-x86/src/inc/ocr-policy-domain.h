@@ -16,6 +16,11 @@
 #include "ocr-mappable.h"
 #include "ocr-mem-target.h"
 #include "ocr-scheduler.h"
+
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#endif
+
 #include "ocr-sync.h"
 #include "ocr-task.h"
 #include "ocr-tuning.h"
@@ -163,6 +168,11 @@ typedef struct _ocrPolicyDomain_t {
 
     ocrLockFactory_t *lockFactory;              /**< Factory for locks */
     ocrAtomic64Factory_t *atomicFactory;        /**< Factory for atomics */
+    ocrQueueFactory_t *queueFactory;            /**< Factory for queues */
+
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStats_t *statsObject;                    /**< Statistics object */
+#endif
 
     ocrCost_t *costFunction;                    /**< Cost function used to determine
                                                  * what to schedule/steal/take/etc.
@@ -377,6 +387,17 @@ typedef struct _ocrPolicyDomain_t {
     ocrAtomic64_t* (*getAtomic64)(struct _ocrPolicyDomain_t *self, ocrPolicyCtx_t *context);
 
     /**
+     * @brief Gets a simple queue to use
+     *
+     * @param self          This policy domain
+     * @param maxQueueSize  Maximum size for the queue
+     * @param context       Context for this request
+     *
+     * @return A queue
+     */
+    ocrQueue_t* (*getQueue)(struct _ocrPolicyDomain_t *self, u64 maxQueueSize, ocrPolicyCtx_t *context);
+
+    /**
      * @brief Gets a context for this policy domain
      *
      * This returns a new instance of a context. Another method of getting a
@@ -389,6 +410,10 @@ typedef struct _ocrPolicyDomain_t {
      * @param self          This policy domain
      */
     ocrPolicyCtx_t* (*getContext)(struct _ocrPolicyDomain_t *self);
+
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStats_t* (*getStats)(struct _ocrPolicyDomain_t *self);
+#endif
 
     struct _ocrPolicyDomain_t** neighbors;
     u64 neighborCount;
@@ -423,6 +448,9 @@ typedef struct _ocrPolicyDomainFactory_t {
      * @param eventFactory        The factory to use to generate events
      * @param contextFactory      The factory to use to generate context
      * @param guidProvider        The provider of GUIDs for this policy domain
+     * @param lockFactory         The factory to use to generate locks
+     * @param atomicFactory       The factory to use to generate atomics
+     * @param queueFactory        The factory to use to generate queues
      * @param costFunction        The cost function used by this policy domain
      */
 
@@ -433,7 +461,10 @@ typedef struct _ocrPolicyDomainFactory_t {
                                         ocrTaskTemplateFactory_t *taskTemplateFactory, ocrDataBlockFactory_t *dbFactory,
                                         ocrEventFactory_t *eventFactory, ocrPolicyCtxFactory_t *contextFactory,
                                         ocrGuidProvider_t *guidProvider, ocrLockFactory_t *lockFactory,
-                                        ocrAtomic64Factory_t *atomicFactory,
+                                        ocrAtomic64Factory_t *atomicFactory, ocrQueueFactory_t *queueFactory,
+#ifdef OCR_ENABLE_STATISTICS
+                                        ocrStats_t *statsObject,
+#endif
                                         ocrCost_t *costFunction, ocrParamList_t *perInstance);
 
     void (*destruct)(struct _ocrPolicyDomainFactory_t * factory);

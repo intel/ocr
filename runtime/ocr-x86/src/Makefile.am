@@ -35,6 +35,9 @@ CFLAGS += -DOCR_DEBUG_TASK
 CFLAGS += -DOCR_DEBUG_WORKER
 CFLAGS += -DOCR_DEBUG_WORKPILE
 
+# Enable statistics with this
+CFLAGS += -DOCR_ENABLE_STATISTICS
+
 # additional cflags for ocr modules
 OCR_CFLAGS =
 
@@ -65,7 +68,7 @@ include mem-platform/Makefile.inc
 include mem-target/Makefile.inc
 include policy-domain/Makefile.inc
 include scheduler/Makefile.inc
-#include statistics/Makefile.inc
+include statistics/Makefile.inc
 include sync/Makefile.inc
 include task/Makefile.inc
 include utils/Makefile.inc

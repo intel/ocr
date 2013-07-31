@@ -46,10 +46,10 @@ inline ocrAtomic64Factory_t *newAtomic64Factory(syncType_t type, ocrParamList_t 
     }
 }
 
-inline ocrQueueFactory_t *newQueueFactory(syncType_t type, ocrParamList_t *typeArg) {
+inline ocrQueueFactory_t *newQueueFactory(syncType_t type, u64 maxQueueSize, ocrParamList_t *typeArg) {
     switch(type) {
     case syncX86_id:
-        return newQueueFactoryX86(typeArg);
+        return newQueueFactoryX86(maxQueueSize, typeArg);
     default:
         ASSERT(0);
         return NULL;

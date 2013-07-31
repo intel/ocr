@@ -137,7 +137,8 @@ void regularDestruct(ocrDataBlock_t *self) {
     // completed so I have to release the block when it is really being freed. This current
     // OCR version does not really implement delayed freeing but may in the future.
 #ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcessDestruct(&(rself->base.statProcess));
+    pd->getStats(pd)->fctPtrs->destructStatsProcess(pd->getStats(pd),
+                                           &(self->statProcess));
 #endif
 
     pd->inform(pd, self->guid, ctx);

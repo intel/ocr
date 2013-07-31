@@ -204,10 +204,12 @@ typedef struct _ocrAtomic64_t {
 /**
  * @brief Factory for atomics
  */
+// TODO: Integrate queueSize to perInstance (optionally)
 typedef struct _ocrAtomic64Factory_t {
     void (*destruct)(struct _ocrAtomic64Factory_t *self);
 
-    ocrAtomic64_t* (*instantiate)(struct _ocrAtomic64Factory_t* factory, ocrParamList_t *perInstance);
+    ocrAtomic64_t* (*instantiate)(struct _ocrAtomic64Factory_t* factory,
+                                  ocrParamList_t *perInstance);
 
     ocrAtomic64Fcts_t atomicFcts;
 } ocrAtomic64Factory_t;
@@ -241,7 +243,8 @@ typedef struct _ocrQueue_t {
 typedef struct _ocrQueueFactory_t {
     void (*destruct)(struct _ocrQueueFactory_t *self);
 
-    ocrQueue_t* (*instantiate)(struct _ocrQueueFactory_t *factory, ocrParamList_t* perType);
+    ocrQueue_t* (*instantiate)(struct _ocrQueueFactory_t *factory, u64 queueSize,
+                               ocrParamList_t* perType);
 
     ocrQueueFcts_t queueFcts;
 } ocrQueueFactory_t;

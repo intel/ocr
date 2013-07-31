@@ -1,5 +1,5 @@
-~/llvm/install/bin/clang callback.c -c
-~/llvm/install/bin/clang helloworld.c -emit-llvm -c -o hello.bc
-~/llvm/install/bin/opt -load ../llvm/Debug+Asserts/lib/LLVMMem.so -mem < hello.bc >hello_out.bc
-~/llvm/install/bin/llc hello_out.bc -o hello_out.s
-gcc hello_out.s callback.o -o hello_out
+clang -c callback.c
+clang -c ocr-stat-test.c -emit-llvm -o ocr-stat-test.bc
+~opt -load ../../scripts/StatsPass/LLVMMem.so -mem < ocr-stat-test.bc > ocr-stat-test_out.bc
+llc ocr-stat-test_out.bc -o ocr-stat-test_out.o
+clang ocr-stat-test_out.o callback.o -o ocr-stat-test

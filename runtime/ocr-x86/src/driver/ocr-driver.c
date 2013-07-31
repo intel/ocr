@@ -22,10 +22,6 @@
 
 u8 startMemStat = 0;
 
-#ifdef OCR_ENABLE_STATISTICS
-#include "ocr-stat-user.h"
-#endif
-
 #define DEBUG_TYPE INIPARSING
 
 const char *type_str[] = {

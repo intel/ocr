@@ -219,7 +219,7 @@ static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomai
 static void destructTaskHc ( ocrTask_t* base ) {
     DPRINTF(DEBUG_LVL_INFO, "Destroy 0x%lx\n", base->guid);
     ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
-#ifdef OCR_ENABLE_STATISTICS
+#ifdef FIXME_OCR_ENABLE_STATISTICS
     ocrStatsProcessDestruct(&(base->statProcess));
 #endif
     ocrPolicyDomain_t *pd = getCurrentPD();

@@ -47,6 +47,6 @@ typedef struct {
 
 ocrLockFactory_t *newLockFactoryX86(ocrParamList_t *typeArg);
 ocrAtomic64Factory_t *newAtomic64FactoryX86(ocrParamList_t *typeArg);
-ocrQueueFactory_t *newQueueFactoryX86(ocrParamList_t *typeArg);
+ocrQueueFactory_t *newQueueFactoryX86(u64 maxQueueSize, ocrParamList_t *typeArg);
 
 #endif /* __SYNC_X86_H__ */

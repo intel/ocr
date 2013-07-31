@@ -12,8 +12,10 @@
 #ifdef OCR_ENABLE_STATISTICS
 
 #include "debug.h"
-#include "ocr-config.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
 #include "ocr-statistics.h"
+#include "ocr-types.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -23,28 +25,17 @@
 
 #define DEBUG_TYPE STATS
 // Forward declaration
-static u8 intProcessMessage(ocrStatsProcess_t *dst);
+u8 intProcessMessage(ocrStatsProcess_t *dst);
 
-// Message related functions
-void ocrStatsMessageCreate(ocrStatsMessage_t *self, ocrStatsEvt_t type, u64 tick, ocrGuid_t src,
-                           ocrGuid_t dest, void* configuration) {
-    self->tick = tick;
-    self->src = src;
-    self->dest = dest;
-    self->type = type;
-    self->state = 0;
-}
-
-void ocrStatsMessageDestruct(ocrStatsMessage_t *self) {
-    free(self);
-}
 
 // Process related functions
 void ocrStatsProcessCreate(ocrStatsProcess_t *self, ocrGuid_t guid) {
     u64 i;
     self->me = guid;
-    self->processing = GocrLockFactory->instantiate(GocrLockFactory, NULL);
-    self->messages = GocrQueueFactory->instantiate(GocrQueueFactory, (void*)32); // TODO: Make size configurable
+    ocrPolicyDomain_t *policy = getCurrentPD();
+    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
+    self->processing = policy->getLock(policy, ctx);
+    self->messages = policy->getQueue(policy, 32, ctx);
     self->tick = 0;
     self->filters = (ocrStatsFilter_t***)malloc(sizeof(ocrStatsFilter_t**)*(STATS_EVT_MAX+1)); // +1 because the first bucket keeps track of all filters uniquely
     self->filterCounts = (u64*)malloc(sizeof(u64)*(STATS_EVT_MAX+1));
@@ -60,7 +51,7 @@ void ocrStatsProcessDestruct(ocrStatsProcess_t *self) {
     DPRINTF(DEBUG_LVL_INFO, "Destroying StatsProcess 0x%lx (GUID: 0x%lx)\n", (u64)self, self->me);
 
     // Make sure we process all remaining messages
-    while(!self->processing->trylock(self->processing)) ;
+    while(!self->processing->fctPtrs->trylock(self->processing)) ;
 
     while(intProcessMessage(self)) ;
 
@@ -69,7 +60,7 @@ void ocrStatsProcessDestruct(ocrStatsProcess_t *self) {
     // process
     u32 maxJ = (u32)(self->filterCounts[0] & 0xFFFFFFFF);
     for(j = 0; j < maxJ; ++j) {
-        self->filters[0][j]->destruct(self->filters[0][j]);
+        self->filters[0][j]->fctPtrs->destruct(self->filters[0][j]);
     }
     if(maxJ)
         free(self->filters[0]);
@@ -81,10 +72,10 @@ void ocrStatsProcessDestruct(ocrStatsProcess_t *self) {
     free(self->filters);
     free(self->filterCounts);
 
-    self->processing->unlock(self->processing);
-    self->processing->destruct(self->processing);
+    self->processing->fctPtrs->unlock(self->processing);
+    self->processing->fctPtrs->destruct(self->processing);
 
-    self->messages->destruct(self->messages);
+    self->messages->fctPtrs->destruct(self->messages);
 }
 
 void ocrStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
@@ -164,10 +155,10 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     DPRINTF(DEBUG_LVL_VERB, "Message 0x%lx -> 0x%lx of type %d (0x%lx)\n",
             src->me, dst->me, (int)msg->type, (u64)msg);
     // Push the message into the messages queue
-    dst->messages->pushTail(dst->messages, (u64)msg);
+    dst->messages->fctPtrs->pushTail(dst->messages, (u64)msg);
 
     // Now try to get the lock on processing
-    if(dst->processing->trylock(dst->processing)) {
+    if(dst->processing->fctPtrs->trylock(dst->processing)) {
         // We grabbed the lock
         DPRINTF(DEBUG_LVL_VERB, "Message 0x%lx -> 0x%lx: grabbing processing lock\n", src->me, dst->me);
         u32 count = 5; // TODO: Make configurable
@@ -177,7 +168,7 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
         }
         DPRINTF(DEBUG_LVL_VERB, "Finished processing messages for 0x%lx\n", dst->me);
         // Unlock
-        dst->processing->unlock(dst->processing);
+        dst->processing->fctPtrs->unlock(dst->processing);
     }
 }
 
@@ -194,7 +185,7 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     DPRINTF(DEBUG_LVL_VERB, "SYNC Message 0x%lx -> 0x%lx of type %d (0x%lx)\n",
             src->me, dst->me, (int)msg->type, (u64)msg);
     // Push the message into the messages queue
-    dst->messages->pushTail(dst->messages, (u64)msg);
+    dst->messages->fctPtrs->pushTail(dst->messages, (u64)msg);
 
     // Now try to get the lock on processing
     // Since this is a sync message, we need to make sure
@@ -203,7 +194,7 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     // with a backoff and sit around until we either process our
     // message or someone else does it
     while(1) {
-        if(dst->processing->trylock(dst->processing)) {
+        if(dst->processing->fctPtrs->trylock(dst->processing)) {
             // We grabbed the lock
             DPRINTF(DEBUG_LVL_VERB, "Message 0x%lx -> 0x%lx: grabbing processing lock\n", src->me, dst->me);
             s32 count = 5; // TODO: Make configurable
@@ -215,7 +206,7 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
             }
             DPRINTF(DEBUG_LVL_VERB, "Finished processing messages for 0x%lx\n", dst->me);
             // Unlock
-            dst->processing->unlock(dst->processing);
+            dst->processing->fctPtrs->unlock(dst->processing);
 
             break; // Break out of while(1)
         } else {
@@ -228,7 +219,7 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     ASSERT(msg->tick >= src->tick);
     src->tick = msg->tick;
     DPRINTF(DEBUG_LVL_VVERB, "Sync tick out: %ld\n", src->tick);
-    msg->destruct(msg);
+    msg->fctPtrs->destruct(msg);
 }
 
 /* Internal methods */
@@ -245,8 +236,9 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
  * must ensure that only one worker calls this at any given point (although
  * multiple workers can call it over time)
  */
-static u8 intProcessMessage(ocrStatsProcess_t *dst) {
-    ocrStatsMessage_t* msg = (ocrStatsMessage_t*)dst->messages->popHead(dst->messages);
+u8 intProcessMessage(ocrStatsProcess_t *dst) {
+    ocrStatsMessage_t* msg = (ocrStatsMessage_t*)
+        dst->messages->fctPtrs->popHead(dst->messages);
 
     if(msg) {
         DPRINTF(DEBUG_LVL_VERB, "Processing message 0x%lx for 0x%lx\n",
@@ -264,14 +256,14 @@ static u8 intProcessMessage(ocrStatsProcess_t *dst) {
             while(countFilter-- > 0) {
                 DPRINTF(DEBUG_LVL_VVERB, "Sending message 0x%lx to filter 0x%lx\n",
                         (u64)msg, (u64)myFilters[countFilter]);
-                myFilters[countFilter]->notify(myFilters[countFilter], msg);
+                myFilters[countFilter]->fctPtrs->notify(myFilters[countFilter], msg);
             }
         }
         if(msg->state == 1) {
             msg->state = 2;
         } else {
             ASSERT(msg->state == 0);
-            msg->destruct(msg);
+            msg->fctPtrs->destruct(msg);
         }
         return 1;
     } else {

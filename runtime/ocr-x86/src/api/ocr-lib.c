@@ -157,7 +157,7 @@ void ocrInit(ocrConfig_t * ocrConfig) {
     bringUpRuntime(iniFile);
 
     // At this point the runtime is up
-#ifdef OCR_ENABLE_STATISTICS
+#ifdef FIXME_OCR_ENABLE_STATISTICS
     GocrFilterAggregator = NEW_FILTER(filedump);
     GocrFilterAggregator->create(GocrFilterAggregator, NULL, NULL);
 

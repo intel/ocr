@@ -13,7 +13,6 @@
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
-#include "ocr-stat-user.h"
 #endif
 
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
@@ -85,7 +84,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     pd->createEdt(pd, edtGuid, taskTemplate, paramc, paramv, depc,
                   properties, affinity, outputEvent, context);
 
-#ifdef OCR_ENABLE_STATISTICS
+#ifdef FIXME_OCR_ENABLE_STATISTICS
     ocrTask_t * task = NULL;
     deguidify(pd, *edtGuid, (u64*)&task, NULL);
     // Create the statistics process for this EDT and also update clocks properly
