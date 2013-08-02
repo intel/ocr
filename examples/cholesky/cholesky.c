@@ -11,8 +11,8 @@
 struct timeval a,b;
 static double** readMatrix( int matrixSize, FILE* in );
 
-#define FLAGS 0xdead
-#define PROPERTIES 0xdead
+#define FLAGS DB_PROP_NONE
+#define PROPERTIES EDT_PROP_NONE
 
 
 
@@ -200,7 +200,8 @@ ocrGuid_t wrap_up_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) 
     return NULL_GUID;
 }
 
-inline static void sequential_cholesky_task_prescriber ( int k, int tileSize, ocrGuid_t*** lkji_event_guids) {
+inline static void sequential_cholesky_task_prescriber (ocrGuid_t edtTemp, int k,
+                                                        int tileSize, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t seq_cholesky_task_guid;
 
     u64 func_args[3];
@@ -208,14 +209,14 @@ inline static void sequential_cholesky_task_prescriber ( int k, int tileSize, oc
     func_args[1] = tileSize;
     func_args[2] = GUIDTOU64(lkji_event_guids[k][k][k+1]);
 
-    ocrGuid_t templateGuid, affinity;
-    ocrEdtTemplateCreate(&templateGuid, sequential_cholesky_task, 3, 1);
-    ocrEdtCreate(&seq_cholesky_task_guid, templateGuid, 3, func_args, 1, NULL, PROPERTIES, affinity, NULL);
+    ocrGuid_t affinity;
+    ocrEdtCreate(&seq_cholesky_task_guid, edtTemp, 3, func_args, 1, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[k][k][k], seq_cholesky_task_guid, 0, DB_MODE_ITW);
 }
 
-inline static void trisolve_task_prescriber ( int k, int j, int tileSize, ocrGuid_t*** lkji_event_guids) {
+inline static void trisolve_task_prescriber ( ocrGuid_t edtTemp, int k, int j, int tileSize,
+                                              ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t trisolve_task_guid;
 
     u64 func_args[4];
@@ -225,15 +226,15 @@ inline static void trisolve_task_prescriber ( int k, int j, int tileSize, ocrGui
     func_args[3] = GUIDTOU64(lkji_event_guids[j][k][k+1]);
 
 
-    ocrGuid_t templateGuid, affinity;
-    ocrEdtTemplateCreate(&templateGuid, trisolve_task, 4, 2);
-    ocrEdtCreate(&trisolve_task_guid, templateGuid, 4, func_args, 2, NULL, PROPERTIES, affinity, NULL);
+    ocrGuid_t affinity;
+    ocrEdtCreate(&trisolve_task_guid, edtTemp, 4, func_args, 2, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[j][k][k], trisolve_task_guid, 0, DB_MODE_ITW);
     ocrAddDependence(lkji_event_guids[k][k][k+1], trisolve_task_guid, 1, DB_MODE_ITW);
 }
 
-inline static void update_nondiagonal_task_prescriber ( int k, int j, int i, int tileSize, ocrGuid_t*** lkji_event_guids) {
+inline static void update_nondiagonal_task_prescriber ( ocrGuid_t edtTemp, int k, int j, int i,
+                                                        int tileSize, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t update_nondiagonal_task_guid;
 
     u64 func_args[5];
@@ -243,9 +244,8 @@ inline static void update_nondiagonal_task_prescriber ( int k, int j, int i, int
     func_args[3] = tileSize;
     func_args[4] = GUIDTOU64(lkji_event_guids[j][i][k+1]);
 
-    ocrGuid_t templateGuid, affinity;
-    ocrEdtTemplateCreate(&templateGuid, update_nondiagonal_task, 5, 3);
-    ocrEdtCreate(&update_nondiagonal_task_guid, templateGuid, 5, func_args, 3, NULL, PROPERTIES, affinity, NULL);
+    ocrGuid_t affinity;
+    ocrEdtCreate(&update_nondiagonal_task_guid, edtTemp, 5, func_args, 3, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[j][i][k], update_nondiagonal_task_guid, 0, DB_MODE_ITW);
     ocrAddDependence(lkji_event_guids[j][k][k+1], update_nondiagonal_task_guid, 1, DB_MODE_ITW);
@@ -253,7 +253,8 @@ inline static void update_nondiagonal_task_prescriber ( int k, int j, int i, int
 }
 
 
-inline static void update_diagonal_task_prescriber ( int k, int j, int i, int tileSize, ocrGuid_t*** lkji_event_guids) {
+inline static void update_diagonal_task_prescriber ( ocrGuid_t edtTemp, int k, int j, int i,
+                                                     int tileSize, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t update_diagonal_task_guid;
 
     u64 func_args[5];
@@ -263,15 +264,15 @@ inline static void update_diagonal_task_prescriber ( int k, int j, int i, int ti
     func_args[3] = tileSize;
     func_args[4] = GUIDTOU64(lkji_event_guids[j][j][k+1]);
 
-    ocrGuid_t templateGuid, affinity;
-    ocrEdtTemplateCreate(&templateGuid, update_diagonal_task, 5, 2);
-    ocrEdtCreate(&update_diagonal_task_guid, templateGuid, 5, func_args, 2, NULL, PROPERTIES, affinity, NULL);
+    ocrGuid_t affinity;
+    ocrEdtCreate(&update_diagonal_task_guid, edtTemp, 5, func_args, 2, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[j][j][k], update_diagonal_task_guid, 0, DB_MODE_ITW);
     ocrAddDependence(lkji_event_guids[j][k][k+1], update_diagonal_task_guid, 1, DB_MODE_ITW);
 }
 
-inline static void wrap_up_task_prescriber ( int numTiles, int tileSize, ocrGuid_t*** lkji_event_guids ) {
+inline static void wrap_up_task_prescriber ( ocrGuid_t edtTemp, int numTiles, int tileSize,
+                                             ocrGuid_t*** lkji_event_guids ) {
     int i,j,k;
     ocrGuid_t wrap_up_task_guid;
 
@@ -279,9 +280,8 @@ inline static void wrap_up_task_prescriber ( int numTiles, int tileSize, ocrGuid
     func_args[0]=(int)numTiles;
     func_args[1]=(int)tileSize;
 
-    ocrGuid_t templateGuid, affinity;
-    ocrEdtTemplateCreate(&templateGuid, wrap_up_task, 2, (numTiles+1)*numTiles/2);
-    ocrEdtCreate(&wrap_up_task_guid, templateGuid, 2, func_args, (numTiles+1)*numTiles/2, NULL, PROPERTIES, affinity, NULL);
+    ocrGuid_t affinity;
+    ocrEdtCreate(&wrap_up_task_guid, edtTemp, 2, func_args, (numTiles+1)*numTiles/2, NULL, PROPERTIES, affinity, NULL);
 
     int index = 0;
     for ( i = 0; i < numTiles; ++i ) {
@@ -389,26 +389,37 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 
     ocrGuid_t*** lkji_event_guids = allocateCreateEvents(numTiles);
 
+    ocrGuid_t templateSeq, templateTrisolve,
+        templateUpdateNonDiag, templateUpdate, templateWrap;
+
+    ocrEdtTemplateCreate(&templateSeq, sequential_cholesky_task, 3, 1);
+    ocrEdtTemplateCreate(&templateTrisolve, trisolve_task, 4, 2);
+    ocrEdtTemplateCreate(&templateUpdateNonDiag, update_nondiagonal_task, 5, 3);
+    ocrEdtTemplateCreate(&templateUpdate, update_diagonal_task, 5, 2);
+    ocrEdtTemplateCreate(&templateWrap, wrap_up_task, 2, (numTiles+1)*numTiles/2);
+
     matrix = readMatrix( matrixSize, in );
-
     satisfyInitialTiles( numTiles, tileSize, matrix, lkji_event_guids);
-
     gettimeofday(&a,0);
 
     for ( k = 0; k < numTiles; ++k ) {
-        sequential_cholesky_task_prescriber ( k, tileSize, lkji_event_guids);
+        sequential_cholesky_task_prescriber ( templateSeq, k, tileSize,
+                                              lkji_event_guids);
 
         for( j = k + 1 ; j < numTiles ; ++j ) {
-            trisolve_task_prescriber ( k, j, tileSize, lkji_event_guids);
+            trisolve_task_prescriber ( templateTrisolve,
+                                       k, j, tileSize, lkji_event_guids);
 
             for( i = k + 1 ; i < j ; ++i ) {
-                update_nondiagonal_task_prescriber ( k, j, i, tileSize, lkji_event_guids);
+                update_nondiagonal_task_prescriber ( templateUpdateNonDiag,
+                                                     k, j, i, tileSize, lkji_event_guids);
             }
-            update_diagonal_task_prescriber ( k, j, i, tileSize, lkji_event_guids);
+            update_diagonal_task_prescriber ( templateUpdate,
+                                              k, j, i, tileSize, lkji_event_guids);
         }
     }
 
-    wrap_up_task_prescriber ( numTiles, tileSize, lkji_event_guids );
+    wrap_up_task_prescriber ( templateWrap, numTiles, tileSize, lkji_event_guids );
 
     return NULL_GUID;
 }
