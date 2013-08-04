@@ -34,8 +34,6 @@ ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType);
 
 typedef struct {
     ocrTaskFactory_t baseFactory;
-    // singleton the factory passes on to each task instance
-    ocrTaskFcts_t taskFctPtrs;
 } ocrTaskFactoryHc_t;
 
 ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perType);

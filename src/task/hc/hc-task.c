@@ -422,7 +422,11 @@ static void taskExecute ( ocrTask_t* base ) {
 /* OCR-HC Task Template Factory                       */
 /******************************************************/
 
-ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory,
+static void destructTaskTemplateHc(ocrTaskTemplate_t *self) {
+    free(self);
+}
+
+static ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory,
                                       ocrEdt_t executePtr, u32 paramc, u32 depc, ocrParamList_t *perInstance) {
     ocrTaskTemplateHc_t* template = (ocrTaskTemplateHc_t*) checkedMalloc(template, sizeof(ocrTaskTemplateHc_t));
     ocrTaskTemplate_t * base = (ocrTaskTemplate_t *) template;
@@ -430,11 +434,12 @@ ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory,
     base->depc = depc;
     base->executePtr = executePtr;
     base->guid = UNINITIALIZED_GUID;
+    base->fctPtrs = &(factory->taskTemplateFcts);
     guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_EDT_TEMPLATE);
     return base;
 }
 
-void destructTaskTemplateFactoryHc(ocrTaskTemplateFactory_t* base) {
+static void destructTaskTemplateFactoryHc(ocrTaskTemplateFactory_t* base) {
     ocrTaskTemplateFactoryHc_t* derived = (ocrTaskTemplateFactoryHc_t*) base;
     free(derived);
 }
@@ -444,6 +449,7 @@ ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType) {
     ocrTaskTemplateFactory_t* base = (ocrTaskTemplateFactory_t*) derived;
     base->instantiate = newTaskTemplateHc;
     base->destruct =  destructTaskTemplateFactoryHc;
+    base->taskTemplateFcts.destruct = &destructTaskTemplateHc;
     //TODO What taskTemplateFcts is supposed to do ?
     return base;
 }
@@ -470,7 +476,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplat
     ocrTaskHc_t* edt = newTaskHcInternal(factory, pd, taskTemplate, paramc, paramv,
                                          depc, properties, affinity, outputEvent);
     ocrTask_t* base = (ocrTask_t*) edt;
-    base->fctPtrs = &(((ocrTaskFactoryHc_t *) factory)->taskFctPtrs);
+    base->fctPtrs = &(factory->taskFcts);
     DPRINTF(DEBUG_LVL_INFO, "Create 0x%lx depc %d outputEvent 0x%lx\n", base->guid, depc, outputEvent);
     return base;
 }
@@ -488,9 +494,9 @@ ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance) {
     // initialize singleton instance that carries hc implementation
     // function pointers. Every instantiated task template will use
     // this pointer to resolve functions implementations.
-    derived->taskFctPtrs.destruct = destructTaskHc;
-    derived->taskFctPtrs.execute = taskExecute;
-    derived->taskFctPtrs.schedule = tryScheduleTask;
+    base->taskFcts.destruct = destructTaskHc;
+    base->taskFcts.execute = taskExecute;
+    base->taskFcts.schedule = tryScheduleTask;
     return base;
 }
 

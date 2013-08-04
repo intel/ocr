@@ -158,3 +158,4 @@ typedef struct _ocrTaskFactory_t {
     ocrTaskFcts_t taskFcts;
 } ocrTaskFactory_t;
 #endif /* __OCR_TASK_H__ */
+
