@@ -69,7 +69,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && paramc != EDT_PARAM_DEF) ||
            (taskTemplate->paramc != EDT_PARAM_UNK && (paramc == EDT_PARAM_DEF || taskTemplate->paramc == paramc)));
     ASSERT(((taskTemplate->depc == EDT_PARAM_UNK) && depc != EDT_PARAM_DEF) ||
-           (taskTemplate->depc != EDT_PARAM_UNK && (paramc == EDT_PARAM_DEF || taskTemplate->depc == depc)));
+           (taskTemplate->depc != EDT_PARAM_UNK && (depc == EDT_PARAM_DEF || taskTemplate->depc == depc)));
 
     if(paramc == EDT_PARAM_DEF) {
         paramc = taskTemplate->paramc;

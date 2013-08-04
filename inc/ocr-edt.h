@@ -161,7 +161,7 @@ typedef struct {
  * @brief Constant indicating that the number of parameters to an EDT
  * is the same as the one specified in its template
  */
-#define EDT_PARAM_DEF   ((u32)-1)
+#define EDT_PARAM_DEF   ((u32)-2)
 
 /**
  * @brief Type for an EDT
