@@ -170,12 +170,15 @@ static u8 hcAllocateDb(ocrPolicyDomain_t *self, ocrGuid_t *guid, void** ptr, u64
         if(result) break;
     }
     // TODO: return error code. Requires our own errno to be clean
-    ocrDataBlock_t *block = self->dbFactory->instantiate(self->dbFactory,
-                                                         self->allocators[i]->guid, self->guid,
-                                                         size, result, properties, NULL);
-    *ptr = result;
-    *guid = block->guid;
-    return 0;
+    if(i < self->allocatorCount) {
+        ocrDataBlock_t *block = self->dbFactory->instantiate(self->dbFactory,
+                                                             self->allocators[i]->guid, self->guid,
+                                                             size, result, properties, NULL);
+        *ptr = result;
+        *guid = block->guid;
+        return 0;
+    } 
+    return 1; // TODO: Return ENOMEM
 }
 
 static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
