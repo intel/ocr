@@ -601,9 +601,7 @@ void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
         ocrTask_t * target = NULL;
         deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
         edtRegisterSignaler(target, signalerGuid, slot);
-        ocrTaskTemplate_t * template = NULL;
-        deguidify(getCurrentPD(), target->templateGuid, (u64*)&template, NULL);
-        if ( template->depc == target->addedDepCounter->fctPtrs->xadd(target->addedDepCounter,1) ) {
+        if ( target->depc == target->addedDepCounter->fctPtrs->xadd(target->addedDepCounter,1) ) {
             // This function pointer is called once, when all the dependence have been added
             target->fctPtrs->schedule(target);
         }
