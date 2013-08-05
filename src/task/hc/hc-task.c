@@ -599,6 +599,7 @@ void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
         // edt waiting for a signal from an event or a datablock
         ASSERT((signalerGuid == NULL_GUID) || isEventGuid(signalerGuid) || isDatablockGuid(signalerGuid));
         ocrTask_t * target = NULL;
+
         deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
         edtRegisterSignaler(target, signalerGuid, slot);
         if ( target->depc == target->addedDepCounter->fctPtrs->xadd(target->addedDepCounter,1) ) {
