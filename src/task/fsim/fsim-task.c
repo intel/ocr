@@ -9,55 +9,6 @@
 #include "debug.h"
 #include "ocr-macros.h"
 
-#if 0
-// TODO sagnak, copy paste of HC tasks, so need the same stuff here too :(
-typedef ocrTaskHc_t ocrTaskFSIM_t;
-
-typedef struct _ocrMessageTaskFSIM_t {
-    ocrTaskHc_t base;
-    ocrPolicyCtx_t message;
-} ocrMessageTaskFSIM_t;
-
-
-
-typedef ocrMessageTaskFactoryHc_t ocrMessageTaskFactoryFSIM_t;
-
-typedef struct {
-    ocrTaskFactory_t baseFactory;
-    // singleton the factory passes on to each task instance
-    ocrTaskFcts_t taskFctPtrs;
-} ocrMessageTaskFactoryFSIM_t;
-
-
-
-ocrTaskFactory_t * newTaskFactoryFSIM (ocrParamList_t* perType);
-ocrTaskFactory_t * newMessageTaskFactoryFSIM (ocrParamList_t* perType);
-
-
-
-typedef ocrTaskTemplateHc_t ocrTaskTemplateFSIM_t;
-
-typedef struct {
-    ocrTaskTemplate_t base;
-} ocrMessageTaskTemplateFSIM_t;
-
-
-
-typedef ocrTaskTemplateFactoryHc_t ocrTaskTemplateFactoryFSIM_t;
-
-typedef struct {
-    ocrTaskTemplateFactory_t baseFactory;
-} ocrMessageTaskTemplateFactoryFSIM_t;
-
-
-
-ocrTaskTemplateFactory_t * newTaskTemplateFactoryFSIM(ocrParamList_t* perType);
-
-ocrTaskTemplateFactory_t * newMessageTaskTemplateFactoryFSIM(ocrParamList_t* perType);
-#endif
-
-/*************************************************************************************/
-
 void destructTaskTemplateFactoryFSIM(ocrTaskTemplateFactory_t* base) {
     ocrTaskTemplateFactoryFSIM_t* derived = (ocrTaskTemplateFactoryFSIM_t*) base;
     free(derived);
