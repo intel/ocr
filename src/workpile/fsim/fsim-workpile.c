@@ -4,7 +4,12 @@
  * removed or modified.
  */
 
-#include "fsim.h"
+#include "ocr-macros.h"
+#include "ocr-policy-domain-getter.h"
+#include "ocr-policy-domain.h"
+#include "ocr-workpile.h"
+
+#include "workpile/fsim/fsim-workpile.h"
 
 /******************************************************/
 /* OCR-FSIM-CE Message Workpile                       */
