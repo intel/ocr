@@ -8,106 +8,78 @@
 
 #include "ocr-macros.h"
 #include "ocr-runtime.h"
-#include "fsim.h"
+#include "fsim-scheduler.h"
+#include "worker/fsim/fsim-worker.h"
 
-/******************************************************/
-/* OCR-FSIM XE SCHEDULER                              */
-/******************************************************/
-
-// Fwd declaration
-ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance);
-
-void destructSchedulerFactoryFsimXE(ocrSchedulerFactory_t * factory) {
-    free(factory);
+static inline ocrWorkpile_t* xeSchedulerPopMappingToAssignedWork (ocrScheduler_t* self, u64 workerId ) {
+    ocrSchedulerXE_t* xeDerived = (ocrSchedulerXE_t*)self;
+    assert( workerId >= xeDerived->workerIdFirst && workerId <= xeDerived->workerIdLast && "worker does not seem of this domain");
+    return self->workpiles[ 2 * (workerId % xeDerived->nWorkers) ];
 }
 
-ocrSchedulerFactory_t * newOcrSchedulerFactoryFsimXE(ocrParamList_t *perType) {
-    ocrSchedulerFactoryFsimXE_t* derived = (ocrSchedulerFactoryFsimXE_t*) checkedMalloc(derived, sizeof(ocrSchedulerFactoryFsimXE_t));
-    ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
-    base->instantiate = newSchedulerFsimXE;
-    base->destruct = destructSchedulerFactoryFsimXE;
-    return base;
+static inline ocrWorkpile_t* xeSchedulerPopMappingToWorkShipping (ocrScheduler_t* self, u64 workerId ) {
+    ocrSchedulerXE_t* xeDerived = (ocrSchedulerXE_t*)self;
+    // TODO sagnak xeDerived->workerIdFirst hardcoding is nasty, the work shipped always goes to the first workers queue
+    return self->workpiles[ 1 + 2 * (xeDerived->workerIdFirst % xeDerived->nWorkers) ];
 }
 
-void destructSchedulerFsimXE(ocrScheduler_t * scheduler) {
-    // just free self, workpiles are not allocated by the scheduler
-    free(scheduler);
-}
+static u8 xeSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *count,
+                           ocrGuid_t *edts, ocrPolicyCtx_t *context) {
 
-ocrWorkpile_t * xe_scheduler_pop_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
-    assert( 0 && "Multiple XE pop mappings, do not use the class pop_mapping indirection");
-    return NULL;
-}
-
-ocrWorkpile_t * xe_scheduler_pop_mapping_to_assigned_work (ocrScheduler_t* base, ocrWorker_t* w ) {
-    ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    u64 id = get_worker_id(w);
-    assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
-    return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
-}
-
-ocrWorkpile_t * xe_scheduler_pop_mapping_to_work_shipping (ocrScheduler_t* base, ocrWorker_t* w ) {
-    ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    // TODO sagnak; god awful hardcoding, BAD
-    u64 id = hcDerived->worker_id_begin;
-    return hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
-}
-
-ocrWorkpile_t * xe_scheduler_push_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
-    assert( 0 && "Multiple XE push mappings, do not use the class push_mapping indirection");
-    return NULL;
-}
-
-ocrWorkpile_t * xe_scheduler_push_mapping_to_assigned_work (ocrScheduler_t* base, ocrWorker_t* w ) {
-    ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    // TODO sagnak; god awful hardcoding, BAD
-    u64 id = hcDerived->worker_id_begin;
-    return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
-}
-
-ocrWorkpile_t * xe_scheduler_push_mapping_to_work_shipping (ocrScheduler_t* base, ocrWorker_t* w ) {
-    ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    u64 id = get_worker_id(w);
-    assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
-    return hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
-}
-
-ocrWorkpileIterator_t* xe_scheduler_steal_mapping_fsim_faithful(ocrScheduler_t* base, ocrWorker_t* w ) {
-    assert( 0 && "XEs do not steal");
-    return NULL;
-}
-
-// XE scheduler take can be called from two sites
-// first by XE worker to execute work
-u8 xe_scheduler_take_most_fsim_faithful (ocrScheduler_t *base, struct _ocrCost_t *cost, u32 *count,
-                  ocrGuid_t *edts, struct _ocrPolicyCtx_t *context) {
-    ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    ocrWorker_t* w = NULL;
-    ocrGuid_t wid = context->sourceObj;
-    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
-
+    ocrWorkpile_t * workpileToPop = NULL;
     ocrGuid_t popped = NULL_GUID;
-    ocrWorkpile_t * wp_to_pop = NULL;
+    u64 workerId = context->sourceId;
 
-    u64 id = get_worker_id(w);
-    if (id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end) {
+    // sagnak XE extracting working from its assigned queue for execution
+    if ( PD_MSG_EDT_TAKE == context->type ) {
+        ocrSchedulerXE_t* xeDerived = (ocrSchedulerXE_t*)self;
+        assert ( workerId >= xeDerived->workerIdFirst && workerId <= xeDerived->workerIdLast && "workerId range discrepancy in xeSchedulerTake");
+
+        ocrWorker_t* worker = NULL;
+        deguidify(getCurrentPD(), context->sourceObj, (u64*)&(worker), NULL);
+        assert ( ((ocrWorkerXE_t*)worker)->id == workerId && "worker id from object and context does not match");
+
+        assert ( context->PD->guid == getCurrentPD()->guid && "source for this xeSchedulerTake part should originate within");
+
         // XE worker trying to extract 'executable work' from CE assigned workpile
-        wp_to_pop = xe_scheduler_pop_mapping_to_assigned_work(base, w);
+        workpileToPop = xeSchedulerPopMappingToAssignedWork (self, workerId);
         // TODO sagnak this is true because XE and CE does not touch the workpile simultaneously
         // XE is woken up after the CE is done pushing the work here
         // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
-        popped = wp_to_pop->fctPtrs->pop(wp_to_pop, cost);
+        popped = workpileToPop->fctPtrs->pop(workpileToPop,cost);
     } else {
-        // CE worker trying to extract buffered 'executable work' that XE encountered
+        // sagnak CE asking the XE policy domain to extract work to be shipped on its behalf
+
+        assert(PD_MSG_PICKUP_EDT == context->type && "The else condition should be for CE to pickup work");
+        assert(context->PD->guid != getCurrentPD()->guid && "source for this xeSchedulerTake part should originate from CE");
         // TODO sagnak NOT IDEAL, and the XE may be simultaneously pushing, therefore we 'steal' for synchronization
-        wp_to_pop = xe_scheduler_pop_mapping_to_work_shipping(base, w);
+        workpileToPop = xeSchedulerPopMappingToWorkShipping (self, workerId);
         // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
-        popped = wp_to_pop->fctPtrs->steal(wp_to_pop, cost);
+        popped = workpileToPop->fctPtrs->steal(workpileToPop,cost);
     }
 
-    *count = 1;
-    edts[0] = popped;
+    // In this implementation we expect the caller to have
+    // allocated memory for us since we can return at most one
+    // guid (most likely store using the address of a local)
+    if ( NULL_GUID != popped ) {
+      *count = 1;
+      *edts = popped;
+    } else {
+      *count = 0;
+    }
     return 0;
+}
+
+static inline ocrWorkpile_t* xeSchedulerPushMappingToWorkShipping (ocrScheduler_t* self, u64 workerId ) {
+    ocrSchedulerXE_t* xeDerived = (ocrSchedulerXE_t*)self;
+    assert(workerId >= xeDerived->workerIdFirst && workerId <= xeDerived->workerIdLast && "worker does not seem of this domain");
+    return self->workpiles[ 1 + 2 * (workerId % xeDerived->nWorkers) ];
+}
+
+static inline ocrWorkpile_t* xeSchedulerPushMappingToAssignedWork ( ocrScheduler_t* self ) {
+    ocrSchedulerXE_t* xeDerived = (ocrSchedulerXE_t*)self;
+    // TODO sagnak xeDerived->workerIdFirst hardcoding is nasty, the assigned work always goes to the first workers queue
+    return self->workpiles[ 2 * (xeDerived->workerIdFirst % xeDerived->nWorkers) ];
 }
 
 // XE scheduler give can be called from three sites:
@@ -117,186 +89,184 @@ u8 xe_scheduler_take_most_fsim_faithful (ocrScheduler_t *base, struct _ocrCost_t
 // third being the CE worker pushing work onto 'executable task' workpile
 // the differentiation between {1,2} and {3} is through the worker id
 // the differentiation between {1} and {2} is through a runtime check of the underlying task type
-u8 xe_scheduler_give_fsim_faithful (ocrScheduler_t* base, u32 count, ocrGuid_t* edts, struct _ocrPolicyCtx_t *context ) {
-    ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    ocrWorker_t* w = NULL;
-    ocrGuid_t wid = context->sourceObj;
-    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
-
-    ocrTaskFsimBase_t* task = NULL;
-    u8 i = 0;
+static u8 xeSchedulerGive (ocrScheduler_t* self, u32 count, ocrGuid_t* edts, struct _ocrPolicyCtx_t *context ) {
+    u32 i = 0;
     for ( ; i < count; ++i ) {
-        ocrGuid_t tid = edts[i];
-        deguidify(getCurrentPD(), tid, (u64*)&task, NULL);
 
-        fsim_message_interface_t* taskAsMessage = &(task->message_interface);
+        if ( PD_MSG_EDT_GIVE == context->type ) {
+            ocrPolicyDomain_t * pd = context->PD;
+            assert( pd->guid == context->PD->guid && pd->guid == getCurrentPD()->guid && "source for this xeSchedulerGive part should originate within");
 
-        u64 id = get_worker_id(w);
-        if (id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end) {
-            // if the pusher is an XE worker
-            if ( !taskAsMessage->is_message(taskAsMessage) ) {
-                // TODO sagnak Multiple XE push mappings, do not use the class push_mapping indirection
-                ocrWorkpile_t * wp_to_push = xe_scheduler_push_mapping_to_work_shipping(base, w);
-                wp_to_push->fctPtrs->push(wp_to_push,tid);
+            u64 workerId = context->sourceId;
+            ocrSchedulerXE_t* xeDerived = (ocrSchedulerXE_t*)self;
+            assert ( workerId >= xeDerived->workerIdFirst && workerId <= xeDerived->workerIdLast && "workerID discrepancy in xeSchedulerGive");
 
-                // TODO sagnak, this assumes (*A LOT*) the structure below, is this fair?
-                // no assigned work found, now we have to create a 'message task'
-                // by using our policy domain's message task factory
-                ocrPolicyDomain_t* policy_domain = base->domain;
-                ocrTaskFactory_t* message_task_factory = policy_domain->taskFactories[1];
+            ocrWorker_t* worker = NULL;
+            deguidify(getCurrentPD(), context->sourceObj, (u64*)&(worker), NULL);
+            assert ( ((ocrWorkerXE_t*)worker)->id == workerId && "worker id from object and context does not match");
 
-                // the message to the CE says 'give me work' and notes who is asking for it
-                ocrTaskFsimMessage_t* derivedMessage = (ocrTaskFsimMessage_t*)
-                    message_task_factory->instantiate(message_task_factory, NULL, NULL, NULL, 0, NULL);
-                guidify(getCurrentPD(), (u64)task, &(task->guid), OCR_GUID_EDT);
-                ocrGuid_t messageTaskGuid = task->guid;
-                derivedMessage -> type = PICK_MY_WORK_UP;
-                derivedMessage -> from_worker_guid = wid;
-
-                // give the work to the XE scheduler, which in turn should give it to the CE
-                // through policy domain hand out and the scheduler differentiates tasks by type (RTTI) like
-                // used to be 'base->give(base, wid, messageTaskGuid);'
-                // TODO sagnak, taking the address of a stack pointer, may not be the best idea
-                // TODO sagnak, fix the context value avoidance and set the source to 'wid'
-                xe_scheduler_give_fsim_faithful(base, 1, &messageTaskGuid, NULL);
-            } else {
-                ocrPolicyDomain_t* xePolicyDomain = base->domain;
-                xePolicyDomain->handOut(xePolicyDomain, wid, tid);
-            }
+            ocrPolicyCtx_t * alarmContext = context->clone(context);
+#ifdef SYNCHRONOUS_GIVE
+            alarmContext->type = PD_MSG_EDT_GIVE;
+            alarmContext->PD = pd;
+            alarmContext->sourceObj = alarmContext->sourcePD = pd->guid;
+            pd->giveEdt(pd, 1, &(edts[i]), alarmContext);
+#else
+            alarmContext->type = PD_MSG_TAKE_MY_WORK;
+            alarmContext->PD = pd;
+            alarmContext->sourceObj = alarmContext->sourcePD = pd->guid;
+            // TODO sagnak Multiple XE push mappings, do not use the class push_mapping indirection
+            ocrWorkpile_t* wpToPush = xeSchedulerPushMappingToWorkShipping(self, workerId);
+            wpToPush->fctPtrs->push(wpToPush, edts[i]);
+            pd->giveEdt(pd, 0, NULL, alarmContext);
+#endif
         } else {
-            // if the pusher is a CE worker
-            ocrWorkpile_t * wp_to_push = xe_scheduler_push_mapping_to_assigned_work(base, w);
-            wp_to_push->fctPtrs->push(wp_to_push,tid);
+            assert(PD_MSG_INJECT_EDT == context->type && "The else condition should be for CE to inject work");
+            assert(context->sourcePD != getCurrentPD()->guid && "source for this xeSchedulerGive part should originate from CE");
+            ocrWorkpile_t* wpToPush = xeSchedulerPushMappingToAssignedWork (self);
+            wpToPush->fctPtrs->push(wpToPush, edts[i]);
         }
     }
+
     return 0;
 }
 
-ocrScheduler_t* newSchedulerFsimXE(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
-    ocrSchedulerFsimXE_t* derived = (ocrSchedulerFsimXE_t*) malloc(sizeof(ocrSchedulerFsimXE_t));
-    ocrScheduler_t* base = (ocrScheduler_t*)derived;
-    ocrSchedulerHc_t* hcBase = (ocrSchedulerHc_t*)derived;
-    ocrMappable_t * module_base = (ocrMappable_t *) base;
-    // module_base->mapFct = xe_ocr_module_map_workpiles_to_schedulers;
-    module_base->mapFct = hc_ocr_module_map_workpiles_to_schedulers;
-    base->fctPtrs = &(factory->schedulerFcts);
-    //TODO these need to be moved to the factory schedulerFcts
-    base -> fctPtrs->destruct = destructSchedulerFsimXE;
-    base -> fctPtrs->takeEdt = xe_scheduler_take_most_fsim_faithful;
-    base -> fctPtrs->giveEdt = xe_scheduler_give_fsim_faithful;
-    //TODO END
-    paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
-    hcBase->worker_id_begin = mapper->worker_id_begin;
-    hcBase->worker_id_end = mapper->worker_id_end;
-    hcBase->n_workers_per_scheduler = 1 + hcBase->worker_id_end - hcBase->worker_id_begin;
-
-    return base;
-}
-
-
-/******************************************************/
-/* OCR-FSIM CE SCHEDULER                              */
-/******************************************************/
-
-ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance);
-
-void destructSchedulerFactoryFsimCE(ocrSchedulerFactory_t * factory) {
-    free(factory);
-}
-
-ocrSchedulerFactory_t * newOcrSchedulerFactoryFsimCE(ocrParamList_t *perType) {
-    ocrSchedulerFactoryFsimCE_t* derived = (ocrSchedulerFactoryFsimCE_t*) checkedMalloc(derived, sizeof(ocrSchedulerFactoryFsimCE_t));
-    ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
-    base->instantiate = newSchedulerFsimCE;
-    base->destruct = destructSchedulerFactoryFsimCE;
-    return base;
-}
-
-void destructSchedulerFsimCE(ocrScheduler_t * scheduler) {
+void xeSchedulerDestruct(ocrScheduler_t * scheduler) {
     // just free self, workpiles are not allocated by the scheduler
     free(scheduler);
 }
 
-ocrWorkpile_t * ce_scheduler_pop_mapping (ocrScheduler_t* base, ocrWorker_t* w ) {
-    ocrSchedulerFsimCE_t* ceDerived = (ocrSchedulerFsimCE_t*) base;
-    ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    ocrWorkpile_t * toBeReturned = NULL;
+static ocrScheduler_t* newSchedulerXE (ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
+    ocrSchedulerXE_t* xeDerived = (ocrSchedulerXE_t*) checkedMalloc(xeDerived, sizeof(ocrSchedulerXE_t));
+    ocrScheduler_t* base = (ocrScheduler_t*)xeDerived;
+    base->fctPtrs = &(factory->schedulerFcts);
+    paramListSchedulerXEInst_t *mapper = (paramListSchedulerXEInst_t*)perInstance;
+    xeDerived->workerIdFirst = mapper->workerIdFirst;
+    xeDerived->workerIdLast  = mapper->workerIdLast;
+    xeDerived->nWorkers = mapper->workerIdLast - mapper->workerIdFirst + 1;
+    return base;
+}
 
-    u64 id = get_worker_id(w);
-    if ( ceDerived -> in_message_popping_mode ) {
+static void destructSchedulerFactoryXE (ocrSchedulerFactory_t * factory) {
+    free(factory);
+}
+
+static void xeSchedulerStartAssert (ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
+    assert ( 0 && "xe scheduler start should not have been called");
+}
+
+static u8 xeSchedulerYieldAssert (ocrScheduler_t* self, ocrGuid_t workerGuid,
+                            ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
+                            ocrGuid_t * returnGuid,
+                            ocrPolicyCtx_t *context) {
+    assert ( 0 && "xeSchedulerYieldAssert should not have been called");
+    return 0;
+}
+
+static void xeSchedulerStop(ocrScheduler_t * self) {
+  // nothing to do here
+    assert ( 0 && "xe scheduler stop should not have been called");
+}
+
+ocrSchedulerFactory_t * newOcrSchedulerFactoryXE (ocrParamList_t *perType) {
+    ocrSchedulerFactoryXE_t* xeFactoryDerived = (ocrSchedulerFactoryXE_t*) checkedMalloc(xeFactoryDerived, sizeof(ocrSchedulerFactoryXE_t));
+    ocrSchedulerFactory_t* baseFactory = (ocrSchedulerFactory_t*) xeFactoryDerived;
+    baseFactory->instantiate = newSchedulerXE;
+    baseFactory->destruct = destructSchedulerFactoryXE;
+    baseFactory->schedulerFcts.start = xeSchedulerStartAssert;
+    baseFactory->schedulerFcts.stop = xeSchedulerStop;
+    baseFactory->schedulerFcts.yield = xeSchedulerYieldAssert;
+    baseFactory->schedulerFcts.destruct = xeSchedulerDestruct;
+    baseFactory->schedulerFcts.takeEdt = xeSchedulerTake;
+    baseFactory->schedulerFcts.giveEdt = xeSchedulerGive;
+    return baseFactory;
+}
+
+static u8 ceSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *count,
+                  ocrGuid_t *edts, struct _ocrPolicyCtx_t *context) {
+
+
+    ocrGuid_t workerId = context->sourceObj;
+    ocrSchedulerCE_t* ceDerived = (ocrSchedulerCE_t*) self;
+    ocrWorkpile_t * wpToPop = NULL;
+
+    if ( PD_MSG_MSG_TAKE == context->type ) {
         // if I am the CE popping from my own message stash
-        assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
-        toBeReturned = hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
+        assert(workerId >= ceDerived->workerIdFirst && workerId <= ceDerived->workerIdLast && " ce worker does not seem of this domain");
+
+        ocrWorker_t* worker = NULL;
+        deguidify(getCurrentPD(), context->sourceObj, (u64*)&(worker), NULL);
+        assert ( ((ocrWorkerCE_t*)worker)->id == workerId && "ce worker id from object and context does not match");
+
+        assert ( context->sourcePD == getCurrentPD()->guid && "source for this ceSchedulerTake part should originate within");
+
+        wpToPop = self->workpiles[ 1 + 2 * (workerId % ceDerived->nWorkers) ];
     } else {
         // if I am the CE popping from my own work stash on behalf of XEs
-        toBeReturned = hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
+
+        assert(PD_MSG_EDT_TAKE == context->type && "The else condition should be for CE to picking work for XE");
+        assert(context->sourcePD == getCurrentPD()->guid && "source for this ceSchedulerTake part should originate from within");
+        
+        wpToPop = self->workpiles[ 2 * (workerId % ceDerived->nWorkers) ];
     }
-    return toBeReturned;
-}
 
-ocrWorkpile_t * ce_scheduler_push_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
-    assert( 0 && "Multiple CE push mappings, do not use the class push_mapping indirection");
-    return NULL;
-}
-
-ocrWorkpile_t * ce_scheduler_push_mapping_to_work (ocrScheduler_t* base, ocrWorker_t* w ) {
-    ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    u64 id = get_worker_id(w);
-    assert(id >= hcDerived->worker_id_begin && id <= hcDerived->worker_id_end && "worker does not seem of this domain");
-    return hcDerived->pools[ 2 * (id % hcDerived->n_workers_per_scheduler) ];
-}
-
-ocrWorkpile_t * ce_scheduler_push_mapping_to_messages (ocrScheduler_t* base ) {
-    ocrSchedulerHc_t* hcDerived = (ocrSchedulerHc_t*) base;
-    // TODO sagnak; god awful hardcoding, BAD
-    u64 id = hcDerived->worker_id_begin;
-    return hcDerived->pools[ 1 + 2 * (id % hcDerived->n_workers_per_scheduler) ];
-}
-
-u8 ce_scheduler_take (ocrScheduler_t *base, struct _ocrCost_t *cost, u32 *count,
-                  ocrGuid_t *edts, struct _ocrPolicyCtx_t *context) {
-    ocrWorker_t* w = NULL;
-    ocrGuid_t wid = context->sourceObj;
-    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
-
-    ocrWorkpile_t * wp_to_pop = ce_scheduler_pop_mapping(base, w);
-    //ocrGuid_t popped = wp_to_pop->pop(wp_to_pop);
-    // TODO fix synchronization errors
+    // TODO fix synchronization errors, using 'steal' for now rather than a 'pop'
     // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
-    ocrGuid_t popped = wp_to_pop->fctPtrs->steal(wp_to_pop, cost);
+    ocrGuid_t popped = wpToPop->fctPtrs->steal(wpToPop, cost);
 
-    *count = 1;
-    edts[0] = popped;
+    if ( NULL_GUID != popped ) {
+        *count = 1;
+        edts[0] = popped;
+    } else {
+        *count = 0;
+    }
     return 0;
+}
+
+static inline ocrWorkpile_t * ceSchedulerPushMappingToWork (ocrScheduler_t* self, u64 workerId ) {
+    ocrSchedulerCE_t* ceDerived = (ocrSchedulerCE_t*) self;
+    assert(workerId >= ceDerived->workerIdFirst && workerId <= ceDerived->workerIdLast && "worker does not seem of this domain");
+    return self->workpiles[ 2 * (workerId % ceDerived->nWorkers) ];
+}
+
+static inline ocrWorkpile_t * ceSchedulerPushMappingToMessages (ocrScheduler_t* self, u64 workerId ) {
+    ocrSchedulerCE_t* ceDerived = (ocrSchedulerCE_t*) self;
+    // TODO sagnak; god awful hardcoding, BAD
+    return self->workpiles[ 1 + 2 * (ceDerived->workerIdFirst % ceDerived->nWorkers) ];
 }
 
 // this can be called from three different sites:
 // one being the initial(from master) work that CE should dissipate
 // other being the XEs giving a 'message task' for the CE to be notified
 // last being the CEs giving a 'message task' to itself if it can not serve the message
-u8 ce_scheduler_give (ocrScheduler_t* base, u32 count, ocrGuid_t* edts, struct _ocrPolicyCtx_t *context ) {
-    ocrWorker_t* w = NULL;
-    ocrGuid_t wid = context->sourceObj;
-    deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
-
+u8 ceSchedulerGive (ocrScheduler_t* self, u32 count, ocrGuid_t* edts, struct _ocrPolicyCtx_t *context ) {
     u32 i = 0;
     for ( ; i < count; ++i ) {
-        ocrGuid_t taskGuid = edts[i];
-        ocrTaskFsimBase_t* task = NULL;
-        deguidify(getCurrentPD(), taskGuid, (u64*)&task, NULL);
+        ocrGuid_t workerId = context->sourceObj;
 
-        fsim_message_interface_t* taskAsMessage = &(task->message_interface);
+        ocrGuid_t taskGuid = edts[i];
 
         ocrWorkpile_t * workpileToPush = NULL;
-
-        if ( !taskAsMessage->is_message(taskAsMessage) ) {
-            workpileToPush = ce_scheduler_push_mapping_to_work(base, w);
-        } else {
+        if ( PD_MSG_MSG_GIVE == context->type ) {
+            // CE buffering unanswered messages
             // TODO sagnak Multiple XE push mappings, do not use the class push_mapping indirection
             // TODO this is some foreign XE worker, what is the point in trickling down the worker id?
             // TODO sagnak this should be a LOCKED data structure
             // TODO there is no way to pick which 'message task pool' to go to for now :(
-            workpileToPush = ce_scheduler_push_mapping_to_messages(base);
+            workpileToPush = ceSchedulerPushMappingToMessages(self, workerId);
+        } else {
+            assert(PD_MSG_EDT_GIVE == context->type && "The else condition should be for master CE pushing initial work");
+            // either master CE worker picking initial work 
+            ocrSchedulerCE_t* ceDerived = (ocrSchedulerCE_t*) self;
+            assert(workerId >= ceDerived->workerIdFirst && workerId <= ceDerived->workerIdLast && " ce worker does not seem of this domain");
+
+            ocrWorker_t* worker = NULL;
+            deguidify(getCurrentPD(), context->sourceObj, (u64*)&(worker), NULL);
+            assert ( ((ocrWorkerCE_t*)worker)->id == workerId && "ce worker id from object and context does not match");
+
+            assert ( context->sourcePD == getCurrentPD()->guid && "source for this ceSchedulerTake part should originate within");
+
+            workpileToPush = ceSchedulerPushMappingToWork(self, workerId);
         }
 
         workpileToPush->fctPtrs->push(workpileToPush,taskGuid);
@@ -304,29 +274,54 @@ u8 ce_scheduler_give (ocrScheduler_t* base, u32 count, ocrGuid_t* edts, struct _
     return 0;
 }
 
-ocrWorkpileIterator_t* ce_scheduler_steal_mapping_assert (ocrScheduler_t* base, ocrWorker_t* w ) {
-    assert( 0 && "CEs do not steal as of now");
-    return NULL;
+
+void ceSchedulerDestruct(ocrScheduler_t * scheduler) {
+    // just free self, workpiles are not allocated by the scheduler
+    free(scheduler);
 }
 
-ocrScheduler_t* newSchedulerFsimCE(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
-    ocrSchedulerFsimCE_t* derived = (ocrSchedulerFsimCE_t*) malloc(sizeof(ocrSchedulerFsimCE_t));
-    ocrScheduler_t* base = (ocrScheduler_t*)derived;
-    ocrSchedulerHc_t* hcBase = (ocrSchedulerHc_t*)derived;
-    ocrMappable_t * module_base = (ocrMappable_t *) base;
-    module_base->mapFct = hc_ocr_module_map_workpiles_to_schedulers;
+static ocrScheduler_t* newSchedulerCE (ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
+    ocrSchedulerCE_t* ceDerived = (ocrSchedulerCE_t*) checkedMalloc(ceDerived, sizeof(ocrSchedulerCE_t));
+    ocrScheduler_t* base = (ocrScheduler_t*)ceDerived;
     base->fctPtrs = &(factory->schedulerFcts);
-    //TODO these need to be moved to the factory schedulerFcts
-    base -> fctPtrs -> destruct = destructSchedulerFsimCE;
-    base -> fctPtrs -> takeEdt = ce_scheduler_take;
-    base -> fctPtrs -> giveEdt = ce_scheduler_give;
-    //TODO END
-    derived -> in_message_popping_mode = 1;
-
-    paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
-    hcBase->worker_id_begin = mapper->worker_id_begin;
-    hcBase->worker_id_end = mapper->worker_id_end;
-    hcBase->n_workers_per_scheduler = 1 + hcBase->worker_id_end - hcBase->worker_id_begin;
-
+    paramListSchedulerCEInst_t *mapper = (paramListSchedulerCEInst_t*)perInstance;
+    ceDerived->workerIdFirst = mapper->workerIdFirst;
+    ceDerived->workerIdLast  = mapper->workerIdLast;
+    ceDerived->nWorkers = mapper->workerIdLast - mapper->workerIdFirst + 1;
     return base;
+}
+
+static void destructSchedulerFactoryCE (ocrSchedulerFactory_t * factory) {
+    free(factory);
+}
+
+static void ceSchedulerStartAssert (ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
+    assert ( 0 && "ce scheduler start should not have been called");
+}
+
+static u8 ceSchedulerYieldAssert (ocrScheduler_t* self, ocrGuid_t workerGuid,
+                            ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
+                            ocrGuid_t * returnGuid,
+                            ocrPolicyCtx_t *context) {
+    assert ( 0 && "ceSchedulerYieldAssert should not have been called");
+    return 0;
+}
+
+static void ceSchedulerStop(ocrScheduler_t * self) {
+  // nothing to do here
+    assert ( 0 && "ce scheduler stop should not have been called");
+}
+
+ocrSchedulerFactory_t * newOcrSchedulerFactoryCE (ocrParamList_t *perType) {
+    ocrSchedulerFactoryCE_t* ceFactoryDerived = (ocrSchedulerFactoryCE_t*) checkedMalloc(ceFactoryDerived, sizeof(ocrSchedulerFactoryCE_t));
+    ocrSchedulerFactory_t* baseFactory = (ocrSchedulerFactory_t*) ceFactoryDerived;
+    baseFactory->instantiate = newSchedulerCE;
+    baseFactory->destruct = destructSchedulerFactoryCE;
+    baseFactory->schedulerFcts.start = ceSchedulerStartAssert;
+    baseFactory->schedulerFcts.stop = ceSchedulerStop;
+    baseFactory->schedulerFcts.yield = ceSchedulerYieldAssert;
+    baseFactory->schedulerFcts.destruct = ceSchedulerDestruct;
+    baseFactory->schedulerFcts.takeEdt = ceSchedulerTake;
+    baseFactory->schedulerFcts.giveEdt = ceSchedulerGive;
+    return baseFactory;
 }

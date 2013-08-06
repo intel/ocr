@@ -50,6 +50,13 @@ typedef enum {
     PD_MSG_EDT_STEAL   = 6, /**< Steal EDTs (from non-children PD) */
     PD_MSG_DB_STEAL    = 7, /**< Steal DBs (from non-children PD) */
     PD_MSG_GUID_REL    = 8, /**< Release a GUID */
+    PD_MSG_EDT_GIVE    = 9, 
+    PD_MSG_TAKE_MY_WORK=10, 
+    PD_MSG_GIVE_ME_WORK=11, 
+    PD_MSG_PICKUP_EDT  =12, 
+    PD_MSG_MSG_TAKE    =13, 
+    PD_MSG_MSG_GIVE    =14, 
+    PD_MSG_INJECT_EDT  =15, 
 } ocrPolicyMsgType_t;
 
 

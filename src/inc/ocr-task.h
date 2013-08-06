@@ -12,6 +12,7 @@
 #include "ocr-sync.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
+#include "ocr-mappable.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"

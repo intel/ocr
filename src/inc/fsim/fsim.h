@@ -7,15 +7,14 @@
 #ifndef FSIM_H_
 #define FSIM_H_
 
-#include "hc.h"
-
 #include <stdlib.h>
 #include <assert.h>
 #include <pthread.h>
 
+#if 0
+#include "hc.h"
 #include "ocr-runtime.h"
 #include "deque.h"
-
 
 /******************************************************/
 /* OCR-FSIM POLICY DOMAIN                             */
@@ -128,5 +127,7 @@ typedef struct {
 } ocrTaskFsimMessage_t;
 
 typedef ocrEventHc_t fsim_event_t;
+
+#endif
 
 #endif /* FSIM_H_ */
