@@ -95,7 +95,7 @@ typedef u32 tlsfSize_t;
  * Number of subdivisions in the second-level list
  * 2^SL_COUNT_LOG2 must be less than SIZE_TLSF_SIZE
  */
-#define SL_COUNT_LOG2 3
+#define SL_COUNT_LOG2 4
 
 /*
  * Support allocations/memory of size up to (1 << FL_MAX_LOG2) * ELEMENT_SIZE_BYTES
@@ -110,8 +110,10 @@ typedef u32 tlsfSize_t;
  * For 128MB memory: 25 (if ELEMENT_SIZE_LOG2 == 2)
  * For 256MB memory: 26 (if ELEMENT_SIZE_LOG2 == 2)
  * For 512MB memory: 27 (if ELEMENT_SIZE_LOG2 == 2)
+ * For 2GB memory: 29
+ * For 4GB memory: 30
  */
-#define FL_MAX_LOG2 27
+#define FL_MAX_LOG2 29
 
 
 /* Size specific functions:
@@ -856,6 +858,11 @@ static u64 tlsfMalloc(u64 pgStart, u64 size) {
     headerAddr_t freeBlock, remainingBlock;
 
     allocSize = getRealSizeOfRequest(size);
+    if(size > 0 && allocSize == 0) {
+        DPRINTF(DEBUG_LVL_WARN, "tslfMalloc@0x%lx returning NULL for size %ld\n",
+                pgStart, size);
+        return _NULL;
+    }
 
     if(allocSize == 0 && size != 0) {
         DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @0x%"PRIx64" returning NULL for too large size %"PRIu64"\n",
