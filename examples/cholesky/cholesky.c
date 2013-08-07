@@ -26,7 +26,7 @@ ocrGuid_t sequential_cholesky_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDe
 
     double* aBlock = (double*) (depv[0].ptr);
 
-    PRINTF("RUNNING sequential_cholesky %d with 0x%llx to satisfy\n", k, out_lkji_kkkp1_event_guid);
+    PRINTF("RUNNING sequential_cholesky %d with 0x%llx to satisfy\n", k, GUIDTOU64(out_lkji_kkkp1_event_guid));
 
     PTR_T lBlock_db;
     ocrGuid_t out_lkji_kkkp1_db_guid;
@@ -424,7 +424,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     return NULL_GUID;
 }
 
-inline static double** readMatrix( int matrixSize, FILE* in ) {
+static double** readMatrix( int matrixSize, FILE* in ) {
     int i,j;
     double **A = (double**) malloc (sizeof(double*)*matrixSize);
 
