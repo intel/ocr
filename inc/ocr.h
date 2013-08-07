@@ -41,6 +41,7 @@ extern "C" {
 #include "ocr-types.h"
 #include "ocr-db.h"
 #include "ocr-edt.h"
+#include "compat.h"
 
 /**
  * @brief Called by an EDT to indicate the end of an OCR
