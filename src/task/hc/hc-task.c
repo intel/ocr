@@ -247,8 +247,8 @@ static void taskSignaled(ocrTask_t * base, ocrGuid_t data, u32 slot) {
         ocrEventHcOnce_t * onceEvent = NULL;
         deguidify(getCurrentPD(), signalerGuid, (u64*)&onceEvent, NULL);
         DPRINTF(DEBUG_LVL_INFO, "Decrement ONCE event reference %lx \n", signalerGuid);
-        onceEvent->nbEdtRegistered->fctPtrs->xadd(onceEvent->nbEdtRegistered, -1);
-        if(onceEvent->nbEdtRegistered->fctPtrs->val(onceEvent->nbEdtRegistered) == 0) {
+        u64 newNbEdtRegistered = onceEvent->nbEdtRegistered->fctPtrs->xadd(onceEvent->nbEdtRegistered, -1);
+        if(newNbEdtRegistered == 0) {
             // deallocate once event
             ocrEvent_t * base = (ocrEvent_t *) onceEvent;
             base->fctPtrs->destruct(base);
