@@ -1,3 +1,6 @@
+#ifndef __COMPAT_H__
+#define __COMPAT_H__
+
 #if defined(__OCR__)
 
 #include "ocr.h"
@@ -53,20 +56,21 @@
 
 #define DBCREATE(guid, addr, size, flags, affinity, alloc) \
     do {                                                   \
+        ocrGuid_t _affinity;                               \
         ocrLocation_t _allocLocation;                      \
         _allocLocation.type = OCR_LOC_TYPE_RELATIVE;       \
         _allocLocation.data.relative.identifier = 0;       \
         _allocLocation.data.relative.level =               \
             OCR_LOCATION_DRAM;                             \
-        ocrGuidSetAddressU64(&affinity,                    \
+        ocrGuidSetAddressU64(&(_affinity),                 \
             (u64)&_allocLocation);                         \
         ocrDbCreate((guid), (addr), (size),                \
-            (flags), (affinity), (alloc));                 \
+            (flags), (_affinity), (alloc));                \
     } while(0);
 
 #define GUIDTOU64(guid) (u64)((guid).data)
 
-double sqrt(double value) {
+static double sqrt(double value) {
     double result;
     __asm__ (
             "rcpsqrtF64 %0, %1"
@@ -75,4 +79,6 @@ double sqrt(double value) {
             );
     return 1/result;
 }
-#endif
+#endif /* __FSIM__ */
+
+#endif /* __COMPAT_H__ */
