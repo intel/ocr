@@ -78,6 +78,9 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
         depc = taskTemplate->depc;
     }
 
+    // If paramc are expected, double check paramv is not NULL
+    ASSERT((paramc > 0) ? (paramv != NULL) : true);
+
     ocrPolicyCtx_t *context = getCurrentWorkerContext();
     pd->createEdt(pd, edtGuid, taskTemplate, paramc, paramv, depc,
                   properties, affinity, outputEvent, context);
