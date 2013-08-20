@@ -63,6 +63,21 @@ AS_IF([test "x$with_mpi" != xno],
       [ AC_DEFINE([HAVE_COMM], [1], [Have communication support]) ], 
       [ AC_MSG_NOTICE([No communication support built for OCR]) ]) 
 
+# Check if custom deque capacity is requested
+
+AC_ARG_ENABLE(deque, 
+    AS_HELP_STRING([--enable-deque],
+    [enable custom deque size, takes storage size as argument]),
+    [with_deque=$enableval], 
+    [with_deque=no;])
+    
+# note: does not check deque's argument is legal
+AS_IF([test "x$with_deque" != xno],
+      [ AC_MSG_NOTICE([deques of size $with_deque requested]) 
+        AC_DEFINE_UNQUOTED([INIT_DEQUE_CAPACITY], [$with_deque], [Set worker deques size]) ], 
+      [ AC_MSG_NOTICE([Use standard size deques])
+        AC_DEFINE_UNQUOTED([INIT_DEQUE_CAPACITY], [128], [Set worker deques size])
+      ])
 
 # Check if ELS support is requested
 
@@ -78,7 +93,7 @@ AS_IF([test "x$with_els" != xno],
         AC_DEFINE_UNQUOTED([ELS_USER_SIZE], [$with_els], [Set User-ELS size]) ], 
       [ AC_MSG_NOTICE([No ELS support requested])
         AC_DEFINE_UNQUOTED([ELS_USER_SIZE], [0], [Set User-ELS size])
-      ]) 
+      ])
 
 # Check if Runtime headers are requested
 

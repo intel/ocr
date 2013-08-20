@@ -18,7 +18,10 @@ typedef struct deque {
         buffer_t * buffer;
 } deque_t;
 
+#ifndef INIT_DEQUE_CAPACITY
+// Set by configure
 #define INIT_DEQUE_CAPACITY 128
+#endif
 #define SLOW_EXPAND_THRESHOLD 128
 #define INC_DEQUE_CAPACITY 64
 
