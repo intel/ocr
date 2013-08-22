@@ -529,7 +529,7 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
                     ((paramListCompPlatformPthread_t *)inst_param[j])->stackSize = (value==-1)?0:value;
                    
                     value = get_key_value(dict, secname, "binding", j-low);
-                    printf("Binding value for %s;%d is %d\n", key, j-low, value);
+                    //printf("Binding value for %s;%d is %d\n", key, j-low, value);
                 }
                 break;
                 default:
