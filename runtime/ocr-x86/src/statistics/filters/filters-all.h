@@ -15,11 +15,10 @@
 
 #define STATS_FILTER_DECLARE(name)                                               \
     extern ocrStatsFilter_t* newStatsFilter ## name (ocrStatsFilter_t *parent,   \
-                                                   ocrStatsParam_t *instanceArg, \
-                                                   ocrStatsFilterFcts_t *funcs)
+                                                   ocrStatsParam_t *instanceArg)
 
-#define STATS_FILTER_CASE(name, parent, instanceArg, funcs)                      \
-    case STATS_FILTER_##name: return newStatsFilter ## name (parent, instanceArg, funcs)
+#define STATS_FILTER_CASE(name, parent, instanceArg)                      \
+    case STATS_FILTER_##name: return newStatsFilter ## name (parent, instanceArg)
 
 
 // Add your filter identifier here
@@ -31,16 +30,15 @@ typedef enum _ocrStatsFilterType_t {
 
 // Add your filter here
 STATS_FILTER_DECLARE(TRIVIAL);
-STATS_FILTER_DECLARE(DUMP);
+STATS_FILTER_DECLARE(FILE_DUMP);
 
 // Finally, add your filter in this switch statement
 inline ocrStatsFilter_t* newStatsFilter(ocrStatsFilterType_t type,
                                             ocrStatsFilter_t *parent,
-                                            ocrStatsParam_t *instanceArg,
-                                            ocrStatsFilterFcts_t *funcs) {
+                                            ocrStatsParam_t *instanceArg) {
     switch(type) {
-    STATS_FILTER_CASE(TRIVIAL, parent, instanceArg, funcs);
-    STATS_FILTER_CASE(DUMP, parent, instanceArg, funcs);
+    STATS_FILTER_CASE(TRIVIAL, parent, instanceArg);
+    STATS_FILTER_CASE(FILE_DUMP, parent, instanceArg);
     default:
         ASSERT(0);
         return NULL;

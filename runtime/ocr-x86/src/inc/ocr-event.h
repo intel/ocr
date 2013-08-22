@@ -92,7 +92,7 @@ typedef struct _ocrEventFcts_t {
 typedef struct _ocrEvent_t {
     ocrGuid_t guid; /**< GUID for this event */
 #ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcess_t statProcess;
+    ocrStatsProcess_t *statProcess;
 #endif
     ocrEventTypes_t kind;  /**< The kind of this event instance */
     ocrEventFcts_t *fctPtrs;  /**< Function pointers for this instance */

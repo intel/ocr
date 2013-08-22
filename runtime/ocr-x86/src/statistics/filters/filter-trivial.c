@@ -41,7 +41,7 @@ FILTER_DESTRUCT {
     if(self->parent) {
         DPRINTF(DEBUG_LVL_VERB, "Filter @ 0x%lx merging with parent @ 0x%lx\n",
                 (u64)self, (u64)(self->parent));
-        return self->parent->fctPtrs->merge(self->parent, self, 1);
+        return self->parent->fcts.merge(self->parent, self, 1);
     } else {
         free(rself->messages);
         free(self);
@@ -101,7 +101,7 @@ FILTER_MERGE {
 
 FILTER_CREATE {
     FILTER_MALLOC(rself);
-    FILTER_SETUP(rself, funcs);
+    FILTER_SETUP(rself, parent);
     
     rself->count = 0;
     rself->maxCount = 8; // Make a configurable number

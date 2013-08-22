@@ -220,7 +220,7 @@ static void destructTaskHc ( ocrTask_t* base ) {
     DPRINTF(DEBUG_LVL_INFO, "Destroy 0x%lx\n", base->guid);
     ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
 #ifdef FIXME_OCR_ENABLE_STATISTICS
-    ocrStatsProcessDestruct(&(base->statProcess));
+    base->statProcess->fctPtrs->destruct(base->statProcess);
 #endif
     ocrPolicyDomain_t *pd = getCurrentPD();
     ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();

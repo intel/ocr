@@ -84,32 +84,31 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     pd->createEdt(pd, edtGuid, taskTemplate, paramc, paramv, depc,
                   properties, affinity, outputEvent, context);
 
-#ifdef FIXME_OCR_ENABLE_STATISTICS
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStats_t * stats = pd->getStats(pd);
     ocrTask_t * task = NULL;
     deguidify(pd, *edtGuid, (u64*)&task, NULL);
-    // Create the statistics process for this EDT and also update clocks properly
-    ocrStatsProcessCreate(&(task->statProcess), *edtGuid);
-    ocrStatsFilter_t *t = NEW_FILTER(simple);
-    t->create(t, GocrFilterAggregator, NULL);
-    ocrStatsProcessRegisterFilter(&(task->statProcess), (0x1F), t);
+    // Create the statistics process for this EDT
+    task->statProcess = stats->fctPtrs->createStatsProcess(stats, *edtGuid);
 
     // Now send the message that the EDT was created
     {
-        ocrWorker_t *worker = NULL;
         ocrTask_t *curTask = NULL;
 
-        deguidify(pd, getCurrentWorkerContext()->sourceObj, (u64*)&worker, NULL);
-        ocrGuid_t curTaskGuid = worker->fctPtrs->getCurrentEDT(worker);
-        deguidify(pd, curTaskGuid, (u64*)&curTask, NULL);
+        ocrGuid_t curTaskGuid = getCurrentEDT();
+        if(curTaskGuid) {
+            deguidify(pd, curTaskGuid, (u64*)&curTask, NULL);
 
-        ocrStatsProcess_t *srcProcess = curTaskGuid==0?&GfakeProcess:&(curTask->statProcess);
-        ocrStatsMessage_t *mess = NEW_MESSAGE(simple);
-        mess->create(mess, STATS_EDT_CREATE, 0, curTaskGuid, *edtGuid, NULL);
-        ocrStatsAsyncMessage(srcProcess, &(task->statProcess), mess);
+            ocrStatsProcess_t *srcProcess = curTask->statProcess;
+            ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
+                stats, STATS_EDT_CREATE, curTaskGuid, *edtGuid, NULL);
+            
+            ocrStatsAsyncMessage(srcProcess, task->statProcess, mess);
+        } // Else, we ignore since it is the creation of the mainEdt
     }
 #endif
 
-    // If guids dependencies were provided, add them now
+    // If guids dependences were provided, add them now
     if(depv != NULL) {
         ASSERT(depc != 0);
         u32 i = 0;

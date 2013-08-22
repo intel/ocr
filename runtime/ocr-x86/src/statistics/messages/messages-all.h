@@ -14,12 +14,11 @@
 #include "ocr-statistics.h"
 
 #define STATS_MESSAGE_DECLARE(name)                                              \
-    extern ocrStatsFilter_t* newStatsMessage ## name(ocrStatsFilter_t *parent,   \
-                                                   ocrStatsParam_t *instanceArg, \
-                                                   ocrStatsFilterFcts_t *funcs)
+    extern ocrStatsMessage_t* newStatsMessage ## name(ocrStatsEvt_t type, ocrGuid_t src, \
+                                                      ocrGuid_t dest, ocrStatsParam_t *instanceArg)
 
-#define STATS_FILTER_CASE(name, parent, instanceArg, funcs)                      \
-    case STATS_FILTER_##name: return newStatsFilter##name (parent, instanceArg, funcs)
+#define STATS_MESSAGE_CASE(name, type, src, dest, instanceArg)           \
+    case STATS_MESSAGE_##name: return newStatsMessage##name (type, src, dest, instanceArg)
 
 
 // Add your filter identifier here
@@ -32,12 +31,11 @@ typedef enum _ocrStatsEvtInt_t {
 STATS_MESSAGE_DECLARE(TRIVIAL);
 
 // Finally, add your message in this switch statement
-inline ocrStatsMessage_t* newStatsMessage(ocrStatsFilterType_t type,
-                                          ocrStatsFilter_t *parent,
-                                          ocrStatsParam_t *instanceArg,
-                                          ocrStatsFilterFcts_t *funcs) {
-    switch(type) {
-    STATS_MESSAGE_CASE(TRIVIAL, parent, instanceArg, funcs);
+inline ocrStatsMessage_t* newStatsMessage(ocrStatsEvtInt_t implType, ocrStatsEvt_t type,
+                                          ocrGuid_t src, ocrGuid_t dest,
+                                          ocrStatsParam_t *instanceArg) {
+    switch(implType) {
+    STATS_MESSAGE_CASE(TRIVIAL, type, src, dest, instanceArg);
     default:
         ASSERT(0);
         return NULL;

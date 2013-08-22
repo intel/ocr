@@ -31,7 +31,7 @@ MESSAGE_DUMP {
 
 MESSAGE_CREATE {
     MESSAGE_MALLOC(rself);
-    MESSAGE_SETUP(rself, funcs);
+    MESSAGE_SETUP(rself);
     return (ocrStatsMessage_t*)rself;
 }
 

@@ -19,6 +19,9 @@
 #include "ocr-types.h"
 #include "policy-domain/policy-domain-all.h"
 #include "scheduler/scheduler-all.h"
+#ifdef OCR_ENABLE_STATISTICS
+#include "statistics/statistics-all.h"
+#endif
 #include "sync/sync-all.h"
 #include "task/task-all.h"
 #include "worker/worker-all.h"
@@ -686,13 +689,18 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
             gf = (ocrGuidProvider_t *)(all_instances[guid_type][low]);
             ASSERT (gf);
 
+#ifdef OCR_ENABLE_STATISTICS
+            // HUGE HUGE HUGE HUGE HUGE HACK. This needs to be parsed
+            // but for now just passing some default one
+            ocrStatsFactory_t *sf = newStatsFactory(statisticsDefault_id, NULL);
+#endif
             ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
             instance[j] = (ocrMappable_t *)((ocrPolicyDomainFactory_t *)factory)->instantiate(
                 factory, schedulerCount, workerCount, computeCount, workpileCount,
                 allocatorCount, memoryCount,
                 tf, ttf, dbf, ef, cf, gf, lf, af, qf,
 #ifdef OCR_ENABLE_STATISTICS
-                NULL, /* TODO: BALA, please get a statistics INSTANCE (like GUID provider)*/
+                sf->instantiate(sf, NULL), /* TODO: BALA, please get a statistics INSTANCE (like GUID provider)*/
 #endif
                 NULL, inst_param[j]);
             if (instance[j])

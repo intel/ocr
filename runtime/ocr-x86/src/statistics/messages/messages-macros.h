@@ -53,18 +53,13 @@
     MESS_TYPE(MESSAGE_NAME) *result = (MESS_TYPE(MESSAGE_NAME) *)       \
         malloc(sizeof(MESS_TYPE(MESSAGE_NAME)))
 
-#define MESSAGE_SETUP(result, fPtrs)                            \
-    if(fPtrs) {                                                 \
-        result->base.fctPtrs = fPtrs;                           \
-    } else {                                                    \
-        fPtrs->destruct = COMBI(&_destruct_, MESSAGE_NAME);     \
-        fPtrs->dump = COMBI(&_dump_, MESSAGE_NAME);             \
-        result->base.fctPtrs = fPtrs;                           \
-    }                                                           \
-    result->base.tick = tick;                                   \
-    result->base.src = src;                                     \
-    result->base.dest = dest;                                   \
-    result->base.type = type;                                   \
+#define MESSAGE_SETUP(result)                                           \
+    result->base.fcts.destruct = COMBI(&_destruct_, MESSAGE_NAME);      \
+    result->base.fcts.dump = COMBI(&_dump_, MESSAGE_NAME);              \
+    result->base.tick = 0;                                              \
+    result->base.src = src;                                             \
+    result->base.dest = dest;                                           \
+    result->base.type = type;                                           \
     result->base.state = 0;
         
     
@@ -74,9 +69,9 @@
 #define MESSAGE_DUMP static char* COMBI(_dump_, MESSAGE_NAME) (ocrStatsMessage_t *self)
 
 #define MESSAGE_CREATE ocrStatsMessage_t* COMBI(newStatsMessage, MESSAGE_NAME) (ocrStatsEvt_t type, \
-                                                                                u64 tick, ocrGuid_t src, \
+                                                                                ocrGuid_t src, \
                                                                                 ocrGuid_t dest, \
-                                                                                ocrStatsParam_t *instanceArg, \
-                                                                                ocrStatsMessageFcts_t *funcs)
+                                                                                ocrStatsParam_t *instanceArg)
+                                                                                
 #endif /* __MESSAGES_MACROS_H__ */
 #endif /* OCR_ENABLE_STATISTICS */

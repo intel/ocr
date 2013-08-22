@@ -12,134 +12,14 @@
 #ifdef OCR_ENABLE_STATISTICS
 
 #include "debug.h"
-#include "ocr-policy-domain-getter.h"
-#include "ocr-policy-domain.h"
 #include "ocr-statistics.h"
 #include "ocr-types.h"
 
-#include <stdlib.h>
-#include <string.h>
-// TODO: Potentially have an ocr-driver.h that defines all the factories that
-// would be setup in ocr-driver.c
-//#include "ocr-driver.h"
 
 #define DEBUG_TYPE STATS
 // Forward declaration
-u8 intProcessMessage(ocrStatsProcess_t *dst);
+extern u8 intProcessMessage(ocrStatsProcess_t *dst);
 
-
-// Process related functions
-void ocrStatsProcessCreate(ocrStatsProcess_t *self, ocrGuid_t guid) {
-    u64 i;
-    self->me = guid;
-    ocrPolicyDomain_t *policy = getCurrentPD();
-    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
-    self->processing = policy->getLock(policy, ctx);
-    self->messages = policy->getQueue(policy, 32, ctx);
-    self->tick = 0;
-    self->filters = (ocrStatsFilter_t***)malloc(sizeof(ocrStatsFilter_t**)*(STATS_EVT_MAX+1)); // +1 because the first bucket keeps track of all filters uniquely
-    self->filterCounts = (u64*)malloc(sizeof(u64)*(STATS_EVT_MAX+1));
-    for(i = 0; i < (u64)STATS_EVT_MAX + 1; ++i) self->filterCounts[i] = 0ULL;
-
-    DPRINTF(DEBUG_LVL_INFO, "Created a StatsProcess (0x%lx) for object with GUID 0x%lx\n", (u64)self, guid);
-}
-
-void ocrStatsProcessDestruct(ocrStatsProcess_t *self) {
-    u64 i;
-    u32 j;
-
-    DPRINTF(DEBUG_LVL_INFO, "Destroying StatsProcess 0x%lx (GUID: 0x%lx)\n", (u64)self, self->me);
-
-    // Make sure we process all remaining messages
-    while(!self->processing->fctPtrs->trylock(self->processing)) ;
-
-    while(intProcessMessage(self)) ;
-
-    // Free all the filters associated with this process
-    // Assumes that the filter is only associated with ONE
-    // process
-    u32 maxJ = (u32)(self->filterCounts[0] & 0xFFFFFFFF);
-    for(j = 0; j < maxJ; ++j) {
-        self->filters[0][j]->fctPtrs->destruct(self->filters[0][j]);
-    }
-    if(maxJ)
-        free(self->filters[0]);
-    for(i = 1; i < (u64)STATS_EVT_MAX + 1; ++i) {
-        if(self->filterCounts[i])
-            free(self->filters[i]);
-    }
-
-    free(self->filters);
-    free(self->filterCounts);
-
-    self->processing->fctPtrs->unlock(self->processing);
-    self->processing->fctPtrs->destruct(self->processing);
-
-    self->messages->fctPtrs->destruct(self->messages);
-}
-
-void ocrStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
-                                   ocrStatsFilter_t *filter) {
-
-    DPRINTF(DEBUG_LVL_VERB, "Registering filter 0x%lx with process 0x%lx for mask 0x%lx\n",
-            (u64)filter, (u64)self, bitMask);
-    u32 countAlloc, countPresent;
-
-    while(bitMask) {
-        // Setting some filter up
-        u64 bitSet = fls64(bitMask);
-        bitMask &= ~(1ULL << bitSet);
-
-        ASSERT(bitSet < STATS_EVT_MAX);
-        ++bitSet; // 0 is all filters uniquely
-
-        // Check to make sure we have enough room to add this filter
-        countPresent = (u32)(self->filterCounts[bitSet] & 0xFFFFFFFF);
-        countAlloc = (u32)(self->filterCounts[bitSet] >> 32);
-        //     DPRINTF(DEBUG_LVL_VVERB, "For type %ld, have %d present and %d allocated (from 0x%lx)\n",
-        //            bitSet, countPresent, countAlloc, self->filterCounts[bitSet]);
-        if(countAlloc <= countPresent) {
-            // Allocate using an exponential model
-            if(countAlloc)
-                countAlloc *= 2;
-            else
-                countAlloc = 1;
-            ocrStatsFilter_t **newAlloc = (ocrStatsFilter_t**)malloc(sizeof(ocrStatsFilter_t*)*countAlloc);
-            // TODO: This memcpy needs to be replaced. The malloc above as well...
-            memcpy(newAlloc, self->filters[bitSet], countPresent*sizeof(ocrStatsFilter_t*));
-            if(countAlloc != 1)
-                free(self->filters[bitSet]);
-            self->filters[bitSet] = newAlloc;
-        }
-        self->filters[bitSet][countPresent++] = filter;
-
-        // Set the counter properly again
-        self->filterCounts[bitSet] = ((u64)countAlloc << 32) | (countPresent);
-        //     DPRINTF(DEBUG_LVL_VVERB, "Setting final counter for %ld to 0x%lx\n",
-        //            bitSet, self->filterCounts[bitSet]);
-    }
-    // Do the same thing for bit 0. Only do it once so we only free things once
-    countPresent = (u32)(self->filterCounts[0] & 0xFFFFFFFF);
-    countAlloc = (u32)(self->filterCounts[0] >> 32);
-    if(countAlloc <= countPresent) {
-        // Allocate using an exponential model
-        if(countAlloc)
-            countAlloc *= 2;
-        else
-            countAlloc = 1;
-        ocrStatsFilter_t **newAlloc = (ocrStatsFilter_t**)malloc(sizeof(ocrStatsFilter_t*)*countAlloc);
-        // TODO: This memcpy needs to be replaced. The malloc above as well...
-        memcpy(newAlloc, self->filters[0], countPresent*sizeof(ocrStatsFilter_t*));
-        if(countAlloc != 1)
-            free(self->filters[0]);
-        self->filters[0] = newAlloc;
-    }
-    self->filters[0][countPresent++] = filter;
-
-    // Set the counter properly again
-    self->filterCounts[0] = ((u64)countAlloc << 32) | (countPresent);
-
-}
 
 void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
                           ocrStatsMessage_t *msg) {
@@ -219,55 +99,9 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     ASSERT(msg->tick >= src->tick);
     src->tick = msg->tick;
     DPRINTF(DEBUG_LVL_VVERB, "Sync tick out: %ld\n", src->tick);
-    msg->fctPtrs->destruct(msg);
+    msg->fcts.destruct(msg);
 }
 
-/* Internal methods */
-
-/**
- * @brief Process a message from the head of dst
- *
- * Returns 0 if no messages on the queue and 1 if a
- * message was processed
- *
- * @param dst       ocrProcess_t to process messages for
- * @return 0 if no message processed and 1 otherwise
- * @warn This function is *not* thread-safe. Admission control
- * must ensure that only one worker calls this at any given point (although
- * multiple workers can call it over time)
- */
-u8 intProcessMessage(ocrStatsProcess_t *dst) {
-    ocrStatsMessage_t* msg = (ocrStatsMessage_t*)
-        dst->messages->fctPtrs->popHead(dst->messages);
-
-    if(msg) {
-        DPRINTF(DEBUG_LVL_VERB, "Processing message 0x%lx for 0x%lx\n",
-                (u64)msg, dst->me);
-        u64 newTick = msg->tick > (dst->tick + 1)?msg->tick:(dst->tick + 1);
-        msg->tick = dst->tick = newTick;
-        DPRINTF(DEBUG_LVL_VVERB, "Message tick is %ld\n", msg->tick);
-
-        u32 type = (u32)msg->type;
-        u32 countFilter = dst->filterCounts[type] & 0xFFFFFFFF;
-        if(countFilter) {
-            // We have at least one filter that is registered to
-            // this message type
-            ocrStatsFilter_t **myFilters =  dst->filters[type];
-            while(countFilter-- > 0) {
-                DPRINTF(DEBUG_LVL_VVERB, "Sending message 0x%lx to filter 0x%lx\n",
-                        (u64)msg, (u64)myFilters[countFilter]);
-                myFilters[countFilter]->fctPtrs->notify(myFilters[countFilter], msg);
-            }
-        }
-        if(msg->state == 1) {
-            msg->state = 2;
-        } else {
-            ASSERT(msg->state == 0);
-            msg->fctPtrs->destruct(msg);
-        }
-        return 1;
-    } else {
-        return 0;
-    }
-}
 #endif /* OCR_ENABLE_STATISTICS */
+
+

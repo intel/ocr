@@ -19,6 +19,8 @@
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
+struct _ocrPolicyDomain_t;
+
 /**
  * @defgroup ocrStats Statistics collection framework
  *
@@ -190,7 +192,7 @@ typedef struct _ocrStatsMessage_t {
                         * 2: done with processing and tick updated
                         */
     // Function pointers
-    ocrStatsMessageFcts_t *fctPtrs;
+    ocrStatsMessageFcts_t fcts;
 } ocrStatsMessage_t;
 
 
@@ -268,7 +270,7 @@ typedef struct _ocrStatsFilter_t {
     struct _ocrStatsFilter_t *parent;
 
     // Functions
-    ocrStatsFilterFcts_t *fctPtrs;
+    ocrStatsFilterFcts_t fcts;
 } ocrStatsFilter_t;
 
 /**
@@ -305,14 +307,14 @@ typedef struct _ocrStatsFcts_t {
      */
     void (*destruct)(struct _ocrStats_t* self);
 
-    ocrStatsMessage_t* (*createMessage)(struct _ocrStats_t* self, ocrStatsEvt_t type,
-                                        u64 tick, ocrGuid_t src, ocrGuid_t dest,
-                                        ocrStatsParam_t* instanceArg);
+    void (*setContainingPD)(struct _ocrPolicyDomain_t* pd);
     
+    ocrStatsMessage_t* (*createMessage)(struct _ocrStats_t* self, ocrStatsEvt_t type,
+                                        ocrGuid_t src, ocrGuid_t dest,
+                                        ocrStatsParam_t* instanceArg);
     void (*destructMessage)(struct _ocrStats_t *self, ocrStatsMessage_t* messsage);
 
-    void(*createStatsProcess)(struct _ocrStats_t *self, ocrGuid_t processGuid,
-                              ocrStatsProcess_t *process);
+    ocrStatsProcess_t* (*createStatsProcess)(struct _ocrStats_t *self, ocrGuid_t processGuid);
     void (*destructStatsProcess)(struct _ocrStats_t *self, ocrStatsProcess_t *process);
 
     ocrStatsFilter_t* (*getFilter)(struct _ocrStats_t *self, struct _ocrStats_t *requester,
@@ -332,8 +334,8 @@ typedef struct _ocrStats_t {
 /****************************************************/
 
 typedef struct _ocrStatsFactory_t {
-    struct _ocrStats_t * (*instantiate)(struct _ocrStatsFactory_t * factory,
-                                        ocrParamList_t *instanceArg);
+    ocrStats_t * (*instantiate)(struct _ocrStatsFactory_t * factory,
+                                ocrParamList_t *instanceArg);
 
     void (*destruct)(struct _ocrStatsFactory_t * factory);
 
@@ -341,30 +343,9 @@ typedef struct _ocrStatsFactory_t {
 } ocrStatsFactory_t;
 
 /****************************************************/
-/* SUPPORT FUNCTIONS (should only be used in        */
-/* statistics implementations)                      */
+/* SUPPORT FUNCTIONS (used by rest of runtime       */
 /****************************************************/
 
-/**
- * @brief Register a filter to respond to the messages
- * indicated by the bit mask
- *
- * When a process receives a "message" (in Lamport terminology),
- * it will inform all the filters registered with the type of message
- * received and then free the message. Messages will always be passed in
- * order to the filters but there is no guarantee as to what order
- * the filters will receive the messages
- *
- * @param self      The ocrStatsProcess_t to register with
- * @param bitMask   Bitmask of ocrStatsEvt_t that filter responds to
- * @param filter    Filter to pass the message to
- *
- * @warn A filter should be registered to AT MOST one process
- * @warn Filter registration is not "thread-safe" so it should be done
- * only on process creation
- */
-void ocrStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
-                                   ocrStatsFilter_t *filter);
 
 /**
  * @brief Send a one-way message to dst
@@ -381,7 +362,6 @@ void ocrStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
  * @param dst       ocrStatsProcess_t reciving the message
  * @param msg       ocrStatsMessage_t sent
  */
-
 void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
                           ocrStatsMessage_t *msg);
 

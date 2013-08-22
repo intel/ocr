@@ -13,7 +13,7 @@
 #ifndef __STATISTICS_MACROS_H__
 #define __STATISTICS_MACROS_H__
 
-#define DEBUG_TYPE OCR_DEBUG_STATS
+#define DEBUG_TYPE STATS
 
 #include "debug.h"
 #include "ocr-statistics.h"

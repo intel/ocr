@@ -1,5 +1,5 @@
 /**
- * @brief OCR memory allocators
+ * @brief OCR statistics providers
  **/
 
 /*
@@ -8,38 +8,41 @@
  * removed or modified.
  */
 
+#ifdef OCR_ENABLE_STATISTICS
 
-#ifndef __ALLOCATOR_ALL_H__
-#define __ALLOCATOR_ALL_H__
+#ifndef __STATISTICS_ALL_H__
+#define __STATISTICS_ALL_H__
 
 #include "debug.h"
-#include "ocr-allocator.h"
+#include "ocr-statistics.h"
 #include "ocr-utils.h"
 
-typedef enum _allocatorType_t {
-    allocatorTlsf_id,
-    allocatorMax_id
-} allocatorType_t;
+typedef enum _statisticsType_t {
+    statisticsDefault_id,
+    statisticsMax_id
+} statisticsType_t;
 
-const char * allocator_types[] = {
-    "tlsf",
+const char * statistics_types[] = {
+    "default",
     NULL
 };
 
-// TLSF allocator
-#include "allocator/tlsf/tlsf-allocator.h"
+// Default statistics provider
+#include "statistics/default/default-statistics.h"
 
-// Add other allocators using the same pattern as above
+// Add other statistics provider using the same pattern as above
 
-inline ocrAllocatorFactory_t *newAllocatorFactory(allocatorType_t type, ocrParamList_t *typeArg) {
+inline ocrStatsFactory_t *newStatsFactory(statisticsType_t type, ocrParamList_t *typeArg) {
     switch(type) {
-    case allocatorTlsf_id:
-        return newAllocatorFactoryTlsf(typeArg);
-    case allocatorMax_id:
+    case statisticsDefault_id:
+        return newStatsFactoryDefault(typeArg);
+    case statisticsMax_id:
     default:
         ASSERT(0);
         return NULL;
     };
 }
 
-#endif /* __ALLOCATOR_ALL_H__ */
+#endif /* __STATISTICS_ALL_H__ */
+
+#endif /* OCR_ENABLE_STATISTICS */

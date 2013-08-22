@@ -56,7 +56,7 @@ typedef struct ocrTaskTemplateFcts_t {
 typedef struct _ocrTaskTemplate_t {
     ocrGuid_t guid; /**< GUID for this task template */
 #ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcess_t statProcess;
+    ocrStatsProcess_t *statProcess;
 #endif
     u32 paramc;
     u32 depc;
@@ -114,7 +114,7 @@ typedef struct _ocrTaskFcts_t {
 typedef struct _ocrTask_t {
     ocrGuid_t guid; /**< GUID for this task (EDT) */
 #ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcess_t statProcess;
+    ocrStatsProcess_t *statProcess;
 #endif
     ocrGuid_t templateGuid; /**< GUID for the template of this task */
     u32 paramc;

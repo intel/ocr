@@ -111,7 +111,7 @@ typedef struct _ocrDataBlockFcts_t {
 typedef struct _ocrDataBlock_t {
     ocrGuid_t guid; /**< The guid of this data-block */
 #ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcess_t statProcess;
+    ocrStatsProcess_t *statProcess;
 #endif
     ocrGuid_t allocator;    /**< Allocator that created this data-block */
     ocrGuid_t allocatorPD;  /**< Policy domain of the creating allocator */

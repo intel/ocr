@@ -54,30 +54,35 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t * stats = policy->getStats(policy);
     // Create the statistics process for this DB.
-    stats->fctPtrs->createStatsProcess(stats, *db,
-                                       &(createdDb->statProcess));
+    createdDb->statProcess = stats->fctPtrs->createStatsProcess(stats, *db);
 #endif
 
         ocrGuid_t edtGuid = getCurrentEDT();
 #ifdef OCR_ENABLE_STATISTICS
     {
-        ocrTask_t *task = NULL;
-        deguidify(policy, edtGuid, (u64*)&task, NULL);
-        ocrStatsProcess_t *srcProcess = edtGuid==0?NULL:&(task->statProcess);
-        statsParamDb_t params = {.offset = 0, .size = len,
-                                 .isWrite = 1};
+        if(edtGuid) {
+            ocrTask_t *task = NULL;
+            deguidify(policy, edtGuid, (u64*)&task, NULL);
+            ocrStatsProcess_t *srcProcess = task->statProcess;
+            statsParamDb_t params = {.offset = 0, .size = len,
+                                     .isWrite = 1};
         
-        ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
-            stats, STATS_DB_CREATE, 0, edtGuid, createdDb->guid,
-            (ocrStatsParam_t*)&params);
+            ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
+                stats, STATS_DB_CREATE, edtGuid, createdDb->guid,
+                (ocrStatsParam_t*)&params);
         
-        ocrStatsAsyncMessage(srcProcess, &(createdDb->statProcess), mess);
+            ocrStatsAsyncMessage(srcProcess, createdDb->statProcess, mess);
         
-        // Acquire part
-        *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);
-        ocrStatsMessage_t *mess2 = stats->fctPtrs->createMessage(
-            stats, STATS_DB_ACQ, 0, edtGuid, createdDb->guid, (ocrStatsParam_t*)&params);
-        ocrStatsSyncMessage(srcProcess, &(createdDb->statProcess), mess2);
+            // Acquire part
+            *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);
+            ocrStatsMessage_t *mess2 = stats->fctPtrs->createMessage(
+                stats, STATS_DB_ACQ, edtGuid, createdDb->guid, (ocrStatsParam_t*)&params);
+            ocrStatsSyncMessage(srcProcess, createdDb->statProcess, mess2);
+        } else {
+            // This happens during the packing of the arguments for the first EDT.
+            // We ignore this
+            *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);            
+        }
     }
 #else
         *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);
@@ -118,11 +123,11 @@ u8 ocrDbDestroy(ocrGuid_t db) {
         deguidify(policy, edtGuid, (u64*)&task, NULL);
         deguidify(policy, db, (u64*)&dataBlock, NULL);
 
-        ocrStatsProcess_t *srcProcess = edtGuid==0?NULL:&(task->statProcess);
+        ocrStatsProcess_t *srcProcess = task->statProcess;
 
         ocrStatsMessage_t *mess = policy->getStats(policy)->fctPtrs->createMessage(
-            policy->getStats(policy), STATS_DB_DESTROY, 0, edtGuid, db, NULL);
-        ocrStatsAsyncMessage(srcProcess, &(dataBlock->statProcess), mess);
+            policy->getStats(policy), STATS_DB_DESTROY, edtGuid, db, NULL);
+        ocrStatsAsyncMessage(srcProcess, dataBlock->statProcess, mess);
     }
 #endif
     // Make sure you do the free *AFTER* sending the message because the free could
@@ -144,15 +149,15 @@ u8 ocrDbAcquire(ocrGuid_t db, void** addr, u16 flags) {
         ocrTask_t *task = NULL;
         deguidify(policy, edtGuid, (u64*)&task, NULL);
 
-        ocrStatsProcess_t *srcProcess = edtGuid==0?NULL:&(task->statProcess);
+        ocrStatsProcess_t *srcProcess = task->statProcess;
 
         statsParamDb_t params = {.offset = 0, .size = dataBlock->size,
                                  .isWrite = 1};
 
         ocrStatsMessage_t *mess = policy->getStats(policy)->fctPtrs->createMessage(
-            policy->getStats(policy), STATS_DB_ACQ, 0, edtGuid, db,
+            policy->getStats(policy), STATS_DB_ACQ, edtGuid, db,
             (ocrStatsParam_t*)&params);
-        ocrStatsSyncMessage(srcProcess, &(dataBlock->statProcess), mess);
+        ocrStatsSyncMessage(srcProcess, dataBlock->statProcess, mess);
     }
 #endif
     if(*addr == NULL) return EPERM;
@@ -173,16 +178,16 @@ u8 ocrDbRelease(ocrGuid_t db) {
 
         deguidify(policy, edtGuid, (u64*)&task, NULL);
 
-        ocrStatsProcess_t *srcProcess = edtGuid==0?NULL:&(task->statProcess);
+        ocrStatsProcess_t *srcProcess = task->statProcess;
 
         statsParamDb_t params = {.offset = 0, .size = dataBlock->size,
                                  .isWrite = 0};
 
         ocrStatsMessage_t *mess = policy->getStats(policy)->fctPtrs->createMessage(
-            policy->getStats(policy), STATS_DB_REL, 0, edtGuid, db,
+            policy->getStats(policy), STATS_DB_REL, edtGuid, db,
             (ocrStatsParam_t*)&params);
         
-        ocrStatsAsyncMessage(srcProcess, &(dataBlock->statProcess), mess);
+        ocrStatsAsyncMessage(srcProcess, dataBlock->statProcess, mess);
     
         return result;
     }
