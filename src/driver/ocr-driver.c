@@ -95,7 +95,7 @@ char **factory_names[sizeof(type_str)/sizeof(const char *)];        // ~9 differ
 ocrParamList_t **inst_params[sizeof(inst_str)/sizeof(const char *)];
 
 void bringUpRuntime(const char *inifile) {
-    int i, j, count, nsec;
+    int i, j, count=0, nsec;
     dictionary *dict = iniparser_load(inifile);
 
 

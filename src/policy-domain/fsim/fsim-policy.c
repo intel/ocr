@@ -242,7 +242,7 @@ static u8 fsimAllocateDb(ocrPolicyDomain_t *self, ocrGuid_t *guid, void** ptr, u
 
     // Currently a very simple model of just going through all allocators
     u64 i;
-    void* result;
+    void* result = NULL;
     for(i=0; i < self->allocatorCount; ++i) {
         result = self->allocators[i]->fctPtrs->allocate(self->allocators[i],
                                                         size);
