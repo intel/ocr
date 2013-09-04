@@ -4,28 +4,40 @@
  * removed or modified.
  */
 
-#include <stdio.h>
+#define OCR_ENABLE_STATISTICS 1
+#define OCR_ENABLE_PROFILING_STATISTICS 1
+
+#define __OCR__
+#include "compat.h"
+
+#include "ocr-stathooks.h"
+
 #include <stdlib.h>
-#include "ocr.h"
 
-#define FLAGS 0xdead
+#define FLAGS DB_PROP_NONE
 
-ocrGuid_t mainEdt ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    printf("Hello !\n");
-    void *mem_db;
+ocrGuid_t mainEdt (u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+    _threadInstrumentOn = 1;
+    PRINTF("Starting MainEDT\n");
+
+    PTR_T memDb;
+    ocrGuid_t memGuid;
     ocrGuid_t mem_guid, mem_affinity;
-    ocrDbCreate( &mem_guid, &mem_db, 100, FLAGS, mem_affinity, NO_ALLOC );
 
+    DBCREATE(&memGuid, &memDb, sizeof(u64)*10, FLAGS, NULL_GUID, NO_ALLOC);
+    
     int i;
-    char *buf = (char*)malloc(10*sizeof(char));
+    u64* buf = (u64*)malloc(10*sizeof(u64));
     for(i = 0; i < 10; i++)
-	    buf[i] = i;
+        buf[i] = i;
 
-    int *ptr = (int*)mem_db;
-    ptr[0] = 109;
-    ptr[1] = 101;
+    u64 *ptr = (u64*)memDb;
+    ptr[0] = (u64)paramc;
+    ptr[1] = (u64)depc;
 
-    int j = ptr[0];
+    u64 j = ptr[3];
     ocrShutdown();
-    return 0;
+    return NULL_GUID;
 }
+
+

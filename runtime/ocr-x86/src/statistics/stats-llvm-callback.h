@@ -13,6 +13,7 @@
 #include "ocr-task.h"
 #include "ocr-types.h"
 
+/*
 typedef struct _memTable_t {
     ocrGuid_t guid;
     void *addr;
@@ -24,6 +25,7 @@ typedef struct _memTable_t {
 void _statsAddQueue(ocrGuid_t *db, void* addr, u64 len, ocrTask_t *task);
 
 memTable_t* _statsIsAddrPresent(void* addr);
+*/
 
 extern void PROFILER_ocrStatsLoadCallback(void* address, u64 size, u64 instrCount); 
 extern void PROFILER_ocrStatsStoreCallback(void* address, u64 size, u64 instrCount); 

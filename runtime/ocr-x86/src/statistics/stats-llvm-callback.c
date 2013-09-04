@@ -5,7 +5,20 @@
  */
 
 #ifdef OCR_ENABLE_STATISTICS
+#ifdef OCR_ENABLE_PROFILING_STATISTICS
 
+#include "ocr-types.h"
+#include "statistics/stats-llvm-callback.h"
+
+#include <stdio.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    __thread uint64_t _threadInstructionCount = 0ULL;
+    __thread uint8_t _threadInstrumentOn = 0;
+/*
 #include "ocr-task.h"
 #include "ocr-policy-domain.h"
 #include "ocr-policy-domain-getter.h"
@@ -98,4 +111,22 @@ void statsBuildAddressTableCallback(void){
     printf("address build table called\n");
 }
 
+*/
+
+    void PROFILER_ocrStatsLoadCallback(void* address, u64 size, u64 count) {
+        printf("Callback from loading 0x%lx of size %ld @ instr %ld\n",
+               (uint64_t)address, size, _threadInstructionCount + count);
+    }
+
+    void PROFILER_ocrStatsStoreCallback(void* address, u64 size, u64 count) {
+        printf("Callback from storing 0x%lx of size %ld @ instr %ld\n",
+               (uint64_t)address, size, _threadInstructionCount + count);
+
+    }
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* OCR_ENABLE_PROFILING_STATISTICS */
 #endif /* OCR_ENABLE_STATISTICS */

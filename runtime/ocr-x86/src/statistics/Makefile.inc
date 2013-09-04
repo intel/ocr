@@ -4,8 +4,8 @@ libocr_la_LIBADD += libocr_statistics.la
 
 libocr_statistics_la_SOURCES = \
 statistics/ocr-statistics.c \
-statistics/internal.c
-#statistics/stats-llvm-callback.c
+statistics/internal.c \
+statistics/stats-llvm-callback.c
 
 libocr_statistics_la_CFLAGS =  $(AM_CFLAGS)
 

@@ -5,7 +5,6 @@ OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/s
 
 # cflags: important to define that otherwise we inherit default values too
 CFLAGS = -Wall -g -O0
-#CFLAGS +=-DOCR_ENABLE_STATISTICS
 
 # Debug flags
 
@@ -37,6 +36,9 @@ CFLAGS += -DOCR_DEBUG_WORKPILE
 
 # Enable statistics with this
 CFLAGS += -DOCR_ENABLE_STATISTICS
+# This adds statistics for LD/STs and requires compiling
+# the user code with the OCRStats LLVM pass
+CFLAGS += -DOCR_ENABLE_PROFILING_STATISTICS
 
 # additional cflags for ocr modules
 OCR_CFLAGS =

@@ -1,7 +1,14 @@
 PROG=ocr-stat-test
-CFLAGS=-O0 -g -Werror
-OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr
+CFLAGS=-O0 -g -Werror 
+IFLAGS=-I${OCR_INSTALL}/include
+LFLAGS=-L${OCR_INSTALL}/lib -locr
+
 OCR_HEADER= -I${OCR_INSTALL}/../src/inc
+# Change to match your environment. Default is that clang/opt/llc are in your path
+CLANG=clang
+OPT=opt
+LLC=llc
+STATS_PASS=../../scripts/StatsPass/OCRStatsPass.so
 
 ifndef OCR_INSTALL
 $(error OCR_INSTALL not set)
@@ -16,15 +23,16 @@ OCR_RUN_FLAGS=-ocr:cfg ${OCR_CONFIG}
 
 all-test: compile 
 
-compile:
-	~/llvm/install/bin/clang  $(OCR_HEADER)  $(OCR_FLAGS) -I. callback.c -c
-	~/llvm/install/bin/clang $(PROG).c $(OCR_FLAGS) -I. -emit-llvm -c -o $(PROG).bc 
-	~/llvm/install/bin/opt -load ~/llvm/Debug+Asserts/lib/LLVMMem.so -mem < $(PROG).bc > ocr-stat-test_out.bc 
-	~/llvm/install/bin/llc ocr-stat-test_out.bc -o $(PROG).s
-	gcc -g  $(OCR_FLAGS) $(PROG).s callback.o -o $(PROG)
+%.o:%.c Makefile
+	$(CLANG) $(CFLAGS) $(IFLAGS) -I. -c $*.c -emit-llvm -o $*.bc
+	$(OPT) -load $(STATS_PASS) -OCRStats < $*.bc > $*_pass.bc
+	$(CLANG) $(CFLAGS) -c $*_pass.bc -o $*.o
+
+compile: $(PROG).o
+	$(CLANG) $(LFLAGS) $(PROG).o -o $(PROG).exe
 
 run:
 	./$(PROG).exe $(OCR_RUN_FLAGS)
 
 clean:
-	-rm -Rf *.o $(PROG)
+	-rm -Rf *.o *.exe *.bc

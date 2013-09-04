@@ -82,6 +82,7 @@ namespace {
             MDNode* blockInfo = NULL;
             uint64_t instrCount = 0;
             unsigned char skipInstructions = 0;
+            unsigned char skipAndCountInstructions = 0;
             unsigned char blockType = 'n';
 
             blockInfo = bb->front().getMetadata("OCRP");
@@ -90,7 +91,8 @@ namespace {
                 ConstantInt* mdValue = cast<ConstantInt>(blockInfo->getOperand(0));
                 uint64_t v = mdValue->getValue().getZExtValue();
                 blockType = (v & 0xFF);
-                skipInstructions = (v & 0xFF00) >> 7;
+                skipInstructions = (v & 0xFF00) >> 8;
+                skipAndCountInstructions = (v & 0xFF0000) >> 16;
                 instrCount = (v >> 24);
             }
 
@@ -98,14 +100,17 @@ namespace {
             case 'n': /* normal block */
                 assert(instrCount == 0 && "Instruction count not zero at start of normal block");
                 assert(skipInstructions == 0 && "Normal blocks should have no instructions to skip");
+                assert(skipAndCountInstructions == 0 && "Normal blocks should have no instructions to skip");
                 assert(!(bb->getName().startswith("OCRP")) && "Unexpected special block");
                 break;
             case 'p': /* profiling block */
                 assert(bb->getName().startswith("OCRP_PB") && "Expected a profiling block");
-                assert(skipInstructions == 0 && "Profiling blocks should have not instructions to skip");
+                assert(skipInstructions == 0 && skipAndCountInstructions == 0
+                       && "Profiling blocks should have not instructions to skip");
                 break;
             case 'f': /* fallthrough block */
                 assert(bb->getName().startswith("OCRP_FT") && "Expected a fall-through block");
+                break;
             default:
                 assert(0 && "Unexpected block type");
             };
@@ -114,6 +119,11 @@ namespace {
 
                 if(skipInstructions) {
                     --skipInstructions;
+                    continue;
+                }
+                if(skipAndCountInstructions) {
+                    ++instrCount;
+                    --skipAndCountInstructions;
                     continue;
                 }
 
@@ -164,7 +174,7 @@ namespace {
                     }
                     break;
                 }
-
+                
                 if(breakForLoop) {
                     // This means that we inserted a profiling block and therefore we need
                     // to stop looking at this block (as the iterator is no longer valid)
@@ -193,12 +203,14 @@ namespace {
         t = curModule->getOrInsertGlobal("_threadInstructionCount", Type::getInt64Ty(M.getContext()));
         assert(isa<GlobalVariable>(t) && "_threadInstructionCount of the wrong type");
         InstructionCount_global = cast<GlobalVariable>(t);
-        assert(InstructionCount_global->isThreadLocal() && "_threadInstructionCount not thread local");
+        InstructionCount_global->setThreadLocal(true);
+        //assert(InstructionCount_global->isThreadLocal() && "_threadInstructionCount not thread local");
         
         t = curModule->getOrInsertGlobal("_threadInstrumentOn", Type::getInt8Ty(M.getContext()));
         assert(isa<GlobalVariable>(t) && "_threadInstrumentOn of the wrong type");
         InstrumentOn_global = cast<GlobalVariable>(t);
-        assert(InstrumentOn_global->isThreadLocal() && "_threadInstrumentOn not thread local");
+        InstrumentOn_global->setThreadLocal(true);
+        //assert(InstrumentOn_global->isThreadLocal() && "_threadInstrumentOn not thread local");
         
         //create functions
         std::vector<Type*> argTypes;                                                               
@@ -334,7 +346,7 @@ namespace {
     bool OCRStatsPass::insertProfilerStore(BasicBlock *block, uint64_t instrCount, BasicBlock::iterator i) {
         Instruction *instr = &*i;
 
-        Value *storeLocation = instr->getOperand(LoadInst::getPointerOperandIndex());
+        Value *storeLocation = instr->getOperand(StoreInst::getPointerOperandIndex());
 
         // Make sure that this is not one of the globals or stack allocated thing
         if(isIgnoredGlobal(storeLocation) || isAlloca(storeLocation)) return false;
