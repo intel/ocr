@@ -1,33 +1,8 @@
-/* Copyright (c) 2012, Rice University
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-1.  Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-2.  Redistributions in binary form must reproduce the above
-     copyright notice, this list of conditions and the following
-     disclaimer in the documentation and/or other materials provided
-     with the distribution.
-3.  Neither the name of Intel Corporation
-     nor the names of its contributors may be used to endorse or
-     promote products derived from this software without specific
-     prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-*/
+/*
+ * This file is subject to the license agreement located in the file LICENSE
+ * and cannot be distributed without it. This notice cannot be
+ * removed or modified.
+ */
 
 #include "ocr.h"
 #include "math.h"
@@ -61,11 +36,11 @@ void sequential_cholesky_task ( size_t n_dbs, const std::vector<ocrGuid_t>& dbs 
             lBlock[ kB ][ kB ] = sqrt( aBlock[ kB ][ kB ] );
         }
 
-        for(jB = kB + 1; jB < tileSize ; ++jB ) 
+        for(jB = kB + 1; jB < tileSize ; ++jB )
             lBlock[ jB ][ kB ] = aBlock[ jB ][ kB ] / lBlock[ kB ][ kB ];
 
-        for(jBB= kB + 1; jBB < tileSize ; ++jBB ) 
-            for(iB = jBB ; iB < tileSize ; ++iB ) 
+        for(jBB= kB + 1; jBB < tileSize ; ++jBB )
+            for(iB = jBB ; iB < tileSize ; ++iB )
                 aBlock[ iB ][ jBB ] -= lBlock[ iB ][ kB ] * lBlock[ jBB ][ kB ];
     }
 
@@ -87,7 +62,7 @@ void trisolve_task ( size_t n_dbs, const std::vector<ocrGuid_t>& dbs ) {
     int tileSize = (int) func_args[2];
     ocrGuid_t out_lkji_jkkp1_event_guid = (ocrGuid_t) func_args[3];
     ocrGuid_t*** lkji_db = (ocrGuid_t***) func_args[4];
-    
+
     ocr::Data* aBlock_db = (ocr::Data*) deguidify(dbs[0]);
     double** aBlock = (double**) aBlock_db;
 
@@ -127,7 +102,7 @@ void update_diagonal_task ( size_t n_dbs, const std::vector<ocrGuid_t>& dbs ) {
     int tileSize = (int) func_args[3];
     ocrGuid_t out_lkji_jjkp1_event_guid = (ocrGuid_t) func_args[4];
     ocrGuid_t*** lkji_db = (ocrGuid_t***) func_args[5];
-    
+
     ocr::Data* aBlock_db = (ocr::Data*) deguidify(dbs[0]);
     double** aBlock = (double**) aBlock_db;
 
@@ -137,7 +112,7 @@ void update_diagonal_task ( size_t n_dbs, const std::vector<ocrGuid_t>& dbs ) {
     for( jB = 0; jB < tileSize ; ++jB ) {
         for( kB = 0; kB < tileSize ; ++kB ) {
             temp = 0 - l2Block[ jB ][ kB ];
-            for( iB = jB; iB < tileSize; ++iB ) 
+            for( iB = jB; iB < tileSize; ++iB )
                 aBlock[ iB ][ jB ] += temp * l2Block[ iB ][ kB ];
         }
     }
@@ -175,7 +150,7 @@ void update_nondiagonal_task ( size_t n_dbs, const std::vector<ocrGuid_t>& dbs )
     for( jB = 0; jB < tileSize ; ++jB ) {
         for( kB = 0; kB < tileSize ; ++kB ) {
             temp = 0 - l2Block[ jB ][ kB ];
-            for( iB = 0; iB < tileSize ; ++iB ) 
+            for( iB = 0; iB < tileSize ; ++iB )
                 aBlock[ iB ][ jB ] += temp * l1Block[ iB ][ kB ];
         }
     }
@@ -191,7 +166,7 @@ void update_nondiagonal_task ( size_t n_dbs, const std::vector<ocrGuid_t>& dbs )
 void wrap_up_task ( size_t n_dbs, const std::vector<ocrGuid_t>& dbs ) {
     int i, j, k, i_b, j_b;
     double** temp;
-	FILE* out = fopen("cholesky.out", "w");
+        FILE* out = fopen("cholesky.out", "w");
 
     ocr::Data* func_args_db = (ocr::Data*) deguidify(dbs[1]);
     intptr_t *func_args = (intptr_t *)func_args_db;
@@ -199,88 +174,88 @@ void wrap_up_task ( size_t n_dbs, const std::vector<ocrGuid_t>& dbs ) {
     int tileSize = (int) func_args[1];
     ocrGuid_t*** lkji_db = (ocrGuid_t***) func_args[2];
 
-	for ( i = 0; i < numTiles; ++i ) {
-		for( i_b = 0; i_b < tileSize; ++i_b) {
-			k = 1;
-			for ( j = 0; j <= i; ++j ) {
-				temp = (double**) (ocr::Data*) deguidify(lkji_db[i][j][k]);
-				if(i != j) {
-					for(j_b = 0; j_b < tileSize; ++j_b) {
-						fprintf( out, "%lf ", temp[i_b][j_b]);
-					}
-				} else {
-					for(j_b = 0; j_b <= i_b; ++j_b) {
-						fprintf( out, "%lf ", temp[i_b][j_b]);
-					}
-				}
-				++k;
-			}
-		}
-	}
-    ocrFinish();
+        for ( i = 0; i < numTiles; ++i ) {
+                for( i_b = 0; i_b < tileSize; ++i_b) {
+                        k = 1;
+                        for ( j = 0; j <= i; ++j ) {
+                                temp = (double**) (ocr::Data*) deguidify(lkji_db[i][j][k]);
+                                if(i != j) {
+                                        for(j_b = 0; j_b < tileSize; ++j_b) {
+                                                fprintf( out, "%lf ", temp[i_b][j_b]);
+                                        }
+                                } else {
+                                        for(j_b = 0; j_b <= i_b; ++j_b) {
+                                                fprintf( out, "%lf ", temp[i_b][j_b]);
+                                        }
+                                }
+                                ++k;
+                        }
+                }
+        }
+    ocrShutdown();
 }
 
 int main( int argc, char* argv[] ) {
     //TODO this should use the API to register function pointers
     ocrInit(argc, argv, 0, NULL);
 
-	int i, j, k, ii;
-	double **A, ** temp;
-	int A_i, A_j, T_i, T_j;
-	FILE *in;
-	int i_b, j_b;
+        int i, j, k, ii;
+        double **A, ** temp;
+        int A_i, A_j, T_i, T_j;
+        FILE *in;
+        int i_b, j_b;
 
-	int matrixSize = -1;
-	int tileSize = -1;
-	int numTiles = -1;
+        int matrixSize = -1;
+        int tileSize = -1;
+        int numTiles = -1;
 
-	if ( argc !=  4 ) {
-		printf("Usage: ./cholesky matrixSize tileSize fileName (found %d args)\n", argc);
-		return 1;
-	}
+        if ( argc !=  4 ) {
+                printf("Usage: ./cholesky matrixSize tileSize fileName (found %d args)\n", argc);
+                return 1;
+        }
 
-	matrixSize = atoi(argv[1]);
-	tileSize = atoi(argv[2]);
-	if ( matrixSize % tileSize != 0) {
-		printf("Incorrect tile size %d for the matrix of size %d \n", tileSize, matrixSize);
-		return 1;
-	}
+        matrixSize = atoi(argv[1]);
+        tileSize = atoi(argv[2]);
+        if ( matrixSize % tileSize != 0) {
+                printf("Incorrect tile size %d for the matrix of size %d \n", tileSize, matrixSize);
+                return 1;
+        }
 
-	numTiles = matrixSize/tileSize;
+        numTiles = matrixSize/tileSize;
 
-	ocrGuid_t*** lkji_events;
-	ocrGuid_t*** lkji_db;
+        ocrGuid_t*** lkji_events;
+        ocrGuid_t*** lkji_db;
 
-	lkji_events = (ocrGuid_t ***) malloc(sizeof(ocrGuid_t **)*numTiles);
-	lkji_db = (ocrGuid_t ***) malloc(sizeof(ocrGuid_t **)*numTiles);
-	for( i = 0 ; i < numTiles ; ++i ) {
-		lkji_events[i] = (ocrGuid_t **) malloc(sizeof(ocrGuid_t *)*(i+1));
-		lkji_db[i] = (ocrGuid_t **) malloc(sizeof(ocrGuid_t *)*(i+1));
-		for( j = 0 ; j <= i ; ++j ) {
-			lkji_events[i][j] = (ocrGuid_t *) malloc(sizeof(ocrGuid_t)*(numTiles+1));
-			lkji_db[i][j] = (ocrGuid_t *) malloc(sizeof(ocrGuid_t)*(numTiles+1));
-			for( k = 0 ; k <= numTiles ; ++k )
-				lkji_events[i][j][k] = eventFactory->create();
-		}
-	}
+        lkji_events = (ocrGuid_t ***) malloc(sizeof(ocrGuid_t **)*numTiles);
+        lkji_db = (ocrGuid_t ***) malloc(sizeof(ocrGuid_t **)*numTiles);
+        for( i = 0 ; i < numTiles ; ++i ) {
+                lkji_events[i] = (ocrGuid_t **) malloc(sizeof(ocrGuid_t *)*(i+1));
+                lkji_db[i] = (ocrGuid_t **) malloc(sizeof(ocrGuid_t *)*(i+1));
+                for( j = 0 ; j <= i ; ++j ) {
+                        lkji_events[i][j] = (ocrGuid_t *) malloc(sizeof(ocrGuid_t)*(numTiles+1));
+                        lkji_db[i][j] = (ocrGuid_t *) malloc(sizeof(ocrGuid_t)*(numTiles+1));
+                        for( k = 0 ; k <= numTiles ; ++k )
+                                lkji_events[i][j][k] = eventFactory->create();
+                }
+        }
 
-	in = fopen(argv[3], "r");
-	if( !in ) {
-		printf("Cannot find file: %s\n", argv[3]);
-		return 1;
-	}
+        in = fopen(argv[3], "r");
+        if( !in ) {
+                printf("Cannot find file: %s\n", argv[3]);
+                return 1;
+        }
 
-	A = (double**) malloc (sizeof(double*)*matrixSize);
-	for( i = 0; i < matrixSize; ++i)
-		A[i] = (double*) malloc(sizeof(double)*matrixSize);
+        A = (double**) malloc (sizeof(double*)*matrixSize);
+        for( i = 0; i < matrixSize; ++i)
+                A[i] = (double*) malloc(sizeof(double)*matrixSize);
 
-	for( i = 0; i < matrixSize; ++i ) {
-		for( j = 0; j < matrixSize-1; ++j )
-			fscanf(in, "%lf ", &A[i][j]);
-		fscanf(in, "%lf\n", &A[i][j]);
-	}
+        for( i = 0; i < matrixSize; ++i ) {
+                for( j = 0; j < matrixSize-1; ++j )
+                        fscanf(in, "%lf ", &A[i][j]);
+                fscanf(in, "%lf\n", &A[i][j]);
+        }
 
-	for( i = 0 ; i < numTiles ; ++i ) {
+        for( i = 0 ; i < numTiles ; ++i ) {
         for( j = 0 ; j <= i ; ++j ) {
             // Allocate memory for the tiles.
             temp = (double**) malloc (sizeof(double*)*tileSize);
@@ -301,7 +276,7 @@ int main( int argc, char* argv[] ) {
             lkji_db[i][j][0] = lkji_i_j_0_db_guid;
             lkji_events_i_j_0->put(lkji_i_j_0_db_guid, worker_guid);
         }
-	}
+        }
 
     for ( k = 0; k < numTiles; ++k ) {
         { // sequential_cholesky_task
@@ -324,7 +299,7 @@ int main( int argc, char* argv[] ) {
 
             taskFactory->create(sequential_cholesky_task, &el, worker_guid);
         }
-        
+
         for( j = k + 1 ; j < numTiles ; ++j ) {
             { // trisolve_task
                 ocr::EventList el;
@@ -421,5 +396,5 @@ int main( int argc, char* argv[] ) {
     }
 
     ocrCleanup();
-	return 0;
+        return 0;
 }

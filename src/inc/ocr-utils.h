@@ -1,72 +1,50 @@
-/* Copyright (c) 2012, Rice University
+/*
+ * This file is subject to the license agreement located in the file LICENSE
+ * and cannot be distributed without it. This notice cannot be
+ * removed or modified.
+ */
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-1.  Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-2.  Redistributions in binary form must reproduce the above
-     copyright notice, this list of conditions and the following
-     disclaimer in the documentation and/or other materials provided
-     with the distribution.
-3.  Neither the name of Intel Corporation
-     nor the names of its contributors may be used to endorse or
-     promote products derived from this software without specific
-     prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-*/
 
 #ifndef __OCR_UTILS_H__
 #define __OCR_UTILS_H__
 
 #include "ocr-types.h"
 
+// Forward declaration
+struct _ocrPolicyDomain_t;
+
 /******************************************************/
-/* LOGGING FACILITY                                   */
+/* PARAMETER LISTS                                    */
 /******************************************************/
 
-/*
- * Default logging output to stdout
+/**
+ * @brief Parameter list used to create factories and or instances (through the
+ * factories)
+ *
+ * This struct is meant to be "extended" with the parameters required for a
+ * particular function. This type is used in newXXXFactory() functions as well
+ * as the instantiate() functions in factories and allows us to have a single API
+ * for all instantiate functions thereby making it easy to instantiate multiple
+ * types of objects programatically
  */
-#define ocr_log_print(...) fprintf(stdout, __VA_ARGS__);
+typedef struct _ocrParamList_t {
+    u64 size;                   /**< Size of this parameter list (in bytes) */
+    struct _ocrPolicyDomain_t *policy;  /**< Policy domain for this factory/instance */
+    char* misc;                 /**< Miscellaneous arguments (NULL terminated string) */
+} ocrParamList_t;
 
-/*
- * List of components you can enable / disable logging
- */
-#define LOGGER_WORKER 1
+#define ALLOC_PARAM_LIST(result, type)                  \
+    do {                                                \
+        result = (ocrParamList_t *) calloc(1, sizeof(type));          \
+        ocrParamList_t *_t = (ocrParamList_t*)result;   \
+        _t->size = (u64)sizeof(type);                   \
+    } while(0);
 
-/*
- * Loggers levels
- */
-#define LOG_LEVEL_INFO 1
-
-/*
- * Current logging level
- */
-#define LOG_LEVEL_CURRENT 0
-
-#define ocr_log(type, level, fmt, ...) \
-    if ((LOGGER_ ## type) && ((LOG_LEVEL_ ## level) <= LOG_LEVEL_CURRENT)) \
-        { ocr_log_print(fmt, __VA_ARGS__);}
-
-/*
- * Convenience macro to log worker-related events
- */
-#define log_worker(level, fmt, ...) ocr_log(WORKER, level, fmt, __VA_ARGS__)
-
+#define INIT_PARAM_LIST(var, type)                      \
+    do {                                                \
+    ocrParamList_t *_t = (ocrParamList_t*)&var;         \
+    _t->size = sizeof(type);                            \
+    } while(0);
 
 /******************************************************/
 /*  ABORT / EXIT OCR                                  */
@@ -181,4 +159,15 @@ u32 ocrGuidTrackerIterateAndClear(ocrGuidTracker_t *self);
  * @return ID for the slot in the tracker or 64 if the GUID is not found
  */
 u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind);
+
+typedef struct ocrPlaceTrackerStruct_t {
+    u64 existInPlaces;
+} ocrPlaceTracker_t;
+
+void ocrPlaceTrackerAllocate ( ocrPlaceTracker_t** toFill );
+void ocrPlaceTrackerInsert ( ocrPlaceTracker_t* self, unsigned char currPlaceID );
+void ocrPlaceTrackerRemove ( ocrPlaceTracker_t* self, unsigned char currPlaceID );
+void ocrPlaceTrackerInit ( ocrPlaceTracker_t* self );
+
+
 #endif /* __OCR_UTILS_H__ */

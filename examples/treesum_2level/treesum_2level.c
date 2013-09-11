@@ -1,38 +1,14 @@
 /**
  * @brief Simple "hello-world" example for OCR showing a parallel
  * sum of 4 elements.
- *
- * @authors Romain Cledat, Intel Corporation
- * @date 2012-11-12
- *
- * Copyright (c) 2012, Intel Corporation
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *    1. Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *    2. Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the
- *       distribution.
- *    3. Neither the name of Intel Corporation nor the names
- *       of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written
- *       permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ **/
+
+/*
+ * This file is subject to the license agreement located in the file LICENSE
+ * and cannot be distributed without it. This notice cannot be
+ * removed or modified.
  */
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +16,7 @@
 #include "ocr.h"
 
 /* Do the addition */
-u8 summer(u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t summer(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     int *result;
     ocrGuid_t resultGuid;
 
@@ -51,7 +27,7 @@ u8 summer(u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]
     ocrGuid_t *evt = (ocrGuid_t*)depv[2].ptr;
 
     /* Create data-block to put result */
-    ocrDbCreate(&resultGuid, (void**)&result, sizeof(int), /*flags=*/0, /*location=*/NULL, NO_ALLOC);
+    ocrDbCreate(&resultGuid, (void**)&result, sizeof(int), /*flags=*/0, /*location=*/NULL_GUID, NO_ALLOC);
     *result = *n1 + *n2;
 
     /* Say hello */
@@ -62,39 +38,29 @@ u8 summer(u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]
     /* Satisfy whomever is waiting on me */
     ocrEventSatisfy(*evt, resultGuid);
 
-    /* Free inputs */
-    ocrDbDestroy(depv[0].guid);
-    ocrDbDestroy(depv[1].guid);
-    ocrDbDestroy(depv[2].guid);
-    return 0;
+    return NULL_GUID;
 }
 
 /* Print the result */
-u8 autumn(u32 paramc, u64 * params, void* paramv[], u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t autumn(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     int * result = (int*)depv[0].ptr;
 
     printf("Got result: %d (0x%lx)\n", *result, (u64)depv[0].guid);
 
-    /* Destroy the input data-block */
-    ocrDbDestroy(depv[0].guid);
-
     /* Last codelet to execute */
-    ocrFinish();
-    return 0;
+    ocrShutdown();
+    return NULL_GUID;
 }
 
 
-int main (int argc, char ** argv) {
-    ocrEdt_t fctPtrArray[2] = {summer, autumn};
-    ocrInit(&argc, argv, 2, fctPtrArray);
-
+ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     /* Create 4 data-blocks */
     ocrGuid_t dbs[4];
     int *data[4];
     int i;
     for(i = 0; i < 4; ++i) {
         ocrDbCreate(&dbs[i], (void**)&data[i], sizeof(int), /*flags=*/0,
-                    /*location=*/NULL, NO_ALLOC);
+                    /*location=*/NULL_GUID, NO_ALLOC);
         *(data[i]) = i;
         printf("Created a data-block with value %d (0x%lx)\n", i, (u64)dbs[i]);
     }
@@ -105,19 +71,27 @@ int main (int argc, char ** argv) {
     ocrGuid_t *summer1EvtDb, *summer2EvtDb, *summer3EvtDb;
 
     /* Create final EDT (autumn) */
-    ocrEdtCreate(&autumnEdt, autumn, /*paramc=*/0, /*params=*/NULL,
-                 /*paramv=*/NULL, /*properties=*/0, /*depc=*/1, /*depv=*/NULL);
+    ocrGuid_t autumnEdtTemplateGuid;
+    ocrEdtTemplateCreate(&autumnEdtTemplateGuid, autumn, 0/*paramc*/, 1/*depc*/);
+    ocrEdtCreate(&autumnEdt, autumnEdtTemplateGuid, /*paramc=*/EDT_PARAM_DEF,
+                 /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                 /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
     /* Create event */
     ocrEventCreate(&autumnEvt, OCR_EVENT_STICKY_T, true);
 
     /* Create summers */
-    ocrEdtCreate(&summer1Edt, summer, /*paramc=*/0, /*params=*/NULL,
-                 /*paramv=*/NULL, /*properties=*/0, /*depc=*/3, /*depv=*/NULL);
-    ocrEdtCreate(&summer2Edt, summer, /*paramc=*/0, /*params=*/NULL,
-                 /*paramv=*/NULL, /*properties=*/0, /*depc=*/3, /*depv=*/NULL);
-    ocrEdtCreate(&summer3Edt, summer, /*paramc=*/0, /*params=*/NULL,
-                 /*paramv=*/NULL, /*properties=*/0, /*depc=*/3, /*depv=*/NULL);
+    ocrGuid_t summerEdtTemplateGuid;
+    ocrEdtTemplateCreate(&summerEdtTemplateGuid, summer, 0/*paramc*/, 3/*depc*/);
+    ocrEdtCreate(&summer1Edt, summerEdtTemplateGuid, /*paramc=*/EDT_PARAM_DEF,
+                 /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                 /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
+    ocrEdtCreate(&summer2Edt, summerEdtTemplateGuid, /*paramc=*/EDT_PARAM_DEF,
+                 /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                 /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
+    ocrEdtCreate(&summer3Edt, summerEdtTemplateGuid, /*paramc=*/EDT_PARAM_DEF,
+                 /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
+                 /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
     /* Create events for summers */
     for(i = 0; i < 3; ++i) {
@@ -132,35 +106,27 @@ int main (int argc, char ** argv) {
 
     /* Create data-blocks containing events */
     ocrDbCreate(&summer1EvtDbGuid, (void**)&summer1EvtDb, sizeof(ocrGuid_t), /*flags=*/0,
-                /*location=*/NULL, NO_ALLOC);
+                /*location=*/NULL_GUID, NO_ALLOC);
     *summer1EvtDb = summer3Evt[0];
     ocrDbCreate(&summer2EvtDbGuid, (void**)&summer2EvtDb, sizeof(ocrGuid_t), /*flags=*/0,
-                /*location=*/NULL, NO_ALLOC);
+                /*location=*/NULL_GUID, NO_ALLOC);
     *summer2EvtDb = summer3Evt[1];
     ocrDbCreate(&summer3EvtDbGuid, (void**)&summer3EvtDb, sizeof(ocrGuid_t), /*flags=*/0,
-                /*location=*/NULL, NO_ALLOC);
+                /*location=*/NULL_GUID, NO_ALLOC);
     *summer3EvtDb = autumnEvt;
 
     /* Link up dependences */
     for(i = 0; i < 3; ++i) {
-        ocrAddDependence(summer1Evt[i], summer1Edt, i);
+        ocrAddDependence(summer1Evt[i], summer1Edt, i, DB_MODE_RO);
     }
     for(i = 0; i < 3; ++i) {
-        ocrAddDependence(summer2Evt[i], summer2Edt, i);
+        ocrAddDependence(summer2Evt[i], summer2Edt, i, DB_MODE_RO);
     }
     for(i = 0; i < 3; ++i) {
-        ocrAddDependence(summer3Evt[i], summer3Edt, i);
+        ocrAddDependence(summer3Evt[i], summer3Edt, i, DB_MODE_RO);
     }
 
-    ocrAddDependence(autumnEvt, autumnEdt, 0);
-
-    /* "Schedule" EDTs */
-    ocrEdtSchedule(autumnEdt);
-    ocrEdtSchedule(summer1Edt);
-    ocrEdtSchedule(summer2Edt);
-    ocrEdtSchedule(summer3Edt);
-
-    printf("Done all scheduling, now going to satisfy\n");
+    ocrAddDependence(autumnEvt, autumnEdt, 0, DB_MODE_RO);
 
     /* Satisfy dependences passing data */
     ocrEventSatisfy(summer1Evt[0], dbs[0]);
@@ -173,7 +139,5 @@ int main (int argc, char ** argv) {
 
     ocrEventSatisfy(summer3Evt[2], summer3EvtDbGuid);
 
-    /* Finalize */
-    ocrCleanup();
     return 0;
 }

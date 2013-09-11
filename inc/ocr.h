@@ -35,51 +35,60 @@
 
 #ifndef __OCR_H__
 #define __OCR_H__
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "ocr-types.h"
 #include "ocr-db.h"
 #include "ocr-edt.h"
 
 /**
- * A macro to define a convenient way to initialize the OCR runtime.
- * The user needs to pass along the argc, argv arguments from the main function, as well as the list of pointers to all the functions
- * in the program that are used as EDTs
- */
-#define OCR_INIT(argc, argv, ...)					\
-  ({ocrEdt_t _fn_array[] = {__VA_ARGS__}; ocrInit(argc, argv, sizeof(_fn_array)/sizeof(_fn_array[0]), _fn_array);})
-
-/**
- * @brief Initial function called by the "main" program to set-up the OCR
- * environment.
- *
- * This call should be paired with an ocrCleanup call
- */
-void ocrInit(int * argc, char ** argv, u32 fnc, ocrEdt_t funcs[] );
-
-/**
  * @brief Called by an EDT to indicate the end of an OCR
  * execution
  *
- * This call will cause the OCR runtime to terminate
+ * This call will cause the OCR runtime to shutdown
+ *
+ * @note This call is not necessarily required if using ocrWait on
+ * a finish EDT from a sequential C code (ie: the ocrShutdown call will
+ * implicitly be encapsulated in the fact that the finish EDT returns)
  */
-void ocrFinish();
+void ocrShutdown();
 
 /**
- * Called by the last executing EDT to signal the runtime
- * the user program is done.
+ * @brief Gets the number of arguments packed in the
+ * single data-block passed to the first EDT
  *
- * Warning: ocr_finalize() must be called at the end of the program !
- */
-/**
- * @brief Called by the "main" program to clean-up the OCR
- * environment
+ * When starting, the first EDT gets passed a single data-block that contains
+ * all the arguments passed to the program. These arguments are packed in the
+ * following format:
+ *     - first 8 bytes: argc
+ *     - argc count of 8 byte values indicating the offsets from
+ *       the start of the data-block to the argument (ie: the first
+ *       8 byte value indicates the offset in bytes to the first argument)
+ *     - the arguments (NULL terminated character arrays)
  *
- * @note This call *waits* for the ocrFinish function to be called
- * before completing. In other words, time-wise, ocrInit will be called,
- * then ocrCleanup which will wait until ocrFinish is called and then
- * ocrCleanup will finish cleaning up and control will be returned
- * to the main program
+ * This call will extract the number of arguments
+ *
+ * @param dbPtr    Pointer to the start of the argument data-block
+ * @return Number of arguments
  */
-void ocrCleanup();
+u64 getArgc(void* dbPtr);
 
+/**
+ * @brief Gets the argument 'count' from the data-block containing the
+ * arguments
+ *
+ * @see getArgc() for an explanation
+ *
+ * @param dbPtr    Pointer to the start of the argument data-block
+ * @param count    Index of the argument to extract
+ * @return A NULL terminated string
+ */
+char* getArgv(void* dbPtr, u64 count);
+#ifdef __cplusplus
+}
+#endif
+/**
+ * @}
+ **/
 #endif /* __OCR_H__ */
