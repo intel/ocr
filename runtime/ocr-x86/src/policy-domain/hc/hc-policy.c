@@ -109,6 +109,11 @@ static void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
     for (i = 1; i < policy->workerCount; i++) {
         policy->workers[i]->fctPtrs->stop(policy->workers[i]);
     }
+
+    // shutdown schedulers
+    for(i = 0; i < policy->schedulerCount; i++) {
+        policy->schedulers[i]->fctPtrs->stop(policy->schedulers[i]);
+    }
 }
 
 static void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
