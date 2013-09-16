@@ -170,4 +170,9 @@ void ocrPlaceTrackerRemove ( ocrPlaceTracker_t* self, unsigned char currPlaceID 
 void ocrPlaceTrackerInit ( ocrPlaceTracker_t* self );
 
 
+/******************************************************/
+/* BINDING INTERFACE                                  */
+/******************************************************/
+
+void bind_thread(int mask);
 #endif /* __OCR_UTILS_H__ */

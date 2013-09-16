@@ -32,6 +32,7 @@ typedef struct {
     pthread_t osThread;
     launchArg_t * launchArg;
     u64 stackSize;
+    int binding;
 } ocrCompPlatformPthread_t;
 
 typedef struct {
@@ -40,6 +41,7 @@ typedef struct {
     void* routineArg;
     bool isMasterThread;
     u64 stackSize;
+    int binding;
 } paramListCompPlatformPthread_t;
 
 extern ocrCompPlatformFactory_t* newCompPlatformFactoryPthread(ocrParamList_t *perType);

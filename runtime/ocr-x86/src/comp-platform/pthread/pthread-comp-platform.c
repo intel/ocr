@@ -10,11 +10,14 @@
 #include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-worker.h"
+#include "ocr-utils.h"
 #include "pthread-comp-platform.h"
 
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define DEBUG_TYPE COMP_PLATFORM
 
 /**
  * @brief Structure stored on a per-thread basis to keep track of
@@ -43,6 +46,11 @@ static void * pthreadRoutineExecute(launchArg_t * launchArg) {
 
 static void * pthreadRoutineWrapper(void * arg) {
   ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) arg;
+  int cpuBind = pthreadCompPlatform->binding;
+  if (cpuBind != -1) {
+    DPRINTF(DEBUG_LVL_INFO, "Binding comp-platform to cpu_id %d\n", cpuBind);
+    bind_thread(cpuBind);
+  }
   launchArg_t * launchArg = (launchArg_t *) pthreadCompPlatform->launchArg;
   // Wrapper routine to allow initialization of local storage
   // before entering the worker routine.
@@ -51,6 +59,7 @@ static void * pthreadRoutineWrapper(void * arg) {
   if (launchArg != NULL) {
     return pthreadRoutineExecute(launchArg);
   }
+  // When launchArgs is NULL, it is the master thread executing and it falls-through
   return NULL;
 }
 
@@ -113,6 +122,7 @@ static ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *facto
       // This is a regular thread, get regular function pointers
       compPlatformPthread->base.fctPtrs = &(factory->platformFcts);
     }
+    compPlatformPthread->binding = (params != NULL) ? params->binding : -1;
     compPlatformPthread->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
     compPlatformPthread->base.module.mapFct = NULL;
     return (ocrCompPlatform_t*)compPlatformPthread;

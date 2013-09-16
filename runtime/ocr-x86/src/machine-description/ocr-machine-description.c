@@ -550,15 +550,15 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
                     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "ismasterthread");
                     INI_GET_BOOL (key, value, -1);
                     ((paramListCompPlatformPthread_t *)inst_param[j])->isMasterThread = value;
-
                     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
                     INI_GET_INT (key, value, -1);
                     ((paramListCompPlatformPthread_t *)inst_param[j])->stackSize = (value==-1)?0:value;
-                  
                     if (key_exists(dict, secname, "binding")) {
-                       value = get_key_value(dict, secname, "binding", j-low);
-                      // printf("Binding value for %s;%d is %d\n", secname, j-low, value);
-                    } // else printf("No binding for %s\n", secname);
+                        value = get_key_value(dict, secname, "binding", j-low);
+                        ((paramListCompPlatformPthread_t *)inst_param[j])->binding = value;
+                    } else {
+                        ((paramListCompPlatformPthread_t *)inst_param[j])->binding = -1;
+                    }
                 }
                 break;
                 default:
