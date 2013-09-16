@@ -153,6 +153,7 @@ static void destructEventHc ( ocrEvent_t* base ) {
 // Set a single event data guid
 // Warning: Concurrent with registration on sticky event.
 static regNode_t * singleEventPut(ocrEventHcAwaitable_t * self, ocrGuid_t data ) {
+    ASSERT (data != UNINITIALIZED_DATA && "error: put UNINITIALIZED_DATA");
     // TODO This is not enough to always detect concurrent puts.
     ASSERT (self->data == UNINITIALIZED_DATA && "violated single assignment property for EDFs");
     self->data = data;
