@@ -232,16 +232,19 @@ u8 ocrEdtTemplateDestroy(ocrGuid_t guid);
  *                          EDTs inside this EDT have also completed. If NULL,
  *                          no output event will be created or satisfied
  * @return 0 on success and an error code on failure: TODO
+ *
+ * Note: The runtime automatically calls ocrEdtDestroy EDTs that have ran to completion
+ *
  **/
 u8 ocrEdtCreate(ocrGuid_t * guid, ocrGuid_t templateGuid,
                 u32 paramc, u64* paramv, u32 depc, ocrGuid_t *depv,
                 u16 properties, ocrGuid_t affinity, ocrGuid_t *outputEvent);
 
 /**
- * @brief Destroy an EDT
+ * @brief Destroy an EDT and release its associated guid
  *
  * This should be called if it becomes known that the EDT
- * will never be able to run
+ * will never be able to run.
  *
  * @param guid              GUID of the EDT to destroy
  * @return Status:
