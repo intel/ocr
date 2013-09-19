@@ -7,39 +7,40 @@
 #ifndef DEQUE_H_
 #define DEQUE_H_
 
-typedef struct buffer {
-        int capacity;
-        volatile void ** data;
-} buffer_t;
 
-typedef struct deque {
-        volatile int head;
-        volatile int tail;
-        buffer_t * buffer;
+/****************************************************/
+/* DEQUE API                                        */
+/****************************************************/
+
+typedef struct {
+    volatile int head;
+    volatile int tail;
+    volatile void ** data;
 } deque_t;
 
 #ifndef INIT_DEQUE_CAPACITY
 // Set by configure
 #define INIT_DEQUE_CAPACITY 128
 #endif
-#define SLOW_EXPAND_THRESHOLD 128
-#define INC_DEQUE_CAPACITY 64
 
-void dequeInit(deque_t * deq, void * init_value);
-void * deque_steal(deque_t * deq);
+void dequeInit(deque_t * deq, void * initValue);
+void * dequeSteal(deque_t * deq);
 void dequePush(deque_t* deq, void* entry);
 void * dequePop(deque_t * deq);
 void dequeDestroy(deque_t* deq);
 
-typedef struct locked_deque {
-        volatile int head;
-        volatile int tail;
-        volatile int push;
-        buffer_t * buffer;
-} mpsc_deque_t;
 
-void mpscDequeInit(mpsc_deque_t* deq, void * init_value);
-void* deque_non_competing_pop_head (mpsc_deque_t* deq );
-void deque_locked_push(mpsc_deque_t* deq, void* entry);
+/****************************************************/
+/* Semi Concurrent DEQUE API                        */
+/****************************************************/
+
+typedef struct {
+    deque_t deque;    
+    volatile int lock;
+} semiConcDeque_t;
+
+void semiConcDequeInit(semiConcDeque_t* deq, void * initValue);
+void* semiConcDequeNonLockedPop (semiConcDeque_t* deq );
+void semiConcDequeLockedPush(semiConcDeque_t* deq, void* entry);
 
 #endif /* DEQUE_H_ */

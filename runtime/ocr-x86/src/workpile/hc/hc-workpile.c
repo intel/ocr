@@ -39,7 +39,7 @@ static void hcWorkpilePush (ocrWorkpile_t * base, ocrGuid_t g ) {
 
 static ocrGuid_t hcWorkpileSteal ( ocrWorkpile_t * base, ocrCost_t *cost ) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
-    return (ocrGuid_t) deque_steal(derived->deque);
+    return (ocrGuid_t) dequeSteal(derived->deque);
 }
 
 static ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {

@@ -23,12 +23,12 @@ static void ceMessageWorkpileDestruct ( ocrWorkpile_t * base ) {
 
 static ocrGuid_t ceMessageWorkpilePop ( ocrWorkpile_t * base, ocrCost_t *cost) {
     ocrWorkpileFsimMessage_t* derived = (ocrWorkpileFsimMessage_t*) base;
-    return (ocrGuid_t) deque_non_competing_pop_head(derived->deque);
+    return (ocrGuid_t) semiConcDequeNonLockedPop(derived->deque);
 }
 
 static void ceMessageWorkpilePush (ocrWorkpile_t * base, ocrGuid_t g ) {
     ocrWorkpileFsimMessage_t* derived = (ocrWorkpileFsimMessage_t*) base;
-    deque_locked_push(derived->deque, (void *)g);
+    semiConcDequeLockedPush(derived->deque, (void *)g);
 }
 
 ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
@@ -37,8 +37,8 @@ ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, ocrParamL
     ocrMappable_t * module_base = (ocrMappable_t *) base;
     module_base->mapFct = NULL;
     base->fctPtrs = &(factory->workpileFcts);
-    derived->deque = (mpsc_deque_t *) malloc(sizeof(mpsc_deque_t));
-    mpscDequeInit(derived->deque, (void *) NULL_GUID);
+    derived->deque = (semiConcDeque_t *) malloc(sizeof(semiConcDeque_t));
+    semiConcDequeInit(derived->deque, (void *) NULL_GUID);
     return base;
 }
 

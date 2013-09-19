@@ -33,7 +33,7 @@ typedef struct {
 
 typedef struct ocrWorkpileFsimMessage_t {
     ocrWorkpile_t base;
-    mpsc_deque_t * deque;
+    semiConcDeque_t * deque;
 } ocrWorkpileFsimMessage_t;
 
 

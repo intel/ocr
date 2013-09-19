@@ -7,7 +7,7 @@
 
 typedef struct ce_message_workpile {
     ocrWorkpile_t base;
-    mpsc_deque_t * deque;
+    semiConcDeque_t * deque;
 } ocrWorkpileFsimMessage_t;
 
 typedef struct {
