@@ -66,7 +66,7 @@ fi
 cd ${COMPTREE}
 
 # Distribute ocr-lib.h header
-OCR_CONF_OPTS="${OCR_CONF_OPTS} --enable-els=1 --enable-rtapi --enable-ocrlib"
+OCR_CONF_OPTS="${OCR_CONF_OPTS} --enable-els=1 --enable-deque=8096 --enable-rtapi --enable-ocrlib"
 
 ../configure ${INSTALL_ROOT} ${OCR_CONF_OPTS}
 check_error "$?" "Configure failed";
