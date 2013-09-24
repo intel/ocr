@@ -110,7 +110,7 @@ static u8 hcSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *c
         // Note that we do not need to destruct the workpile
         // iterator as the HC implementation caches them.
     }
-    // Int this implementation we expect the caller to have
+    // In this implementation we expect the caller to have
     // allocated memory for us since we can return at most one
     // guid (most likely store using the address of a local)
     if (NULL_GUID != popped) {
