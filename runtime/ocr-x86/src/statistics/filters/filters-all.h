@@ -33,9 +33,9 @@ STATS_FILTER_DECLARE(TRIVIAL);
 STATS_FILTER_DECLARE(FILE_DUMP);
 
 // Finally, add your filter in this switch statement
-inline ocrStatsFilter_t* newStatsFilter(ocrStatsFilterType_t type,
-                                            ocrStatsFilter_t *parent,
-                                            ocrStatsParam_t *instanceArg) {
+static inline ocrStatsFilter_t* newStatsFilter(ocrStatsFilterType_t type,
+                                               ocrStatsFilter_t *parent,
+                                               ocrStatsParam_t *instanceArg) {
     switch(type) {
     STATS_FILTER_CASE(TRIVIAL, parent, instanceArg);
     STATS_FILTER_CASE(FILE_DUMP, parent, instanceArg);
