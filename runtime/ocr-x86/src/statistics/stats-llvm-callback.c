@@ -16,8 +16,8 @@
 extern "C" {
 #endif
 
-    __thread uint64_t _threadInstructionCount = 0ULL;
-    __thread uint8_t _threadInstrumentOn = 0;
+    __thread u64 _threadInstructionCount = 0ULL;
+    __thread u8 _threadInstrumentOn = 0;
 /*
 #include "ocr-task.h"
 #include "ocr-policy-domain.h"

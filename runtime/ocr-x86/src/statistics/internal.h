@@ -45,13 +45,32 @@ void intDestructStatsProcess(ocrStatsProcess_t *self);
  * @param self      The ocrStatsProcess_t to register with
  * @param bitMask   Bitmask of ocrStatsEvt_t that filter responds to
  * @param filter    Filter to pass the message to
+ * @param out       If non-zero, this will register filters on the *sending*
+ *                  of messages (ie: we will get notified if we are the *source*
+ *                  of the message as opposed to the destination)
  *
  * @warn A filter should be registered to AT MOST one process
  * @warn Filter registration is not "thread-safe" so it should be done
  * only on process creation
  */
 void intStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
-                                   ocrStatsFilter_t *filter);
+                                   ocrStatsFilter_t *filter, u8 out);
+
+/**
+ * @brief Process a message that is being sent by src
+ *
+ * When a message gets sent by an agent, filters can be added
+ * to be notified therefore providing a "source" view of events (ie: not
+ * just what other agents do to me but what I do to others)
+ * Note that the clock of the source is *not* updated here; this is
+ * just a nice way to inform the source that it is sending a message
+ *
+ * @param src        Source of the message
+ * @param msg        Message being sent
+ *
+ * @return 0 on success
+ */
+u8 intProcessOutgoingMessage(ocrStatsProcess_t *src, ocrStatsMessage_t* msg);
 
 /**
  * @brief Process a message from the head of dst

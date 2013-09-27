@@ -18,7 +18,11 @@
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
-#endif
+#include "ocr-statistics-callbacks.h"
+#ifdef OCR_ENABLE_PROFILING_STATISTICS
+
+#endif 
+#endif /* OCR_ENABLE_STATISTICS */
 
 #include <string.h>
 
@@ -219,9 +223,7 @@ static ocrTaskHc_t* newTaskHcInternal (ocrTaskFactory_t* factory, ocrPolicyDomai
 static void destructTaskHc ( ocrTask_t* base ) {
     DPRINTF(DEBUG_LVL_INFO, "Destroy 0x%lx\n", base->guid);
     ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
-#ifdef FIXME_OCR_ENABLE_STATISTICS
-    base->statProcess->fctPtrs->destruct(base->statProcess);
-#endif
+    
     ocrPolicyDomain_t *pd = getCurrentPD();
     ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
     ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
@@ -229,6 +231,14 @@ static void destructTaskHc ( ocrTask_t* base ) {
     pd->inform(pd, base->guid, ctx);
     base->addedDepCounter->fctPtrs->destruct(base->addedDepCounter);
     ctx->destruct(ctx);
+
+#ifdef OCR_ENABLE_STATISTICS
+    {
+        // An EDT is destroyed just when it finishes running so
+        // the source is basically itself
+        statsEDT_DESTROY(pd, base->guid, base, base->guid, base);
+    }
+#endif /* OCR_ENABLE_STATISTICS */
     free(derived);
 }
 
@@ -342,6 +352,7 @@ static void taskExecute ( ocrTask_t* base ) {
     u32 paramc = base->paramc;
     u64 * paramv = base->paramv;
     u64 depc = base->depc;
+    ocrPolicyDomain_t *pd = getCurrentPD();
 
     ocrEdtDep_t * depv = NULL;
     // If any dependencies, acquire their data-blocks
@@ -359,7 +370,7 @@ static void taskExecute ( ocrTask_t* base ) {
             if(dbGuid != NULL_GUID) {
                 ASSERT(isDatablockGuid(dbGuid));
                 ocrDataBlock_t * db = NULL;
-                deguidify(getCurrentPD(), dbGuid, (u64*)&db, NULL);
+                deguidify(pd, dbGuid, (u64*)&db, NULL);
                 depv[i].ptr = db->fctPtrs->acquire(db, base->guid, true);
             } else {
                 depv[i].ptr = NULL;
@@ -371,10 +382,41 @@ static void taskExecute ( ocrTask_t* base ) {
     }
 
     ocrTaskTemplate_t * taskTemplate;
-    deguidify(getCurrentPD(), base->templateGuid, (u64*)&taskTemplate, NULL);
+    deguidify(pd, base->templateGuid, (u64*)&taskTemplate, NULL);
     //TODO: define when task template is resolved from its guid
+#ifdef OCR_ENABLE_STATISTICS
+    
+    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
+    ocrWorker_t *curWorker = NULL;
+    
+    deguidify(pd, ctx->sourceObj, (u64*)&curWorker, NULL);
+
+    // We first have the message of using the EDT Template
+    statsTEMP_USE(pd, base->guid, base, taskTemplate->guid, taskTemplate);
+    
+    // We now say that the worker is starting the EDT
+    statsEDT_START(pd, ctx->sourceObj, curWorker, base->guid, base);
+    // Next the worker is starting the EDT
+#ifdef OCR_ENABLE_PROFILING_STATISTICS
+    if(depc)
+        __threadInstrumentOn = 1;
+    else
+        ASSERT(__threadInstrumentOn == 0);
+    
+    __threadInstructionCount = 0ULL;
+#endif /* OCR_ENABLE_PROFILING_STATISTICS */
+#endif /* OCR_ENABLE_STATISTICS */
+    
     ocrGuid_t retGuid = taskTemplate->executePtr(paramc, paramv,
                                                  depc, depv);
+    
+#ifdef OCR_ENABLE_STATISTICS
+    // We now say that the worker is done executing the EDT
+    statsEDT_END(pd, ctx->sourceObj, curWorker, base->guid, base);
+#ifdef OCR_ENABLE_PROFILING_STATISTICS
+    __threadInstrumentOn = 0;
+#endif /* OCR_ENABLE_PROFILING_STATISTICS */
+#endif /* OCR_ENABLE_STATISTICS */
 
     // edt user code is done, if any deps, release data-blocks
     if (depc != 0) {
@@ -382,7 +424,7 @@ static void taskExecute ( ocrTask_t* base ) {
         for(i=0; i<depc; ++i) {
             if(depv[i].guid != NULL_GUID) {
                 ocrDataBlock_t * db = NULL;
-                deguidify(getCurrentPD(), depv[i].guid, (u64*)&db, NULL);
+                deguidify(pd, depv[i].guid, (u64*)&db, NULL);
                 RESULT_ASSERT(db->fctPtrs->release(db, base->guid, true), ==, 0);
             }
         }
@@ -410,7 +452,7 @@ static void taskExecute ( ocrTask_t* base ) {
 
     if (satisfyOutputEvent) {
         ocrEvent_t * outputEvent;
-        deguidify(getCurrentPD(), base->outputEvent, (u64*)&outputEvent, NULL);
+        deguidify(pd, base->outputEvent, (u64*)&outputEvent, NULL);
         // We know the output event must be of type single sticky since it is
         // internally allocated by the runtime
         ASSERT(isEventSingleGuid(base->outputEvent));
@@ -423,6 +465,14 @@ static void taskExecute ( ocrTask_t* base ) {
 /******************************************************/
 
 static void destructTaskTemplateHc(ocrTaskTemplate_t *self) {
+#ifdef OCR_ENABLE_STATISTICS
+    {
+        ocrPolicyDomain_t *pd = getCurrentPD();
+        ocrGuid_t edtGuid = getCurrentEDT();
+                
+        statsTEMP_DESTROY(pd, edtGuid, NULL, self->guid, self);
+    }
+#endif /* OCR_ENABLE_STATISTICS */
     free(self);
 }
 
@@ -430,12 +480,19 @@ static ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory,
                                       ocrEdt_t executePtr, u32 paramc, u32 depc, ocrParamList_t *perInstance) {
     ocrTaskTemplateHc_t* template = (ocrTaskTemplateHc_t*) checkedMalloc(template, sizeof(ocrTaskTemplateHc_t));
     ocrTaskTemplate_t * base = (ocrTaskTemplate_t *) template;
+    ocrPolicyDomain_t *pd = getCurrentPD();
     base->paramc = paramc;
     base->depc = depc;
     base->executePtr = executePtr;
     base->guid = UNINITIALIZED_GUID;
     base->fctPtrs = &(factory->taskTemplateFcts);
-    guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_EDT_TEMPLATE);
+    guidify(pd, (u64)base, &(base->guid), OCR_GUID_EDT_TEMPLATE);
+#ifdef OCR_ENABLE_STATISTICS
+    {
+        ocrGuid_t edtGuid = getCurrentEDT();
+        statsTEMP_CREATE(pd, edtGuid, NULL, base->guid, base);
+    }
+#endif /* OCR_ENABLE_STATISTICS */
     return base;
 }
 
@@ -477,6 +534,22 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrTaskTemplate_t * taskTemplat
                                          depc, properties, affinity, outputEvent);
     ocrTask_t* base = (ocrTask_t*) edt;
     base->fctPtrs = &(factory->taskFcts);
+#ifdef OCR_ENABLE_STATISTICS
+    {
+        ocrGuid_t edtGuid = getCurrentEDT();
+        if(edtGuid) {
+            // Usual case when the EDT is created within another EDT
+            ocrTask_t *task = NULL;
+            deguidify(pd, edtGuid, (u64*)&task, NULL);
+
+            statsTEMP_USE(pd, edtGuid, task, taskTemplate->guid, taskTemplate);
+            statsEDT_CREATE(pd, edtGuid, task, base->guid, base);
+        } else {
+            statsTEMP_USE(pd, edtGuid, NULL, taskTemplate->guid, taskTemplate);
+            statsEDT_CREATE(pd, edtGuid, NULL, base->guid, base);
+        }
+    }
+#endif /* OCR_ENABLE_STATISTICS */
     DPRINTF(DEBUG_LVL_INFO, "Create 0x%lx depc %d outputEvent 0x%lx\n", base->guid, depc, outputEvent);
     return base;
 }
@@ -554,9 +627,10 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
     // WAIT MODE: event-to-event registration
     // Note: do not call 'registerWaiter' here as it triggers event-to-edt
     // registration, which should only be done on edtSchedule.
+    ocrPolicyDomain_t *pd = getCurrentPD();
     if (isEventGuid(signalerGuid) && isEventGuid(waiterGuid)) {
         ocrEventHcAwaitable_t * target;
-        deguidify(getCurrentPD(), signalerGuid, (u64*)&target, NULL);
+        deguidify(pd, signalerGuid, (u64*)&target, NULL);
         awaitableEventRegisterWaiter(target, waiterGuid, slot);
         return;
     }
@@ -564,7 +638,7 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
     // they are not deallocated prematurely
     if (isEventGuidOfKind(signalerGuid, OCR_EVENT_ONCE_T) && isEdtGuid(waiterGuid)) {
         ocrEvent_t * signalerEvent;
-        deguidify(getCurrentPD(), signalerGuid, (u64*)&signalerEvent, NULL);
+        deguidify(pd, signalerGuid, (u64*)&signalerEvent, NULL);
         onceEventRegisterEdtWaiter(signalerEvent, waiterGuid, slot);
     }
 
@@ -572,6 +646,9 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
     //  - anything-to-edt registration
     //  - db-to-event registration
     registerSignaler(signalerGuid, waiterGuid, slot);
+#ifdef OCR_ENABLE_STATISTICS
+    statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
+#endif    
 }
 
 // Registers a waiter on a signaler

@@ -18,6 +18,7 @@
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
+#include "ocr-statistics-callbacks.h"
 #endif
 
 #define SEALED_LIST ((void *) -1)
@@ -135,6 +136,9 @@ static void destructEventHc ( ocrEvent_t* base ) {
     ocrPolicyDomain_t *pd = getCurrentPD();
     ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
     ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
+#ifdef OCR_ENABLE_STATISTICS
+    statsEVT_DESTROY(pd, getCurrentEDT(), NULL, base->guid, base);
+#endif
     ctx->type = PD_MSG_GUID_REL;
     pd->inform(pd, base->guid, ctx);
     if(base->kind == OCR_EVENT_ONCE_T) {
@@ -176,7 +180,12 @@ static regNode_t * singleEventPut(ocrEventHcAwaitable_t * self, ocrGuid_t data )
 // slotEvent is ignored for stickies.
 static void singleEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slotEvent) {
     ocrEventHcAwaitable_t * self = (ocrEventHcAwaitable_t *) base;
-
+#ifdef OCR_ENABLE_STATISTICS
+    ocrPolicyDomain_t *pd = getCurrentPD();
+    ocrGuid_t edt = getCurrentEDT();
+    statsDEP_SATISFYToEvt(pd, edt, NULL, base->guid, base, data, slotEvent);
+#endif
+    
     // Whether it is a once, idem or sticky, unitialized means it's the first
     // time we try to satisfy the event. Note: It's a very loose check, the
     // 'Put' implementation must do more work to detect races on data.
@@ -196,6 +205,10 @@ static void singleEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slotEvent)
             // Note: in general it's better to read from self->data in case
             //       the event does some post processing on the input data
             signalWaiter(waiter->guid, self->data, waiter->slot);
+#ifdef OCR_ENABLE_STATISTICS
+            statsDEP_SATISFYFromEvt(pd, base->guid, base, waiter->guid,
+                                    data, waiter->slot);
+#endif
             waiters = waiter;
             waiter = waiter->next;
             free(waiters); // Release waiter node
@@ -231,6 +244,11 @@ static void latchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot) {
     } while(!__sync_bool_compare_and_swap(&(latch->counter), count, count+incr));
 
     DPRINTF(DEBUG_LVL_INFO, "Satisfy %s: 0x%lx %s\n", eventTypeToString(base), base->guid, ((slot == OCR_EVENT_LATCH_DECR_SLOT) ? "decr":"incr"));
+#ifdef OCR_ENABLE_STATISTICS
+    ocrPolicyDomain_t *pd = getCurrentPD();
+    ocrGuid_t edt = getCurrentEDT();
+    statsDEP_SATISFYToEvt(pd, edt, NULL, base->guid, base, data, slot);
+#endif
     if ((count+incr) == 0) {
         DPRINTF(DEBUG_LVL_INFO, "Satisfy %s: 0x%lx reached zero\n", eventTypeToString(base), base->guid);
         ocrEventHcAwaitable_t * self = (ocrEventHcAwaitable_t *) base;
@@ -252,6 +270,10 @@ static void latchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot) {
         while (waiter != END_OF_LIST) {
             // For now latch events don't have any data output
             signalWaiter(waiter->guid, NULL_GUID, waiter->slot);
+#ifdef OCR_ENABLE_STATISTICS
+            statsDEP_SATISFYFromEvt(pd, base->guid, base, waiter->guid,
+                                    data, waiter->slot);
+#endif
             waiters = waiter;
             waiter = waiter->next;
             free((regNode_t*) waiters); // Release waiter node
@@ -281,6 +303,11 @@ static void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot)
         count = self->counter;
     } while(!__sync_bool_compare_and_swap(&(self->counter), count, count+incr));
     DPRINTF(DEBUG_LVL_VERB, "Satisfy %s: 0x%lx %s\n", eventTypeToString(base), base->guid, ((slot == OCR_EVENT_LATCH_DECR_SLOT)? "decr":"incr"));
+#ifdef OCR_ENABLE_STATISTICS
+    ocrPolicyDomain_t *pd = getCurrentPD();
+    ocrGuid_t edt = getCurrentEDT();
+    statsDEP_SATISFYToEvt(pd, edt, NULL, base->guid, base, data, slot);
+#endif
     // No possible race when we reached 0 (see R2)
     if ((count+incr) == 0) {
         DPRINTF(DEBUG_LVL_INFO, "Satisfy %s: 0x%lx reached zero\n", eventTypeToString(base), base->guid);
@@ -293,6 +320,10 @@ static void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot)
         regNode_t * outputEventWaiter = &(self->outputEventWaiter);
         if (outputEventWaiter->guid != NULL_GUID) {
             signalWaiter(outputEventWaiter->guid, self->returnGuid, outputEventWaiter->slot);
+#ifdef OCR_ENABLE_STATISTICS
+            statsDEP_SATISFYFromEvt(pd, base->guid, base, outputEventWaiter->guid,
+                                    self->returnGuid, outputEventWaiter->slot);
+#endif
         }
         // Notify the parent latch if any
         regNode_t * parentLatchWaiter = &(self->parentLatchWaiter);
@@ -333,6 +364,9 @@ static void finishLatchCheckout(ocrEvent_t * base) {
 static ocrEvent_t * newEventHc ( ocrEventFactory_t * factory, ocrEventTypes_t eventType,
                                  bool takesArg, ocrParamList_t *perInstance) {
     ocrEvent_t * res = eventConstructorInternal(getCurrentPD(), factory, eventType, takesArg);
+#ifdef OCR_ENABLE_STATISTICS
+    statsEVT_CREATE(getCurrentPD(), getCurrentEDT(), NULL, res->guid, res);
+#endif
     return res;
 }
 

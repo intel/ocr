@@ -11,10 +11,6 @@
 #include "ocr-policy-domain.h"
 #include "ocr-runtime.h"
 
-#ifdef OCR_ENABLE_STATISTICS
-#include "ocr-statistics.h"
-#endif
-
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     ocrPolicyDomain_t * pd = getCurrentPD();
     ocrPolicyCtx_t *context = getCurrentWorkerContext();
@@ -83,30 +79,6 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     ocrPolicyCtx_t *context = getCurrentWorkerContext();
     pd->createEdt(pd, edtGuid, taskTemplate, paramc, paramv, depc,
                   properties, affinity, outputEvent, context);
-
-#ifdef OCR_ENABLE_STATISTICS
-    ocrStats_t * stats = pd->getStats(pd);
-    ocrTask_t * task = NULL;
-    deguidify(pd, *edtGuid, (u64*)&task, NULL);
-    // Create the statistics process for this EDT
-    task->statProcess = stats->fctPtrs->createStatsProcess(stats, *edtGuid);
-
-    // Now send the message that the EDT was created
-    {
-        ocrTask_t *curTask = NULL;
-
-        ocrGuid_t curTaskGuid = getCurrentEDT();
-        if(curTaskGuid) {
-            deguidify(pd, curTaskGuid, (u64*)&curTask, NULL);
-
-            ocrStatsProcess_t *srcProcess = curTask->statProcess;
-            ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
-                stats, STATS_EDT_CREATE, curTaskGuid, *edtGuid, NULL);
-            
-            ocrStatsAsyncMessage(srcProcess, task->statProcess, mess);
-        } // Else, we ignore since it is the creation of the mainEdt
-    }
-#endif
 
     // If guids dependences were provided, add them now
     if(depv != NULL) {

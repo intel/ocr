@@ -21,6 +21,11 @@
 
 struct _ocrPolicyDomain_t;
 
+#ifdef OCR_ENABLE_PROFILING_STATISTICS
+extern __thread u64 __threadInstructionCount;
+extern __thread u8 __threadInstrumentOn;
+#endif
+
 /**
  * @defgroup ocrStats Statistics collection framework
  *
@@ -49,8 +54,9 @@ struct _ocrPolicyDomain_t;
  *       is not implementable
  *
  * The following events will trigger tick updates:
- *     - EDT1 creates a template TEMP1            EDT1 <-> TEMP1 (STATS_TEMP_CREATE)
- *     - EDT1 destroys a template TEMP1           EDT1 <-> TEMP1 (STATS_TEMP_DESTROY)
+ *     - EDT1 creates a template TEMP1            EDT1  -> TEMP1 (STATS_TEMP_CREATE)
+ *     - EDT1 uses a template TEMP1               EDT1 <-> TEMP1 (STATS_TEMP_USE)
+ *     - EDT1 destroys a template TEMP1           EDT1  -> TEMP1 (STATS_TEMP_DESTROY)
  *     - EDT1 acquires DB1                        EDT1 <-> DB1  (STATS_DB_ACQ)
  *     - EDT1 'acquires' Evt1 (pure control dep)  EDT1 <-  Evt1 (STATS_EVT_ACQ)
  *     - EDT1 starts on worker Work1              EDT1 <-> Work1 (STATS_EDT_START)
@@ -59,15 +65,23 @@ struct _ocrPolicyDomain_t;
  *     - EDT1 satisfies Evt1                      EDT1  -> Evt1 (STATS_DEP_SATISFY)
  *         If Evt1 has "sinks" (like EDT2)        Evt1  -> EDT2 (STATS_DEP_SATISFY/STATS_EDT_READY)
  *     - EDT1 releases DB1                        EDT1  -> DB1  (STATS_DB_REL)
- *     - EDT1 adds a dep between Evt1/DB1 & EDT2  EDT1  -> Evt1/DB1 (STATS_DEP_ADD)
+ *     - EDT1 adds a dep between Evt1/DB1 & EDT2  EDT1  -> Evt1/DB1 -> EDT2 (STATS_DEP_ADD)
  *         If Evt1/DB1 is satisfied               Evt1/DB1 -> EDT2  (STATS_DEP_SATISFY)
  *     - EDT1 ends                                EDT1 <-> Work1 (STATS_EDT_END)
- *     - DB1 moves from Allocator1 to Allocator2  DB1 <-> All1 <-> All2 (STATS_DB_MOVE)
- *     - DB1 gets created on All1                 DB1 <-> All1  (STATS_DB_CREATE)
- *     - DB1 gets removed/freed on All1           DB1 <-> All1  (STATS_DB_DESTROY)
+ *     - DB1 moves from Allocator1 to Allocator2  DB1  <-> All1 <-> All2 (STATS_DB_MOVE)
+ *     - EDT1 creates DB1 using Allocator All1    EDT1 (<)-> DB1  <-> All1  (STATS_DB_CREATE)
+ *     - DB1 gets removed/freed on All1           DB1  <-> All1  (STATS_DB_DESTROY)
  *     - EDT1 accesses (r/w or r/o) DB1           EDT1 <-> DB1 (local) (STATS_DB_ACCESS)
  *         This is a local ticker that is synched on acquire/release/free since we do not (cannot)
- *         model overlapping accesses to the same DB
+ *         model overlapping accesses to the same DB. TODO: For now, just the same DB ticker and
+ *         need to be thread safe. Overlap information is irrelevant though.
+ *     - Worker Work starts on comp-target CTarg  Work <-> CTarg (STATS_WORKER_START)
+ *     - Worker Work stops on comp-target CTarg   Work <-> CTarg (STATS_WORKER_STOP)
+ *     - Allocator All starts on mem-target MTarg All  <-> MTarg (STATS_ALLOCATOR_START)
+ *         This may happen multiple times for the same allocator. In other words, an allocator
+ *         may simultaneously manage multiple memory targets (for example if it spans across
+ *         SPADs)
+ *     - Allocator All stops on mem-target MTarg  All  <-> MTarg (STATS_ALLOCATOR_STOP)
  * @{
  */
 
@@ -110,19 +124,20 @@ typedef enum {
     STATS_TEMP_CREATE, /**< The EDT template is first created */
     STATS_TEMP_USE,    /**< An EDT was created using a template */
     STATS_TEMP_DESTROY,/**< The EDT template is destroyed */
+    
     STATS_EDT_CREATE,  /**< The EDT was first created */
     STATS_EDT_DESTROY, /**< The EDT was destroyed (rare) */
-    STATS_EDT_READY,   /**< The EDT became ready to run (last dep satisfied)*/
+    STATS_EDT_READY,   /**< The EDT became ready to run (last dep satisfied) TODO: SEE IF USEFUL. NOT IMPLEMENTED*/
     STATS_EDT_START,   /**< The EDT started execution */
     STATS_EDT_END,     /**< The EDT ended execution */
 
     /* DB related events */
     STATS_DB_CREATE,   /**< The DB was created */
-    STATS_DB_DESTROY,  /**< The DB was destroyed/freed */
+    STATS_DB_DESTROY,  /**< The DB was destroyed (will be by last user after a free) */
     STATS_DB_ACQ,      /**< The DB was acquired */
     STATS_DB_REL,      /**< The DB was released */
-    STATS_DB_MOVE,     /**< The DB was moved */
-    STATS_DB_ACCESS,   /**< The DB was accessed (read or write) */
+    STATS_DB_MOVE,     /**< The DB was moved TODO: NOT IMPLEMENTED */
+    STATS_DB_ACCESS,   /**< The DB was accessed (read or write) TODO: ADD IN PROFILING CALLBACKS */
 
     /* Event related events */
     STATS_EVT_CREATE,  /**< The Event was created */
@@ -131,7 +146,15 @@ typedef enum {
     /* Dependence related events */
     STATS_DEP_SATISFY, /**< A dependence was satisfied */
     STATS_DEP_ADD,     /**< A dependence was added */
-    STATS_EVT_MAX      /**< Marker for number of events */
+
+    /* Worker related events */
+    STATS_WORKER_START,/**< A worker is starting on a specific comp-target */
+    STATS_WORKER_STOP, /**< A worker is finishing on a specific comp-target */
+
+    /* Allocator related events */
+    STATS_ALLOCATOR_START, /**< An allocator started managing a specific mem-target */
+    STATS_ALLOCATOR_STOP,  /**< An allocator stopped managing a specific mem-target */
+    STATS_EVT_MAX          /**< Marker for number of events */
 } ocrStatsEvt_t;
 
 enum _ocrStatsFilterType_t;
@@ -151,8 +174,14 @@ typedef struct {
 typedef struct _statsParamDb_t {
     u64 offset;     /**< Offset that was accessed or moved */
     u64 size;       /**< Size that was created or accessed or moved */
-    bool isWrite;   /**< Is the access/movement a write */
+    u8  isWrite;   /**< Is the access/movement a write */
 } statsParamDb_t;
+
+typedef struct _statsParamEvt_t {
+    ocrGuid_t dbPayload; /**< Data-block "piggy-backing" on the event */
+    u32 slot;            /**< Slot this event is going into */
+} statsParamEvt_t;
+
 
 struct _ocrStatsMessage_t;
 
@@ -189,7 +218,7 @@ typedef struct _ocrStatsMessage_t {
     volatile u8 state; /**< Internal information used for sync messages:
                         * 0: delete on processing
                         * 1: keep after processing and set to 2
-                        * 2: done with processing and tick updated
+                        * 2: done with processing
                         */
     // Function pointers
     ocrStatsMessageFcts_t fcts;
@@ -289,12 +318,14 @@ typedef struct _ocrStatsFilter_t {
  * which they initiate).
  */
 typedef struct _ocrStatsProcess_t {
-    ocrGuid_t me;               /**< GUID of this process (GUID of EDT for example, ...) */
-    ocrLock_t *processing;      /**< Lock will be head when the queue of messages is being processed */
-    ocrQueue_t *messages;       /**< Messages queued up (in tick order) */
-    u64 tick;                   /**< Tick right before processing messages[0] */
-    ocrStatsFilter_t ***filters;/**< Filters "listening" to events sent to this process */
-    u64 *filterCounts;          /**< Bits [0-31] contain number of filters, bits [32-63] contain allocated filters */
+    ocrGuid_t me;                  /**< GUID of this process (GUID of EDT for example, ...) */
+    ocrLock_t *processing;         /**< Lock will be head when the queue of messages is being processed */
+    ocrQueue_t *messages;          /**< Messages queued up (in tick order) */
+    u64 tick;                      /**< Tick right before processing messages[0] */
+    ocrStatsFilter_t ***outFilters;/**< Filters "listening" to events sent BY this process */
+    u64* outFilterCounts;          /**< Bits [0-31] contain number of filters, bits [32-63] contain allocated filters */
+    ocrStatsFilter_t ***filters;   /**< Filters "listening" to events sent to this process */
+    u64 *filterCounts;             /**< Bits [0-31] contain number of filters, bits [32-63] contain allocated filters */
 } ocrStatsProcess_t;
 
 /****************************************************/
@@ -352,15 +383,32 @@ typedef struct _ocrStatsFactory_t {
  *
  * This call will:
  *     - increment src's clock by 1
+ *     - Inform src that a message is being sent. This enables
+ *       filters to be tied to the outgoing message to do some processing.
+ *       This does *not* update the clock. The source message will be
+ *       passed to the relevant filters
  *     - Inform dst of the message and update its clock by
  *       taking the larger of the message's clock or dst's clock + 1
  *       We call this resulting clock 'tMess'
  *     - Set the message's clock to 'tMess' and pass the message to relevant
  *       filters
- *
+ *       
  * @param src       ocrStatsProcess_t sending the message
  * @param dst       ocrStatsProcess_t reciving the message
  * @param msg       ocrStatsMessage_t sent
+ *
+ * @warning It is important to understand thread-safety in the statistics framework.
+ * The framework was built to have very fine-grained lock and not impose any extra
+ * synchronization than already imposed by the application. The following statements
+ * are guaranteed and no other guarantee is made:
+ *     - For a given ocrStatsProcess_t, only one outgoing message will be processed
+ *       at a time. That message will be passed to each filter sequentially. In other
+ *       words, you can access any data-structure only accessed for outgoing messages
+ *       without any synchronization provided it is accessed only by one ocrStatsProcess_t
+ *     - For a given ocrStatsProcess_t, multiple threads may process its incomming messages
+ *       but a lock is held when processing a message.
+ *     - When a message is processed, all filters registered to that message will be called
+ *       (no partial message processing)
  */
 void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
                           ocrStatsMessage_t *msg);
@@ -377,10 +425,16 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
  *       relevant filters.
  *     - Update the src's clock to match the maximum of 'tMess' and the
  *       current src's clock
+ *     - Inform src of the outgoing message that was sent. Note here that,
+ *       contrary to the async message, the source is informed *after* the
+ *       message has been processed by the destination. This is to ensure
+ *       proper clock updates
  *
  * @param src       ocrStatsProcess_t sending the message
  * @param dst       ocrStatsProcess_t reciving the message
  * @param msg       ocrStatsMessage_t sent
+ *
+ * @warning See ocrStatsAsyncMessage() for thread safety
  */
 void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
                          ocrStatsMessage_t *msg);

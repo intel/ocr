@@ -31,11 +31,18 @@ ocrStatsProcess_t* intCreateStatsProcess(ocrGuid_t processGuid) {
     result->tick = 0;
     
     // +1 because the first bucket keeps track of all filters uniquely
+    result->outFilters = (ocrStatsFilter_t***)checkedMalloc(result->outFilters,
+                                                            sizeof(ocrStatsFilter_t**)*(STATS_EVT_MAX+1));
+    result->outFilterCounts = (u64*)checkedMalloc(result->outFilterCounts, sizeof(u64)*(STATS_EVT_MAX+1));
     result->filters = (ocrStatsFilter_t***)checkedMalloc(result->filters,
                                                         sizeof(ocrStatsFilter_t**)*(STATS_EVT_MAX+1));
     result->filterCounts = (u64*)checkedMalloc(result->filterCounts, sizeof(u64)*(STATS_EVT_MAX+1));
     
-    for(i = 0; i < (u64)STATS_EVT_MAX + 1; ++i) result->filterCounts[i] = 0ULL;
+    for(i = 0; i < (u64)STATS_EVT_MAX + 1; ++i) {
+        result->outFilterCounts[i] = 0ULL;
+        result->filterCounts[i] = 0ULL;
+    }
+        
     return result;
 }
 
@@ -52,7 +59,18 @@ void intDestructStatsProcess(ocrStatsProcess_t *process) {
     // Free all the filters associated with this process
     // Assumes that the filter is only associated with ONE
     // process
-    u32 maxJ = (u32)(process->filterCounts[0] & 0xFFFFFFFF);
+    u32 maxJ = (u32)(process->outFilterCounts[0] & 0xFFFFFFFF);
+    for(j = 0; j < maxJ; ++j) {
+        process->outFilters[0][j]->fcts.destruct(process->outFilters[0][j]);
+    }
+    if(maxJ)
+        free(process->outFilters[0]);
+    for(i = 1; i < (u64)STATS_EVT_MAX + 1; ++i) {
+        if(process->outFilterCounts[i])
+            free(process->outFilters[i]);
+    }
+
+    maxJ = (u32)(process->filterCounts[0] & 0xFFFFFFFF);
     for(j = 0; j < maxJ; ++j) {
         process->filters[0][j]->fcts.destruct(process->filters[0][j]);
     }
@@ -63,6 +81,8 @@ void intDestructStatsProcess(ocrStatsProcess_t *process) {
             free(process->filters[i]);
     }
 
+    free(process->outFilters);
+    free(process->outFilterCounts);
     free(process->filters);
     free(process->filterCounts);
 
@@ -74,11 +94,21 @@ void intDestructStatsProcess(ocrStatsProcess_t *process) {
 }
 
 void intStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
-                                   ocrStatsFilter_t *filter) {
+                                   ocrStatsFilter_t *filter, u8 out) {
 
-    DPRINTF(DEBUG_LVL_VERB, "Registering filter 0x%lx with process 0x%lx for mask 0x%lx\n",
-            (u64)filter, (u64)self, bitMask);
+    DPRINTF(DEBUG_LVL_VERB, "Registering %s filter 0x%lx with process 0x%lx for mask 0x%lx\n",
+            out?"out":"in", (u64)filter, (u64)self, bitMask);
     u32 countAlloc, countPresent;
+
+    ocrStatsFilter_t ****filterVar = NULL;
+    u64 **countVar = NULL;
+    if(out) {
+        filterVar = &(self->outFilters);
+        countVar = &(self->outFilterCounts);
+    } else {
+        filterVar = &(self->filters);
+        countVar = &(self->filterCounts);
+    }
 
     while(bitMask) {
         // Setting some filter up
@@ -89,10 +119,10 @@ void intStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
         ++bitSet; // 0 is all filters uniquely
 
         // Check to make sure we have enough room to add this filter
-        countPresent = (u32)(self->filterCounts[bitSet] & 0xFFFFFFFF);
-        countAlloc = (u32)(self->filterCounts[bitSet] >> 32);
+        countPresent = (u32)((*countVar)[bitSet] & 0xFFFFFFFF);
+        countAlloc = (u32)((*countVar)[bitSet] >> 32);
         //     DPRINTF(DEBUG_LVL_VVERB, "For type %ld, have %d present and %d allocated (from 0x%lx)\n",
-        //            bitSet, countPresent, countAlloc, self->filterCounts[bitSet]);
+        //            bitSet, countPresent, countAlloc, (*countVar)[bitSet]);
         if(countAlloc <= countPresent) {
             // Allocate using an exponential model
             if(countAlloc)
@@ -101,21 +131,21 @@ void intStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
                 countAlloc = 1;
             ocrStatsFilter_t **newAlloc = (ocrStatsFilter_t**)malloc(sizeof(ocrStatsFilter_t*)*countAlloc);
             // TODO: This memcpy needs to be replaced. The malloc above as well...
-            memcpy(newAlloc, self->filters[bitSet], countPresent*sizeof(ocrStatsFilter_t*));
+            memcpy(newAlloc, (*filterVar)[bitSet], countPresent*sizeof(ocrStatsFilter_t*));
             if(countAlloc != 1)
-                free(self->filters[bitSet]);
-            self->filters[bitSet] = newAlloc;
+                free((*filterVar)[bitSet]);
+            (*filterVar)[bitSet] = newAlloc;
         }
-        self->filters[bitSet][countPresent++] = filter;
+        (*filterVar)[bitSet][countPresent++] = filter;
 
         // Set the counter properly again
-        self->filterCounts[bitSet] = ((u64)countAlloc << 32) | (countPresent);
+        (*countVar)[bitSet] = ((u64)countAlloc << 32) | (countPresent);
         //     DPRINTF(DEBUG_LVL_VVERB, "Setting final counter for %ld to 0x%lx\n",
-        //            bitSet, self->filterCounts[bitSet]);
+        //            bitSet, (*countVar)[bitSet]);
     }
     // Do the same thing for bit 0. Only do it once so we only free things once
-    countPresent = (u32)(self->filterCounts[0] & 0xFFFFFFFF);
-    countAlloc = (u32)(self->filterCounts[0] >> 32);
+    countPresent = (u32)((*countVar)[0] & 0xFFFFFFFF);
+    countAlloc = (u32)((*countVar)[0] >> 32);
     if(countAlloc <= countPresent) {
         // Allocate using an exponential model
         if(countAlloc)
@@ -124,16 +154,36 @@ void intStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
             countAlloc = 1;
         ocrStatsFilter_t **newAlloc = (ocrStatsFilter_t**)malloc(sizeof(ocrStatsFilter_t*)*countAlloc);
         // TODO: This memcpy needs to be replaced. The malloc above as well...
-        memcpy(newAlloc, self->filters[0], countPresent*sizeof(ocrStatsFilter_t*));
+        memcpy(newAlloc, (*filterVar)[0], countPresent*sizeof(ocrStatsFilter_t*));
         if(countAlloc != 1)
-            free(self->filters[0]);
-        self->filters[0] = newAlloc;
+            free((*filterVar)[0]);
+        (*filterVar)[0] = newAlloc;
     }
-    self->filters[0][countPresent++] = filter;
+    (*filterVar)[0][countPresent++] = filter;
 
     // Set the counter properly again
-    self->filterCounts[0] = ((u64)countAlloc << 32) | (countPresent);
+    (*countVar)[0] = ((u64)countAlloc << 32) | (countPresent);
 
+}
+
+u8 intProcessOutgoingMessage(ocrStatsProcess_t *src, ocrStatsMessage_t* msg) {
+    DPRINTF(DEBUG_LVL_VERB, "Processing outgoing message 0x%lx for 0x%lx\n",
+            (u64)msg, src->me);
+        
+    u32 type = (u32)msg->type;
+    u32 countFilter = src->outFilterCounts[type] & 0xFFFFFFFF;
+    if(countFilter) {
+        // We have at least one filter that is registered to
+        // this message type
+        ocrStatsFilter_t **myFilters =  src->outFilters[type];
+        while(countFilter-- > 0) {
+            DPRINTF(DEBUG_LVL_VVERB, "Sending message 0x%lx to filter 0x%lx\n",
+                    (u64)msg, (u64)myFilters[countFilter]);
+            myFilters[countFilter]->fcts.notify(myFilters[countFilter], msg);
+        }
+    }
+        
+    return 0;
 }
 
 u8 intProcessMessage(ocrStatsProcess_t *dst) {

@@ -13,6 +13,10 @@
 #include "ocr-scheduler.h"
 #include "ocr-types.h"
 
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#endif
+
 /****************************************************/
 /* PARAMETER LISTS                                  */
 /****************************************************/
@@ -78,6 +82,9 @@ typedef struct _ocrWorkerFcts_t {
 typedef struct _ocrWorker_t {
     ocrMappable_t module;
     ocrGuid_t guid;
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcess_t *statProcess;
+#endif
 
     ocrCompTarget_t **computes; /**< Compute node(s) associated with this worker */
     u64 computeCount;          /**< Number of compute node(s) associated */

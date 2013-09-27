@@ -24,6 +24,11 @@
 
 #define DEBUG_TYPE ALLOCATOR
 
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#include "ocr-statistics-callbacks.h"
+#endif
+
 /******************************************************/
 /* OCR ALLOCATOR TLSF IMPLEMENTATION                  */
 /******************************************************/
@@ -998,10 +1003,17 @@ static void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
     rself->addr = rself->poolAddr = (u64)(rself->base.memories[0]->fctPtrs->allocate(
                                               rself->base.memories[0], rself->totalSize));
     ASSERT(rself->addr);
+#ifdef OCR_ENABLE_STATISTICS
+    statsALLOCATOR_START(getCurrentPD(), self->guid, self, self->memories[0]->guid, self->memories[0]);
+#endif
     RESULT_ASSERT(tlsfInit(rself->addr, rself->totalSize), ==, 0);
 }
 
-static void tlsfStop(ocrAllocator_t *self) { }
+static void tlsfStop(ocrAllocator_t *self) {
+#ifdef OCR_ENABLE_STATISTICS
+    statsALLOCATOR_STOP(getCurrentPD(), self->guid, self, self->memories[0]->guid, self->memories[0]);
+#endif
+}
 
 static void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;

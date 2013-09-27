@@ -15,6 +15,10 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#include "ocr-statistics-callbacks.h"
+#endif
 
 #define DEBUG_TYPE WORKER
 
@@ -60,6 +64,9 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     u64 i = 0;
     for(i = 0; i < computeCount; i++) {
         base->computes[i]->fctPtrs->start(base->computes[i], policy, launchArg);
+#ifdef OCR_ENABLE_STATISTICS
+        statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
+#endif
     }
 
     if (hcWorker->id == 0) {
@@ -82,9 +89,15 @@ void hcFinishWorker(ocrWorker_t * base) {
 void hcStopWorker(ocrWorker_t * base) {
     u64 computeCount = base->computeCount;
     u64 i = 0;
+#ifdef OCR_ENABLE_STATISTICS
+    ocrPolicyDomain_t *pd = getCurrentPD();
+#endif
     // This code should be called by the master thread to join others
     for(i = 0; i < computeCount; i++) {
         base->computes[i]->fctPtrs->stop(base->computes[i]);
+#ifdef OCR_ENABLE_STATISTICS
+        statsWORKER_STOP(pd, base->guid, base, base->computes[i]->guid, base->computes[i]);
+#endif
     }
     DPRINTF(DEBUG_LVL_INFO, "Stopping worker %d\n", ((ocrWorkerHc_t *)base)->id);
 }

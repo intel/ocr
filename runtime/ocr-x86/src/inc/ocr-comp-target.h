@@ -16,6 +16,10 @@
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#endif
+
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -88,6 +92,9 @@ struct _ocrCompPlatform_t;
 typedef struct _ocrCompTarget_t {
     ocrMappable_t module; /**< Base class */
     ocrGuid_t guid; /**< Guid of the comp-target */
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcess_t *statProcess;
+#endif
     struct _ocrCompPlatform_t ** platforms; /**< Computing platform the compute target
                                              * is executing on */
     u64 platformCount; /**< Number of comp-platforms */

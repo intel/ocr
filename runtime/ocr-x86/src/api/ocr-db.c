@@ -51,60 +51,12 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
         
         *db = createdDb->guid;
 
-#ifdef OCR_ENABLE_STATISTICS
-    ocrStats_t * stats = policy->getStats(policy);
-    // Create the statistics process for this DB.
-    createdDb->statProcess = stats->fctPtrs->createStatsProcess(stats, *db);
-#endif
-
         ocrGuid_t edtGuid = getCurrentEDT();
-#ifdef OCR_ENABLE_STATISTICS
-    {
-        if(edtGuid) {
-            ocrTask_t *task = NULL;
-            deguidify(policy, edtGuid, (u64*)&task, NULL);
-            ocrStatsProcess_t *srcProcess = task->statProcess;
-            statsParamDb_t params = {.offset = 0, .size = len,
-                                     .isWrite = 1};
-        
-            ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
-                stats, STATS_DB_CREATE, edtGuid, createdDb->guid,
-                (ocrStatsParam_t*)&params);
-        
-            ocrStatsAsyncMessage(srcProcess, createdDb->statProcess, mess);
-        
-            // Acquire part
-            *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);
-            ocrStatsMessage_t *mess2 = stats->fctPtrs->createMessage(
-                stats, STATS_DB_ACQ, edtGuid, createdDb->guid, (ocrStatsParam_t*)&params);
-            ocrStatsSyncMessage(srcProcess, createdDb->statProcess, mess2);
-        } else {
-            // This happens during the packing of the arguments for the first EDT.
-            // We ignore this
-            *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);            
-        }
-    }
-#else
         *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);
-#endif
     } else {
         *addr = NULL;
     }
     if(*addr == NULL) return ENOMEM;
-
-    *db = createdDb->guid;
-
-    // if(startMemStat)
-    // {
-    //     ocrTask_t *curTask = NULL;
-    //     ocrWorker_t *worker = NULL;
-    //     deguidify(getCurrentPD(), getCurrentWorkerContext()->sourceObj, (u64*)&worker, NULL);
-    //     ocrGuid_t curTaskGuid = worker->fctPtrs->getCurrentEDT(worker);
-    //     deguidify(getCurrentPD(), curTaskGuid, (u64*)&curTask, NULL);
-
-    //     //deguidify(getCurrentPD(), getCurrentEDT(), (u64*)&curTask, NULL);
-    //     addQueue(db, *addr, len, curTask);
-    // }
 
     return 0;
 }
@@ -118,16 +70,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     ocrGuid_t edtGuid = getCurrentEDT();
 #ifdef OCR_ENABLE_STATISTICS
     {
-        ocrTask_t *task = NULL;
-        ocrDataBlock_t *dataBlock = NULL;
-        deguidify(policy, edtGuid, (u64*)&task, NULL);
-        deguidify(policy, db, (u64*)&dataBlock, NULL);
 
-        ocrStatsProcess_t *srcProcess = task->statProcess;
-
-        ocrStatsMessage_t *mess = policy->getStats(policy)->fctPtrs->createMessage(
-            policy->getStats(policy), STATS_DB_DESTROY, edtGuid, db, NULL);
-        ocrStatsAsyncMessage(srcProcess, dataBlock->statProcess, mess);
     }
 #endif
     // Make sure you do the free *AFTER* sending the message because the free could
@@ -136,64 +79,13 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     return status;
 }
 
-u8 ocrDbAcquire(ocrGuid_t db, void** addr, u16 flags) {
-    ocrDataBlock_t *dataBlock = NULL;
-    ocrPolicyDomain_t *policy = getCurrentPD();
-    deguidify(policy, db, (u64*)&dataBlock, NULL);
-
-    ocrGuid_t edtGuid = getCurrentEDT();
-
-    *addr = dataBlock->fctPtrs->acquire(dataBlock, edtGuid, false);
-#ifdef OCR_ENABLE_STATISTICS
-    {
-        ocrTask_t *task = NULL;
-        deguidify(policy, edtGuid, (u64*)&task, NULL);
-
-        ocrStatsProcess_t *srcProcess = task->statProcess;
-
-        statsParamDb_t params = {.offset = 0, .size = dataBlock->size,
-                                 .isWrite = 1};
-
-        ocrStatsMessage_t *mess = policy->getStats(policy)->fctPtrs->createMessage(
-            policy->getStats(policy), STATS_DB_ACQ, edtGuid, db,
-            (ocrStatsParam_t*)&params);
-        ocrStatsSyncMessage(srcProcess, dataBlock->statProcess, mess);
-    }
-#endif
-    if(*addr == NULL) return EPERM;
-    return 0;
-}
-
 u8 ocrDbRelease(ocrGuid_t db) {
     ocrDataBlock_t *dataBlock = NULL;
     ocrPolicyDomain_t *policy = getCurrentPD();
     deguidify(policy, db, (u64*)&dataBlock, NULL);
 
     ocrGuid_t edtGuid = getCurrentEDT();
-#ifdef OCR_ENABLE_STATISTICS
-    {
-        ocrTask_t *task = NULL;
-        
-        u8 result = dataBlock->fctPtrs->release(dataBlock, edtGuid, false);
-
-        deguidify(policy, edtGuid, (u64*)&task, NULL);
-
-        ocrStatsProcess_t *srcProcess = task->statProcess;
-
-        statsParamDb_t params = {.offset = 0, .size = dataBlock->size,
-                                 .isWrite = 0};
-
-        ocrStatsMessage_t *mess = policy->getStats(policy)->fctPtrs->createMessage(
-            policy->getStats(policy), STATS_DB_REL, edtGuid, db,
-            (ocrStatsParam_t*)&params);
-        
-        ocrStatsAsyncMessage(srcProcess, dataBlock->statProcess, mess);
-    
-        return result;
-    }
-#else
     return dataBlock->fctPtrs->release(dataBlock, edtGuid, false);
-#endif
 }
 
 u8 ocrDbMalloc(ocrGuid_t guid, u64 size, void** addr) {

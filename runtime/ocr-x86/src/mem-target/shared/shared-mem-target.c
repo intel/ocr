@@ -15,6 +15,13 @@
 #include "ocr-mappable.h"
 #include "ocr-mem-platform.h"
 #include "ocr-mem-target.h"
+#include "ocr-policy-domain.h"
+#include "ocr-policy-domain-getter.h"
+
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#include "ocr-statistics-callbacks.h"
+#endif
 
 #include <stdlib.h>
 
@@ -36,6 +43,9 @@ void sharedMap(ocrMappable_t* self, ocrMappableKind kind, u64 instanceCount,
 }
 
 void sharedDestruct(ocrMemTarget_t *self) {
+#ifdef OCR_ENABLE_STATISTICS
+    statsMEMTARGET_STOP(getCurrentPD(), self->guid, self);
+#endif
     free(self->memories);
     free(self);
 }
@@ -63,9 +73,13 @@ ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
     // all the trouble we are going through to *not* use malloc...
     ocrMemTarget_t *result = (ocrMemTarget_t*)
         checkedMalloc(result, sizeof(ocrMemTargetShared_t));
+    result->guid = NULL_GUID;
+    guidify(getCurrentPD(), (u64)result, &(result->guid), OCR_GUID_MEMTARGET);
 
     result->fctPtrs = &(factory->targetFcts);
-
+#ifdef OCR_ENABLE_STATISTICS
+    statsMEMTARGET_START(getCurrentPD(), result->guid, result);
+#endif
     return result;
 }
 

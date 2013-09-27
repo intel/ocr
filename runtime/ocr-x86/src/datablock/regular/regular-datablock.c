@@ -20,6 +20,7 @@
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
+#include "ocr-statistics-callbacks.h"
 #endif
 
 #include <errno.h>
@@ -61,7 +62,13 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
     rself->lock->fctPtrs->unlock(rself->lock);
     // End critical section
     DPRINTF(DEBUG_LVL_VERB, "Added EDT GUID 0x%"PRIx64" at position %d. Have %d users and %d internal\n",
-                (u64)edt, idForEdt, rself->attributes.numUsers, rself->attributes.internalUsers);
+            (u64)edt, idForEdt, rself->attributes.numUsers, rself->attributes.internalUsers);
+
+#ifdef OCR_ENABLE_STATISTICS
+    {
+        statsDB_ACQ(getCurrentPD(), edt, NULL, self->guid, self);
+    }
+#endif /* OCR_ENABLE_STATISTICS */
     return self->ptr;
 }
 
@@ -100,6 +107,11 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
     DPRINTF(DEBUG_LVL_VVERB, "DB attributes: numUsers %d; internalUsers %d; freeRequested %d\n",
             rself->attributes.numUsers, rself->attributes.internalUsers, rself->attributes.freeRequested);
     // Check if we need to free the block
+#ifdef OCR_ENABLE_STATISTICS
+    {
+        statsDB_REL(getCurrentPD(), edt, NULL, self->guid, self);
+    }
+#endif /* OCR_ENABLE_STATISTICS */
     if(rself->attributes.numUsers == 0  &&
        rself->attributes.internalUsers == 0 &&
        rself->attributes.freeRequested == 1) {
@@ -132,14 +144,12 @@ void regularDestruct(ocrDataBlock_t *self) {
     DPRINTF(DEBUG_LVL_VERB, "Freeing DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n", (u64)self->ptr, rself->base.guid);
     allocator->fctPtrs->free(allocator, self->ptr);
 
-    // TODO: This is not pretty to be here but I can't put this in the ocrDbFree because
-    // the semantics of ocrDbFree is that it will wait for all acquire/releases to have
-    // completed so I have to release the block when it is really being freed. This current
-    // OCR version does not really implement delayed freeing but may in the future.
 #ifdef OCR_ENABLE_STATISTICS
-    pd->getStats(pd)->fctPtrs->destructStatsProcess(pd->getStats(pd),
-                                                    self->statProcess);
-#endif
+    {
+        ocrGuid_t edtGuid = getCurrentEDT();
+        statsDB_DESTROY(pd, edtGuid, NULL, self->allocator, NULL, self->guid, self);
+    }
+#endif /* OCR_ENABLE_STATISTICS */
 
     pd->inform(pd, self->guid, ctx);
     ctx->destruct(ctx);
@@ -211,7 +221,11 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrGuid_t al
     result->attributes.freeRequested = 0;
     ocrGuidTrackerInit(&(result->usersTracker));
 
-
+#ifdef OCR_ENABLE_STATISTICS
+    ocrGuid_t edtGuid = getCurrentEDT();
+    statsDB_CREATE(pd, edtGuid, NULL, allocator, NULL, result->base.guid, &(result->base));
+#endif /* OCR_ENABLE_STATISTICS */
+    
     DPRINTF(DEBUG_LVL_VERB, "Creating a datablock of size %"PRIu64" @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n",
             size, (u64)result->base.ptr, result->base.guid);
 

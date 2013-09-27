@@ -73,10 +73,10 @@ static ocrStatsProcess_t* defaultCreateStatsProcess(ocrStats_t *self, ocrGuid_t 
     guidKind(getCurrentPD(), processGuid, &guidK);
     switch(guidK) {
     case OCR_GUID_DB:
-        intStatsProcessRegisterFilter(result, (0x3F<<((u32)STATS_DB_CREATE-1)), t);
+        intStatsProcessRegisterFilter(result, (0x3F<<((u32)STATS_DB_CREATE-1)), t, 0);
         break;
     case OCR_GUID_EDT:
-        intStatsProcessRegisterFilter(result, 0x1F, t);
+        intStatsProcessRegisterFilter(result, 0x1F, t, 0);
         break;
         // Other cases: TODO
     default:

@@ -17,6 +17,10 @@
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
+#ifdef OCR_ENABLE_STATISTICS
+#include "ocr-statistics.h"
+#endif
+
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -119,6 +123,9 @@ typedef struct _ocrAllocator_t {
     ocrMappable_t module;     /**< Base "class" for the allocator */
     ocrGuid_t guid;           /**< The allocator also has a GUID so that
                                * data-blocks can know what allocated/freed them */
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcess_t *statProcess;
+#endif
 
     struct _ocrMemTarget_t **memories; /**< Allocators are mapped to ocrMemTarget_t (0+) */
     u64 memoryCount;          /**< Number of memories associated */

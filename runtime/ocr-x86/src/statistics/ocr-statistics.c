@@ -19,6 +19,7 @@
 #define DEBUG_TYPE STATS
 // Forward declaration
 extern u8 intProcessMessage(ocrStatsProcess_t *dst);
+extern u8 intProcessOutgoingMessage(ocrStatsProcess_t *src, ocrStatsMessage_t* msg);
 
 
 void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
@@ -34,6 +35,10 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
 
     DPRINTF(DEBUG_LVL_VERB, "Message 0x%lx -> 0x%lx of type %d (0x%lx)\n",
             src->me, dst->me, (int)msg->type, (u64)msg);
+
+    // Notify the sender that a message is being sent
+    intProcessOutgoingMessage(src, msg);
+    
     // Push the message into the messages queue
     dst->messages->fctPtrs->pushTail(dst->messages, (u64)msg);
 
@@ -64,15 +69,16 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
 
     DPRINTF(DEBUG_LVL_VERB, "SYNC Message 0x%lx -> 0x%lx of type %d (0x%lx)\n",
             src->me, dst->me, (int)msg->type, (u64)msg);
-    // Push the message into the messages queue
+    // Push the message into the messages queues
     dst->messages->fctPtrs->pushTail(dst->messages, (u64)msg);
 
     // Now try to get the lock on processing
-    // Since this is a sync message, we need to make sure
-    // we don't come out of this without having had our message
-    // processed. We are going to repeatedly try to grab the lock
-    // with a backoff and sit around until we either process our
-    // message or someone else does it
+    // Since this is a sync message, we will first send it to ourself
+    // and *then* (and this is important) send it to the destination.
+    // There are other ways to do this but the ordering ensures that
+    // there will be no race condition on msg (could happen if it
+    // was in two queues at once). This also ensures that the ticks
+    // at the end of it all are properly synced
     while(1) {
         if(dst->processing->fctPtrs->trylock(dst->processing)) {
             // We grabbed the lock
@@ -99,6 +105,8 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     ASSERT(msg->tick >= src->tick);
     src->tick = msg->tick;
     DPRINTF(DEBUG_LVL_VVERB, "Sync tick out: %ld\n", src->tick);
+    // Inform the sender of the message
+    intProcessOutgoingMessage(src, msg);
     msg->fcts.destruct(msg);
 }
 
