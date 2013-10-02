@@ -14,17 +14,19 @@
 #ifndef __OCR_STATISTICS_H__
 #define __OCR_STATISTICS_H__
 
+#include "ocr-guid-kind.h"
 #include "ocr-mappable.h"
 #include "ocr-sync.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
-struct _ocrPolicyDomain_t;
 
 #ifdef OCR_ENABLE_PROFILING_STATISTICS
-extern __thread u64 __threadInstructionCount;
-extern __thread u8 __threadInstrumentOn;
+extern __thread u64 _threadInstructionCount;
+extern __thread u8 _threadInstrumentOn;
 #endif
+
+struct _ocrPolicyDomain_t;
 
 /**
  * @defgroup ocrStats Statistics collection framework
@@ -118,45 +120,53 @@ typedef struct _paramListStatsInst_t {
  * @todo Figure out if we need/want events on event satisfaction
  */
 typedef enum {
-    STATS_EVT_INVAL,   /**< An invalid event */
+    STATS_EVT_INVAL = 0x0,   /**< An invalid event */
     
     /* EDT related events */
-    STATS_TEMP_CREATE, /**< The EDT template is first created */
-    STATS_TEMP_USE,    /**< An EDT was created using a template */
-    STATS_TEMP_DESTROY,/**< The EDT template is destroyed */
+    STATS_TEMP_CREATE = 0x1, /**< The EDT template is first created */
+    STATS_TEMP_USE = 0x2,    /**< An EDT was created using a template */
+    STATS_TEMP_DESTROY = 0x4,/**< The EDT template is destroyed */
     
-    STATS_EDT_CREATE,  /**< The EDT was first created */
-    STATS_EDT_DESTROY, /**< The EDT was destroyed (rare) */
-    STATS_EDT_READY,   /**< The EDT became ready to run (last dep satisfied) TODO: SEE IF USEFUL. NOT IMPLEMENTED*/
-    STATS_EDT_START,   /**< The EDT started execution */
-    STATS_EDT_END,     /**< The EDT ended execution */
+    STATS_EDT_CREATE = 0x8,  /**< The EDT was first created */
+    STATS_EDT_DESTROY = 0x10, /**< The EDT was destroyed (rare) */
+    STATS_EDT_READY = 0x20,   /**< The EDT became ready to run (last dep satisfied) TODO: SEE IF USEFUL. NOT IMPLEMENTED*/
+    STATS_EDT_START = 0x40,   /**< The EDT started execution */
+    STATS_EDT_END = 0x80,    /**< The EDT ended execution */
 
     /* DB related events */
-    STATS_DB_CREATE,   /**< The DB was created */
-    STATS_DB_DESTROY,  /**< The DB was destroyed (will be by last user after a free) */
-    STATS_DB_ACQ,      /**< The DB was acquired */
-    STATS_DB_REL,      /**< The DB was released */
-    STATS_DB_MOVE,     /**< The DB was moved TODO: NOT IMPLEMENTED */
-    STATS_DB_ACCESS,   /**< The DB was accessed (read or write) TODO: ADD IN PROFILING CALLBACKS */
+    STATS_DB_CREATE = 0x100,   /**< The DB was created */
+    STATS_DB_DESTROY = 0x200,  /**< The DB was destroyed (will be by last user after a free) */
+    STATS_DB_ACQ = 0x400,      /**< The DB was acquired */
+    STATS_DB_REL = 0x800,      /**< The DB was released */
+    STATS_DB_MOVE = 0x1000,    /**< The DB was moved TODO: NOT IMPLEMENTED */
+    STATS_DB_ACCESS = 0x2000,  /**< The DB was accessed (read or write) TODO: ADD IN PROFILING CALLBACKS */
 
     /* Event related events */
-    STATS_EVT_CREATE,  /**< The Event was created */
-    STATS_EVT_DESTROY, /**< The Event was destroyed */
+    STATS_EVT_CREATE = 0x4000,  /**< The Event was created */
+    STATS_EVT_DESTROY = 0x8000, /**< The Event was destroyed */
 
     /* Dependence related events */
-    STATS_DEP_SATISFY, /**< A dependence was satisfied */
-    STATS_DEP_ADD,     /**< A dependence was added */
+    STATS_DEP_SATISFY = 0x10000, /**< A dependence was satisfied */
+    STATS_DEP_ADD = 0x20000,     /**< A dependence was added */
 
     /* Worker related events */
-    STATS_WORKER_START,/**< A worker is starting on a specific comp-target */
-    STATS_WORKER_STOP, /**< A worker is finishing on a specific comp-target */
+    STATS_WORKER_START = 0x40000,/**< A worker is starting on a specific comp-target */
+    STATS_WORKER_STOP = 0x80000, /**< A worker is finishing on a specific comp-target */
 
     /* Allocator related events */
-    STATS_ALLOCATOR_START, /**< An allocator started managing a specific mem-target */
-    STATS_ALLOCATOR_STOP,  /**< An allocator stopped managing a specific mem-target */
-    STATS_EVT_MAX          /**< Marker for number of events */
+    STATS_ALLOCATOR_START = 0x100000, /**< An allocator started managing a specific mem-target */
+    STATS_ALLOCATOR_STOP = 0x200000,  /**< An allocator stopped managing a specific mem-target */
+    STATS_EVT_MAX = 22          /**< Marker for number of events */
 } ocrStatsEvt_t;
 
+#define STATS_TEMP_ALL      (STATS_EDT_CREATE - 1)
+#define STATS_EDT_ALL       ((STATS_DB_CREATE - 1) & ~(STATS_TEMP_ALL))
+#define STATS_DB_ALL        ((STATS_EVT_CREATE - 1) & ~(STATS_EDT_ALL))
+#define STATS_EVT_ALL       ((STATS_DEP_SATISFY - 1) & ~(STATS_DB_ALL))
+#define STATS_DEP_ALL       ((STATS_WORKER_START - 1) & ~(STATS_EVT_ALL))
+#define STATS_WORKER_ALL    ((STATS_ALLOCATOR_START - 1) & ~(STATS_DEP_ALL))
+#define STATS_ALLOCATOR_ALL (((1ULL<<STATS_EVT_MAX) - 1) & ~(STATS_WORKER_ALL))
+#define STATS_ALL           ((1ULL<<STATS_EVT_MAX) -1)
 enum _ocrStatsFilterType_t;
 
 /**
@@ -215,6 +225,7 @@ typedef struct _ocrStatsMessage_t {
     // Base data
     u64 tick;
     ocrGuid_t src, dest;
+    ocrGuidKind srcK, destK;
     volatile u8 state; /**< Internal information used for sync messages:
                         * 0: delete on processing
                         * 1: keep after processing and set to 2

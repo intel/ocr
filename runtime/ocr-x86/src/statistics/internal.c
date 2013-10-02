@@ -121,8 +121,8 @@ void intStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
         // Check to make sure we have enough room to add this filter
         countPresent = (u32)((*countVar)[bitSet] & 0xFFFFFFFF);
         countAlloc = (u32)((*countVar)[bitSet] >> 32);
-        //     DPRINTF(DEBUG_LVL_VVERB, "For type %ld, have %d present and %d allocated (from 0x%lx)\n",
-        //            bitSet, countPresent, countAlloc, (*countVar)[bitSet]);
+        //DPRINTF(DEBUG_LVL_VVERB, "For type %ld, have %d present and %d allocated (from 0x%lx)\n",
+        //        bitSet, countPresent, countAlloc, (*countVar)[bitSet]);
         if(countAlloc <= countPresent) {
             // Allocate using an exponential model
             if(countAlloc)
@@ -140,8 +140,8 @@ void intStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
 
         // Set the counter properly again
         (*countVar)[bitSet] = ((u64)countAlloc << 32) | (countPresent);
-        //     DPRINTF(DEBUG_LVL_VVERB, "Setting final counter for %ld to 0x%lx\n",
-        //            bitSet, (*countVar)[bitSet]);
+        //DPRINTF(DEBUG_LVL_VVERB, "Setting final counter for %ld to 0x%lx\n",
+        //        bitSet, (*countVar)[bitSet]);
     }
     // Do the same thing for bit 0. Only do it once so we only free things once
     countPresent = (u32)((*countVar)[0] & 0xFFFFFFFF);
@@ -169,8 +169,11 @@ void intStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
 u8 intProcessOutgoingMessage(ocrStatsProcess_t *src, ocrStatsMessage_t* msg) {
     DPRINTF(DEBUG_LVL_VERB, "Processing outgoing message 0x%lx for 0x%lx\n",
             (u64)msg, src->me);
-        
-    u32 type = (u32)msg->type;
+
+    
+    u64 type = fls64(msg->type);
+    ASSERT((1ULL<<type) == msg->type);
+    
     u32 countFilter = src->outFilterCounts[type] & 0xFFFFFFFF;
     if(countFilter) {
         // We have at least one filter that is registered to
@@ -197,7 +200,9 @@ u8 intProcessMessage(ocrStatsProcess_t *dst) {
         msg->tick = dst->tick = newTick;
         DPRINTF(DEBUG_LVL_VVERB, "Message tick is %ld\n", msg->tick);
 
-        u32 type = (u32)msg->type;
+        u64 type = fls64(msg->type);
+        ASSERT((1ULL<<type) == msg->type);
+        
         u32 countFilter = dst->filterCounts[type] & 0xFFFFFFFF;
         if(countFilter) {
             // We have at least one filter that is registered to
@@ -221,7 +226,3 @@ u8 intProcessMessage(ocrStatsProcess_t *dst) {
     }
 }
 #endif /* OCR_ENABLE_STATISTICS */
-
-
-
-

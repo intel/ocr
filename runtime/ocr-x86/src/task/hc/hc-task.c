@@ -227,11 +227,6 @@ static void destructTaskHc ( ocrTask_t* base ) {
     ocrPolicyDomain_t *pd = getCurrentPD();
     ocrPolicyCtx_t * orgCtx = getCurrentWorkerContext();
     ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
-    ctx->type = PD_MSG_GUID_REL;
-    pd->inform(pd, base->guid, ctx);
-    base->addedDepCounter->fctPtrs->destruct(base->addedDepCounter);
-    ctx->destruct(ctx);
-
 #ifdef OCR_ENABLE_STATISTICS
     {
         // An EDT is destroyed just when it finishes running so
@@ -239,6 +234,10 @@ static void destructTaskHc ( ocrTask_t* base ) {
         statsEDT_DESTROY(pd, base->guid, base, base->guid, base);
     }
 #endif /* OCR_ENABLE_STATISTICS */
+    ctx->type = PD_MSG_GUID_REL;
+    pd->inform(pd, base->guid, ctx);
+    base->addedDepCounter->fctPtrs->destruct(base->addedDepCounter);
+    ctx->destruct(ctx);
     free(derived);
 }
 
@@ -399,11 +398,11 @@ static void taskExecute ( ocrTask_t* base ) {
     // Next the worker is starting the EDT
 #ifdef OCR_ENABLE_PROFILING_STATISTICS
     if(depc)
-        __threadInstrumentOn = 1;
+        _threadInstrumentOn = 1;
     else
-        ASSERT(__threadInstrumentOn == 0);
+        ASSERT(_threadInstrumentOn == 0);
     
-    __threadInstructionCount = 0ULL;
+    _threadInstructionCount = 0ULL;
 #endif /* OCR_ENABLE_PROFILING_STATISTICS */
 #endif /* OCR_ENABLE_STATISTICS */
     
@@ -414,7 +413,7 @@ static void taskExecute ( ocrTask_t* base ) {
     // We now say that the worker is done executing the EDT
     statsEDT_END(pd, ctx->sourceObj, curWorker, base->guid, base);
 #ifdef OCR_ENABLE_PROFILING_STATISTICS
-    __threadInstrumentOn = 0;
+    _threadInstrumentOn = 0;
 #endif /* OCR_ENABLE_PROFILING_STATISTICS */
 #endif /* OCR_ENABLE_STATISTICS */
 

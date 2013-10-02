@@ -12,6 +12,7 @@
 #ifdef OCR_ENABLE_STATISTICS
 
 #include "debug.h"
+#include "ocr-guid-kind.h"
 #include "statistics/messages/messages-macros.h"
 
 #include <stdlib.h>
@@ -19,6 +20,7 @@
 #define MESSAGE_NAME TRIVIAL
 
 START_MESSAGE
+ocrGuidKind srcK, destK;
 END_MESSAGE
 
 MESSAGE_DESTRUCT {

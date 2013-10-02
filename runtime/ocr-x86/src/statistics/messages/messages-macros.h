@@ -17,6 +17,8 @@
 #define DEBUG_TYPE STATS
 
 #include "debug.h"
+#include "ocr-policy-domain.h"
+#include "ocr-policy-domain-getter.h"
 #include "ocr-statistics.h"
 #include "ocr-types.h"
 
@@ -59,6 +61,11 @@
     result->base.tick = 0;                                              \
     result->base.src = src;                                             \
     result->base.dest = dest;                                           \
+    {                                                                   \
+        ocrPolicyDomain_t *pd = getCurrentPD();                         \
+        guidKind(pd, src, &(result->srcK));                             \
+        guidKind(pd, dest, &(result->destK));                           \
+    }                                                                   \
     result->base.type = type;                                           \
     result->base.state = 0;
         

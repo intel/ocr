@@ -184,6 +184,9 @@ void bringUpRuntime(const char *inifile) {
     if (inst_counts[policydomain_type] != 1) {
         DPRINTF(DEBUG_LVL_WARN, "Only the first policy domain is started for execution. Rest is currently ignored!\n");
     }
+#ifdef OCR_ENABLE_STATISTICS
+    setCurrentPD(rootPolicy); // Statistics needs to know the current PD so we set it for this main thread
+#endif
     rootPolicy->start(rootPolicy);
 }
 

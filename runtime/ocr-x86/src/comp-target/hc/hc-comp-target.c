@@ -37,10 +37,10 @@ static void hcDestruct(ocrCompTarget_t *compTarget) {
         i++;
     }
     free(compTarget->platforms);
-    free(compTarget);
 #ifdef OCR_ENABLE_STATISTICS
     statsCOMPTARGET_STOP(getCurrentPD(), compTarget->guid, compTarget);
 #endif
+    free(compTarget);
 }
 
 static void hcStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {

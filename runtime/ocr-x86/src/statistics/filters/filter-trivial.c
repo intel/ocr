@@ -27,6 +27,7 @@
 typedef struct {
     u64 tick;
     ocrGuid_t src, dest;
+    ocrGuidKind srcK, destK;
     ocrStatsEvt_t type;
 } intSimpleMessageNode_t;
 
@@ -56,18 +57,13 @@ FILTER_DUMP {
 
     ASSERT(chunk < rself->count);
 
-    ocrGuidKind srcK, destK;
     *out = (char*)malloc(sizeof(char)*82); // The output message should always fit in 80 chars given the format
 
     intSimpleMessageNode_t *tmess = &(rself->messages[chunk]);
 
-    ocrPolicyDomain_t *pd = getCurrentPD();
-
-    guidKind(pd, tmess->src, &srcK);
-    guidKind(pd, tmess->dest, &destK);
-
+    
     snprintf(*out, sizeof(char)*82, "%ld : T %d 0x%lx(%d) -> 0x%lx(%d) ", tmess->tick,
-             tmess->type, tmess->src, srcK, tmess->dest, destK);
+             tmess->type, tmess->src, tmess->srcK, tmess->dest, tmess->destK);
 
     if(chunk < rself->count - 1)
         return chunk+1;
@@ -82,16 +78,19 @@ FILTER_NOTIFY {
         rself->maxCount *= 2;
         intSimpleMessageNode_t *t = (intSimpleMessageNode_t*)malloc(
             sizeof(intSimpleMessageNode_t)*rself->maxCount);
-        memcpy(t, rself->messages, (rself->count - 1)*sizeof(intSimpleMessageNode_t));
+        memcpy(t, rself->messages, rself->count*sizeof(intSimpleMessageNode_t));
         rself->messages = t;
     }
-    DPRINTF(DEBUG_LVL_VVERB, "Filter @ 0x%lx received message (%ld): %ld -> %ld of type %d\n",
+        
+    DPRINTF(DEBUG_LVL_VVERB, "Filter @ 0x%lx received message (%ld): 0x%lx -> 0x%lx of type 0x%x\n",
             (u64)self, rself->count, mess->src, mess->dest, (u32)mess->type);
     
     intSimpleMessageNode_t* tmess = &(rself->messages[rself->count++]);
     tmess->tick = mess->tick;
     tmess->src = mess->src;
+    tmess->srcK = mess->srcK;
     tmess->dest = mess->dest;
+    tmess->destK = mess->destK;
     tmess->type = mess->type;
 }
 

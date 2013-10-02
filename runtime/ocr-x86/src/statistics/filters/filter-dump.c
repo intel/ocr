@@ -58,7 +58,7 @@ FILTER_CAST(rself, self);
 DPRINTF(DEBUG_LVL_VERB, "Filter @ 0x%lx received merging from filter 0x%lx\n", (u64)self, (u64)other);
 
 if(rself->outFile) {
-    char* outString;
+    char* outString = NULL;
     u64 nextChunk = 0;
     rself->lock->fctPtrs->lock(rself->lock);
         do {

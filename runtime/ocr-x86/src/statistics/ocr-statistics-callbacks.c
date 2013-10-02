@@ -362,7 +362,7 @@ void statsEVT_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     }
     
     if(!task) {
-        deguidify(pd, edtGuid, (u64*)&evt, NULL);
+        deguidify(pd, edtGuid, (u64*)&task, NULL);
     }
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_EVT_CREATE, edtGuid,
                                                             evtGuid, NULL);

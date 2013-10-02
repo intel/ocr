@@ -68,21 +68,12 @@ static ocrStatsProcess_t* defaultCreateStatsProcess(ocrStats_t *self, ocrGuid_t 
     }
 
     ocrStatsFilter_t *t = newStatsFilter(STATS_FILTER_TRIVIAL, rself->aggregatingFilter, NULL);
-
-    ocrGuidKind guidK;
-    guidKind(getCurrentPD(), processGuid, &guidK);
-    switch(guidK) {
-    case OCR_GUID_DB:
-        intStatsProcessRegisterFilter(result, (0x3F<<((u32)STATS_DB_CREATE-1)), t, 0);
-        break;
-    case OCR_GUID_EDT:
-        intStatsProcessRegisterFilter(result, 0x1F, t, 0);
-        break;
-        // Other cases: TODO
-    default:
-        ASSERT(0);
-    };
-    
+    ocrStatsFilter_t *t2 = newStatsFilter(STATS_FILTER_TRIVIAL, rself->aggregatingFilter, NULL); // Create different
+    // filters since each filter should only be attached to one thing
+    // Will print out everything that goes in or out of the object
+    intStatsProcessRegisterFilter(result, STATS_ALL, t, 0);
+    intStatsProcessRegisterFilter(result, STATS_ALL, t2, 1);
+        
     DPRINTF(DEBUG_LVL_INFO, "Stats 0x%lx: Created a StatsProcess (0x%lx) for object with GUID 0x%lx\n",
             (u64)self, (u64)result, processGuid);
 

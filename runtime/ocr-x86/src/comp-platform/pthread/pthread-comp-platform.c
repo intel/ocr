@@ -83,10 +83,9 @@ static void pthreadStop(ocrCompPlatform_t * compPlatform) {
 
 static void pthreadStartMaster(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
     // This comp-platform represent the currently executing master thread.
-    // Pass NULL launchArgs so that the code sets the TLS but doesn't execute the worker routine.
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
-    pthreadCompPlatform->launchArg = NULL;
-    pthreadRoutineWrapper(pthreadCompPlatform);
+    //pthreadCompPlatform->launchArg = NULL;
+    //pthreadRoutineWrapper(pthreadCompPlatform);
     pthreadCompPlatform->launchArg = launchArg;
 }
 
@@ -101,6 +100,9 @@ static void destroyKey(void* arg) {
 
 static void initializeKey() {
     RESULT_ASSERT(pthread_key_create(&selfKey, &destroyKey), ==, 0);
+    // We are going to set our own key (we are the master thread)
+    perThreadStorage_t *data = (perThreadStorage_t*)checkedMalloc(data, sizeof(perThreadStorage_t));
+    RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
 }
 
 

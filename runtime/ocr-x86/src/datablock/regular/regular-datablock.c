@@ -143,14 +143,15 @@ void regularDestruct(ocrDataBlock_t *self) {
 
     DPRINTF(DEBUG_LVL_VERB, "Freeing DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n", (u64)self->ptr, rself->base.guid);
     allocator->fctPtrs->free(allocator, self->ptr);
-
+    
 #ifdef OCR_ENABLE_STATISTICS
+    // This needs to be done before GUID is freed.
     {
         ocrGuid_t edtGuid = getCurrentEDT();
         statsDB_DESTROY(pd, edtGuid, NULL, self->allocator, NULL, self->guid, self);
     }
 #endif /* OCR_ENABLE_STATISTICS */
-
+    
     pd->inform(pd, self->guid, ctx);
     ctx->destruct(ctx);
     free(rself);
