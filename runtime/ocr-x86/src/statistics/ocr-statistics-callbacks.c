@@ -50,7 +50,7 @@ void statsTEMP_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
         stats, STATS_TEMP_CREATE, edtGuid, templateGuid,
         NULL);
         
-        ocrStatsAsyncMessage(srcProcess, ttemplate->statProcess, mess);    
+    ocrStatsAsyncMessage(srcProcess, ttemplate->statProcess, mess);    
 }
 
 void statsTEMP_USE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,

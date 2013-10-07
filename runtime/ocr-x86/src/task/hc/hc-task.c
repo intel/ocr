@@ -382,6 +382,9 @@ static void taskExecute ( ocrTask_t* base ) {
 
     ocrTaskTemplate_t * taskTemplate;
     deguidify(pd, base->templateGuid, (u64*)&taskTemplate, NULL);
+#ifdef OCR_ENABLE_EDT_NAMING
+    base->name = taskTemplate->name;
+#endif
     //TODO: define when task template is resolved from its guid
 #ifdef OCR_ENABLE_STATISTICS
     
@@ -476,13 +479,17 @@ static void destructTaskTemplateHc(ocrTaskTemplate_t *self) {
 }
 
 static ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory,
-                                      ocrEdt_t executePtr, u32 paramc, u32 depc, ocrParamList_t *perInstance) {
+                                             ocrEdt_t executePtr, u32 paramc, u32 depc, const char* fctName,
+                                             ocrParamList_t *perInstance) {
     ocrTaskTemplateHc_t* template = (ocrTaskTemplateHc_t*) checkedMalloc(template, sizeof(ocrTaskTemplateHc_t));
     ocrTaskTemplate_t * base = (ocrTaskTemplate_t *) template;
     ocrPolicyDomain_t *pd = getCurrentPD();
     base->paramc = paramc;
     base->depc = depc;
     base->executePtr = executePtr;
+#ifdef OCR_ENABLE_EDT_NAMING
+    base->name = fctName;
+#endif
     base->guid = UNINITIALIZED_GUID;
     base->fctPtrs = &(factory->taskTemplateFcts);
     guidify(pd, (u64)base, &(base->guid), OCR_GUID_EDT_TEMPLATE);

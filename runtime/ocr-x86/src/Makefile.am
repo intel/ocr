@@ -8,6 +8,10 @@ CFLAGS = -Wall -g -O0
 
 # Debug flags
 
+# Enable naming of EDTs
+# This uses the name of the function to name the EDT templates and therefore
+# the EDTs. 
+CFLAGS += -DOCR_ENABLE_EDT_NAMING
 # Enable debug
 CFLAGS += -DOCR_DEBUG
 # Define level

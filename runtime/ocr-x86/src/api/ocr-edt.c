@@ -37,10 +37,13 @@ u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
     return ocrEventSatisfySlot(eventGuid, dataGuid, 0);
 }
 
-u8 ocrEdtTemplateCreate(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, u32 depc) {
+u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, u32 depc, const char* funcName) {
+#ifdef OCR_ENABLE_EDT_NAMING
+    ASSERT(funcName);
+#endif
     ocrPolicyDomain_t *pd = getCurrentPD();
     ocrPolicyCtx_t *context = getCurrentWorkerContext();
-    pd->createEdtTemplate(pd, guid, funcPtr, paramc, depc, context);
+    pd->createEdtTemplate(pd, guid, funcPtr, paramc, depc, funcName, context);
 
     return 0;
 }

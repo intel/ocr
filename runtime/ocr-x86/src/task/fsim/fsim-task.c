@@ -15,12 +15,16 @@ void destructTaskTemplateFactoryFSIM(ocrTaskTemplateFactory_t* base) {
 }
 
 ocrTaskTemplate_t * newTaskTemplateFSIM (ocrTaskTemplateFactory_t* factory,
-                                      ocrEdt_t executePtr, u32 paramc, u32 depc, ocrParamList_t *perInstance) {
+                                         ocrEdt_t executePtr, u32 paramc, u32 depc,
+                                         const char* name, ocrParamList_t *perInstance) {
     ocrTaskTemplateFSIM_t* template = (ocrTaskTemplateFSIM_t*) checkedMalloc(template, sizeof(ocrTaskTemplateFSIM_t));
     ocrTaskTemplate_t * base = (ocrTaskTemplate_t *) template;
     base->paramc = paramc;
     base->depc = depc;
     base->executePtr = executePtr;
+#ifdef OCR_ENABLE_EDT_NAMING
+    base->name = name;
+#endif
     base->guid = UNINITIALIZED_GUID;
     guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_EDT_TEMPLATE);
     return base;
@@ -41,12 +45,16 @@ void destructMessageTaskTemplateFactoryFSIM(ocrTaskTemplateFactory_t* base) {
 }
 
 ocrTaskTemplate_t * newMessageTaskTemplateFSIM (ocrTaskTemplateFactory_t* factory,
-                                      ocrEdt_t executePtr, u32 paramc, u32 depc, ocrParamList_t *perInstance) {
+                                                ocrEdt_t executePtr, u32 paramc, u32 depc,
+                                                const char* name, ocrParamList_t *perInstance) {
     ocrMessageTaskTemplateFSIM_t* template = (ocrMessageTaskTemplateFSIM_t*) checkedMalloc(template, sizeof(ocrMessageTaskTemplateFSIM_t));
     ocrTaskTemplate_t * base = (ocrTaskTemplate_t *) template;
     base->paramc = paramc;
     base->depc = depc;
     base->executePtr = executePtr;
+#ifdef OCR_ENABLE_EDT_NAMING
+    base->name = name;
+#endif
     base->guid = UNINITIALIZED_GUID;
     guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_EDT_TEMPLATE);
     return base;

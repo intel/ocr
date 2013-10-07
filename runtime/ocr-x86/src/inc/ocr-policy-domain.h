@@ -274,7 +274,7 @@ typedef struct _ocrPolicyDomain_t {
      * @brief Request the creation of a task-template metadata
      */
     u8 (*createEdtTemplate)(struct _ocrPolicyDomain_t *self, ocrGuid_t *guid,
-                           ocrEdt_t funcPtr, u32 paramc, u32 depc, ocrPolicyCtx_t *context);
+                            ocrEdt_t funcPtr, u32 paramc, u32 depc, const char* funcName, ocrPolicyCtx_t *context);
 
     /**
      * @brief Request the creation of an event

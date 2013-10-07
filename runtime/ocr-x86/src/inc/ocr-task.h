@@ -61,6 +61,9 @@ typedef struct _ocrTaskTemplate_t {
     u32 paramc;
     u32 depc;
     ocrEdt_t executePtr;
+#ifdef OCR_ENABLE_EDT_NAMING
+    const char* name;
+#endif
     ocrTaskTemplateFcts_t *fctPtrs;
 } ocrTaskTemplate_t;
 
@@ -70,7 +73,8 @@ typedef struct _ocrTaskTemplate_t {
 
 typedef struct _ocrTaskTemplateFactory_t {
     ocrTaskTemplate_t* (*instantiate)(struct _ocrTaskTemplateFactory_t * factory, ocrEdt_t fctPtr,
-                                      u32 paramc, u32 depc, ocrParamList_t *perInstance);
+                                      u32 paramc, u32 depc, const char* fctName,
+                                      ocrParamList_t *perInstance);
 
     /*! \brief Virtual destructor for the TaskTemplateFactory interface
      */
@@ -120,6 +124,9 @@ typedef struct _ocrTask_t {
     u32 paramc;
     u64* paramv;
     u64 depc;
+#ifdef OCR_ENABLE_EDT_NAMING
+    const char* name;
+#endif
     // depv and the associated bookeeping are implementation specific
     ocrGuid_t outputEvent; // Event to notify when the EDT is done
     ocrGuid_t els[ELS_SIZE];

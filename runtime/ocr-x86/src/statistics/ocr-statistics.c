@@ -25,9 +25,12 @@ extern u8 intProcessOutgoingMessage(ocrStatsProcess_t *src, ocrStatsMessage_t* m
 void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
                           ocrStatsMessage_t *msg) {
 
-
     u64 tickVal = (src->tick += 1);
     DPRINTF(DEBUG_LVL_VVERB, "Message from 0x%lx with timestamp %ld\n", src->me, tickVal);
+    if(!msg) {
+        DPRINTF(DEBUG_LVL_VVERB, "Message is NULL, ignoring\n");
+        return;
+    }
     msg->tick = tickVal;
     msg->state = 0;
     ASSERT(msg->src == src->me);
@@ -62,6 +65,10 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
 
     u64 tickVal = (src->tick += 1);
     DPRINTF(DEBUG_LVL_VVERB, "SYNC Message from 0x%lx with timestamp %ld\n", src->me, tickVal);
+    if(!msg) {
+        DPRINTF(DEBUG_LVL_VVERB, "Message is NULL, ignoring\n");
+        return;
+    }
     msg->tick = tickVal;
     msg->state = 1;
     ASSERT(msg->src == src->me);

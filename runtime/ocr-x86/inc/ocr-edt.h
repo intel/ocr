@@ -178,6 +178,8 @@ typedef ocrGuid_t (*ocrEdt_t )( u32 paramc, u64* paramv,
                    u32 depc, ocrEdtDep_t depv[]);
 
 
+u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, u32 depc, const char* funcName);
+    
 /**
  * @brief Creates an EDT template
  *
@@ -192,7 +194,11 @@ typedef ocrGuid_t (*ocrEdt_t )( u32 paramc, u64* paramv,
  *
  * @return 0 on success and an error code on failure: TODO
  */
-u8 ocrEdtTemplateCreate(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, u32 depc);
+#ifdef OCR_ENABLE_EDT_NAMING
+#define ocrEdtTemplateCreate(guid, funcPtr, paramc, depc) ocrEdtTemplateCreate_internal((guid), (funcPtr), (paramc), (depc), #funcPtr)
+#else
+#define ocrEdtTemplateCreate(guid, funcPtr, paramc, depc) ocrEdtTemplateCreate_internal((guid), (funcPtr), (paramc), (depc), NULL)
+#endif
 
 /**
  * @brief Destroy an EDT template

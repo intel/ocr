@@ -209,11 +209,12 @@ static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
 }
 
 static u8 hcCreateEdtTemplate(ocrPolicyDomain_t *self, ocrGuid_t *guid,
-                              ocrEdt_t func, u32 paramc, u32 depc, ocrPolicyCtx_t *context) {
+                              ocrEdt_t func, u32 paramc, u32 depc, const char* funcName,
+                              ocrPolicyCtx_t *context) {
 
 
     ocrTaskTemplate_t *base = self->taskTemplateFactory->instantiate(self->taskTemplateFactory,
-                                                                     func, paramc, depc, NULL);
+                                                                     func, paramc, depc, funcName, NULL);
     *guid = base->guid;
     return 0;
 }
