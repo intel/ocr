@@ -76,7 +76,7 @@ fi
 #
 
 export INCLUDES="-I${OCR_INSTALL}/include"
-export CFLAGS=" -Wall -g -Werror "
+export CFLAGS=" -Wall -g -Werror -DOCR_ENABLE_EDT_NAMING "
 if [ -n "${RUNTIME_ITF_EXT}" ]; then
     CFLAGS="$CFLAGS -DRUNTIME_ITF_EXT=1"
 fi

@@ -82,8 +82,8 @@ FILTER_NOTIFY {
         rself->messages = t;
     }
         
-    DPRINTF(DEBUG_LVL_VVERB, "Filter @ 0x%lx received message (%ld): 0x%lx -> 0x%lx of type 0x%x\n",
-            (u64)self, rself->count, mess->src, mess->dest, (u32)mess->type);
+    DPRINTF(DEBUG_LVL_VVERB, "Filter @ 0x%lx received message 0x%lx src:0x%lx dest:0x%lx type:0x%x, now have %ld messages.\n",
+            (u64)self, (u64)mess, mess->src, mess->dest, (u32)mess->type, rself->count);
     
     intSimpleMessageNode_t* tmess = &(rself->messages[rself->count++]);
     tmess->tick = mess->tick;
@@ -104,7 +104,7 @@ FILTER_CREATE {
     
     rself->count = 0;
     rself->maxCount = 8; // Make a configurable number
-    DPRINTF(DEBUG_LVL_VERB, "Created a simple filter @ 0x%lx with parent 0x%lx\n",
+    DPRINTF(DEBUG_LVL_VERB, "Created a trivial filter @ 0x%lx with parent 0x%lx\n",
             (u64)rself, (u64)parent);
     rself->messages = (intSimpleMessageNode_t*)malloc(sizeof(intSimpleMessageNode_t)*rself->maxCount);
 

@@ -204,11 +204,14 @@ static void singleEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slotEvent)
         while (waiter != END_OF_LIST) {
             // Note: in general it's better to read from self->data in case
             //       the event does some post processing on the input data
-            signalWaiter(waiter->guid, self->data, waiter->slot);
 #ifdef OCR_ENABLE_STATISTICS
+            // We do this *before* calling signalWaiter because otherwise
+            // if the event is a OCR_EVENT_ONCE_T, it will get freed
+            // before we can get the message sent
             statsDEP_SATISFYFromEvt(pd, base->guid, base, waiter->guid,
                                     data, waiter->slot);
 #endif
+            signalWaiter(waiter->guid, self->data, waiter->slot);
             waiters = waiter;
             waiter = waiter->next;
             free(waiters); // Release waiter node

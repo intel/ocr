@@ -651,10 +651,12 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
     // SIGNAL MODE:
     //  - anything-to-edt registration
     //  - db-to-event registration
-    registerSignaler(signalerGuid, waiterGuid, slot);
+    // Make sure to do this before signaling in case
+    // the registerSignaler causes the waiter to fire
 #ifdef OCR_ENABLE_STATISTICS
     statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
 #endif    
+    registerSignaler(signalerGuid, waiterGuid, slot);
 }
 
 // Registers a waiter on a signaler

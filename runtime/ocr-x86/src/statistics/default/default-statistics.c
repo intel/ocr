@@ -74,14 +74,15 @@ static ocrStatsProcess_t* defaultCreateStatsProcess(ocrStats_t *self, ocrGuid_t 
     intStatsProcessRegisterFilter(result, STATS_ALL, t, 0);
     intStatsProcessRegisterFilter(result, STATS_ALL, t2, 1);
         
-    DPRINTF(DEBUG_LVL_INFO, "Stats 0x%lx: Created a StatsProcess (0x%lx) for object with GUID 0x%lx\n",
+    DPRINTF(DEBUG_LVL_INFO, "Stats 0x%lx: Created a StatsProcess 0x%lx for parent object GUID 0x%lx\n",
             (u64)self, (u64)result, processGuid);
 
     return result;
 }
 
 static void defaultDestructStatsProcess(ocrStats_t *self, ocrStatsProcess_t *process) {
-    DPRINTF(DEBUG_LVL_INFO, "Destroying StatsProcess 0x%lx (GUID: 0x%lx)\n", (u64)process, process->me);
+    DPRINTF(DEBUG_LVL_INFO, "Stats 0x%lx: Destroying StatsProcess 0x%lx (parent object GUID: 0x%lx)\n",
+            (u64)self, (u64)process, process->me);
     intDestructStatsProcess(process);
 }
 
@@ -139,4 +140,3 @@ ocrStatsFactory_t * newStatsFactoryDefault(ocrParamList_t *perType) {
 }
 
 #endif /* OCR_ENABLE_STATISTICS */
-

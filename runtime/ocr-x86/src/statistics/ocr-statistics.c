@@ -26,7 +26,8 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
                           ocrStatsMessage_t *msg) {
 
     u64 tickVal = (src->tick += 1);
-    DPRINTF(DEBUG_LVL_VVERB, "Message from 0x%lx with timestamp %ld\n", src->me, tickVal);
+    DPRINTF(DEBUG_LVL_VERB, "ASYNC Message 0x%lx src:0x%lx dst:0x%lx ts:%ld type:0x%x\n",
+            (u64)msg, src->me, dst->me, tickVal, (int)msg->type);
     if(!msg) {
         DPRINTF(DEBUG_LVL_VVERB, "Message is NULL, ignoring\n");
         return;
@@ -35,9 +36,6 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     msg->state = 0;
     ASSERT(msg->src == src->me);
     ASSERT(msg->dest == dst->me);
-
-    DPRINTF(DEBUG_LVL_VERB, "Message 0x%lx -> 0x%lx of type %d (0x%lx)\n",
-            src->me, dst->me, (int)msg->type, (u64)msg);
 
     // Notify the sender that a message is being sent
     intProcessOutgoingMessage(src, msg);
@@ -48,7 +46,8 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     // Now try to get the lock on processing
     if(dst->processing->fctPtrs->trylock(dst->processing)) {
         // We grabbed the lock
-        DPRINTF(DEBUG_LVL_VERB, "Message 0x%lx -> 0x%lx: grabbing processing lock\n", src->me, dst->me);
+        DPRINTF(DEBUG_LVL_VERB, "Message 0x%lx: grabbing processing lock for 0x%lx\n",
+                (u64)msg, dst->me);
         u32 count = 5; // TODO: Make configurable
         while(count-- > 0) {
             if(!intProcessMessage(dst))
@@ -64,7 +63,8 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
                           ocrStatsMessage_t *msg) {
 
     u64 tickVal = (src->tick += 1);
-    DPRINTF(DEBUG_LVL_VVERB, "SYNC Message from 0x%lx with timestamp %ld\n", src->me, tickVal);
+    DPRINTF(DEBUG_LVL_VERB, "SYNC Message 0x%lx src:0x%lx dst:0x%lx ts:%ld type:0x%x\n",
+            (u64)msg, src->me, dst->me, tickVal, (int)msg->type);
     if(!msg) {
         DPRINTF(DEBUG_LVL_VVERB, "Message is NULL, ignoring\n");
         return;
@@ -74,8 +74,6 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     ASSERT(msg->src == src->me);
     ASSERT(msg->dest == dst->me);
 
-    DPRINTF(DEBUG_LVL_VERB, "SYNC Message 0x%lx -> 0x%lx of type %d (0x%lx)\n",
-            src->me, dst->me, (int)msg->type, (u64)msg);
     // Push the message into the messages queues
     dst->messages->fctPtrs->pushTail(dst->messages, (u64)msg);
 
@@ -89,7 +87,8 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
     while(1) {
         if(dst->processing->fctPtrs->trylock(dst->processing)) {
             // We grabbed the lock
-            DPRINTF(DEBUG_LVL_VERB, "Message 0x%lx -> 0x%lx: grabbing processing lock\n", src->me, dst->me);
+            DPRINTF(DEBUG_LVL_VERB, "Message 0x%lx: grabbing processing lock for 0x%lx\n",
+                    (u64)msg, dst->me);
             s32 count = 5; // TODO: Make configurable
             // Process at least count and at least until we get to our message
             // EXTREMELY RARE PROBLEM of count running over for REALLY deep queues
@@ -109,14 +108,13 @@ void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
 
     // At this point, we can sync our own tick
     ASSERT(msg->state == 2);
-    ASSERT(msg->tick >= src->tick);
-    src->tick = msg->tick;
-    DPRINTF(DEBUG_LVL_VVERB, "Sync tick out: %ld\n", src->tick);
+    // We may have had another message being processed at the same
+    // time
+    src->tick = msg->tick>src->tick?msg->tick:src->tick;
+    DPRINTF(DEBUG_LVL_VVERB, "Message 0x%lx src tick out: %ld\n", (u64)msg, src->tick);
     // Inform the sender of the message
     intProcessOutgoingMessage(src, msg);
     msg->fcts.destruct(msg);
 }
 
 #endif /* OCR_ENABLE_STATISTICS */
-
-

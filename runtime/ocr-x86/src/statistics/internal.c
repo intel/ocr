@@ -97,7 +97,7 @@ void intStatsProcessRegisterFilter(ocrStatsProcess_t *self, u64 bitMask,
                                    ocrStatsFilter_t *filter, u8 out) {
 
     DPRINTF(DEBUG_LVL_VERB, "Registering %s filter 0x%lx with process 0x%lx for mask 0x%lx\n",
-            out?"out":"in", (u64)filter, (u64)self, bitMask);
+            out?"OUT":"IN", (u64)filter, (u64)self, bitMask);
     u32 countAlloc, countPresent;
 
     ocrStatsFilter_t ****filterVar = NULL;
@@ -194,11 +194,10 @@ u8 intProcessMessage(ocrStatsProcess_t *dst) {
         dst->messages->fctPtrs->popHead(dst->messages);
 
     if(msg) {
-        DPRINTF(DEBUG_LVL_VERB, "Processing message 0x%lx for 0x%lx\n",
+        DPRINTF(DEBUG_LVL_VERB, "Processing incomming message 0x%lx for 0x%lx\n",
                 (u64)msg, dst->me);
         u64 newTick = msg->tick > (dst->tick + 1)?msg->tick:(dst->tick + 1);
         msg->tick = dst->tick = newTick;
-        DPRINTF(DEBUG_LVL_VVERB, "Message tick is %ld\n", msg->tick);
 
         u64 type = fls64(msg->type);
         ASSERT((1ULL<<type) == msg->type);

@@ -252,11 +252,11 @@
 
 
 // TODO: Re-add the worker thing once I figure out a way to not make it segfault
-#define DEBUG(format, ...) do { fprintf(stderr, "%s(%s) W -: " format, __type, __level, /*(u64)getCurrentWorkerContext()->sourceObj,*/ ## __VA_ARGS__); } while(0);
+#define DEBUG(format, ...) do { fprintf(stderr, "%s(%s) W 0x%lx: " format, __type, __level, (u64)pthread_self(),/*(u64)getCurrentWorkerContext()->sourceObj,*/ ## __VA_ARGS__); } while(0);
 #define DPRINTF_TYPE(type, level, format, ...) do {                                              \
         if(OCR_DEBUG_##type && level <= DEBUG_LVL_##type) {                                      \
-            fprintf(stderr, OCR_DEBUG_##type##_STR "(" OCR_DEBUG_##level##_STR ") W 0: " format, \
-                    /*(u64)getCurrentWorkerContext()->sourceObj, */ ## __VA_ARGS__);             \
+            fprintf(stderr, OCR_DEBUG_##type##_STR "(" OCR_DEBUG_##level##_STR ") W 0x%lx: " format, \
+                    (u64)pthread_self(),/*(u64)getCurrentWorkerContext()->sourceObj, */ ## __VA_ARGS__); \
         }                                                                                        \
     } while(0);
 
