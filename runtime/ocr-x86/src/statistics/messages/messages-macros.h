@@ -51,6 +51,9 @@
 #define MESSAGE_CAST(result, origin)                    \
     MESS_TYPE(MESSAGE_NAME) *result = (MESS_TYPE(MESSAGE_NAME) *)origin
 
+#define MESSAGE_TYPE_CAST(type, result, origin)         \
+    MESS_TYPE(type) *result = (MESS_TYPE(type) *)origin
+
 #define MESSAGE_MALLOC(result)                          \
     MESS_TYPE(MESSAGE_NAME) *result = (MESS_TYPE(MESSAGE_NAME) *)       \
         malloc(sizeof(MESS_TYPE(MESSAGE_NAME)))
@@ -63,8 +66,8 @@
     result->base.dest = dest;                                           \
     {                                                                   \
         ocrPolicyDomain_t *pd = getCurrentPD();                         \
-        guidKind(pd, src, &(result->srcK));                             \
-        guidKind(pd, dest, &(result->destK));                           \
+        guidKind(pd, src, &(result->base.srcK));                        \
+        guidKind(pd, dest, &(result->base.destK));                      \
     }                                                                   \
     result->base.type = type;                                           \
     result->base.state = 0;

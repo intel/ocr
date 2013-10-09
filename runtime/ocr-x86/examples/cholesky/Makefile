@@ -1,7 +1,7 @@
 OCR_INPUT_HOME=.
 PROG=cholesky
 SUFFIX=.exe
-CFLAGS= -O0 -g
+CFLAGS= -O0 -g -DOCR_ENABLE_EDT_NAMING
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr -lm
 OCR_INPUT=${OCR_INPUT_HOME}/cholesky
 

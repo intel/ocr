@@ -49,6 +49,9 @@
 #define FILTER_CAST(result, origin)                     \
     FILTER_TYPE(FILTER_NAME) *result = (FILTER_TYPE(FILTER_NAME) *)origin
 
+#define FILTER_TYPE_CAST(type, result, origin)          \
+    FILTER_TYPE(type) *result = (FILTER_TYPE(type) *)origin
+
 #define FILTER_MALLOC(result)                           \
     FILTER_TYPE(FILTER_NAME) *result = (FILTER_TYPE(FILTER_NAME) *) \
         malloc(sizeof(FILTER_TYPE(FILTER_NAME)))
