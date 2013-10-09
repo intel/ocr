@@ -25,13 +25,13 @@ extern u8 intProcessOutgoingMessage(ocrStatsProcess_t *src, ocrStatsMessage_t* m
 void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
                           ocrStatsMessage_t *msg) {
 
-    u64 tickVal = (src->tick += 1);
-    DPRINTF(DEBUG_LVL_VERB, "ASYNC Message 0x%lx src:0x%lx dst:0x%lx ts:%ld type:0x%x\n",
-            (u64)msg, src->me, dst->me, tickVal, (int)msg->type);
     if(!msg) {
         DPRINTF(DEBUG_LVL_VVERB, "Message is NULL, ignoring\n");
         return;
     }
+    u64 tickVal = (src->tick += 1);
+    DPRINTF(DEBUG_LVL_VERB, "ASYNC Message 0x%lx src:0x%lx dst:0x%lx ts:%ld type:0x%x\n",
+            (u64)msg, src->me, dst->me, tickVal, (int)msg->type);
     msg->tick = tickVal;
     msg->state = 0;
     ASSERT(msg->src == src->me);
@@ -62,13 +62,13 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
 void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
                           ocrStatsMessage_t *msg) {
 
-    u64 tickVal = (src->tick += 1);
-    DPRINTF(DEBUG_LVL_VERB, "SYNC Message 0x%lx src:0x%lx dst:0x%lx ts:%ld type:0x%x\n",
-            (u64)msg, src->me, dst->me, tickVal, (int)msg->type);
     if(!msg) {
         DPRINTF(DEBUG_LVL_VVERB, "Message is NULL, ignoring\n");
         return;
     }
+    u64 tickVal = (src->tick += 1);
+    DPRINTF(DEBUG_LVL_VERB, "SYNC Message 0x%lx src:0x%lx dst:0x%lx ts:%ld type:0x%x\n",
+            (u64)msg, src->me, dst->me, tickVal, (int)msg->type);
     msg->tick = tickVal;
     msg->state = 1;
     ASSERT(msg->src == src->me);
