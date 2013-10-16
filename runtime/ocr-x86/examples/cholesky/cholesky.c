@@ -352,13 +352,14 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     FILE *in;
     u64 argc;
 
-    
+
     void *programArg = depv[0].ptr;
     u64* dbAsU64 = (u64*)programArg;
     argc = dbAsU64[0];
 
     if ( argc !=  4 ) {
         printf("Usage: ./cholesky matrixSize tileSize fileName (found %lld args)\n", argc);
+        ocrShutdown();
         return 1;
     }
 
@@ -438,5 +439,3 @@ static double** readMatrix( int matrixSize, FILE* in ) {
     }
     return A;
 }
-
-
