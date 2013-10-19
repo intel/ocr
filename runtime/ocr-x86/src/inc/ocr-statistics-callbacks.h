@@ -42,69 +42,71 @@ typedef struct _ocrWorker_t ocrWorker_t;
  * operation to extract the metadata structure from the GUID
  */
 void statsTEMP_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                          ocrGuid_t templateGuid, ocrTaskTemplate_t *ttemplate);
+                      ocrGuid_t templateGuid, ocrTaskTemplate_t *ttemplate);
 
 void statsTEMP_USE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                       ocrGuid_t templateGuid, ocrTaskTemplate_t *ttemplate);
+                   ocrGuid_t templateGuid, ocrTaskTemplate_t *ttemplate);
 
 void statsTEMP_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                           ocrGuid_t templateGuid, ocrTaskTemplate_t *ttemplate);
+                       ocrGuid_t templateGuid, ocrTaskTemplate_t *ttemplate);
 
 void statsEDT_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                         ocrGuid_t createGuid, ocrTask_t *createTask);
+                     ocrGuid_t createGuid, ocrTask_t *createTask);
 
 void statsEDT_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                          ocrGuid_t destroyGuid, ocrTask_t *destroyTask);
+                      ocrGuid_t destroyGuid, ocrTask_t *destroyTask);
 
 void statsEDT_START(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t *worker,
-                        ocrGuid_t edtGuid, ocrTask_t *task);
+                    ocrGuid_t edtGuid, ocrTask_t *task, u8 usesDb);
 
 void statsEDT_END(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t *worker,
-                      ocrGuid_t edtGuid, ocrTask_t *task);
+                  ocrGuid_t edtGuid, ocrTask_t *task);
 
 void statsDB_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                        ocrGuid_t allocatorGuid, ocrAllocator_t *allocator,
-                        ocrGuid_t dbGuid, ocrDataBlock_t *db);
+                    ocrGuid_t allocatorGuid, ocrAllocator_t *allocator,
+                    ocrGuid_t dbGuid, ocrDataBlock_t *db);
 
 void statsDB_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                         ocrGuid_t allocatorGuid, ocrAllocator_t *allocator,
-                         ocrGuid_t dbGuid, ocrDataBlock_t *db);
-
-void statsDB_ACQ(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
+                     ocrGuid_t allocatorGuid, ocrAllocator_t *allocator,
                      ocrGuid_t dbGuid, ocrDataBlock_t *db);
 
-void statsDB_REL(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task, ocrGuid_t dbGuid, ocrDataBlock_t *db);
+void statsDB_ACQ(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
+                 ocrGuid_t dbGuid, ocrDataBlock_t *db);
+
+void statsDB_REL(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task, ocrGuid_t dbGuid,
+                 ocrDataBlock_t *db);
 
 void statsDB_ACCESS(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                        ocrGuid_t dbGuid, ocrDataBlock_t *db,
-                        u64 offset, u64 size, u8 isWrite);
+                    ocrGuid_t dbGuid, ocrDataBlock_t *db,
+                    u64 offset, u64 size, u8 isWrite);
 
 void statsEVT_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                         ocrGuid_t evtGuid, ocrEvent_t *evt);
+                     ocrGuid_t evtGuid, ocrEvent_t *evt);
 
 void statsEVT_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                          ocrGuid_t evtGuid, ocrEvent_t *evt);
+                      ocrGuid_t evtGuid, ocrEvent_t *evt);
 
 void statsDEP_SATISFYToEvt(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                               ocrGuid_t evtGuid, ocrEvent_t *evt, ocrGuid_t dbGuid, u32 slot);
+                           ocrGuid_t evtGuid, ocrEvent_t *evt, ocrGuid_t dbGuid, u32 slot);
 
 void statsDEP_SATISFYFromEvt(ocrPolicyDomain_t *pd, ocrGuid_t evtGuid, ocrEvent_t *evt,
-                                 ocrGuid_t destGuid, ocrGuid_t dbGuid, u32 slot);
+                             ocrGuid_t destGuid, ocrGuid_t dbGuid, u32 slot);
 
-void statsDEP_ADD(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task, ocrGuid_t depSrcGuid, ocrGuid_t depDestGuid,
-                      ocrTask_t *depDest, u32 slot);
+void statsDEP_ADD(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
+                  ocrGuid_t depSrcGuid, ocrGuid_t depDestGuid,
+                  ocrTask_t *depDest, u32 slot);
 
 void statsWORKER_START(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t *worker,
-                           ocrGuid_t compTargetGuid, ocrCompTarget_t *compTarget);
+                       ocrGuid_t compTargetGuid, ocrCompTarget_t *compTarget);
 
 void statsWORKER_STOP(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t *worker,
-                          ocrGuid_t compTargetGuid, ocrCompTarget_t *compTarget);
+                      ocrGuid_t compTargetGuid, ocrCompTarget_t *compTarget);
 
 void statsALLOCATOR_START(ocrPolicyDomain_t *pd, ocrGuid_t allocatorGuid, ocrAllocator_t *allocator,
-                              ocrGuid_t memTargetGuid, ocrMemTarget_t *memTarget);
+                          ocrGuid_t memTargetGuid, ocrMemTarget_t *memTarget);
 
 void statsALLOCATOR_STOP(ocrPolicyDomain_t *pd, ocrGuid_t allocatorGuid, ocrAllocator_t *allocator,
-                             ocrGuid_t memTargetGuid, ocrMemTarget_t *memTarget);
+                         ocrGuid_t memTargetGuid, ocrMemTarget_t *memTarget);
 
 void statsCOMPTARGET_START(ocrPolicyDomain_t *pd, ocrGuid_t compTargetGuid, ocrCompTarget_t *compTarget);
 

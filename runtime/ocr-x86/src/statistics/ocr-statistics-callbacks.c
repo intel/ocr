@@ -22,6 +22,8 @@
 #include "ocr-worker.h"
 #include "ocr-policy-domain.h"
 
+extern void ocrStatsAccessInsertDB(ocrTask_t *task, ocrDataBlock_t *db);
+extern void ocrStatsAccessRemoveEDT(ocrTask_t *task);
 
 #define DEBUG_TYPE STATS
 
@@ -136,6 +138,7 @@ void statsEDT_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
         stats, STATS_EDT_CREATE, edtGuid, createGuid, NULL);
     ocrStatsAsyncMessage(srcProcess, createTask->statProcess, mess);
+    ocrStatsAccessInsertDB(createTask, NULL);
 }
 
 void statsEDT_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
@@ -164,10 +167,11 @@ void statsEDT_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
         stats, STATS_EDT_DESTROY, edtGuid, destroyGuid, NULL);
     ocrStatsAsyncMessage(srcProcess, destroyTask->statProcess, mess);
     stats->fctPtrs->destructStatsProcess(stats, destroyTask->statProcess);
+    ocrStatsAccessRemoveEDT(destroyTask);
 }
 
 void statsEDT_START(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t *worker,
-                    ocrGuid_t edtGuid, ocrTask_t *task) {
+                    ocrGuid_t edtGuid, ocrTask_t *task, u8 usesDb) {
 
     ocrStats_t *stats = pd->getStats(pd);
     if(!worker) {
@@ -183,11 +187,22 @@ void statsEDT_START(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t *wo
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
         stats, STATS_EDT_START, workerGuid, edtGuid, NULL);
     ocrStatsSyncMessage(worker->statProcess, task->statProcess, mess);
+#ifdef OCR_ENABLE_PROFILING_STATISTICS
+    if(usesDb)
+        _threadInstrumentOn = 1;
+    else
+        ASSERT(_threadInstrumentOn == 0);
+    
+    _threadInstructionCount = 0ULL;
+#endif /* OCR_ENABLE_PROFILING_STATISTICS */
 }
 
 void statsEDT_END(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t *worker,
                   ocrGuid_t edtGuid, ocrTask_t *task) {
-    
+
+#ifdef OCR_ENABLE_PROFILING_STATISTICS
+    _threadInstrumentOn = 0;
+#endif /* OCR_ENABLE_PROFILING_STATISTICS */
     ocrStats_t *stats = pd->getStats(pd);
     if(!worker) {
         deguidify(pd, workerGuid, (u64*)&worker, NULL);
@@ -238,6 +253,7 @@ void statsDB_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     ocrStatsSyncMessage(task->statProcess, allocator->statProcess, mess);
     ocrStatsMessage_t *mess2 = stats->fctPtrs->createMessage(stats, STATS_DB_CREATE, allocatorGuid, dbGuid, (ocrStatsParam_t*)&params);
     ocrStatsSyncMessage(allocator->statProcess, db->statProcess, mess2);
+    ocrStatsAccessInsertDB(task, db);
 }
 
 void statsDB_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
@@ -298,6 +314,8 @@ void statsDB_ACQ(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_DB_ACQ, edtGuid, dbGuid,
                                                             (ocrStatsParam_t*)&params);
     ocrStatsSyncMessage(task->statProcess, db->statProcess, mess);
+    
+    ocrStatsAccessInsertDB(task, db);
 }
 
 void statsDB_REL(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,

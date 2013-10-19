@@ -13,19 +13,21 @@
 #include "ocr-task.h"
 #include "ocr-types.h"
 
-/*
-typedef struct _memTable_t {
-    ocrGuid_t guid;
-    void *addr;
-    u64 len;
-    ocrTask_t taskEdt;
-    struct _memTable *next;
-} memTable_t;
+typedef struct _dbTable_t {
+    ocrDataBlock_t *db;
+    u64 start;
+    u64 end;
+} dbTable_t;
 
-void _statsAddQueue(ocrGuid_t *db, void* addr, u64 len, ocrTask_t *task);
+typedef struct _edtTable_t {
+    ocrTask_t *task;
+    dbTable_t *dbList;
+    int numDbs;
+    int maxDbs;
+} edtTable_t;
 
-memTable_t* _statsIsAddrPresent(void* addr);
-*/
+void ocrStatsAccessInsertDB(ocrTask_t *task, ocrDataBlock_t *db);
+void ocrStatsAccessRemoveEDT(ocrTask_t *task);
 
 extern void PROFILER_ocrStatsLoadCallback(void* address, u64 size, u64 instrCount); 
 extern void PROFILER_ocrStatsStoreCallback(void* address, u64 size, u64 instrCount); 

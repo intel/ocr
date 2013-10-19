@@ -12,6 +12,8 @@
 
 #if OCR_CHECK_SYSCALL
 #define checkedMalloc(ref, ...) (((ref = calloc(1, __VA_ARGS__))==NULL) ? (assert("error: malloc failed !\n" && 0), NULL) : ref);
+#define checkedRealloc(ref, ...) (((ref = realloc(ref, __VA_ARGS__))==NULL) ? (assert("error: realloc failed !\n" && 0), NULL) : ref);
 #else
 #define checkedMalloc(ref, ...) (ref = calloc(1, __VA_ARGS__))
+#define checkedRealloc(ref, ...) (ref = realloc(ref, __VA_ARGS__))
 #endif

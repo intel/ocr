@@ -397,16 +397,8 @@ static void taskExecute ( ocrTask_t* base ) {
     statsTEMP_USE(pd, base->guid, base, taskTemplate->guid, taskTemplate);
     
     // We now say that the worker is starting the EDT
-    statsEDT_START(pd, ctx->sourceObj, curWorker, base->guid, base);
-    // Next the worker is starting the EDT
-#ifdef OCR_ENABLE_PROFILING_STATISTICS
-    if(depc)
-        _threadInstrumentOn = 1;
-    else
-        ASSERT(_threadInstrumentOn == 0);
+    statsEDT_START(pd, ctx->sourceObj, curWorker, base->guid, base, depc != 0);
     
-    _threadInstructionCount = 0ULL;
-#endif /* OCR_ENABLE_PROFILING_STATISTICS */
 #endif /* OCR_ENABLE_STATISTICS */
     
     ocrGuid_t retGuid = taskTemplate->executePtr(paramc, paramv,
@@ -415,9 +407,6 @@ static void taskExecute ( ocrTask_t* base ) {
 #ifdef OCR_ENABLE_STATISTICS
     // We now say that the worker is done executing the EDT
     statsEDT_END(pd, ctx->sourceObj, curWorker, base->guid, base);
-#ifdef OCR_ENABLE_PROFILING_STATISTICS
-    _threadInstrumentOn = 0;
-#endif /* OCR_ENABLE_PROFILING_STATISTICS */
 #endif /* OCR_ENABLE_STATISTICS */
 
     // edt user code is done, if any deps, release data-blocks
