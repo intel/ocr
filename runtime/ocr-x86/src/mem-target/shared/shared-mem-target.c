@@ -11,17 +11,11 @@
 
 #include "debug.h"
 #include "mem-target/shared/shared-mem-target.h"
-#include "ocr-macros.h"
-#include "ocr-mappable.h"
 #include "ocr-mem-platform.h"
 #include "ocr-mem-target.h"
-#include "ocr-policy-domain.h"
 #include "ocr-policy-domain-getter.h"
-
-#ifdef OCR_ENABLE_STATISTICS
-#include "ocr-statistics.h"
-#include "ocr-statistics-callbacks.h"
-#endif
+#include "ocr-policy-domain.h"
+#include "ocr-sysboot.h"
 
 #include <stdlib.h>
 
@@ -31,51 +25,67 @@
 /* OCR MEM TARGET SHARED IMPLEMENTATION               */
 /******************************************************/
 
-void sharedMap(ocrMappable_t* self, ocrMappableKind kind, u64 instanceCount,
-               ocrMappable_t **instances) {
-    ASSERT(kind == OCR_MEM_PLATFORM);
-    ASSERT(instanceCount == 1);
-    ocrMemTarget_t *me = (ocrMemTarget_t*)self;
-    me->memories = (ocrMemPlatform_t**)checkedMalloc(me->memories,
-                                                     sizeof(ocrMemPlatform_t*));
-    me->memories[0] = (ocrMemPlatform_t*)(instances[0]);
-    me->memoryCount = instanceCount;
-}
-
 void sharedDestruct(ocrMemTarget_t *self) {
-#ifdef OCR_ENABLE_STATISTICS
-    statsMEMTARGET_STOP(getCurrentPD(), self->guid, self);
-#endif
-    free(self->memories);
-    free(self);
+    runtimeChunkFree((u64)self->memories, NULL);
+    runtimeChunkFree((u64)self, NULL);
 }
 
 struct _ocrPolicyDomain_t;
-static void sharedStart(ocrMemTarget_t *self, struct _ocrPolicyDomain_t * PD ) { }
-
-static void sharedStop(ocrMemTarget_t *self) { }
-
-void* sharedAllocate(ocrMemTarget_t *self, u64 size) {
-    return self->memories[0]->fctPtrs->allocate(
-        self->memories[0], size);
+static void sharedStart(ocrMemTarget_t *self, struct _ocrPolicyDomain_t * PD ) {
+    self->memories[0]->fctPtrs->start(
+        self->memories[0], PD);
 }
 
-void sharedFree(ocrMemTarget_t *self, void *addr) {
-    return self->memories[0]->fctPtrs->free(
-        self->memories[0], addr);
+static void sharedStop(ocrMemTarget_t *self) {
+    self->memories[0]->fctPtrs->stop(self->memories[0]);
+}
+
+static u8 sharedGetThrottle(ocrMemTarget_t *self, u64* value) {
+    return 1;
+}
+
+static u8 sharedSetThrottle(ocrMemTarget_t *self, u64 value) {
+    return 1;
+}
+
+static void sharedGetRange(ocrMemTarget_t *self, u64* startAddr,
+                           u64* endAddr) {
+    return self->memories[0]->fctPtrs->getRange(
+        self->memories[0], startAddr, endAddr);
+}
+
+static u8 sharedChunkAndTag(ocrMemTarget_t *self, u64 *startAddr,
+                            u64 size, ocrMemoryTag_t oldTag, ocrMemoryTag_t newTag) {
+
+    return self->memories[0]->fctPtrs->chunkAndTag(
+        self->memories[0], startAddr, size, oldTag, newTag);
+}
+
+static u8 sharedTag(ocrMemTarget_t *self, u64 startAddr, u64 endAddr,
+                    ocrMemoryTag_t newTag) {
+
+    return self->memories[0]->fctPtrs->tag(self->memories[0], startAddr,
+                                           endAddr, newTag);
+}
+
+static u8 sharedQueryTag(ocrMemTarget_t *self, u64 *start, u64 *end,
+                         ocrMemoryTag_t *resultTag, u64 addr) {
+
+    return self->memories[0]->fctPtrs->queryTag(self->memories[0], start,
+                                                end, resultTag, addr);
 }
 
 ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
-                                       ocrParamList_t *perInstance) {
+                                   u64 size, ocrParamList_t *perInstance) {
 
-    // TODO: This will be replaced by the runtime/GUID meta-data allocator
-    // For now, we cheat and use good-old malloc which is kind of counter productive with
-    // all the trouble we are going through to *not* use malloc...
     ocrMemTarget_t *result = (ocrMemTarget_t*)
-        checkedMalloc(result, sizeof(ocrMemTargetShared_t));
-    result->guid = NULL_GUID;
-    guidify(getCurrentPD(), (u64)result, &(result->guid), OCR_GUID_MEMTARGET);
+        runtimeChunkAlloc(sizeof(ocrMemTargetShared_t), NULL);
 
+    guidify(getCurrentPD(), (u64)result, &(result->guid), OCR_GUID_MEM_TARGET);
+    result->size = size;
+    result->startAddr = result->endAddr = 0ULL;
+    result->memories = NULL;
+    result->memoryCount = 0;
     result->fctPtrs = &(factory->targetFcts);
 #ifdef OCR_ENABLE_STATISTICS
     statsMEMTARGET_START(getCurrentPD(), result->guid, result);
@@ -88,18 +98,23 @@ ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
 /******************************************************/
 
 static void destructMemTargetFactoryShared(ocrMemTargetFactory_t *factory) {
-    free(factory);
+    runtimeChunkFree((u64)factory, NULL);
 }
 
 ocrMemTargetFactory_t *newMemTargetFactoryShared(ocrParamList_t *perType) {
     ocrMemTargetFactory_t *base = (ocrMemTargetFactory_t*)
-        checkedMalloc(base, sizeof(ocrMemTargetFactoryShared_t));
+        runtimeChunkAlloc(sizeof(ocrMemTargetFactoryShared_t), NULL);
     base->instantiate = &newMemTargetShared;
     base->destruct = &destructMemTargetFactoryShared;
     base->targetFcts.destruct = &sharedDestruct;
     base->targetFcts.start = &sharedStart;
     base->targetFcts.stop = &sharedStop;
-    base->targetFcts.allocate = &sharedAllocate;
-    base->targetFcts.free = &sharedFree;
+    base->targetFcts.getThrottle = &sharedGetThrottle;
+    base->targetFcts.setThrottle = &sharedSetThrottle;
+    base->targetFcts.getRange = &sharedGetRange;
+    base->targetFcts.chunkAndTag = &sharedChunkAndTag;
+    base->targetFcts.tag = &sharedTag;
+    base->targetFcts.queryTag = &sharedQueryTag;
+    
     return base;
 }

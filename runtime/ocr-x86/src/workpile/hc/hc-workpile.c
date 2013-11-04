@@ -45,8 +45,7 @@ static ocrGuid_t hcWorkpileSteal ( ocrWorkpile_t * base, ocrCost_t *cost ) {
 static ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) checkedMalloc(derived, sizeof(ocrWorkpileHc_t));
     ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
-    ocrMappable_t * module_base = (ocrMappable_t *) base;
-    module_base->mapFct = NULL;
+        
     base->fctPtrs = &(factory->workpileFcts);
     derived->deque = (deque_t *) checkedMalloc(derived->deque, sizeof(deque_t));
     dequeInit(derived->deque, (void *) NULL_GUID);

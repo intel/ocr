@@ -40,7 +40,7 @@ extern "C" {
  * @brief Type describing the unique identifier of most
  * objects in OCR (EDTs, data-blocks, etc).
  **/
-typedef intptr_t ocrGuid_t; /**< GUID type */
+    typedef intptr_t ocrGuid_t; /**< GUID type */
 //typedef u64 ocrGuid_t;
 
 /**
@@ -52,12 +52,30 @@ typedef intptr_t ocrGuid_t; /**< GUID type */
  * @brief Allocators that can be used to allocate
  * within a data-block
  */
-typedef enum {
-    NO_ALLOC = 0 /**< No allocation inside data-blocks */
-    /* Add others */
-} ocrInDbAllocator_t;
+    typedef enum {
+        NO_ALLOC = 0 /**< No allocation inside data-blocks */
+        /* Add others */
+    } ocrInDbAllocator_t;
 
+/**
+ * @brief Memory region "tags"
+ *
+ * A tag indicates the type of the memory region in the
+ * mem-target or mem-platform. Other tags may be added
+ * as needed.
+ * @see chunk() tag() queryTag()
+ * @note Must be sequential and have MAX_TAG for rangeTracker to work
+ */
+    typedef enum {
+        RESERVED        = 0, /**< Non-usable chunk of memory */
+        NON_USER        = 1, /**< Regions that are non user managed (text, bss for example */
+        USER_FREE       = 2, /**< Regions that are free to be used by higher levels */
+        USER_USED       = 3, /**< Regions that the higher levels have used */
+        MAX_TAG         = 4  /**< Marker of the end of the tags */
+    } ocrMemoryTag_t;
+        
 #ifdef __cplusplus
 }
 #endif
 #endif /* __OCR_TYPES_H__ */
+

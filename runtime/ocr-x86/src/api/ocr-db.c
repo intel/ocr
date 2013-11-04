@@ -1,4 +1,4 @@
-/**
+ /**
  * @brief Data-block implementation for OCR
  */
 
@@ -52,6 +52,23 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
         *db = createdDb->guid;
 
         ocrGuid_t edtGuid = getCurrentEDT();
+#ifdef OCR_ENABLE_STATISTICS
+        {
+            ocrTask_t *task = NULL;
+            deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
+            ocrStatsProcess_t *srcProcess = edtGuid==0?&GfakePxrocess:&(task->statProcess);
+            
+            ocrStatsMessage_t *mess = NEW_MESSAGE(simple);
+            mess->create(mess, STATS_DB_CREATE, 0, edtGuid, createdDb->guid, NULL);
+            ocrStatsAsyncMessage(srcProcess, &(createdDb->statProcess), mess);
+
+            // Acquire part
+            *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);
+            ocrStatsMessage_t *mess2 = NEW_MESSAGE(simple);
+            mess2->create(mess2, STATS_DB_ACQ, 0, edtGuid, createdDb->guid, NULL);
+            ocrStatsSyncMessage(srcProcess, &(createdDb->statProcess), mess2);
+        }
+#else
         *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);
     } else {
         *addr = NULL;

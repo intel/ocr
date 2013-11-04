@@ -47,40 +47,117 @@ struct _ocrMemTarget_t;
 struct _ocrPolicyDomain_t;
 
 typedef struct _ocrMemTargetFcts_t {
-    /*! \brief Destroys a mem-target
-     *  \param[in] self          Pointer to this mem-target
+    /** @brief Destroys a mem-target
+     *  @param[in] self          Pointer to this mem-target
      */
     void (*destruct)(struct _ocrMemTarget_t* self);
 
-    /*! \brief Starts the mem-target
-     *  \param[in] self          Pointer to this mem-target
-     *  \param[in] PD            Current policy domain
+    /** @brief Starts the mem-target
+     *  @param[in] self          Pointer to this mem-target
+     *  @param[in] PD            Current policy domain
      */
     void (*start)(struct _ocrMemTarget_t* self, struct _ocrPolicyDomain_t * PD);
 
-    /*! \brief Stops the mem-target
-     *  \param[in] self          Pointer to this mem-target
+    /** @brief Stops the mem-target
+     *  @param[in] self          Pointer to this mem-target
      */
     void (*stop)(struct _ocrMemTarget_t* self);
 
-    /**
-     * @brief Allocates a chunk of memory for the higher-level
-     * allocators to manage
+        /**
+     * @brief Gets the throttle value for this memory
      *
-     * @param self          Pointer to this low-memory provider
-     * @param size          Size of the chunk to allocate
-     * @return Pointer to the chunk of memory allocated
+     * A value of 100 indicates nominal throttling.
+     *
+     * @param[in] self        Pointer to this mem-target
+     * @param[out] value      Throttling value
+     * @return 0 on success or the following error code:
+     *     - 1 if the functionality is not supported
+     *     - other codes implementation dependent
      */
-    void* (*allocate)(struct _ocrMemTarget_t* self, u64 size);
+    u8 (*getThrottle)(struct _ocrMemTarget_t* self, u64 *value);
 
     /**
-     * @brief Frees a chunk of memory previously allocated
-     * by self using allocate
+     * @brief Sets the throttle value for this memory
      *
-     * @param self          Pointer to this low-memory provider
-     * @param addr          Address to free
+     * A value of 100 indicates nominal throttling.
+     *
+     * @param[in] self        Pointer to this mem-target
+     * @param[in] value       Throttling value
+     * @return 0 on success or the following error code:
+     *     - 1 if the functionality is not supported
+     *     - other codes implementation dependent
      */
-    void (*free)(struct _ocrMemTarget_t* self, void* addr);
+    u8 (*setThrottle)(struct _ocrMemTarget_t* self, u64 value);
+
+    /**
+     * @brief Gets the start and end address (a u64 value) of the
+     * region of memory
+     *
+     * @param[in] self        Pointer to this mem-target
+     * @param[out] startAddr  Start address of the memory region
+     * @param[out] endAddr    End address of the memory region
+     */
+    void (*getRange)(struct _ocrMemTarget_t* self, u64* startAddr,
+                     u64* endAddr);
+
+    /**
+     * @brief Requests a chunk of contiguous memory of size 'size' and of
+     * type 'desiredTag'
+     *
+     * @param self         Pointer to this mem-target
+     * @param startAddr    Return value: start address of the chunk
+     * @param size         Size requested (in bytes)
+     * @param oldTag       Current tag for the chunk
+     * @param newTag       Tag any successfully returned chunk with
+     *                     this new tag
+     *
+     * @return 0 on success and the following codes on error:
+     *     - 1 if no chunk with the desired tag exists
+     *     - 2 if a chunk with the desired tag exists but none are big enough to accomodate size
+     *     - 3 if size/desiredTag are invalid
+     *     - other non-zero codes implementation dependent
+     * @note This operation is atomic with respect to other chunkAndTag
+     * and tag calls
+     */
+    u8 (*chunkAndTag)(struct _ocrMemTarget_t* self, u64 *startAddr, u64 size,
+                      ocrMemoryTag_t oldTag, ocrMemoryTag_t newTag);
+
+    /**
+     * @brief Tag a region of memory with a specific tag.
+     *
+     * @param self         Pointer to this mem-target
+     * @param startAddr    Start address to tag (included)
+     * @param endAddr      End address to tag (included)
+     * @param newTag       Tag to set for these addresses
+     *
+     * @return 0 on success and a non-zero code on error 
+     * @note There is no forced check as to whether the entire region
+     * being tagged is of the same old tag (ie: a uniform region); that
+     * is up to the implementation
+     */
+    u8 (*tag)(struct _ocrMemTarget_t *self, u64 startAddr, u64 endAddr,
+              ocrMemoryTag_t newTag);
+
+    /**
+     * @brief Return the tag of an address in memory as well as the
+     * start and end of the largest region having the same tag as addr
+     *
+     * This call will query for the tag of an address and return the
+     * largest region for which the tag is the same around that address
+     *
+     * @param self         Pointer to this mem-target
+     * @param startAddr    Return value: start of the range with the same tag
+     * @param endAddr      Return value: end of the range with the same tag
+     * @param resultTag    Return value: tag of the address
+     * @param addr         Address to query
+     *
+     * @return 0 on success and the following error codes:
+     *     - 1 if address is out of range
+     *     - other codes implementation dependent
+     */
+    u8 (*queryTag)(struct _ocrMemTarget_t *self,
+                   u64 *start, u64 *end, ocrMemoryTag_t *resultTag,
+                   u64 addr);
 } ocrMemTargetFcts_t;
 
 struct _ocrMemPlatform_t;
@@ -91,11 +168,9 @@ struct _ocrMemPlatform_t;
  * This represents the target's memories (such as scratchpads)
  */
 typedef struct _ocrMemTarget_t {
-    ocrMappable_t module; /**< Base "class" for ocrMemTarget */
+    ocrMappable_t base;
     ocrGuid_t guid; /**< GUID for this mem-target */
-#ifdef OCR_ENABLE_STATISTICS
-    ocrStatsProcess_t *statProcess;
-#endif
+    u64 size, startAddr, endAddr;
     struct _ocrMemPlatform_t **memories; /**< Pointers to underlying mem-target */
     u64 memoryCount; /**< Number of mem-targets */
     ocrMemTargetFcts_t *fctPtrs; /**< Function pointers for this instance */
@@ -117,7 +192,7 @@ typedef struct _ocrMemTargetFactory_t {
      * @param instanceArg   Arguments specific for this instance
      */
     ocrMemTarget_t * (*instantiate) (struct _ocrMemTargetFactory_t * factory,
-                                     ocrParamList_t* perInstance);
+                                     u64 memSize, ocrParamList_t* perInstance);
     /**
      * @brief mem-target factory destructor
      * @param factory       Pointer to the factory to destroy.

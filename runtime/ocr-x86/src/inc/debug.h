@@ -239,6 +239,16 @@
 #define DEBUG_LVL_WORKPILE OCR_DEBUG_LVL
 #endif
 
+#ifdef OCR_DEBUG_UTIL
+#define OCR_DEBUG_UTIL 1
+#else
+#define OCR_DEBUG_UTIL 0
+#endif
+#define OCR_DEBUG_UTIL_STR "UTIL"
+#ifndef DEBUG_LVL_UTIL
+#define DEBUG_LVL_UTIL OCR_DEBUG_LVL
+#endif
+
 
 // Imply OCR_STATUS
 #define OCR_STATUS

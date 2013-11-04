@@ -12,19 +12,6 @@
 #include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 
-static void mapCompTargetToPlatform(ocrMappable_t *self, ocrMappableKind kind,
-                                    u64 instanceCount, ocrMappable_t ** instances) {
-
-    // Checking mapping conforms to what we're expecting in this implementation
-    ASSERT(kind == OCR_COMP_PLATFORM);
-    ASSERT(instanceCount == 1);
-    ocrCompTarget_t *compTarget = (ocrCompTarget_t*)self;
-    compTarget->platforms = (ocrCompPlatform_t**)checkedMalloc(
-        compTarget->platforms, sizeof(ocrCompPlatform_t*));
-    compTarget->platforms[0] = (ocrCompPlatform_t*)instances[0];
-    compTarget->platformCount = 1;
-}
-
 static void fsimTargetDestruct(ocrCompTarget_t *compTarget) {
     int i = 0;
     while(i < compTarget->platformCount) {
@@ -49,7 +36,6 @@ ocrCompTarget_t * newCompTargetFSIM(ocrCompTargetFactory_t * factory, ocrParamLi
     ocrCompTargetFSIM_t * compTarget = checkedMalloc(compTarget, sizeof(ocrCompTargetFSIM_t));
 
     // TODO: Setup GUID
-    compTarget->base.module.mapFct = mapCompTargetToPlatform;
     compTarget->base.platforms = NULL;
     compTarget->base.platformCount = 0;
     compTarget->base.fctPtrs = &(factory->targetFcts);

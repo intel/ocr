@@ -982,8 +982,12 @@ static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
 
 static void tlsfDestruct(ocrAllocator_t *self) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    if(self->memoryCount)
-        self->memories[0]->fctPtrs->free(self->memories[0], (void*)rself->addr);
+    if(self->memoryCount) {
+        self->memories[0]->fctPtrs->tag(self->memories[0], rself->addr,
+                                        rself->addr + rself->totalSize,
+                                        USER_FREE);
+    }
+        
     rself->lock->fctPtrs->destruct(rself->lock);
     free(self->memories);
 
@@ -1000,12 +1004,12 @@ static void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
     // Do the allocation
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     ASSERT(self->memoryCount == 1);
-    rself->addr = rself->poolAddr = (u64)(rself->base.memories[0]->fctPtrs->allocate(
-                                              rself->base.memories[0], rself->totalSize));
+    self->memories[0]->fctPtrs->start(self->memories[0], PD);
+    RESULT_ASSERT(rself->base.memories[0]->fctPtrs->chunkAndTag(
+                      rself->base.memories[0], &(rself->addr), rself->totalSize,
+                      USER_FREE, USER_USED), ==, 0);
     ASSERT(rself->addr);
-#ifdef OCR_ENABLE_STATISTICS
-    statsALLOCATOR_START(getCurrentPD(), self->guid, self, self->memories[0]->guid, self->memories[0]);
-#endif
+    rself->poolAddr = rself->addr;
     RESULT_ASSERT(tlsfInit(rself->addr, rself->totalSize), ==, 0);
 }
 
@@ -1058,8 +1062,6 @@ static ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrPar
     ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
 
     result->lock = pd->getLock(pd, ctx);
-
-    result->base.module.mapFct = NULL;
 
     return (ocrAllocator_t*)result;
 }

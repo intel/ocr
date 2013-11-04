@@ -126,7 +126,7 @@ static ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *facto
     }
     compPlatformPthread->binding = (params != NULL) ? params->binding : -1;
     compPlatformPthread->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
-    compPlatformPthread->base.module.mapFct = NULL;
+    
     return (ocrCompPlatform_t*)compPlatformPthread;
 }
 

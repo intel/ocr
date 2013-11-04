@@ -12,24 +12,6 @@
 #include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 
-#ifdef OCR_ENABLE_STATISTICS
-#include "ocr-statistics.h"
-#include "ocr-statistics-callbacks.h"
-#endif
-
-static void mapCompTargetToPlatform(ocrMappable_t *self, ocrMappableKind kind,
-                                    u64 instanceCount, ocrMappable_t ** instances) {
-
-    // Checking mapping conforms to what we're expecting in this implementation
-    ASSERT(kind == OCR_COMP_PLATFORM);
-    ASSERT(instanceCount == 1);
-    ocrCompTarget_t *compTarget = (ocrCompTarget_t*)self;
-    compTarget->platforms = (ocrCompPlatform_t**)checkedMalloc(
-        compTarget->platforms, sizeof(ocrCompPlatform_t*));
-    compTarget->platforms[0] = (ocrCompPlatform_t*)instances[0];
-    compTarget->platformCount = 1;
-}
-
 static void hcDestruct(ocrCompTarget_t *compTarget) {
     int i = 0;
     while(i < compTarget->platformCount) {
@@ -56,10 +38,7 @@ static void hcStop(ocrCompTarget_t * compTarget) {
 ocrCompTarget_t * newCompTargetHc(ocrCompTargetFactory_t * factory, ocrParamList_t* perInstance) {
     ocrCompTargetHc_t * compTarget = checkedMalloc(compTarget, sizeof(ocrCompTargetHc_t));
 
-    compTarget->base.guid = UNINITIALIZED_GUID;
-    guidify(getCurrentPD(), (u64)compTarget, &(compTarget->base.guid), OCR_GUID_COMPTARGET);
-    
-    compTarget->base.module.mapFct = mapCompTargetToPlatform;
+    // TODO: Setup GUID
     compTarget->base.platforms = NULL;
     compTarget->base.platformCount = 0;
     compTarget->base.fctPtrs = &(factory->targetFcts);

@@ -1,5 +1,8 @@
 /**
  * @brief Memory target representing a single giant shared space
+ *
+ * For our current implementation, this is a pass-through to the x86
+ * platform
  **/
 
 /*

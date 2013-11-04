@@ -76,6 +76,7 @@ include policy-domain/Makefile.inc
 include scheduler/Makefile.inc
 include statistics/Makefile.inc
 include sync/Makefile.inc
+include sysboot/Makefile.inc
 include task/Makefile.inc
 include utils/Makefile.inc
 include worker/Makefile.inc
