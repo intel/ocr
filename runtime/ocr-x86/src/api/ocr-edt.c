@@ -145,3 +145,15 @@ ocrGuid_t currentEdtUserGet() {
       }
       return NULL_GUID;
 }
+
+// exposed to runtime implementers as convenience
+u64 ocrNbWorkers() {
+  ocrPolicyDomain_t * pd = getCurrentPD();
+  return pd->workerCount;
+}
+
+// exposed to runtime implementers as convenience
+u64 ocrCurrentWorkerId() {
+  ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
+  return ctx->sourceId;
+}

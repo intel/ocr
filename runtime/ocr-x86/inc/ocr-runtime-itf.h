@@ -47,6 +47,18 @@ void ocrElsUserSet(u8 offset, ocrGuid_t data);
 ocrGuid_t currentEdtUserGet();
 
 /**
+ *  @brief Get the number of workers the runtime currently uses
+ *  Note: exposed as a convenience to runtime implementors, may be deprecated anytime.
+ **/
+u64 ocrNbWorkers();
+
+/**
+ *  @brief Get the currently executing worker 'id'
+ *  Note: exposed as a convenience to runtime implementors, may be deprecated anytime.
+ **/
+u64 ocrCurrentWorkerId();
+
+/**
  * @}
  */
 #ifdef __cplusplus
