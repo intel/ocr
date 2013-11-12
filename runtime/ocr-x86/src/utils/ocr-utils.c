@@ -101,7 +101,6 @@ u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind) {
     while(rstatus) {
         slot = fls64(rstatus);
         rstatus &= ~(1ULL << slot);
-        slot = slot;
         if(self->slots[slot] == toFind) {
             result = slot;
             break;
