@@ -23,6 +23,7 @@
 
 #ifdef OCR_ENABLE_PROFILING_STATISTICS
 extern __thread u64 _threadInstructionCount;
+extern __thread u64 _threadFPInstructionCount;
 extern __thread u8 _threadInstrumentOn;
 #endif
 

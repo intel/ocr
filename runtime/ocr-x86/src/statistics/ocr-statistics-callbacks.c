@@ -194,6 +194,7 @@ void statsEDT_START(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t *wo
         ASSERT(_threadInstrumentOn == 0);
     
     _threadInstructionCount = 0ULL;
+    _threadFPInstructionCount = 0ULL;
 #endif /* OCR_ENABLE_PROFILING_STATISTICS */
 }
 

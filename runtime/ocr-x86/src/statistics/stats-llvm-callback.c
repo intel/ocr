@@ -24,6 +24,7 @@ extern "C" {
 #endif
 
     __thread u64 _threadInstructionCount = 0ULL;
+    __thread u64 _threadFPInstructionCount = 0ULL;
     __thread u8 _threadInstrumentOn = 0;
 
 #define MAXEDTS        65536    // TODO: Turn this into a dynamic list
@@ -153,14 +154,14 @@ extern "C" {
         return NULL; // Returns NULL if address is out of known range (ptr[0] previously used as catch-all but not anymore)
     }
 
-    void PROFILER_ocrStatsLoadCallback(void* address, u64 size, u64 count) {
+    void PROFILER_ocrStatsLoadCallback(void* address, u64 size, u64 count, u64 fpCount) {
        ocrDataBlock_t *db = getDBFromAddress((u64)address, size);
        if(db) {
            statsDB_ACCESS(getCurrentPD(), getCurrentEDT(), NULL, db->guid, db, (u64)address, size, 0);
        }
     }
 
-    void PROFILER_ocrStatsStoreCallback(void* address, u64 size, u64 count) {
+    void PROFILER_ocrStatsStoreCallback(void* address, u64 size, u64 count, u64 fpCount) {
        ocrDataBlock_t *db = getDBFromAddress((u64)address, size);
        if(db) {
            statsDB_ACCESS(getCurrentPD(), getCurrentEDT(), NULL, db->guid, db, (u64)address, size, 1);

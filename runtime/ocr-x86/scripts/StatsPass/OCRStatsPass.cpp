@@ -41,14 +41,14 @@ namespace {
     // IMPORTANT NOTE: For all the functions that take instrCount, the value passed is
     // the value to *add* to _threadInstructionCount (ie: the instructions not yet recorded in
     // _threadInstructionCount)
-    typeFunc_t PROFILER_FuncArgs[PROFILER_MAX_ID][3] = {
-        {myGetInt8PtrTy, (typeFunc_t)Type::getInt64Ty, (typeFunc_t)Type::getInt64Ty}, /* load(void* addr, u64 size, u64 instrCount) */
-        {myGetInt8PtrTy, (typeFunc_t)Type::getInt64Ty, (typeFunc_t)Type::getInt64Ty} /* store(void* addr, u64 addr, u64 instrCount) */
+    typeFunc_t PROFILER_FuncArgs[PROFILER_MAX_ID][4] = {
+        {myGetInt8PtrTy, (typeFunc_t)Type::getInt64Ty, (typeFunc_t)Type::getInt64Ty, (typeFunc_t)Type::getInt64Ty}, /* load(void* addr, u64 size, u64 instrCount, u64 fpInstrCount) */
+        {myGetInt8PtrTy, (typeFunc_t)Type::getInt64Ty, (typeFunc_t)Type::getInt64Ty, (typeFunc_t)Type::getInt64Ty} /* store(void* addr, u64 addr, u64 instrCount, u64 fpInstrCount) */
     };
 
     int PROFILER_FuncArgsSize[PROFILER_MAX_ID] = {
-        3,
-        3
+        4,
+        4
     };
 
     struct TransformArgFunc {
@@ -62,6 +62,7 @@ namespace {
     }; 
 
     GlobalVariable* InstructionCount_global = NULL;
+    GlobalVariable* FPInstructionCount_global = NULL;
     GlobalVariable* InstrumentOn_global = NULL;
 
     OCRStatsPass::~OCRStatsPass() {
@@ -81,6 +82,7 @@ namespace {
 
             MDNode* blockInfo = NULL;
             uint64_t instrCount = 0;
+            uint64_t fpInstrCount = 0;
             unsigned char skipInstructions = 0;
             unsigned char skipAndCountInstructions = 0;
             unsigned char blockType = 'n';
@@ -90,15 +92,17 @@ namespace {
             if(blockInfo) {
                 ConstantInt* mdValue = cast<ConstantInt>(blockInfo->getOperand(0));
                 uint64_t v = mdValue->getValue().getZExtValue();
-                blockType = (v & 0xFF);
-                skipInstructions = (v & 0xFF00) >> 8;
-                skipAndCountInstructions = (v & 0xFF0000) >> 16;
-                instrCount = (v >> 24);
+                blockType = (v & 0xFF); // 8 bits for the block type
+                skipInstructions = (v & 0xFF00) >> 8; // 8 bits for the skip Instructions
+                skipAndCountInstructions = (v & 0xFF0000) >> 16; // 8 bits for the skipAndCount
+                instrCount = (v & 0xFFFFF000000) >> 24; // 20 bits for instrCount
+                fpInstrCount =  v >> 44; // 20 bits for fpInstrCount
             }
 
             switch(blockType) {
             case 'n': /* normal block */
                 assert(instrCount == 0 && "Instruction count not zero at start of normal block");
+                assert(fpInstrCount == 0 && "FP Instruction count not zero at start of normal block");
                 assert(skipInstructions == 0 && "Normal blocks should have no instructions to skip");
                 assert(skipAndCountInstructions == 0 && "Normal blocks should have no instructions to skip");
                 assert(!(bb->getName().startswith("OCRP")) && "Unexpected special block");
@@ -124,6 +128,15 @@ namespace {
                 if(skipAndCountInstructions) {
                     ++instrCount;
                     --skipAndCountInstructions;
+                    Instruction *i = bbit;
+                    int opcode = i->getOpcode();
+                    if(opcode == Instruction::FAdd || opcode == Instruction::FSub ||
+                       opcode == Instruction::FMul || opcode == Instruction::FDiv ||
+                       opcode == Instruction::FPToUI || opcode == Instruction::FPToSI ||
+                       opcode == Instruction::UIToFP || opcode == Instruction::SIToFP ||
+                       opcode == Instruction::FPTrunc || opcode == Instruction::FPExt ||
+                       opcode == Instruction::FCmp)
+                        ++fpInstrCount;
                     continue;
                 }
 
@@ -134,23 +147,31 @@ namespace {
                 int opcode = i->getOpcode();
 
                 switch(opcode) {
+                case Instruction::FAdd: case Instruction::FSub: case Instruction::FMul:
+                case Instruction::FDiv: case Instruction::FPToUI: case Instruction::FPToSI:
+                case Instruction::UIToFP: case Instruction::SIToFP:
+                case Instruction::FPTrunc: case Instruction::FPExt: case Instruction::FCmp:
+                {
+                    ++fpInstrCount;
+                    break;
+                }
                 case Instruction::Load:
                 {
                     assert(isa<LoadInst>(i));
-                    breakForLoop = insertProfilerLoad(&*bb, instrCount, bbit);
+                    breakForLoop = insertProfilerLoad(&*bb, instrCount, fpInstrCount, bbit);
                     break;
                 }
                 case Instruction::Store:
                 {
                     assert(isa<StoreInst>(i));
-                    breakForLoop = insertProfilerStore(&*bb, instrCount, bbit);
+                    breakForLoop = insertProfilerStore(&*bb, instrCount, fpInstrCount, bbit);
                     break;
                 }
                 case Instruction::Invoke:
                 {
                     assert(isa<InvokeInst>(i));
                     // This is a terminating instruction so we need to update the instruction count
-                    insertProfilerUpdateInstrCount(instrCount + 1, bbit);
+                    insertProfilerUpdateInstrCount(instrCount + 1, fpInstrCount, bbit);
                     instrCountReset = true;
                     break;
                 }
@@ -161,7 +182,7 @@ namespace {
                     // If calledFunc is NULL, we can ignore it (indirect call??)
                     if(calledFunc) {
                         if(calledFunc->getIntrinsicID() != Intrinsic::not_intrinsic) {
-                            insertProfilerUpdateInstrCount(instrCount + 1, bbit);
+                            insertProfilerUpdateInstrCount(instrCount + 1, fpInstrCount, bbit);
                             instrCountReset = true;
                         }
                     }
@@ -169,7 +190,7 @@ namespace {
                 }
                 default:
                     if(i->isTerminator()) {
-                        insertProfilerUpdateInstrCount(instrCount + 1, bbit);
+                        insertProfilerUpdateInstrCount(instrCount + 1, fpInstrCount, bbit);
                         instrCountReset = true;
                     }
                     break;
@@ -184,9 +205,10 @@ namespace {
                     // and load
                     break;
                 }
-                if(instrCountReset)
+                if(instrCountReset) {
                     instrCount = 0;
-                else
+                    fpInstrCount = 0;
+                } else
                     ++instrCount;
             }
         }
@@ -205,6 +227,12 @@ namespace {
         InstructionCount_global = cast<GlobalVariable>(t);
         InstructionCount_global->setThreadLocal(true);
         //assert(InstructionCount_global->isThreadLocal() && "_threadInstructionCount not thread local");
+
+        t = curModule->getOrInsertGlobal("_threadFPInstructionCount", Type::getInt64Ty(M.getContext()));
+        assert(isa<GlobalVariable>(t) && "_threadFPInstructionCount of the wrong type");
+        FPInstructionCount_global = cast<GlobalVariable>(t);
+        FPInstructionCount_global->setThreadLocal(true);
+        //assert(FPInstructionCount_global->isThreadLocal() && "_threadFPInstructionCount not thread local");
         
         t = curModule->getOrInsertGlobal("_threadInstrumentOn", Type::getInt8Ty(M.getContext()));
         assert(isa<GlobalVariable>(t) && "_threadInstrumentOn of the wrong type");
@@ -242,7 +270,7 @@ namespace {
     }
 
     bool OCRStatsPass::isIgnoredGlobal(const Value* v) const {
-	return (v == InstructionCount_global ||
+	return (v == InstructionCount_global || v == FPInstructionCount_global ||
                 v == InstrumentOn_global);
     }
 
@@ -255,10 +283,11 @@ namespace {
 
     std::pair<BasicBlock*, BasicBlock*> OCRStatsPass::insertProfilingBlock(
         BasicBlock *orig, BasicBlock::iterator i, uint32_t skipValue, uint64_t instrCount,
-        GlobalVariable *condVariable) {
+        uint64_t fpInstrCount, GlobalVariable *condVariable) {
         
-        assert(((skipValue & 0xFFFF0000) == 0) && "skipValue too big");
-	assert(((instrCount & 0xFFFFFF0000000000) == 0) && "instrCount too big");
+        assert(((skipValue & ~(0xFFFFULL)) == 0) && "skipValue too big");
+	assert(((instrCount & ~(0xFFFFFULL)) == 0) && "instrCount too big");
+        assert(((fpInstrCount & ~(0xFFFFFULL)) == 0) && "fpInstrCount too big");
 
 	// This function
 	//    - splits the original block (this creates the fall-through block)
@@ -294,6 +323,7 @@ namespace {
 	uint64_t tagValue = 'f';
 	tagValue |= skipValue<<8;
 	tagValue |= instrCount<<24; // fall-through instruction count should continue
+        tagValue |= fpInstrCount<<44;
 	Value* mdData[1] = { ConstantInt::get(Type::getInt64Ty(curModule->getContext()), tagValue) };
 	fallThroughBlock->front().setMetadata("OCRP", MDNode::get(curModule->getContext(), mdData));
 	
@@ -306,7 +336,7 @@ namespace {
     }
 
     
-    bool OCRStatsPass::insertProfilerLoad(BasicBlock *block, uint64_t instrCount, BasicBlock::iterator i) {
+    bool OCRStatsPass::insertProfilerLoad(BasicBlock *block, uint64_t instrCount, uint64_t fpInstrCount, BasicBlock::iterator i) {
         Instruction *instr = &*i;
 
         Value *loadLocation = instr->getOperand(LoadInst::getPointerOperandIndex());
@@ -320,17 +350,18 @@ namespace {
         assert(locationType->isSized() && "Load type is not sized!!");
 
         // This returns the newly created profiling block before i
-        BasicBlock *profBlock = insertProfilingBlock(block, i, 1<<8,
-                                                     instrCount, InstrumentOn_global).second;
+        BasicBlock *profBlock = insertProfilingBlock(block, i, 1<<8, instrCount,
+                                                     fpInstrCount, InstrumentOn_global).second;
 
         Instruction *firstInstr = &(profBlock->front());
         
-        std::vector<Value*> args(3, NULL);
+        std::vector<Value*> args(4, NULL);
         args[0] = new BitCastInst(loadLocation, Type::getInt8PtrTy(curModule->getContext()), "",
                                   profBlock->getTerminator());
         args[1] = ConstantInt::get(Type::getInt64Ty(curModule->getContext()),
                                    curTarget->getTypeAllocSize(locationType));
         args[2] = ConstantInt::get(Type::getInt64Ty(curModule->getContext()), instrCount);
+        args[3] = ConstantInt::get(Type::getInt64Ty(curModule->getContext()), fpInstrCount);
 
         CallInst *loadCall = CallInst::Create(PROFILER_Funcs[0], args);
         loadCall->insertBefore(profBlock->getTerminator());
@@ -343,7 +374,8 @@ namespace {
 
     }
 
-    bool OCRStatsPass::insertProfilerStore(BasicBlock *block, uint64_t instrCount, BasicBlock::iterator i) {
+    bool OCRStatsPass::insertProfilerStore(BasicBlock *block, uint64_t instrCount, uint64_t fpInstrCount,
+                                           BasicBlock::iterator i) {
         Instruction *instr = &*i;
 
         Value *storeLocation = instr->getOperand(StoreInst::getPointerOperandIndex());
@@ -357,17 +389,18 @@ namespace {
         assert(locationType->isSized() && "Store type is not sized!!");
 
         // This returns the newly created profiling block before i
-        BasicBlock *profBlock = insertProfilingBlock(block, i, 1<<8,
-                                                     instrCount, InstrumentOn_global).second;
+        BasicBlock *profBlock = insertProfilingBlock(block, i, 1<<8, instrCount,
+                                                     fpInstrCount, InstrumentOn_global).second;
 
         Instruction *firstInstr = &(profBlock->front());
         
-        std::vector<Value*> args(3, NULL);
+        std::vector<Value*> args(4, NULL);
         args[0] = new BitCastInst(storeLocation, Type::getInt8PtrTy(curModule->getContext()), "",
                                   profBlock->getTerminator());
         args[1] = ConstantInt::get(Type::getInt64Ty(curModule->getContext()),
                                    curTarget->getTypeAllocSize(locationType));
         args[2] = ConstantInt::get(Type::getInt64Ty(curModule->getContext()), instrCount);
+        args[3] = ConstantInt::get(Type::getInt64Ty(curModule->getContext()), fpInstrCount);
 
         CallInst *storeCall = CallInst::Create(PROFILER_Funcs[1], args);
         storeCall->insertBefore(profBlock->getTerminator());
@@ -380,7 +413,7 @@ namespace {
 
     }
 
-    bool OCRStatsPass::insertProfilerUpdateInstrCount(uint64_t count, BasicBlock::iterator i) {
+    bool OCRStatsPass::insertProfilerUpdateInstrCount(uint64_t count, uint64_t fpCount, BasicBlock::iterator i) {
 
         Instruction *inst = &*i;
         Value* loadCounter = cast<Value>(new LoadInst(InstructionCount_global, "load_counter", true, inst));
@@ -389,6 +422,13 @@ namespace {
                                                   inst);
 
         new StoreInst(addResult, InstructionCount_global, true, inst);
+
+        loadCounter = cast<Value>(new LoadInst(FPInstructionCount_global, "load_fpcounter", true, inst));
+        counterAdd = ConstantInt::get(Type::getInt64Ty(curModule->getContext()), fpCount);
+        addResult = BinaryOperator::Create(Instruction::Add, loadCounter, counterAdd, "add_fpcounter",
+                                                  inst);
+
+        new StoreInst(addResult, FPInstructionCount_global, true, inst);
         return true;
     }
 

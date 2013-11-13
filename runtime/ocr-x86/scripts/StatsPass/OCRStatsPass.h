@@ -80,6 +80,7 @@ namespace {
         std::pair<BasicBlock*, BasicBlock*> insertProfilingBlock(BasicBlock *orig,
                                                                  BasicBlock::iterator i,
                                                                  uint32_t skipValue, uint64_t instrCount,
+                                                                 uint64_t fpInstrCount,
                                                                  GlobalVariable *condVariable);
         /**
          * @brief Determines if instrumentation is required for
@@ -90,7 +91,7 @@ namespace {
          * @param i     Load instruction before which to insert
          * @return True if instrumentation was inserted and false otherwise
          */        
-        bool insertProfilerLoad(BasicBlock* block, uint64_t count, 
+        bool insertProfilerLoad(BasicBlock* block, uint64_t count, uint64_t fpInstrCount,
 				BasicBlock::iterator i);
 
         /**
@@ -101,7 +102,7 @@ namespace {
          * @param i     Store instruction before which to insert
          * @return True if instrumentation was inserted and false otherwise
          */
-        bool insertProfilerStore(BasicBlock* block, uint64_t count,
+        bool insertProfilerStore(BasicBlock* block, uint64_t count, uint64_t fpInstrCount,
                                  BasicBlock::iterator i);
 
         /**
@@ -111,7 +112,7 @@ namespace {
          * @param inst  Instruction to insert before
          * @return True if instrumentation was inserted and false otherwise
          */
-        bool insertProfilerUpdateInstrCount(uint64_t count, BasicBlock::iterator i);
+        bool insertProfilerUpdateInstrCount(uint64_t count, uint64_t fpCount, BasicBlock::iterator i);
 			
     }; /* class OCRStatsPass */
 

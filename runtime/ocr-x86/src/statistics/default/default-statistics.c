@@ -77,6 +77,8 @@ static ocrStatsProcess_t* defaultCreateStatsProcess(ocrStats_t *self, ocrGuid_t 
     DPRINTF(DEBUG_LVL_INFO, "Stats 0x%lx: Created a StatsProcess 0x%lx for parent object GUID 0x%lx\n",
             (u64)self, (u64)result, processGuid);
 
+    DPRINTF(DEBUG_LVL_WARN, "Stats 0x%lx: StatsProcess 0x%lx associated with IN filter 0x%lx and OUT filter 0x%lx\n",
+            (u64)self, (u64)result, (u64)t, (u64)t2);
     return result;
 }
 

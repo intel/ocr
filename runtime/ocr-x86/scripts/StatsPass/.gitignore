@@ -1,4 +1,6 @@
 CMakeFiles/
 cmake_install.cmake
 CMakeLists.txt
+CMakeCache.txt
+Makefile
 *.so
