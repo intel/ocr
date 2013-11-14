@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<script type="text/javascript"
+	src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script type="text/javascript" src="dbquery.js"></script>
+<script type="text/javascript">
+	google.load('visualization', '1', {
+		packages: ['table']
+	});
+	google.setOnLoadCallback(drawTable);
+
+	function drawTable() {
+		var edt = localStorage.getItem('edt_edt');
+		var component = JSON.parse(localStorage.getItem('edt_component'));
+		var timeRange = JSON.parse(localStorage.getItem('edt_timeRange'));
+		document.title = 'EDT ' + edt;
+
+		var data = clickEdtQuery(edt, component, timeRange);
+		var chart = new google.visualization.Table(document
+				.getElementById('table'));
+		chart.draw(data, {});
+	}
+</script>
+</head>
+<body>
+<div id="table"></div>
+</body>
+</html>

@@ -1,0 +1,80 @@
+                         OCR Energy Visualization Tool
+
+What is it?
+-----------
+
+The OCR Energy Visualization Tool is a web tool that can be used to view the
+energy usage and power consumption over the course of execution of a program
+with energy estimation logging enabled.
+
+Requirements
+------------
+
+- A web server with PHP5 support
+   - PHP 5.3.3 or above with sqlite and PDO plugins
+   - SQLite3 3.6.20 or above
+- A web browser with JavaScript 1.5 or above
+
+Python 2.7 is also required to create databases for use with the visualization
+tool.
+
+Installation
+------------
+
+Copy the contents of the www folder into a single folder on the web server.
+
+Creating Databases
+------------------
+
+OCR can produce a log file of estimated energy usage, titled ocrStats.log. These
+files may be used to build a SQLite3 database, which may be used with the Energy
+Visualization Tool.
+
+To generate a database, use the logreader.py script. This script is designed for
+Python 2.7. Usage is as follows:
+
+./logreader.py [-o OUTFILE] ocrStats.log
+
+This will generate a SQLite3 database OUTFILE. To use the visualization tool,
+this file must be copied to the filesystem that the web server is running on.
+
+Using the Tool
+--------------
+
+To use the tool, navigate to charts.php on the web server in a browser. The
+initial view will have a set empty charts. Clicking the Select database button
+in the top left corner of the page and inputting the full path to a database on
+the web server's file system will load the log data.
+
+The charts
+----------
+The four charts on this page show energy usage in different ways. Interacting
+with either of the two large charts will influence all the other charts on the
+page.
+
+1. Energy map of board
+   The chart at the top of the page shows overall energy usage across the
+   physical sections of the board. Red sections used more energy, and blue
+   sections used less. Clicking on a section of the map will show energy usage
+   for only that component. Right-clicking will navigate back up one level.
+2. Power consumption over time
+   The second chart shows power consumption vs. time. This will initially show
+   information for the entire board, but will update to show total energy for a
+   specific component when the view of the energy map is changed.
+   The smaller version of the same chart can be used to zoom in and display a
+   subset of the power-over-time data. Simply drag the handles on the right or
+   left, and all charts will update to show data pertaining to the selected time
+   range.
+3. Energy usage per XE
+   The bar graph in the lower left corner shows estimated energy usage for each
+   XE. Only the XEs contained within the component displayed on the treemap will
+   be shown, and the energy total for each bar reflects only the time range
+   limitation in the power vs time chart. Clicking any of the bars will open a
+   popup window showing a table of each EDT that contributed to that XE's energy
+   usage.
+4. Energy usage per EDT
+   The bar graph in the lower right corner shows estimated energy usage for each
+   EDT, across all instances of each EDT. Only instances of EDTs on the
+   components and time range specified in the first two charts will be shown.
+   Clicking any of the bars will open a popup window showing a table of each EDT
+   that contributed to that EDT's energy usage.
