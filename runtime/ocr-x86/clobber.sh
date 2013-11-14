@@ -37,3 +37,5 @@ for file in `find src -regex '.*libs$'`; do
 done
 
 rm -f Makefile Makefile.in 
+
+rm -f ocr-install/include/* ocr-install/lib/* ocr-install/config/default.cfg
