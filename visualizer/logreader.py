@@ -10,6 +10,7 @@ import sqlite3
 import argparse
 
 EDT_TABLE_NAME = 'edts'
+TIME_TABLE_NAME = 'time'
 
 events = dict()
 cores = dict()
@@ -124,14 +125,21 @@ def parse_file(filename, outfile):
                  edt TEXT,
                  start_time INTEGER,
                  end_time INTEGER,
-                 energy REAL)''' % EDT_TABLE_NAME)
-    insert_string = '''INSERT INTO %s(id,chip,unit,block,xe,edt,start_time,end_time,energy) VALUES(%%s,%%s,%%s,%%s,%%s,'%%s',%%s,%%s,%%s)''' % EDT_TABLE_NAME
+                 energy REAL,
+                 power REAL)''' % EDT_TABLE_NAME)
+    insert_string = '''INSERT INTO %s(id,chip,unit,block,xe,edt,start_time,end_time,energy,power) VALUES(%%s,%%s,%%s,%%s,%%s,'%%s',%%s,%%s,%%s,%%s)''' % EDT_TABLE_NAME
     for event in events.items():
         key = int(event[0], 16)
         value = event[1]
-        s = insert_string % (key, value['chip'], value['unit'], value['block'],
-                             value['xe'], value['edt'], value['start_time']-min_time,
-                             value['end_time']-min_time, value['energy'])
+        try:
+            s = insert_string % (key, value['chip'], value['unit'], value['block'],
+                                 value['xe'], value['edt'], value['start_time']-min_time,
+                                 value['end_time']-min_time, value['energy'], value['energy']/(value['end_time']-value['start_time']))
+        except ZeroDivisionError:
+            sys.stderr.write('Warning: Zero-length EDT instance found. Setting power to 0.\n')
+            s = insert_string % (key, value['chip'], value['unit'], value['block'],
+                                 value['xe'], value['edt'], value['start_time']-min_time,
+                                 value['end_time']-min_time, value['energy'], 0)
         c.execute(s)
     # Insert some indexes to speed things up
     c.execute('CREATE INDEX chipIndex ON edts(chip)')
@@ -140,6 +148,23 @@ def parse_file(filename, outfile):
     c.execute('CREATE INDEX xeIndex ON edts(xe)')
     c.execute('CREATE INDEX startIndex ON edts(start_time)')
     c.execute('CREATE INDEX endIndex ON edts(end_time)')
+
+    # Add a second table for use with time data
+    c.execute("DROP TABLE IF EXISTS %s" % TIME_TABLE_NAME)
+    c.execute('''CREATE TABLE %s(
+                 chip INTEGER,
+                 unit INTEGER,
+                 block INTEGER,
+                 xe INTEGER,
+                 time INTEGER PRIMARY KEY,
+                 power REAL)''' % TIME_TABLE_NAME)
+    select_string = '''SELECT chip,unit,block,xe,time,SUM(powerDelta) AS power FROM
+                       (SELECT chip,unit,block,xe,start_time AS time,SUM(power) AS powerDelta FROM %s GROUP BY time
+                        UNION
+                        SELECT chip,unit,block,xe,end_time AS time,-SUM(power) AS powerDelta FROM %s GROUP BY time)
+                       GROUP BY time''' % (EDT_TABLE_NAME, EDT_TABLE_NAME)
+    insert_string = 'INSERT INTO %s ' % TIME_TABLE_NAME + select_string
+    c.execute(insert_string)
     conn.commit()
     c.close()
 

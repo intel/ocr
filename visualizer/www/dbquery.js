@@ -183,41 +183,37 @@ function timeQuery(component, timeRange) {
 	if (component != null) {
 		restrictions.component = component;
 	}
-	// There are two queries: one for increases in energy at the start of an
-	// EDT, one for decreases in energy at the end of an EDT
-	var query1 = {
-		fields: ['start_time AS time',
-				'SUM(energy/(end_time-start_time)) AS powerDelta'],
-		restrictions: restrictions,
-		filters: {
-			"GROUP BY": ['time']
-		}
-	};
-	var query2 = {
-		fields: ['end_time AS time',
-				'-SUM(energy/(end_time-start_time)) AS powerDelta'],
-		restrictions: restrictions,
-		filters: {
-			"GROUP BY": ['time']
-		}
-	};
-	var innerQueries = [query1, query2];
 
-	// The above is a subquery. It needs to be inside
-	// SELECT time,powerDelta FROM (innerQueries) GROUP BY time
-	var outerQuery = {
-		fields: [
-				'time/' + timeScale + ' as time',
-				'SUM(powerDelta)*' + energyScale + '*' + timeScale
-						+ ' AS power'],
+	// First, get min and max time
+	var minMaxQuery = {
+		fields: ['MIN(time)', 'MAX(time)'],
+		source: 'time'
+	};
+	var fullTimeRange = sendQuery({
+		queries: [minMaxQuery],
+		headers: {
+			'MIN(time)': {
+				label: 'Min',
+				type: 'number'
+			},
+			'MAX(time)': {
+				label: 'Max',
+				type: 'number'
+			}
+		}
+	});
+
+	var query = {
+		fields: ['time/' + timeScale + ' AS time', 'power'],
+		restrictions: restrictions,
 		filters: {
 			"GROUP BY": ['time']
 		},
-		source: innerQueries
+		source: 'time'
 	};
 
 	var queries = {
-		queries: [outerQuery],
+		queries: [query],
 		headers: {
 			'time': {
 				label: 'Time',
@@ -234,6 +230,10 @@ function timeQuery(component, timeRange) {
 	var sample = {
 		sampled: 'time',
 		summed: 'power',
+		fullRange: {
+			start: fullTimeRange.getValue(0, 0) / timeScale,
+			end: fullTimeRange.getValue(0, 1) / timeScale
+		},
 		maxEntries: document.getElementById('energyOverTime').offsetWidth
 	};
 	if (timeRange != null) {
@@ -242,7 +242,7 @@ function timeQuery(component, timeRange) {
 	}
 	queries.sample = sample;
 
-	var dataTable = sendQuery(queries, timeRange);
+	var dataTable = sendQuery(queries);
 	console.log("Read " + dataTable.getNumberOfRows() + " rows");
 	for ( var i = 0; i < dataTable.getNumberOfRows(); i++) {
 		// This REALLY should not be necessary.

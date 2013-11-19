@@ -59,15 +59,21 @@ function parseQuery($query) {
 	}
 
 	if (array_key_exists('source', $query)) {
-		// If the source is supplied, it should be a nested array of queries, resulting in a query such as:
-		// SELECT foo FROM (<query1> UNION <query2>)
-		// Where the nested query will be the portion inside paretheses.
-		$nestedQueries = $query['source'];
-		$nestedQueriesStr = array();
-		foreach ($nestedQueries as $nq) {
-			$nestedQueriesStr[] = parseQuery($nq);
+		if (gettype($query['source']) == 'string') {
+			// Source is just a table name
+			$table = $query['source'];
 		}
-		$table = " (".implode(' UNION ', $nestedQueriesStr).") ";
+		else {
+			// Otherwise, it should be a nested array of queries, resulting in a query such as:
+			// SELECT foo FROM (<query1> UNION <query2>)
+			// Where the nested query will be the portion inside paretheses.
+			$nestedQueries = $query['source'];
+			$nestedQueriesStr = array();
+			foreach ($nestedQueries as $nq) {
+				$nestedQueriesStr[] = parseQuery($nq);
+			}
+			$table = " (".implode(' UNION ', $nestedQueriesStr).") ";
+		}
 	}
 	else {
 		$table = $GLOBALS['tablename'];
@@ -112,6 +118,7 @@ function makeTableRows($results) {
 		// and max number of entries. Start and end of range
 		// can be left out.
 		if (!isset($sample['sampled']) ||
+			!isset($sample['fullRange']) ||
 			!isset($sample['summed']) ||
 			!isset($sample['maxEntries'])) {
 			unset($sample);
@@ -121,10 +128,8 @@ function makeTableRows($results) {
 	$rows = array();
 	if (isset($sample)) {
 		$sumField = $sample['summed'];
-		$start = array_shift(array_values($results));
-		$start = $start[$sample['sampled']];
-		$end = array_pop(array_values($results));
-		$end = $end[$sample['sampled']];
+		$start = $sample['fullRange']['start'];
+		$end = $sample['fullRange']['end'];
 		$duration = $end-$start;
 		$step = $duration / $sample['maxEntries'];
 
@@ -139,7 +144,7 @@ function makeTableRows($results) {
 
 		$min_time = 0;
 		$to_skip = array();
-		foreach ($results as $r) {
+		while ($r = $results->fetch()) {
 			$time = $r['time'];
 			if ($time < $min_time) {
 				$to_skip[] = $r;
@@ -157,17 +162,17 @@ function makeTableRows($results) {
 					$to_skip = array();
 				}
 				$rows[] = buildRow($r);
-			}
-			if ($time >= $subStart && $time <= $subEnd) {
-				$min_time = $time + $subStep;
-			}
-			else {
-				$min_time = $time + $step;
+				if ($time >= $subStart && $time <= $subEnd) {
+					$min_time = $time + $subStep;
+				}
+				else {
+					$min_time = $time + $step;
+				}
 			}
 		}
 	}
 	else {
-		foreach ($results as $r) {
+		while ($r = $results->fetch()) {
 			$rows[] = buildRow($r);
 		}
 	}
@@ -191,6 +196,13 @@ try {
 			start_time INTEGER,
 			end_time INTEGER,
 			energy REAL)');
+		$conn->exec('CREATE TABLE time(
+            chip INTEGER,
+            unit INTEGER,
+            block INTEGER,
+            xe INTEGER,
+            time INTEGER PRIMARY KEY,
+            power REAL)');
 	}
 
 	$result = $conn->query($queriesStr);
@@ -207,7 +219,7 @@ try {
 	}
 
 	// Create a row for each entry
-	$rows = makeTableRows($result->fetchAll());
+	$rows = makeTableRows($result);
 
 	// Convert the table to the JSON format that Google Charts needs
 	$table['rows'] = $rows;
