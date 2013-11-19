@@ -59,7 +59,7 @@
 <body>
 	<div id="dbSelection">
 		<div>
-		<input id="dbSelectBtn" type="button" value="Select database" onclick="showLightbox()">
+		<input id="dbSelectBtn" type="button" value="Select database" onclick="showLightbox(); document.getElementById('db_path').focus()">
 		</div>
 	</div>
 	<div>
