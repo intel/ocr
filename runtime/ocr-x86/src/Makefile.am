@@ -10,8 +10,12 @@ CFLAGS = -Wall -g -O0
 
 # Enable naming of EDTs
 # This uses the name of the function to name the EDT templates and therefore
-# the EDTs. 
+# the EDTs.
+# NOTE: The application must also have this flag defined
+# If this is note the case, an ASSERT will happen
 CFLAGS += -DOCR_ENABLE_EDT_NAMING
+
+# Debugging support
 # Enable debug
 CFLAGS += -DOCR_DEBUG
 # Define level
@@ -32,17 +36,17 @@ CFLAGS += -DOCR_DEBUG_MEM_PLATFORM
 CFLAGS += -DOCR_DEBUG_MEM_TARGET
 CFLAGS += -DOCR_DEBUG_POLICY
 CFLAGS += -DOCR_DEBUG_SCHEDULER
-CFLAGS += -DOCR_DEBUG_STATS -DDEBUG_LVL_STATS=DEBUG_LVL_VVERB
+CFLAGS += -DOCR_DEBUG_STATS #-DDEBUG_LVL_STATS=DEBUG_LVL_VVERB
 CFLAGS += -DOCR_DEBUG_SYNC
 CFLAGS += -DOCR_DEBUG_TASK
 CFLAGS += -DOCR_DEBUG_WORKER
 CFLAGS += -DOCR_DEBUG_WORKPILE
 
 # Enable statistics with this
-CFLAGS += -DOCR_ENABLE_STATISTICS
+#CFLAGS += -DOCR_ENABLE_STATISTICS
 # This adds statistics for LD/STs and requires compiling
 # the user code with the OCRStats LLVM pass
-CFLAGS += -DOCR_ENABLE_PROFILING_STATISTICS
+#CFLAGS += -DOCR_ENABLE_PROFILING_STATISTICS
 
 # additional cflags for ocr modules
 OCR_CFLAGS =
