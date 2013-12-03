@@ -254,7 +254,6 @@ void statsDB_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     ocrStatsSyncMessage(task->statProcess, allocator->statProcess, mess);
     ocrStatsMessage_t *mess2 = stats->fctPtrs->createMessage(stats, STATS_DB_CREATE, allocatorGuid, dbGuid, (ocrStatsParam_t*)&params);
     ocrStatsSyncMessage(allocator->statProcess, db->statProcess, mess2);
-    ocrStatsAccessInsertDB(task, db);
 }
 
 void statsDB_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
