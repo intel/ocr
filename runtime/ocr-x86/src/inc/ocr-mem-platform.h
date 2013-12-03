@@ -181,6 +181,7 @@ typedef struct _ocrMemPlatform_t {
 /**
  * @brief mem-platform factory
  */
+
 typedef struct _ocrMemPlatformFactory_t {
     /**
      * @brief Instantiate a new mem-platform and returns a pointer to it.

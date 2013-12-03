@@ -11,7 +11,6 @@
 #ifndef __OCR_MEM_TARGET_H__
 #define __OCR_MEM_TARGET_H__
 
-#include "ocr-mappable.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
@@ -46,6 +45,12 @@ typedef struct _paramListMemTargetInst_t {
 struct _ocrMemTarget_t;
 struct _ocrPolicyDomain_t;
 
+/**
+ * @brief mem-target function pointers
+ *
+ * The function pointers are separate from the mem-target instance to allow for
+ * the sharing of function pointers for mem-target from the same factory
+ */
 typedef struct _ocrMemTargetFcts_t {
     /** @brief Destroys a mem-target
      *  @param[in] self          Pointer to this mem-target
@@ -63,7 +68,7 @@ typedef struct _ocrMemTargetFcts_t {
      */
     void (*stop)(struct _ocrMemTarget_t* self);
 
-        /**
+    /**
      * @brief Gets the throttle value for this memory
      *
      * A value of 100 indicates nominal throttling.

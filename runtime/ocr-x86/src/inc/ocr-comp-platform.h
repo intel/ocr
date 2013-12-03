@@ -12,8 +12,6 @@
 #ifndef __OCR_COMP_PLATFORM_H__
 #define __OCR_COMP_PLATFORM_H__
 
-#include "ocr-comp-target.h"
-#include "ocr-mappable.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
@@ -42,7 +40,7 @@ typedef struct _paramListCompPlatformInst_t {
 /****************************************************/
 
 struct _ocrCompPlatform_t;
-
+struct _launchArg_t;
 /**
  * @brief Comp-platform function pointers
  *
@@ -57,17 +55,60 @@ typedef struct _ocrCompPlatformFcts_t {
     /**
      * @brief Starts a comp-platform (a thread of execution).
      *
-     * @param self          Pointer to this comp-platform
-     * @param PD            The policy domain bringing up the runtime
-     * @param launchArgs    Arguments to be passed down to the comp-platform
+     * @param[in] self          Pointer to this comp-platform
+     * @param[in] PD            The policy domain bringing up the runtime
+     * @param[in] launchArg     Arguments passed to the comp-platform to launch
      */
-    void (*start)(struct _ocrCompPlatform_t *self, struct _ocrPolicyDomain_t * PD, launchArg_t * launchArg);
+    void (*start)(struct _ocrCompPlatform_t *self, struct _ocrPolicyDomain_t * PD,
+                  struct _launchArg_t * launchArg);
 
     /**
      * @brief Stops this comp-platform
-     * @param self          Pointer to this comp-platform
+     * @param[in] self          Pointer to this comp-platform
      */
     void (*stop)(struct _ocrCompPlatform_t *self);
+
+    /**
+     * @brief Gets the throttle value for this compute node
+     *
+     * A value of 100 indicates nominal throttling.
+     *
+     * @param[in] self        Pointer to this mem-platform
+     * @param[out] value      Throttling value
+     * @return 0 on success or the following error code:
+     *     - 1 if the functionality is not supported
+     *     - other codes implementation dependent
+     */
+    u8 (*getThrottle)(struct _ocrCompPlatform_t* self, u64 *value);
+
+    /**
+     * @brief Sets the throttle value for this compute node
+     *
+     * A value of 100 indicates nominal throttling.
+     *
+     * @param[in] self        Pointer to this mem-platform
+     * @param[in] value       Throttling value
+     * @return 0 on success or the following error code:
+     *     - 1 if the functionality is not supported
+     *     - other codes implementation dependent
+     */
+    u8 (*setThrottle)(struct _ocrCompPlatform_t* self, u64 value);
+
+    /**
+     * @brief Send a message to another target
+     *
+     * This call, which executes on the compute platform
+     * making the call, will send an asynchronous message to target. There is
+     * no expectation of a result to be sent back but the target may send
+     * "back" a one-way message at a later point.
+     *
+     * The exact implementation of the message sent is implementation dependent
+     * and may even be a fully synchronous call but users of this call
+     * should assume asynchrony. The exact communication protocol is also
+     * implementation dependent.
+    u8 (*sendMessage)(struct _ocrCompPlatform_t* self,
+                      struct _ocrCompPlatform_t* target,
+                      const char* buffer, u64 size);
 
 } ocrCompPlatformFcts_t;
 
