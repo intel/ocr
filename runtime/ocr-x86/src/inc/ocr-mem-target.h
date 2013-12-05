@@ -11,6 +11,7 @@
 #ifndef __OCR_MEM_TARGET_H__
 #define __OCR_MEM_TARGET_H__
 
+#include "ocr-runtime-types.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
@@ -173,7 +174,6 @@ struct _ocrMemPlatform_t;
  * This represents the target's memories (such as scratchpads)
  */
 typedef struct _ocrMemTarget_t {
-    ocrMappable_t base;
     ocrGuid_t guid; /**< GUID for this mem-target */
     u64 size, startAddr, endAddr;
     struct _ocrMemPlatform_t **memories; /**< Pointers to underlying mem-target */

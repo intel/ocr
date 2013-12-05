@@ -40,65 +40,49 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     // TODO: I need to get the current policy to figure out my allocator.
     // Replace with allocator that is gotten from policy
     //
-    ocrPolicyDomain_t* policy = getCurrentPD();
-    ocrPolicyCtx_t* ctx = getCurrentWorkerContext();
-    // TODO: Pass ocrInDbAllocator_t down to the DB factory
-    if(policy->allocateDb(
-           policy, db, addr, len, flags, affinity, allocator, ctx) == 0) {
+    ocrPolicyMsg_t msg;
+    ocrPolicyDomain_t *policy;
+    getCurrentEnv(&policy, &msg);
 
-        ocrDataBlock_t* createdDb;
-        deguidify(policy, *db, (u64*)&createdDb, NULL);
-        
-        *db = createdDb->guid;
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_MEM_CREATE
+    PD_MSG_FIELD(guid.guid) = *db;
+    PD_MSG_FIELD(size) = len;
+    PD_MSG_FIELD(affinity) = affinity;
+    PD_MSG_FIELD(properties) = (u32)flags;
+    PD_MSG_FIELD(dbType) = USER_DBTYPE;
+    PD_MSG_FIELD(allocator) = allocator;
 
-        ocrGuid_t edtGuid = getCurrentEDT();
-#ifdef OCR_ENABLE_STATISTICS
-        {
-            ocrTask_t *task = NULL;
-            deguidify(getCurrentPD(), edtGuid, (u64*)&task, NULL);
-            ocrStatsProcess_t *srcProcess = edtGuid==0?&GfakePxrocess:&(task->statProcess);
-            
-            ocrStatsMessage_t *mess = NEW_MESSAGE(simple);
-            mess->create(mess, STATS_DB_CREATE, 0, edtGuid, createdDb->guid, NULL);
-            ocrStatsAsyncMessage(srcProcess, &(createdDb->statProcess), mess);
-
-            // Acquire part
-            *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);
-            ocrStatsMessage_t *mess2 = NEW_MESSAGE(simple);
-            mess2->create(mess2, STATS_DB_ACQ, 0, edtGuid, createdDb->guid, NULL);
-            ocrStatsSyncMessage(srcProcess, &(createdDb->statProcess), mess2);
-        }
-#else
-        *addr = createdDb->fctPtrs->acquire(createdDb, edtGuid, false);
+    if(policy->processMessage(policy, &msg, true) == 0) {
+        *db = PD_MSG_FIELD(guid.guid);
+        ocrDataBlock_t *createdDb = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
+        *addr = createdDb->fctPtrs->acquire(createdDb, getCurrentEDT(), false);
     } else {
         *addr = NULL;
     }
     if(*addr == NULL) return ENOMEM;
-
+#undef PD_MSG
+#undef PD_TYPE
     return 0;
 }
 
 u8 ocrDbDestroy(ocrGuid_t db) {
     ocrDataBlock_t *dataBlock = NULL;
-    ocrPolicyDomain_t *policy = getCurrentPD();
+    ocrPolicyDomain_t *policy;
+    getCurrentEnv(&policy, NULL);
 
     deguidify(policy, db, (u64*)&dataBlock, NULL);
 
     ocrGuid_t edtGuid = getCurrentEDT();
-#ifdef OCR_ENABLE_STATISTICS
-    {
-
-    }
-#endif
-    // Make sure you do the free *AFTER* sending the message because the free could
-    // destroy the datablock (and the stat process).
+    
     u8 status = dataBlock->fctPtrs->free(dataBlock, edtGuid);
     return status;
 }
 
 u8 ocrDbRelease(ocrGuid_t db) {
     ocrDataBlock_t *dataBlock = NULL;
-    ocrPolicyDomain_t *policy = getCurrentPD();
+    ocrPolicyDomain_t *policy;
+    getCurrentEnv(&policy, NULL);
     deguidify(policy, db, (u64*)&dataBlock, NULL);
 
     ocrGuid_t edtGuid = getCurrentEDT();

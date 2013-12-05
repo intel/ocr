@@ -13,7 +13,6 @@
 #include "ocr-datablock.h"
 #include "ocr-event.h"
 #include "ocr-guid.h"
-#include "ocr-mappable.h"
 #include "ocr-mem-target.h"
 #include "ocr-scheduler.h"
 
@@ -21,7 +20,7 @@
 #include "ocr-statistics.h"
 #endif
 
-#include "ocr-sync.h"
+#include "ocr-sys.h"
 #include "ocr-task.h"
 #include "ocr-tuning.h"
 #include "ocr-types.h"
@@ -109,25 +108,26 @@ typedef struct _paramListPolicyDomainInst_t {
 
 // Add more messages in here
 
-// TODO: Consider removing this and having an ocrSys_t object that would
-// have all these functions
-/**< AND with this and if result non-null, sync related operation */
-#define PD_MSG_SYNC_OP          0x100
-/**< Get a lock */
-#define PD_MSG_SYNC_LOCK        0x1100
-/**< Get a 32-bit atomic */
-#define PD_MSG_SYNC_ATOM32      0x2100
-/**< Get a 64-bit atomic */
-#define PD_MSG_SYNC_ATOM64      0x3100
 
 /**< AND with this and if result non-null, low-level OS operation */
-#define PD_MSG_SYS_OP           0x200
+#define PD_MSG_SYS_OP           0x100
 /**< Print operation */
-#define PD_MSG_SYS_PRINT        0x1200
+#define PD_MSG_SYS_PRINT        0x1100
 /**< Read operation */
-#define PD_MSG_SYS_READ         0x2200
+#define PD_MSG_SYS_READ         0x2100
 /**< Write operation */
-#define PD_MSG_SYS_WRITE        0x3200
+#define PD_MSG_SYS_WRITE        0x3100
+// TODO: Possibly add open, close, seek
+
+/**< Shutdown operation (indicates the PD should
+ * shut-down. Another call "finish" will actually
+ * cause their destruction */
+#define PD_MSG_SYS_SHUTDOWN     0x4100
+
+/**< Finish operation (indicates the PD should
+ * destroy itself. The existence of other PDs can
+ * no longer be assumed */
+#define PD_MSG_SYS_FINISH       0x5100
 
 /**< Defines that the message is a query (non-answered) */
 #define PD_MSG_REQUEST          0x100000
@@ -137,8 +137,13 @@ typedef struct _paramListPolicyDomainInst_t {
 #define PD_MSG_REQ_RESPONSE     0x400000
 
 
-#define STRUCT_NAME_SUB(ID) _data_##ID
-#define STRUCT_NAME(ID) STRUCT_NAME_SUB(ID)
+#define PD_MSG_ARG_NAME_SUB(ID) _data_##ID
+#define PD_MSG_STRUCT_NAME(ID) PD_MSG_ARG_NAME_SUB(ID)
+
+
+#define PD_MSG_FIELD_FULL_SUB(ptr, type, field) ptr->args._data_##type##.##field
+#define PD_MSG_FIELD_FULL(ptr, type, field) PD_MSG_FIELD_FULL_SUB((ptr), type, field)
+#define PD_MSG_FIELD(field) PD_MSG_FIELD_FULL_SUB(PD_MSG, PD_TYPE)
 
 struct _ocrPolicyDomain_t;
 
@@ -175,12 +180,12 @@ typedef struct _ocrPolicyMsg_t {
             u32 properties;               /**< In: Properties for creation */
             ocrDataBlockType_t dbType;    /**< Type of memory requested */
             ocrInDbAllocator_t allocator; /**< In: In-DB allocator */
-        } STRUCT_NAME(PD_MSG_MEM_CREATE);
+        } PD_MSG_STRUCT_NAME(PD_MSG_MEM_CREATE);
         
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the DB to destroy */
             u32 properties;    /**< In: properties for the destruction */
-        } STRUCT_NAME(PD_MSG_MEM_DESTROY);
+        } PD_MSG_STRUCT_NAME(PD_MSG_MEM_DESTROY);
         
         struct {
             ocrFatGuid_t guid;         /**< In/Out: GUID of the EDT/Work
@@ -195,12 +200,12 @@ typedef struct _ocrPolicyMsg_t {
             u32 depc;                  /**< In: Number of dependence slots */
             u32 properties;            /**< In: properties for the creation */
             ocrWorkType_t workType;    /**< In: Type of work to create */
-        } STRUCT_NAME(PD_MSG_WORK_CREATE);
+        } PD_MSG_STRUCT_NAME(PD_MSG_WORK_CREATE);
         
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the EDT to destroy */
             u32 properties;    /**< In: properties for the destruction */
-        } STRUCT_NAME(PD_MSG_WORK_DESTROY);
+        } PD_MSG_STRUCT_NAME(PD_MSG_WORK_DESTROY);
         
         struct {
             ocrFatGuid_t guid;     /**< In/Out: GUID of the EDT template */
@@ -208,23 +213,23 @@ typedef struct _ocrPolicyMsg_t {
             u32 paramc;            /**< In: Number of parameters for EDT */
             u32 depc;              /**< In: Number of dependences for EDT */
             const char * funcName; /**< In: Debug help: user identifier */
-        } STRUCT_NAME(PD_MSG_EDTTEMP_CREATE);
+        } PD_MSG_STRUCT_NAME(PD_MSG_EDTTEMP_CREATE);
         
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the EDT template to destroy */
             u32 properties;    /**< In: properties for the destruction */
-        } STRUCT_NAME(PD_MSG_EDTTEMP_DESTROY);
+        } PD_MSG_STRUCT_NAME(PD_MSG_EDTTEMP_DESTROY);
         
         struct {
             ocrFatGuid_t guid;    /**< In/Out: GUID of the event to create */
             u32 properties;       /**< In: Properties for this creation */
             ocrEventTypes_t type; /**< Type of the event created */
-        } STRUCT_NAME(PD_MSG_EVT_CREATE);
+        } PD_MSG_STRUCT_NAME(PD_MSG_EVT_CREATE);
         
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the event to destroy */
             u32 properties;    /**< In: properties for the destruction */
-        } STRUCT_NAME(PD_MSG_EVT_DESTROY);
+        } PD_MSG_STRUCT_NAME(PD_MSG_EVT_DESTROY);
         
         struct {
             ocrFatGuid_t guid;    /**< In: GUID of the event to satisfy */
@@ -232,7 +237,7 @@ typedef struct _ocrPolicyMsg_t {
                                   * event with (a DB usually) */
             u32 slot;             /**< In: Slot to satisfy the event on */
             u32 properties;       /**< In: Properties for the satisfaction */
-        } STRUCT_NAME(PD_MSG_EVT_SATISFY);
+        } PD_MSG_STRUCT_NAME(PD_MSG_EVT_SATISFY);
         
         struct {
             ocrFatGuid_t guid; /**< In/Out:
@@ -241,7 +246,7 @@ typedef struct _ocrPolicyMsg_t {
                                *  Out: The guid field contains created GUID */
             ocrGuidKind kind;  /**< In: Kind of the GUID to create */
             u32 properties;    /**< In: Properties for the creation */
-        } STRUCT_NAME(PD_MSG_GUID_CREATE);
+        } PD_MSG_STRUCT_NAME(PD_MSG_GUID_CREATE);
 
         struct {
             ocrFatGuid_t guid; /**< In/Out:
@@ -250,12 +255,12 @@ typedef struct _ocrPolicyMsg_t {
                                 * value */
             ocrGuidKind kind; /**< Out: Contains the type of the GUID */
             u32 properties;   /**< In: Properties for the info */
-        } STRUCT_NAME(PD_MSG_GUID_INFO);
+        } PD_MSG_STRUCT_NAME(PD_MSG_GUID_INFO);
             
         struct {
             ocrFatGuid_t guid; /**< In: GUID to destroy */
             u32 properties;    /**< In: Properties for the destruction */
-        } STRUCT_NAME(PD_MSG_GUID_DESTROY);
+        } PD_MSG_STRUCT_NAME(PD_MSG_GUID_DESTROY);
         
         struct {
             ocrFatGuid_t *guids; /**< In/Out: GUID(s) of the work/DB/etc taken:
@@ -266,7 +271,7 @@ typedef struct _ocrPolicyMsg_t {
             u32 properties;      /**< In: properties for the take */
             ocrGuidKind type;    /**< In: Kind of GUIDs requested */
             // TODO: Add something about cost/choice heuristic
-        } STRUCT_NAME(PD_MSG_COMM_TAKE);
+        } PD_MSG_STRUCT_NAME(PD_MSG_COMM_TAKE);
         struct {
             ocrFatGuid_t *guids; /**< In/Out: GUID(s) of the work/DB/etc given:
                                  * Input: GUID(s) the caller wants to hand-off
@@ -277,7 +282,28 @@ typedef struct _ocrPolicyMsg_t {
             u32 properties;      /**< In: properties for the give */
             ocrGuidKind type;    /**< In: Kind of GUIDs given */
             // TODO: Do we need something about cost/choice heuristic here
-        } STRUCT_NAME(PD_MSG_COMM_GIVE);
+        } PD_MSG_STRUCT_NAME(PD_MSG_COMM_GIVE);
+
+        struct {
+            const char* buffer;  /**< In: Character string to print */
+            u64 length;          /**< In: Length to print */
+            u32 properties;      /**< In: Properties for the print */
+        } PD_MSG_STRUCT_NAME(PD_MSG_SYS_PRINT);
+
+        struct {
+            char* buffer;       /**< In/Out: Buffer to read into */
+            u64 length;         /**< In/Out: On input contains maximum length
+                                 * of buffer, on output, contains length read */
+            u64 inputId;        /**< In: Identifier for where to read from */
+            u32 properties;     /**< In: Properties for the read */
+        } PD_MSG_STRUCT_NAME(PD_MSG_SYS_READ);
+        struct {
+            const char* buffer; /**< In: Buffer to write */
+            u64 length;         /**< In/Out: Number of bytes to write. On return contains
+                                 * bytes NOT written */
+            u64 outputId;       /**< In: Identifier for where to write to */
+            u32 properties;     /**< In: Properties for the write */
+        } PD_MSG_STRUCT_NAME(PD_MSG_SYS_WRITE);
     } args;
 } ocrPolicyMsg_t;
 
@@ -362,7 +388,8 @@ typedef struct _ocrPolicyDomain_t {
 
     ocrGuidProvider_t *guidProvider;            /**< GUID generator */
 
-    // TODO: Add a ocrSys_t object to provide lock/unlock/cmpswp/print?
+    ocrSys_t *sysProvider;                      /**< Low-level system functions */
+
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t *statsObject;                    /**< Statistics object */
 #endif
@@ -469,73 +496,18 @@ typedef struct _ocrPolicyDomain_t {
     ocrStats_t* (*getStats)(struct _ocrPolicyDomain_t *self);
 #endif
 
+    ocrSys_t* (*getSys)(struct _ocrPolicyDomain_t *self);
+    
     struct _ocrCompTarget_t** neighbors;
     u64 neighborCount;
-
+    
 } ocrPolicyDomain_t;
-
-/****************************************************/
-/* WRAPPER FUNCTIONS (FOR USER CALLS)               */
-/****************************************************/
-
-/**
- * @brief Request the allocation of memory (a data-block)
- *
- * This call will be triggered by user code when a data-block
- * needs to be allocated
- *
- * @param[in/out] guid       Contains the DB GUID to use or, if NULL, will
- *                           contain the resulting GUID
- * @param[out]    ptr        Contains the address for accessing this DB on
- *                           return
- * @param[in]     size       Size of the DB requested
- * @param[in]     properties Properties
- * @param[in]     affinity   Affinity hint on where to allocate
- * @param[in]     allocator  Internal allocator to use
- * @return 0 on success or a non zero value on failure
- */
-u8 ocrPDAllocateDb(ocrGuid_t *guid, void** ptr, u64 size, u32 properties,
-                   ocrGuid_t affinity, ocrInDbAllocator_t allocator);
-
-/**
- * @brief Request the creation of a task metadata (EDT)
- *
- * This call will be triggered by user code when an EDT
- * is created
- *
- * @todo Improve description to be more like allocateDb
- *
- * @todo Add something about templates here and potentially
- * known dependences so that it can be optimally placed
- */
-u8 ocrPDCreateEdt(ocrGuid_t *guid, ocrGuid_t edtTemplate, u32 paramc,
-                  u64* paramv, u32 depc, u32 properties, ocrGuid_t affinity,
-                  ocrGuid_t * outputEvent);
-
-/**
- * @brief Request the creation of a task-template metadata
- */
-u8 ocrPDCreateEdtTemplate(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc,
-                          u32 depc, ocrGuid_t affinity, const char* funcName);
-
-/**
- * @brief Request the creation of an event
- */
-u8 ocrPDCreateEvent(ocrGuid_t *guid, ocrEventTypes_t type, ocrGuid_t
-                    affinity, bool takesArg);
-
-u8 ocrPDGetGuid(ocrGuid_t *guid, u64 val, ocrGuidKind type);
-
-u8 ocrPDGetInfoForGuid(ocrGuid_t guid, u64* val, ocrGuidKind* type);
-                           
-
 
 /****************************************************/
 /* OCR POLICY DOMAIN FACTORY                        */
 /****************************************************/
 
 typedef struct _ocrPolicyDomainFactory_t {
-    ocrMappable_t module;
     /**
      * @brief Create a policy domain
      *
@@ -570,9 +542,7 @@ typedef struct _ocrPolicyDomainFactory_t {
          u64 allocatorCount, u64 memoryCount, ocrTaskFactory_t *taskFactory,
          ocrTaskTemplateFactory_t *taskTemplateFactory,
          ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
-         ocrPolicyCtxFactory_t *contextFactory,
-         ocrGuidProvider_t *guidProvider, ocrLockFactory_t *lockFactory,
-         ocrAtomic64Factory_t *atomicFactory, ocrQueueFactory_t *queueFactory,
+         ocrGuidProvider_t *guidProvider, ocrSys_t *sysProvider,
 #ifdef OCR_ENABLE_STATISTICS
          ocrStats_t *statsObject,
 #endif

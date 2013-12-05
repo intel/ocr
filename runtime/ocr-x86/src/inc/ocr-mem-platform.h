@@ -43,7 +43,7 @@ struct _ocrPolicyDomain_t;
 
 /**
  * @brief mem-platform function pointers
- *
+ *n
  * The function pointers are separate from the mem-platform instance to allow for
  * the sharing of function pointers for mem-platform from the same factory
  */

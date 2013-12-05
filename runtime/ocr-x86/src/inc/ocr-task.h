@@ -9,7 +9,6 @@
 #define __OCR_TASK_H__
 
 #include "ocr-edt.h"
-#include "ocr-sync.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 #include "ocr-mappable.h"
