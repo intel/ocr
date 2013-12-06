@@ -69,6 +69,8 @@ typedef struct _ocrCompPlatformFcts_t {
      */
     void (*stop)(struct _ocrCompPlatform_t *self);
 
+    void (*finish)(struct _ocrCompPlatform_t *self);
+    
     /**
      * @brief Gets the throttle value for this compute node
      *
@@ -184,6 +186,7 @@ typedef struct _ocrCompPlatformFactory_t {
      */
     void (*destruct)(struct _ocrCompPlatformFactory_t *factory);
 
+
     /**
      * @brief Allows to setup global function pointers
      * @param factory       Pointer to this factory
@@ -195,3 +198,8 @@ typedef struct _ocrCompPlatformFactory_t {
 } ocrCompPlatformFactory_t;
 
 #endif /* __OCR_COMP_PLATFORM_H__ */
+
+
+
+
+

@@ -18,7 +18,7 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_CREATE
-
+    msg.type = PD_MSG_EVT_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid.guid) = *guid;
     PD_MSG_FIELD(properties) = takesArg;
     PD_MSG_FIELD(type) = eventType;
@@ -63,7 +63,7 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
     getCurrentEnv(&pd, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
-
+    msg.type = PD_MSG_EDTTEMP_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid.guid) = *guid;
     PD_MSG_FIELD(funcPtr) = funcPtr;
     PD_MSG_FIELD(paramc) = paramc;
@@ -115,10 +115,11 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_WORK_CREATE
-    PD_MSG_FIELD(guid.guid) = &edtGuid;
+    msg.type = PD_MSG_WORK_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+    PD_MSG_FIELD(guid.guid) = *edtGuid;
     PD_MSG_FIELD(templateGuid.guid) = templateGuid;
     PD_MSG_FIELD(templateGuid.metaDataPtr) = (void*)taskTemplate;
-    PD_MSG_FIELD(affinity) = affinity;
+    PD_MSG_FIELD(affinity.guid) = affinity;
     PD_MSG_FIELD(outputEvent.guid) = *outputEvent;
     PD_MSG_FIELD(paramv) = paramv;
     PD_MSG_FIELD(paramc) = paramc;

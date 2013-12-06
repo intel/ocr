@@ -14,6 +14,7 @@
 #include "ocr-mappable.h"
 #include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
+#include "ocr-runtime-types.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 #include "tlsf-allocator.h"

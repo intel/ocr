@@ -51,6 +51,70 @@ typedef struct _ocrSysFcts_t {
      */
     void (*destruct)(struct _ocrSys_t* self);
 
+    void (*start)(struct _ocrSys_t* self);
+
+    void (*stop)(struct _ocrSys_t* self);
+
+    void (*finish)(struct _ocrSys_t* self);
+
+    
+    /**
+     * @brief Prints a message
+     *
+     * @param self          This system descriptor
+     * @param str           String to print
+     * @param length        Number of characters to print
+     *
+     * @warning This function is called from the policy domain directly
+     * and is not meant to be called directly from the rest of
+     * the runtime code
+     */
+    void (*print)(struct _ocrSys_t *self, const char* str, u64 length);
+
+    /**
+     * @brief Writes the byte array 'str' to a "file"
+     * identified by 'id'
+     *
+     * This call will return the number of characters written
+     * @param self          This system descriptor
+     * @param str           Characters to write out
+     * @param length        Number of characters to write out
+     * @param id            Implementation specific ID
+     * @return              Number of characters actually written
+     *
+     * @warning This function is called from the policy domain directly
+     * and is not meant to be called directly from the rest of
+     * the runtime code
+     */
+    u64 (*write)(struct _ocrSys_t *self, const char* str, u64 length, u64 id);
+
+    /**
+     * @brief Reads bytes into the byte array 'str'
+     * from a "file" identified by 'id'
+     *
+     * This call will return the number of characters read
+     *
+     * @param self          This system descriptor
+     * @param str           Buffer to write to
+     * @param length        Size of the buffer (maximum)
+     * @param id            Implementation specific ID
+     * @return              Number of characters actually read
+     * 
+     * @warning This function is called from the policy domain directly
+     * and is not meant to be called directly from the rest of
+     * the runtime code
+     */
+    u64 (*read)(struct _ocrSys_t *self, char *str, u64 length, u64 id);
+    
+    /**
+     * @brief Perform a memory fence
+     *
+     * @param self          This system descriptor
+     * @todo Do we want to differentiate different types
+     * of fences?
+     */
+    void (*fence)(struct _ocrSys_t *self);
+    
     /**
      * @brief Compare and swap (64 bit)
      *

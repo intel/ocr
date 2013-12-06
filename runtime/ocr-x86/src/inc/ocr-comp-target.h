@@ -83,6 +83,7 @@ typedef struct _ocrCompTargetFcts_t {
      */
     void (*stop)(struct _ocrCompTarget_t *self);
 
+    void (*finish)(struct _ocrCompTarget_t *self);
     /**
      * @brief Gets the throttle value for this compute node
      *

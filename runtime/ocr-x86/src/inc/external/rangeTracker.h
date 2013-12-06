@@ -13,6 +13,7 @@
 #ifndef __RANGETRACKER_H__
 #define __RANGETRACKER_H__
 
+#include "ocr-runtime-types.h"
 #include "ocr-types.h"
 
 /*

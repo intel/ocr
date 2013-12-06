@@ -69,6 +69,8 @@ typedef struct _ocrMemTargetFcts_t {
      */
     void (*stop)(struct _ocrMemTarget_t* self);
 
+    void (*finish)(struct _ocrMemTarget_t* self);
+
     /**
      * @brief Gets the throttle value for this memory
      *

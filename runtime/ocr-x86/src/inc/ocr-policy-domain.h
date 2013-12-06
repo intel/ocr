@@ -129,6 +129,13 @@ typedef struct _paramListPolicyDomainInst_t {
  * no longer be assumed */
 #define PD_MSG_SYS_FINISH       0x5100
 
+/**< And this to just get the type of the message without
+ * the upper flags
+ */
+#define PD_MSG_TYPE_ONLY        0xFFFFF
+
+#define PD_MSG_META_ONLY        0xFFF00000
+
 /**< Defines that the message is a query (non-answered) */
 #define PD_MSG_REQUEST          0x100000
 /**< Defines that the message is a response */
@@ -141,9 +148,9 @@ typedef struct _paramListPolicyDomainInst_t {
 #define PD_MSG_STRUCT_NAME(ID) PD_MSG_ARG_NAME_SUB(ID)
 
 
-#define PD_MSG_FIELD_FULL_SUB(ptr, type, field) ptr->args._data_##type##.##field
+#define PD_MSG_FIELD_FULL_SUB(ptr, type, field) ptr->args._data_##type.field
 #define PD_MSG_FIELD_FULL(ptr, type, field) PD_MSG_FIELD_FULL_SUB((ptr), type, field)
-#define PD_MSG_FIELD(field) PD_MSG_FIELD_FULL_SUB(PD_MSG, PD_TYPE)
+#define PD_MSG_FIELD(field) PD_MSG_FIELD_FULL(PD_MSG, PD_TYPE, field)
 
 struct _ocrPolicyDomain_t;
 
@@ -250,8 +257,9 @@ typedef struct _ocrPolicyMsg_t {
 
         struct {
             ocrFatGuid_t guid; /**< In/Out:
-                                * In: The GUID to "deguidify"
-                                * Out: The metaDataPtr contains the associated
+                                * In: The GUID to "deguidify" or the metaDataPtr to
+                                * guidify
+                                * Out: Fully resolved information
                                 * value */
             ocrGuidKind kind; /**< Out: Contains the type of the GUID */
             u32 properties;   /**< In: Properties for the info */

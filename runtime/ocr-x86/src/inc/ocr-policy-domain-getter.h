@@ -15,6 +15,7 @@
 #include "ocr-types.h"
 
 struct _ocrPolicyDomain_t;
+struct _ocrPolicyMsg_t;
 
 #if 0
 /****************************************************/
@@ -79,9 +80,12 @@ u8 ocrPDGetInfoForGuid(ocrGuid_t guid, u64* val, ocrGuidKind* type);
 
 /**
  * @brief Gets the current policy domain for the calling code
+ * @todo Will be removed
  */
 extern struct _ocrPolicyDomain_t * (*getCurrentPD)();
 extern void (*setCurrentPD)(struct _ocrPolicyDomain_t*);
 extern struct _ocrPolicyDomain_t * (*getMasterPD)();
+
+extern void (*getCurrentEnv)(struct _ocrPolicyDomain_t **pd, struct _ocrPolicyMsg_t *msg);
 
 #endif /* OCR_POLICY_DOMAIN_GETTER_H_ */

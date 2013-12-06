@@ -41,6 +41,8 @@ typedef struct _ocrWorkpileFcts_t {
 
     void (*stop)(struct _ocrWorkpile_t *self);
 
+    void (*finish)(struct _ocrWorkpile_t *self);
+
     /*! \brief Interface to extract a task from this pool
      *  \return GUID of the task that is extracted from this task pool
      */

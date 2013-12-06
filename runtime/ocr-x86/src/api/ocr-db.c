@@ -46,9 +46,10 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_CREATE
+    msg.type = PD_MSG_MEM_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid.guid) = *db;
     PD_MSG_FIELD(size) = len;
-    PD_MSG_FIELD(affinity) = affinity;
+    PD_MSG_FIELD(affinity.guid) = affinity;
     PD_MSG_FIELD(properties) = (u32)flags;
     PD_MSG_FIELD(dbType) = USER_DBTYPE;
     PD_MSG_FIELD(allocator) = allocator;

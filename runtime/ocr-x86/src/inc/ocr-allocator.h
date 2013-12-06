@@ -71,6 +71,8 @@ typedef struct _ocrAllocatorFcts_t {
 
     void (*stop)(struct _ocrAllocator_t* self);
 
+    void (*finish)(struct _ocrAllocator_t* self);
+
     /**
      * @brief Actual allocation
      *

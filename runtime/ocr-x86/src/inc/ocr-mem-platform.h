@@ -65,6 +65,8 @@ typedef struct _ocrMemPlatformFcts_t {
      */
     void (*stop)(struct _ocrMemPlatform_t* self);
 
+    void (*finish)(struct _ocrMemPlatform_t* self);
+
     /**
      * @brief Gets the throttle value for this memory
      *

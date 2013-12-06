@@ -24,11 +24,28 @@
  *  \param[in] pd          Policy domain
  *  \param[in] guid        The gid for which we want the kind
  *  \param[out] kindRes    Parameter-result to contain the kind
+ *  TODO: Remove pd as argument from all these calls
  */
 static inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid,
                           ocrGuidKind* kindRes) {
-    u64 ptrRes;
-    return pd->getInfoForGuid(pd, guid, &ptrRes, kindRes, NULL);
+
+    u8 returnCode = 0;
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(&pd, &msg);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_GUID_INFO
+
+    msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+    PD_MSG_FIELD(guid.guid) = guid;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+    returnCode = pd->processMessage(pd, &msg, true);
+
+    if(returnCode == 0)
+        *kindRes = PD_MSG_FIELD(kind);
+
+    return returnCode;
+#undef PD_MSG
+#undef PD_TYPE
 }
 
 /*! \brief Get the kind of a guid
@@ -39,8 +56,24 @@ static inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid,
  */
 static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * guidRes,
                          ocrGuidKind kind) {
+    u8 returnCode = 0;
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(&pd, &msg);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_GUID_CREATE
 
-    return pd->getGuid(pd, guidRes, ptr, kind, NULL);
+    msg.type = PD_MSG_GUID_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+    PD_MSG_FIELD(guid.metaDataPtr) = (void*)ptr;
+    PD_MSG_FIELD(guid.guid) = NULL_GUID;
+    PD_MSG_FIELD(kind) = kind;
+    returnCode = pd->processMessage(pd, &msg, true);
+
+    if(returnCode == 0)
+        *guidRes = PD_MSG_FIELD(guid.guid);
+
+    return returnCode;
+#undef PD_MSG
+#undef PD_TYPE
 }
 
 /*! \brief Resolve a pointer out of a guid
@@ -51,7 +84,24 @@ static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * gu
  */
 static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes,
                            ocrGuidKind* kindRes) {
-    return pd->getInfoForGuid(pd, guid, ptrRes, kindRes, NULL);
+    u8 returnCode = 0;
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(&pd, &msg);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_GUID_INFO
+
+    msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD(guid.guid) = guid;
+    
+    returnCode = pd->processMessage(pd, &msg, true);
+
+    if(returnCode == 0)
+        *ptrRes = (u64)PD_MSG_FIELD(guid.metaDataPtr);
+        
+    return returnCode;
+#undef PD_MSG
+#undef PD_TYPE
 }
 
 /*! \brief Check if a guid represents a data-block

@@ -11,7 +11,6 @@
 #include "ocr-event.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
-#include "ocr-sync.h"
 
 typedef struct {
     ocrEventFactory_t base_factory;
