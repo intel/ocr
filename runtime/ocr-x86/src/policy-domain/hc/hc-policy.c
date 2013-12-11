@@ -1,3 +1,4 @@
+
 /*
  * This file is subject to the license agreement located in the file LICENSE
  * and cannot be distributed without it. This notice cannot be
@@ -343,9 +344,21 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     }
     
     case PD_MSG_MEM_DESTROY:
-        ASSERT(0); // Should not be called for now
+    {
+        // Here, we just need to free the data-block. Note that GUID
+        // destruction is a separate message so we don't worry about that
+        // For now, we make sure that we own the allocator and what not
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_MEM_DESTROY
+        ASSERT(PD_MSG_FIELD(allocatingPD) == self->guid);
+        ASSERT(PD_MSG_FIELD(allocator) == self->allocators[0].fguid.guid);
+        DPRINTF(DEBUG_LVL_VERB, "Freeing DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n", (u64)(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(guid.guid));
+        self->allocators[0]->fctPtrs->free(self->allocators[0], PD_MSG_FIELD(ptr));
+#undef PD_MSG
+#undef PD_TYPE
         break;
-        
+    }
+    
     case PD_MSG_WORK_CREATE:
     {
 #define PD_MSG msg

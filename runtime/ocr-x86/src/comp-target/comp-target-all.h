@@ -9,15 +9,20 @@
 
 #include "debug.h"
 #include "ocr-comp-target.h"
+#include "ocr-config.h"
 #include "ocr-utils.h"
 
 typedef enum _compTargetType_t {
+#ifdef ENABLE_COMP_TARGET_HC
     compTargetHc_id,
+#endif
     compTargetMax_id,
 } compTargetType_t;
 
 const char * comptarget_types[] = {
+#ifdef ENABLE_COMP_TARGET_HC
     "HC",
+#endif
     NULL
 };
 
@@ -28,8 +33,10 @@ const char * comptarget_types[] = {
 
 inline ocrCompTargetFactory_t *newCompTargetFactory(compTargetType_t type, ocrParamList_t *typeArg) {
     switch(type) {
+#ifdef ENABLE_COMP_TARGET_HC
     case compTargetHc_id:
         return newCompTargetFactoryHc(typeArg);
+#endif
     default:
         ASSERT(0);
         return NULL;

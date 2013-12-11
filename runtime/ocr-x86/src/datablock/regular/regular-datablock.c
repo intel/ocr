@@ -8,6 +8,9 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+#ifdef ENABLE_DATABLOCK_REGULAR
+
 #include "datablock/regular/regular-datablock.h"
 #include "debug.h"
 #include "ocr-comp-platform.h"
@@ -15,7 +18,8 @@
 #include "ocr-macros.h"
 #include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
-#include "ocr-sync.h"
+#include "ocr-sysboot.h"
+#include "ocr-sys.h"
 #include "ocr-utils.h"
 
 #ifdef OCR_ENABLE_STATISTICS
@@ -23,23 +27,30 @@
 #include "ocr-statistics-callbacks.h"
 #endif
 
+// TODO: Need to get our own ERRNO file
 #include <errno.h>
-#include <stdlib.h>
+//#include <stdlib.h>
+
+// TODO: This is for the PRI things. Need to get rid of them 
 #include <inttypes.h>
 
 
 #define DEBUG_TYPE DATABLOCK
 
 void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL);
+    ocrSys_t *sys = pd->getSys();
+    
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
     DPRINTF(DEBUG_LVL_VERB, "Acquiring DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (isInternal %d)\n",
                 (u64)self->ptr, rself->base.guid, edt, (u32)isInternal);
 
     // Critical section
-    rself->lock->fctPtrs->lock(rself->lock);
+    sys->lock32(sys, &(rself->lock));
     if(rself->attributes.freeRequested) {
-        rself->lock->fctPtrs->unlock(rself->lock);
+        sys->unlock32(sys, &(rself->lock);
         return NULL;
     }
     u32 idForEdt = ocrGuidTrackerFind(&(rself->usersTracker), edt);
@@ -47,26 +58,26 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
         idForEdt = ocrGuidTrackerTrack(&(rself->usersTracker), edt);
     else {
         DPRINTF(DEBUG_LVL_VVERB, "EDT already had acquired DB (pos %d)\n", idForEdt);
-        rself->lock->fctPtrs->unlock(rself->lock);
+        sys->unlock32(sys, &(rself->lock));
         return self->ptr;
     }
 
     if(idForEdt > 63) {
-        rself->lock->fctPtrs->unlock(rself->lock);
+        sys->unlock32(sys, &(rself->lock));
         return NULL;
     }
     rself->attributes.numUsers += 1;
     if(isInternal)
         rself->attributes.internalUsers += 1;
 
-    rself->lock->fctPtrs->unlock(rself->lock);
+    sys->unlock32(sys, &(rself->lock));
     // End critical section
     DPRINTF(DEBUG_LVL_VERB, "Added EDT GUID 0x%"PRIx64" at position %d. Have %d users and %d internal\n",
             (u64)edt, idForEdt, rself->attributes.numUsers, rself->attributes.internalUsers);
 
 #ifdef OCR_ENABLE_STATISTICS
     {
-        statsDB_ACQ(getCurrentPD(), edt, NULL, self->guid, self);
+        statsDB_ACQ(pd, edt, NULL, self->guid, self);
     }
 #endif /* OCR_ENABLE_STATISTICS */
     return self->ptr;
@@ -75,6 +86,10 @@ void* regularAcquire(ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal) {
 u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
                   bool isInternal) {
 
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL);
+    ocrSys_t *sys = pd->getSys();
+    
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
     u32 edtId = ocrGuidTrackerFind(&(rself->usersTracker), edt);
     bool isTracked = true;
@@ -82,7 +97,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
     DPRINTF(DEBUG_LVL_VERB, "Releasing DB @ 0x%"PRIx64" (GUID 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (%d) (internal: %d)\n",
                 (u64)self->ptr, rself->base.guid, edt, edtId, (u32)isInternal);
     // Start critical section
-    rself->lock->fctPtrs->lock(rself->lock);
+    sys->lock32(sys, &(rself->lock));
     if(edtId > 63 || rself->usersTracker.slots[edtId] != edt) {
         // We did not find it. The runtime may be
         // re-releasing it
@@ -92,7 +107,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
             isTracked = false;
         } else {
             // Definitely a problem here
-            rself->lock->fctPtrs->unlock(rself->lock);
+            sys->unlock32(sys, &(rself->lock));
             return (u8)EACCES;
         }
     }
@@ -116,10 +131,10 @@ u8 regularRelease(ocrDataBlock_t *self, ocrGuid_t edt,
        rself->attributes.internalUsers == 0 &&
        rself->attributes.freeRequested == 1) {
         // We need to actually free the data-block
-        rself->lock->fctPtrs->unlock(rself->lock);
+        sys->unlock(sys, &(rself->lock));
         self->fctPtrs->destruct(self);
     } else {
-        rself->lock->fctPtrs->unlock(rself->lock);
+        sys->unlock(sys, &(rself->lock));
     }
     // End critical section
 
@@ -131,18 +146,22 @@ void regularDestruct(ocrDataBlock_t *self) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
     ASSERT(rself->attributes.numUsers == 0);
     ASSERT(rself->attributes.freeRequested == 1);
-    rself->lock->fctPtrs->destruct(rself->lock);
-
-    ocrPolicyDomain_t *pd = getCurrentPD();
-    ocrPolicyCtx_t *orgCtx = getCurrentWorkerContext();
-    ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
-    ctx->type = PD_MSG_GUID_REL;
-    // Tell the allocator to free the data-block
-    ocrAllocator_t *allocator = NULL;
-    deguidify(getCurrentPD(), rself->base.allocator, (u64*)&allocator, NULL);
-
-    DPRINTF(DEBUG_LVL_VERB, "Freeing DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n", (u64)self->ptr, rself->base.guid);
-    allocator->fctPtrs->free(allocator, self->ptr);
+    ASSERT(rself->lock == 0);
+    
+    ocrPolicyDomain_t *pd = NULL;
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(&pd, &msg, NULL);
+    
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_MEM_DESTROY
+    msg.type = PD_MSG_MEM_DESTROY | PD_MSG_REQUEST;
+    PD_MSG_FIELD(guid.guid) = self->guid;
+    PD_MSG_FIELD(guid.metaDataPtr) = self;
+    PD_MSG_FIELD(allocatingPD) = self->allocatorPD;
+    PD_MSG_FIELD(allocator) = self->allocator;
+    PD_MSG_FIELD(ptr) = self->ptr;
+    pd->sendMessage(pd, &msg, false);
+    
     
 #ifdef OCR_ENABLE_STATISTICS
     // This needs to be done before GUID is freed.
@@ -152,25 +171,42 @@ void regularDestruct(ocrDataBlock_t *self) {
     }
 #endif /* OCR_ENABLE_STATISTICS */
     
-    pd->inform(pd, self->guid, ctx);
-    ctx->destruct(ctx);
-    free(rself);
+#define PD_TYPE PD_MSG_GUID_DESTROY
+    msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
+    pd->sendMessage(pd, &msg, false);
+
+    // Now free the metadata
+    // TODO: How to do this:
+    // - Do we tie metadata to GUID (and the metadata gets destroyed with the GUID. This is the FSim model)
+    // - Do we always allocate metadata local to the PD (what happens if multiple PDs want to
+    // refer to the same data-block)?
+    // - Other ideas?
+        
+#undef PD_MSG
+#undef PD_TYPE
+    
+
+    //free(rself);
 }
 
 u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL);
+    ocrSys_t *sys = pd->getSys();
+    
     u32 id = ocrGuidTrackerFind(&(rself->usersTracker), edt);
     DPRINTF(DEBUG_LVL_VERB, "Requesting a free for DB @ 0x%"PRIx64" (GUID 0x%"PRIdPTR")\n",
             (u64)self->ptr, rself->base.guid);
     // Begin critical section
-    rself->lock->fctPtrs->lock(rself->lock);
+    sys->lock32(sys, &(rself->lock));
     if(rself->attributes.freeRequested) {
-        rself->lock->fctPtrs->unlock(rself->lock);
+        sys->unlock32(sys, &(rself->lock));
         return EPERM;
     }
     rself->attributes.freeRequested = 1;
-    rself->lock->fctPtrs->unlock(rself->lock);
+    sys->unlock32(sys,&(rself->lock));
     // End critical section
 
 
@@ -181,12 +217,12 @@ u8 regularFree(ocrDataBlock_t *self, ocrGuid_t edt) {
         // Now check if we can actually free the block
 
         // Critical section
-        rself->lock->fctPtrs->lock(rself->lock);
+        sys->lock32(sys, &(rself->lock));
         if(rself->attributes.numUsers == 0 && rself->attributes.internalUsers == 0) {
-            rself->lock->fctPtrs->unlock(rself->lock);
+            sys->unlock32(sys, &(rself->lock));
             regularDestruct(self);
         } else {
-            rself->lock->fctPtrs->unlock(rself->lock);
+            sys->unlock32(sys, &(rself->lock));
         }
         // End critical section
     }
@@ -214,7 +250,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrGuid_t al
 
 
     guidify(pd, (u64)result, &(result->base.guid), OCR_GUID_DB);
-    result->lock = pd->getLock(pd, ctx);
+    result->lock =0;
 
     result->attributes.flags = result->base.properties;
     result->attributes.numUsers = 0;
@@ -253,3 +289,4 @@ ocrDataBlockFactory_t *newDataBlockFactoryRegular(ocrParamList_t *perType) {
 
     return base;
 }
+#endif /* ENABLE_DATABLOCK_REGULAR */

@@ -8,20 +8,20 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+#ifdef ENABLE_ALLOCATOR_TLSF
 
 #include "debug.h"
-#include "ocr-macros.h"
-#include "ocr-mappable.h"
 #include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-runtime-types.h"
+#include "ocr-sysboot.h"
+#include "ocr-sys.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 #include "tlsf-allocator.h"
 
-#include <inttypes.h>
-#include <stdlib.h>
-#include <string.h>
+#include <inttypes.h> // For PRIx64. FIXME
 
 #define DEBUG_TYPE ALLOCATOR
 
@@ -140,7 +140,6 @@ typedef u32 tlsfSize_t;
 #error "Unknown size for tlsfSize_t"
 #endif
 
-#define MALLOC_COPY(dest,src,nbytes) memcpy(dest, src, nbytes)
 
 // Usually no need of any fences on x86 for this
 #define FENCE_LOAD
@@ -955,8 +954,11 @@ static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
         result = tlsfMalloc(pgStart, size);
         if(result) {
             u64 sizeToCopy = tempSz<realReqSize?tempSz:realReqSize;
-            MALLOC_COPY((void*)result, (void*)ptr, sizeToCopy << ELEMENT_SIZE_LOG2);
-
+            ocrPolicyDomain_t *pd = NULL;
+            getCurrentEnv(&pd, NULL);
+            pd->getSys(pd)->fctPtrs->memCopy(pd->getSys(pd), (void*)result,
+                                            (void*)ptr, sizeToCopy << ELEMENT_SIZE_LOG2, false);
+            
             tlsfFree(pgStart, ptr); // Free the original block
         }
     } else {
@@ -981,75 +983,105 @@ static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
     return result;
 }
 
-static void tlsfDestruct(ocrAllocator_t *self) {
+void tlsfDestruct(ocrAllocator_t *self) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     if(self->memoryCount) {
         self->memories[0]->fctPtrs->tag(self->memories[0], rself->addr,
                                         rself->addr + rself->totalSize,
-                                        USER_FREE);
+                                        USER_FREE_TAG);
+        runtimeChunkFree((u64)self->memories, NULL);
     }
-        
-    rself->lock->fctPtrs->destruct(rself->lock);
-    free(self->memories);
 
-    ocrPolicyDomain_t *pd = getCurrentPD();
-    ocrPolicyCtx_t *orgCtx = getCurrentWorkerContext();
-    ocrPolicyCtx_t * ctx = orgCtx->clone(orgCtx);
-    ctx->type = PD_MSG_GUID_REL;
-    pd->inform(pd, self->guid, ctx);
-    ctx->destruct(ctx);
-    free(rself);
+    runtimeChunkFree((u64)self, NULL);
 }
 
-static void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
+void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
+    // Get a GUID
+    guidify(PD, (u64)self, &((self->fguid).guid), OCR_GUID_ALLOCATOR);
+    self->fguid.metaDataPtr = self;
+    self->pd = PD;
+    
     // Do the allocation
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     ASSERT(self->memoryCount == 1);
-    self->memories[0]->fctPtrs->start(self->memories[0], PD);
+    
     RESULT_ASSERT(rself->base.memories[0]->fctPtrs->chunkAndTag(
                       rself->base.memories[0], &(rself->addr), rself->totalSize,
-                      USER_FREE, USER_USED), ==, 0);
+                      USER_FREE_TAG, USER_USED_TAG), ==, 0);
     ASSERT(rself->addr);
     rself->poolAddr = rself->addr;
+#ifdef OCR_ENABLE_STATISTICS
+    statsALLOCATOR_START(PD, self->guid, self, self->memories[0]->guid, self->memories[0]);
+#endif
     RESULT_ASSERT(tlsfInit(rself->addr, rself->totalSize), ==, 0);
 }
 
-static void tlsfStop(ocrAllocator_t *self) {
+void tlsfStop(ocrAllocator_t *self) {
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(&(self->pd), &msg);
+    
 #ifdef OCR_ENABLE_STATISTICS
-    statsALLOCATOR_STOP(getCurrentPD(), self->guid, self, self->memories[0]->guid, self->memories[0]);
+    statsALLOCATOR_STOP(self->pd, self->guid, self, self->memories[0]->guid, self->memories[0]);
 #endif
+    
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_GUID_DESTROY
+    msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST
+    PD_MSG_FIELD(guid) = self->fguid;
+    self->pd->sendMessage(self->pd, &msg, false);
+#undef PD_MSG
+#undef PD_TYPE
+    self->fguid.guid = NULL_GUID;
 }
 
-static void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
+void tlsfFinish(ocrAllocator_t *self) {
+    // Nothing to do
+}
+
+void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
+    ocrSys_t *sys = self->pd->getSys(self->pd);
+    
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    rself->lock->fctPtrs->lock(rself->lock);
+    
+    sys->fctPtrs->lock32(sys, &(rself->lock));
     void* toReturn = (void*)tlsfMalloc(rself->addr, size);
-    rself->lock->fctPtrs->unlock(rself->lock);
+    sys->fctPtrs->unlock32(sys, &(rself->lock));
+    
     return toReturn;
 }
 
-static void tlsfDeallocate(ocrAllocator_t *self, void* address) {
+void tlsfDeallocate(ocrAllocator_t *self, void* address) {
+    ocrSys_t *sys = self->pd->getSys(self->pd);
+    
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    rself->lock->fctPtrs->lock(rself->lock);
+    
+    sys->fctPtrs->lock32(sys, &(rself->lock));
     tlsfFree(rself->addr, (u64)address);
-    rself->lock->fctPtrs->unlock(rself->lock);
+    sys->fctPtrs->unlock32(sys, &(rself->lock));
 }
 
-static void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
+void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
+    ocrSys_t *sys = self->pd->getSys(self->pd);
+    
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    rself->lock->fctPtrs->lock(rself->lock);
+
+    sys->fctPtrs->lock32(sys, &(rself->lock));
     void* toReturn = (void*)(tlsfRealloc(rself->addr, (u64)address, size));
-    rself->lock->fctPtrs->unlock(rself->lock);
+    sys->fctPtrs->unlock32(sys, &(rself->lock));
+    
     return toReturn;
 }
 
 // Method to create the TLSF allocator
-static ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_t *perInstance) {
+ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_t *perInstance) {
 
     ocrAllocatorTlsf_t *result = (ocrAllocatorTlsf_t*)
-        checkedMalloc(result, sizeof(ocrAllocatorTlsf_t));
-    result->base.guid = UNINITIALIZED_GUID;
-    guidify(getCurrentPD(), (u64) result, &(result->base.guid), OCR_GUID_ALLOCATOR);
+        runtimeChunkAlloc(sizeof(ocrAllocatorTlsf_t), NULL);
+    
+    result->base.fguid.guid = UNINITIALIZED_GUID;
+    result->base.fguid.metaDataPtr = result;
+    result->base.pd = NULL;
+    
     result->base.fctPtrs = &(factory->allocFcts);
     result->base.memories = NULL;
     result->base.memoryCount = 0;
@@ -1059,10 +1091,7 @@ static ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrPar
     result->addr = result->poolAddr = 0ULL;
     result->totalSize = result->poolSize = perInstanceReal->size;
 
-    ocrPolicyDomain_t *pd = getCurrentPD();
-    ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
-
-    result->lock = pd->getLock(pd, ctx);
+    result->lock = 0;
 
     return (ocrAllocator_t*)result;
 }
@@ -1072,17 +1101,19 @@ static ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrPar
 /******************************************************/
 
 static void destructAllocatorFactoryTlsf(ocrAllocatorFactory_t * factory) {
-    free(factory);
+    runtimeChunkFree((u64)factory, NULL);
 }
 
 ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
     ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*)
-        checkedMalloc(base, sizeof(ocrAllocatorFactoryTlsf_t));
+        runtimeChunkAlloc(sizeof(ocrAllocatorFactoryTlsf_t), NULL);
+    ASSERT(base);
     base->instantiate = newAllocatorTlsf;
     base->destruct =  &destructAllocatorFactoryTlsf;
     base->allocFcts.destruct = &tlsfDestruct;
     base->allocFcts.start = &tlsfStart;
     base->allocFcts.stop = &tlsfStop;
+    base->allocFcts.finish = &tlsfFinish;
     base->allocFcts.allocate = &tlsfAllocate;
     base->allocFcts.free = &tlsfDeallocate;
     base->allocFcts.reallocate = &tlsfReallocate;
@@ -1223,3 +1254,5 @@ int tlsf_check_heap(u64 pgStart, unsigned int *freeRemaining) {
     return errCount;
 }
 #endif /* OCR_DEBUG */
+
+#endif /* ENABLE_TLSF_ALLOCATOR */

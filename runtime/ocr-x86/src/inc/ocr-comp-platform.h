@@ -12,9 +12,11 @@
 #ifndef __OCR_COMP_PLATFORM_H__
 #define __OCR_COMP_PLATFORM_H__
 
+#include "ocr-runtime-types.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
+struct _ocrPolicyDomain_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -111,17 +113,20 @@ typedef struct _ocrCompPlatformFcts_t {
      * implementation dependent.
      *
      * @param[in] self        Pointer to this comp-platform
-     * @param[in] target      Comp-platform to communicate with
+     * @param[in] target      Comp-target to communicate with
      * @param[in/out] message Message to send. In the general case, this is
-     *                        used as input and instructs the comp-platform
+     *                        used as input and instructs the comp-target
      *                        to send the message given but it may be updated
      *                        and should be used if waitMessage is called
-     *                        later.
+     *                        later. Note the pointer-to-pointer argument.
+     *                        If a new message is created (and its pointer
+     *                        returned in the call), the old message is
+     *                        *not* freed and that is up to the caller
      * @return 0 on success and a non-zero error code
      */
     u8 (*sendMessage)(struct _ocrCompPlatform_t* self,
-                      struct _ocrCompPlatform_t* target,
-                      struct _ocrPolicyMsg_t *message);
+                      ocrPhysicalLocation_t target,
+                      struct _ocrPolicyMsg_t **message);
 
     /**
      * @brief Checks if a message has been received by the comp platform and,
@@ -132,7 +137,10 @@ typedef struct _ocrCompPlatformFcts_t {
      *
      * @param self[in]        Pointer to this comp-platform
      * @param message[out]    If a message is available, its pointer will be
-     *                        returned here
+     *                        returned here. Do not pre-allocate a message
+     *                        (the returned message will be allocated properly).
+     *                        The message needs to be freed once it has been
+     *                        used (using pdFree)
      * @return #POLL_MO_MESSAGE, #POLL_MORE_MESSAGE, #POLL_ERR_MASK
      */
     u8 (*pollMessage)(struct _ocrCompPlatform_t *self, struct _ocrPolicyMsg_t **message);
@@ -148,9 +156,15 @@ typedef struct _ocrCompPlatformFcts_t {
      * to pass the same message as the one given to sendMessage (as it may
      * have been modified by sendMessage for book-keeping purposes)
      *
+     * @param self[in]        Pointer to this comp-target
+     * @param message[in/out] As input, this determines which message to wait
+     *                        for. Note that this is a pointer to a pointer. The
+     *                        old message needs to be freed by the caller if
+     *                        needed.
+     *
      * @return 0 on success and a non-zero error code
      */
-    u8 (*waitMessage)(struct _ocrCompPlatform_t *self, struct _ocrPolicyMsg_t *message);
+    u8 (*waitMessage)(struct _ocrCompPlatform_t *self, struct _ocrPolicyMsg_t **message);
 
 } ocrCompPlatformFcts_t;
 
@@ -159,6 +173,8 @@ typedef struct _ocrCompPlatformFcts_t {
  * resource able to perform computation.
  */
 typedef struct _ocrCompPlatform_t {
+    struct _ocrPolicyDomain_t *pd;  /**< Policy domain this comp-platform is used by */
+    ocrPhysicalLocation_t location;
     ocrCompPlatformFcts_t *fctPtrs; /**< Function pointers for this instance */
 } ocrCompPlatform_t;
 
@@ -178,6 +194,7 @@ typedef struct _ocrCompPlatformFactory_t {
      * @param instanceArg   Arguments specific for this instance
      */
     ocrCompPlatform_t* (*instantiate)(struct _ocrCompPlatformFactory_t *factory,
+                                      ocrPhysicalLocation_t location,
                                       ocrParamList_t *instanceArg);
 
     /**
@@ -198,8 +215,3 @@ typedef struct _ocrCompPlatformFactory_t {
 } ocrCompPlatformFactory_t;
 
 #endif /* __OCR_COMP_PLATFORM_H__ */
-
-
-
-
-

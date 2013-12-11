@@ -5,19 +5,18 @@
  */
 
 #include "ocr-runtime.h"
+#include "ocr-sys.h"
 
 /**
    @brief Get @ offset in the currently running edt's local storage
    Note: not visible from the ocr user interface
  **/
 ocrGuid_t ocrElsUserGet(u8 offset) {
+    ocrTask_t *task = NULL;
     // User indexing start after runtime-reserved ELS slots
     offset = ELS_RUNTIME_SIZE + offset;
-    ocrPolicyDomain_t * pd = getCurrentPD();
-    ocrGuid_t edtGuid = getCurrentEDT();
-    ocrTask_t * edt = NULL;
-    deguidify(pd, edtGuid, (u64*)&(edt), NULL);
-    return edt->els[offset];
+    getCurrentEnv(NULL, NULL, &task);
+    return task->els[offset];
 }
 
 /**
@@ -26,30 +25,27 @@ ocrGuid_t ocrElsUserGet(u8 offset) {
  **/
 void ocrElsUserSet(u8 offset, ocrGuid_t data) {
     // User indexing start after runtime-reserved ELS slots
+    ocrTask_t *task = NULL;
     offset = ELS_RUNTIME_SIZE + offset;
-    ocrPolicyDomain_t * pd = getCurrentPD();
-    ocrGuid_t edtGuid = getCurrentEDT();
-    ocrTask_t * edt = NULL;
-    deguidify(pd, edtGuid, (u64*)&(edt), NULL);
-    edt->els[offset] = data;
+    getCurrentEnv(NULL, NULL, &task);
+    task->els[offset] = data;
 }
 
 ocrGuid_t currentEdtUserGet() {
-      ocrPolicyDomain_t * pd = getCurrentPD();
-      if (pd != NULL) {
-        return getCurrentEDT();
-      }
-      return NULL_GUID;
+    ocrTask_t *task = NULL
+    getCurrentEnv(NULL, NULL, &task);
+    if(task) {
+        return task->guid;
+    }
+    return NULL_GUID;
 }
 
 // exposed to runtime implementers as convenience
 u64 ocrNbWorkers() {
-  ocrPolicyDomain_t * pd = getCurrentPD();
-  return pd->workerCount;
+    ocrPolicyDomain_t * pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL);
+    if(pd != NULL)
+        return pd->workerCount;
+    return 0;
 }
 
-// exposed to runtime implementers as convenience
-u64 ocrCurrentWorkerId() {
-  ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
-  return ctx->sourceId;
-}

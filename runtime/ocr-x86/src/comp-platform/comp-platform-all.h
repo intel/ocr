@@ -9,15 +9,20 @@
 
 #include "debug.h"
 #include "ocr-comp-platform.h"
+#include "ocr-config.h"
 #include "ocr-utils.h"
 
 typedef enum _compPlatformType_t {
+#ifdef ENABLE_COMP_PLATFORM_PTHREAD
     compPlatformPthread_id,
+#endif
     compPlatformMax_id,
 } compPlatformType_t;
 
 const char * compplatform_types[] = {
+#ifdef ENABLE_COMP_PLATFORM_PTHREAD
     "pthread",
+#endif
     NULL,
 };
 
@@ -28,8 +33,10 @@ const char * compplatform_types[] = {
 
 inline ocrCompPlatformFactory_t *newCompPlatformFactory(compPlatformType_t type, ocrParamList_t *typeArg) {
     switch(type) {
+#ifdef ENABLE_COMP_PLATFORM_PTHREAD
     case compPlatformPthread_id:
         return newCompPlatformFactoryPthread(typeArg);
+#endif
     default:
         ASSERT(0);
         return NULL;

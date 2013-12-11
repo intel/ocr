@@ -8,6 +8,8 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+#ifdef ENABLE_COMP_PLATFORM_PTHREAD
 
 #ifndef __COMP_PLATFORM_PTHREAD_H__
 #define __COMP_PLATFORM_PTHREAD_H__
@@ -41,8 +43,10 @@ typedef struct {
     void* routineArg;
     bool isMasterThread;
     u64 stackSize;
-    int binding;
+    s32 binding;
 } paramListCompPlatformPthread_t;
 
 extern ocrCompPlatformFactory_t* newCompPlatformFactoryPthread(ocrParamList_t *perType);
 #endif /* __COMP_PLATFORM_PTHREAD_H__ */
+
+#endif /* ENABLE_COMP_PLATFORM_PTHREAD */

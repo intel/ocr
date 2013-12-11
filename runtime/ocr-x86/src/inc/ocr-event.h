@@ -13,7 +13,7 @@
 #define __OCR_EVENT_H__
 
 #include "ocr-edt.h"
-#include "ocr-mappable.h"
+#include "ocr-runtime-types.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
@@ -37,6 +37,7 @@
     * @param waiterGuid            The guid to be satisfied
     * @param slot                  The slot to signal the waiterGuid on.
     */
+// TODO: This seems like it needs to go
 void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
 
 
@@ -73,14 +74,14 @@ typedef struct _ocrEventFcts_t {
      *  \param[in] slot          The slot of the event to get from
      *  \return GUID of the entity the event has been satisfied with
      */
-    ocrGuid_t (*get) (struct _ocrEvent_t* self, u32 slot);
+    ocrFatGuid_t (*get) (struct _ocrEvent_t* self, u32 slot);
 
     /*! \brief Interface to satisfy the event
      *  \param[in] self          Pointer to this event
      *  \param[in] db            GUID to satisfy this event with (or NULL_GUID)
      *  \param[in] slot          Input slot for this event
      */
-    void (*satisfy)(struct _ocrEvent_t* self, ocrGuid_t db, u32 slot);
+    void (*satisfy)(struct _ocrEvent_t* self, ocrFatGuid_t db, u32 slot);
 } ocrEventFcts_t;
 
 /*! \brief Abstract class to represent OCR events.
@@ -122,6 +123,9 @@ typedef struct _ocrEventFactory_t {
      */
     void (*destruct)(struct _ocrEventFactory_t* factory);
 
+    // TODO: This does not seem scalable if we modify
+    // events to have more than just single and latch (reductions for
+    // example)
     ocrEventFcts_t singleFcts; /**< Functions for non-latch events */
     ocrEventFcts_t latchFcts;  /**< Functions for latch events */
 } ocrEventFactory_t;

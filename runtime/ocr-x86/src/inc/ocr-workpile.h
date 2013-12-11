@@ -8,10 +8,12 @@
 #ifndef __OCR_WORKPILE_H_
 #define __OCR_WORKPILE_H_
 
-#include "ocr-mappable.h"
+#include "ocr-runtime-types.h"
 #include "ocr-tuning.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
+
+struct _ocrPolicyDomain_t;
 
 
 /****************************************************/
@@ -46,17 +48,17 @@ typedef struct _ocrWorkpileFcts_t {
     /*! \brief Interface to extract a task from this pool
      *  \return GUID of the task that is extracted from this task pool
      */
-    ocrGuid_t (*pop) (struct _ocrWorkpile_t *self, ocrCost_t *cost);
+    ocrFatGuid_t (*pop) (struct _ocrWorkpile_t *self, ocrCost_t *cost);
 
     /*! \brief Interface to alternative extract a task from this pool
      *  \return GUID of the task that is extracted from this task pool
      */
-    ocrGuid_t (*steal)(struct _ocrWorkpile_t *self, ocrCost_t *cost);
+    ocrFatGuid_t (*steal)(struct _ocrWorkpile_t *self, ocrCost_t *cost);
 
     /*! \brief Interface to enlist a task
      *  \param[in]  task_guid   GUID of the task that is to be pushed into this task pool.
      */
-    void (*push) (struct _ocrWorkpile_t *self, ocrGuid_t g);
+    void (*push) (struct _ocrWorkpile_t *self, ocrFatGuid_t g);
 } ocrWorkpileFcts_t;
 
 /*! \brief Abstract class to represent OCR task pool data structures.
@@ -66,7 +68,8 @@ typedef struct _ocrWorkpileFcts_t {
  */
 //TODO We may be influenced by how STL resolves this issue as in push_back, push_front, pop_back, pop_front
 typedef struct _ocrWorkpile_t {
-    ocrMappable_t module;
+    ocrFatGuid_t fguid;
+    struct _ocrPolicyDomain_t *pd;
     ocrWorkpileFcts_t *fctPtrs;
 } ocrWorkpile_t;
 
@@ -76,7 +79,6 @@ typedef struct _ocrWorkpile_t {
 /****************************************************/
 
 typedef struct _ocrWorkpileFactory_t {
-    ocrMappable_t module;
     ocrWorkpile_t * (*instantiate) (struct _ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance);
 
     void (*destruct)(struct _ocrWorkpileFactory_t * factory);

@@ -8,6 +8,8 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+#ifdef ENABLE_COMP_TARGET_HC
 
 #ifndef __COMP_TARGET_HC_H__
 #define __COMP_TARGET_HC_H__
@@ -38,3 +40,5 @@ typedef struct {
 ocrCompTargetFactory_t* newCompTargetFactoryHc(ocrParamList_t *perType);
 
 #endif /* __COMP_TARGET_HC_H__ */
+
+#endif /* ENABLE_COMP_TARGET_HC */

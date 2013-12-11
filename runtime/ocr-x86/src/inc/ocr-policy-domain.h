@@ -191,6 +191,10 @@ typedef struct _ocrPolicyMsg_t {
         
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the DB to destroy */
+            ocrGuid_t allocatingPD; /**< PD that allocated this DB */
+            ocrGuid_t allocator; /**< Allocator (within allocatingPD) that
+                                  * allocated the DB */
+            void* ptr;         /**< Pointer to free */
             u32 properties;    /**< In: properties for the destruction */
         } PD_MSG_STRUCT_NAME(PD_MSG_MEM_DESTROY);
         
@@ -455,13 +459,18 @@ typedef struct _ocrPolicyDomain_t {
      * @brief Requests for the handling of the request msg
      *
      * This function can be called either by user code (for when the user code
-     * requires runtime services) or internally by the runtime.
+     * requires runtime services) or internally by the runtime (when a message
+     * has been received via CT.pollMessage for example)
      *
      * All code executed by processMessage until it reaches a sendMessage
      * is executed synchronously and inside the same address space.
      *
      * @param[in]     self       This policy domain
-     * @param[in/out] msg        Message to process
+     * @param[in/out] msg        Message to process. Response will be
+     *                           contained in msg if a response is
+     *                           required and isBlocking is true. In all
+     *                           cases, the message pointer must be
+     *                           freed by the caller
      * @param[in]     isBlocking True if the processing of the message
      *                           need to complete before returning
      * @return 0 on success and a non-zero value on failure
@@ -482,23 +491,18 @@ typedef struct _ocrPolicyDomain_t {
      * implementation dependent)
      *
      * @param[in]     self       This policy domain
-     * @param[in/out] msg        Message to send
+     * @param[in/out] msg        Message to send. If 'isBlocking' is true and
+     *                           the message required a response, the response
+     *                           will be contained in msg. In all cases, the
+     *                           caller is responsible for freeing 'msg' (ie:
+     *                           if the message is sent asynchronously, the
+     *                           runtime will make a copy if needed)
      * @param[in]     isBlocking True if the response needs to be received
      *                           prior to returning
      * @return 0 on success and a non-zero value on failure
      */
     u8 (*sendMessage)(struct _ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg,
                       u8 isBlocking);
-
-    /**
-     * @brief Called when a request is received from an underlying
-     * compute target (never called by user code) to process the message
-     *
-     * @param[in]     self       This policy domain
-     * @param[in/out] msg        Message to process
-     * @return 0 on success and a non-zero value on failure
-     */
-    u8 (*receiveMessage)(struct _ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg);
     
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t* (*getStats)(struct _ocrPolicyDomain_t *self);
@@ -506,7 +510,7 @@ typedef struct _ocrPolicyDomain_t {
 
     ocrSys_t* (*getSys)(struct _ocrPolicyDomain_t *self);
     
-    struct _ocrCompTarget_t** neighbors;
+    ocrPhysicalLocation_t* neighbors;
     u64 neighborCount;
     
 } ocrPolicyDomain_t;

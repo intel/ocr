@@ -6,16 +6,14 @@
 
 
 #include "debug.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
+#include "ocr-sys.h"
 #include "ocr-types.h"
 
-// All these externs are in ocr-driver.c.
-extern void finishAllPD(ocrPolicyDomain_t *pd);
-
 void ocrShutdown() {
-    ocrPolicyDomain_t* currPD = getCurrentPD();
-    finishAllPD(currPD);
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL);
+    teardown(pd);
 }
 
 u64 getArgc(void* dbPtr) {

@@ -8,6 +8,7 @@
  * removed or modified.
  */
 
+// TODO: This file may go away...
 
 #ifndef OCR_POLICY_DOMAIN_GETTER_H_
 #define OCR_POLICY_DOMAIN_GETTER_H_
@@ -78,14 +79,6 @@ u8 ocrPDGetInfoForGuid(ocrGuid_t guid, u64* val, ocrGuidKind* type);
                            
 #endif
 
-/**
- * @brief Gets the current policy domain for the calling code
- * @todo Will be removed
- */
-extern struct _ocrPolicyDomain_t * (*getCurrentPD)();
-extern void (*setCurrentPD)(struct _ocrPolicyDomain_t*);
-extern struct _ocrPolicyDomain_t * (*getMasterPD)();
-
-extern void (*getCurrentEnv)(struct _ocrPolicyDomain_t **pd, struct _ocrPolicyMsg_t *msg);
-
 #endif /* OCR_POLICY_DOMAIN_GETTER_H_ */
+
+

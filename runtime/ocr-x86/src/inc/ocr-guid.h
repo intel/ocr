@@ -13,7 +13,6 @@
 #define __OCR_GUID_H__
 
 #include "ocr-types.h"
-#include "ocr-mappable.h"
 #include "ocr-utils.h"
 
 typedef enum {
@@ -133,7 +132,6 @@ typedef struct _ocrGuidProviderFcts_t {
  * support different address spaces (in the future)
  */
 typedef struct _ocrGuidProvider_t {
-    ocrMappable_t module; /**< Base "class" */
     ocrGuidProviderFcts_t *fctPtrs; /**< Function pointers for this instance */
 } ocrGuidProvider_t;
 

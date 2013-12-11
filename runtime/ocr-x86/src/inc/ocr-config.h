@@ -12,23 +12,46 @@
 #ifndef __OCR_CONFIG_H__
 #define __OCR_CONFIG_H__
 
-// TODO: This file will be rendered obsolete soon
+// Allocator
+#define ENABLE_ALLOCATOR_TLSF 1
 
-#ifdef OCR_ENABLE_STATISTICS
-#include "ocr-statistics.h"
-#endif
+// Comp-platform
+#define ENABLE_COMP_PLATFORM_PTHREAD 1
+//#define ENABLE_COMP_PLATFORM_FSIM 1
 
-#ifdef OCR_ENABLE_STATISTICS
-// For now have a central statistics aggregator filter
-ocrStatsFilter_t   *GocrFilterAggregator;
+// Comp-target
+#define ENABLE_COMP_TARGET_HC 1
 
-// HUGE HUGE HACK: it seems that currently we can run code outside of EDTs
-// which is a big problem since then we don't have a source "process" for Lamport's
-// clock. This should *NEVER* be the case and there should be no non-EDT code
-// except for the bootstrap. For now, and for expediency, this is a hack where I have
-// a fake Lamport process for the initial non-EDT code
-ocrStatsProcess_t GfakeProcess;
+// Datablock
+#define ENABLE_DATABLOCK_REGULAR 1
 
-#endif
+// Event
+#define ENABLE_EVENT_HC 1
+
+// GUID provider
+#define ENABLE_GUID_PTR 1
+
+// Mem-platform
+#define ENABLE_MEM_PLATFORM_MALLOC 1
+
+// Mem-target
+#define ENABLE_MEM_TARGET_SHARED 1
+
+// Policy domain
+#define ENABLE_POLICY_DOMAIN_HC 1
+
+// Scheduler
+#define ENABLE_SCHEDULER_HC 1
+
+// Task
+#define ENABLE_TASK_HC 1
+
+// Worker
+#define ENABLE_WORKER_HC 1
+
+// Workpile
+#define ENABLE_WORKPILE_HC 1
 
 #endif /* __OCR_CONFIG_H__ */
+
+

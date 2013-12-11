@@ -154,7 +154,7 @@ static void newTaskHcInternalCommon (ocrPolicyDomain_t * pd, ocrTaskHc_t* derive
     }
     base->outputEvent = outputEvent;
     base->depc = depc;
-    base->addedDepCounter = pd->getAtomic64(pd, NULL /*Context*/);
+    base->addedDepCounter = 0ULL;
     // Initialize ELS
     int i = 0;
     while (i < ELS_SIZE) {
@@ -236,7 +236,6 @@ static void destructTaskHc ( ocrTask_t* base ) {
 #endif /* OCR_ENABLE_STATISTICS */
     ctx->type = PD_MSG_GUID_REL;
     pd->inform(pd, base->guid, ctx);
-    base->addedDepCounter->fctPtrs->destruct(base->addedDepCounter);
     ctx->destruct(ctx);
     free(derived);
 }
@@ -669,6 +668,8 @@ void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
 // register a signaler on a waiter
 void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
     // anything to edt registration
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL);
     if (isEdtGuid(waiterGuid)) {
         // edt waiting for a signal from an event or a datablock
         ASSERT((signalerGuid == NULL_GUID) || isEventGuid(signalerGuid) || isDatablockGuid(signalerGuid));
@@ -676,7 +677,8 @@ void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
 
         deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
         edtRegisterSignaler(target, signalerGuid, slot);
-        if ( target->depc == target->addedDepCounter->fctPtrs->xadd(target->addedDepCounter,1) ) {
+        if (target->depc == pd->getSys(pd)->xadd64(pd->getSys(pd),
+                                                   &(target->addedDepCounter), 1)) {
             // This function pointer is called once, when all the dependence have been added
             target->fctPtrs->schedule(target);
         }

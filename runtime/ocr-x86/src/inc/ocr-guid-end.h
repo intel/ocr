@@ -120,11 +120,13 @@ static inline bool isDatablockGuid(ocrGuid_t guid) {
  *  \param[in] guid        The guid to check the kind
  */
 static inline bool isEventGuid(ocrGuid_t guid) {
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL);
     if (NULL_GUID == guid) {
         return false;
     }
     ocrGuidKind kind;
-    guidKind(getCurrentPD(),guid, &kind);
+    guidKind(pd, guid, &kind);
     return kind == OCR_GUID_EVENT;
 }
 
@@ -132,11 +134,13 @@ static inline bool isEventGuid(ocrGuid_t guid) {
  *  \param[in] guid        The guid to check the kind
  */
 static inline bool isEdtGuid(ocrGuid_t guid) {
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL);
     if (NULL_GUID == guid) {
         return false;
     }
     ocrGuidKind kind;
-    guidKind(getCurrentPD(),guid, &kind);
+    guidKind(pd, guid, &kind);
     return kind == OCR_GUID_EDT;
 }
 
@@ -144,9 +148,11 @@ static inline bool isEdtGuid(ocrGuid_t guid) {
  *  \param[in] guid        The guid to check the kind
  */
 static inline bool isEventLatchGuid(ocrGuid_t guid) {
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL);
     if(isEventGuid(guid)) {
         ocrEvent_t * event = NULL;
-        deguidify(getCurrentPD(), guid, (u64*)&event, NULL);
+        deguidify(pd, guid, (u64*)&event, NULL);
         return (event->kind == OCR_EVENT_LATCH_T);
     }
     return false;
@@ -156,9 +162,11 @@ static inline bool isEventLatchGuid(ocrGuid_t guid) {
  *  \param[in] guid        The guid to check the kind
  */
 static inline bool isEventSingleGuid(ocrGuid_t guid) {
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL);
     if(isEventGuid(guid)) {
         ocrEvent_t * event = NULL;
-        deguidify(getCurrentPD(), guid, (u64*)&event, NULL);
+        deguidify(pd, guid, (u64*)&event, NULL);
         return ((event->kind == OCR_EVENT_ONCE_T)
                 || (event->kind == OCR_EVENT_IDEM_T)
                 || (event->kind == OCR_EVENT_STICKY_T));
@@ -172,9 +180,11 @@ static inline bool isEventSingleGuid(ocrGuid_t guid) {
  *  @return true if the guid's kind matches 'eventKind'
  */
 static inline bool isEventGuidOfKind(ocrGuid_t guid, ocrEventTypes_t eventKind) {
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL);
     if (isEventGuid(guid)) {
         ocrEvent_t * event = NULL;
-        deguidify(getCurrentPD(), guid, (u64*)&event, NULL);
+        deguidify(pd, guid, (u64*)&event, NULL);
         return event->kind == eventKind;
     }
     return false;

@@ -12,6 +12,7 @@
 #ifndef __OCR_COMP_TARGET_H__
 #define __OCR_COMP_TARGET_H__
 
+#include "ocr-runtime-types.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
@@ -19,6 +20,8 @@
 #include "ocr-statistics.h"
 #endif
 
+
+struct _ocrPolicyDomain_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -129,12 +132,15 @@ typedef struct _ocrCompTargetFcts_t {
      *                        used as input and instructs the comp-target
      *                        to send the message given but it may be updated
      *                        and should be used if waitMessage is called
-     *                        later.
+     *                        later. Note the pointer-to-pointer argument.
+     *                        If a new message is created (and its pointer
+     *                        returned in the call), the old message is
+     *                        *not* freed and that is up to the caller
      * @return 0 on success and a non-zero error code
      */
     u8 (*sendMessage)(struct _ocrCompTarget_t* self,
-                      struct _ocrCompTarget_t* target,
-                      struct _ocrPolicyMsg_t *message);
+                      ocrPhysicalLocation_t target,
+                      struct _ocrPolicyMsg_t **message);
 
     /**
      * @brief Checks if a message has been received by the comp target and,
@@ -145,7 +151,10 @@ typedef struct _ocrCompTargetFcts_t {
      *
      * @param self[in]        Pointer to this comp-target
      * @param message[out]    If a message is available, its pointer will be
-     *                        returned here
+     *                        returned here. Do not pre-allocate a message
+     *                        (the returned message will be allocated properly).
+     *                        The message needs to be freed once it has been
+     *                        used (using pdFree)
      * @return #POLL_MO_MESSAGE, #POLL_MORE_MESSAGE, #POLL_ERR_MASK
      */
     u8 (*pollMessage)(struct _ocrCompTarget_t *self, struct _ocrPolicyMsg_t **message);
@@ -161,9 +170,15 @@ typedef struct _ocrCompTargetFcts_t {
      * to pass the same message as the one given to sendMessage (as it may
      * have been modified by sendMessage for book-keeping purposes)
      *
+     * @param self[in]        Pointer to this comp-target
+     * @param message[in/out] As input, this determines which message to wait
+     *                        for. Note that this is a pointer to a pointer. The
+     *                        old message needs to be freed by the caller if
+     *                        needed.
+     * 
      * @return 0 on success and a non-zero error code
      */
-    u8 (*waitMessage)(struct _ocrCompTarget_t *self, struct _ocrPolicyMsg_t *message);
+    u8 (*waitMessage)(struct _ocrCompTarget_t *self, struct _ocrPolicyMsg_t **message);
 
 } ocrCompTargetFcts_t;
 
@@ -176,7 +191,9 @@ struct _ocrCompTarget_t;
  * This is typically a one-one mapping but it's not mandatory.
  */
 typedef struct _ocrCompTarget_t {
-        ocrGuid_t guid; /**< Guid of the comp-target */
+    ocrFatGuid_t fguid; /**< Guid of the comp-target */
+    struct _ocrPolicyDomain_t *pd; /**< Policy domain this comp-target belongs to */
+    ocrPhysicalLocation_t location; /**< Location of this comp-target */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
@@ -201,9 +218,11 @@ typedef struct _ocrCompTargetFactory_t {
      * Initiates a new comp-target and returns a pointer to it.
      *
      * @param factory       Pointer to this factory
+     * @param location      Location of this comp-target
      * @param instanceArg   Arguments specific for this instance
      */
     ocrCompTarget_t * (*instantiate) ( struct _ocrCompTargetFactory_t * factory,
+                                       ocrPhysicalLocation_t location,
                                        ocrParamList_t *instanceArg);
     /**
      * @brief comp-target factory destructor

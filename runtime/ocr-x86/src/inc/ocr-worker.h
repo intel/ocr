@@ -9,13 +9,15 @@
 #define __OCR_WORKER_H__
 
 #include "ocr-comp-target.h"
-#include "ocr-mappable.h"
+#include "ocr-runtime-types.h"
 #include "ocr-scheduler.h"
 #include "ocr-types.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
 #endif
+
+struct _ocrPolicyDomain_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -53,7 +55,8 @@ typedef struct _ocrWorkerFcts_t {
 
     /*! \brief Executes a task
      */
-    void (*execute)(struct _ocrWorker_t * worker, struct _ocrTask_t* task, ocrGuid_t taskGuid, ocrGuid_t currentTaskGuid);
+    void (*execute)(struct _ocrWorker_t * worker, struct _ocrTask_t* task,
+                    ocrFatGuid_t taskGuid, ocrFatGuid_t currentTaskGuid);
 
     /*! \brief Check if Worker is still running
      *  \return true if the Worker is running, false otherwise
@@ -67,7 +70,7 @@ typedef struct _ocrWorkerFcts_t {
      * @param base              OCR Worker
      * @return GUID for the currently running EDT
      */
-    ocrGuid_t (*getCurrentEDT)(struct _ocrWorker_t *self);
+    ocrFatGuid_t (*getCurrentEDT)(struct _ocrWorker_t *self);
 
     /**
      * @brief Sets the EDT this worker is currently running
@@ -76,12 +79,12 @@ typedef struct _ocrWorkerFcts_t {
      * @param currEDT           GUID of the EDT this OCR Worker is now running
      * @return GUID for the currently running EDT
      */
-     void (*setCurrentEDT)(struct _ocrWorker_t *self, ocrGuid_t currEDT);
+     void (*setCurrentEDT)(struct _ocrWorker_t *self, ocrFatGuid_t currEDT);
 } ocrWorkerFcts_t;
 
 typedef struct _ocrWorker_t {
-    ocrMappable_t module;
-    ocrGuid_t guid;
+    ocrFatGuid_t fguid;
+    struct _ocrPolicyDomain_t *pd;
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
@@ -102,21 +105,16 @@ typedef struct _ocrWorker_t {
 /****************************************************/
 
 typedef struct _ocrWorkerFactory_t {
-    ocrMappable_t module;
     ocrWorker_t * (*instantiate) (struct _ocrWorkerFactory_t * factory, ocrParamList_t *perInstance);
     void (*destruct)(struct _ocrWorkerFactory_t * factory);
     ocrWorkerFcts_t workerFcts;
 } ocrWorkerFactory_t;
 
 
-/**
- * @brief Gets the current EDT executing
- */
-extern ocrGuid_t (*getCurrentEDT)();
-extern void (*setCurrentEDT)(ocrGuid_t guid);
-
+// TODO: Remove fully
 // Get/Set CurrentEDT relying on the worker caching the info
-extern ocrGuid_t getCurrentEDTFromWorker();
-extern void setCurrentEDTToWorker(ocrGuid_t edtGuid);
+//extern ocrFatGuid_t getCurrentEDTFromWorker();
+//extern void setCurrentEDTToWorker(ocrFatGuid_t edtGuid);
 
 #endif /* __OCR_WORKER_H__ */
+

@@ -76,6 +76,10 @@ typedef struct {
     void* metaDataPtr;
 } ocrFatGuid_t;
 
+//TODO: FIXME: Placeholder for an ID for target/platform
+//compute or memories
+typedef u64 ocrPhysicalLocation_t;
+
 /**
  * @brief Returned by the pollMessage function in
  * either the comp-target and comp-platform to indicate

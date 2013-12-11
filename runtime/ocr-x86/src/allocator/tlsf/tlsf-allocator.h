@@ -8,6 +8,9 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+#ifdef ENABLE_ALLOCATOR_TLSF
+
 #ifndef __ALLOCATOR_TLSF_H__
 #define __ALLOCATOR_TLSF_H__
 
@@ -22,8 +25,10 @@ typedef struct {
 typedef struct {
     ocrAllocator_t base;
     u64 addr, totalSize, poolAddr, poolSize;
-    ocrLock_t* lock; /**< Currently needs a lock. The idea is to have multiple allocators but currently only one */
+    u32 lock; /**< Currently needs a lock. The idea is to have multiple allocators but currently only one */
 } ocrAllocatorTlsf_t;
 
 extern ocrAllocatorFactory_t* newAllocatorFactoryTlsf(ocrParamList_t *perType);
 #endif /* __TLSF_ALLOCATOR_H__ */
+
+#endif /* ENABLE_ALLOCATOR_TLSF */

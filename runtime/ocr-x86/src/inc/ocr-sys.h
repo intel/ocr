@@ -19,6 +19,66 @@
 #include "ocr-utils.h"
 
 /****************************************************/
+/* SYSTEM FUNCTIONS                                 */
+/****************************************************/
+
+// TODO (Bala/Ivan): We need to have a bringup type of function
+// We have this in the driver but we need to figure out what
+// to pass to it. It should not be a file but rather
+// an address of some kind of binary representation of
+// how to bring up the machine. Also, we need to decide
+// how we distribute the bring up (ie: is only one of these
+// functions called (probably not) or are there multiple and
+// how do we sync all this up
+
+
+/**
+ * @brief Instructs the runtime to tear itself down
+ *
+ * The policy-domain passed as argument is the policy-domain
+ * initiating the shutdown.
+ *
+ * This call will call 'stop' and 'finish' on all policy domains
+ * and shut the runtiem down
+ *
+ * @param[in] pd              Policy domain initiating the shutdown
+ */
+void (*teardown)(struct _ocrPolicyDomain_t *pd);
+
+
+/**
+ * @brief Returns the current environment (policy domain, current EDT and
+ * an initialized message)
+ *
+ * This function allows you to select what you want returned by
+ * passing NULL for what you do not want
+ *
+ * @param pd[out]             Will return a pointer to the current policy
+ *                            domain. The resulting pointer should *not*
+ *                            be freed. If NULL, will not return anything.
+ *                            Note that if *pd is non NULL on input, the call
+ *                            will consider that to be the PD to use (saves
+ *                            on overhead). If *pd is NULL on return, no policy
+ *                            domain is currently active (boot-up or shut-down)
+ * @param edt[out]            Will return a pointer to the current EDT
+ *                            The resulting pointer should *not* be
+ *                            freed. If NULL, will not return anything. If
+ *                            *edt is NULL on return, no EDT is currently
+ *                            executing (runtime code)
+ * @param msg[out]            Will initialize the ocrPolicyMsg_t pointed
+ *                            to by msg. If NULL, no initialization will
+ *                            occur. Note that no allocation of msg will
+ *                            happen so it needs to already be either
+ *                            allocated or on the stack
+ */
+void (*getCurrentEnv)(struct _ocrPolicyDomain_t **pd, struct _ocrTask_t **edt,
+                      struct _ocrPolicyMsg_t *msg);
+
+// TODO: Do we need this
+extern struct _ocrPolicyDomain_t * (*getMasterPD)();
+
+
+/****************************************************/
 /* PARAMETER LISTS                                  */
 /****************************************************/
 typedef struct {
@@ -114,6 +174,9 @@ typedef struct _ocrSysFcts_t {
      * of fences?
      */
     void (*fence)(struct _ocrSys_t *self);
+
+    void (*memCopy)(struct _ocrSys_t *self, void* destination, void* source,
+                    u64 size, bool isBackground);
     
     /**
      * @brief Compare and swap (64 bit)
@@ -204,6 +267,38 @@ typedef struct _ocrSysFcts_t {
      * @param addValue  Value to add to location
      */
     void (*radd32)(struct _ocrSys_t *self, u32* atomic, u32 addValue);
+
+    /**
+     * @brief Convenience function that basically implements a simple
+     * lock
+     *
+     * This will usually be a wrapper around cmpswap32. This function
+     * will block until the lock can be acquired
+     *
+     * @param self      This system descriptor
+     * @param lock      Pointer to a 32 bit value
+     */
+    void (*lock32)(struct _ocrSys_t *self, u32* lock);
+
+    /**
+     * @brief Convenience function to implement a simple
+     * unlock
+     *
+     * @param self      This system descriptor
+     * @param lock      Pointer to a 32 bit value
+     */
+    void (*unlock32)(struct _ocrSys_t *self, u32* lock);
+
+    /**
+     * @brief Convenience function to implement a simple
+     * trylock
+     *
+     * @param self      This system descriptor
+     * @param lock      Pointer to a 32 bit value
+     * @return 0 if the lock has been acquired and a non-zero
+     * value if it cannot be acquired
+     */
+    u8 (*trylock32)(struct _ocrSys_t *self, u32* lock);
 } ocrSysFcts_t;
 
 /**

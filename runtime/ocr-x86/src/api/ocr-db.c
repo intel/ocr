@@ -15,8 +15,9 @@
 #include "ocr-db.h"
 #include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
+#include "ocr-runtime-types.h"
 
-
+// TODO: We need to get rid of this
 #include <errno.h>
 
 #if (__STDC_HOSTED__ == 1)
@@ -25,8 +26,6 @@
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
-//#include "statistics/stats-llvm-callback.h"
-//extern u8 startMemStat; 
 #endif
 
 
@@ -41,8 +40,8 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     // Replace with allocator that is gotten from policy
     //
     ocrPolicyMsg_t msg;
-    ocrPolicyDomain_t *policy;
-    getCurrentEnv(&policy, &msg);
+    ocrPolicyDomain_t *policy = NULL;
+    getCurrentEnv(&policy, &msg, NULL);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_CREATE
@@ -69,24 +68,24 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 
 u8 ocrDbDestroy(ocrGuid_t db) {
     ocrDataBlock_t *dataBlock = NULL;
-    ocrPolicyDomain_t *policy;
-    getCurrentEnv(&policy, NULL);
+    ocrPolicyDomain_t *policy = NULL;
+    ocrTask_t *task = NULL
+    getCurrentEnv(&policy, NULL, &task);
 
     deguidify(policy, db, (u64*)&dataBlock, NULL);
-
-    ocrGuid_t edtGuid = getCurrentEDT();
     
-    u8 status = dataBlock->fctPtrs->free(dataBlock, edtGuid);
-    return status;
+    ocrFatGuid_t edtGuid = {.guid = task->guid, .metaDataPtr = task};
+    return dataBlock->fctPtrs->free(dataBlock, edtGuid);
 }
 
 u8 ocrDbRelease(ocrGuid_t db) {
     ocrDataBlock_t *dataBlock = NULL;
-    ocrPolicyDomain_t *policy;
-    getCurrentEnv(&policy, NULL);
+    ocrPolicyDomain_t *policy = NULL;
+    ocrTask_t *task = NULL;
+    getCurrentEnv(&policy, NULL, &task);
     deguidify(policy, db, (u64*)&dataBlock, NULL);
 
-    ocrGuid_t edtGuid = getCurrentEDT();
+    ocrFatGuid_t edtGuid = {.guid = task->guid, .metaDataPtr = task};
     return dataBlock->fctPtrs->release(dataBlock, edtGuid, false);
 }
 

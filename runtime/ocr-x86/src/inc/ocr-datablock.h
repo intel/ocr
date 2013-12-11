@@ -34,7 +34,7 @@ typedef struct _paramListDataBlockInst_t {
     ocrGuid_t allocPD;      /**< Policy-domain of the allocator */
     u64 size;               /**< data-block size */
     void* ptr;              /**< Initial location for the data-block */
-    u16 properties;         /**< Properties for the data-block */
+    u32 properties;         /**< Properties for the data-block */
 } paramListDataBlockInst_t;
 
 
@@ -71,7 +71,7 @@ typedef struct _ocrDataBlockFcts_t {
      *
      * @note Multiple acquires for the same EDT have no effect
      */
-    void* (*acquire)(struct _ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal);
+    void* (*acquire)(struct _ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal);
 
     /**
      * @brief Releases a data-block previously acquired
@@ -84,7 +84,7 @@ typedef struct _ocrDataBlockFcts_t {
      * @note No need to match one-to-one with acquires. One release
      * releases any and all previous acquires
      */
-    u8 (*release)(struct _ocrDataBlock_t *self, ocrGuid_t edt, bool isInternal);
+    u8 (*release)(struct _ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal);
 
     /**
      * @brief Requests that the block be freed when possible
@@ -98,7 +98,7 @@ typedef struct _ocrDataBlockFcts_t {
      * @param edt           EDT seeking to free the data-block
      * @return 0 on success and an error code on failure (see ocr-db.h)
      */
-    u8 (*free)(struct _ocrDataBlock_t *self, ocrGuid_t edt);
+    u8 (*free)(struct _ocrDataBlock_t *self, ocrFatGuid_t edt);
 } ocrDataBlockFcts_t;
 
 /**
@@ -117,7 +117,7 @@ typedef struct _ocrDataBlock_t {
     ocrGuid_t allocatorPD;  /**< Policy domain of the creating allocator */
     u64 size;               /**< Size of the data-block */
     void* ptr;              /**< Current location for this data-block */
-    u16 properties;         /**< Properties for the data-block */
+    u32 properties;         /**< Properties for the data-block */
     ocrDataBlockFcts_t *fctPtrs; /**< Function Pointers for this data-block */
 } ocrDataBlock_t;
 
@@ -142,8 +142,8 @@ typedef struct _ocrDataBlock_t {
      * @param instanceArg   Arguments specific for this instance
      **/
     ocrDataBlock_t* (*instantiate)(struct _ocrDataBlockFactory_t *factory,
-                                   ocrGuid_t allocator, ocrGuid_t allocatorPD,
-                                   u64 size, void* ptr, u16 properties,
+                                   ocrFatGuid_t allocator, ocrFatGuid_t allocatorPD,
+                                   u64 size, void* ptr, u32 properties,
                                    ocrParamList_t *instanceArg);
     /**
      * @brief Factory destructor

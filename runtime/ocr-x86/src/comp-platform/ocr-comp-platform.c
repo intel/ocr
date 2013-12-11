@@ -11,5 +11,6 @@
 #include "ocr-comp-platform.h"
 #include "ocr-policy-domain.h"
 
-ocrGuid_t (*getCurrentEDT)() = NULL;
-void (*setCurrentEDT)(ocrGuid_t) = NULL;
+// TODO: This file may no longer be required
+//ocrFatGuid_t (*getCurrentEDT)() = NULL;
+//void (*setCurrentEDT)(ocrFatGuid_t) = NULL;

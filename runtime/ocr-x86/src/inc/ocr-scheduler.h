@@ -8,10 +8,11 @@
 #ifndef __OCR_SCHEDULER_H__
 #define __OCR_SCHEDULER_H__
 
-#include "ocr-mappable.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
+
+struct _ocrPolicyDomain_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -43,6 +44,7 @@ typedef struct _ocrSchedulerFcts_t {
 
     void (*finish)(struct _ocrScheduler_t *self);
 
+    // TODO: Check these calls
     u8 (*yield)(struct _ocrScheduler_t *self, ocrGuid_t workerGuid,
                        ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
                        ocrGuid_t * returnGuid, struct _ocrPolicyCtx_t *context);
@@ -67,8 +69,8 @@ struct _ocrWorkpile_t;
  *  Currently, we allow scheduler interface to have work taken from them or given to them
  */
 typedef struct _ocrScheduler_t {
-    ocrMappable_t module;
-    ocrGuid_t guid;
+    ocrFatGuid_t fguid;
+    struct _ocrPolicyDomain_t *pd;
 
     struct _ocrWorker_t **workers;
     struct _ocrWorkpile_t **workpiles;
@@ -84,7 +86,6 @@ typedef struct _ocrScheduler_t {
 /****************************************************/
 
 typedef struct _ocrSchedulerFactory_t {
-    ocrMappable_t module;
     ocrScheduler_t* (*instantiate) (struct _ocrSchedulerFactory_t * factory,
                                     ocrParamList_t *perInstance);
 

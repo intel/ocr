@@ -11,9 +11,11 @@
 #ifndef __OCR_MEM_PLATFORM_H__
 #define __OCR_MEM_PLATFORM_H__
 
+#include "ocr-runtime-types.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 
+struct _ocrPolicyDomain_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -171,6 +173,8 @@ typedef struct _ocrMemPlatformFcts_t {
  * of a fixed size.
  */
 typedef struct _ocrMemPlatform_t {
+    struct _ocrPolicyDomain_t *pd; /**< Policy domain that uses this mem-platform */
+    ocrPhysicalLocation_t location;
     u64 size, startAddr, endAddr;  /**< Size, start and end address for this instance */
     ocrMemPlatformFcts_t *fctPtrs; /**< Function pointers for this instance */
 } ocrMemPlatform_t;
@@ -193,6 +197,7 @@ typedef struct _ocrMemPlatformFactory_t {
      * @param instanceArg[in] Arguments specific for this instance
      */
     ocrMemPlatform_t * (*instantiate) (struct _ocrMemPlatformFactory_t * factory,
+                                       ocrPhysicalLocation_t location,
                                        u64 memSize, ocrParamList_t* instanceArg);
     /**
      * @brief mem-platform factory destructor

@@ -11,7 +11,6 @@
 #include "ocr-edt.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
-#include "ocr-mappable.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -130,7 +129,7 @@ typedef struct _ocrTask_t {
     ocrGuid_t outputEvent; // Event to notify when the EDT is done
     ocrGuid_t els[ELS_SIZE];
     struct _ocrTaskFcts_t * fctPtrs;
-    ocrAtomic64_t* addedDepCounter;
+    u64 addedDepCounter;
 } ocrTask_t;
 
 /****************************************************/
@@ -143,7 +142,6 @@ typedef struct _ocrTask_t {
  *  to allow runtime implementers to choose to have state in their derived TaskFactory classes.
  */
 typedef struct _ocrTaskFactory_t {
-    ocrMappable_t module;
     /*! \brief Instantiates a Task and returns its corresponding GUID
      *  \param[in]  routine A user defined function that represents the computation this Task encapsulates.
      *  \param[in]  worker_id   The Worker instance creating this Task instance
@@ -155,7 +153,7 @@ typedef struct _ocrTaskFactory_t {
      *
      */
     ocrTask_t* (*instantiate)(struct _ocrTaskFactory_t * factory, ocrTaskTemplate_t * edtTemplate,
-                              u32 paramc, u64* paramv, u32 depc, u16 properties,
+                              u32 paramc, u64* paramv, u32 depc, u32 properties,
                               ocrGuid_t affinity, ocrGuid_t *outputEvent, ocrParamList_t *perInstance);
 
     /*! \brief Virtual destructor for the TaskFactory interface
@@ -165,4 +163,3 @@ typedef struct _ocrTaskFactory_t {
     ocrTaskFcts_t taskFcts;
 } ocrTaskFactory_t;
 #endif /* __OCR_TASK_H__ */
-

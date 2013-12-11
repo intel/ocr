@@ -43,10 +43,11 @@ u8 ocrEventDestroy(ocrGuid_t eventGuid) {
 u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/, u32 slot) {
     ASSERT(eventGuid != NULL_GUID);
     ocrEvent_t * event = NULL;
-    ocrPolicyDomain_t *pd;
-    getCurrentEnv(&pd, NULL);
+    ocrPolicyDomain_t *pd = NULL;
+    ocrFatGuid_t dataFGuid = {.guid = dataGuid, .metaDataPtr = NULL};
+    getCurrentEnv(&pd, NULL, NULL);
     deguidify(pd, eventGuid, (u64*)&event, NULL);
-    event->fctPtrs->satisfy(event, dataGuid, slot);
+    event->fctPtrs->satisfy(event, dataFGuid, slot);
     return 0;
 }
 
@@ -59,8 +60,8 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
     ASSERT(funcName);
 #endif
     ocrPolicyMsg_t msg;
-    ocrPolicyDomain_t *pd;
-    getCurrentEnv(&pd, &msg);
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, &msg, NULL);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
     msg.type = PD_MSG_EDTTEMP_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -70,18 +71,19 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
     PD_MSG_FIELD(depc) = depc;
     PD_MSG_FIELD(funcName) = funcName;
 
-    pd->processMessage(pd, &msg, true);
-
-    *guid = PD_MSG_FIELD(guid.guid);
+    if(pd->processMessage(pd, &msg, true) == 0) {
+        *guid = PD_MSG_FIELD(guid.guid);
+        return 0;
+    }
+    return 1;
 #undef PD_MSG
 #undef PD_TYPE
-    return 0;
 }
 
 u8 ocrEdtTemplateDestroy(ocrGuid_t guid) {
-    ocrPolicyDomain_t * pd;
+    ocrPolicyDomain_t * pd = NULL;
     ocrTaskTemplate_t * taskTemplate = NULL;
-    getCurrentEnv(&pd, NULL);
+    getCurrentEnv(&pd, NULL, NULL);
     deguidify(pd, guid, (u64*)&taskTemplate, NULL);
     taskTemplate->fctPtrs->destruct(taskTemplate);
     return 0;
@@ -93,9 +95,10 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
 
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t * pd = NULL;
-    getCurrentEnv(&pd, &msg);
+    getCurrentEnv(&pd, &msg, NULL);
     
     ocrTaskTemplate_t *taskTemplate = NULL;
+    
     deguidify(pd, templateGuid, (u64*)&taskTemplate, NULL);
     
     ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && paramc != EDT_PARAM_DEF) ||
@@ -127,18 +130,21 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     PD_MSG_FIELD(properties) = properties;
     PD_MSG_FIELD(workType) = EDT_WORKTYPE;
 
-    pd->processMessage(pd, &msg, true);
-
+    if(pd->processMessage(pd, &msg, true) != 0)
+        return 1; // Some error code
+    
     *edtGuid = PD_MSG_FIELD(guid.guid);
     *outputEvent = PD_MSG_FIELD(outputEvent.guid);
     
     // If guids dependences were provided, add them now
+    // TODO: This should probably just send the messages
+    // to the PD
     if(depv != NULL) {
         ASSERT(depc != 0);
         u32 i = 0;
         while(i < depc) {
             ocrAddDependence(depv[i], *edtGuid, i, DB_DEFAULT_MODE);
-            i++;
+            ++i;
         }
     }
     return 0;
@@ -147,7 +153,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     ocrPolicyDomain_t * pd = NULL;
     ocrTask_t * task = NULL;
-    getCurrentEnv(&pd, NULL);
+    getCurrentEnv(&pd, NULL, NULL);
     deguidify(pd, edtGuid, (u64*)&task, NULL);
     task->fctPtrs->destruct(task);
     return 0;
