@@ -26,21 +26,6 @@
 #define OCR_EVENT_FINISH_LATCH_T OCR_EVENT_T_MAX+1
 
 
-/*******************************************
- * Dependence Registration
- ******************************************/
-
-   /**
-    * @brief Registers dependence between two guids.
-    *
-    * @param signalerGuid          Guid 'signaling'
-    * @param waiterGuid            The guid to be satisfied
-    * @param slot                  The slot to signal the waiterGuid on.
-    */
-// TODO: This seems like it needs to go
-void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot);
-
-
 /****************************************************/
 /* PARAMETER LISTS                                  */
 /****************************************************/
@@ -77,11 +62,26 @@ typedef struct _ocrEventFcts_t {
     ocrFatGuid_t (*get) (struct _ocrEvent_t* self, u32 slot);
 
     /*! \brief Interface to satisfy the event
-     *  \param[in] self          Pointer to this event
-     *  \param[in] db            GUID to satisfy this event with (or NULL_GUID)
-     *  \param[in] slot          Input slot for this event
+     *  \param[in] self         Pointer to this event
+     *  \param[in] db           GUID to satisfy this event with (or NULL_GUID)
+     *  \param[in] slot         Input slot for this event
      */
     void (*satisfy)(struct _ocrEvent_t* self, ocrFatGuid_t db, u32 slot);
+
+    /**
+     * @brief Register a "waiter" on the event
+     *
+     * The waiter will be notified once this event is satisfie on slot 'slot'.
+     * In other words, the satisfy() function serves to notify the "front" of
+     * the event and this call serves to determine what happens at the "back"
+     * of the event once the event is satisfied
+     *
+     * @param[in] self          Pointer to this event
+     * @param[in] waiter        EDT/Event to register as a waiter
+     * @param[in] slot          Slot to satisfy waiter on once this event
+     *                          is satisfied
+     */
+    void (*registerDependence(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot);
 } ocrEventFcts_t;
 
 /*! \brief Abstract class to represent OCR events.
@@ -91,12 +91,14 @@ typedef struct _ocrEventFcts_t {
  *  other events or edts.
  */
 typedef struct _ocrEvent_t {
-    ocrGuid_t guid; /**< GUID for this event */
+    ocrGuid_t guid;         /**< GUID for this event */
+    ocrGuid_t allocator;    /**< Allocator that created this metadata chunk */
+    ocrGuid_t allocatingPD; /**< Policy domain of the creating allocator */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
     ocrEventTypes_t kind;  /**< The kind of this event instance */
-    ocrEventFcts_t *fctPtrs;  /**< Function pointers for this instance */
+    u32 fctId;             /**< The functions to use to access this event */
 } ocrEvent_t;
 
 
@@ -126,6 +128,7 @@ typedef struct _ocrEventFactory_t {
     // TODO: This does not seem scalable if we modify
     // events to have more than just single and latch (reductions for
     // example)
+    u32 factoryId;             /**< Factory ID (matches fctId in event */
     ocrEventFcts_t singleFcts; /**< Functions for non-latch events */
     ocrEventFcts_t latchFcts;  /**< Functions for latch events */
 } ocrEventFactory_t;

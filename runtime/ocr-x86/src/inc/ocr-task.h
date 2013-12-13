@@ -52,7 +52,10 @@ typedef struct ocrTaskTemplateFcts_t {
  *
  */
 typedef struct _ocrTaskTemplate_t {
-    ocrGuid_t guid; /**< GUID for this task template */
+    ocrGuid_t guid;         /**< GUID for this task template */
+    ocrGuid_t allocator;    /**< GUID of the allocator that created this
+                             * metadata */
+    ocrGuid_t allocatingPD; /**< GUID of the PD of the allocator */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
@@ -62,7 +65,7 @@ typedef struct _ocrTaskTemplate_t {
 #ifdef OCR_ENABLE_EDT_NAMING
     const char* name;
 #endif
-    ocrTaskTemplateFcts_t *fctPtrs;
+    u32 fctId;              /**< Functions to manage this template */
 } ocrTaskTemplate_t;
 
 /****************************************************/
@@ -78,6 +81,7 @@ typedef struct _ocrTaskTemplateFactory_t {
      */
     void (*destruct)(struct _ocrTaskTemplateFactory_t * factory);
 
+    u32 factoryId;
     ocrTaskTemplateFcts_t taskTemplateFcts;
 } ocrTaskTemplateFactory_t;
 
@@ -99,6 +103,7 @@ typedef struct _ocrTaskFcts_t {
      */
     void (*execute) (struct _ocrTask_t* self);
     /*! \brief Interface to schedule the underlying computation of a task
+     * @todo What is this for?
      */
     void (*schedule) (struct _ocrTask_t* self);
 } ocrTaskFcts_t;
@@ -114,7 +119,9 @@ typedef struct _ocrTaskFcts_t {
  *  OCR tasks can be executed and can have their synchronization frontier furthered by Events.
  */
 typedef struct _ocrTask_t {
-    ocrGuid_t guid; /**< GUID for this task (EDT) */
+    ocrGuid_t guid;         /**< GUID for this task (EDT) */
+    ocrGuid_t allocator;    /**< Allocator for this metadata */
+    ocrGuid_t allocatingPD; /**< PD of the above allocator */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
@@ -128,8 +135,8 @@ typedef struct _ocrTask_t {
     // depv and the associated bookeeping are implementation specific
     ocrGuid_t outputEvent; // Event to notify when the EDT is done
     ocrGuid_t els[ELS_SIZE];
-    struct _ocrTaskFcts_t * fctPtrs;
     u64 addedDepCounter;
+    u32 fctId;
 } ocrTask_t;
 
 /****************************************************/
@@ -160,6 +167,7 @@ typedef struct _ocrTaskFactory_t {
      */
     void (*destruct)(struct _ocrTaskFactory_t * factory);
 
+    u32 factoryId;
     ocrTaskFcts_t taskFcts;
 } ocrTaskFactory_t;
 #endif /* __OCR_TASK_H__ */

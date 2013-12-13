@@ -113,12 +113,12 @@ typedef struct _ocrDataBlock_t {
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
-    ocrGuid_t allocator;    /**< Allocator that created this data-block */
-    ocrGuid_t allocatorPD;  /**< Policy domain of the creating allocator */
+    ocrGuid_t allocator;    /**< Allocator that created this metadata chunk */
+    ocrGuid_t allocatingPD; /**< Policy domain of the creating allocator */
     u64 size;               /**< Size of the data-block */
     void* ptr;              /**< Current location for this data-block */
     u32 properties;         /**< Properties for the data-block */
-    ocrDataBlockFcts_t *fctPtrs; /**< Function Pointers for this data-block */
+    u32 fctId;              /**< ID determining which functions to use */
 } ocrDataBlock_t;
 
 
@@ -129,7 +129,7 @@ typedef struct _ocrDataBlock_t {
 /**
  * @brief data-block factory
  */
- typedef struct _ocrDataBlockFactory_t {
+typedef struct _ocrDataBlockFactory_t {
     /**
      * @brief Creates a data-block to represent a chunk of memory
      *
@@ -150,7 +150,7 @@ typedef struct _ocrDataBlock_t {
      * @param factory       Pointer to the factory to destroy.
      */
     void (*destruct)(struct _ocrDataBlockFactory_t *factory);
-
+    u32 factoryId; /**< Corresponds to fctId in DB */
     ocrDataBlockFcts_t dataBlockFcts; /**< Function pointers created instances should use */
 } ocrDataBlockFactory_t;
 

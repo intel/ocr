@@ -61,6 +61,12 @@ typedef struct _paramListPolicyDomainInst_t {
 #define PD_MSG_MEM_CREATE        0x1001
 /**< Destroy a DB */
 #define PD_MSG_MEM_DESTROY       0x2001
+/**< Acquires a DB */
+#define PD_MSG_MEM_ACQUIRE       0x3001
+/**< Releases a DB */
+#define PD_MSG_MEM_RELEASE       0x4001
+/**< Frees a DB (this may trigger a destroy) */
+#define PD_MSG_MEM_FREE          0x5001
 
 
 /**< AND with this and if result non-null, work/task related operation.
@@ -87,6 +93,10 @@ typedef struct _paramListPolicyDomainInst_t {
 #define PD_MSG_EVT_DESTROY      0x2008
 /**< Satisfy an event */
 #define PD_MSG_EVT_SATISFY      0x3008
+/**< Get the entity that satisfied the event */
+#define PD_MSG_EVT_GET          0x4008
+/**< Add a dependence to the event */
+#define PD_MSG_EVT_ADD_DEP      0x5008
 
 /**< AND with this and if result non-null, GUID related operations */
 #define PD_MSG_GUID_OP          0x010
@@ -190,13 +200,28 @@ typedef struct _ocrPolicyMsg_t {
         } PD_MSG_STRUCT_NAME(PD_MSG_MEM_CREATE);
         
         struct {
-            ocrFatGuid_t guid; /**< In: GUID of the DB to destroy */
-            ocrGuid_t allocatingPD; /**< PD that allocated this DB */
-            ocrGuid_t allocator; /**< Allocator (within allocatingPD) that
-                                  * allocated the DB */
-            void* ptr;         /**< Pointer to free */
-            u32 properties;    /**< In: properties for the destruction */
+            ocrFatGuid_t guid;         /**< In: GUID of the DB to destroy */
+            ocrFatGuid_t allocatingPD; /**< PD that allocated this DB */
+            ocrFatGuid_t allocator;    /**< Allocator (within allocatingPD) that
+                                        * allocated the DB */
+            void* ptr;                 /**< Pointer to free */
+            u32 properties;            /**< In: properties for the destruction */
         } PD_MSG_STRUCT_NAME(PD_MSG_MEM_DESTROY);
+
+        struct {
+            ocrFatGuid_t guid;         /**< In: GUID of the DB to acquire */
+            ocrFatGuid_t edt;          /**< In: EDT doing the acquiring */
+            u32 properties;            /**< In: Properties for acquire.
+                                        * For now: 1 if acquire is an internal
+                                        * runtime only acquire and 0 if this is
+                                        * user initiated */
+        } PD_MSG_STRUCT_NAME(PD_MSG_MEM_ACQUIRE);
+
+        struct {
+            ocrFatGuid_t guid;         /**< In: GUID of the DB to release */
+            ocrFatGuid_t edt;          /**< In: GUID of the EDT doing the release */
+            u32 properties;            /**< In: Properties of the release (same as acquire) */
+        } PD_MSG_STRUCT_NAME(PD_MSG_MEM_RELEASE);
         
         struct {
             ocrFatGuid_t guid;         /**< In/Out: GUID of the EDT/Work
