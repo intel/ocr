@@ -13,8 +13,8 @@
 
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     ocrPolicyMsg_t msg;
-    ocrPolicyDomain_t * pd;
-    getCurrentEnv(&pd, &msg);
+    ocrPolicyDomain_t * pd = NULL;
+    getCurrentEnv(&pd, &msg, NULL);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_CREATE
@@ -32,23 +32,35 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
 }
 
 u8 ocrEventDestroy(ocrGuid_t eventGuid) {
-    ocrEvent_t * event = NULL;
-    ocrPolicyDomain_t *pd;
-    getCurrentEnv(&pd, NULL);
-    deguidify(pd, eventGuid, (u64*)&event, NULL);
-    event->fctPtrs->destruct(event);
-    return 0;
+    ocrPolicyMsg_t msg;
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, &msg, NULL);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_EVT_DESTROY
+    msg.type = PD_MSG_EVT_DESTROY | PD_MSG_REQUEST;
+    
+    PD_MSG_FIELD(guid.guid) = eventGuid;
+    PD_MSG_FIELD(properties) = 0;
+    return pd->processMessage(pd, &msg, false);
+    
+#undef PD_MSG
+#undef PD_TYPE
 }
 
 u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/, u32 slot) {
-    ASSERT(eventGuid != NULL_GUID);
-    ocrEvent_t * event = NULL;
+
+    ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    ocrFatGuid_t dataFGuid = {.guid = dataGuid, .metaDataPtr = NULL};
-    getCurrentEnv(&pd, NULL, NULL);
-    deguidify(pd, eventGuid, (u64*)&event, NULL);
-    event->fctPtrs->satisfy(event, dataFGuid, slot);
-    return 0;
+    getCurrentEnv(&pd, &msg, NULL);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_EVT_SATISFY
+    msg.type = PD_MSG_EVT_SATISFY | PD_MSG_REQUEST;
+    
+    PD_MSG_FIELD(guid.guid) = eventGuid;
+    PD_MSG_FIELD(payload.guid) = dataGuid;
+    PD_MSG_FIELD(slot) = slot;
+    PD_MSG_FIELD(properties) = 0;
+    return pd->processMessage(pd, &msg, false);
 }
 
 u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
@@ -81,7 +93,21 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
 }
 
 u8 ocrEdtTemplateDestroy(ocrGuid_t guid) {
+    ocrPolicyMsg_t msg;
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, &msg, NULL);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_EDTTEMP_DESTROY
+    msg.type = PD_MSG_EDTTEMP_DESTROY | PD_MSG_REQUEST;
+    
+    PD_MSG_FIELD(guid.guid) = eventGuid;
+    PD_MSG_FIELD(payload.guid) = dataGuid;
+    PD_MSG_FIELD(slot) = slot;
+    PD_MSG_FIELD(properties) = 0;
+    return pd->processMessage(pd, &msg, false);
+}
     ocrPolicyDomain_t * pd = NULL;
+    ocrPolicyMsg_t msg;
     ocrTaskTemplate_t * taskTemplate = NULL;
     getCurrentEnv(&pd, NULL, NULL);
     deguidify(pd, guid, (u64*)&taskTemplate, NULL);

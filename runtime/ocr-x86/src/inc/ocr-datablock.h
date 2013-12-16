@@ -118,7 +118,7 @@ typedef struct _ocrDataBlock_t {
     u64 size;               /**< Size of the data-block */
     void* ptr;              /**< Current location for this data-block */
     u32 properties;         /**< Properties for the data-block */
-    u32 fctId;              /**< ID determining which functions to use */
+    u32 funcId;             /**< ID determining which functions to use */
 } ocrDataBlock_t;
 
 
@@ -151,7 +151,7 @@ typedef struct _ocrDataBlockFactory_t {
      */
     void (*destruct)(struct _ocrDataBlockFactory_t *factory);
     u32 factoryId; /**< Corresponds to fctId in DB */
-    ocrDataBlockFcts_t dataBlockFcts; /**< Function pointers created instances should use */
+    ocrDataBlockFcts_t funcPtrs; /**< Function pointers created instances should use */
 } ocrDataBlockFactory_t;
 
 #endif /* __OCR_DATABLOCK_H__ */

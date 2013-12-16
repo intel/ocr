@@ -95,8 +95,6 @@ typedef struct _paramListPolicyDomainInst_t {
 #define PD_MSG_EVT_SATISFY      0x3008
 /**< Get the entity that satisfied the event */
 #define PD_MSG_EVT_GET          0x4008
-/**< Add a dependence to the event */
-#define PD_MSG_EVT_ADD_DEP      0x5008
 
 /**< AND with this and if result non-null, GUID related operations */
 #define PD_MSG_GUID_OP          0x010
@@ -116,8 +114,14 @@ typedef struct _paramListPolicyDomainInst_t {
  * callee to accept the GUID(s) given (push model) */
 #define PD_MSG_COMM_GIVE        0x2020
 
-// Add more messages in here
+/**< AND with this and if result non-null, dependence related
+ * operation
+ */
+#define PD_MSG_DEP_OP           0x040
+/**< Add a dependence to the event */
+#define PD_MSG_DEP_ADD          0x1040
 
+// Add more messages in here
 
 /**< AND with this and if result non-null, low-level OS operation */
 #define PD_MSG_SYS_OP           0x100
@@ -191,6 +195,7 @@ typedef struct _ocrPolicyMsg_t {
         struct {
             ocrFatGuid_t guid;            /**< In/Out: GUID of the created
                                           * memory segment (usually a DB) */
+            ocrFatGuid_t edt;             /** In: EDT doing the creation */
             void* ptr;                    /**< Out: Address of created DB */
             u64 size;                     /**< In: Size of the created DB */
             ocrFatGuid_t affinity;        /**< In: Affinity group for the DB */
@@ -201,6 +206,7 @@ typedef struct _ocrPolicyMsg_t {
         
         struct {
             ocrFatGuid_t guid;         /**< In: GUID of the DB to destroy */
+            ocrFatGuid_t edt;          /**< EDT doing the destruction */
             ocrFatGuid_t allocatingPD; /**< PD that allocated this DB */
             ocrFatGuid_t allocator;    /**< Allocator (within allocatingPD) that
                                         * allocated the DB */
@@ -222,6 +228,12 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t edt;          /**< In: GUID of the EDT doing the release */
             u32 properties;            /**< In: Properties of the release (same as acquire) */
         } PD_MSG_STRUCT_NAME(PD_MSG_MEM_RELEASE);
+
+        struct {
+            ocrFatGuid_t guid;         /**< In: GUID of the DB to free */
+            ocrFatGuid_t edt;          /**< In: GUID of the EDT doing the free */
+            u32 properties;            /**< In: Properties of the free (same as acquire) */
+        } PD_MSG_STRUCT_NAME(PD_MSG_MEM_FREE);
         
         struct {
             ocrFatGuid_t guid;         /**< In/Out: GUID of the EDT/Work
@@ -322,6 +334,13 @@ typedef struct _ocrPolicyMsg_t {
         } PD_MSG_STRUCT_NAME(PD_MSG_COMM_GIVE);
 
         struct {
+            ocrFatGuid_t source; /**< In: Source of the dependence */
+            ocrFatGuid_t dest;   /**< In: Destination of the dependence */
+            u32 slot;            /**< In: Slot of dest to connect the dep to */
+            u32 properties;      /**< In: Properties. Lower 3 bits are access modes */
+        } PD_MSG_STRUCT_NAME(PD_MSG_DEP_ADD);
+        
+        struct {
             const char* buffer;  /**< In: Character string to print */
             u64 length;          /**< In: Length to print */
             u32 properties;      /**< In: Properties for the print */
@@ -334,6 +353,7 @@ typedef struct _ocrPolicyMsg_t {
             u64 inputId;        /**< In: Identifier for where to read from */
             u32 properties;     /**< In: Properties for the read */
         } PD_MSG_STRUCT_NAME(PD_MSG_SYS_READ);
+        
         struct {
             const char* buffer; /**< In: Buffer to write */
             u64 length;         /**< In/Out: Number of bytes to write. On return contains

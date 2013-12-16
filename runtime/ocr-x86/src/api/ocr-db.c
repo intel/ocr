@@ -41,12 +41,15 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     //
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *policy = NULL;
-    getCurrentEnv(&policy, &msg, NULL);
+    ocrTask_t *task = NULL;
+    getCurrentEnv(&policy, &msg, &task);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_CREATE
     msg.type = PD_MSG_MEM_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid.guid) = *db;
+    PD_MSG_FIELD(edt.guid) = task->guid;
+    PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(size) = len;
     PD_MSG_FIELD(affinity.guid) = affinity;
     PD_MSG_FIELD(properties) = (u32)flags;
@@ -55,8 +58,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 
     if(policy->processMessage(policy, &msg, true) == 0) {
         *db = PD_MSG_FIELD(guid.guid);
-        ocrDataBlock_t *createdDb = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
-        *addr = createdDb->fctPtrs->acquire(createdDb, getCurrentEDT(), false);
+        *addr = PD_MSG_FIELD(ptr);
     } else {
         *addr = NULL;
     }
@@ -67,26 +69,43 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 }
 
 u8 ocrDbDestroy(ocrGuid_t db) {
-    ocrDataBlock_t *dataBlock = NULL;
-    ocrPolicyDomain_t *policy = NULL;
-    ocrTask_t *task = NULL
-    getCurrentEnv(&policy, NULL, &task);
 
-    deguidify(policy, db, (u64*)&dataBlock, NULL);
+    ocrPolicyMsg_t msg;
+    ocrPolicyDomain_t *policy = NULL;
+    ocrTask_t *task = NULL;
+    getCurrentEnv(&policy, &msg, &task);
+
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_MEM_FREE
+    msg.type = PD_MSG_MEM_FREE | PD_MSG_REQUEST;
+    PD_MSG_FIELD(guid.guid) = db;
+    PD_MSG_FIELD(edt.guid) = task->guid;
+    PD_MSG_FIELD(edt.metaDataPtr) = task;
+    PD_MSG_FIELD(properties) = 0;
     
-    ocrFatGuid_t edtGuid = {.guid = task->guid, .metaDataPtr = task};
-    return dataBlock->fctPtrs->free(dataBlock, edtGuid);
+    return policy->processMessage(policy, &msg, false);
+#undef PD_MSG
+#undef PD_TYPE
 }
 
 u8 ocrDbRelease(ocrGuid_t db) {
-    ocrDataBlock_t *dataBlock = NULL;
+
+    ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
-    getCurrentEnv(&policy, NULL, &task);
-    deguidify(policy, db, (u64*)&dataBlock, NULL);
+    getCurrentEnv(&policy, &msg, &task);
 
-    ocrFatGuid_t edtGuid = {.guid = task->guid, .metaDataPtr = task};
-    return dataBlock->fctPtrs->release(dataBlock, edtGuid, false);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_MEM_RELEASE
+    msg.type = PD_MSG_MEM_RELEASE | PD_MSG_REQUEST;
+    PD_MSG_FIELD(guid.guid) = db;
+    PD_MSG_FIELD(edt.guid) = task->guid;
+    PD_MSG_FIELD(edt.metaDataPtr) = task;
+    PD_MSG_FIELD(properties) = 0;
+    
+    return policy->processMessage(policy, &msg, false);
+#undef PD_MSG
+#undef PD_TYPE
 }
 
 u8 ocrDbMalloc(ocrGuid_t guid, u64 size, void** addr) {

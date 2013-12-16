@@ -260,7 +260,7 @@ static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
                                                       outputEvent, NULL);
     // Check if the edt is ready to be scheduled
     if (base->depc == 0) {
-        base->fctPtrs->schedule(base);
+        self->taskFactory->fctPtrs.schedule(base).
     }
     (*guid).guid = base->guid;
     (*guid).metaDataPtr = base;
@@ -337,6 +337,17 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                                   &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
                                   PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity),
                                   PD_MSG_TYPE(allocator));
+        if(returnCode == 0) {
+            ocrDataBlock_t *db= PD_MSG_FIELD(guid.metaDataPtr);
+            ASSERT(db);
+            // TODO: Check if properties want DB acquired
+            ASSERT(db->funcId == self->dbFactory->factoryId);
+            PD_MSG_FIELD(ptr) = self->dbFactory->funcPtrs.acquire(
+                db, PD_MSG_FIELD(edt), false);
+        } else {
+            // Cannot acquire
+            PD_MSG_FIELD(ptr) = NULL;
+        }
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
 #undef PD_MSG
 #undef PD_TYPE
@@ -358,7 +369,23 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         break;
     }
-    
+
+    case PD_MSG_MEM_ACQUIRE:
+    {
+        // Call the appropriate acquire function
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_MEM_ACQUIRE
+        ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
+        if(db == NULL) {
+            deguidify(pd, PD_MSG_FIELD(guid.guid, (u64*)&db, NULL);
+        }
+        ASSERT(db->funcId == self->dbFactory->factoryId);
+        ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
+        self->dbFactory->funcPtrs.acquire(db, PD_MSG_FIELD(edt), false);
+        
+#undef PD_MSG
+#undef PD_TYPE
+    }
     case PD_MSG_WORK_CREATE:
     {
 #define PD_MSG msg
