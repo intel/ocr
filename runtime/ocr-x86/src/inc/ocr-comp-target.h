@@ -172,9 +172,10 @@ typedef struct _ocrCompTargetFcts_t {
      *
      * @param self[in]        Pointer to this comp-target
      * @param message[in/out] As input, this determines which message to wait
-     *                        for. Note that this is a pointer to a pointer. The
-     *                        old message needs to be freed by the caller if
-     *                        needed.
+     *                        for. Note that this is a pointer to a pointer.
+     *                        Both the passed-in message and the returned
+     *                        message need to be freed by the caller using
+     *                        pdFree.
      * 
      * @return 0 on success and a non-zero error code
      */
@@ -191,7 +192,7 @@ struct _ocrCompTarget_t;
  * This is typically a one-one mapping but it's not mandatory.
  */
 typedef struct _ocrCompTarget_t {
-    ocrFatGuid_t fguid; /**< Guid of the comp-target */
+    ocrGuid_t guid; /**< Guid of the comp-target */
     struct _ocrPolicyDomain_t *pd; /**< Policy domain this comp-target belongs to */
     ocrPhysicalLocation_t location; /**< Location of this comp-target */
 #ifdef OCR_ENABLE_STATISTICS

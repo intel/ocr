@@ -12,6 +12,9 @@
 #ifndef __MEM_PLATFORM_MALLOC_H__
 #define __MEM_PLATFORM_MALLOC_H__
 
+#include "ocr-config.h"
+#ifdef ENABLE_MEM_PLATFORM_MALLOC
+
 #include "debug.h"
 #include "external/rangeTracker.h"
 #include "ocr-mem-platform.h"
@@ -30,4 +33,5 @@ typedef struct {
 
 extern ocrMemPlatformFactory_t* newMemPlatformFactoryMalloc(ocrParamList_t *perType);
 
+#endif /* ENABLE_MEM_PLATFORM_MALLOC */
 #endif /* __MEM_PLATFORM_MALLOC_H__ */

@@ -13,16 +13,12 @@
 #include "ocr-utils.h"
 
 typedef enum _compPlatformType_t {
-#ifdef ENABLE_COMP_PLATFORM_PTHREAD
     compPlatformPthread_id,
-#endif
     compPlatformMax_id,
 } compPlatformType_t;
 
 const char * compplatform_types[] = {
-#ifdef ENABLE_COMP_PLATFORM_PTHREAD
     "pthread",
-#endif
     NULL,
 };
 

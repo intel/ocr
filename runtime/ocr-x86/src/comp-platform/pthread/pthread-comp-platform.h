@@ -7,13 +7,11 @@
  * and cannot be distributed without it. This notice cannot be
  * removed or modified.
  */
-
-#include "ocr-config.h"
-#ifdef ENABLE_COMP_PLATFORM_PTHREAD
-
 #ifndef __COMP_PLATFORM_PTHREAD_H__
 #define __COMP_PLATFORM_PTHREAD_H__
 
+#include "ocr-config.h"
+#ifdef ENABLE_COMP_PLATFORM_PTHREAD
 
 #include "ocr-comp-platform.h"
 #include "ocr-comp-target.h"
@@ -34,7 +32,7 @@ typedef struct {
     pthread_t osThread;
     launchArg_t * launchArg;
     u64 stackSize;
-    int binding;
+    s32 binding;
 } ocrCompPlatformPthread_t;
 
 typedef struct {
@@ -47,6 +45,6 @@ typedef struct {
 } paramListCompPlatformPthread_t;
 
 extern ocrCompPlatformFactory_t* newCompPlatformFactoryPthread(ocrParamList_t *perType);
-#endif /* __COMP_PLATFORM_PTHREAD_H__ */
 
 #endif /* ENABLE_COMP_PLATFORM_PTHREAD */
+#endif /* __COMP_PLATFORM_PTHREAD_H__ */

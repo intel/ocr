@@ -14,7 +14,7 @@
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t * pd = NULL;
-    getCurrentEnv(&pd, &msg, NULL);
+    getCurrentEnv(&pd, NULL, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_CREATE
@@ -22,19 +22,20 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     PD_MSG_FIELD(guid.guid) = *guid;
     PD_MSG_FIELD(properties) = takesArg;
     PD_MSG_FIELD(type) = eventType;
-    pd->processMessage(pd, &msg, true);
-    
-    *guid = PD_MSG_FIELD(guid.guid);
-    
+    if(pd->processMessage(pd, &msg, true) == 0) {
+        *guid = PD_MSG_FIELD(guid.guid);
+        return 0;
+    }
+    *guid = NULL_GUID;
 #undef PD_MSG
 #undef PD_TYPE
-    return 0;
+    return 1;
 }
 
 u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, &msg, NULL);
+    getCurrentEnv(&pd, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_DESTROY
     msg.type = PD_MSG_EVT_DESTROY | PD_MSG_REQUEST;
@@ -51,7 +52,7 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*
 
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, &msg, NULL);
+    getCurrentEnv(&pd, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_SATISFY
     msg.type = PD_MSG_EVT_SATISFY | PD_MSG_REQUEST;
@@ -61,6 +62,8 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*
     PD_MSG_FIELD(slot) = slot;
     PD_MSG_FIELD(properties) = 0;
     return pd->processMessage(pd, &msg, false);
+#undef PD_MSG
+#undef PD_TYPE
 }
 
 u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
@@ -73,7 +76,7 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
 #endif
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, &msg, NULL);
+    getCurrentEnv(&pd, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
     msg.type = PD_MSG_EDTTEMP_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -95,24 +98,14 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
 u8 ocrEdtTemplateDestroy(ocrGuid_t guid) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, &msg, NULL);
+    getCurrentEnv(&pd, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EDTTEMP_DESTROY
     msg.type = PD_MSG_EDTTEMP_DESTROY | PD_MSG_REQUEST;
-    
-    PD_MSG_FIELD(guid.guid) = eventGuid;
-    PD_MSG_FIELD(payload.guid) = dataGuid;
-    PD_MSG_FIELD(slot) = slot;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD(guid.guid) = guid;
     return pd->processMessage(pd, &msg, false);
-}
-    ocrPolicyDomain_t * pd = NULL;
-    ocrPolicyMsg_t msg;
-    ocrTaskTemplate_t * taskTemplate = NULL;
-    getCurrentEnv(&pd, NULL, NULL);
-    deguidify(pd, guid, (u64*)&taskTemplate, NULL);
-    taskTemplate->fctPtrs->destruct(taskTemplate);
-    return 0;
+#undef PD_MSG
+#undef PD_TYPE
 }
 
 u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
@@ -121,16 +114,18 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
 
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t * pd = NULL;
-    getCurrentEnv(&pd, &msg, NULL);
+    getCurrentEnv(&pd, NULL, &msg);
     
     ocrTaskTemplate_t *taskTemplate = NULL;
     
     deguidify(pd, templateGuid, (u64*)&taskTemplate, NULL);
     
     ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && paramc != EDT_PARAM_DEF) ||
-           (taskTemplate->paramc != EDT_PARAM_UNK && (paramc == EDT_PARAM_DEF || taskTemplate->paramc == paramc)));
+           (taskTemplate->paramc != EDT_PARAM_UNK && (paramc == EDT_PARAM_DEF ||
+                                                      taskTemplate->paramc == paramc)));
     ASSERT(((taskTemplate->depc == EDT_PARAM_UNK) && depc != EDT_PARAM_DEF) ||
-           (taskTemplate->depc != EDT_PARAM_UNK && (depc == EDT_PARAM_DEF || taskTemplate->depc == depc)));
+           (taskTemplate->depc != EDT_PARAM_UNK && (depc == EDT_PARAM_DEF ||
+                                                    taskTemplate->depc == depc)));
 
     if(paramc == EDT_PARAM_DEF) {
         paramc = taskTemplate->paramc;
@@ -174,22 +169,37 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
         }
     }
     return 0;
+#undef PD_MSG
+#undef PD_TYPE
 }
 
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
-    ocrPolicyDomain_t * pd = NULL;
-    ocrTask_t * task = NULL;
-    getCurrentEnv(&pd, NULL, NULL);
-    deguidify(pd, edtGuid, (u64*)&task, NULL);
-    task->fctPtrs->destruct(task);
-    return 0;
+    ocrPolicyMsg_t msg;
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, &msg);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_WORK_DESTROY
+    msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
+    PD_MSG_FIELD(guid.guid) = edtGuid;
+    return pd->processMessage(pd, &msg, false);
+#undef PD_MSG
+#undef PD_TYPE
 }
 
 // TODO: Pass down the mode information!!
 u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
                     ocrDbAccessMode_t mode) {
-    // TODO: Register dependence is not a configurable function
-    // FIXME!!
-    registerDependence(source, destination, slot);
-    return 0;
+    ocrPolicyMsg_t msg;
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, &msg);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_DEP_ADD
+    msg.type = PD_MSG_DEP_ADD | PD_MSG_REQUEST;
+    PD_MSG_FIELD(source.guid) = source;
+    PD_MSG_FIELD(dest.guid) = destination;
+    PD_MSG_FIELD(slot) = slot;
+    PD_MSG_FIELD(properties) = mode;
+#undef PD_MSG
+#undef PD_TYPE
+    return pd->processMessage(pd, &msg, false);
 }

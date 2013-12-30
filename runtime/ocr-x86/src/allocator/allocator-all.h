@@ -18,16 +18,12 @@
 #include "ocr-utils.h"
 
 typedef enum _allocatorType_t {
-#ifdef ENABLE_ALLOCATOR_TLSF
     allocatorTlsf_id,
-#endif
     allocatorMax_id
 } allocatorType_t;
 
 const char * allocator_types[] = {
-#ifdef ENABLE_ALLOCATOR_TLSF
     "tlsf",
-#endif
     NULL
 };
 

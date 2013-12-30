@@ -7,6 +7,9 @@
 #ifndef __HC_SCHEDULER_H__
 #define __HC_SCHEDULER_H__
 
+#include "ocr-config.h"
+#ifdef ENABLE_SCHEDULER_HC
+
 #include "ocr-scheduler.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
@@ -32,4 +35,5 @@ typedef struct _paramListSchedulerHcInst_t {
 
 ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(ocrParamList_t *perType);
 
+#endif /* ENABLE_SCHEDULER_HC */
 #endif /* __HC_SCHEDULER_H__ */

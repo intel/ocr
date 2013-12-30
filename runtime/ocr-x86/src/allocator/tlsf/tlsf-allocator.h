@@ -8,11 +8,11 @@
  * removed or modified.
  */
 
-#include "ocr-config.h"
-#ifdef ENABLE_ALLOCATOR_TLSF
-
 #ifndef __ALLOCATOR_TLSF_H__
 #define __ALLOCATOR_TLSF_H__
+
+#include "ocr-config.h"
+#ifdef ENABLE_ALLOCATOR_TLSF
 
 #include "ocr-allocator.h"
 #include "ocr-types.h"
@@ -29,6 +29,6 @@ typedef struct {
 } ocrAllocatorTlsf_t;
 
 extern ocrAllocatorFactory_t* newAllocatorFactoryTlsf(ocrParamList_t *perType);
-#endif /* __TLSF_ALLOCATOR_H__ */
 
 #endif /* ENABLE_ALLOCATOR_TLSF */
+#endif /* __TLSF_ALLOCATOR_H__ */

@@ -7,6 +7,9 @@
 #ifndef __HC_EVENT_H__
 #define __HC_EVENT_H__
 
+#include "ocr-config.h"
+#ifdef ENABLE_EVENT_HC
+
 #include "hc/hc.h"
 #include "ocr-event.h"
 #include "ocr-types.h"
@@ -40,8 +43,7 @@ typedef struct ocrEventHcOnce_t {
 
 typedef struct ocrEventHcLatch_t {
     ocrEventHcAwaitable_t base;
-    //TODO use ocrAtomic but overhead may suck
-    volatile int counter;
+    volatile s32 counter;
 } ocrEventHcLatch_t;
 
 typedef struct ocrEventHcFinishLatch_t {
@@ -51,10 +53,10 @@ typedef struct ocrEventHcFinishLatch_t {
     regNode_t parentLatchWaiter; // Parent latch when nesting finish scope
     ocrGuid_t ownerGuid; // finish-edt starting the finish scope
     volatile ocrGuid_t returnGuid;
-    //TODO use ocrAtomic but overhead may suck
-    volatile int counter;
+    volatile s32 counter;
 } ocrEventHcFinishLatch_t;
 
-ocrEventFactory_t* newEventFactoryHc(ocrParamList_t *perType);
+ocrEventFactory_t* newEventFactoryHc(ocrParamList_t *perType, u32 factoryId);
 
 #endif /* __HC_EVENT_H__ */
+#endif /* ENABLE_EVENT_HC */

@@ -1,5 +1,5 @@
 /**
- * @brief OCR internal interface for low-level system
+ * @brief OCR internal interface for system
  * primitives that OCR needs to function and that do not
  * really fit in the *-platform classes. 
  **/
@@ -12,8 +12,8 @@
 
 
 
-#ifndef __OCR_SYS_H__
-#define __OCR_SYS_H__
+#ifndef __OCR_SAL_H__
+#define __OCR_SAL_H__
 
 #include "ocr-types.h"
 #include "ocr-utils.h"
@@ -21,6 +21,10 @@
 /****************************************************/
 /* SYSTEM FUNCTIONS                                 */
 /****************************************************/
+
+struct _ocrPolicyDomain_t;
+struct _ocrPolicyMsg_t;
+struct _ocrTask_t;
 
 // TODO (Bala/Ivan): We need to have a bringup type of function
 // We have this in the driver but we need to figure out what
@@ -165,140 +169,6 @@ typedef struct _ocrSysFcts_t {
      * the runtime code
      */
     u64 (*read)(struct _ocrSys_t *self, char *str, u64 length, u64 id);
-    
-    /**
-     * @brief Perform a memory fence
-     *
-     * @param self          This system descriptor
-     * @todo Do we want to differentiate different types
-     * of fences?
-     */
-    void (*fence)(struct _ocrSys_t *self);
-
-    void (*memCopy)(struct _ocrSys_t *self, void* destination, void* source,
-                    u64 size, bool isBackground);
-    
-    /**
-     * @brief Compare and swap (64 bit)
-     *
-     * The semantics are as follows (all operations performed atomically):
-     *     - if location is cmpValue, atomically replace with
-     *       newValue and return cmpValue
-     *     - if location is *not* cmpValue, return value at location
-     *
-     * @param self          This system descriptor
-     * @param atomic        Pointer to the atomic value (location)
-     * @param cmpValue      Expected value of the atomic
-     * @param newValue      Value to set if the atomic has the expected value
-     *
-     * @return Old value of the atomic
-     */
-    u64 (*cmpswap64)(struct _ocrSys_t *self, u64* atomic, u64 cmpValue, u64 newValue);
-
-    /**
-     * @brief Atomic add (64 bit)
-     *
-     * The semantics are as follows (all operations performed atomically):
-     *     - atomically increment location by addValue
-     *     - return new value (after addition)
-     *
-     * @param self      This system descriptor
-     * @param atomic    Pointer to the atomic value (location)
-     * @param addValue  Value to add to location
-     * @return New value of the location
-     */
-    u64 (*xadd64)(struct _ocrSys_t *self, u64* atomic, u64 addValue);
-
-    /**
-     * @brief Remote atomic add (64 bit)
-     *
-     * The semantics are as follows (all operations performed atomically):
-     *     - atomically increment location by addValue
-     *     - no value is returned (the increment will happen "at some
-     *       point")
-     *
-     * @param self      This system descriptor
-     * @param atomic    Pointer to the atomic value (location)
-     * @param addValue  Value to add to location
-     */
-    void (*radd64)(struct _ocrSys_t *self, u64* atomic, u64 addValue);
-
-    /**
-     * @brief Compare and swap (64 bit)
-     *
-     * The semantics are as follows (all operations performed atomically):
-     *     - if location is cmpValue, atomically replace with
-     *       newValue and return cmpValue
-     *     - if location is *not* cmpValue, return value at location
-     *
-     * @param self          This system descriptor
-     * @param atomic        Pointer to the atomic value (location)
-     * @param cmpValue      Expected value of the atomic
-     * @param newValue      Value to set if the atomic has the expected value
-     *
-     * @return Old value of the atomic
-     */
-    u32 (*cmpswap32)(struct _ocrSys_t *self, u32* atomic, u32 cmpValue, u32 newValue);
-
-    /**
-     * @brief Atomic add (64 bit)
-     *
-     * The semantics are as follows (all operations performed atomically):
-     *     - atomically increment location by addValue
-     *     - return new value (after addition)
-     *
-     * @param self      This system descriptor
-     * @param atomic    Pointer to the atomic value (location)
-     * @param addValue  Value to add to location
-     * @return New value of the location
-     */
-    u32 (*xadd32)(struct _ocrSys_t *self, u32* atomic, u32 addValue);
-
-    /**
-     * @brief Remote atomic add (32 bit)
-     *
-     * The semantics are as follows (all operations performed atomically):
-     *     - atomically increment location by addValue
-     *     - no value is returned (the increment will happen "at some
-     *       point")
-     *
-     * @param self      This system descriptor
-     * @param atomic    Pointer to the atomic value (location)
-     * @param addValue  Value to add to location
-     */
-    void (*radd32)(struct _ocrSys_t *self, u32* atomic, u32 addValue);
-
-    /**
-     * @brief Convenience function that basically implements a simple
-     * lock
-     *
-     * This will usually be a wrapper around cmpswap32. This function
-     * will block until the lock can be acquired
-     *
-     * @param self      This system descriptor
-     * @param lock      Pointer to a 32 bit value
-     */
-    void (*lock32)(struct _ocrSys_t *self, u32* lock);
-
-    /**
-     * @brief Convenience function to implement a simple
-     * unlock
-     *
-     * @param self      This system descriptor
-     * @param lock      Pointer to a 32 bit value
-     */
-    void (*unlock32)(struct _ocrSys_t *self, u32* lock);
-
-    /**
-     * @brief Convenience function to implement a simple
-     * trylock
-     *
-     * @param self      This system descriptor
-     * @param lock      Pointer to a 32 bit value
-     * @return 0 if the lock has been acquired and a non-zero
-     * value if it cannot be acquired
-     */
-    u8 (*trylock32)(struct _ocrSys_t *self, u32* lock);
 } ocrSysFcts_t;
 
 /**
@@ -332,4 +202,4 @@ typedef struct _ocrSysFactory_t {
 } ocrSysFactory_t;
 
 
-#endif /* __OCR_SYS_H__ */
+#endif /* __OCR_SAL_H__ */

@@ -7,7 +7,7 @@
 
 #include "debug.h"
 #include "ocr-policy-domain.h"
-#include "ocr-sys.h"
+#include "ocr-sal.h"
 #include "ocr-types.h"
 
 void ocrShutdown() {

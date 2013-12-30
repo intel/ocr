@@ -4,12 +4,12 @@
  * removed or modified.
  */
 
-#include <stdlib.h>
+#include "ocr-config.h"
+#ifdef ENABLE_SCHEDULER_HC
 
 #include "debug.h"
-#include "ocr-macros.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
+#include "ocr-sysboot.h"
 #include "scheduler/hc/hc-scheduler.h"
 
 /******************************************************/
@@ -34,7 +34,7 @@ static inline ocrWorkpileIterator_t* stealMappingOneToAllButSelf (ocrScheduler_t
     return stealIterator;
 }
 
-static void hcSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
+void hcSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     ocrSchedulerHc_t * derived = (ocrSchedulerHc_t *) self;
     u64 workpileCount = self->workpileCount;
     ocrWorkpile_t ** workpiles = self->workpiles;
@@ -50,10 +50,16 @@ static void hcSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     derived->stealIterators = stealIteratorsCache;
 }
 
-static void hcSchedulerStop(ocrScheduler_t * self) {
+void hcSchedulerStop(ocrScheduler_t * self) {
   // nothing to do here
 }
 
+void hcSchedulerFinish(ocrScheduler_t *self) {
+
+}
+
+// What is this for?
+#if 0
 static u8 hcSchedulerYield (ocrScheduler_t* self, ocrGuid_t workerGuid,
                             ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
                             ocrGuid_t * returnGuid,
@@ -88,9 +94,9 @@ static u8 hcSchedulerYield (ocrScheduler_t* self, ocrGuid_t workerGuid,
     ctx->destruct(ctx);
     return 0;
 }
+#endif /* if 0 */
 
-static u8 hcSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *count,
-                           ocrGuid_t *edts, ocrPolicyCtx_t *context) {
+u8 hcSchedulerTake (ocrScheduler_t *self, u32 *count, ocrFatGuid_t *edts) {
     // In this implementation (getCurrentPD == context->sourcePD)
     // Source must be a worker guid and we rely on indices to map
     // workers to workpiles (one-to-one)
@@ -114,15 +120,15 @@ static u8 hcSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *c
     // allocated memory for us since we can return at most one
     // guid (most likely store using the address of a local)
     if (NULL_GUID != popped) {
-      *count = 1;
-      *edts = popped;
+        *count = 1;
+        *edts = popped;
     } else {
-      *count = 0;
+        *count = 0;
     }
     return 0;
 }
 
-static u8 hcSchedulerGive (ocrScheduler_t* base, u32 count, ocrGuid_t* edts, struct _ocrPolicyCtx_t *context ) {
+u8 hcSchedulerGive (ocrScheduler_t* base, u32* count, ocrFatGuid_t* edts) {
     // Source must be a worker guid
     u64 workerId = context->sourceId;
     ocrWorkpile_t * wp_to_push = pushMappingOneToOne(base, workerId);
@@ -150,28 +156,42 @@ static void destructSchedulerHc(ocrScheduler_t * scheduler) {
 }
 
 static ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
-    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) checkedMalloc(derived, sizeof(ocrSchedulerHc_t));
+    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) runtimeChunkAlloc(
+        sizeof(ocrSchedulerHc_t), NULL);
+    
     ocrScheduler_t* base = (ocrScheduler_t*)derived;
+    base->guid = NULL_GUID;
+    base->pd = NULL;
+    base->workers = NULL;
+    base->workpiles = NULL;
+    base->workerCount = 0;
+    base->workpileCount = 0;
     base->fctPtrs = &(factory->schedulerFcts);
+    
     paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
     derived->workerIdFirst = mapper->workerIdFirst;
+    
     return base;
 }
 
 static void destructSchedulerFactoryHc(ocrSchedulerFactory_t * factory) {
-    free(factory);
+    runtimeChunkFree(factory);
 }
 
 ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(ocrParamList_t *perType) {
-    ocrSchedulerFactoryHc_t* derived = (ocrSchedulerFactoryHc_t*) checkedMalloc(derived, sizeof(ocrSchedulerFactoryHc_t));
+    ocrSchedulerFactoryHc_t* derived = (ocrSchedulerFactoryHc_t*) runtimeChunkAlloc(
+        sizeof(ocrSchedulerFactoryHc_t), NULL);
+    
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = newSchedulerHc;
     base->destruct = destructSchedulerFactoryHc;
     base->schedulerFcts.start = hcSchedulerStart;
     base->schedulerFcts.stop = hcSchedulerStop;
-    base->schedulerFcts.yield = hcSchedulerYield;
+    base->schedulerFcts.finish = hcSchedulerFinish;
     base->schedulerFcts.destruct = destructSchedulerHc;
     base->schedulerFcts.takeEdt = hcSchedulerTake;
     base->schedulerFcts.giveEdt = hcSchedulerGive;
     return base;
 }
+
+#endif /* ENABLE_SCHEDULER_HC */

@@ -9,6 +9,10 @@
  */
 
 
+#include "ocr-config.h"
+#ifdef ENABLE_MEM_PLATFORM_MALLOC
+
+#include HAL_FILE
 #include "debug.h"
 #include "external/rangeTracker.h"
 #include "mem-platform/malloc/malloc-mem-platform.h"
@@ -19,8 +23,8 @@
 
 // Poor man's basic lock
 #define INIT_LOCK(addr) do {*addr = 0;} while(0);
-#define LOCK(addr) do {while(!__sync_bool_compare_and_swap(addr, 0, 1)) sched_yield(); } while(0);
-#define UNLOCK(addr) do {*addr = 0;} while(0);
+#define LOCK(addr) do { hal_lock32(addr); } while(0);
+#define UNLOCK(addr) do { hal_unlock32(addr); } while(0);
 
 /******************************************************/
 /* OCR MEM PLATFORM MALLOC IMPLEMENTATION             */
@@ -33,7 +37,7 @@ void mallocDestruct(ocrMemPlatform_t *self) {
 
 struct _ocrPolicyDomain_t;
 
-static void mallocStart(ocrMemPlatform_t *self, struct _ocrPolicyDomain_t * PD ) {
+void mallocStart(ocrMemPlatform_t *self, struct _ocrPolicyDomain_t * PD ) {
     self->startAddr = (u64)malloc(self->size);
     ASSERT(self->startAddr);
     self->endAddr = self->startAddr + self->size;
@@ -44,28 +48,32 @@ static void mallocStart(ocrMemPlatform_t *self, struct _ocrPolicyDomain_t * PD )
 
 }
 
-static void mallocStop(ocrMemPlatform_t *self) {
+void mallocStop(ocrMemPlatform_t *self) {
     ocrMemPlatformMalloc_t *rself = (ocrMemPlatformMalloc_t*)self;
     destroyRange(&(rself->rangeTracker));
     free((void*)self->startAddr);
 }
 
-static u8 mallocGetThrottle(ocrMemPlatform_t *self, u64 *value) {
+void mallocFinish(ocrMemPlatform_t *self) {
+    // Nothing to do
+}
+
+u8 mallocGetThrottle(ocrMemPlatform_t *self, u64 *value) {
     return 1; // Not supported
 }
 
-static u8 mallocSetThrottle(ocrMemPlatform_t *self, u64 value) {
+u8 mallocSetThrottle(ocrMemPlatform_t *self, u64 value) {
     return 1; // Not supported
 }
 
-static void mallocGetRange(ocrMemPlatform_t *self, u64* startAddr,
-                           u64 *endAddr) {
+void mallocGetRange(ocrMemPlatform_t *self, u64* startAddr,
+                    u64 *endAddr) {
     if(startAddr) *startAddr = self->startAddr;
     if(endAddr) *endAddr = self->endAddr;
 }
 
-static u8 mallocChunkAndTag(ocrMemPlatform_t *self, u64 *startAddr, u64 size,
-                            ocrMemoryTag_t oldTag, ocrMemoryTag_t newTag) {
+u8 mallocChunkAndTag(ocrMemPlatform_t *self, u64 *startAddr, u64 size,
+                     ocrMemoryTag_t oldTag, ocrMemoryTag_t newTag) {
 
     if(oldTag >= MAX_TAG || newTag >= MAX_TAG)
         return 3;
@@ -92,8 +100,8 @@ static u8 mallocChunkAndTag(ocrMemPlatform_t *self, u64 *startAddr, u64 size,
     return result;
 }
 
-static u8 mallocTag(ocrMemPlatform_t *self, u64 startAddr, u64 endAddr,
-                    ocrMemoryTag_t newTag) {
+u8 mallocTag(ocrMemPlatform_t *self, u64 startAddr, u64 endAddr,
+             ocrMemoryTag_t newTag) {
 
     if(newTag >= MAX_TAG)
         return 3;
@@ -107,8 +115,8 @@ static u8 mallocTag(ocrMemPlatform_t *self, u64 startAddr, u64 endAddr,
     return 0;
 }
 
-static u8 mallocQueryTag(ocrMemPlatform_t *self, u64 *start, u64* end,
-                         ocrMemoryTag_t *resultTag, u64 addr) {
+u8 mallocQueryTag(ocrMemPlatform_t *self, u64 *start, u64* end,
+                  ocrMemoryTag_t *resultTag, u64 addr) {
     ocrMemPlatformMalloc_t *rself = (ocrMemPlatformMalloc_t *)self;
 
     RESULT_ASSERT(getTag(&(rself->rangeTracker), addr, start, end, resultTag),
@@ -137,7 +145,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
 /* OCR MEM PLATFORM MALLOC FACTORY                    */
 /******************************************************/
 
-static void destructMemPlatformFactoryMalloc(ocrMemPlatformFactory_t *factory) {
+void destructMemPlatformFactoryMalloc(ocrMemPlatformFactory_t *factory) {
     runtimeChunkFree((u64)factory, NULL);
 }
 
@@ -150,6 +158,7 @@ ocrMemPlatformFactory_t *newMemPlatformFactoryMalloc(ocrParamList_t *perType) {
     base->platformFcts.destruct = &mallocDestruct;
     base->platformFcts.start = &mallocStart;
     base->platformFcts.stop = &mallocStop;
+    base->platformFcts.finish = &mallocFinish;
     base->platformFcts.getThrottle = &mallocGetThrottle;
     base->platformFcts.setThrottle = &mallocSetThrottle;
     base->platformFcts.getRange = &mallocGetRange;
@@ -160,3 +169,4 @@ ocrMemPlatformFactory_t *newMemPlatformFactoryMalloc(ocrParamList_t *perType) {
     return base;
 }
 
+#endif /* ENABLE_MEM_PLATFORM_MALLOC */

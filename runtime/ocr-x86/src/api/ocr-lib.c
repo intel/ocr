@@ -205,6 +205,8 @@ void ocrFinalize() {
 }
 
 ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
+    // TODO: Re-enable this
+    /*
     ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
     ocrPolicyDomain_t * pd = ctx->PD;
 
@@ -214,6 +216,9 @@ ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
     ocrGuid_t returnGuid;
     // This call should return only when the event 'eventToYieldForGuid' is satisfied
     pd->waitForEvent(pd, workerGuid, yieldingEdtGuid, eventToYieldForGuid, &returnGuid, ctx);
-
+    
     return returnGuid;
+    */
+    return NULL_GUID;
 }
+

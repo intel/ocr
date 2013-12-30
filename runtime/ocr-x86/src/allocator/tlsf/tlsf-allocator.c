@@ -11,12 +11,12 @@
 #include "ocr-config.h"
 #ifdef ENABLE_ALLOCATOR_TLSF
 
+#include HAL_FILE
 #include "debug.h"
 #include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-runtime-types.h"
 #include "ocr-sysboot.h"
-#include "ocr-sys.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
 #include "tlsf-allocator.h"
@@ -954,10 +954,7 @@ static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
         result = tlsfMalloc(pgStart, size);
         if(result) {
             u64 sizeToCopy = tempSz<realReqSize?tempSz:realReqSize;
-            ocrPolicyDomain_t *pd = NULL;
-            getCurrentEnv(&pd, NULL);
-            pd->getSys(pd)->fctPtrs->memCopy(pd->getSys(pd), (void*)result,
-                                            (void*)ptr, sizeToCopy << ELEMENT_SIZE_LOG2, false);
+            hal_memCopy(result, ptr, sizeToCopy << ELEMENT_SIZE_LOG2, false);
             
             tlsfFree(pgStart, ptr); // Free the original block
         }
@@ -1018,16 +1015,18 @@ void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
 
 void tlsfStop(ocrAllocator_t *self) {
     ocrPolicyMsg_t msg;
-    getCurrentEnv(&(self->pd), &msg);
+    getCurrentEnv(&(self->pd), NULL, &msg);
     
 #ifdef OCR_ENABLE_STATISTICS
-    statsALLOCATOR_STOP(self->pd, self->guid, self, self->memories[0]->guid, self->memories[0]);
+    statsALLOCATOR_STOP(self->pd, self->guid, self, self->memories[0]->guid,
+                        self->memories[0]);
 #endif
     
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
-    msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST
+    msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = self->fguid;
+    PD_MSG_FIELD(properties) = 0;
     self->pd->sendMessage(self->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
@@ -1039,36 +1038,29 @@ void tlsfFinish(ocrAllocator_t *self) {
 }
 
 void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
-    ocrSys_t *sys = self->pd->getSys(self->pd);
-    
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     
-    sys->fctPtrs->lock32(sys, &(rself->lock));
+    hal_lock32(&(rself->lock));
     void* toReturn = (void*)tlsfMalloc(rself->addr, size);
-    sys->fctPtrs->unlock32(sys, &(rself->lock));
+    hal_unlock32(&(rself->lock));
     
     return toReturn;
 }
 
 void tlsfDeallocate(ocrAllocator_t *self, void* address) {
-    ocrSys_t *sys = self->pd->getSys(self->pd);
-    
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     
-    sys->fctPtrs->lock32(sys, &(rself->lock));
+    hal_lock32(&(rself->lock));
     tlsfFree(rself->addr, (u64)address);
-    sys->fctPtrs->unlock32(sys, &(rself->lock));
+    hal_unlock32(&(rself->lock));
 }
 
 void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
-    ocrSys_t *sys = self->pd->getSys(self->pd);
-    
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-
-    sys->fctPtrs->lock32(sys, &(rself->lock));
-    void* toReturn = (void*)(tlsfRealloc(rself->addr, (u64)address, size));
-    sys->fctPtrs->unlock32(sys, &(rself->lock));
     
+    hal_lock32(&(rself->lock));
+    void* toReturn = (void*)(tlsfRealloc(rself->addr, (u64)address, size));
+    hal_unlock32(&(rself->lock));
     return toReturn;
 }
 

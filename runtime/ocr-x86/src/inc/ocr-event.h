@@ -71,7 +71,7 @@ typedef struct _ocrEventFcts_t {
     /**
      * @brief Register a "waiter" on the event
      *
-     * The waiter will be notified once this event is satisfie on slot 'slot'.
+     * The waiter will be notified on slot 'slot' once this event is satisfid.
      * In other words, the satisfy() function serves to notify the "front" of
      * the event and this call serves to determine what happens at the "back"
      * of the event once the event is satisfied
@@ -81,7 +81,7 @@ typedef struct _ocrEventFcts_t {
      * @param[in] slot          Slot to satisfy waiter on once this event
      *                          is satisfied
      */
-    void (*registerDependence(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot);
+    void (*registerDependence)(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot);
 } ocrEventFcts_t;
 
 /*! \brief Abstract class to represent OCR events.
@@ -92,8 +92,6 @@ typedef struct _ocrEventFcts_t {
  */
 typedef struct _ocrEvent_t {
     ocrGuid_t guid;         /**< GUID for this event */
-    ocrGuid_t allocator;    /**< Allocator that created this metadata chunk */
-    ocrGuid_t allocatingPD; /**< Policy domain of the creating allocator */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
@@ -125,12 +123,8 @@ typedef struct _ocrEventFactory_t {
      */
     void (*destruct)(struct _ocrEventFactory_t* factory);
 
-    // TODO: This does not seem scalable if we modify
-    // events to have more than just single and latch (reductions for
-    // example)
     u32 factoryId;             /**< Factory ID (matches fctId in event */
-    ocrEventFcts_t singleFcts; /**< Functions for non-latch events */
-    ocrEventFcts_t latchFcts;  /**< Functions for latch events */
+    ocrEventFcts_t fctPtrs;
 } ocrEventFactory_t;
 
 #endif /* __OCR_EVENT_H_ */

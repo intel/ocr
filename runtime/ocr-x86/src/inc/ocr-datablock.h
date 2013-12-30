@@ -113,7 +113,7 @@ typedef struct _ocrDataBlock_t {
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
-    ocrGuid_t allocator;    /**< Allocator that created this metadata chunk */
+    ocrGuid_t allocator;    /**< Allocator that created the data chunk (ptr) */
     ocrGuid_t allocatingPD; /**< Policy domain of the creating allocator */
     u64 size;               /**< Size of the data-block */
     void* ptr;              /**< Current location for this data-block */
@@ -142,7 +142,7 @@ typedef struct _ocrDataBlockFactory_t {
      * @param instanceArg   Arguments specific for this instance
      **/
     ocrDataBlock_t* (*instantiate)(struct _ocrDataBlockFactory_t *factory,
-                                   ocrFatGuid_t allocator, ocrFatGuid_t allocatorPD,
+                                   ocrFatGuid_t allocator, ocrFatGuid_t allocPD,
                                    u64 size, void* ptr, u32 properties,
                                    ocrParamList_t *instanceArg);
     /**

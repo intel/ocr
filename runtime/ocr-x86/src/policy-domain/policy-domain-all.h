@@ -8,6 +8,7 @@
 #define __POLICY_DOMAIN_ALL_H_
 
 #include "debug.h"
+#include "ocr-config.h"
 #include "ocr-policy-domain.h"
 #include "ocr-utils.h"
 
@@ -37,8 +38,10 @@ const char * policyDomain_types [] = {
 
 inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type, ocrParamList_t *perType) {
     switch(type) {
+#ifdef ENABLE_POLICY_DOMAIN_HC
     case policyDomainHc_id:
         return newPolicyDomainFactoryHc(perType);
+#endif
     case policyDomainFsimXE_id:
 //        return newPolicyDomainFactoryFsimXE(perType);
     case policyDomainFsimCE_id:
@@ -56,46 +59,5 @@ inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type
     }
     return NULL;
 }
-
-typedef enum _policyCtxType_t {
-    policyCtxHc_id,
-    policyCtxMax_id
-} policyCtxType_t;
-
-const char * policyCtx_types [] = {
-    "HC",
-    NULL
-};
-
-inline ocrPolicyCtxFactory_t * newPolicyCtxFactory(policyCtxType_t type, ocrParamList_t *perType) {
-    switch(type) {
-    case policyCtxHc_id:
-        return newPolicyCtxFactoryHc(perType);
-    default:
-        ASSERT(0);
-    }
-    return NULL;
-}
-
-/*
- *
-ocrGuid_t policy_domain_handIn_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
-    assert(0 && "postponed policy handIn implementation");
-    return NULL_GUID;
-}
-
-ocrGuid_t policy_domain_extract_assert ( ocrPolicyDomain_t * this, ocrPolicyDomain_t * takingPolicy, ocrGuid_t takingWorkerGuid ) {
-    assert(0 && "postponed policy extract implementation");
-    return NULL_GUID;
-}
-
-void policy_domain_handOut_assert ( ocrPolicyDomain_t * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
-    assert(0 && "postponed policy handOut implementation");
-}
-
-void policy_domain_receive_assert ( ocrPolicyDomain_t * this, ocrGuid_t giverWorkerGuid, ocrGuid_t givenTaskGuid ) {
-    assert(0 && "postponed policy receive implementation");
-}
-*/
 
 #endif /* __POLICY_DOMAIN_ALL_H_ */

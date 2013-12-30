@@ -20,7 +20,7 @@
 #include "ocr-statistics.h"
 #endif
 
-#include "ocr-sys.h"
+#include "ocr-sal.h"
 #include "ocr-task.h"
 #include "ocr-tuning.h"
 #include "ocr-types.h"
@@ -290,8 +290,11 @@ typedef struct _ocrPolicyMsg_t {
         struct {
             ocrFatGuid_t guid; /**< In/Out:
                                *  In: The metaDataPtr field contains the value
-                               *  to associate with the GUID
+                               *  to associate with the GUID or NULL if the metadata
+                               *  memory needs to be created
                                *  Out: The guid field contains created GUID */
+            u64 size;          /**< In: If metaDataPtr is NULL on input, contains the
+                                *   size needed to contain the metadata */
             ocrGuidKind kind;  /**< In: Kind of the GUID to create */
             u32 properties;    /**< In: Properties for the creation */
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_CREATE);
@@ -308,7 +311,9 @@ typedef struct _ocrPolicyMsg_t {
             
         struct {
             ocrFatGuid_t guid; /**< In: GUID to destroy */
-            u32 properties;    /**< In: Properties for the destruction */
+            u32 properties;    /**< In: Properties for the destruction:
+                                * Bit 0: If 1, metadata area is "freed"
+                                */
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_DESTROY);
         
         struct {
@@ -316,7 +321,9 @@ typedef struct _ocrPolicyMsg_t {
                                  * Input (optional): GUID(s) requested
                                  * Output: GUID(s) given to the caller
                                  * by the callee */
-            u32 guidCount;       /**< In/Out: Number of GUID(s) in guids */
+            u32 guidCount;       /**< In/Out: Number of GUID(s) in guids. As input,
+                                  * number of GUIDs if guids has requested GUIDs or
+                                  * maximum number of EDTs requested. */
             u32 properties;      /**< In: properties for the take */
             ocrGuidKind type;    /**< In: Kind of GUIDs requested */
             // TODO: Add something about cost/choice heuristic
@@ -483,7 +490,7 @@ typedef struct _ocrPolicyDomain_t {
      *
      * This stops the portion of OCR that manages the resources
      * contained in this policy domain. The policy domain will also stop
-     * responding to requests from other policy domains.
+     * responding to requests from other policy domains. Called before finish
      *
      * @param self                This policy domain
      */
@@ -493,8 +500,7 @@ typedef struct _ocrPolicyDomain_t {
      * @brief Finish the execution of the policy domain
      *
      * Ask the policy domain to wrap up currently executing
-     * task and shutdown workers. This is typically something
-     * ocrShutdown would call.
+     * task and shutdown workers. Finish is called after stop
      *
      * @param self                This policy domain
      */
@@ -530,7 +536,7 @@ typedef struct _ocrPolicyDomain_t {
      * If a policy domain cannot handle a message locally, it can
      * forward it to another compute target (belonging to another
      * policy domain). This call may lead to asynchronous
-     * execution but ifBlocking is true, the call will not return
+     * execution but if isBlocking is true, the call will not return
      * until a response (if required) is received. Note that
      * this does not mean that the compute target blocks (this is
      * implementation dependent)
@@ -548,6 +554,28 @@ typedef struct _ocrPolicyDomain_t {
      */
     u8 (*sendMessage)(struct _ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg,
                       u8 isBlocking);
+
+
+    /**
+     * @brief Policy-domain only allocation.
+     *
+     * Memory allocated with this call can only be used within the
+     * policy domain and must be freed using pdFree(). Memory allocated
+     * with pdMalloc is meant to be private to the policy domain
+     *
+     * @param size  Number of bytes to allocate
+     * @return A pointer to the allocated space
+     */
+    void* (*pdMalloc)(u64 size);
+
+    /**
+     * @brief Policy-domain only free.
+     *
+     * Used to free memory allocated with pdMalloc
+     *
+     * @param addr Address to free
+     */
+    void (*pdFree)(void* addr);
     
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t* (*getStats)(struct _ocrPolicyDomain_t *self);

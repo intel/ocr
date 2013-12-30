@@ -8,11 +8,11 @@
  * removed or modified.
  */
 
-#include "ocr-config.h"
-#ifdef ENABLE_DATABLOCK_REGULAR
-
 #ifndef __DATABLOCK_REGULAR_H__
 #define __DATABLOCK_REGULAR_H__
+
+#include "ocr-config.h"
+#ifdef ENABLE_DATABLOCK_REGULAR
 
 #include "ocr-allocator.h"
 #include "ocr-datablock.h"
@@ -45,7 +45,7 @@ typedef struct _ocrDataBlockRegular_t {
     ocrGuidTracker_t usersTracker;
 } ocrDataBlockRegular_t;
 
-extern ocrDataBlockFactory_t* newDataBlockFactoryRegular(ocrParamList_t *perType);
+extern ocrDataBlockFactory_t* newDataBlockFactoryRegular(ocrParamList_t *perType, u32 factoryId);
 
-#endif /* __DATABLOCK_REGULAR_H__ */
 #endif /* ENABLE_DATABLOCK_REGULAR */
+#endif /* __DATABLOCK_REGULAR_H__ */

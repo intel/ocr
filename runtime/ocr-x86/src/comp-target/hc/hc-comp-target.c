@@ -25,11 +25,13 @@ void hcDestruct(ocrCompTarget_t *compTarget) {
     u32 i = 0;
     while(i < compTarget->platformCount) {
         compTarget->platforms[i]->fctPtrs->destruct(compTarget->platforms[i]);
-        i++;
+        ++i;
     }
     runtimeChunkFree((u64)(compTarget->platforms), NULL);
 #ifdef OCR_ENABLE_STATISTICS
-    statsCOMPTARGET_STOP(getCurrentPD(), compTarget->guid, compTarget);
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL);
+    statsCOMPTARGET_STOP(pd, compTarget->guid, compTarget);
 #endif
     runtimeChunkFree((u64)compTarget, NULL);
 }
@@ -59,6 +61,7 @@ void hcStop(ocrCompTarget_t * compTarget) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid.guid) = compTarget->guid;
     PD_MSG_FIELD(guid.metaDataPtr) = compTarget;
+    PD_MSG_FIELD(properties) = 0;
     pd->sendMessage(pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE

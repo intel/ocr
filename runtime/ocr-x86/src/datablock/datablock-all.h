@@ -17,22 +17,14 @@
 #include "ocr-utils.h"
 
 typedef enum _dataBlockType_t {
-#idef ENABLE_DATABLOCK_REGULAR
     dataBlockRegular_id,
-#endif
-#ifdef ENABLE_DATABLOCK_PLACED
     dataBlockPlaced_id,
-#endif
     dataBlockMax_id
 } dataBlockType_t;
 
 const char * dataBlock_types [] = {
-#ifdef ENABLE_DATABLOCK_REGULAR
     "Regular",
-#endif
-#ifdef ENABLE_DATABLOCK_PLACED
     "Placed",
-#endif
     NULL
 };
 
@@ -47,12 +39,12 @@ ocrDataBlockFactory_t* newDataBlockFactory(dataBlockType_t type, ocrParamList_t 
     switch(type) {
 #ifdef ENABLE_DATABLOCK_REGULAR
     case dataBlockRegular_id:
-        return newDataBlockFactoryRegular(typeArg);
+        return newDataBlockFactoryRegular(typeArg, (u32)type);
         break;
 #endif
 #ifdef ENABLE_DATABLOCK_PLACED        
     case dataBlockPlaced_id:
-//        return newDataBlockFactoryPlaced(typeArg);
+//        return newDataBlockFactoryPlaced(typeArg, (u32)type);
 //        break;
 #endif
     default:

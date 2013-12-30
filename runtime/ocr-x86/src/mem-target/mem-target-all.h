@@ -13,6 +13,7 @@
 #define __MEM_TARGET_ALL_H__
 
 #include "debug.h"
+#include "ocr-config.h"
 #include "ocr-mem-target.h"
 #include "ocr-utils.h"
 
@@ -33,8 +34,10 @@ const char * memtarget_types[] = {
 
 inline ocrMemTargetFactory_t *newMemTargetFactory(memTargetType_t type, ocrParamList_t *typeArg) {
     switch(type) {
+#ifdef ENABLE_MEM_TARGET_SHARED
     case memTargetShared_id:
         return newMemTargetFactoryShared(typeArg);
+#endif
     default:
         ASSERT(0);
         return NULL;
@@ -42,18 +45,3 @@ inline ocrMemTargetFactory_t *newMemTargetFactory(memTargetType_t type, ocrParam
 }
 
 #endif /* __MEM_TARGET_ALL_H__ */
-/*
-extern ocrMemPlatform_t * newMemPlatformMalloc(ocrMemPlatformFactory_t * factory, void * perTypeConfig, void * perInstanceConfig);
-
-ocrMemPlatform_t* newMemPlatform(ocrMemPlatformKind type, void * perTypeConfig, void * perInstanceConfig) {
-    if(type == OCR_MEMPLATFORM_DEFAULT) type = ocrMemPlatformDefaultKind;
-    switch(type) {
-    case OCR_MEMPLATFORM_MALLOC:
-        return newMemPlatformMalloc(NULL, perTypeConfig, perInstanceConfig);
-        break;
-    default:
-        ASSERT(0);
-    }
-    return NULL;
-}
-*/

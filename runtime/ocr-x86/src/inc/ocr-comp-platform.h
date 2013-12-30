@@ -158,9 +158,10 @@ typedef struct _ocrCompPlatformFcts_t {
      *
      * @param self[in]        Pointer to this comp-target
      * @param message[in/out] As input, this determines which message to wait
-     *                        for. Note that this is a pointer to a pointer. The
-     *                        old message needs to be freed by the caller if
-     *                        needed.
+     *                        for. Note that this is a pointer to a pointer.
+     *                        Both the passed-in message and the returned
+     *                        message need to be freed by the caller using
+     *                        pdFree.
      *
      * @return 0 on success and a non-zero error code
      */

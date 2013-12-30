@@ -14,6 +14,9 @@
 #ifndef __MEM_TARGET_SHARED_H__
 #define __MEM_TARGET_SHARED_H__
 
+#include "ocr-config.h"
+#ifdef ENABLE_MEM_TARGET_SHARED
+
 #include "ocr-mem-target.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"
@@ -28,4 +31,5 @@ typedef struct {
 
 extern ocrMemTargetFactory_t* newMemTargetFactoryShared(ocrParamList_t *perType);
 
+#endif /* ENABLE_MEM_TARGET_SHARED */
 #endif /* __MEM_TARGET_SHARED_H__ */

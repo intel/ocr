@@ -31,7 +31,7 @@ static inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid,
 
     u8 returnCode = 0;
     ocrPolicyMsg_t msg;
-    getCurrentEnv(&pd, &msg);
+    getCurrentEnv(&pd, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_INFO
 
@@ -58,7 +58,7 @@ static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * gu
                          ocrGuidKind kind) {
     u8 returnCode = 0;
     ocrPolicyMsg_t msg;
-    getCurrentEnv(&pd, &msg);
+    getCurrentEnv(&pd, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_CREATE
 
@@ -86,7 +86,7 @@ static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* 
                            ocrGuidKind* kindRes) {
     u8 returnCode = 0;
     ocrPolicyMsg_t msg;
-    getCurrentEnv(&pd, &msg);
+    getCurrentEnv(&pd, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_INFO
 
@@ -111,8 +111,10 @@ static inline bool isDatablockGuid(ocrGuid_t guid) {
     if (NULL_GUID == guid) {
         return false;
     }
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL);
     ocrGuidKind kind;
-    guidKind(getCurrentPD(),guid, &kind);
+    guidKind(pd, guid, &kind);
     return kind == OCR_GUID_DB;
 }
 
@@ -120,11 +122,11 @@ static inline bool isDatablockGuid(ocrGuid_t guid) {
  *  \param[in] guid        The guid to check the kind
  */
 static inline bool isEventGuid(ocrGuid_t guid) {
-    ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL);
     if (NULL_GUID == guid) {
         return false;
     }
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL);
     ocrGuidKind kind;
     guidKind(pd, guid, &kind);
     return kind == OCR_GUID_EVENT;
@@ -134,11 +136,11 @@ static inline bool isEventGuid(ocrGuid_t guid) {
  *  \param[in] guid        The guid to check the kind
  */
 static inline bool isEdtGuid(ocrGuid_t guid) {
-    ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL);
     if (NULL_GUID == guid) {
         return false;
     }
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL);
     ocrGuidKind kind;
     guidKind(pd, guid, &kind);
     return kind == OCR_GUID_EDT;
@@ -149,7 +151,7 @@ static inline bool isEdtGuid(ocrGuid_t guid) {
  */
 static inline bool isEventLatchGuid(ocrGuid_t guid) {
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL);
+    getCurrentEnv(&pd, NULL, NULL);
     if(isEventGuid(guid)) {
         ocrEvent_t * event = NULL;
         deguidify(pd, guid, (u64*)&event, NULL);
@@ -163,7 +165,7 @@ static inline bool isEventLatchGuid(ocrGuid_t guid) {
  */
 static inline bool isEventSingleGuid(ocrGuid_t guid) {
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL);
+    getCurrentEnv(&pd, NULL, NULL);
     if(isEventGuid(guid)) {
         ocrEvent_t * event = NULL;
         deguidify(pd, guid, (u64*)&event, NULL);
@@ -181,7 +183,7 @@ static inline bool isEventSingleGuid(ocrGuid_t guid) {
  */
 static inline bool isEventGuidOfKind(ocrGuid_t guid, ocrEventTypes_t eventKind) {
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL);
+    getCurrentEnv(&pd, NULL, NULL);
     if (isEventGuid(guid)) {
         ocrEvent_t * event = NULL;
         deguidify(pd, guid, (u64*)&event, NULL);

@@ -13,16 +13,12 @@
 #include "ocr-utils.h"
 
 typedef enum _compTargetType_t {
-#ifdef ENABLE_COMP_TARGET_HC
     compTargetHc_id,
-#endif
     compTargetMax_id,
 } compTargetType_t;
 
 const char * comptarget_types[] = {
-#ifdef ENABLE_COMP_TARGET_HC
     "HC",
-#endif
     NULL
 };
 

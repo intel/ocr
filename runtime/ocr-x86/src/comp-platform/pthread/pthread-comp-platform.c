@@ -8,7 +8,7 @@
 #ifdef ENABLE_COMP_PLATFORM_PTHREAD
 
 #include "debug.h"
-#include "ocr-policy-domain-getter.h"
+
 #include "ocr-policy-domain.h"
 
 #include "ocr-sysboot.h"
@@ -16,8 +16,6 @@
 #include "ocr-worker.h"
 
 #include "pthread-comp-platform.h"
-
-#include <pthread.h>
 
 #define DEBUG_TYPE COMP_PLATFORM
 
@@ -145,7 +143,7 @@ ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
                                           ocrParamList_t *perInstance) {
 
     pthread_once(&selfKeyInitialized,  initializeKey);
-    ocrCompPlatformPthread_t * compPlatformPthread = (ocrComplPlatformPthread_t*)
+    ocrCompPlatformPthread_t * compPlatformPthread = (ocrCompPlatformPthread_t*)
         runtimeChunkAlloc(sizeof(ocrCompPlatformPthread_t), NULL);
 
     compPlatformPthread->base.location = location;
@@ -218,9 +216,9 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     derived->masterPlatformFcts.finish = &pthreadFinish;
     derived->masterPlatformFcts.start = &pthreadStartMaster;
     derived->masterPlatformFcts.stop = &pthreadStopMaster;
-    derived->masterPlatfromFcts.getThrottle = &pthreadGetThrottle;
+    derived->masterPlatformFcts.getThrottle = &pthreadGetThrottle;
     derived->masterPlatformFcts.setThrottle = &pthreadSetThrottle;
-    derived->masterPlatfromFcts.sendMessage = &pthreadSendMessage;
+    derived->masterPlatformFcts.sendMessage = &pthreadSendMessage;
     derived->masterPlatformFcts.pollMessage = &pthreadPollMessage;
     derived->masterPlatformFcts.waitMessage = &pthreadWaitMessage;
 

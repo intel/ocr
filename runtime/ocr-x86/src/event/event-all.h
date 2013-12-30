@@ -12,6 +12,7 @@
 #define __EVENT_ALL_H__
 
 #include "debug.h"
+#include "ocr-config.h"
 #include "ocr-event.h"
 #include "ocr-utils.h"
 
@@ -34,8 +35,10 @@ const char * event_types [] = {
 
 inline ocrEventFactory_t *newEventFactory(eventType_t type, ocrParamList_t *typeArg) {
     switch(type) {
+#ifdef ENABLE_EVENT_HC
     case eventHc_id:
-        return newEventFactoryHc(typeArg);
+        return newEventFactoryHc(typeArg, (u32)type);
+#endif
     default:
         ASSERT(0);
         return NULL;

@@ -7,6 +7,7 @@
 #ifndef __SCHEDULER_ALL_H__
 #define __SCHEDULER_ALL_H__
 
+#include "ocr-config.h"
 #include "ocr-scheduler.h"
 #include "ocr-utils.h"
 
@@ -30,8 +31,10 @@ const char * scheduler_types[] = {
 
 inline ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrParamList_t *perType) {
     switch(type) {
+#ifdef ENABLE_SCHEDULER_HC
     case schedulerHc_id:
         return newOcrSchedulerFactoryHc(perType);
+#endif
     case schedulerFsimXE_id:
     case schedulerFsimCE_id:
     case schedulerHcPlaced_id:
