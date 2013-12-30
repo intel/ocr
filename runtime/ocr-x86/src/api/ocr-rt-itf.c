@@ -15,7 +15,7 @@ ocrGuid_t ocrElsUserGet(u8 offset) {
     ocrTask_t *task = NULL;
     // User indexing start after runtime-reserved ELS slots
     offset = ELS_RUNTIME_SIZE + offset;
-    getCurrentEnv(NULL, &task, NULL);
+    getCurrentEnv(NULL, NULL, &task, NULL);
     return task->els[offset];
 }
 
@@ -27,13 +27,13 @@ void ocrElsUserSet(u8 offset, ocrGuid_t data) {
     // User indexing start after runtime-reserved ELS slots
     ocrTask_t *task = NULL;
     offset = ELS_RUNTIME_SIZE + offset;
-    getCurrentEnv(NULL, &task, NULL);
+    getCurrentEnv(NULL, NULL, &task, NULL);
     task->els[offset] = data;
 }
 
 ocrGuid_t currentEdtUserGet() {
     ocrTask_t *task = NULL;
-    getCurrentEnv(NULL, &task, NULL);
+    getCurrentEnv(NULL, NULL, &task, NULL);
     if(task) {
         return task->guid;
     }
@@ -43,7 +43,7 @@ ocrGuid_t currentEdtUserGet() {
 // exposed to runtime implementers as convenience
 u64 ocrNbWorkers() {
     ocrPolicyDomain_t * pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL);
+    getCurrentEnv(&pd, NULL, NULL, NULL);
     if(pd != NULL)
         return pd->workerCount;
     return 0;

@@ -14,7 +14,7 @@
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t * pd = NULL;
-    getCurrentEnv(&pd, NULL, &msg);
+    getCurrentEnv(&pd, NULL, NULL, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_CREATE
@@ -35,7 +35,7 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
 u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, &msg);
+    getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_DESTROY
     msg.type = PD_MSG_EVT_DESTROY | PD_MSG_REQUEST;
@@ -52,7 +52,7 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*
 
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, &msg);
+    getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_SATISFY
     msg.type = PD_MSG_EVT_SATISFY | PD_MSG_REQUEST;
@@ -76,7 +76,7 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
 #endif
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, &msg);
+    getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
     msg.type = PD_MSG_EDTTEMP_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -98,7 +98,7 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
 u8 ocrEdtTemplateDestroy(ocrGuid_t guid) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, &msg);
+    getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EDTTEMP_DESTROY
     msg.type = PD_MSG_EDTTEMP_DESTROY | PD_MSG_REQUEST;
@@ -114,7 +114,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
 
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t * pd = NULL;
-    getCurrentEnv(&pd, NULL, &msg);
+    getCurrentEnv(&pd, NULL, NULL, &msg);
     
     ocrTaskTemplate_t *taskTemplate = NULL;
     
@@ -176,7 +176,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, &msg);
+    getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_WORK_DESTROY
     msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
@@ -191,7 +191,7 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
                     ocrDbAccessMode_t mode) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, &msg);
+    getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_ADD
     msg.type = PD_MSG_DEP_ADD | PD_MSG_REQUEST;

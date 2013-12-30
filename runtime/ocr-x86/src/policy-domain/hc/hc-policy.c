@@ -28,33 +28,16 @@ void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     //          all data-structures have been initialized.
     u64 i = 0;
     u64 maxCount = 0;
+
+    // TODO: Add GUIDIFY and put release GUID in stop
     
     ASSERT(policy->workerCount == policy->computeCount);
 
-    // Start things up. We go bottom-up starting the targets (which will
-    // start the platforms) and moving up from there.
-    maxCount = policy->memoryCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->memories[i]->fctPtrs->start(policy->memories[i], policy);
-    }
-    
-    maxCount = policy->computeCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->computes[i]->fctPtrs->start(policy->computes[i], policy);
-    }
-
-    maxCount = policy->workpileCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->workpiles[i]->fctPtrs->start(policy->workpiles[i], policy);
-    }
-    
-    // Depends on memories
     maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
         policy->allocators[i]->fctPtrs->start(policy->allocators[i], policy);
     }
     
-    // Depends on workpiles
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
         policy->schedulers[i]->fctPtrs->start(policy->schedulers[i], policy);
@@ -101,21 +84,6 @@ void hcPolicyDomainFinish(ocrPolicyDomain_t * policy) {
         policy->allocators[i]->fctPtrs->finish(policy->allocators[i]);
     }
 
-    maxCount = policy->workpileCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->workpiles[i]->fctPtrs->finish(policy->workpiles[i]);
-    }
-    
-    maxCount = policy->computeCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->computes[i]->fctPtrs->finish(policy->computes[i]);
-    }
-    
-    maxCount = policy->memoryCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->memories[i]->fctPtrs->finish(policy->memories[i]);
-    }
-    
     policy->guidProvider->fctPtrs->finish(policy->guidProvider);
     policy->sysProvider->fctPtrs->finish(policy->sysProvider);
 }
@@ -152,22 +120,7 @@ void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; ++i) {
         policy->allocators[i]->fctPtrs->stop(policy->allocators[i]);
     }
-
-    maxCount = policy->workpileCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->workpiles[i]->fctPtrs->stop(policy->workpiles[i]);
-    }
     
-    maxCount = policy->computeCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->computes[i]->fctPtrs->stop(policy->computes[i]);
-    }
-    
-    maxCount = policy->memoryCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->memories[i]->fctPtrs->stop(policy->memories[i]);
-    }
-
     policy->guidProvider->fctPtrs->stop(policy->guidProvider);
     policy->sysProvider->fctPtrs->stop(policy->sysProvider);
 }
@@ -195,20 +148,6 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
         policy->allocators[i]->fctPtrs->destruct(policy->allocators[i]);
     }
 
-    maxCount = policy->workpileCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->workpiles[i]->fctPtrs->destruct(policy->workpiles[i]);
-    }
-    
-    maxCount = policy->computeCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->computes[i]->fctPtrs->destruct(policy->computes[i]);
-    }
-    
-    maxCount = policy->memoryCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->memories[i]->fctPtrs->destruct(policy->memories[i]);
-    }
     
     // Simple hc policies don't have neighbors
     ASSERT(policy->neighbors == NULL);
@@ -524,8 +463,6 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 }
 
 ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
-                                      u64 schedulerCount, u64 workerCount, u64 computeCount,
-                                      u64 workpileCount, u64 allocatorCount, u64 memoryCount,
                                       ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory,
                                       ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
                                       ocrGuidProvider_t *guidProvider,
@@ -540,14 +477,10 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
 
     ASSERT(base);
 
-    base->schedulerCount = schedulerCount;
-    ASSERT(schedulerCount == 1); // Simplest HC PD implementation
-    base->workerCount = workerCount;
-    base->computeCount = computeCount;
-    base->workpileCount = workpileCount;
-    base->allocatorCount = allocatorCount;
-    base->memoryCount = memoryCount;
-
+    base->schedulerCount = 0;
+    base->allocatorCount = 0;
+    base->workerCount = 0;
+    
     base->taskFactory = taskFactory;
     base->taskTemplateFactory = taskTemplateFactory;
     base->dbFactory = dbFactory;
@@ -577,15 +510,9 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
 
     //TODO populated by ini file factories. Need setters or something ?
     base->schedulers = NULL;
-    base->workers = NULL;
-    base->computes = NULL;
-    base->workpiles = NULL;
     base->allocators = NULL;
-    base->memories = NULL;
-
+    
     base->guid = UNINITIALIZED_GUID;
-    // TODO: Re-put the GUIDIFY thing
-//    guidify(base, (u64)base, &(base->guid), OCR_GUID_POLICY);
     return base;
 }
 

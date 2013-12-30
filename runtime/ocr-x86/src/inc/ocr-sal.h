@@ -25,6 +25,7 @@
 struct _ocrPolicyDomain_t;
 struct _ocrPolicyMsg_t;
 struct _ocrTask_t;
+struct _ocrWorker_t;
 
 // TODO (Bala/Ivan): We need to have a bringup type of function
 // We have this in the driver but we need to figure out what
@@ -64,6 +65,10 @@ void (*teardown)(struct _ocrPolicyDomain_t *pd);
  *                            will consider that to be the PD to use (saves
  *                            on overhead). If *pd is NULL on return, no policy
  *                            domain is currently active (boot-up or shut-down)
+ * @param worker[out]         Will return a pointer to the current worker
+ *                            The resulting pointer should *not* be freed. If NULL,
+ *                            will not return anything. If *worker is NULL on
+ *                            return, the worker has not started yet
  * @param edt[out]            Will return a pointer to the current EDT
  *                            The resulting pointer should *not* be
  *                            freed. If NULL, will not return anything. If
@@ -75,8 +80,8 @@ void (*teardown)(struct _ocrPolicyDomain_t *pd);
  *                            happen so it needs to already be either
  *                            allocated or on the stack
  */
-void (*getCurrentEnv)(struct _ocrPolicyDomain_t **pd, struct _ocrTask_t **edt,
-                      struct _ocrPolicyMsg_t *msg);
+void (*getCurrentEnv)(struct _ocrPolicyDomain_t **pd, struct _ocrWorker_t **worker,
+                      struct _ocrTask_t **edt, struct _ocrPolicyMsg_t *msg);
 
 // TODO: Do we need this
 extern struct _ocrPolicyDomain_t * (*getMasterPD)();

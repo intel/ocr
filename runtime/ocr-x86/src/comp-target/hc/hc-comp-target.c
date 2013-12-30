@@ -29,19 +29,19 @@ void hcDestruct(ocrCompTarget_t *compTarget) {
     }
     runtimeChunkFree((u64)(compTarget->platforms), NULL);
 #ifdef OCR_ENABLE_STATISTICS
-    ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL);
-    statsCOMPTARGET_STOP(pd, compTarget->guid, compTarget);
+    statsCOMPTARGET_STOP(compTarget->pd, compTarget->fguid.guid, compTarget);
 #endif
     runtimeChunkFree((u64)compTarget, NULL);
 }
 
 void hcStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
     // Get a GUID
-    guidify(PD, (u64)compTarget, &(compTarget->guid), OCR_GUID_COMPTARGET);
+    guidify(PD, (u64)compTarget, &(compTarget->fguid.guid), OCR_GUID_COMPTARGET);
+    compTarget->fguid.metaDataPtr = compTarget;
+    compTarget->pd = PD;
 
 #ifdef OCR_ENABLE_STATISTICS
-    statsCOMPTARGET_START(PD, compTarget->base.guid, &(compTarget->base));
+    statsCOMPTARGET_START(PD, compTarget->fguid.guid, compTarget->fguid.metaDataPtr);
 #endif
 
     ASSERT(compTarget->platformCount == 1);
@@ -53,19 +53,18 @@ void hcStop(ocrCompTarget_t * compTarget) {
     compTarget->platforms[0]->fctPtrs->stop(compTarget->platforms[0]);
 
     // Destroy the GUID
-    ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
+    getCurrentEnv(NULL, NULL, NULL, &msg);
     
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid.guid) = compTarget->guid;
-    PD_MSG_FIELD(guid.metaDataPtr) = compTarget;
+    PD_MSG_FIELD(guid) = compTarget->fguid;
     PD_MSG_FIELD(properties) = 0;
-    pd->sendMessage(pd, &msg, false);
+    compTarget->pd->sendMessage(compTarget->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
-    compTarget->guid = NULL_GUID;
+    compTarget->guid.guid = UNINITIALIZED_GUID;
 }
 
 void hcFinish(ocrCompTarget_t *compTarget) {
@@ -104,7 +103,8 @@ ocrCompTarget_t * newCompTargetHc(ocrCompTargetFactory_t * factory,
                                   ocrParamList_t* perInstance) {
     ocrCompTargetHc_t * compTarget = (ocrCompTargetHc_t*)runtimeChunkAlloc(sizeof(ocrCompTargetHc_t), NULL);
 
-    compTarget->base.guid = UNINITIALIZED_GUID;
+    compTarget->base.fguid.guid = UNINITIALIZED_GUID;
+    compTarget->base.fguid.metaDataPtr = compTarget;
     compTarget->base.location = location;
     
     compTarget->base.platforms = NULL;

@@ -1015,7 +1015,7 @@ void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
 
 void tlsfStop(ocrAllocator_t *self) {
     ocrPolicyMsg_t msg;
-    getCurrentEnv(&(self->pd), NULL, &msg);
+    getCurrentEnv(&(self->pd), NULL, NULL, &msg);
     
 #ifdef OCR_ENABLE_STATISTICS
     statsALLOCATOR_STOP(self->pd, self->guid, self, self->memories[0]->guid,

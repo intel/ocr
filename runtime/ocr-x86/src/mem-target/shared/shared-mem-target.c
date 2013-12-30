@@ -33,19 +33,20 @@ void sharedDestruct(ocrMemTarget_t *self) {
     self->memories[0]->fctPtrs->destruct(self->memories[0]);
     runtimeChunkFree((u64)self->memories, NULL);
 #ifdef OCR_ENABLE_STATISTICS
-    ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL);
-    statsMEMTARGET_STOP(pd, self->guid, self);
+    statsMEMTARGET_STOP(self->pd, self->fguid.guid, self->fguid.metaDataPtr);
 #endif
     runtimeChunkFree((u64)self, NULL);    
 }
 
-struct _ocrPolicyDomain_t;
-void sharedStart(ocrMemTarget_t *self, struct _ocrPolicyDomain_t * PD ) {
+
+void sharedStart(ocrMemTarget_t *self, ocrPolicyDomain_t * PD ) {
     // Get a GUID
-    guidify(PD, (u64)self, &(self->guid), OCR_GUID_MEMTARGET);
+    guidify(PD, (u64)self, &(self->fguid.guid), OCR_GUID_MEMTARGET);
+    self->fguid.metaDataPtr = self;
+    self->pd = PD;
+    
 #ifdef OCR_ENABLE_STATISTICS
-    statsMEMTARGET_START(PD, self->guid, self);
+    statsMEMTARGET_START(PD, self->fguid.guid, self->fguid.metaDataPtr);
 #endif
     ASSERT(self->memoryCount == 1);
     self->memories[0]->fctPtrs->start(self->memories[0], PD);
@@ -56,19 +57,18 @@ void sharedStop(ocrMemTarget_t *self) {
     self->memories[0]->fctPtrs->stop(self->memories[0]);
     
     // Destroy the GUID
-    ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
+    getCurrentEnv(NULL, NULL, NULL, &msg);
     
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid.guid) = self->guid;
-    PD_MSG_FIELD(guid.metaDataPtr) = self;
+    PD_MSG_FIELD(guid) = self->fguid;
     PD_MSG_FIELD(properties) = 0;
-    pd->sendMessage(pd, &msg, false);
+    self->pd->sendMessage(self->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
-    self->guid = NULL_GUID;
+    self->fguid.guid = UNINITIALIZED_GUID;
 }
 
 void sharedFinish(ocrMemTarget_t *self) {
@@ -118,7 +118,9 @@ ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
     ocrMemTarget_t *result = (ocrMemTarget_t*)
         runtimeChunkAlloc(sizeof(ocrMemTargetShared_t), NULL);
 
-    result->guid = UNINITIALIZED_GUID;
+    result->fguid.guid = UNINITIALIZED_GUID;
+    result->fguid.metaDataPtr = result;
+    result->pd = NULL;
     result->location = location;
 
     result->size = size;

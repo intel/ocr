@@ -85,25 +85,4 @@ typedef struct _ocrWorkpileFactory_t {
     ocrWorkpileFcts_t workpileFcts;
 } ocrWorkpileFactory_t;
 
-
-/****************************************************/
-/* OCR WORKPILE ITERATOR API                        */
-/****************************************************/
-
-typedef struct ocrWorkpileIterator_t {
-    bool (*hasNext) (struct ocrWorkpileIterator_t*);
-    ocrWorkpile_t * (*next) (struct ocrWorkpileIterator_t*);
-    void (*reset) (struct ocrWorkpileIterator_t*);
-    ocrWorkpile_t ** array;
-    u64 id;
-    u64 curr;
-    u64 mod;
-} ocrWorkpileIterator_t;
-
-void workpileIteratorReset (ocrWorkpileIterator_t * base);
-bool workpileIteratorHasNext (ocrWorkpileIterator_t * base);
-ocrWorkpile_t * workpileIteratorNext (ocrWorkpileIterator_t * base);
-ocrWorkpileIterator_t* newWorkpileIterator( u64 id, u64 workpileCount, ocrWorkpile_t ** workpiles );
-void workpileIteratorDestruct(ocrWorkpileIterator_t* base);
-
 #endif /* __OCR_WORKPILE_H_ */

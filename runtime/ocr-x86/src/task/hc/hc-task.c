@@ -669,7 +669,7 @@ void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
 void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
     // anything to edt registration
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL);
+    getCurrentEnv(&pd, NULL, NULL, NULL);
     if (isEdtGuid(waiterGuid)) {
         // edt waiting for a signal from an event or a datablock
         ASSERT((signalerGuid == NULL_GUID) || isEventGuid(signalerGuid) || isDatablockGuid(signalerGuid));

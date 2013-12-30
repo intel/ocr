@@ -9,11 +9,9 @@
 #define OCR_POLICY_DOMAIN_H_
 
 #include "ocr-allocator.h"
-#include "ocr-comp-target.h"
 #include "ocr-datablock.h"
 #include "ocr-event.h"
 #include "ocr-guid.h"
-#include "ocr-mem-target.h"
 #include "ocr-scheduler.h"
 
 #ifdef OCR_ENABLE_STATISTICS
@@ -25,7 +23,6 @@
 #include "ocr-tuning.h"
 #include "ocr-types.h"
 #include "ocr-worker.h"
-#include "ocr-workpile.h"
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -425,21 +422,12 @@ typedef struct _ocrPolicyDomain_t {
     ocrGuid_t guid;                             /**< GUID for this policy */
 
     u64 schedulerCount;                         /**< Number of schedulers */
-    u64 workerCount;                            /**< Number of workers */
-    u64 computeCount;                           /**< Number of target computate
-                                                 * nodes */
-    u64 workpileCount;                          /**< Number of workpiles */
     u64 allocatorCount;                         /**< Number of allocators */
-    u64 memoryCount;                            /**< Number of target memory
-                                                 * nodes */
+    u64 workerCount;                            /**< Number of workers */
 
     ocrScheduler_t  ** schedulers;              /**< All the schedulers */
-    ocrWorker_t     ** workers;                 /**< All the workers */
-    ocrCompTarget_t ** computes;                /**< All the target compute
-                                                 * nodes */
-    ocrWorkpile_t   ** workpiles;               /**< All the workpiles */
     ocrAllocator_t  ** allocators;              /**< All the allocators */
-    ocrMemTarget_t  ** memories;                /**< All the target memory */
+    ocrWorker_t     ** workers;                 /**< All the workers */
 
     ocrTaskFactory_t  * taskFactory;            /**< Factory to produce tasks
                                                  * (EDTs) */
@@ -566,7 +554,7 @@ typedef struct _ocrPolicyDomain_t {
      * @param size  Number of bytes to allocate
      * @return A pointer to the allocated space
      */
-    void* (*pdMalloc)(u64 size);
+    void* (*pdMalloc)(struct _ocrPolicyDomain_t *self, u64 size);
 
     /**
      * @brief Policy-domain only free.
@@ -575,7 +563,7 @@ typedef struct _ocrPolicyDomain_t {
      *
      * @param addr Address to free
      */
-    void (*pdFree)(void* addr);
+    void (*pdFree)(struct _ocrPolicyDomain_t *self, void* addr);
     
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t* (*getStats)(struct _ocrPolicyDomain_t *self);
@@ -622,9 +610,7 @@ typedef struct _ocrPolicyDomainFactory_t {
      */
 
     ocrPolicyDomain_t * (*instantiate)
-        (struct _ocrPolicyDomainFactory_t *factory, u64 schedulerCount,
-         u64 workerCount, u64 computeCount, u64 workpileCount,
-         u64 allocatorCount, u64 memoryCount, ocrTaskFactory_t *taskFactory,
+        (struct _ocrPolicyDomainFactory_t *factory, ocrTaskFactory_t *taskFactory,
          ocrTaskTemplateFactory_t *taskTemplateFactory,
          ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
          ocrGuidProvider_t *guidProvider, ocrSys_t *sysProvider,

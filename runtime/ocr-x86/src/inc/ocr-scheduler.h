@@ -88,7 +88,6 @@ typedef struct _ocrSchedulerFcts_t {
     // TODO: We will need to add the DB functions here
 } ocrSchedulerFcts_t;
 
-struct _ocrWorker_t;
 struct _ocrWorkpile_t;
 
 /*! \brief Represents OCR schedulers.
@@ -96,12 +95,10 @@ struct _ocrWorkpile_t;
  *  Currently, we allow scheduler interface to have work taken from them or given to them
  */
 typedef struct _ocrScheduler_t {
-    ocrGuid_t guid;
+    ocrFatGuid_t fguid;
     struct _ocrPolicyDomain_t *pd;
-
-    struct _ocrWorker_t **workers;
+    
     struct _ocrWorkpile_t **workpiles;
-    u64 workerCount;
     u64 workpileCount;
 
     ocrSchedulerFcts_t *fctPtrs;

@@ -42,7 +42,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
-    getCurrentEnv(&policy, &task, &msg);
+    getCurrentEnv(&policy, NULL, &task, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_CREATE
@@ -73,7 +73,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
-    getCurrentEnv(&policy, &task, &msg);
+    getCurrentEnv(&policy, NULL, &task, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_FREE
@@ -93,7 +93,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
-    getCurrentEnv(&policy, &task, &msg);
+    getCurrentEnv(&policy, NULL, &task, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_RELEASE

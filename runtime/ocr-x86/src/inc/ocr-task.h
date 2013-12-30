@@ -53,9 +53,6 @@ typedef struct ocrTaskTemplateFcts_t {
  */
 typedef struct _ocrTaskTemplate_t {
     ocrGuid_t guid;         /**< GUID for this task template */
-    ocrGuid_t allocator;    /**< GUID of the allocator that created this
-                             * metadata */
-    ocrGuid_t allocatingPD; /**< GUID of the PD of the allocator */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
@@ -120,8 +117,6 @@ typedef struct _ocrTaskFcts_t {
  */
 typedef struct _ocrTask_t {
     ocrGuid_t guid;         /**< GUID for this task (EDT) */
-    ocrGuid_t allocator;    /**< Allocator for this metadata */
-    ocrGuid_t allocatingPD; /**< PD of the above allocator */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif

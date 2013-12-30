@@ -12,7 +12,7 @@
 
 void ocrShutdown() {
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL);
+    getCurrentEnv(&pd, NULL, NULL, NULL);
     teardown(pd);
 }
 

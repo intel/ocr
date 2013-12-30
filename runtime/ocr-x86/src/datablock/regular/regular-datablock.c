@@ -146,7 +146,7 @@ void regularDestruct(ocrDataBlock_t *self) {
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *task = NULL;
     ocrPolicyMsg_t msg;
-    getCurrentEnv(&pd, &task, &msg);
+    getCurrentEnv(&pd, NULL, &task, &msg);
     
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_DESTROY
@@ -225,7 +225,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
     ocrTask_t *task = NULL;
     ocrPolicyMsg_t msg;
 
-    getCurrentEnv(&pd, &task, &msg);
+    getCurrentEnv(&pd, NULL, &task, &msg);
     
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_CREATE

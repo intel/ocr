@@ -192,7 +192,7 @@ struct _ocrCompTarget_t;
  * This is typically a one-one mapping but it's not mandatory.
  */
 typedef struct _ocrCompTarget_t {
-    ocrGuid_t guid; /**< Guid of the comp-target */
+    ocrFatGuid_t guid; /**< Guid of the comp-target */
     struct _ocrPolicyDomain_t *pd; /**< Policy domain this comp-target belongs to */
     ocrPhysicalLocation_t location; /**< Location of this comp-target */
 #ifdef OCR_ENABLE_STATISTICS
