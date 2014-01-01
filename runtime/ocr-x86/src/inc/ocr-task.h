@@ -37,18 +37,18 @@ struct _ocrTaskTemplate_t;
 /* OCR TASK TEMPLATE                                */
 /****************************************************/
 
-/*! \brief Abstract class to represent OCR task template functions
+/** @brief Abstract class to represent OCR task template functions
  *
  *  This class provides the interface to call operations on task
  *  templates
  */
 typedef struct ocrTaskTemplateFcts_t {
-    /*! \brief Virtual destructor for the Task interface
+    /** @brief Virtual destructor for the Task interface
      */
-    void (*destruct) (struct _ocrTaskTemplate_t* self);
+    void (*destruct)(struct _ocrTaskTemplate_t* self);
 } ocrTaskTemplateFcts_t;
 
-/*! \brief Abstract class to represent OCR task templates.
+/** @brief Abstract class to represent OCR task templates.
  *
  */
 typedef struct _ocrTaskTemplate_t {
@@ -56,11 +56,14 @@ typedef struct _ocrTaskTemplate_t {
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
-    u32 paramc;
-    u32 depc;
-    ocrEdt_t executePtr;
+    u32 paramc;             /**< Number of input parameters */
+    u32 depc;               /**< Number of dependences */
+    // TODO: This does not really support things like
+    // moving code around and/or different ISAs. Is this
+    // going to be a problem...
+    ocrEdt_t executePtr;    /**< Function pointer to execute */
 #ifdef OCR_ENABLE_EDT_NAMING
-    const char* name;
+    const char* name;       /**< Name of the EDT */
 #endif
     u32 fctId;              /**< Functions to manage this template */
 } ocrTaskTemplate_t;
@@ -70,11 +73,21 @@ typedef struct _ocrTaskTemplate_t {
 /****************************************************/
 
 typedef struct _ocrTaskTemplateFactory_t {
+    /**
+     * @brief Create a task template
+     *
+     * @param[in] factory     Pointer to this factory
+     * @param[in] fctPtr      Function pointer to execute
+     * @param[in] paramc      Number of input parameters or EDT_PARAM_UNK or EDT_PARAM_DEF
+     * @param[in] depc        Number of DB dependences or EDT_PARAM_UNK or EDT_PARAM_DEF
+     * @param[in] fctName     Name of the EDT (for debugging)
+     * @param[in] perInstance Instance specific parameters
+     */
     ocrTaskTemplate_t* (*instantiate)(struct _ocrTaskTemplateFactory_t * factory, ocrEdt_t fctPtr,
                                       u32 paramc, u32 depc, const char* fctName,
                                       ocrParamList_t *perInstance);
 
-    /*! \brief Virtual destructor for the TaskTemplateFactory interface
+    /** @brief Destructor for the TaskTemplateFactory interface
      */
     void (*destruct)(struct _ocrTaskTemplateFactory_t * factory);
 
@@ -95,14 +108,14 @@ struct _ocrTask_t;
 typedef struct _ocrTaskFcts_t {
     /*! \brief Virtual destructor for the Task interface
      */
-    void (*destruct) (struct _ocrTask_t* self);
+    void (*destruct)(struct _ocrTask_t* self);
     /*! \brief Interface to execute the underlying computation of a task
      */
-    void (*execute) (struct _ocrTask_t* self);
+    void (*execute)(struct _ocrTask_t* self);
     /*! \brief Interface to schedule the underlying computation of a task
      * @todo What is this for?
      */
-    void (*schedule) (struct _ocrTask_t* self);
+    void (*schedule)(struct _ocrTask_t* self);
 } ocrTaskFcts_t;
 
 // ELS runtime size is one to support finish-edt

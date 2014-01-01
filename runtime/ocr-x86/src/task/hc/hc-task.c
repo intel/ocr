@@ -24,8 +24,6 @@
 #endif 
 #endif /* OCR_ENABLE_STATISTICS */
 
-#include <string.h>
-
 #define SEALED_LIST ((void *) -1)
 #define END_OF_LIST NULL
 #define UNINITIALIZED_DATA ((ocrGuid_t) -2)
@@ -53,7 +51,7 @@ static inline ocrTask_t * getCurrentTask() {
 /**
    @brief return true if a property is part of a properties set
  **/
-static bool hasProperty(u16 properties, u16 property) {
+static inline bool hasProperty(u32 properties, u32 property) {
     return properties & property;
 }
 

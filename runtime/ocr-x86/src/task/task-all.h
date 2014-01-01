@@ -13,6 +13,7 @@
 #define __TASK_ALL_H__
 
 #include "debug.h"
+#include "ocr-config.h"
 #include "ocr-task.h"
 #include "ocr-utils.h"
 
@@ -47,8 +48,10 @@ const char * taskTemplate_types [] = {
 
 inline ocrTaskFactory_t *newTaskFactory(taskType_t type, ocrParamList_t *typeArg) {
     switch(type) {
+#ifdef ENABLE_TASK_HC
     case taskHc_id:
-        return newTaskFactoryHc(typeArg);
+        return newTaskFactoryHc(typeArg, (u32)type);
+#endif
     default:
         ASSERT(0);
     };
@@ -57,8 +60,10 @@ inline ocrTaskFactory_t *newTaskFactory(taskType_t type, ocrParamList_t *typeArg
 
 inline ocrTaskTemplateFactory_t *newTaskTemplateFactory(taskTemplateType_t type, ocrParamList_t *typeArg) {
     switch(type) {
+#ifdef ENABLE_TASKTEMPLATE_HC
     case taskTemplateHc_id:
-        return newTaskTemplateFactoryHc(typeArg);
+        return newTaskTemplateFactoryHc(typeArg, (u32)type);
+#endif
     default:
         ASSERT(0);
         return NULL;

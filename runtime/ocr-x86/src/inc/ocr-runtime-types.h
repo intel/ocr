@@ -71,6 +71,29 @@ typedef enum {
     MAX_WORKTYPE    = 0x3
 } ocrWorkType_t;
 
+/**
+ * @brief Type of pop from workpiles.
+ *
+ * There are multiple ways to steal from a workpile
+ * (traditionally the usual pop and also the steal).
+ * This enum allows us to expand this in the future
+ */
+typedef enum {
+    POP_WORKPOPTYPE     = 0x1,
+    STEAL_WORKPOPTYPE   = 0x2,
+    MAX_WORKPOPTYPE     = 0x3
+} ocrWorkPopType_t;
+
+/**
+ * @brief Type of push to workpiles
+ *
+ * @see ocrWorkPopType_t
+ */
+typedef enum {
+    PUSH_WORKPUSHTYPE   = 0x1,
+    MAX_WORKPUSHTYPE    = 0x2
+} ocrWorkPushType_t;
+
 typedef struct {
     ocrGuid_t guid;
     void* metaDataPtr;
@@ -97,6 +120,3 @@ typedef u64 ocrPhysicalLocation_t;
 #define POLL_ERR_MASK     0xF0
 
 #endif /* __OCR_RUNTIME_TYPES_H__ */
-
-
-

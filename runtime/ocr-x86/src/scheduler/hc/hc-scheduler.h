@@ -21,8 +21,8 @@
 struct _ocrWorkpile_t;
 
 typedef struct _hcWorkpileIterator_t {
-    u64 id, curr, mod;
     struct _ocrWorkpile_t **workpiles;
+    u64 id, curr, mod;
 } hcWorkpileIterator_t;
 
 typedef struct {

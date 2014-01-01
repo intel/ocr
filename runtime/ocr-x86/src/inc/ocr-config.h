@@ -49,6 +49,9 @@
 // Task
 #define ENABLE_TASK_HC
 
+// Task template
+#define ENABLE_TASKTEMPLATE_HC
+
 // Worker
 #define ENABLE_WORKER_HC
 

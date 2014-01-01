@@ -9,9 +9,14 @@
 
 #include "debug.h"
 #include "ocr-policy-domain.h"
+#include "ocr-runtime-types.h"
 #include "ocr-sysboot.h"
 #include "ocr-workpile.h"
 #include "scheduler/hc/hc-scheduler.h"
+// TODO: This relies on data in hc-worker (its ID to do the mapping)
+// This is non-portable (HC scheduler does not work with non
+// HC worker) but works for now
+#include "worker/hc/hc-worker.h" // NON PORTABLE FOR NOW
 
 /******************************************************/
 /* Support structures                                 */
@@ -189,26 +194,35 @@ u8 hcSchedulerTake (ocrScheduler_t *self, u32 *count, ocrFatGuid_t *edts) {
     // Source must be a worker guid and we rely on indices to map
     // workers to workpiles (one-to-one)
     // TODO: This is a non-portable assumption but will do for now.
-    u64 workerId = context->sourceId;
+    ocrWorker_t *worker = NULL;
+    ocrWorkerHc_t *hcWorker = NULL;
+    getCurrentEnv(NULL, &worker, NULL, NULL);
+    hcWorker = (ocrWorkerHc_t*)worker;
+
+    if(*count == 0) return 1; // No room to put anything
+
+    ASSERT(edts != NULL); // Array should be allocated at least
+    
+    u64 workerId = hcWorker->id;
     // First try to pop
-    ocrWorkpile_t * wp_to_pop = popMappingOneToOne(self, workerId);
+    ocrWorkpile_t * wpToPop = popMappingOneToOne(self, workerId);
     // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
-    ocrGuid_t popped = wp_to_pop->fctPtrs->pop(wp_to_pop,cost);
-    if ( NULL_GUID == popped ) {
+    ocrFatGuid_t popped = wpToPop->fctPtrs->pop(wpToPop, POP_WORKPOPTYPE, cost);
+    if(NULL_GUID == popped) {
         // If popping failed, try to steal
         hcWorkpileIterator_t* it = stealMappingOneToAllButSelf(self, workerId);
-        while ( workpileIteratorHasNext(it) && (NULL_GUID == popped)) {
+        while(workpileIteratorHasNext(it) && (NULL_GUID == popped)) {
             ocrWorkpile_t * next = workpileIteratorNext(it);
             // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
-            popped = next->fctPtrs->steal(next, cost);
+            popped = next->fctPtrs->pop(next, STEAL_WORKPOPTYPE, cost);
         }
     }
     // In this implementation we expect the caller to have
     // allocated memory for us since we can return at most one
     // guid (most likely store using the address of a local)
-    if (NULL_GUID != popped) {
+    if(NULL_GUID != popped) {
         *count = 1;
-        *edts = popped;
+        edts[0] = popped;
     } else {
         *count = 0;
     }
@@ -216,13 +230,23 @@ u8 hcSchedulerTake (ocrScheduler_t *self, u32 *count, ocrFatGuid_t *edts) {
 }
 
 u8 hcSchedulerGive (ocrScheduler_t* base, u32* count, ocrFatGuid_t* edts) {
+    // Source must be a worker guid and we rely on indices to map
+    // workers to workpiles (one-to-one)
+    // TODO: This is a non-portable assumption but will do for now.
+    ocrWorker_t *worker = NULL;
+    ocrWorkerHc_t *hcWorker = NULL;
+    getCurrentEnv(NULL, &worker, NULL, NULL);
+    hcWorker = (ocrWorkerHc_t*)worker;
+    
     // Source must be a worker guid
-    u64 workerId = context->sourceId;
-    ocrWorkpile_t * wp_to_push = pushMappingOneToOne(base, workerId);
+    u64 workerId = hcWorker->id;
+    ocrWorkpile_t * wpToPush = pushMappingOneToOne(base, workerId);
     u32 i = 0;
     for ( ; i < count; ++i ) {
-        wp_to_push->fctPtrs->push(wp_to_push,edts[i]);
+        wpToPush->fctPtrs->push(wpToPush, PUSH_WORKPUSHTYPE, edts[i]);
+        edts[i] = NULL;
     }
+    *count = 0;
     return 0;
 }
 

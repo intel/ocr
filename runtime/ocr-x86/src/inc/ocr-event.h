@@ -44,27 +44,31 @@ typedef struct _paramListEventFact_t {
 
 struct _ocrEvent_t;
 
-/*! \brief Abstract class to represent OCR events function pointers
+/**
+ * @brief Abstract class to represent OCR events function pointers
  *
- *  This class provides the interface for the underlying implementation to conform with.
+ * This class provides the interface for the underlying implementation to conform with.
  */
 typedef struct _ocrEventFcts_t {
-    /*! \brief Virtual destructor for the Event interface
-     *  \param[in] self          Pointer to this event
+    /**
+     * @brief Virtual destructor for the Event interface
+     * @param[in] self          Pointer to this event
      */
     void (*destruct)(struct _ocrEvent_t* self);
 
-    /*! \brief Interface to get the GUID of the entity that satisfied an event.
-     *  \param[in] self          Pointer to this event
-     *  \param[in] slot          The slot of the event to get from
-     *  \return GUID of the entity the event has been satisfied with
+    /**
+     * @brief Interface to get the GUID of the entity that satisfied an event.
+     * @param[in] self          Pointer to this event
+     * @param[in] slot          The slot of the event to get from
+     * @return GUID of the entity the event has been satisfied with
      */
     ocrFatGuid_t (*get) (struct _ocrEvent_t* self, u32 slot);
 
-    /*! \brief Interface to satisfy the event
-     *  \param[in] self         Pointer to this event
-     *  \param[in] db           GUID to satisfy this event with (or NULL_GUID)
-     *  \param[in] slot         Input slot for this event
+    /**
+     * @brief Interface to satisfy the event
+     * @param[in] self         Pointer to this event
+     * @param[in] db           GUID to satisfy this event with (or NULL_GUID)
+     * @param[in] slot         Input slot for this event
      */
     void (*satisfy)(struct _ocrEvent_t* self, ocrFatGuid_t db, u32 slot);
 
@@ -84,11 +88,12 @@ typedef struct _ocrEventFcts_t {
     void (*registerDependence)(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot);
 } ocrEventFcts_t;
 
-/*! \brief Abstract class to represent OCR events.
+/**
+ * @brief Abstract class to represent OCR events.
  *
- *  Events can be satisfied with a GUID, polled for 
- *  what GUID satisfied the event and registered to
- *  other events or edts.
+ * Events can be satisfied with a GUID, polled for 
+ * what GUID satisfied the event and registered to
+ * other events or edts.
  */
 typedef struct _ocrEvent_t {
     ocrGuid_t guid;         /**< GUID for this event */
@@ -108,18 +113,18 @@ typedef struct _ocrEvent_t {
  * @brief events factory
  */
 typedef struct _ocrEventFactory_t {
-    /*! \brief Instantiates an Event and returns its corresponding GUID
-     *  \param[in] factory          Pointer to this factory
-     *  \param[in] eventType        Type of event to instantiate
-     *  \param[in] takesArg         Does the event will take an argument
-     *  \param[in] instanceArg      Arguments specific for this instance
-     *  \return a new instance of an event
+    /** @brief Instantiates an Event and returns its corresponding GUID
+     *  @param[in] factory          Pointer to this factory
+     *  @param[in] eventType        Type of event to instantiate
+     *  @param[in] takesArg         Does the event will take an argument
+     *  @param[in] instanceArg      Arguments specific for this instance
+     *  @return a new instance of an event
      */
     ocrEvent_t* (*instantiate)(struct _ocrEventFactory_t* factory, ocrEventTypes_t eventType,
                                bool takesArg, ocrParamList_t *instanceArg);
 
-    /*! \brief Virtual destructor for the factory
-     *  \param[in] factory          Pointer to this factory
+    /** @brief Virtual destructor for the factory
+     *  @param[in] factory          Pointer to this factory
      */
     void (*destruct)(struct _ocrEventFactory_t* factory);
 

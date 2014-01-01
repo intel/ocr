@@ -17,14 +17,14 @@ typedef struct {
 
 typedef struct _paramListWorkerHcInst_t {
     paramListWorkerInst_t base;
-    u32 workerId;
+    u64 workerId;
 } paramListWorkerHcInst_t;
 
 typedef struct {
     ocrWorker_t worker;
     // The HC implementation relies on integer ids to
     // map workers, schedulers and workpiles together
-    u32 id;
+    u64 id;
     // Flag the worker checksto now if he's running
     bool run;
     // reference to the EDT this worker is currently executing

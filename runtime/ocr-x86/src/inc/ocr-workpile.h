@@ -45,20 +45,27 @@ typedef struct _ocrWorkpileFcts_t {
 
     void (*finish)(struct _ocrWorkpile_t *self);
 
-    /*! \brief Interface to extract a task from this pool
-     *  \return GUID of the task that is extracted from this task pool
+    /** @brief Interface to extract a task from this pool
+     *
+     *  This will get a task from the workpile.
+     *  @param[in] self         Pointer to this workpile
+     *  @param[in] type         Type of pop (regular or steal for eg)
+     *  @param[in] cost         Cost function to use to perform the pop
+     *
+     *  @return GUID of the task extracted from the task pool. After the
+     *  call, that task will no longer exist in the pool
+     *  @todo cost is not used as of now
      */
-    ocrFatGuid_t (*pop) (struct _ocrWorkpile_t *self, ocrCost_t *cost);
+    ocrFatGuid_t (*pop)(struct _ocrWorkpile_t *self, ocrWorkPopType_t type,
+                        ocrCost_t *cost);
 
-    /*! \brief Interface to alternative extract a task from this pool
-     *  \return GUID of the task that is extracted from this task pool
+    /** @brief Interface to push a task into the pool
+     *  @param[in] self         Pointer to this workpile
+     *  @param[in] type         Type of push
+     *  @param[in] g            GUID of task to push
      */
-    ocrFatGuid_t (*steal)(struct _ocrWorkpile_t *self, ocrCost_t *cost);
-
-    /*! \brief Interface to enlist a task
-     *  \param[in]  task_guid   GUID of the task that is to be pushed into this task pool.
-     */
-    void (*push) (struct _ocrWorkpile_t *self, ocrFatGuid_t g);
+    void (*push)(struct _ocrWorkpile_t *self, ocrWorkPushType_t type,
+                 ocrFatGuid_t g);
 } ocrWorkpileFcts_t;
 
 /*! \brief Abstract class to represent OCR task pool data structures.
@@ -79,7 +86,8 @@ typedef struct _ocrWorkpile_t {
 /****************************************************/
 
 typedef struct _ocrWorkpileFactory_t {
-    ocrWorkpile_t * (*instantiate) (struct _ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance);
+    ocrWorkpile_t * (*instantiate)(struct _ocrWorkpileFactory_t * factory,
+                                   ocrParamList_t *perInstance);
 
     void (*destruct)(struct _ocrWorkpileFactory_t * factory);
     ocrWorkpileFcts_t workpileFcts;
