@@ -8,7 +8,7 @@
 #define __FSIM_POLICY_H__
 
 #include "ocr-policy-domain.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef struct _ocrPolicyCtxXE_t {
     ocrPolicyCtx_t base;

@@ -22,6 +22,8 @@
 
 #include "policy-domain/hc/hc-policy.h"
 
+#define DEBUG_TYPE POLICY
+
 void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     // The PD should have been brought up by now and everything instantiated
     // WARNING: Threads start should be the last thing we do here after
@@ -30,17 +32,20 @@ void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     u64 maxCount = 0;
 
     // TODO: Add GUIDIFY and put release GUID in stop
-    
-    ASSERT(policy->workerCount == policy->computeCount);
 
+    maxCount = policy->guidProviderCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->guidProviders[i]->fcts.start(policy->guidProviders[i], policy);
+    }
+    
     maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
-        policy->allocators[i]->fctPtrs->start(policy->allocators[i], policy);
+        policy->allocators[i]->fcts.start(policy->allocators[i], policy);
     }
     
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
-        policy->schedulers[i]->fctPtrs->start(policy->schedulers[i], policy);
+        policy->schedulers[i]->fcts.start(policy->schedulers[i], policy);
     }
 
         
@@ -51,13 +56,13 @@ void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     // Workers should start the underlying target and platforms
     maxCount = policy->workerCount;
     for(i = 1; i < maxCount; i++) {
-        policy->workers[i]->fctPtrs->start(policy->workers[i], policy);
+        policy->workers[i]->fcts.start(policy->workers[i], policy);
     }
 
     // Need to associate thread and worker here, as current thread fall-through
     // in user code and may need to know which Worker it is associated to.
     // Handle target '0'
-    policy->workers[0]->fctPtrs->start(policy->workers[0], policy);
+    policy->workers[0]->fcts.start(policy->workers[0], policy);
 }
 
 
@@ -71,20 +76,23 @@ void hcPolicyDomainFinish(ocrPolicyDomain_t * policy) {
     // policy domain
     maxCount = policy->workerCount;
     for(i = 0; i < maxCount; i++) {
-        policy->workers[i]->fctPtrs->finish(policy->workers[i]);
+        policy->workers[i]->fcts.finish(policy->workers[i]);
     }
     
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
-        policy->schedulers[i]->fctPtrs->finish(policy->schedulers[i]);
+        policy->schedulers[i]->fcts.finish(policy->schedulers[i]);
     }
     
     maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
-        policy->allocators[i]->fctPtrs->finish(policy->allocators[i]);
+        policy->allocators[i]->fcts.finish(policy->allocators[i]);
     }
 
-    policy->guidProvider->fctPtrs->finish(policy->guidProvider);
+    maxCount = policy->guidProviderCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->guidProviders[i]->fcts.finish(policy->guidProviders[i]);
+    }
     policy->sysProvider->fctPtrs->finish(policy->sysProvider);
 }
 
@@ -102,7 +110,7 @@ void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
     // policy domain
     maxCount = policy->workerCount;
     for(i = 0; i < maxCount; i++) {
-        policy->workers[i]->fctPtrs->stop(policy->workers[i]);
+        policy->workers[i]->fcts.stop(policy->workers[i]);
     }
     // WARNING: Do not add code here unless you know what you're doing !!
     // If we are here, it means an EDT called ocrShutdown which
@@ -113,15 +121,18 @@ void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
     
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
-        policy->schedulers[i]->fctPtrs->stop(policy->schedulers[i]);
+        policy->schedulers[i]->fcts.stop(policy->schedulers[i]);
     }
     
     maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
-        policy->allocators[i]->fctPtrs->stop(policy->allocators[i]);
+        policy->allocators[i]->fcts.stop(policy->allocators[i]);
     }
-    
-    policy->guidProvider->fctPtrs->stop(policy->guidProvider);
+
+    maxCount = policy->guidProviderCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->guidProviders[i]->fcts.stop(policy->guidProviders[i]);
+    }
     policy->sysProvider->fctPtrs->stop(policy->sysProvider);
 }
 
@@ -135,17 +146,17 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     // policy domain
     maxCount = policy->workerCount;
     for(i = 0; i < maxCount; i++) {
-        policy->workers[i]->fctPtrs->destruct(policy->workers[i]);
+        policy->workers[i]->fcts.destruct(policy->workers[i]);
     }
     
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
-        policy->schedulers[i]->fctPtrs->destruct(policy->schedulers[i]);
+        policy->schedulers[i]->fcts.destruct(policy->schedulers[i]);
     }
     
     maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
-        policy->allocators[i]->fctPtrs->destruct(policy->allocators[i]);
+        policy->allocators[i]->fcts.destruct(policy->allocators[i]);
     }
 
     
@@ -153,16 +164,34 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     ASSERT(policy->neighbors == NULL);
 
     // Destruct factories
-    policy->taskFactory->destruct(policy->taskFactory);
-    policy->taskTemplateFactory->destruct(policy->taskTemplateFactory);
-    policy->dbFactory->destruct(policy->dbFactory);
-    policy->eventFactory->destruct(policy->eventFactory);
+    maxCount = policy->taskFactoryCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->taskFactories[i]->destruct(policy->taskFactories[i]);
+    }
+
+    maxCount = policy->taskTemplateFactoryCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->taskTemplateFactories[i]->destruct(policy->taskTemplateFactories[i]);
+    }
+
+    maxCount = policy->dbFactoryCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->dbFactories[i]->destruct(policy->dbFactories[i]);
+    }
+
+    maxCount = policy->eventFactoryCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->eventFactories[i]->destruct(policy->eventFactories[i]);
+    }
 
     //Anticipate those to be null-impl for some time
     ASSERT(policy->costFunction == NULL);
 
     // Destroy these last in case some of the other destructs make use of them
-    policy->guidProvider->fctPtrs->destruct(policy->guidProvider);
+    maxCount = policy->guidProviderCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->guidProviders[i]->fcts.destruct(policy->guidProviders[i]);
+    }
     policy->sysProvider->fctPtrs->destruct(policy->sysProvider);
 
     // Destroy self
@@ -176,15 +205,15 @@ static u8 hcAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, 
     u64 i;
     void* result;
     for(i=0; i < self->allocatorCount; ++i) {
-        result = self->allocators[i]->fctPtrs->allocate(self->allocators[i],
+        result = self->allocators[i]->fcts.allocate(self->allocators[i],
                                                         size);
         if(result) break;
     }
     // TODO: return error code. Requires our own errno to be clean
     if(i < self->allocatorCount) {
-        ocrDataBlock_t *block = self->dbFactory->instantiate(self->dbFactory,
-                                                             self->allocators[i]->guid, self->guid,
-                                                             size, result, properties, NULL);
+        ocrDataBlock_t *block = self->dbFactories[0]->instantiate(
+            self->dbFactories[0], self->allocators[i]->fguid, self->fguid,
+            size, result, properties, NULL);
         *ptr = result;
         (*guid).guid = block->guid;
         (*guid).metaDataPtr = block;
@@ -198,12 +227,13 @@ static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
                       u32 depc, u16 properties, ocrFatGuid_t affinity,
                       ocrFatGuid_t * outputEvent) {
 
-    ocrTask_t * base = self->taskFactory->instantiate(self->taskFactory, edtTemplate, paramc,
-                                                      paramv, depc, properties, affinity,
-                                                      outputEvent, NULL);
+    ocrTask_t * base = self->taskFactories[0]->instantiate(
+        self->taskFactories[0], edtTemplate, paramc,paramv,
+        depc, properties, affinity, outputEvent, NULL);
     // Check if the edt is ready to be scheduled
     if (base->depc == 0) {
-        self->taskFactory->fctPtrs.schedule(base).
+        // FIXME
+        self->taskFactory->fctPtrs.schedule(base);
     }
     (*guid).guid = base->guid;
     (*guid).metaDataPtr = base;
@@ -214,8 +244,8 @@ static u8 hcCreateEdtTemplate(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
                               ocrEdt_t func, u32 paramc, u32 depc, const char* funcName) {
 
 
-    ocrTaskTemplate_t *base = self->taskTemplateFactory->instantiate(self->taskTemplateFactory,
-                                                                     func, paramc, depc, funcName, NULL);
+    ocrTaskTemplate_t *base = self->taskTemplateFactories[0]->instantiate(
+        self->taskTemplateFactories[0], func, paramc, depc, funcName, NULL);
     (*guid).guid = base->guid;
     (*guid).metaDataPtr = base;
     return 0;
@@ -225,8 +255,8 @@ static u8 hcCreateEvent(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
                         ocrEventTypes_t type, bool takesArg) {
 
 
-    ocrEvent_t *base = self->eventFactory->instantiate(self->eventFactory,
-                                                              type, takesArg, NULL);
+    ocrEvent_t *base = self->eventFactories[0]->instantiate(
+        self->eventFactories[0], type, takesArg, NULL);
     (*guid).guid = base->guid;
     (*guid).metaDataPtr = base;
     return 0;
@@ -278,14 +308,15 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE);
         returnCode = hcAllocateDb(self, &(PD_MSG_FIELD(guid)),
                                   &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
-                                  PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity),
-                                  PD_MSG_TYPE(allocator));
+                                  PD_MSG_FIELD(properties),
+                                  PD_MSG_FIELD(affinity),
+                                  PD_MSG_FIELD(allocator));
         if(returnCode == 0) {
             ocrDataBlock_t *db= PD_MSG_FIELD(guid.metaDataPtr);
             ASSERT(db);
             // TODO: Check if properties want DB acquired
-            ASSERT(db->funcId == self->dbFactory->factoryId);
-            PD_MSG_FIELD(ptr) = self->dbFactory->funcPtrs.acquire(
+            ASSERT(db->funcId == self->dbFactories[0]->factoryId);
+            PD_MSG_FIELD(ptr) = self->dbFactories[0]->fcts.acquire(
                 db, PD_MSG_FIELD(edt), false);
         } else {
             // Cannot acquire
@@ -304,9 +335,10 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // For now, we make sure that we own the allocator and what not
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_DESTROY
-        ASSERT(PD_MSG_FIELD(allocatingPD) == self->guid);
-        ASSERT(PD_MSG_FIELD(allocator) == self->allocators[0].fguid.guid);
-        DPRINTF(DEBUG_LVL_VERB, "Freeing DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n", (u64)(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(guid.guid));
+        ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->guid);
+        ASSERT(PD_MSG_FIELD(allocator.guid) == self->allocators[0]->fguid.guid);
+        DPRINTF(DEBUG_LVL_VERB, "Freeing DB @ 0x%lx (GUID: 0x%lx)\n",
+                (u64)(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(guid.guid));
         self->allocators[0]->fctPtrs->free(self->allocators[0], PD_MSG_FIELD(ptr));
 #undef PD_MSG
 #undef PD_TYPE
@@ -320,11 +352,11 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_MEM_ACQUIRE
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         if(db == NULL) {
-            deguidify(pd, PD_MSG_FIELD(guid.guid, (u64*)&db, NULL);
+            deguidify(self, PD_MSG_FIELD(guid.guid), (u64*)&db, NULL);
         }
-        ASSERT(db->funcId == self->dbFactory->factoryId);
+        ASSERT(db->funcId == self->dbFactories[0]->factoryId);
         ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
-        self->dbFactory->funcPtrs.acquire(db, PD_MSG_FIELD(edt), false);
+        self->dbFactories[0]->fcts.acquire(db, PD_MSG_FIELD(edt), false);
         
 #undef PD_MSG
 #undef PD_TYPE
@@ -335,7 +367,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_WORK_CREATE
         if(PD_MSG_FIELD(templateGuid.metaDataPtr) == NULL) {
             deguidify(self, PD_MSG_FIELD(templateGuid.guid),
-                      &(PD_MSG_FIELD(templateGuid.metaDataPtr)), NULL);
+                      (u64*)&(PD_MSG_FIELD(templateGuid.metaDataPtr)), NULL);
         }
         ASSERT(PD_MSG_FIELD(workType) == EDT_WORKTYPE);
         returnCode = hcCreateEdt(self, &(PD_MSG_FIELD(guid)),
@@ -439,7 +471,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         
     case PD_MSG_SYS_SHUTDOWN:
-        self>stop(self);
+        self->stop(self);
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
         break;
         
@@ -480,12 +512,18 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->schedulerCount = 0;
     base->allocatorCount = 0;
     base->workerCount = 0;
+
+    base->taskFactoryCount = 0;
+    base->taskTemplateFactoryCount = 0;
+    base->eventFactoryCount = 0;
+    base->guidProviderCount = 0;
     
-    base->taskFactory = taskFactory;
-    base->taskTemplateFactory = taskTemplateFactory;
-    base->dbFactory = dbFactory;
-    base->eventFactory = eventFactory;
-    base->guidProvider = guidProvider;
+    base->taskFactories = NULL;
+    base->taskTemplateFactories = NULL;
+    base->dbFactories = NULL;
+    base->eventFactories = NULL;
+    base->guidProviders = NULL;
+    
     base->sysProvider = sysProvider;
 #ifdef OCR_ENABLE_STATISTICS
     base->statsObject = statsObject;

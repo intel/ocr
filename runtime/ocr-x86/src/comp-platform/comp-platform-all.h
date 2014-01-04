@@ -10,7 +10,7 @@
 #include "debug.h"
 #include "ocr-comp-platform.h"
 #include "ocr-config.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef enum _compPlatformType_t {
     compPlatformPthread_id,

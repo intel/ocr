@@ -13,7 +13,7 @@
 #include "ocr-lib.h"
 #include "ocr-runtime.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 #include "ocr.h"
 
 #include <stdlib.h>

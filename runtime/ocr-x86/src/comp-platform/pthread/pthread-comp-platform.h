@@ -16,7 +16,7 @@
 #include "ocr-comp-platform.h"
 #include "ocr-comp-target.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 #include <pthread.h>
 

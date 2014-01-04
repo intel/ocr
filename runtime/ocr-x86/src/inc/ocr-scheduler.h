@@ -9,7 +9,7 @@
 #define __OCR_SCHEDULER_H__
 
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 
 struct _ocrPolicyDomain_t;
@@ -101,7 +101,7 @@ typedef struct _ocrScheduler_t {
     struct _ocrWorkpile_t **workpiles;
     u64 workpileCount;
 
-    ocrSchedulerFcts_t *fctPtrs;
+    ocrSchedulerFcts_t fcts;
 } ocrScheduler_t;
 
 

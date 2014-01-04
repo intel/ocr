@@ -72,6 +72,7 @@ include comp-target/Makefile.inc
 include datablock/Makefile.inc
 include driver/Makefile.inc
 include event/Makefile.inc
+include external/Makefile.inc
 include guid/Makefile.inc
 include machine-description/Makefile.inc
 include mem-platform/Makefile.inc
@@ -79,7 +80,6 @@ include mem-target/Makefile.inc
 include policy-domain/Makefile.inc
 include scheduler/Makefile.inc
 include statistics/Makefile.inc
-include sync/Makefile.inc
 include sysboot/Makefile.inc
 include task/Makefile.inc
 include utils/Makefile.inc

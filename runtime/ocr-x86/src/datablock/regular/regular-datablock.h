@@ -17,7 +17,7 @@
 #include "ocr-allocator.h"
 #include "ocr-datablock.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 
 typedef struct {

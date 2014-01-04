@@ -16,7 +16,7 @@
 #define __OCR_SAL_H__
 
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 /****************************************************/
 /* SYSTEM FUNCTIONS                                 */

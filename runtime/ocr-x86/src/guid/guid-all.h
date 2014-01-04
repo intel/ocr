@@ -8,8 +8,9 @@
 #define __GUID_ALL_H__
 
 #include "debug.h"
+#include "ocr-config.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef enum _guidType_t {
     guidPtr_id,
@@ -27,8 +28,10 @@ const char * guid_types[] __attribute__ ((weak)) = {
 // Add other GUID providers if needed
 static inline ocrGuidProviderFactory_t *newGuidProviderFactory(guidType_t  type, ocrParamList_t *typeArg) {
     switch(type) {
+#ifdef ENABLE_GUID_PTR
     case guidPtr_id:
-        return newGuidProviderFactoryPtr(typeArg);
+        return newGuidProviderFactoryPtr(typeArg, (u32)type);
+#endif
     default:
         ASSERT(0);
     }

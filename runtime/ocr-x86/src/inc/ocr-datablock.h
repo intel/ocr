@@ -13,7 +13,7 @@
 
 #include "ocr-allocator.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -151,7 +151,7 @@ typedef struct _ocrDataBlockFactory_t {
      */
     void (*destruct)(struct _ocrDataBlockFactory_t *factory);
     u32 factoryId; /**< Corresponds to fctId in DB */
-    ocrDataBlockFcts_t funcPtrs; /**< Function pointers created instances should use */
+    ocrDataBlockFcts_t fcts; /**< Function pointers created instances should use */
 } ocrDataBlockFactory_t;
 
 #endif /* __OCR_DATABLOCK_H__ */

@@ -12,8 +12,9 @@
 #ifndef __OCR_GUID_H__
 #define __OCR_GUID_H__
 
+#include "ocr-runtime-types.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef enum {
     OCR_GUID_NONE = 0,
@@ -53,6 +54,7 @@ typedef struct _paramListGuidProviderInst_t {
 /****************************************************/
 
 struct _ocrGuidProvider_t;
+struct _ocrPolicyDomain_t;
 
 /**
  * @brief GUID provider function pointers
@@ -72,20 +74,51 @@ typedef struct _ocrGuidProviderFcts_t {
     void (*destruct)(struct _ocrGuidProvider_t* self);
 
     /**
-     * @brief Allocates a GUID for an object of kind 'kind'
+     * @brief "Starts" the GUID provider
+     *
+     * @param[in] self      Pointer to this GUID provider
+     * @param[in] pd        Policy domain this provider belongs to
+     */
+    void (*start)(struct _ocrGuidProvider_t* self, struct _ocrPolicyDomain_t* pd);
+    
+    void (*stop)(struct _ocrGuidProvider_t* self);
+    void (*finish)(struct _ocrGuidProvider_t* self);
+
+    /**
+     * @brief Gets a GUID for an object of kind 'kind'
      * and associates the value val.
      *
      * The GUID provider basically associates a value with the
-     * GUID (can be a pointer to the metadata for example).
+     * GUID
      *
-     * \param[in] self          Pointer to this GUID provider
-     * \param[out] guid         GUID returned
-     * \param[in] val           Value to be associated
-     * \param[in] kind          Kind of the object that will be associated with the GUID
+     * @param[in] self          Pointer to this GUID provider
+     * @param[out] guid         GUID returned
+     * @param[in] val           Value to be associated
+     * @param[in] kind          Kind of the object that will be associated with the GUID
      * @return 0 on success or an error code
      */
     u8 (*getGuid)(struct _ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val,
                   ocrGuidKind kind);
+
+    /**
+     * @brief Create a GUID for an object of kind 'kind'
+     * and creates storage of size 'size' associated with the
+     * GUID
+     *
+     * getGuid() will associate an existing 64-bit value to a
+     * GUID but createGuid() will create storage of size 'size'
+     * and associate the resulting address with a GUID. This
+     * is useful to create metadata storage
+     *
+     *
+     * @param[in] self          Pointer to this GUID provider
+     * @param[out] fguid        GUID returned (with metaDataPtr)
+     * @param[in] size          Size of the storage to be created
+     * @param[in] kind          Kind of the object that will be associated with the GUID
+     * @return 0 on success or an error code
+     */
+    u8 (*createGuid)(struct _ocrGuidProvider_t* self, ocrFatGuid_t* fguid,
+                     u64 size, ocrGuidKind kind);
 
     /**
      * @brief Resolve the associated value to the GUID 'guid'
@@ -115,11 +148,13 @@ typedef struct _ocrGuidProviderFcts_t {
      * Whether the GUID provider will re-issue this same GUID for a different
      * object is implementation dependent.
      *
-     * @param self          Pointer to this GUID provider
-     * @param guid          GUID to release
+     * @param[in] self        Pointer to this GUID provider
+     * @param[in] guid        GUID to release
+     * @param[in] releaseVal  If true, will also "free" the value associated
+     *                        with the GUID
      * @return 0 on success or an error code
      */
-    u8 (*releaseGuid)(struct _ocrGuidProvider_t *self, ocrGuid_t guid);
+    u8 (*releaseGuid)(struct _ocrGuidProvider_t *self, ocrFatGuid_t guid, bool releaseVal);
 } ocrGuidProviderFcts_t;
 
 /**
@@ -132,7 +167,9 @@ typedef struct _ocrGuidProviderFcts_t {
  * support different address spaces (in the future)
  */
 typedef struct _ocrGuidProvider_t {
-    ocrGuidProviderFcts_t *fctPtrs; /**< Function pointers for this instance */
+    struct _ocrPolicyDomain_t *pd;  /**< Policy domain of this GUID provider */
+    u32 id;                         /**< Function IDs for this GUID provider */
+    ocrGuidProviderFcts_t fcts;     /**< Functions for this instance */
 } ocrGuidProvider_t;
 
 
@@ -158,6 +195,7 @@ typedef struct _ocrGuidProviderFactory_t {
      */
     void (*destruct)(struct _ocrGuidProviderFactory_t *factory);
 
+    u32 factoryId;
     ocrGuidProviderFcts_t providerFcts; /**< Function pointers created instances should use */
 } ocrGuidProviderFactory_t;
 

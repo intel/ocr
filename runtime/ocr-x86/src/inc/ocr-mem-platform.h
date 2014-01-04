@@ -13,7 +13,7 @@
 
 #include "ocr-runtime-types.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 struct _ocrPolicyDomain_t;
 
@@ -176,7 +176,7 @@ typedef struct _ocrMemPlatform_t {
     struct _ocrPolicyDomain_t *pd; /**< Policy domain that uses this mem-platform */
     ocrPhysicalLocation_t location;
     u64 size, startAddr, endAddr;  /**< Size, start and end address for this instance */
-    ocrMemPlatformFcts_t *fctPtrs; /**< Function pointers for this instance */
+    ocrMemPlatformFcts_t fcts; /**< Functions for this instance */
 } ocrMemPlatform_t;
 
 

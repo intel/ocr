@@ -18,7 +18,7 @@
 #include "ocr-runtime-types.h"
 #include "ocr-sysboot.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 #include "tlsf-allocator.h"
 
 #include <inttypes.h> // For PRIx64. FIXME
@@ -983,9 +983,9 @@ static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
 void tlsfDestruct(ocrAllocator_t *self) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     if(self->memoryCount) {
-        self->memories[0]->fctPtrs->tag(self->memories[0], rself->addr,
-                                        rself->addr + rself->totalSize,
-                                        USER_FREE_TAG);
+        self->memories[0]->fcts.tag(self->memories[0], rself->addr,
+                                    rself->addr + rself->totalSize,
+                                    USER_FREE_TAG);
         runtimeChunkFree((u64)self->memories, NULL);
     }
 
@@ -1002,7 +1002,7 @@ void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     ASSERT(self->memoryCount == 1);
     
-    RESULT_ASSERT(rself->base.memories[0]->fctPtrs->chunkAndTag(
+    RESULT_ASSERT(rself->base.memories[0]->fcts.chunkAndTag(
                       rself->base.memories[0], &(rself->addr), rself->totalSize,
                       USER_FREE_TAG, USER_USED_TAG), ==, 0);
     ASSERT(rself->addr);
@@ -1074,7 +1074,7 @@ ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_
     result->base.fguid.metaDataPtr = result;
     result->base.pd = NULL;
     
-    result->base.fctPtrs = &(factory->allocFcts);
+    result->base.fcts = factory->allocFcts;
     result->base.memories = NULL;
     result->base.memoryCount = 0;
 

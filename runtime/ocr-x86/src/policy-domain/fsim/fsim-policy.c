@@ -14,7 +14,6 @@
 #include <string.h>
 
 #include "debug.h"
-#include "ocr-macros.h"
 #include "ocr-policy-domain.h"
 #include "policy-domain/fsim/fsim-policy.h"
 

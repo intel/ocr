@@ -19,7 +19,7 @@
 
 #include "ocr-mem-target.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef struct {
     ocrMemTargetFactory_t base;

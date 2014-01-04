@@ -49,7 +49,7 @@ typedef struct _ocrParamList_t {
 /******************************************************/
 /*  ABORT / EXIT OCR                                  */
 /******************************************************/
-
+// TODO: These need to move. SAL or HAL?
 void ocr_abort();
 
 void ocr_exit();
@@ -169,10 +169,5 @@ void ocrPlaceTrackerInsert ( ocrPlaceTracker_t* self, unsigned char currPlaceID 
 void ocrPlaceTrackerRemove ( ocrPlaceTracker_t* self, unsigned char currPlaceID );
 void ocrPlaceTrackerInit ( ocrPlaceTracker_t* self );
 
-
-/******************************************************/
-/* BINDING INTERFACE                                  */
-/******************************************************/
-
-void bind_thread(int mask);
 #endif /* __OCR_UTILS_H__ */
+

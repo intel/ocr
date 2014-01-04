@@ -16,11 +16,10 @@
 #include "debug.h"
 #include "ocr-comp-platform.h"
 #include "ocr-datablock.h"
-#include "ocr-macros.h"
 #include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-sysboot.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -249,7 +248,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
 
     ASSERT(result);
     result->base.allocator = allocator.guid;
-    result->base.allocPD = allocPD.guid;
+    result->base.allocatingPD = allocPD.guid;
     result->base.size = size;
     result->base.ptr = ptr;
     result->base.properties = properties;
@@ -287,10 +286,10 @@ ocrDataBlockFactory_t *newDataBlockFactoryRegular(ocrParamList_t *perType, u32 f
 
     base->instantiate = &newDataBlockRegular;
     base->destruct = &destructRegularFactory;
-    base->funcPtrs.destruct = &regularDestruct;
-    base->funcPtrs.acquire = &regularAcquire;
-    base->funcPtrs.release = &regularRelease;
-    base->funcPtrs.free = &regularFree;
+    base->fcts.destruct = &regularDestruct;
+    base->fcts.acquire = &regularAcquire;
+    base->fcts.release = &regularRelease;
+    base->fcts.free = &regularFree;
     base->factoryId = factoryId;
 
     return base;

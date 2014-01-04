@@ -13,6 +13,9 @@
 #ifndef __OCR_GUIDPROVIDER_PTR_H__
 #define __OCR_GUIDPROVIDER_PTR_H__
 
+#include "ocr-config.h"
+#ifdef ENABLE_GUID_PTR
+
 #include "ocr-types.h"
 #include "ocr-guid.h"
 
@@ -29,10 +32,13 @@ typedef struct {
     ocrGuidProviderFactory_t base;
 } ocrGuidProviderFactoryPtr_t;
 
-ocrGuidProviderFactory_t* newGuidProviderFactoryPtr(ocrParamList_t *typeArg);
+ocrGuidProviderFactory_t* newGuidProviderFactoryPtr(ocrParamList_t *typeArg,
+                                                    u32 factoryId);
 
 #define __GUID_END_MARKER__
 #include "ocr-guid-end.h"
 #undef __GUID_END_MARKER__
+
+#endif
 
 #endif /* __OCR_GUIDPROVIDER_PTR_H__ */

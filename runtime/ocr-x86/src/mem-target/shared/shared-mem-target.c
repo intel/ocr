@@ -30,7 +30,7 @@
 
 void sharedDestruct(ocrMemTarget_t *self) {
     ASSERT(self->memoryCount == 1);
-    self->memories[0]->fctPtrs->destruct(self->memories[0]);
+    self->memories[0]->fcts.destruct(self->memories[0]);
     runtimeChunkFree((u64)self->memories, NULL);
 #ifdef OCR_ENABLE_STATISTICS
     statsMEMTARGET_STOP(self->pd, self->fguid.guid, self->fguid.metaDataPtr);
@@ -49,12 +49,12 @@ void sharedStart(ocrMemTarget_t *self, ocrPolicyDomain_t * PD ) {
     statsMEMTARGET_START(PD, self->fguid.guid, self->fguid.metaDataPtr);
 #endif
     ASSERT(self->memoryCount == 1);
-    self->memories[0]->fctPtrs->start(self->memories[0], PD);
+    self->memories[0]->fcts.start(self->memories[0], PD);
 }
 
 void sharedStop(ocrMemTarget_t *self) {
     ASSERT(self->memoryCount == 1);
-    self->memories[0]->fctPtrs->stop(self->memories[0]);
+    self->memories[0]->fcts.stop(self->memories[0]);
     
     // Destroy the GUID
     ocrPolicyMsg_t msg;
@@ -73,7 +73,7 @@ void sharedStop(ocrMemTarget_t *self) {
 
 void sharedFinish(ocrMemTarget_t *self) {
     ASSERT(self->memoryCount == 1);
-    self->memories[0]->fctPtrs->finish(self->memories[0]);
+    self->memories[0]->fcts.finish(self->memories[0]);
 }
 
 u8 sharedGetThrottle(ocrMemTarget_t *self, u64* value) {
@@ -86,28 +86,28 @@ u8 sharedSetThrottle(ocrMemTarget_t *self, u64 value) {
 
 void sharedGetRange(ocrMemTarget_t *self, u64* startAddr,
                     u64* endAddr) {
-    return self->memories[0]->fctPtrs->getRange(
+    return self->memories[0]->fcts.getRange(
         self->memories[0], startAddr, endAddr);
 }
 
 u8 sharedChunkAndTag(ocrMemTarget_t *self, u64 *startAddr,
                      u64 size, ocrMemoryTag_t oldTag, ocrMemoryTag_t newTag) {
 
-    return self->memories[0]->fctPtrs->chunkAndTag(
+    return self->memories[0]->fcts.chunkAndTag(
         self->memories[0], startAddr, size, oldTag, newTag);
 }
 
 u8 sharedTag(ocrMemTarget_t *self, u64 startAddr, u64 endAddr,
              ocrMemoryTag_t newTag) {
 
-    return self->memories[0]->fctPtrs->tag(self->memories[0], startAddr,
+    return self->memories[0]->fcts.tag(self->memories[0], startAddr,
                                            endAddr, newTag);
 }
 
 u8 sharedQueryTag(ocrMemTarget_t *self, u64 *start, u64 *end,
                   ocrMemoryTag_t *resultTag, u64 addr) {
 
-    return self->memories[0]->fctPtrs->queryTag(self->memories[0], start,
+    return self->memories[0]->fcts.queryTag(self->memories[0], start,
                                                 end, resultTag, addr);
 }
 
@@ -127,7 +127,7 @@ ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
     result->startAddr = result->endAddr = 0ULL;
     result->memories = NULL;
     result->memoryCount = 0;
-    result->fctPtrs = &(factory->targetFcts);
+    result->fcts = factory->targetFcts;
 
     return result;
 }

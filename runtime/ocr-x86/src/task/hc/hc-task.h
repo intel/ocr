@@ -13,7 +13,7 @@
 
 #include "hc/hc.h"
 #include "ocr-task.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 #ifdef ENABLE_TASKTEMPLATE_HC
 /*! \brief Event Driven Task(EDT) template implementation

@@ -11,7 +11,7 @@
 #include "ocr-runtime-types.h"
 #include "ocr-tuning.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 struct _ocrPolicyDomain_t;
 
@@ -77,7 +77,7 @@ typedef struct _ocrWorkpileFcts_t {
 typedef struct _ocrWorkpile_t {
     ocrFatGuid_t fguid;
     struct _ocrPolicyDomain_t *pd;
-    ocrWorkpileFcts_t *fctPtrs;
+    ocrWorkpileFcts_t fcts;
 } ocrWorkpile_t;
 
 

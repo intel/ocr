@@ -14,7 +14,7 @@
 #include "debug.h"
 #include "ocr-config.h"
 #include "ocr-datablock.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef enum _dataBlockType_t {
     dataBlockRegular_id,

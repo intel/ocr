@@ -11,7 +11,7 @@
 #ifdef ENABLE_POLICY_DOMAIN_HC
 
 #include "ocr-policy-domain.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 /******************************************************/
 /* OCR-HC POLICY DOMAIN                               */

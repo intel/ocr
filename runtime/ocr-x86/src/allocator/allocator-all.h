@@ -15,7 +15,7 @@
 #include "debug.h"
 #include "ocr-allocator.h"
 #include "ocr-config.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef enum _allocatorType_t {
     allocatorTlsf_id,

@@ -14,7 +14,7 @@
 
 #include "ocr-mem-target.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -133,7 +133,7 @@ typedef struct _ocrAllocator_t {
     struct _ocrMemTarget_t **memories; /**< Allocators are mapped to ocrMemTarget_t (0+) */
     u64 memoryCount;          /**< Number of memories associated */
 
-    ocrAllocatorFcts_t *fctPtrs;
+    ocrAllocatorFcts_t fcts;
 } ocrAllocator_t;
 
 

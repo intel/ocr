@@ -25,6 +25,9 @@
 
 #include "ocr-types.h"
 
+struct _ocrMemTarget_t;
+struct _ocrPolicyDomain_t;
+
 /**
  * @brief "Allocates" a chunk of memory for the runtime of size 'size'
  *

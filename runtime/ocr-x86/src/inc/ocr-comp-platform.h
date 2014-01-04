@@ -14,7 +14,7 @@
 
 #include "ocr-runtime-types.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 struct _ocrPolicyDomain_t;
 
@@ -176,7 +176,7 @@ typedef struct _ocrCompPlatformFcts_t {
 typedef struct _ocrCompPlatform_t {
     struct _ocrPolicyDomain_t *pd;  /**< Policy domain this comp-platform is used by */
     ocrPhysicalLocation_t location;
-    ocrCompPlatformFcts_t *fctPtrs; /**< Function pointers for this instance */
+    ocrCompPlatformFcts_t fcts; /**< Functions for this instance */
 } ocrCompPlatform_t;
 
 

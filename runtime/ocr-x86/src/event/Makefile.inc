@@ -17,6 +17,6 @@ libocr_event_hc_la_CFLAGS = $(AM_CFLAGS)
 #libocr_la_LIBADD += libocr_event_fsim.la
 
 #libocr_event_fsim_la_SOURCES = \
-event/fsim/fsim-event.c
+#event/fsim/fsim-event.c
 
 #libocr_event_fsim_la_CFLAGS = $(AM_CFLAGS)

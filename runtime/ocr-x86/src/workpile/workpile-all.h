@@ -7,6 +7,8 @@
 #ifndef __WORKPILE_ALL_H__
 #define __WORKPILE_ALL_H__
 
+#include "ocr-config.h"
+
 #include "ocr-utils.h"
 #include "ocr-workpile.h"
 
@@ -26,8 +28,10 @@ const char * workpile_types[] = {
 
 inline ocrWorkpileFactory_t * newWorkpileFactory(workpileType_t type, ocrParamList_t *perType) {
     switch(type) {
+#ifdef ENABLE_WORKPILE_HC
     case workpileHc_id:
         return newOcrWorkpileFactoryHc(perType);
+#endif
     case workpileFsimMessage_id:
     case workpileMax_id:
     default:

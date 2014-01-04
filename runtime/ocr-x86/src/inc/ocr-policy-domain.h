@@ -419,26 +419,30 @@ typedef struct _ocrPolicyMsg_t {
  *     - take (steal) EDTs and DBs (data load-balancing)
  */
 typedef struct _ocrPolicyDomain_t {
-    ocrGuid_t guid;                             /**< GUID for this policy */
-
+    ocrFatGuid_t fguid;                         /**< GUID for this policy */
+    
     u64 schedulerCount;                         /**< Number of schedulers */
     u64 allocatorCount;                         /**< Number of allocators */
     u64 workerCount;                            /**< Number of workers */
+    u64 guidProviderCount;                      /**< Number of GUID providers */
+    u64 taskFactoryCount;                       /**< Number of task factories */
+    u64 taskTemplateFactoryCount;               /**< Number of task-template factories */
+    u64 dbFactoryCount;                         /**< Number of data-block factories */
+    u64 eventFactoryCount;                      /**< Number of event factories */
 
     ocrScheduler_t  ** schedulers;              /**< All the schedulers */
     ocrAllocator_t  ** allocators;              /**< All the allocators */
     ocrWorker_t     ** workers;                 /**< All the workers */
 
-    ocrTaskFactory_t  * taskFactory;            /**< Factory to produce tasks
+    ocrTaskFactory_t  **taskFactories;          /**< Factory to produce tasks
                                                  * (EDTs) */
     
-    ocrTaskTemplateFactory_t  * taskTemplateFactory; /**< Factory to produce
-                                                      * task templates */
-    ocrDataBlockFactory_t * dbFactory;          /**< Factory to produce
+    ocrTaskTemplateFactory_t  ** taskTemplateFactories; /**< Factories to produce
+                                                         * task templates */
+    ocrDataBlockFactory_t ** dbFactories;       /**< Factories to produce
                                                  * data-blocks */
-    ocrEventFactory_t * eventFactory;           /**< Factory to produce events*/
-
-    ocrGuidProvider_t *guidProvider;            /**< GUID generator */
+    ocrEventFactory_t ** eventFactories;        /**< Factories to produce events*/
+    ocrGuidProvider_t ** guidProviders;         /**< GUID generators */
 
     ocrSys_t *sysProvider;                      /**< Low-level system functions */
 

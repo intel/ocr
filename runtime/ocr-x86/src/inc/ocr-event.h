@@ -15,7 +15,7 @@
 #include "ocr-edt.h"
 #include "ocr-runtime-types.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -129,7 +129,7 @@ typedef struct _ocrEventFactory_t {
     void (*destruct)(struct _ocrEventFactory_t* factory);
 
     u32 factoryId;             /**< Factory ID (matches fctId in event */
-    ocrEventFcts_t fctPtrs;
+    ocrEventFcts_t fcts;
 } ocrEventFactory_t;
 
 #endif /* __OCR_EVENT_H_ */

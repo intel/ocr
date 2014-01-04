@@ -197,3 +197,4 @@
 #define hal_trylock32(lock) hal_cmpswap32(lock, 0, 1)
 
 #endif /* __OCR_HAL_X86_64_H__ */
+

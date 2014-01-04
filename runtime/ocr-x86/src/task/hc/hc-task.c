@@ -8,11 +8,10 @@
 #include "event/hc/hc-event.h"
 #include "ocr-datablock.h"
 #include "ocr-event.h"
-#include "ocr-macros.h"
 #include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-task.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 #include "ocr-worker.h"
 #include "task/hc/hc-task.h"
 

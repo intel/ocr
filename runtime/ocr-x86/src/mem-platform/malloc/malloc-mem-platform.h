@@ -16,10 +16,10 @@
 #ifdef ENABLE_MEM_PLATFORM_MALLOC
 
 #include "debug.h"
-#include "external/rangeTracker.h"
+#include "utils/rangeTracker.h"
 #include "ocr-mem-platform.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef struct {
     ocrMemPlatformFactory_t base;

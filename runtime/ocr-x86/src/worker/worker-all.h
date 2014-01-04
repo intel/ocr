@@ -7,6 +7,7 @@
 #ifndef __WORKER_ALL_H__
 #define __WORKER_ALL_H__
 
+#include "ocr-config.h"
 #include "ocr-utils.h"
 #include "ocr-worker.h"
 
@@ -33,8 +34,10 @@ inline ocrWorkerFactory_t * newWorkerFactory(workerType_t type, ocrParamList_t *
     //DELME    return newOcrWorkerFactoryFsimXE(perType);
     case workerFsimCE_id:
     //DELME    return newOcrWorkerFactoryFsimCE(perType);
+#ifdef ENABLE_WORKER_HC
     case workerHc_id:
       return newOcrWorkerFactoryHc(perType);
+#endif
     default:
       ASSERT(0);
     }

@@ -14,7 +14,7 @@
 
 #include HAL_FILE
 #include "debug.h"
-#include "external/rangeTracker.h"
+#include "utils/rangeTracker.h"
 #include "mem-platform/malloc/malloc-mem-platform.h"
 #include "ocr-mem-platform.h"
 #include "ocr-sysboot.h"
@@ -38,13 +38,14 @@ void mallocDestruct(ocrMemPlatform_t *self) {
 struct _ocrPolicyDomain_t;
 
 void mallocStart(ocrMemPlatform_t *self, struct _ocrPolicyDomain_t * PD ) {
+    self->pd = PD;
     self->startAddr = (u64)malloc(self->size);
     ASSERT(self->startAddr);
     self->endAddr = self->startAddr + self->size;
 
     ocrMemPlatformMalloc_t *rself = (ocrMemPlatformMalloc_t*)self;
-    initializeRange(&(rself->rangeTracker), 16, self->startAddr,
-                    self->endAddr, USER_FREE);
+    initializeRange(self->pd, &(rself->rangeTracker), 16, self->startAddr,
+                    self->endAddr, USER_FREE_TAG);
 
 }
 
@@ -125,6 +126,7 @@ u8 mallocQueryTag(ocrMemPlatform_t *self, u64 *start, u64* end,
 }
 
 ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
+                                       ocrPhysicalLocation_t location,
                                        u64 memSize, ocrParamList_t *perInstance) {
 
     // TODO: This will be replaced by the runtime/GUID meta-data allocator
@@ -132,8 +134,10 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
     // all the trouble we are going through to *not* use malloc...
     ocrMemPlatform_t *result = (ocrMemPlatform_t*)
         runtimeChunkAlloc(sizeof(ocrMemPlatformMalloc_t), NULL);
-        
-    result->fctPtrs = &(factory->platformFcts);
+
+    result->pd = NULL;
+    result->location = location;
+    result->fcts = factory->platformFcts;
     result->size = memSize;
     result->startAddr = result->endAddr = 0ULL;
     ocrMemPlatformMalloc_t *rself = (ocrMemPlatformMalloc_t*)result;

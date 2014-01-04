@@ -94,6 +94,16 @@ typedef enum {
     MAX_WORKPUSHTYPE    = 0x2
 } ocrWorkPushType_t;
 
+/**
+ * @brief Type of worker
+ */
+typedef enum {
+    SINGLE_WORKERTYPE   = 0x1, /**< Single worker (starts/stops by itself) */
+    MASTER_WORKERTYPE   = 0x2, /**< Master worker (responsible for starting/stopping others */
+    SLAVE_WORKERTYPE    = 0x3, /**< Slave worker (started/stopped by a master worker */
+    MAX_WORKERTYPE      = 0x4
+} ocrWorkerType_t;
+
 typedef struct {
     ocrGuid_t guid;
     void* metaDataPtr;

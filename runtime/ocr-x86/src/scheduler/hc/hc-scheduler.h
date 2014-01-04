@@ -12,7 +12,7 @@
 
 #include "ocr-scheduler.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 /******************************************************/
 /* Support structures (workpile iterator)             */

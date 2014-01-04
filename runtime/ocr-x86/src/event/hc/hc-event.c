@@ -16,7 +16,7 @@
 #include "ocr-policy-domain.h"
 #include "ocr-sysboot.h"
 #include "ocr-task.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 #include "ocr-worker.h"
 
 #ifdef OCR_ENABLE_STATISTICS
@@ -264,7 +264,7 @@ static void finishLatchEventSatisfy(ocrEvent_t * base, ocrGuid_t data, u32 slot)
         }
         // Since finish-latch is internal to finish-edt, and ELS is cleared,
         // there are no more pointers left to it, deallocate.
-        base->fctPtrs->destruct(base);
+        base->fcts->destruct(base);
     }
 }
 
@@ -320,7 +320,7 @@ static ocrEvent_t* eventConstructorInternal(ocrPolicyDomain_t * pd, ocrEventFact
     base->kind = eventType;
 
     // Initialize ocrEvent_t base
-    base->fctPtrs = eventFctPtrs;
+    base->fcts = eventFctPtrs;
     base->guid = UNINITIALIZED_GUID;
     guidify(pd, (u64)base, &(base->guid), OCR_GUID_EVENT);
     DPRINTF(DEBUG_LVL_INFO, "Create %s: 0x%lx\n", eventTypeToString(base), base->guid);
@@ -342,7 +342,7 @@ void destructEventHc ( ocrEvent_t* base ) {
     pd->inform(pd, base->guid, ctx);
     if(base->kind == OCR_EVENT_ONCE_T) {
         ocrEventHcOnce_t * onceEvent = (ocrEventHcOnce_t *) base;
-        onceEvent->nbEdtRegistered->fctPtrs->destruct(onceEvent->nbEdtRegistered);
+        onceEvent->nbEdtRegistered->fcts->destruct(onceEvent->nbEdtRegistered);
     }
     ctx->destruct(ctx);
     free(derived);
@@ -387,10 +387,10 @@ ocrEventFactory_t * newEventFactoryHc(ocrParamList_t *perType, u32 factoryId) {
     base->instantiate = newEventHc;
     base->destruct =  destructEventFactoryHc;
     // initialize singleton instance that carries hc implementation function pointers
-    base->fctPtrs.destruct = &destructEventHc;
-    base->fctPtrs.get = &getEventHc;
-    base->fctPtrs.satisfy = &satisfyEventHc;
-    base->fctPtrs.registerDependence = &registerDependenceEventHc;
+    base->fcts.destruct = &destructEventHc;
+    base->fcts.get = &getEventHc;
+    base->fcts.satisfy = &satisfyEventHc;
+    base->fcts.registerDependence = &registerDependenceEventHc;
     base->factoryId = factoryId;
 
     return base;

@@ -24,7 +24,7 @@
 void hcDestruct(ocrCompTarget_t *compTarget) {
     u32 i = 0;
     while(i < compTarget->platformCount) {
-        compTarget->platforms[i]->fctPtrs->destruct(compTarget->platforms[i]);
+        compTarget->platforms[i]->fcts.destruct(compTarget->platforms[i]);
         ++i;
     }
     runtimeChunkFree((u64)(compTarget->platforms), NULL);
@@ -45,12 +45,12 @@ void hcStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, launchArg_t *
 #endif
 
     ASSERT(compTarget->platformCount == 1);
-    compTarget->platforms[0]->fctPtrs->start(compTarget->platforms[0], PD, launchArg);
+    compTarget->platforms[0]->fcts.start(compTarget->platforms[0], PD, launchArg);
 }
 
 void hcStop(ocrCompTarget_t * compTarget) {
     ASSERT(compTarget->platformCount == 1);
-    compTarget->platforms[0]->fctPtrs->stop(compTarget->platforms[0]);
+    compTarget->platforms[0]->fcts.stop(compTarget->platforms[0]);
 
     // Destroy the GUID
     ocrPolicyMsg_t msg;
@@ -61,41 +61,41 @@ void hcStop(ocrCompTarget_t * compTarget) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = compTarget->fguid;
     PD_MSG_FIELD(properties) = 0;
-    compTarget->pd->sendMessage(compTarget->pd, &msg, false);
+    compTarget->pd->processMessage(compTarget->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
-    compTarget->guid.guid = UNINITIALIZED_GUID;
+    compTarget->fguid.guid = UNINITIALIZED_GUID;
 }
 
 void hcFinish(ocrCompTarget_t *compTarget) {
     ASSERT(compTarget->platformCount == 1);
-    compTarget->platforms[0]->fctPtrs->finish(compTarget->platforms[0]);
+    compTarget->platforms[0]->fcts.finish(compTarget->platforms[0]);
 }
 
 u8 hcGetThrottle(ocrCompTarget_t *compTarget, u64 *value) {
     ASSERT(compTarget->platformCount == 1);
-    return compTarget->platforms[0]->fctPtrs->getThrottle(compTarget->platforms[0], value);
+    return compTarget->platforms[0]->fcts.getThrottle(compTarget->platforms[0], value);
 }
 
 u8 hcSetThrottle(ocrCompTarget_t *compTarget, u64 value) {
     ASSERT(compTarget->platformCount == 1);
-    return compTarget->platforms[0]->fctPtrs->setThrottle(compTarget->platforms[0], value);
+    return compTarget->platforms[0]->fcts.setThrottle(compTarget->platforms[0], value);
 }
 
 u8 hcSendMessage(ocrCompTarget_t *compTarget, ocrPhysicalLocation_t target,
-                 ocrPolicyMsg_t *message) {
+                 ocrPolicyMsg_t **message) {
     ASSERT(compTarget->platformCount == 1);
-    return compTarget->platforms[0]->fctPtrs->sendMessage(compTarget->platforms[0], target, message);
+    return compTarget->platforms[0]->fcts.sendMessage(compTarget->platforms[0], target, message);
 }
 
 u8 hcPollMessage(ocrCompTarget_t *compTarget, ocrPolicyMsg_t **message) {
     ASSERT(compTarget->platformCount == 1);
-    return compTarget->platforms[0]->fctPtrs->pollMessage(compTarget->platforms[0], message);
+    return compTarget->platforms[0]->fcts.pollMessage(compTarget->platforms[0], message);
 }
 
-u8 hcWaitMessage(ocrCompTarget_t *compTarget, ocrPolicyMsg_t *message) {
+u8 hcWaitMessage(ocrCompTarget_t *compTarget, ocrPolicyMsg_t **message) {
     ASSERT(compTarget->platformCount == 1);
-    return compTarget->platforms[0]->fctPtrs->waitMessage(compTarget->platforms[0], message);
+    return compTarget->platforms[0]->fcts.waitMessage(compTarget->platforms[0], message);
 }
 
 ocrCompTarget_t * newCompTargetHc(ocrCompTargetFactory_t * factory,
@@ -109,7 +109,7 @@ ocrCompTarget_t * newCompTargetHc(ocrCompTargetFactory_t * factory,
     
     compTarget->base.platforms = NULL;
     compTarget->base.platformCount = 0;
-    compTarget->base.fctPtrs = &(factory->targetFcts);
+    compTarget->base.fcts = factory->targetFcts;
 
     // TODO: Setup routine and routineArg. Should be in perInstance misc
     

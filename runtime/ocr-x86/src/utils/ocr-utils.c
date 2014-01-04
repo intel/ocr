@@ -10,15 +10,12 @@
 
 #include "debug.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
-
-#include <stdlib.h>
-
+#include "utils/ocr-utils.h"
 
 /******************************************************/
 /*  ABORT / EXIT OCR                                  */
 /******************************************************/
-
+// TODO: These need to move. SAL or HAL?
 void ocr_abort() {
     abort();
 }

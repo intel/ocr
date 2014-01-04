@@ -14,7 +14,7 @@
 #include "debug.h"
 #include "ocr-config.h"
 #include "ocr-event.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef enum _eventType_t {
     eventHc_id,

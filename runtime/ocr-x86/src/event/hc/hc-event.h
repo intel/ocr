@@ -13,7 +13,7 @@
 #include "hc/hc.h"
 #include "ocr-event.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef struct {
     ocrEventFactory_t base_factory;
@@ -38,7 +38,7 @@ typedef struct ocrEventHcSingle_t {
 
 typedef struct ocrEventHcOnce_t {
     ocrEventHcAwaitable_t base;
-    ocrAtomic64_t * nbEdtRegistered;
+    u64 nbEdtRegistered;
 } ocrEventHcOnce_t;
 
 typedef struct ocrEventHcLatch_t {

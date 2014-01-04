@@ -4,22 +4,24 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+#ifdef ENABLE_WORKPILE_HC
+
+#include HAL_FILE
 #include "debug.h"
-#include "hc-sysdep.h"
-#include "ocr-macros.h"
+#include "ocr-policy-domain.h"
 #include "ocr-types.h"
 #include "workpile/hc/deque.h"
 
-#include <stdlib.h>
 
-void dequeInit(deque_t * deq, void * init_value) {
+void dequeInit(ocrPolicyDomain_t *pd, deque_t * deq, void * init_value) {
     deq->head = 0;
     deq->tail = 0;
-    deq->data = (volatile void **) checkedMalloc(deq->data, sizeof(void*)*INIT_DEQUE_CAPACITY);
-    s32 i=0;
+    deq->data = (volatile void **)pd->pdMalloc(pd, sizeof(void*)*INIT_DEQUE_CAPACITY);
+    u32 i=0;
     while(i < INIT_DEQUE_CAPACITY) {
         deq->data[i] = init_value;
-        i++;
+        ++i;
     }
 }
 
@@ -27,48 +29,47 @@ void dequeInit(deque_t * deq, void * init_value) {
  * push an entry onto the tail of the deque
  */
 void dequePush(deque_t* deq, void* entry) {
-    s32 size = deq->tail - deq->head;
-    if (size == INIT_DEQUE_CAPACITY) { /* deque looks full */
+    u32 head = deq->head;
+    u32 tail = deq->tail;
+    if (tail == INIT_DEQUE_CAPACITY + head) { /* deque looks full */
         /* may not grow the deque if some interleaving steal occur */
         ASSERT("DEQUE full, increase deque's size" && 0);
     }
-    s32 n = (deq->tail) % INIT_DEQUE_CAPACITY;
+    u32 n = (deq->tail) % INIT_DEQUE_CAPACITY;
     deq->data[n] = entry;
 
-#ifdef __powerpc64__
-    hc_mfence();
-#endif
-    deq->tail++;
+    hal_fence();
+    ++(deq->tail);
 }
 
-void dequeDestroy(deque_t* deq) {
-    free(deq->data);
-    free(deq);
+void dequeDestroy(ocrPolicyDomain_t *pd, deque_t* deq) {
+    pd->pdFree(pd, deq->data);
 }
 
 /*
  * the steal protocol
  */
 void * dequeSteal(deque_t * deq) {
-    s32 head;
+    u32 head;
     /* Cannot read deq->data[head] here
      * Can happen that head=tail=0, then the owner of the deq pushes
      * a new task when stealer is here in the code, resulting in head=0, tail=1
      * All other checks down-below will be valid, but the old value of the buffer head
      * would be returned by the steal rather than the new pushed value.
      */
-    s32 tail;
+    u32 tail;
     
     head = deq->head;
     tail = deq->tail;
-    if ((tail - head) <= 0) {
+    if (tail <= head) {
         return NULL;
     }
 
     void * rt = (void *) deq->data[head % INIT_DEQUE_CAPACITY];
 
     /* compete with other thieves and possibly the owner (if the size == 1) */
-    if (hc_cas(&deq->head, head, head + 1)) { /* competing */
+    
+    if (hal_cmpswap32(&deq->head, head, head + 1) == head) { /* competing */
         return rt;
     }
     return NULL;
@@ -78,26 +79,26 @@ void * dequeSteal(deque_t * deq) {
  * pop the task out of the deque from the tail
  */
 void * dequePop(deque_t * deq) {
-    hc_mfence();
-    s32 tail = deq->tail;
-    tail--;
+    hal_fence();
+    u32 tail = deq->tail;
+    ASSERT(tail > 0);
+    --tail;
     deq->tail = tail;
-    hc_mfence();
-    s32 head = deq->head;
-
-    s32 size = tail - head;
-    if (size < 0) {
+    hal_fence();
+    u32 head = deq->head;
+    
+    if (tail < head) {
         deq->tail = deq->head;
         return NULL;
     }
     void * rt = (void*) deq->data[(tail) % INIT_DEQUE_CAPACITY];
 
-    if (size > 0) {
+    if (tail > head) {
         return rt;
     }
 
     /* now size == 1, I need to compete with the thieves */
-    if (!hc_cas(&deq->head, head, head + 1))
+    if (hal_cmpswap32(&deq->head, head, head + 1) != head)
         rt = NULL; /* losing in competition */
 
     /* now the deque is empty */
@@ -110,45 +111,46 @@ void * dequePop(deque_t * deq) {
 /* Semi Concurrent DEQUE                              */
 /******************************************************/
 
-void semiConcDequeInit(semiConcDeque_t* semiDeq, void * initValue) {
+void semiConcDequeInit(ocrPolicyDomain_t *pd, semiConcDeque_t* semiDeq, void * initValue) {
     deque_t* deq = (deque_t *) semiDeq;
     deq->head = 0;
     deq->tail = 0;
     semiDeq->lock = 0;
-    deq->data = (volatile void **) malloc(sizeof(void*)*INIT_DEQUE_CAPACITY);
-    s32 i=0;
+    deq->data = (volatile void **)pd->pdMalloc(pd, sizeof(void*)*INIT_DEQUE_CAPACITY);
+    u32 i=0;
     while(i < INIT_DEQUE_CAPACITY) {
         deq->data[i] = initValue;
-        i++;
+        ++i;
     }
 }
 
 void semiConcDequeLockedPush(semiConcDeque_t* semiDeq, void* entry) {
     deque_t* deq = (deque_t *) semiDeq;
-    s32 success = 0;
+    u8 success = 0;
     while (!success) {
-        s32 size = deq->tail - deq->head;
-        if (INIT_DEQUE_CAPACITY == size) {
+        u32 head = deq->head;
+        u32 tail = deq->tail;
+        if (INIT_DEQUE_CAPACITY + head == tail) {
             ASSERT("DEQUE full, increase deque's size" && 0);
         }
 
-        if (hc_cas(&semiDeq->lock, 0, 1) ) {
+        if (hal_trylock32(&semiDeq->lock) == 0) {
             success = 1;
             deq->data[ deq->tail % INIT_DEQUE_CAPACITY ] = entry;
-            hc_mfence();
+            hal_fence();
             ++deq->tail;
-            semiDeq->lock= 0;
+            hal_unlock32(&semiDeq->lock);
         }
     }
 }
 
 void * semiConcDequeNonLockedPop(semiConcDeque_t* semiDeq ) {
     deque_t* deq = (deque_t *) semiDeq;
-    s32 head = deq->head;
-    s32 tail = deq->tail;
+    u32 head = deq->head;
+    u32 tail = deq->tail;
     void * rt = NULL;
 
-    if ((tail - head) > 0) {
+    if (tail > head) {
         rt = (void *) deq->data[head % INIT_DEQUE_CAPACITY];
         ++deq->head;
     }
@@ -156,3 +158,8 @@ void * semiConcDequeNonLockedPop(semiConcDeque_t* semiDeq ) {
     return rt;
 }
 
+void semiConcDequeDestroy(ocrPolicyDomain_t *pd, semiConcDeque_t *deq) {
+    dequeDestroy(pd, (deque_t*)deq);
+}
+
+#endif /* ENABLE_WORKPILE_HC */

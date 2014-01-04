@@ -10,7 +10,7 @@
 
 #include "ocr-edt.h"
 #include "ocr-types.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -176,6 +176,6 @@ typedef struct _ocrTaskFactory_t {
     void (*destruct)(struct _ocrTaskFactory_t * factory);
 
     u32 factoryId;
-    ocrTaskFcts_t taskFcts;
+    ocrTaskFcts_t fcts;
 } ocrTaskFactory_t;
 #endif /* __OCR_TASK_H__ */

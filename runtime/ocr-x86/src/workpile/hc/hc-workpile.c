@@ -4,9 +4,12 @@
  * removed or modified.
  */
 
-#include "ocr-macros.h"
-#include "ocr-policy-domain-getter.h"
+#include "ocr-config.h"
+#ifdef ENABLE_WORKPILE_HC
+
+#include "debug.h"
 #include "ocr-policy-domain.h"
+#include "ocr-sysboot.h"
 #include "ocr-workpile.h"
 #include "workpile/hc/hc-workpile.h"
 
@@ -15,62 +18,96 @@
 /* OCR-HC WorkPile                                    */
 /******************************************************/
 
-static void hcWorkpileDestruct ( ocrWorkpile_t * base ) {
+void hcWorkpileDestruct ( ocrWorkpile_t * base ) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
-    dequeDestroy(derived->deque);
-    free(derived);
+    dequeDestroy(base->pd, derived->deque);
+    runtimeChunkFree((u64)(derived->deque), NULL);
+    runtimeChunkFree((u64)base, NULL);
 }
 
-static void hcWorkpileStart(ocrWorkpile_t *base, ocrPolicyDomain_t *PD) {
+void hcWorkpileStart(ocrWorkpile_t *base, ocrPolicyDomain_t *PD) {
+    guidify(PD, (u64)base, &(base->fguid.guid), OCR_GUID_WORKPILE);
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*)base;
+    base->fguid.metaDataPtr = base;
+    base->pd = PD;
+    dequeInit(base->pd, derived->deque, (void *) NULL_GUID);
 }
 
-static void hcWorkpileStop(ocrWorkpile_t *base) {
+void hcWorkpileStop(ocrWorkpile_t *base) {
+    // Destroy the GUID
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(NULL, NULL, NULL, &msg);
+    
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_GUID_DESTROY
+    msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
+    PD_MSG_FIELD(guid) = base->fguid;
+    PD_MSG_FIELD(properties) = 0;
+    base->pd->processMessage(base->pd, &msg, false);
+#undef PD_MSG
+#undef PD_TYPE
+    base->fguid.guid = UNINITIALIZED_GUID;
 }
 
-static ocrGuid_t hcWorkpilePop ( ocrWorkpile_t * base, ocrCost_t *cost ) {
+void hcWorkpileFinish(ocrWorkpile_t *base) {
+    // Nothing to do
+}
+
+ocrFatGuid_t hcWorkpilePop(ocrWorkpile_t * base, ocrWorkPopType_t type,
+                           ocrCost_t *cost) {
+    
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
-    return (ocrGuid_t) dequePop(derived->deque);
+    ocrFatGuid_t fguid;
+    switch(type) {
+    case POP_WORKPOPTYPE:
+        fguid.guid = (ocrGuid_t)dequePop(derived->deque);
+        break;
+    case STEAL_WORKPOPTYPE:
+        fguid.guid = (ocrGuid_t)dequeSteal(derived->deque);
+    default:
+        ASSERT(0);
+    }
+    fguid.metaDataPtr = NULL_GUID;
+    return fguid;
 }
 
-static void hcWorkpilePush (ocrWorkpile_t * base, ocrGuid_t g ) {
+void hcWorkpilePush(ocrWorkpile_t * base, ocrWorkPushType_t type,
+                    ocrFatGuid_t g ) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
-    dequePush(derived->deque, (void *)g);
+    dequePush(derived->deque, (void *)(g.guid));
 }
 
-static ocrGuid_t hcWorkpileSteal ( ocrWorkpile_t * base, ocrCost_t *cost ) {
-    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
-    return (ocrGuid_t) dequeSteal(derived->deque);
-}
-
-static ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
-    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) checkedMalloc(derived, sizeof(ocrWorkpileHc_t));
+ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
+    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) runtimeChunkAlloc(sizeof(ocrWorkpileHc_t), NULL);
     ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
-        
-    base->fctPtrs = &(factory->workpileFcts);
-    derived->deque = (deque_t *) checkedMalloc(derived->deque, sizeof(deque_t));
-    dequeInit(derived->deque, (void *) NULL_GUID);
+
+    base->fguid.guid = UNINITIALIZED_GUID;
+    base->fguid.metaDataPtr = base;
+    base->pd = NULL;
+    base->fcts = factory->workpileFcts;
+    derived->deque = (deque_t *) runtimeChunkAlloc(sizeof(deque_t));
     return base;
 }
-
 
 /******************************************************/
 /* OCR-HC WorkPile Factory                            */
 /******************************************************/
 
-static void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
-    free(factory);
+void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
+    runtimeChunkFree((u64)factory, NULL);
 }
 
 ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(ocrParamList_t *perType) {
-    ocrWorkpileFactoryHc_t* derived = (ocrWorkpileFactoryHc_t*) checkedMalloc(derived, sizeof(ocrWorkpileFactoryHc_t));
+    ocrWorkpileFactoryHc_t* derived = (ocrWorkpileFactoryHc_t*)runtimeChunkAlloc(sizeof(ocrWorkpileFactoryHc_t), NULL);
     ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
     base->instantiate = newWorkpileHc;
-    base->destruct =  destructWorkpileFactoryHc;
+    base->destruct = destructWorkpileFactoryHc;
     base->workpileFcts.destruct = hcWorkpileDestruct;
     base->workpileFcts.start = hcWorkpileStart;
     base->workpileFcts.stop = hcWorkpileStop;
+    base->workpileFcts.finish = hcWorkpileFinish;
     base->workpileFcts.pop = hcWorkpilePop;
     base->workpileFcts.push = hcWorkpilePush;
-    base->workpileFcts.steal = hcWorkpileSteal;
     return base;
 }
+#endif /* ENABLE_WORKPILE_HC */

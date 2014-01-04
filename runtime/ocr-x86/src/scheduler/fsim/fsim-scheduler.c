@@ -6,7 +6,6 @@
 
 #include <stdlib.h>
 
-#include "ocr-macros.h"
 #include "ocr-runtime.h"
 #include "fsim-scheduler.h"
 #include "worker/fsim/fsim-worker.h"

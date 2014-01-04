@@ -12,20 +12,24 @@
 #include "ocr-policy-domain.h"
 
 #include "ocr-sysboot.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 #include "ocr-worker.h"
 
 #include "pthread-comp-platform.h"
 
+#include <stdlib.h> // For malloc for TLS
+
 #define DEBUG_TYPE COMP_PLATFORM
+
+extern void bindThread(u32 mask);
 
 /**
  * @brief Structure stored on a per-thread basis to keep track of
  * "who we are"
  */
 typedef struct {
-    ocrGuid_t compTarget;
-    ocrPolicyDomain_t * pd;
+    ocrPolicyDomain_t *pd;
+    ocrWorker_t *worker;
 } perThreadStorage_t;
 
 
@@ -40,23 +44,20 @@ static void * pthreadRoutineExecute(launchArg_t * launchArg) {
 }
 
 static void * pthreadRoutineWrapper(void * arg) {
+    // Only called on slave workers (never master)
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) arg;
     s32 cpuBind = pthreadCompPlatform->binding;
     if(cpuBind != -1) {
         DPRINTF(DEBUG_LVL_INFO, "Binding comp-platform to cpu_id %d\n", cpuBind);
-        bind_thread(cpuBind);
+        bindThread(cpuBind);
     }
     launchArg_t * launchArg = (launchArg_t *) pthreadCompPlatform->launchArg;
     // Wrapper routine to allow initialization of local storage
     // before entering the worker routine.
-    // TODO: Fixme
-    perThreadStorage_t *data = (perThreadStorage_t*)checkedMalloc(data, sizeof(perThreadStorage_t));
+    perThreadStorage_t *data = (perThreadStorage_t*)malloc(sizeof(perThreadStorage_t));
     RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
-    if (launchArg != NULL) {
-        return pthreadRoutineExecute(launchArg);
-    }
-    // When launchArgs is NULL, it is the master thread executing and it falls-through
-    return NULL;
+    ASSERT(launchArg);
+    return pthreadRoutineExecute(launchArg);
 }
 
 static void destroyKey(void* arg) {
@@ -66,13 +67,11 @@ static void destroyKey(void* arg) {
 static void initializeKey() {
     RESULT_ASSERT(pthread_key_create(&selfKey, &destroyKey), ==, 0);
     // We are going to set our own key (we are the master thread)
-    perThreadStorage_t *data = (perThreadStorage_t*)runtimeChunkAlloc(sizeof(perThreadStorage_t), NULL);
+    perThreadStorage_t *data = (perThreadStorage_t*)malloc(sizeof(perThreadStorage_t));
     RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
 }
 
 void pthreadDestruct (ocrCompPlatform_t * base) {
-    // TODO: Check this
-    runtimeChunkFree((u64)(((ocrCompPlatformPthread_t*)base)->launchArg), NULL);
     runtimeChunkFree((u64)base, NULL);
 }
 
@@ -102,9 +101,8 @@ void pthreadFinish(ocrCompPlatform_t *compPlatform) {
 void pthreadStartMaster(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
     // This comp-platform represent the currently executing master thread.
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
-    //pthreadCompPlatform->launchArg = NULL;
-    //pthreadRoutineWrapper(pthreadCompPlatform);
     pthreadCompPlatform->launchArg = launchArg;
+    // The master starts executing when we call "stop" on it
 }
 
 void pthreadStopMaster(ocrCompPlatform_t * compPlatform) {
@@ -154,10 +152,10 @@ ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
         // This particular instance is the master thread
         ocrCompPlatformFactoryPthread_t * pthreadFactory =
             (ocrCompPlatformFactoryPthread_t *) factory;
-        compPlatformPthread->base.fctPtrs = &(pthreadFactory->masterPlatformFcts);
+        compPlatformPthread->base.fcts = pthreadFactory->masterPlatformFcts;
     } else {
         // This is a regular thread, get regular function pointers
-        compPlatformPthread->base.fctPtrs = &(factory->platformFcts);
+        compPlatformPthread->base.fcts = factory->platformFcts;
     }
     compPlatformPthread->binding = (params != NULL) ? params->binding : -1;
     compPlatformPthread->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
@@ -183,15 +181,6 @@ void destructCompPlatformFactoryPthread(ocrCompPlatformFactory_t *factory) {
     runtimeChunkFree((u64)factory, NULL);
 }
 
-void setIdentifyingFunctionsPthread(ocrCompPlatformFactory_t *factory) {
-    // FIXME.
-    getCurrentPD = getCurrentPDPthread;
-    setCurrentPD = setCurrentPDPthread;
-    getMasterPD = getCurrentPDPthread;
-    getCurrentEDT = getCurrentEDTFromWorker;
-    setCurrentEDT = setCurrentEDTToWorker;
-}
-
 ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType) {
     ocrCompPlatformFactory_t *base = (ocrCompPlatformFactory_t*)
         runtimeChunkAlloc(sizeof(ocrCompPlatformFactoryPthread_t), NULL);
@@ -200,7 +189,6 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
 
     base->instantiate = &newCompPlatformPthread;
     base->destruct = &destructCompPlatformFactoryPthread;
-    base->setIdentifyingFunctions = &setIdentifyingFunctionsPthread;
     base->platformFcts.destruct = &pthreadDestruct;
     base->platformFcts.start = &pthreadStart;
     base->platformFcts.stop = &pthreadStop;
