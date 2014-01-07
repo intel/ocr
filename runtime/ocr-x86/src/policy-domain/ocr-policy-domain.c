@@ -6,7 +6,6 @@
 
 #include "debug.h"
 #include "ocr-comp-platform.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 
 static ocrPolicyDomain_t* bootPD = NULL;

@@ -11,8 +11,6 @@
 #ifdef OCR_ENABLE_STATISTICS
 
 #include "debug.h"
-#include "ocr-macros.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-types.h"
 #include "ocr-utils.h"

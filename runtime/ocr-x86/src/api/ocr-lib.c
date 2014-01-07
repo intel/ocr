@@ -7,7 +7,6 @@
 #include "debug.h"
 #include "machine-description/ocr-machine.h"
 #include "ocr-lib.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-types.h"
 

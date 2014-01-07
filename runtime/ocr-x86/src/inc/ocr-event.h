@@ -69,11 +69,26 @@ typedef struct _ocrEventFcts_t {
      * @param[in] self         Pointer to this event
      * @param[in] db           GUID to satisfy this event with (or NULL_GUID)
      * @param[in] slot         Input slot for this event
+     *
+     * @return 0 on success and a non-zero code on failure
      */
-    void (*satisfy)(struct _ocrEvent_t* self, ocrFatGuid_t db, u32 slot);
+    u8 (*satisfy)(struct _ocrEvent_t* self, ocrFatGuid_t db, u32 slot);
 
     /**
-     * @brief Register a "waiter" on the event
+     * @brief Register a "signaler" on the event
+     *
+     * A signaler can either be another event or a data-block. If a data-block,
+     * this call is equivalent to calling satisfy.
+     *
+     * @param[in] self          Pointer to this event
+     * @param[in] signaler      GUID of the source (signaler)
+     * @param[in] slot          Slot on self that will be satisfied by the signaler
+     * @return 0 on success and a non-zero value on failure
+     */
+    u8 (*registerSignaler)(struct _ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot);
+    
+    /**
+     * @brief Register a "waiter" (aka a dependence) on the event
      *
      * The waiter will be notified on slot 'slot' once this event is satisfid.
      * In other words, the satisfy() function serves to notify the "front" of
@@ -84,8 +99,9 @@ typedef struct _ocrEventFcts_t {
      * @param[in] waiter        EDT/Event to register as a waiter
      * @param[in] slot          Slot to satisfy waiter on once this event
      *                          is satisfied
+     * @return 0 on success and a non-zero code on failure
      */
-    void (*registerDependence)(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot);
+    u8 (*registerWaiter)(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot);
 } ocrEventFcts_t;
 
 /**

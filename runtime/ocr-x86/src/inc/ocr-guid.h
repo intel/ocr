@@ -210,11 +210,37 @@ typedef struct _ocrGuidProviderFactory_t {
 
 static inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid,
                           ocrGuidKind* kindRes) __attribute__((unused));
-// TODO: REC: Actually pass a context
-static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * guidRes,
+
+/**
+ * @brief Associates a GUID with val
+ *
+ * This call will cause a GUID to be associated with 'val' but
+ * will not create any metadata storage (ie: if val is the pointer
+ * to the metadata, it should already be valid)
+ *
+ * @param[in] pd            Policy domain (current one)
+ * @param[in] val           Value to associate
+ * @param[out] guidRes      Fat GUID containing the new GUID and val as metaDataPtr
+ * @param[in] kind          Kind of the GUID to create
+ * @return 0 on success and a non-zero value on failure
+ */
+static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 val, ocrFatGuid_t * guidRes,
                          ocrGuidKind kind) __attribute__((unused));
-static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes,
+
+/**
+ * @brief Returns the value associated with GUID which allows the caller
+ * to access the meta-data associated with the GUID
+ *
+ * @param[in] pd            Policy domain (current one)
+ * @param[in/out] res       Fat-GUID to 'deguidify'. Note that if
+ *                          metaDataPtr is non-NULL, this call is a no-op.
+ *                          On input, res.guid should be valid
+ * @param[out] kindRes      (optional) If non-NULL, returns kind of GUID
+ * @return 0 on success and a non-zero value on failure
+ */
+static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t *res,
                            ocrGuidKind* kindRes) __attribute__((unused));
+
 static inline bool isDatablockGuid(ocrGuid_t guid) __attribute__((unused));
 static inline bool isEventGuid(ocrGuid_t guid) __attribute__((unused));
 static inline bool isEdtGuid(ocrGuid_t guid) __attribute__((unused));

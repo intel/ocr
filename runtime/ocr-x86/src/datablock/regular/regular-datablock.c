@@ -16,7 +16,6 @@
 #include "debug.h"
 #include "ocr-comp-platform.h"
 #include "ocr-datablock.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-sysboot.h"
 #include "utils/ocr-utils.h"
@@ -157,7 +156,7 @@ void regularDestruct(ocrDataBlock_t *self) {
     PD_MSG_FIELD(allocator.guid) = self->allocator;
     PD_MSG_FIELD(allocator.metaDataPtr) = NULL;
     PD_MSG_FIELD(ptr) = self->ptr;
-    pd->sendMessage(pd, &msg, false);
+    RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
     
     
 #ifdef OCR_ENABLE_STATISTICS
@@ -174,8 +173,7 @@ void regularDestruct(ocrDataBlock_t *self) {
     PD_MSG_FIELD(guid.guid) = self->guid;
     PD_MSG_FIELD(guid.metaDataPtr) = self;
     PD_MSG_FIELD(properties) = 1; // Free metadata
-    pd->sendMessage(pd, &msg, false);
-    
+    RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
 }
@@ -235,11 +233,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
     PD_MSG_FIELD(kind) = OCR_GUID_DB;
     PD_MSG_FIELD(properties) = 0;
 
-    if(pd->processMessage(pd, &msg, true) != 0) {
-        DPRINTF(DEBUG_LVL_WARN, "Failure to create a data-block (could not create GUID and metadata for it\n");
-        ASSERT(0); // For debugging
-        return NULL; // Couldn't allocate GUID
-    }
+    RESULT_ASSERT(pd->processMessage(pd, &msg, true), ==, 0);
 
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)PD_MSG_FIELD(guid.metaDataPtr);
     result->base.guid = PD_MSG_FIELD(guid.guid);

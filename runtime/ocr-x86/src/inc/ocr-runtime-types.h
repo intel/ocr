@@ -68,8 +68,16 @@ typedef enum {
  */
 typedef enum {
     EDT_WORKTYPE    = 0x1,
-    MAX_WORKTYPE    = 0x3
+    MAX_WORKTYPE    = 0x2
 } ocrWorkType_t;
+
+typedef enum {
+    CREATED_EDTSTATE    = 0x1, /**< EDT created; no dependence satisfied */
+    PARTIAL_EDTSTATE    = 0x2, /**< EDT has at least one dependence that is satisfied */
+    READY_EDTSTATE      = 0x3, /**< EDT has all dependences satisfied */
+    RUNNING_EDTSTATE    = 0x4, /**< EDT is executing */
+    REAPING_EDTSTATE    = 0x5  /**< EDT finished executing and is cleaning up */
+} ocrEdtState_t;
 
 /**
  * @brief Type of pop from workpiles.

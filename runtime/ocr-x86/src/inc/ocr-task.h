@@ -17,8 +17,7 @@
 #endif
 
 struct _ocrTask_t;
-struct _ocrTaskFcts_t;
-struct _ocrTaskFactory_t;
+struct _ocrTaskTemplate_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -43,7 +42,7 @@ struct _ocrTaskTemplate_t;
  *  templates
  */
 typedef struct ocrTaskTemplateFcts_t {
-    /** @brief Virtual destructor for the Task interface
+    /** @brief Virtual destructor for the task template interface
      */
     void (*destruct)(struct _ocrTaskTemplate_t* self);
 } ocrTaskTemplateFcts_t;
@@ -92,35 +91,68 @@ typedef struct _ocrTaskTemplateFactory_t {
     void (*destruct)(struct _ocrTaskTemplateFactory_t * factory);
 
     u32 factoryId;
-    ocrTaskTemplateFcts_t taskTemplateFcts;
+    ocrTaskTemplateFcts_t fcts;
 } ocrTaskTemplateFactory_t;
 
 /****************************************************/
 /* OCR TASK                                         */
 /****************************************************/
 
-struct _ocrTask_t;
-
-/*! \brief Abstract class to represent OCR tasks function pointers
+/**
+ * @brief Abstract class to represent OCR tasks function pointers
  *
- *  This class provides the interface to call operations on task
+ * This class provides the interface to call operations on task
  */
 typedef struct _ocrTaskFcts_t {
-    /*! \brief Virtual destructor for the Task interface
+    /**
+     * @brief Virtual destructor for the Task interface
      */
     void (*destruct)(struct _ocrTask_t* self);
-    /*! \brief Interface to execute the underlying computation of a task
+
+    /**
+     * @brief "Satisfy" an input dependence for this EDT
+     *
+     * An EDT has input slots that must be satisfied before it
+     * is becomes runable. This call satisfies the dependence
+     * identified by 'slot'
+     *
+     * @param[in] self        Pointer to this task
+     * @param[in] db          Optional data passed for this dependence
+     * @param[in] slot        Slot satisfied
      */
-    void (*execute)(struct _ocrTask_t* self);
-    /*! \brief Interface to schedule the underlying computation of a task
-     * @todo What is this for?
+    u8 (*satisfy)(struct _ocrTask_t* self, ocrFatGuid_t db, u32 slot);
+
+    /**
+     * @brief Informs the task that the event/db 'src' is linked to its
+     * input slot 'slot'
+     *
+     * registerSignaler where src is a data-block is equivalent to calling
+     * satisfy with that same data-block
+     * 
+     * When a dependence is established between an event and
+     * a task, registerWaiter will be called on the event
+     * and registerSignaler will be called on the task
+     *
+     * @param[in] self        Pointer to this task
+     * @param[in] signaler    GUID of the source (signaler)
+     * @param[in] slot        Slot on self that will be satisfied by signaler
+     * @return 0 on success and a non-zero value on failure
      */
-    void (*schedule)(struct _ocrTask_t* self);
+    u8 (*registerSignaler)(struct _ocrTask_t* self, ocrFatGuid_t src, u32 slot);
+
+    /**
+     * @brief Executes this EDT
+     *
+     * This should be called by a worker to execute the EDT's code
+     * This call should take care of acquiring any input dependences
+     * and notifying any output events if needed
+     *
+     * @param[in] self        Pointer to this task
+     * @return 0 on success and a non-zero code on failure
+     */
+    u8 (*execute)(struct _ocrTask_t* self);
 } ocrTaskFcts_t;
 
-// ELS runtime size is one to support finish-edt
-// ELS_USER_SIZE is defined by configure
-#define ELS_RUNTIME_SIZE 1
 #define ELS_SIZE (ELS_RUNTIME_SIZE + ELS_USER_SIZE)
 
 /*! \brief Abstract class to represent OCR tasks.
@@ -134,16 +166,17 @@ typedef struct _ocrTask_t {
     ocrStatsProcess_t *statProcess;
 #endif
     ocrGuid_t templateGuid; /**< GUID for the template of this task */
-    u32 paramc;
-    u64* paramv;
-    u64 depc;
+    ocrEdt_t funcPtr;       /**< Function to execute */
+    u64* paramv;            /**< Pointer to the paramaters; should be inside task metadata */
 #ifdef OCR_ENABLE_EDT_NAMING
-    const char* name;
+    const char* name;       /**< Name of the EDT (for debugging purposes */
 #endif
-    // depv and the associated bookeeping are implementation specific
-    ocrGuid_t outputEvent; // Event to notify when the EDT is done
+    ocrGuid_t outputEvent;  /**< Event to notify when the EDT is done */
+    ocrGuid_t finishLatch;  /**< Latch event for this EDT (if this is a finish EDT) */
+    ocrGuid_t parentLatch;  /**< Inner-most latch event (not of this EDT) */
     ocrGuid_t els[ELS_SIZE];
-    u64 addedDepCounter;
+    ocrEdtState_t state;    /**< State of the EDT */
+    u32 paramc, depc;       /**< Number of parameters and dependences */
     u32 fctId;
 } ocrTask_t;
 
@@ -167,9 +200,10 @@ typedef struct _ocrTaskFactory_t {
      *  the GUIDs used to satisfy the Events enlisted in the dependence list.
      *
      */
-    ocrTask_t* (*instantiate)(struct _ocrTaskFactory_t * factory, ocrTaskTemplate_t * edtTemplate,
+    ocrTask_t* (*instantiate)(struct _ocrTaskFactory_t * factory, ocrFatGuid_t edtTemplate,
                               u32 paramc, u64* paramv, u32 depc, u32 properties,
-                              ocrGuid_t affinity, ocrGuid_t *outputEvent, ocrParamList_t *perInstance);
+                              ocrGuid_t affinity, ocrFatGuid_t *outputEvent,
+                              ocrParamList_t *perInstance);
 
     /*! \brief Virtual destructor for the TaskFactory interface
      */

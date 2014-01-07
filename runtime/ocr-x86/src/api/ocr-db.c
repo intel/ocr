@@ -13,7 +13,6 @@
 #include "ocr-allocator.h"
 #include "ocr-datablock.h"
 #include "ocr-db.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-runtime-types.h"
 

@@ -13,7 +13,6 @@
 #define FILTER_NAME FILE_DUMP
 
 #include "filters-macros.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-sync.h"
 

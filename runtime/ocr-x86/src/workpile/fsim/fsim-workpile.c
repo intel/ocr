@@ -4,8 +4,6 @@
  * removed or modified.
  */
 
-#include "ocr-macros.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-workpile.h"
 

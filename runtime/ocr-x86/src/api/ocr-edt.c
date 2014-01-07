@@ -7,7 +7,6 @@
 
 #include "debug.h"
 #include "ocr-edt.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 #include "ocr-runtime.h"
 

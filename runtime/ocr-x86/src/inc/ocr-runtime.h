@@ -19,6 +19,5 @@
 #include "ocr-worker.h"
 #include "ocr-scheduler.h"
 #include "ocr-policy-domain.h"
-#include "ocr-policy-domain-getter.h"
 
 #endif /* __OCR_RUNTIME_H_ */

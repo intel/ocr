@@ -88,10 +88,8 @@ typedef struct _paramListPolicyDomainInst_t {
 #define PD_MSG_EVT_CREATE       0x1008
 /**< Destroy an event */
 #define PD_MSG_EVT_DESTROY      0x2008
-/**< Satisfy an event */
-#define PD_MSG_EVT_SATISFY      0x3008
 /**< Get the entity that satisfied the event */
-#define PD_MSG_EVT_GET          0x4008
+#define PD_MSG_EVT_GET          0x3008
 
 /**< AND with this and if result non-null, GUID related operations */
 #define PD_MSG_GUID_OP          0x010
@@ -115,8 +113,26 @@ typedef struct _paramListPolicyDomainInst_t {
  * operation
  */
 #define PD_MSG_DEP_OP           0x040
-/**< Add a dependence to the event */
+/**< Add a dependence. This will call registerSignaler and registerWaiter
+ * on both sides of the dependence as appropriate*/
 #define PD_MSG_DEP_ADD          0x1040
+
+/**< Register a signaler on a waiter. This is called internally by the PD
+ * as a result of PD_MSG_DEP_ADD (potentially). DEP_ADD is effectively
+ * a REGSIGNALER and a REGWAITER.
+ */
+#define PD_MSG_DEP_REGSIGNALER  0x2040
+
+/**< Register a waiter on a signaler. This is called internally by the PD
+ * as a result of PD_MSG_DEP_ADD (potentially). DEP_ADD is effectively
+ * a REGSIGNALER and a REGWAITER.
+ */
+#define PD_MSG_DEP_REGWAITER    0x3040
+
+/**< Satisfy a dependence. A user can satisfy an event but the general
+ * case is that a signaler satisfies its waiter(s)
+ */
+#define PD_MSG_DEP_SATISFY      0x4040
 
 // Add more messages in here
 
@@ -214,6 +230,7 @@ typedef struct _ocrPolicyMsg_t {
         struct {
             ocrFatGuid_t guid;         /**< In: GUID of the DB to acquire */
             ocrFatGuid_t edt;          /**< In: EDT doing the acquiring */
+            void* ptr;                 /**< Out: Pointer to the acquired memory */
             u32 properties;            /**< In: Properties for acquire.
                                         * For now: 1 if acquire is an internal
                                         * runtime only acquire and 0 if this is
@@ -277,14 +294,6 @@ typedef struct _ocrPolicyMsg_t {
         } PD_MSG_STRUCT_NAME(PD_MSG_EVT_DESTROY);
         
         struct {
-            ocrFatGuid_t guid;    /**< In: GUID of the event to satisfy */
-            ocrFatGuid_t payload; /**< In: GUID of the "payload" to satisfy the
-                                  * event with (a DB usually) */
-            u32 slot;             /**< In: Slot to satisfy the event on */
-            u32 properties;       /**< In: Properties for the satisfaction */
-        } PD_MSG_STRUCT_NAME(PD_MSG_EVT_SATISFY);
-        
-        struct {
             ocrFatGuid_t guid; /**< In/Out:
                                *  In: The metaDataPtr field contains the value
                                *  to associate with the GUID or NULL if the metadata
@@ -293,7 +302,7 @@ typedef struct _ocrPolicyMsg_t {
             u64 size;          /**< In: If metaDataPtr is NULL on input, contains the
                                 *   size needed to contain the metadata */
             ocrGuidKind kind;  /**< In: Kind of the GUID to create */
-            u32 properties;    /**< In: Properties for the creation */
+            u32 properties;    /**< In: Properties for the creation. */
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_CREATE);
 
         struct {
@@ -343,6 +352,14 @@ typedef struct _ocrPolicyMsg_t {
             u32 slot;            /**< In: Slot of dest to connect the dep to */
             u32 properties;      /**< In: Properties. Lower 3 bits are access modes */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_ADD);
+
+        struct {
+            ocrFatGuid_t guid;    /**< In: GUID of the event/tas to satisfy */
+            ocrFatGuid_t payload; /**< In: GUID of the "payload" to satisfy the
+                                   * event/task with (a DB usually) */
+            u32 slot;             /**< In: Slot to satisfy the event/task on */
+            u32 properties;       /**< In: Properties for the satisfaction */
+        } PD_MSG_STRUCT_NAME(PD_MSG_DEP_SATISFY);
         
         struct {
             const char* buffer;  /**< In: Character string to print */

@@ -38,6 +38,7 @@ typedef struct ocrEventHcSingle_t {
 
 typedef struct ocrEventHcOnce_t {
     ocrEventHcAwaitable_t base;
+    // TODO: This may not be required
     u64 nbEdtRegistered;
 } ocrEventHcOnce_t;
 

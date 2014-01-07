@@ -17,7 +17,6 @@
 #endif
 
 #include "ocr-event.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 
 /*! \brief Resolve the kind of a guid (could be an event, an edt, etc...)

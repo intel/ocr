@@ -9,7 +9,6 @@
 #include "ocr-comp-platform.h"
 #include "ocr-comp-target.h"
 #include "ocr-macros.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 
 static void fsimTargetDestruct(ocrCompTarget_t *compTarget) {

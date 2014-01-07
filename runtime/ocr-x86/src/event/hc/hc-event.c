@@ -30,6 +30,176 @@
 
 #define DEBUG_TYPE EVENT
 
+// REC: Copied from hc-task.c
+
+// Internal signal/wait notification
+// Signal a sticky event some data arrived (on its unique slot)
+static void singleEventSignaled(ocrEvent_t * self, ocrGuid_t data, int slot) {
+    // Single event signaled by another entity, call its satisfy method.
+    self->fctPtrs->satisfy(self, data, slot);
+}
+
+// Internal signal/wait notification
+// Signal a latch event some data arrived on one of its
+static void latchEventSignaled(ocrEvent_t * self, ocrGuid_t data, int slot) {
+    // latch event signaled by another entity, call its satisfy method.
+    self->fctPtrs->satisfy(self, data, slot);
+}
+
+/******************************************************/
+/* Signal/Wait interface implementation               */
+/******************************************************/
+
+// Registers a 'waiter' that should be signaled by 'self' on a particular slot.
+// If 'self' has already been satisfied, it signals 'waiter' right away.
+// Warning: Concurrent with  event's put.
+// REC: This should move to hc-event.c as part of registerDependence
+static void awaitableEventRegisterWaiter(ocrEventHcAwaitable_t * self, ocrGuid_t waiter, int slot) {
+    // Try to insert 'waiter' at the beginning of the list
+    regNode_t * curHead = (regNode_t *) self->waiters;
+    if(curHead != SEALED_LIST) {
+        regNode_t * newHead = checkedMalloc(newHead, sizeof(regNode_t));
+        newHead->guid = waiter;
+        newHead->slot = slot;
+        newHead->next = (regNode_t *) curHead;
+        while(curHead != SEALED_LIST && !__sync_bool_compare_and_swap(&(self->waiters), curHead, newHead)) {
+            curHead = (regNode_t *) self->waiters;
+            newHead->next = (regNode_t *) curHead;
+        }
+        if (curHead != SEALED_LIST) {
+            // Insertion successful, we're done
+            DPRINTF(DEBUG_LVL_INFO, "AddDependence from 0x%lx to 0x%lx slot %d\n", (((ocrEvent_t*)self)->guid), waiter, slot);
+            return;
+        }
+        //else list has been sealed by a concurrent satisfy
+        //need to reclaim non-inserted node
+        free(newHead);
+    }
+    // Either the event was satisfied to begin with
+    // or while we were trying to insert the waiter,
+    // the event has been satisfied.
+    signalWaiter(waiter, self->data, slot);
+}
+
+// Registers an edt to a once event by incrementing an atomic counter
+// The event is deallocated only after being satisfied and all waiters 
+// have been notified
+static void onceEventRegisterEdtWaiter(ocrEvent_t * self, ocrGuid_t waiter, int slot) {
+    ocrEventHcOnce_t* onceImpl = (ocrEventHcOnce_t*) self;
+    DPRINTF(DEBUG_LVL_INFO, "Increment ONCE event reference %lx \n", self->guid);
+    onceImpl->nbEdtRegistered->fctPtrs->xadd(onceImpl->nbEdtRegistered, 1);
+}
+
+//These are essentially switches to dispatch call to the correct implementation
+
+void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
+    // Warning: signalerGuid can actually be a NULL_GUID.
+    // This can happen when users declared a certain number of
+    // depc but dynamically decide some are not used.
+
+    // WAIT MODE: event-to-event registration
+    // Note: do not call 'registerWaiter' here as it triggers event-to-edt
+    // registration, which should only be done on edtSchedule.
+    ocrPolicyDomain_t *pd = getCurrentPD();
+    if (isEventGuid(signalerGuid) && isEventGuid(waiterGuid)) {
+        ocrEventHcAwaitable_t * target;
+        deguidify(pd, signalerGuid, (u64*)&target, NULL);
+        awaitableEventRegisterWaiter(target, waiterGuid, slot);
+        return;
+    }
+    // ONCE event must know who are consuming them so that 
+    // they are not deallocated prematurely 
+    if (isEventGuidOfKind(signalerGuid, OCR_EVENT_ONCE_T) && isEdtGuid(waiterGuid)) {
+        ocrEvent_t * signalerEvent;
+        deguidify(pd, signalerGuid, (u64*)&signalerEvent, NULL);
+        onceEventRegisterEdtWaiter(signalerEvent, waiterGuid, slot);
+    }
+
+    // SIGNAL MODE:
+    //  - anything-to-edt registration
+    //  - db-to-event registration
+    // Make sure to do this before signaling in case
+    // the registerSignaler causes the waiter to fire
+#ifdef OCR_ENABLE_STATISTICS
+    statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
+#endif    
+    registerSignaler(signalerGuid, waiterGuid, slot);
+}
+
+// Registers a waiter on a signaler
+void registerWaiter(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
+    if(NULL_GUID == signalerGuid) {
+        // If the dependence was a NULL_GUID, consider this slot is already satisfied
+        signalWaiter(waiterGuid, NULL_GUID, slot);
+    } else if (isEventGuid(signalerGuid)) {
+        ASSERT(isEdtGuid(waiterGuid) || isEventGuid(waiterGuid));
+        ocrEventHcAwaitable_t * target;
+        deguidify(getCurrentPD(), signalerGuid, (u64*)&target, NULL);
+        awaitableEventRegisterWaiter(target, waiterGuid, slot);
+    } else if(isDatablockGuid(signalerGuid) && isEdtGuid(waiterGuid)) {
+            signalWaiter(waiterGuid, signalerGuid, slot);
+    } else {
+        // Everything else is an error
+        ASSERT("error: Unsupported guid kind in registerWaiter" );
+    }
+}
+
+// register a signaler on a waiter
+void registerSignaler(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
+    // anything to edt registration
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL, NULL);
+    if (isEdtGuid(waiterGuid)) {
+        // edt waiting for a signal from an event or a datablock
+        ASSERT((signalerGuid == NULL_GUID) || isEventGuid(signalerGuid) || isDatablockGuid(signalerGuid));
+        ocrTask_t * target = NULL;
+
+        deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
+        edtRegisterSignaler(target, signalerGuid, slot);
+        if (target->depc == pd->getSys(pd)->xadd64(pd->getSys(pd),
+                                                   &(target->addedDepCounter), 1)) {
+            // This function pointer is called once, when all the dependence have been added
+            target->fctPtrs->schedule(target);
+        }
+        return;
+    // datablock to event registration => satisfy on the spot
+    } else if (isDatablockGuid(signalerGuid)) {
+        ASSERT(isEventGuid(waiterGuid));
+        ocrEvent_t * target = NULL;
+        deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
+        // This looks a duplicate of signalWaiter, however there hasn't
+        // been any signal strictly speaking, hence calling satisfy directly
+        ASSERT(isEventSingleGuid(waiterGuid) || isEventLatchGuid(waiterGuid));
+        target->fctPtrs->satisfy(target, signalerGuid, slot);
+        return;
+    }
+    // Remaining legal registrations is event-to-event, but this is
+    // handled in 'registerWaiter'
+    ASSERT(isEventGuid(waiterGuid) && isEventGuid(signalerGuid) && "error: Unsupported guid kind in registerDependence");
+}
+
+// signal a 'waiter' data has arrived on a particular slot
+void signalWaiter(ocrGuid_t waiterGuid, ocrGuid_t data, int slot) {
+    // TODO do we need to know who's signaling ?
+    if (isEventSingleGuid(waiterGuid)) {
+        ocrEvent_t * target = NULL;
+        deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
+        singleEventSignaled(target, data, slot);
+    } else if (isEventLatchGuid(waiterGuid)) {
+        ocrEvent_t * target = NULL;
+        deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
+        latchEventSignaled(target, data, slot);
+    } else if(isEdtGuid(waiterGuid)) {
+        ocrTask_t * target = NULL;
+        deguidify(getCurrentPD(), waiterGuid, (u64*)&target, NULL);
+        taskSignaled(target, data, slot);
+    } else {
+        // ERROR
+        ASSERT(0 && "error: Unsupported guid kind in signal");
+    }
+}
+
+
 /******************************************************/
 /* OCR-HC Debug                                       */
 /******************************************************/

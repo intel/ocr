@@ -12,7 +12,6 @@
 
 #include "debug.h"
 #include "filters-macros.h"
-#include "ocr-policy-domain-getter.h"
 #include "ocr-policy-domain.h"
 
 #include <stdio.h>
