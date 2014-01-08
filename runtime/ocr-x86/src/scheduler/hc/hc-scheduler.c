@@ -89,8 +89,7 @@ void hcSchedulerDestruct(ocrScheduler_t * self) {
 void hcSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     
     // Get a GUID
-    guidify(PD, (u64)self, &(self->fguid.guid), OCR_GUID_SCHEDULER);
-    self->fguid.metaDataPtr = self;
+    guidify(PD, (u64)self, &(self->fguid), OCR_GUID_SCHEDULER);
     self->pd = PD;
     ocrSchedulerHc_t * derived = (ocrSchedulerHc_t *) self;
     

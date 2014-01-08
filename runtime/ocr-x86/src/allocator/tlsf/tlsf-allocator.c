@@ -993,8 +993,7 @@ void tlsfDestruct(ocrAllocator_t *self) {
 
 void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
     // Get a GUID
-    guidify(PD, (u64)self, &((self->fguid).guid), OCR_GUID_ALLOCATOR);
-    self->fguid.metaDataPtr = self;
+    guidify(PD, (u64)self, &(self->fguid), OCR_GUID_ALLOCATOR);
     self->pd = PD;
     
     // Do the allocation

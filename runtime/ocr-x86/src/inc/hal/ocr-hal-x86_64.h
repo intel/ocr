@@ -17,6 +17,7 @@
 
 #include "ocr-types.h"
 #include <string.h>
+#include <stdlib.h>
 
 
 /****************************************************/
@@ -196,5 +197,18 @@
  */
 #define hal_trylock32(lock) hal_cmpswap32(lock, 0, 1)
 
+/**
+ * @brief Abort the runtime
+ *
+ * Will crash the runtime
+ */
+#define hal_abort() abort()
+
+/**
+ * @brief Exit the runtime
+ *
+ * This will exit the runtime more cleanly than abort
+ */
+#define hal_exit(arg) exit(arg)
 #endif /* __OCR_HAL_X86_64_H__ */
 

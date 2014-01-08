@@ -59,10 +59,9 @@ typedef struct _ocrEventFcts_t {
     /**
      * @brief Interface to get the GUID of the entity that satisfied an event.
      * @param[in] self          Pointer to this event
-     * @param[in] slot          The slot of the event to get from
      * @return GUID of the entity the event has been satisfied with
      */
-    ocrFatGuid_t (*get) (struct _ocrEvent_t* self, u32 slot);
+    ocrFatGuid_t (*get)(struct _ocrEvent_t* self);
 
     /**
      * @brief Interface to satisfy the event
@@ -145,7 +144,7 @@ typedef struct _ocrEventFactory_t {
     void (*destruct)(struct _ocrEventFactory_t* factory);
 
     u32 factoryId;             /**< Factory ID (matches fctId in event */
-    ocrEventFcts_t fcts;
+    ocrEventFcts_t fcts[OCR_EVENT_T_MAX]; /**< Functions for all the types of events */
 } ocrEventFactory_t;
 
 #endif /* __OCR_EVENT_H_ */

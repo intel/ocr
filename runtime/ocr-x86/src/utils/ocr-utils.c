@@ -8,6 +8,8 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+#include HAL_FILE
 #include "debug.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
@@ -17,11 +19,11 @@
 /******************************************************/
 // TODO: These need to move. SAL or HAL?
 void ocr_abort() {
-    abort();
+    hal_abort();
 }
 
 void ocr_exit() {
-    exit(1);
+    hal_exit(1);
 }
 
 
@@ -106,6 +108,7 @@ u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind) {
     return result;
 }
 
+/* This is not currently used. What to do with it?
 void ocrPlaceTrackerAllocate ( ocrPlaceTracker_t** toFill ) {
     *toFill = (ocrPlaceTracker_t*) malloc(sizeof(ocrPlaceTracker_t));
 }
@@ -121,3 +124,4 @@ void ocrPlaceTrackerRemove ( ocrPlaceTracker_t* self, unsigned char currPlace ) 
 void ocrPlaceTrackerInit( ocrPlaceTracker_t* self ) {
     self->existInPlaces = 0ULL;
 }
+*/

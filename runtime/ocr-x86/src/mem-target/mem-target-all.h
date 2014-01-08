@@ -15,7 +15,7 @@
 #include "debug.h"
 #include "ocr-config.h"
 #include "ocr-mem-target.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef enum _memTargetType_t {
     memTargetShared_id,

@@ -204,6 +204,10 @@ typedef struct _ocrPolicyMsg_t {
                               * (the compute target processing the request) */
     u64 msgId;                /**< Implementation specific ID identifying
                               * this message (if required) */
+    // TODO: Make sure all definitions are clean
+    
+    // NOTE: All ocrFatGuid_t are in/out in the sense that if they come in
+    // not fully resolved, on output, they may be fully resolved (ie: deguidified)
     union {
         struct {
             ocrFatGuid_t guid;            /**< In/Out: GUID of the created
@@ -354,9 +358,9 @@ typedef struct _ocrPolicyMsg_t {
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_ADD);
 
         struct {
-            ocrFatGuid_t guid;    /**< In: GUID of the event/tas to satisfy */
+            ocrFatGuid_t guid;    /**< In: GUID of the event/task to satisfy */
             ocrFatGuid_t payload; /**< In: GUID of the "payload" to satisfy the
-                                   * event/task with (a DB usually) */
+                                   * event/task with (a DB usually). */
             u32 slot;             /**< In: Slot to satisfy the event/task on */
             u32 properties;       /**< In: Properties for the satisfaction */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_SATISFY);

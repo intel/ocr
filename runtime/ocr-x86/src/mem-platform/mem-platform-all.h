@@ -14,7 +14,7 @@
 #include "debug.h"
 #include "ocr-config.h"
 #include "ocr-mem-platform.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef enum _memPlatformType_t {
     memPlatformMalloc_id,

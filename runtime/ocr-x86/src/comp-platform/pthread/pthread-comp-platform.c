@@ -167,6 +167,8 @@ ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
 /* OCR COMP PLATFORM PTHREAD FACTORY                  */
 /******************************************************/
 
+/*
+ * Figure out where to put these 
 static ocrPolicyDomain_t * getCurrentPDPthread() {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
     return vals->pd;
@@ -176,6 +178,7 @@ static void setCurrentPDPthread(ocrPolicyDomain_t *val) {
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
     vals->pd = val;
 }
+*/
 
 void destructCompPlatformFactoryPthread(ocrCompPlatformFactory_t *factory) {
     runtimeChunkFree((u64)factory, NULL);

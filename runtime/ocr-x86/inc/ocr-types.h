@@ -44,9 +44,20 @@ typedef intptr_t ocrGuid_t; /**< GUID type */
 //typedef u64 ocrGuid_t;
 
 /**
- * @brief An invalid ocrGuid_t
+ * @brief A NULL ocrGuid_t
  */
 #define NULL_GUID ((ocrGuid_t)0x0)
+
+/**
+ * @brief An Unitialized GUID (ie: never set)
+ */
+#define UNINITIALIZED_GUID ((ocrGuid_t)-2)
+
+/**
+ * @brief An invalid GUID
+ */
+#define ERROR_GUID ((ocrGuid_t)-1)
+
 
 /**
  * @brief Allocators that can be used to allocate
@@ -72,7 +83,9 @@ typedef enum {
                           * in an error */
     OCR_EVENT_LATCH_T,   /**< The latch event can be satisfied on either
                           * its the DECR or INCR slot. When it reaches zero,
-                          * it is satisfied. */
+                          * it is satisfied. It behaves like a ONCE event
+                          * in the sense that it is destroyed on satisfaction
+                          */
     OCR_EVENT_T_MAX      /**< Marker */
 } ocrEventTypes_t;
 

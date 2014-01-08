@@ -53,8 +53,8 @@ static inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid,
  *  \param[out] guidRes    Parameter-result to contain the guid
  *  \param[in] kind        The kind of the guid (whether is an event, an edt, etc...)
  */
-static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * guidRes,
-                         ocrGuidKind kind) {
+static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 val,
+                         ocrFatGuid_t * guidRes, ocrGuidKind kind) {
     u8 returnCode = 0;
     ocrPolicyMsg_t msg;
     getCurrentEnv(&pd, NULL, NULL, &msg);
@@ -62,13 +62,13 @@ static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * gu
 #define PD_TYPE PD_MSG_GUID_CREATE
 
     msg.type = PD_MSG_GUID_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.metaDataPtr) = (void*)ptr;
+    PD_MSG_FIELD(guid.metaDataPtr) = (void*)val;
     PD_MSG_FIELD(guid.guid) = NULL_GUID;
     PD_MSG_FIELD(kind) = kind;
     returnCode = pd->processMessage(pd, &msg, true);
 
     if(returnCode == 0)
-        *guidRes = PD_MSG_FIELD(guid.guid);
+        *guidRes = PD_MSG_FIELD(guid);
 
     return returnCode;
 #undef PD_MSG
@@ -81,26 +81,35 @@ static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 ptr, ocrGuid_t * gu
  *  \param[out] ptrRes     Parameter-result to contain the pointer
  *  \param[out] kindRes    Parameter-result to contain the kind
  */
-static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid, u64* ptrRes,
+static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t *res,
                            ocrGuidKind* kindRes) {
-    u8 returnCode = 0;
-    ocrPolicyMsg_t msg;
-    getCurrentEnv(&pd, NULL, NULL, &msg);
+
+    if(res->metaDataPtr == NULL || kindRes) {
+        u8 returnCode = 0;
+        ocrPolicyMsg_t msg;
+        getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_INFO
-
-    msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(guid.guid) = guid;
-    
-    returnCode = pd->processMessage(pd, &msg, true);
-
-    if(returnCode == 0)
-        *ptrRes = (u64)PD_MSG_FIELD(guid.metaDataPtr);
+        msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+        PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+        PD_MSG_FIELD(guid.guid) = res->guid;
+        returnCode = pd->processMessage(pd, &msg, true);
         
-    return returnCode;
+        if(returnCode == 0) {
+            if(res->metaDataPtr) {
+                ASSERT(PD_MSG_FIELD(guid.metaDataPtr) == res->metaDataPtr);
+            } else {
+                res->metaDataPtr = PD_MSG_FIELD(guid.metaDataPtr);
+            }
+            if(kindRes) {
+                *kindRes = PD_MSG_FIELD(kind);
+            }
+        }
 #undef PD_MSG
 #undef PD_TYPE
+        return returnCode;
+    }
+    return 0;
 }
 
 /*! \brief Check if a guid represents a data-block
@@ -151,10 +160,12 @@ static inline bool isEdtGuid(ocrGuid_t guid) {
 static inline bool isEventLatchGuid(ocrGuid_t guid) {
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, NULL);
-    if(isEventGuid(guid)) {
-        ocrEvent_t * event = NULL;
-        deguidify(pd, guid, (u64*)&event, NULL);
-        return (event->kind == OCR_EVENT_LATCH_T);
+    ocrFatGuid_t event = {.guid = guid, .metaDataPtr = NULL};
+    ocrGuidKind kind;
+    deguidify(pd, &event, &kind);
+
+    if(kind == OCR_GUID_EVENT) {
+        return (((ocrEvent_t*)event.metaDataPtr)->kind == OCR_EVENT_LATCH_T);
     }
     return false;
 }
@@ -165,12 +176,14 @@ static inline bool isEventLatchGuid(ocrGuid_t guid) {
 static inline bool isEventSingleGuid(ocrGuid_t guid) {
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, NULL);
-    if(isEventGuid(guid)) {
-        ocrEvent_t * event = NULL;
-        deguidify(pd, guid, (u64*)&event, NULL);
-        return ((event->kind == OCR_EVENT_ONCE_T)
-                || (event->kind == OCR_EVENT_IDEM_T)
-                || (event->kind == OCR_EVENT_STICKY_T));
+    ocrFatGuid_t event = {.guid = guid, .metaDataPtr = NULL};
+    ocrGuidKind kind;
+    deguidify(pd, &event, &kind);
+    if(kind == OCR_GUID_EVENT) {
+        ocrEventTypes_t t = ((ocrEvent_t*)event.metaDataPtr)->kind;
+        return ((t == OCR_EVENT_ONCE_T) ||
+                (t == OCR_EVENT_IDEM_T) ||
+                (t == OCR_EVENT_STICKY_T));
     }
     return false;
 }
@@ -183,10 +196,12 @@ static inline bool isEventSingleGuid(ocrGuid_t guid) {
 static inline bool isEventGuidOfKind(ocrGuid_t guid, ocrEventTypes_t eventKind) {
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, NULL);
-    if (isEventGuid(guid)) {
-        ocrEvent_t * event = NULL;
-        deguidify(pd, guid, (u64*)&event, NULL);
-        return event->kind == eventKind;
+    ocrFatGuid_t event = {.guid = guid, .metaDataPtr = NULL};
+    ocrGuidKind kind;
+    deguidify(pd, &event, &kind);
+    if(kind == OCR_GUID_EVENT) {
+        ocrEventTypes_t t = ((ocrEvent_t*)event.metaDataPtr)->kind;
+        return t == eventKind;
     }
     return false;
 }

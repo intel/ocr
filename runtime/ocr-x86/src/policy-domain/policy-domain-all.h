@@ -10,7 +10,7 @@
 #include "debug.h"
 #include "ocr-config.h"
 #include "ocr-policy-domain.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef enum _policyDomainType_t {
     policyDomainHc_id,

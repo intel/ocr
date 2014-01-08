@@ -9,7 +9,7 @@
 
 #include "ocr-config.h"
 #include "ocr-scheduler.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef enum _schedulerType_t {
     schedulerHc_id,

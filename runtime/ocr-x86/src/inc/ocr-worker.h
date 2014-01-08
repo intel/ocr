@@ -71,11 +71,7 @@ typedef struct _ocrWorker_t {
     u64 computeCount;           /**< Number of compute node(s) associated */
 
     struct _ocrTask_t *curTask; /**< Currently executing task */
-
-    /** @brief Routine the worker executes
-     */
-    void* (*routine)(void *);
-
+    
     ocrWorkerFcts_t fcts;
 } ocrWorker_t;
 

@@ -35,8 +35,7 @@ void hcDestruct(ocrCompTarget_t *compTarget) {
 
 void hcStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
     // Get a GUID
-    guidify(PD, (u64)compTarget, &(compTarget->fguid.guid), OCR_GUID_COMPTARGET);
-    compTarget->fguid.metaDataPtr = compTarget;
+    guidify(PD, (u64)compTarget, &(compTarget->fguid), OCR_GUID_COMPTARGET);
     compTarget->pd = PD;
 
 #ifdef OCR_ENABLE_STATISTICS

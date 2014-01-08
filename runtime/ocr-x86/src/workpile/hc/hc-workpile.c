@@ -26,9 +26,8 @@ void hcWorkpileDestruct ( ocrWorkpile_t * base ) {
 }
 
 void hcWorkpileStart(ocrWorkpile_t *base, ocrPolicyDomain_t *PD) {
-    guidify(PD, (u64)base, &(base->fguid.guid), OCR_GUID_WORKPILE);
+    guidify(PD, (u64)base, &(base->fguid), OCR_GUID_WORKPILE);
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*)base;
-    base->fguid.metaDataPtr = base;
     base->pd = PD;
     dequeInit(base->pd, derived->deque, (void *) NULL_GUID);
 }
@@ -85,7 +84,7 @@ ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *pe
     base->fguid.metaDataPtr = base;
     base->pd = NULL;
     base->fcts = factory->workpileFcts;
-    derived->deque = (deque_t *) runtimeChunkAlloc(sizeof(deque_t));
+    derived->deque = (deque_t *) runtimeChunkAlloc(sizeof(deque_t), NULL);
     return base;
 }
 

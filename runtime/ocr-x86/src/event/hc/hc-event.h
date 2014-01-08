@@ -16,42 +16,41 @@
 #include "utils/ocr-utils.h"
 
 typedef struct {
-    ocrEventFactory_t base_factory;
-    ocrEventFcts_t finishLatchFcts;
+    ocrEventFactory_t base;
 } ocrEventFactoryHc_t;
 
 typedef struct ocrEventHc_t {
     ocrEvent_t base;
-    ocrEventTypes_t kind;
+    ocrFatGuid_t waitersDb; /**< DB containing an array of regNode_t listing the
+                             * events/EDTs depending on this event */
+    ocrFatGuid_t signalersDb; /**< DB containing an array of regNode_t listing
+                               * the events/EDTs that will signal this event */
+    u32 waitersCount; /**< Number of waiters in waitersDb */
+    u32 waitersMax; /**< Maximum number of waiters in waitersDb */
+    u32 signalersCount; /**< Number of signalers in signalersDb */
+    u32 signalersMax; /**< Maximum number of signalers in signalersDb */
 } ocrEventHc_t;
 
-typedef struct ocrEventHcAwaitable_t {
+// STICKY or IDEM events need a lock
+// NOTE: This is a sucky implementation for
+// now but works
+typedef struct _ocrEventHcPersist_t {
     ocrEventHc_t base;
-    volatile regNode_t * waiters;
-    volatile regNode_t * signalers;
     ocrGuid_t data;
-} ocrEventHcAwaitable_t;
-
-typedef struct ocrEventHcSingle_t {
-    ocrEventHcAwaitable_t base;
-} ocrEventHcSingle_t;
-
-typedef struct ocrEventHcOnce_t {
-    ocrEventHcAwaitable_t base;
-    // TODO: This may not be required
-    u64 nbEdtRegistered;
-} ocrEventHcOnce_t;
+    volatile u32 waitersLock;
+} ocrEventHcPersist_t;
+    
 
 typedef struct ocrEventHcLatch_t {
-    ocrEventHcAwaitable_t base;
+    ocrEventHc_t base;
     volatile s32 counter;
 } ocrEventHcLatch_t;
 
+// TODO: do I need this?
 typedef struct ocrEventHcFinishLatch_t {
     ocrEventHc_t base;
     // Dependences to be signaled
-    regNode_t outputEventWaiter;
-    regNode_t parentLatchWaiter; // Parent latch when nesting finish scope
+    
     ocrGuid_t ownerGuid; // finish-edt starting the finish scope
     volatile ocrGuid_t returnGuid;
     volatile s32 counter;
@@ -59,5 +58,5 @@ typedef struct ocrEventHcFinishLatch_t {
 
 ocrEventFactory_t* newEventFactoryHc(ocrParamList_t *perType, u32 factoryId);
 
-#endif /* __HC_EVENT_H__ */
 #endif /* ENABLE_EVENT_HC */
+#endif /* __HC_EVENT_H__ */

@@ -53,8 +53,8 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_EVT_SATISFY
-    msg.type = PD_MSG_EVT_SATISFY | PD_MSG_REQUEST;
+#define PD_TYPE PD_MSG_DEP_SATISFY
+    msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
     
     PD_MSG_FIELD(guid.guid) = eventGuid;
     PD_MSG_FIELD(payload.guid) = dataGuid;
@@ -116,8 +116,11 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     getCurrentEnv(&pd, NULL, NULL, &msg);
     
     ocrTaskTemplate_t *taskTemplate = NULL;
-    
-    deguidify(pd, templateGuid, (u64*)&taskTemplate, NULL);
+
+    // REC TODO: This is potentially dangerous!!!!
+    ocrFatGuid_t tGuid = {.guid = templateGuid, .metaDataPtr = NULL};
+    deguidify(pd, &tGuid, NULL);
+    taskTemplate = (ocrTaskTemplate_t*)tGuid.metaDataPtr;
     
     ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && paramc != EDT_PARAM_DEF) ||
            (taskTemplate->paramc != EDT_PARAM_UNK && (paramc == EDT_PARAM_DEF ||

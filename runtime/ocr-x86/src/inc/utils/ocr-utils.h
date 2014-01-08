@@ -160,6 +160,7 @@ u32 ocrGuidTrackerIterateAndClear(ocrGuidTracker_t *self);
  */
 u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind);
 
+/* Not currently used 
 typedef struct ocrPlaceTrackerStruct_t {
     u64 existInPlaces;
 } ocrPlaceTracker_t;
@@ -168,6 +169,6 @@ void ocrPlaceTrackerAllocate ( ocrPlaceTracker_t** toFill );
 void ocrPlaceTrackerInsert ( ocrPlaceTracker_t* self, unsigned char currPlaceID );
 void ocrPlaceTrackerRemove ( ocrPlaceTracker_t* self, unsigned char currPlaceID );
 void ocrPlaceTrackerInit ( ocrPlaceTracker_t* self );
-
+*/
 #endif /* __OCR_UTILS_H__ */
 

@@ -199,11 +199,6 @@ typedef struct _ocrGuidProviderFactory_t {
     ocrGuidProviderFcts_t providerFcts; /**< Function pointers created instances should use */
 } ocrGuidProviderFactory_t;
 
-#define UNINITIALIZED_GUID ((ocrGuid_t)-2)
-
-#define ERROR_GUID ((ocrGuid_t)-1)
-
-
 /****************************************************/
 /* OCR GUID CONVENIENCE FUNCTIONS                   */
 /****************************************************/

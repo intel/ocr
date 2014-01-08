@@ -12,6 +12,7 @@
 #include "ocr-datablock.h"
 #include "ocr-event.h"
 #include "ocr-policy-domain.h"
+#include "ocr-sysboot.h"
 #include "ocr-task.h"
 #include "ocr-worker.h"
 #include "task/hc/hc-task.h"
@@ -134,11 +135,11 @@ ocrFatGuid_t getFinishLatch(ocrTask_t * edt) {
 }
 
 // satisfies the incr slot of a finish latch event
-static void finishLatchCheckin(ocrPolicyDomaint_t *pd, ocrPolicyMsg_t *msg,
+static void finishLatchCheckin(ocrPolicyDomain_t *pd, ocrPolicyMsg_t *msg,
                                ocrFatGuid_t sourceEvent, ocrFatGuid_t latchEvent) {
 #define PD_MSG (msg)
-#define PD_TYPE PD_MSG_EVT_SATISFY
-    msg->type = PD_MSG_EVT_SATISFY | PD_MSG_REQUEST;
+#define PD_TYPE PD_MSG_DEP_SATISFY
+    msg->type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = latchEvent;
     PD_MSG_FIELD(payload.guid) = NULL_GUID;
     PD_MSG_FIELD(payload.metaDataPtr) = NULL;
@@ -159,11 +160,12 @@ static void finishLatchCheckin(ocrPolicyDomaint_t *pd, ocrPolicyMsg_t *msg,
 
 // satisfies the decr slot of a finish latch event
 // May not be needed
-static void finishLatchCheckout(ocrPolicyDomaint_t *pd, ocrPolicyMsg_t *msg,
+/*
+static void finishLatchCheckout(ocrPolicyDomain_t *pd, ocrPolicyMsg_t *msg,
                                 ocrFatGuid_t latchEvent) {
 #define PD_MSG (msg)
-#define PD_TYPE PD_MSG_EVT_SATISFY
-    msg->type = PD_MSG_EVT_SATISFY | PD_MSG_REQUEST;
+#define PD_TYPE PD_MSG_DEP_SATISFY
+    msg->type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = latchEvent;
     PD_MSG_FIELD(payload.guid) = NULL_GUID;
     PD_MSG_FIELD(payload.metaDataPtr) = NULL;
@@ -178,6 +180,7 @@ static void finishLatchCheckout(ocrPolicyDomaint_t *pd, ocrPolicyMsg_t *msg,
 static bool isFinishLatchOwner(ocrEvent_t * finishLatch, ocrGuid_t edtGuid) {
     return (finishLatch != NULL) && (((ocrEventHcFinishLatch_t *)finishLatch)->ownerGuid == edtGuid);
 }
+*/
 
 /******************************************************/
 /* Random helper functions                            */
@@ -215,28 +218,30 @@ static void initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
         RESULT_ASSERT(pd->processMessage(pd, &msg, true), ==, 0);
 
         ocrFatGuid_t latchFGuid = PD_MSG_FIELD(guid);
+#undef PD_MSG
+#undef PD_TYPE
         ASSERT(latchFGuid.guid != NULL_GUID && latchFGuid.metaDataPtr != NULL);
         
         ocrEventHcFinishLatch_t * hcLatch = (ocrEventHcFinishLatch_t *)latchFGuid.metaDataPtr;
         // Set the owner of the latch
-        hcLatch->ownerGuid = task->guid;
+        hcLatch->ownerGuid = task->base.guid;
         if (parentLatch.guid != NULL_GUID) {
-            DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on parent flatch 0x%lx\n", task->guid, parentLatch.guid);
+            DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on parent flatch 0x%lx\n", task->base.guid, parentLatch.guid);
             // Check in current finish latch
             finishLatchCheckin(pd, &msg, latchFGuid, parentLatch);
         }
         
-        DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on self flatch 0x%lx\n", task->guid, latchFGuid.guid);
+        DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on self flatch 0x%lx\n", task->base.guid, latchFGuid.guid);
         // Check in the new finish scope
         // This will also link outputEvent to latchFGuid
         finishLatchCheckin(pd, &msg, outputEvent, latchFGuid);
         // Set edt's ELS to the new latch
-        task->finishLatch = latchFGuid.guid;
+        task->base.finishLatch = latchFGuid.guid;
     } else {
         // If the currently executing edt is in a finish scope,
         // but is not a finish-edt itself, just register to the scope
         if(parentLatch.guid != NULL_GUID) {
-            DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on current flatch 0x%lx\n", task->guid, parentLatch.guid);
+            DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on current flatch 0x%lx\n", task->base.guid, parentLatch.guid);
             // Check in current finish latch
             finishLatchCheckin(pd, &msg, outputEvent, parentLatch);
         }
@@ -275,8 +280,10 @@ static void taskSchedule(ocrTask_t *self) {
 
 void destructTaskHc(ocrTask_t* base) {
     DPRINTF(DEBUG_LVL_INFO, "Destroy 0x%lx\n", base->guid);
-    ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
-    
+
+    ocrPolicyDomain_t *pd = NULL;
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(&pd, NULL, NULL, &msg);
 #ifdef OCR_ENABLE_STATISTICS
     {
         // TODO: FIXME
@@ -380,11 +387,13 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     // Set up outputEventPtr:
     //   - if a finish EDT, wait on its latch event
     //   - if not a finish EDT, wait on its output event
-    if(base->latchEvent) {
-        outputEventPtr->guid = base->latchEvent;
+    if(base->finishLatch) {
+        outputEventPtr->guid = base->finishLatch;
     } else {
         outputEventPtr->guid = base->outputEvent;
     }
+#undef PD_MSG
+#undef PD_TYPE
     
 #ifdef OCR_ENABLE_STATISTICS
     // TODO FIXME
@@ -420,7 +429,6 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     // current signal frontier, since it is the only signaler
     // the edt is registered with at that time.
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
-    ocrGuid_t signalerGuid = self->signalers[slot].guid;
 
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
@@ -449,7 +457,7 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     // and crucial for once-event since they are being destroyed on satisfy.
     ASSERT(self->signalers[slot].slot == slot ||
            self->signalers[slot].slot != (u32)-2); // Checks if not already satisfied
-                                                   // -2 means once event
+                                                   // -2 means once event or latch
     self->signalers[slot].guid = data.guid;
     self->signalers[slot].slot = (u32)-1; // Say that it is satisfied
     if(++self->slotSatisfiedCount == base->depc) {
@@ -473,24 +481,29 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
 #undef PD_MSG
 #undef PD_TYPE
     }
+    return 0;
 }
 
 u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot) {
     // Check if event or data-block
-    ASSERT((signalerGuid == NULL_GUID) || isEventGuid(signalerGuid) || isDatablockGuid(signalerGuid));
+    ASSERT((signalerGuid.guid == NULL_GUID) || isEventGuid(signalerGuid.guid)
+           || isDatablockGuid(signalerGuid.guid));
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
     regNode_t * node = &(self->signalers[slot]);
     
     node->guid = signalerGuid.guid;
-    node->next = NULL;
-    if(signalerGuid == NULL_GUID) {
+    if(signalerGuid.guid == NULL_GUID) {
         node->slot = slot;
-    } else if(isEventGuid(signalerGuid)) {
+    } else if(isEventGuid(signalerGuid.guid)) {
         node->slot = slot;
-        if(isEventGuidOfKind(signalerGuid, OCR_EVENT_ONCE_T)) {
+        // REC: TODO: This is dangerous as it implies a deguidify which
+        // may not be very easy to do. It is a read-only thing though
+        // so maybe it is OK (change deguidify to specify mode?)
+        if(isEventGuidOfKind(signalerGuid.guid, OCR_EVENT_ONCE_T)
+           || isEventGuidOfKind(signalerGuid.guid, OCR_EVENT_LATCH_T)) {
             node->slot = (u32)-2; // To signal that this is a once event
         }
-    } else if(isDatablockGuid(signalerGuid)) {
+    } else if(isDatablockGuid(signalerGuid.guid)) {
         node->slot = (u32)-1; // Already satisfied
         ++(self->slotSatisfiedCount);
     } else {
@@ -503,7 +516,7 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot)
     return 0;
 }
 
-void taskExecute(ocrTask_t* base) {
+u8 taskExecute(ocrTask_t* base) {
     DPRINTF(DEBUG_LVL_INFO, "Execute 0x%lx\n", base->guid);
     ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
     // In this implementation each time a signaler has been satisfied, its guid
@@ -566,9 +579,6 @@ void taskExecute(ocrTask_t* base) {
 #endif /* OCR_ENABLE_STATISTICS */
     
     ocrGuid_t retGuid = base->funcPtr(paramc, paramv, depc, depv);
-    if(depc != 0) {
-        int i =0;
-    }
 #ifdef OCR_ENABLE_STATISTICS
     // We now say that the worker is done executing the EDT
     statsEDT_END(pd, ctx->sourceObj, curWorker, base->guid, base);
@@ -608,6 +618,7 @@ void taskExecute(ocrTask_t* base) {
 #undef PD_MSG
 #undef PD_TYPE
     }
+    return 0;
 }
 
 void destructTaskFactoryHc(ocrTaskFactory_t* base) {

@@ -27,6 +27,8 @@
 /* OCR-HC WORKER                                      */
 /******************************************************/
 
+/*
+ * TODO: Is this still needed? 
 static void associate_comp_platform_and_worker(ocrWorker_t * worker) {
     // This function must only be used when the contextFactory has its PD set
     ocrPolicyCtx_t * ctx = policy->contextFactory->instantiate(policy->contextFactory, NULL);
@@ -37,12 +39,13 @@ static void associate_comp_platform_and_worker(ocrWorker_t * worker) {
     setCurrentPD(policy);
     setCurrentWorkerContext(ctx);
 }
+*/
 
 /**
  * The computation worker routine that asks work to the scheduler
  */
-static void * workerRoutine(void * arg);
-static void * masterRoutine(void * arg);
+static void * workerRoutine(launchArg_t * arg);
+static void * masterRoutine(launchArg_t * arg);
 
 // Convenient to have an id to index workers in pools
 static inline u64 getWorkerId(ocrWorker_t * worker) {
@@ -65,23 +68,23 @@ static void workerLoop(ocrWorker_t * worker) {
         PD_MSG_FIELD(properties) = 0;
         PD_MSG_FIELD(type) = OCR_GUID_EDT;
         // TODO: In the future, potentially take more than one)
-#undef PD_MSG
-#undef PD_TYPE
         if(pd->processMessage(pd, &msg, true) == 0) {
             // We got a response
             count = PD_MSG_FIELD(guidCount);
             if(count == 1) {
+                // REC: TODO: Do we need a message to execute this
                 ASSERT(taskGuid.guid != NULL_GUID && taskGuid.metaDataPtr != NULL);
                 worker->curTask = (ocrTask_t*)taskGuid.metaDataPtr;
-                worker->curTask->fctPtrs->execute(worker->curTask);
+                //worker->curTask->fctPtrs->execute(worker->curTask);
                 worker->curTask = NULL;
                 // Destroy the work
+#undef PD_TYPE
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_WORK_DESTROY
                 msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
                 PD_MSG_FIELD(guid) = taskGuid;
                 PD_MSG_FIELD(properties) = 0;
-                pd->processMessage(pd, &msg, false);
+                RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
             }
@@ -89,28 +92,26 @@ static void workerLoop(ocrWorker_t * worker) {
     } /* End of while loop */
 }
 
-static void * workerRoutine(void * arg) {
+static void * workerRoutine(launchArg_t* launchArg) {
     // Need to pass down a data-structure
-    launchArg_t * launchArg = (launchArg_t *) arg;
     ocrWorker_t * worker = (ocrWorker_t *) launchArg->arg;
     ocrPolicyDomain_t *pd = worker->pd;
     pd->pdFree(pd, launchArg); // Free the launch argument
     
     // associate current thread with the worker
-    associate_comp_platform_and_worker(pd, worker);
+    //associate_comp_platform_and_worker(pd, worker);
     
-    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %d\n", getWorkerId(worker));
+    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
     workerLoop(worker);
     return NULL;
 }
 
-static void * masterRoutine(void * arg) {
-    launchArg_t * launchArg = (launchArg_t *) arg;
+static void * masterRoutine(launchArg_t * launchArg) {
     ocrWorker_t * worker = (ocrWorker_t *) launchArg->arg;
     ocrPolicyDomain_t *pd = worker->pd;
     pd->pdFree(pd, launchArg); // Free the launch argument
     
-    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of master worker %d\n", getWorkerId(worker));
+    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of master worker %ld\n", getWorkerId(worker));
     workerLoop(worker);
     return NULL;
 }
@@ -131,21 +132,30 @@ void destructWorkerHc(ocrWorker_t * base) {
 ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
     ocrWorkerHc_t * worker = (ocrWorkerHc_t*)runtimeChunkAlloc(
         sizeof(ocrWorkerHc_t), NULL);
-    worker->run = false;
-    worker->id = ((paramListWorkerHcInst_t*)perInstance)->workerId;
-    worker->currentEDTGuid = NULL_GUID;
     ocrWorker_t * base = (ocrWorker_t *) worker;
-    base->guid = UNINITIALIZED_GUID;
-    guidify(getCurrentPD(), (u64)base, &(base->guid), OCR_GUID_WORKER);
-    base->routine = worker_computation_routine;
+
+    base->fguid.guid = UNINITIALIZED_GUID;
+    base->fguid.metaDataPtr = base;
+    base->pd = NULL;
+    base->curTask = NULL;
+    base->fcts = factory->workerFcts;
+    
+    worker->id = ((paramListWorkerHcInst_t*)perInstance)->workerId;
+    worker->run = false;
+
+    if(worker->id) {
+        // Non-zero IDs are not master for HC
+        base->type = SLAVE_WORKERTYPE;
+    } else {
+        base->type = MASTER_WORKERTYPE;
+    }
     base->fcts = factory->workerFcts;
     return base;
 }
 
 void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     // Get a GUID
-    guidify(policy, (u64)base, &(base->fguid.guid), OCR_GUID_WORKER);
-    base->fguid.metaDataPtr = base;
+    guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
     base->pd = policy;
     
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
@@ -156,7 +166,7 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     u64 computeCount = base->computeCount;
     // What the compute target will execute
     launchArg_t * launchArg = policy->pdMalloc(policy, sizeof(launchArg_t));
-    launchArg->routine = (base->type == MASTER_WORKERTYPE)?masterRouter:workerRoutine;
+    launchArg->routine = (base->type == MASTER_WORKERTYPE)?masterRoutine:workerRoutine;
     launchArg->arg = base;
     ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
     u64 i = 0;
@@ -170,12 +180,12 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     if(base->type == MASTER_WORKERTYPE) {
         // Master worker does not start the underlying thread
         // since it falls through but it still sets up other things
-        associate_comp_platform_and_worker(policy, base);
+        //associate_comp_platform_and_worker(policy, base);
     }
 }
 
 void hcFinishWorker(ocrWorker_t * base) {
-    DPRINTF(DEBUG_LVL_INFO, "Finishing worker routine %d\n", hcWorker->id);
+    DPRINTF(DEBUG_LVL_INFO, "Finishing worker routine %ld\n", getWorkerId(base));
     ASSERT(base->computeCount == 1); // For now; o/w have to create more launchArg
     u64 i = 0;
     for(i = 0; i < base->computeCount; i++) {
@@ -209,10 +219,10 @@ void hcStopWorker(ocrWorker_t * base) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = base->fguid;
     PD_MSG_FIELD(properties) = 0;
-    base->pd->processMessage(base->pd, &msg, false);
+    RESULT_ASSERT(base->pd->processMessage(base->pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
-    base->guid.guid = UNINITIALIZED_GUID;
+    base->fguid.guid = UNINITIALIZED_GUID;
 }
 
 bool hcIsRunningWorker(ocrWorker_t * base) {

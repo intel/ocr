@@ -4,6 +4,7 @@
  * removed or modified.
  */
 
+#include "debug.h"
 #include "ocr-runtime.h"
 #include "ocr-sal.h"
 

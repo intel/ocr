@@ -41,8 +41,7 @@ void sharedDestruct(ocrMemTarget_t *self) {
 
 void sharedStart(ocrMemTarget_t *self, ocrPolicyDomain_t * PD ) {
     // Get a GUID
-    guidify(PD, (u64)self, &(self->fguid.guid), OCR_GUID_MEMTARGET);
-    self->fguid.metaDataPtr = self;
+    guidify(PD, (u64)self, &(self->fguid), OCR_GUID_MEMTARGET);
     self->pd = PD;
     
 #ifdef OCR_ENABLE_STATISTICS
