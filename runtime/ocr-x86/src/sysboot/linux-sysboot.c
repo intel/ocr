@@ -8,8 +8,11 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+#ifdef ENABLE_SYSBOOT_LINUX
 #include "debug.h"
 
+#include "ocr-mem-target.h"
 #include "ocr-sysboot.h"
 
 #include <stdlib.h>
@@ -25,5 +28,14 @@ void x86RuntimeChunkFree(u64 addr, u64* extra) {
     free((void*)addr);
 }
 
+void x86RuntimeUpdateMemTarget(ocrMemTarget_t *me, u64 extra) {
+    // On Linux, we don't need to do anything since the mallocs never
+    // overlap
+    return;
+}
+
 u64 (*runtimeChunkAlloc)(u64, u64*) = &x86RuntimeChunkAlloc;
 void (*runtimeChunkFree)(u64, u64*) = &x86RuntimeChunkFree;
+void (*runtimeUpdateMemTarget)(ocrMemTarget_t *, u64) = &x86RuntimeUpdateMemTarget;
+
+#endif /* ENABLE_SYSBOOT_LINUX */

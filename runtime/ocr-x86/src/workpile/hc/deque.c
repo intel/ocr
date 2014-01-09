@@ -7,7 +7,7 @@
 #include "ocr-config.h"
 #ifdef ENABLE_WORKPILE_HC
 
-#include HAL_FILE
+#include "ocr-hal.h"
 #include "debug.h"
 #include "ocr-policy-domain.h"
 #include "ocr-types.h"

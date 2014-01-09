@@ -90,6 +90,16 @@ extern void (*runtimeUpdateMemTarget)(struct _ocrMemTarget_t *mem, u64 extra);
  * @param domain    Domain to use as the boot PD
  * @return nothing
  */
-extern void (*setBootPD)(struct _ocrPolicyDomain_t* domain);
+// TODO: This may no longer be needed
+//extern void (*setBootPD)(struct _ocrPolicyDomain_t* domain);
+
+#ifdef ENABLE_BUILDER_ONLY
+extern void* (*getFuncAddr)(const char* funcName);
+
+#define FUNC_ADDR(type, func) ((type)(getFuncAddr(#func)))
+
+#else /* not ENABLE_BUILDER_ONLY */
+#define FUNC_ADDR(type, func) ((type)(&(func)))
+#endif /* ENABLE_BUILDER_ONLY */
 
 #endif /* __OCR_SYSBOOT_H__ */

@@ -191,6 +191,7 @@ void ocrParseArgs(s32 argc, const char* argv[], ocrConfig_t * ocrConfig) {
 }
 
 void ocrFinalize() {
+    /** REC: TODO
     ocrPolicyDomain_t* masterPD = getMasterPD();
     stopAllPD(masterPD);
     masterPD->destruct(masterPD);
@@ -201,6 +202,7 @@ void ocrFinalize() {
 //     ocrStatsProcessDestruct(&GfakeProcess);
 //     GocrFilterAggregator->destruct(GocrFilterAggregator);
 // #endif
+*/
 }
 
 ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {

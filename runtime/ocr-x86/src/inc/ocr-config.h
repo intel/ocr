@@ -12,6 +12,11 @@
 #ifndef __OCR_CONFIG_H__
 #define __OCR_CONFIG_H__
 
+// Define this if building the PD builder program
+// If this is defined, this will exclude everything
+// that does not contribute to building the policy domain
+//#define ENABLE_BUILDER_ONLY
+
 // Allocator
 #define ENABLE_ALLOCATOR_TLSF
 
@@ -28,8 +33,15 @@
 // Event
 #define ENABLE_EVENT_HC
 
+// External things (mostly needed by the INI parser)
+#define ENABLE_EXTERNAL_DICTIONARY
+#define ENABLE_EXTERNAL_INIPARSER
+
 // GUID provider
 #define ENABLE_GUID_PTR
+
+// HAL layer to use
+#define HAL_LAYER x86_64
 
 // Mem-platform
 #define ENABLE_MEM_PLATFORM_MALLOC
@@ -44,7 +56,10 @@
 #define ENABLE_SCHEDULER_HC
 
 // SAL layer to use
-#define ENABLE_SAL_X86
+#define ENABLE_SAL_LINUX
+
+// Sysboot layer to use
+#define ENABLE_SYSBOOT_LINUX
 
 // Task
 #define ENABLE_TASK_HC
@@ -57,9 +72,6 @@
 
 // Workpile
 #define ENABLE_WORKPILE_HC
-
-// HAL layer to use
-#define HAL_FILE "hal/ocr-hal-x86_64.h"
 
 #endif /* __OCR_CONFIG_H__ */
 

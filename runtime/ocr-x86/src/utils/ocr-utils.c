@@ -8,8 +8,7 @@
  * removed or modified.
  */
 
-#include "ocr-config.h"
-#include HAL_FILE
+#include "ocr-hal.h"
 #include "debug.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"

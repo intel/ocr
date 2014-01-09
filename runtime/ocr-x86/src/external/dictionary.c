@@ -36,6 +36,10 @@
 /*---------------------------------------------------------------------------
                                 Includes
  ---------------------------------------------------------------------------*/
+
+#include "ocr-config.h"
+#ifdef ENABLE_EXTERNAL_DICTIONARY
+
 #include "external/dictionary.h"
 
 #include <stdio.h>
@@ -418,4 +422,6 @@ int main(int argc, char *argv[])
     return 0 ;
 }
 #endif
+
+#endif /* ENABLE_EXTERNAL_DICTIONARY */
 /* vim: set ts=4 et sw=4 tw=75 */

@@ -19,6 +19,46 @@
 #include "utils/ocr-utils.h"
 
 /****************************************************/
+/* CONVENIENCE FUNCTIONS                            */
+/****************************************************/
+
+// The following functions are generic and implemented
+// using a call to the policy domain but they are
+// common enough to merit their own simplified
+// wrapper
+// For example, sal_exit will send a message to
+// the policy domain of type PD_MSG_SYS_EXIT which
+// may eventually call into ocrSal_t (exit)
+
+/**
+ * @brief Exit OCR
+ *
+ * This brings down the runtime cleanly
+ */
+void sal_exit(u64 errorCode);
+
+/**
+ * @brief Emergency abort.
+ */
+void sal_abort();
+
+/**
+ * @brief Will cause an abort if the condition is false.
+ *
+ * @note Use the ASSERT macro (in debug.h) which will call this
+ * if debug mode is enabled
+ */
+void sal_assert(bool cond);
+
+/**
+ * @brief Causes the formatted string to be printed out
+ * to a console output
+ *
+ * This operation may be a no-op on some platforms
+ */
+void sal_printf(const char* string, ...);
+
+/****************************************************/
 /* SYSTEM FUNCTIONS                                 */
 /****************************************************/
 
@@ -48,7 +88,7 @@ struct _ocrWorker_t;
  *
  * @param[in] pd              Policy domain initiating the shutdown
  */
-void (*teardown)(struct _ocrPolicyDomain_t *pd);
+extern void (*teardown)(struct _ocrPolicyDomain_t *pd);
 
 
 /**
@@ -80,11 +120,8 @@ void (*teardown)(struct _ocrPolicyDomain_t *pd);
  *                            happen so it needs to already be either
  *                            allocated or on the stack
  */
-void (*getCurrentEnv)(struct _ocrPolicyDomain_t **pd, struct _ocrWorker_t **worker,
-                      struct _ocrTask_t **edt, struct _ocrPolicyMsg_t *msg);
-
-// TODO: Do we need this
-extern struct _ocrPolicyDomain_t * (*getMasterPD)();
+extern void (*getCurrentEnv)(struct _ocrPolicyDomain_t **pd, struct _ocrWorker_t **worker,
+                             struct _ocrTask_t **edt, struct _ocrPolicyMsg_t *msg);
 
 
 /****************************************************/
@@ -92,11 +129,11 @@ extern struct _ocrPolicyDomain_t * (*getMasterPD)();
 /****************************************************/
 typedef struct {
     ocrParamList_t base;
-} paramListSysFact_t;
+} paramListSalFact_t;
 
 typedef struct {
     ocrParamList_t base;
-} paramListSysInst_t;
+} paramListSalInst_t;
 
 
 /****************************************************/
@@ -107,9 +144,9 @@ typedef struct {
 // capabilities so that the PD can check what the system
 // provides and act accordingly
 
-struct _ocrSys_t;
+struct _ocrSal_t;
 
-typedef struct _ocrSysFcts_t {
+typedef struct _ocrSalFcts_t {
     /**
      * @brief Destructor equivalent
      *
@@ -118,14 +155,29 @@ typedef struct _ocrSysFcts_t {
      *
      * @param self          Pointer to this system descriptor
      */
-    void (*destruct)(struct _ocrSys_t* self);
+    void (*destruct)(struct _ocrSal_t* self);
 
-    void (*start)(struct _ocrSys_t* self);
+    void (*start)(struct _ocrSal_t* self, struct _ocrPolicyDomain_t *pd);
 
-    void (*stop)(struct _ocrSys_t* self);
+    void (*stop)(struct _ocrSal_t* self);
 
-    void (*finish)(struct _ocrSys_t* self);
+    void (*finish)(struct _ocrSal_t* self);
 
+
+    /**
+     * @brief Exits the runtime cleanly
+     *
+     * @param self          This system descriptor
+     * @param errorCode     Code to return
+     */
+    void (*exit)(struct _ocrSal_t *self, u64 errorCode);
+
+    /**
+     * @brief Aborts the runtime (emergency)
+     *
+     * @param self          This system descriptor
+     */
+    void (*abort)(struct _ocrSal_t *self);
     
     /**
      * @brief Prints a message
@@ -138,7 +190,7 @@ typedef struct _ocrSysFcts_t {
      * and is not meant to be called directly from the rest of
      * the runtime code
      */
-    void (*print)(struct _ocrSys_t *self, const char* str, u64 length);
+    void (*print)(struct _ocrSal_t *self, const char* str, u64 length);
 
     /**
      * @brief Writes the byte array 'str' to a "file"
@@ -154,8 +206,9 @@ typedef struct _ocrSysFcts_t {
      * @warning This function is called from the policy domain directly
      * and is not meant to be called directly from the rest of
      * the runtime code
+     * @todo Not used/implemented
      */
-    u64 (*write)(struct _ocrSys_t *self, const char* str, u64 length, u64 id);
+    u64 (*write)(struct _ocrSal_t *self, const char* str, u64 length, u64 id);
 
     /**
      * @brief Reads bytes into the byte array 'str'
@@ -172,17 +225,19 @@ typedef struct _ocrSysFcts_t {
      * @warning This function is called from the policy domain directly
      * and is not meant to be called directly from the rest of
      * the runtime code
+     * @todo Not used/implemented
      */
-    u64 (*read)(struct _ocrSys_t *self, char *str, u64 length, u64 id);
-} ocrSysFcts_t;
+    u64 (*read)(struct _ocrSal_t *self, char *str, u64 length, u64 id);
+} ocrSalFcts_t;
 
 /**
  * @brief The very low-level system software
  *
  */
-typedef struct _ocrSys_t {
-    ocrSysFcts_t *fctPtrs;
-} ocrSys_t;
+typedef struct _ocrSal_t {
+    struct _ocrPolicyDomain_t *pd;
+    ocrSalFcts_t fcts;
+} ocrSal_t;
 
 /****************************************************/
 /* OCR SYSTEM FACTORY                               */
@@ -191,20 +246,19 @@ typedef struct _ocrSys_t {
 /**
  * @brief Factory for system descriptors
  */
-typedef struct _ocrSysFactory_t {
+typedef struct _ocrSalFactory_t {
     /**
      * @brief Destroy the factory freeing up any
      * memory associated with it
      *
      * @param self          This factory
      */
-    void (*destruct)(struct _ocrSysFactory_t *self);
+    void (*destruct)(struct _ocrSalFactory_t *self);
 
 
-    ocrSys_t* (*instantiate)(struct _ocrSysFactory_t* factory, ocrParamList_t *perInstance);
+    ocrSal_t* (*instantiate)(struct _ocrSalFactory_t* factory, ocrParamList_t *perInstance);
 
-    ocrSysFcts_t sysFcts;
-} ocrSysFactory_t;
-
+    ocrSalFcts_t salFcts;
+} ocrSalFactory_t;
 
 #endif /* __OCR_SAL_H__ */

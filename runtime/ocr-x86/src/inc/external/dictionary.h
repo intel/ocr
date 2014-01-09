@@ -36,6 +36,9 @@
 #ifndef _DICTIONARY_H_
 #define _DICTIONARY_H_
 
+#include "ocr-config.h"
+#ifdef ENABLE_EXTERNAL_DICTIONARY
+
 /*---------------------------------------------------------------------------
                                 Includes
  ---------------------------------------------------------------------------*/
@@ -184,4 +187,5 @@ void dictionary_unset(dictionary * d, const char * key);
 /*--------------------------------------------------------------------------*/
 void dictionary_dump(dictionary * d, FILE * out);
 
+#endif /* ENABLE_EXTERNAL_DICTIONARY */
 #endif

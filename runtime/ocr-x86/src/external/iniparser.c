@@ -29,6 +29,10 @@
 */
 /*--------------------------------------------------------------------------*/
 /*---------------------------- Includes ------------------------------------*/
+
+#include "ocr-config.h"
+#ifdef ENABLE_EXTERNAL_INIPARSER
+
 #include <ctype.h>
 #include "external/iniparser.h"
 
@@ -766,5 +770,7 @@ void iniparser_freedict(dictionary * d)
 {
     dictionary_del(d);
 }
+
+#endif /* ENABLE_EXTERNAL_INIPARSER */
 
 /* vim: set ts=4 et sw=4 tw=75 */

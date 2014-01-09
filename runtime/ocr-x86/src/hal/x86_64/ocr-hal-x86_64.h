@@ -210,5 +210,6 @@
  * This will exit the runtime more cleanly than abort
  */
 #define hal_exit(arg) exit(arg)
+
 #endif /* __OCR_HAL_X86_64_H__ */
 

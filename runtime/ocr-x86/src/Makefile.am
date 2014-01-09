@@ -78,6 +78,7 @@ include machine-description/Makefile.inc
 include mem-platform/Makefile.inc
 include mem-target/Makefile.inc
 include policy-domain/Makefile.inc
+include sal/Makefile.inc
 include scheduler/Makefile.inc
 include statistics/Makefile.inc
 include sysboot/Makefile.inc

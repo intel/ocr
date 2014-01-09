@@ -465,7 +465,7 @@ typedef struct _ocrPolicyDomain_t {
     ocrEventFactory_t ** eventFactories;        /**< Factories to produce events*/
     ocrGuidProvider_t ** guidProviders;         /**< GUID generators */
 
-    ocrSys_t *sysProvider;                      /**< Low-level system functions */
+    ocrSal_t *salProvider;                      /**< Low-level system functions */
 
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t *statsObject;                    /**< Statistics object */
@@ -594,7 +594,7 @@ typedef struct _ocrPolicyDomain_t {
     ocrStats_t* (*getStats)(struct _ocrPolicyDomain_t *self);
 #endif
 
-    ocrSys_t* (*getSys)(struct _ocrPolicyDomain_t *self);
+    ocrSal_t* (*getSal)(struct _ocrPolicyDomain_t *self);
     
     ocrPhysicalLocation_t* neighbors;
     u64 neighborCount;
@@ -638,7 +638,7 @@ typedef struct _ocrPolicyDomainFactory_t {
         (struct _ocrPolicyDomainFactory_t *factory, ocrTaskFactory_t *taskFactory,
          ocrTaskTemplateFactory_t *taskTemplateFactory,
          ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
-         ocrGuidProvider_t *guidProvider, ocrSys_t *sysProvider,
+         ocrGuidProvider_t *guidProvider, ocrSal_t *salProvider,
 #ifdef OCR_ENABLE_STATISTICS
          ocrStats_t *statsObject,
 #endif

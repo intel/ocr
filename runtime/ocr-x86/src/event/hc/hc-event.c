@@ -7,7 +7,7 @@
 #include "ocr-config.h"
 #ifdef ENABLE_EVENT_HC
 
-#include HAL_FILE
+#include "ocr-hal.h"
 #include "debug.h"
 #include "event/hc/hc-event.h"
 #include "ocr-datablock.h"

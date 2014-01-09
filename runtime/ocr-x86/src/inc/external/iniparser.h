@@ -32,6 +32,9 @@
 #ifndef _INIPARSER_H_
 #define _INIPARSER_H_
 
+#include "ocr-config.h"
+#ifdef ENABLE_EXTERNAL_INIPARSER
+
 /*---------------------------------------------------------------------------
                                 Includes
  ---------------------------------------------------------------------------*/
@@ -326,4 +329,5 @@ dictionary * iniparser_load(const char * ininame);
 /*--------------------------------------------------------------------------*/
 void iniparser_freedict(dictionary * d);
 
+#endif /* ENABLE_EXTERNAL_INIPARSER */
 #endif

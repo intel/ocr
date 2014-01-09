@@ -11,7 +11,7 @@
 #include "ocr-config.h"
 #ifdef ENABLE_DATABLOCK_REGULAR
 
-#include HAL_FILE
+#include "ocr-hal.h"
 #include "datablock/regular/regular-datablock.h"
 #include "debug.h"
 #include "ocr-comp-platform.h"

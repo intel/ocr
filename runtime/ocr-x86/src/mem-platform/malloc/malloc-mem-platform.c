@@ -12,7 +12,7 @@
 #include "ocr-config.h"
 #ifdef ENABLE_MEM_PLATFORM_MALLOC
 
-#include HAL_FILE
+#include "ocr-hal.h"
 #include "debug.h"
 #include "utils/rangeTracker.h"
 #include "mem-platform/malloc/malloc-mem-platform.h"
