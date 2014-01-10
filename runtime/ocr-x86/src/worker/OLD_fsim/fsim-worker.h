@@ -4,6 +4,8 @@
  * removed or modified.
  */
 
+#if 0
+
 #ifndef __FSIM_WORKER_H__
 #define __FSIM_WORKER_H__
 
@@ -56,3 +58,4 @@ ocrWorkerFactory_t* newOcrWorkerFactoryXE(ocrParamList_t *perType);
 
 #endif /* __FSIM_WORKER_H__ */
 
+#endif 

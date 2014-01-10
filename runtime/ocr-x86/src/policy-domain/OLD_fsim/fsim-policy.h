@@ -4,6 +4,8 @@
  * removed or modified.
  */
 
+#if 0
+
 #ifndef __FSIM_POLICY_H__
 #define __FSIM_POLICY_H__
 
@@ -68,3 +70,4 @@ ocrPolicyDomainFactory_t *newPolicyDomainFactoryMasteredCE(ocrParamList_t *perTy
 ocrPolicyCtxFactory_t *newPolicyCtxFactoryMasteredCE(ocrParamList_t *perType);
 #endif /* __FSIM_POLICY_H__ */
 
+#endif

@@ -4,6 +4,7 @@
  * removed or modified.
  */
 
+#if 0
 #include <stdlib.h>
 #include <assert.h>
 
@@ -294,3 +295,4 @@ void * ce_worker_computation_routine(void * arg) {
     }
     return NULL;
 }
+#endif

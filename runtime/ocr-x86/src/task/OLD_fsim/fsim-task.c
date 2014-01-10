@@ -4,6 +4,7 @@
  * removed or modified.
  */
 
+#if 0
 
 #include "task/fsim/fsim-task.h"
 #include "debug.h"
@@ -68,3 +69,4 @@ ocrTaskTemplateFactory_t * newMessageTaskTemplateFactoryFSIM(ocrParamList_t* per
     //TODO What taskTemplateFcts is supposed to do ?
     return base;
 }
+#endif 

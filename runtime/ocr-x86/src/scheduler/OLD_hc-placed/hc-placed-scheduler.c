@@ -4,6 +4,7 @@
  * removed or modified.
  */
 
+#if 0
 #include "ocr-macros.h"
 #include "ocr-runtime.h"
 #include "hc.h"
@@ -146,3 +147,5 @@ ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, ocrParamLi
     derived->n_workers_per_scheduler = 1 + derived->worker_id_end - derived->worker_id_begin;
     return base;
 }
+
+#endif 

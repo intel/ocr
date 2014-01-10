@@ -25,7 +25,7 @@
 //#define ENABLE_COMP_PLATFORM_FSIM
 
 // Comp-target
-#define ENABLE_COMP_TARGET_HC
+#define ENABLE_COMP_TARGET_PASSTHROUGH
 
 // Datablock
 #define ENABLE_DATABLOCK_REGULAR

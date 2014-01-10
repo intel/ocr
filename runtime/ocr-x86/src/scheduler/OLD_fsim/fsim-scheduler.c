@@ -4,6 +4,7 @@
  * removed or modified.
  */
 
+#if 0
 #include <stdlib.h>
 
 #include "ocr-runtime.h"
@@ -324,3 +325,4 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryCE (ocrParamList_t *perType) {
     baseFactory->schedulerFcts.giveEdt = ceSchedulerGive;
     return baseFactory;
 }
+#endif 

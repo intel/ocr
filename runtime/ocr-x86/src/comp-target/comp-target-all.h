@@ -13,25 +13,25 @@
 #include "utils/ocr-utils.h"
 
 typedef enum _compTargetType_t {
-    compTargetHc_id,
+    compTargetPassThrough_id,
     compTargetMax_id,
 } compTargetType_t;
 
 const char * comptarget_types[] = {
-    "HC",
+    "PASSTHROUGH",
     NULL
 };
 
-// Pthread compute platform
-#include "comp-target/hc/hc-comp-target.h"
+// Pass-through target (just calls one and only one platform)
+#include "comp-target/passthrough/passthrough-comp-target.h"
 
 // Add other compute targets using the same pattern as above
 
 inline ocrCompTargetFactory_t *newCompTargetFactory(compTargetType_t type, ocrParamList_t *typeArg) {
     switch(type) {
-#ifdef ENABLE_COMP_TARGET_HC
-    case compTargetHc_id:
-        return newCompTargetFactoryHc(typeArg);
+#ifdef ENABLE_COMP_TARGET_PASSTHROUGH
+    case compTargetPassThrough_id:
+        return newCompTargetFactoryPt(typeArg);
 #endif
     default:
         ASSERT(0);

@@ -9,6 +9,7 @@
  */
 
 
+#if 0
 #ifndef __COMP_TARGET_FSIM_H__
 #define __COMP_TARGET_FSIM_H__
 
@@ -39,3 +40,4 @@ ocrCompTargetFactory_t* newCompTargetFactoryFSIM(ocrParamList_t *perType);
 
 #endif /* __COMP_TARGET_FSIM_H__ */
 
+#endif /* 0 */

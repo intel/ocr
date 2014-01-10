@@ -4,6 +4,7 @@
  * removed or modified.
  */
 
+#if 0
 #ifndef __FSIM_SCHEDULER_H__
 #define __FSIM_SCHEDULER_H__
 
@@ -62,3 +63,4 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryXE (ocrParamList_t *perType);
 
 #endif /* __HC_SCHEDULER_H__ */
 
+#endif

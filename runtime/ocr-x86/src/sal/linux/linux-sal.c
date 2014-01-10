@@ -87,7 +87,7 @@ static void destructSalFactoryLinux(ocrSalFactory_t *factory) {
 
 ocrSalFactory_t *newSalFactoryLinux(ocrParamList_t *perType) {
     ocrSalFactory_t *base = (ocrSalFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrSalFactory_t), "sal linux factory");
+        runtimeChunkAlloc(sizeof(ocrSalFactoryLinux_t), "sal linux factory");
     base->instantiate = &newSalLinux;
     base->destruct = &destructSalFactoryLinux;
     base->salFcts.destruct = &linuxSalDestruct;

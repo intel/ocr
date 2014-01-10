@@ -8,6 +8,7 @@
  * removed or modified.
  */
 
+#if 0
 
 #include "debug.h"
 #include "ocr-macros.h"
@@ -194,3 +195,5 @@ ocrQueueFactory_t* newQueueFactoryX86(u64 maxQueueSize, ocrParamList_t *perType)
 
     return (ocrQueueFactory_t*)result;
 }
+
+#endif

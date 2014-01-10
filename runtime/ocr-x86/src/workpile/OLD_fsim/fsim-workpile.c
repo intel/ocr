@@ -4,6 +4,7 @@
  * removed or modified.
  */
 
+#if 0
 #include "ocr-policy-domain.h"
 #include "ocr-workpile.h"
 
@@ -59,3 +60,5 @@ ocrWorkpileFactory_t * newOcrWorkpileFactoryFsimMessage(ocrParamList_t *perType)
     base->workpileFcts.steal = ceMessageWorkpilePop;
     return base;
 }
+
+#endif 

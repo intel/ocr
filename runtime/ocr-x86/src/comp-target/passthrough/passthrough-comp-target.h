@@ -1,5 +1,5 @@
 /**
- * @brief Compute Platform implemented using pthread
+ * @brief Compute target that is a pass-through to the underlying platform
  **/
 
 /*
@@ -8,36 +8,34 @@
  * removed or modified.
  */
 
-#ifndef __COMP_TARGET_HC_H__
-#define __COMP_TARGET_HC_H__
+#ifndef __COMP_TARGET_PASSTHROUGH_H__
+#define __COMP_TARGET_PASSTHROUGH_H__
 
 #include "ocr-config.h"
-#ifdef ENABLE_COMP_TARGET_HC
+#ifdef ENABLE_COMP_TARGET_PASSTHROUGH
 
 #include "ocr-comp-target.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
 
-#include <pthread.h>
-
 typedef struct {
     paramListCompTargetInst_t base;
     void (*routine)(void*);
     void* routineArg;
-} paramListCompTargetHc_t;
+} paramListCompTargetPt_t;
 
 typedef struct {
     ocrCompTarget_t base;
 
     void (*routine)(void*);
     void* routineArg;
-} ocrCompTargetHc_t;
+} ocrCompTargetPt_t;
 
 typedef struct {
     ocrCompTargetFactory_t base;
-} ocrCompTargetFactoryHc_t;
+} ocrCompTargetFactoryPt_t;
 
-ocrCompTargetFactory_t* newCompTargetFactoryHc(ocrParamList_t *perType);
+ocrCompTargetFactory_t* newCompTargetFactoryPt(ocrParamList_t *perType);
 
-#endif /* ENABLE_COMP_TARGET_HC */
-#endif /* __COMP_TARGET_HC_H__ */
+#endif /* ENABLE_COMP_TARGET_PASSTHROUGH */
+#endif /* __COMP_TARGET_PASSTHROUGH_H__ */

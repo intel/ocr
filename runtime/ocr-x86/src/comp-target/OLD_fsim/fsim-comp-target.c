@@ -4,6 +4,7 @@
  * removed or modified.
  */
 
+#if 0
 #include "comp-target/fsim/fsim-comp-target.h"
 #include "debug.h"
 #include "ocr-comp-platform.h"
@@ -62,3 +63,5 @@ ocrCompTargetFactory_t *newCompTargetFactoryFSIM(ocrParamList_t *perType) {
 
     return base;
 }
+
+#endif /* 0 */

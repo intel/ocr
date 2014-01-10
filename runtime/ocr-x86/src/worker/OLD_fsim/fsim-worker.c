@@ -4,6 +4,8 @@
  * removed or modified.
  */
 
+#if 0
+
 #include "debug.h"
 #include "ocr-comp-platform.h"
 #include "ocr-runtime.h"
@@ -544,3 +546,5 @@ ocrWorker_t* newWorkerFsimCE (ocrWorkerFactory_t * factory, ocrParamList_t * per
     return base;
 }
 #endif
+
+#endif 

@@ -5,6 +5,7 @@
  */
 
 
+#if 0
 #ifndef __FSIM_TASK_H__
 #define __FSIM_TASK_H__
 
@@ -54,3 +55,4 @@ ocrTaskTemplateFactory_t * newMessageTaskTemplateFactoryFSIM(ocrParamList_t* per
 
 #endif /* __FSIM_TASK_H__ */
 
+#endif

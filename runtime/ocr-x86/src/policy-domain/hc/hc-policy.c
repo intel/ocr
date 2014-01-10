@@ -9,9 +9,6 @@
 #include "ocr-config.h"
 #ifdef ENABLE_POLICY_DOMAIN_HC
 
-// TODO: Figure out why I need string.h. Should be removed
-#include <string.h>
-
 #include "debug.h"
 #include "ocr-policy-domain.h"
 #include "ocr-sysboot.h"

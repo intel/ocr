@@ -10,6 +10,7 @@
  * removed or modified.
  */
 
+#if 0
 
 #include <string.h>
 
@@ -599,3 +600,5 @@ ocrPolicyDomainFactory_t * newPolicyDomainFactoryMasteredCE(ocrParamList_t *perT
     base->destruct =  destructPolicyDomainFactoryFSIM;
     return base;
 }
+
+#endif

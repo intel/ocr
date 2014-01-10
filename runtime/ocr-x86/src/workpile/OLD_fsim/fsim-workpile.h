@@ -1,3 +1,4 @@
+#if 0
 #ifndef __FSIM_WORKPILE_H__
 #define __FSIM_WORKPILE_H__
 
@@ -17,4 +18,5 @@ typedef struct {
 
 ocrWorkpileFactory_t* newOcrWorkpileFactoryFsimMessage_t(ocrParamList_t *perType);
 
-#endif //
+#endif
+#endif
