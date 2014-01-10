@@ -1,11 +1,7 @@
 #
 # Makefile for the OCR Runtime
 #
-#                 INTEL CONFIDENTIAL
-# Copyright (c) 2010-2013 Intel Corporation. All rights reserved.
-#
-# THIS PROGRAM IS FULLY PROTECTED BY COPYRIGHT LAWS AND IS
-# CONSIDERED A TRADE SECRET BELONGING TO THE INTEL CORPORATION.
+# For OCR licensing terms, see ../runtime/LICENSE.
 #
 # Author: Ivan Ganev <ivan.b.ganev@intel.com>
 #
