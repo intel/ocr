@@ -22,10 +22,12 @@
 #ifdef OCR_ENABLE_STATISTICS
 #include "statistics/statistics-all.h"
 #endif
-#include "sync/sync-all.h"
+//#include "sync/sync-all.h"
 #include "task/task-all.h"
 #include "worker/worker-all.h"
 #include "workpile/workpile-all.h"
+
+#include "ocr-sysboot.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -373,6 +375,7 @@ ocrEventFactory_t *create_factory_event(char *name, ocrParamList_t *paramlist) {
     }
 }
 
+/*
 ocrPolicyCtxFactory_t *create_factory_context(char *name, ocrParamList_t *paramlist) {
     policyCtxType_t mytype = policyCtxMax_id;
     TO_ENUM (mytype, name, policyCtxType_t, policyCtx_types, policyCtxMax_id);
@@ -384,6 +387,7 @@ ocrPolicyCtxFactory_t *create_factory_context(char *name, ocrParamList_t *paraml
         return (ocrPolicyCtxFactory_t *)newPolicyCtxFactory(mytype, paramlist);
     }
 }
+*/
 
 ocrGuidProviderFactory_t *create_factory_guid(char *name, ocrParamList_t *paramlist) {
     guidType_t mytype = guidMax_id;
@@ -397,6 +401,7 @@ ocrGuidProviderFactory_t *create_factory_guid(char *name, ocrParamList_t *paraml
     }
 }
 
+/*
 ocrLockFactory_t *create_factory_lock(char *name, ocrParamList_t *paramlist) {
     syncType_t mytype = syncMax_id;
     TO_ENUM (mytype, name, syncType_t, sync_types, syncMax_id);
@@ -433,6 +438,7 @@ ocrQueueFactory_t *create_factory_queue(char *name, ocrParamList_t *paramlist) {
         return (ocrQueueFactory_t *)newQueueFactory(mytype, 32, paramlist);
     }
 }
+*/
 
 
 void *create_factory (type_enum index, char *factory_name, ocrParamList_t *paramlist) {
@@ -476,7 +482,7 @@ void *create_factory (type_enum index, char *factory_name, ocrParamList_t *param
     return new_factory;
 }
 
-s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *type_counts, char ***factory_names, void ***all_factories, ocrMappable_t ***all_instances, type_enum index, dictionary *dict, char *secname) {
+s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts, char ***factory_names, void ***all_factories, void ***all_instances, type_enum index, dictionary *dict, char *secname) {
     s32 i, low, high, j;
     char *inststr;
     char key[MAX_KEY_SZ];
@@ -505,7 +511,7 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
     case guid_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListGuidProviderInst_t);
-            instance[j] = (ocrMappable_t *)((ocrGuidProviderFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            instance[j] = (void *)((ocrGuidProviderFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created guid provider of type %s, index %d\n", inststr, j);
         }
@@ -515,7 +521,13 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
             ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
             INI_GET_INT(key, value, -1);
-            instance[j] = (ocrMappable_t *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, value, inst_param[j]);
+            instance[j] = (void *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, 0, value, inst_param[j]);
+//            instance[j] = (void *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, value, inst_param[j]);
+/*
+ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
+                                       ocrPhysicalLocation_t location,
+                                       u64 memSize, ocrParamList_t *perInstance) {
+*/
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created memplatform of type %s, index %d\n", inststr, j);
         }
@@ -525,7 +537,8 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
             INI_GET_INT(key, value, -1);
-            instance[j] = (ocrMappable_t *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, value, inst_param[j]);
+            instance[j] = (void *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, 0, value, inst_param[j]);
+//            instance[j] = (void *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, value, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created memtarget of type %s, index %d\n", inststr, j);
         }
@@ -536,7 +549,7 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
             INI_GET_INT (key, value, -1);
             ((paramListAllocatorInst_t *)inst_param[j])->size = value;
-            instance[j] = (ocrMappable_t *)((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            instance[j] = (void *)((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created allocator of type %s, index %d\n", inststr, j);
         }
@@ -569,7 +582,8 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
                 break;
             }
 
-            instance[j] = (ocrMappable_t *)((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            instance[j] = (void *)((ocrCompPlatformFactory_t *)factory)->instantiate(factory, 0, inst_param[j]);
+//            instance[j] = (void *)((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created compplatform of type %s, index %d\n", inststr, j);
         }
@@ -577,7 +591,7 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
     case comptarget_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListCompTargetInst_t);
-            instance[j] = (ocrMappable_t *)((ocrCompTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            instance[j] = (void *)((ocrCompTargetFactory_t *)factory)->instantiate(factory, 0, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created comptarget of type %s, index %d\n", inststr, j);
         }
@@ -585,7 +599,7 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
     case workpile_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListWorkpileInst_t);
-            instance[j] = (ocrMappable_t *)((ocrWorkpileFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            instance[j] = (void *)((ocrWorkpileFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created workpile of type %s, index %d\n", inststr, j);
         }
@@ -606,7 +620,7 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
                 break;
             }
 
-            instance[j] = (ocrMappable_t *)((ocrWorkerFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            instance[j] = (void *)((ocrWorkerFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created worker of type %s, index %d\n", inststr, j);
         }
@@ -628,7 +642,7 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
                 break;
             }
 
-            instance[j] = (ocrMappable_t *)((ocrSchedulerFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            instance[j] = (void *)((ocrSchedulerFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created scheduler of type %s, index %d\n", inststr, j);
         }
@@ -639,20 +653,20 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
             ocrTaskTemplateFactory_t *ttf;
             ocrDataBlockFactory_t *dbf;
             ocrEventFactory_t *ef;
-            ocrPolicyCtxFactory_t *cf;
+            //ocrPolicyCtxFactory_t *cf;
             ocrGuidProvider_t *gf;
-            ocrLockFactory_t *lf;
-            ocrAtomic64Factory_t *af;
-            ocrQueueFactory_t *qf;
+            //ocrLockFactory_t *lf;
+            //ocrAtomic64Factory_t *af;
+            //ocrQueueFactory_t *qf;
             s32 low, high;
 
-            s32 schedulerCount, workerCount, computeCount, workpileCount, allocatorCount, memoryCount;
+            s32 schedulerCount, workerCount, allocatorCount;
             schedulerCount = read_range(dict, secname, "scheduler", &low, &high);
             workerCount = read_range(dict, secname, "worker", &low, &high);
-            computeCount = read_range(dict, secname, "comptarget", &low, &high);
-            workpileCount = read_range(dict, secname, "workpile", &low, &high);
+//            computeCount = read_range(dict, secname, "comptarget", &low, &high);
+//            workpileCount = read_range(dict, secname, "workpile", &low, &high);
             allocatorCount = read_range(dict, secname, "allocator", &low, &high);
-            memoryCount = read_range(dict, secname, "memtarget", &low, &high);
+//            memoryCount = read_range(dict, secname, "memtarget", &low, &high);
 
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "taskfactory");
             INI_GET_STR (key, inststr, "");
@@ -669,7 +683,7 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "eventfactory");
             INI_GET_STR (key, inststr, "");
             ef = create_factory_event(inststr, NULL);
-
+/*
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "contextfactory");
             INI_GET_STR (key, inststr, "");
             cf = create_factory_context(inststr, NULL);
@@ -685,7 +699,7 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "sync");
             INI_GET_STR (key, inststr, "");
             qf = create_factory_queue(inststr, NULL);
-
+*/
             // Ugly but special case
             read_range(dict, secname, "guid", &low, &high);
             ASSERT (low == high);  // We don't expect more than one guid provider
@@ -697,18 +711,18 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
             // but for now just passing some default one
             ocrStatsFactory_t *sf = newStatsFactory(statisticsDefault_id, NULL);
 #endif
+
+
             ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
-            instance[j] = (ocrMappable_t *)((ocrPolicyDomainFactory_t *)factory)->instantiate(
-                factory, schedulerCount, workerCount, computeCount, workpileCount,
-                allocatorCount, memoryCount,
-                tf, ttf, dbf, ef, cf, gf, lf, af, qf,
-#ifdef OCR_ENABLE_STATISTICS
-                sf->instantiate(sf, NULL), /* TODO: BALA, please get a statistics INSTANCE (like GUID provider)*/
-#endif
-                NULL, inst_param[j]);
+            instance[j] = (void *)((ocrPolicyDomainFactory_t *)factory)->instantiate(
+                factory, schedulerCount, allocatorCount, workerCount,
+                tf, ttf, dbf, ef, gf, NULL, NULL, 
+                inst_param[j]);
+
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created policy domain of index %d\n", j);
-            setBootPD((ocrPolicyDomain_t *)instance[j]);
+
+//            setBootPD((ocrPolicyDomain_t *)instance[j]);
         }
         break;
     default:
@@ -718,7 +732,7 @@ s32 populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, s32 *ty
     return 0;
 }
 
-void free_instance (ocrMappable_t *instance, type_enum mytype)
+void free_instance (void *instance, type_enum mytype)
 {
     switch (mytype) {
     case memtarget_type: {
@@ -744,14 +758,14 @@ void free_instance (ocrMappable_t *instance, type_enum mytype)
     case scheduler_type: {
         ocrScheduler_t *t = (ocrScheduler_t *)instance;
         free(t->workpiles);
-        free(t->workers);
+//        free(t->workers);
         break;
     }
     case policydomain_type: {
         ocrPolicyDomain_t *t = (ocrPolicyDomain_t *)instance;
-        free(t->memories);
-        free(t->computes);
-        free(t->workpiles);
+//        free(t->memories);
+//        free(t->computes);
+//        free(t->workpiles);
         free(t->workers);
         free(t->allocators);
         free(t->schedulers);
@@ -766,7 +780,7 @@ void free_instance (ocrMappable_t *instance, type_enum mytype)
     }
 }
 
-void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *frominstance, ocrParamList_t *fromparam, ocrMappable_t *toinstance, ocrParamList_t *toparam, s32 dependence_index, s32 dependence_count) {
+void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, ocrParamList_t *fromparam, void *toinstance, ocrParamList_t *toparam, s32 dependence_index, s32 dependence_count) {
     switch(fromtype) {
     case guid_type:
     case memplatform_type:
@@ -781,7 +795,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
 
         if (f->memoryCount == 0) {
             f->memoryCount = dependence_count;
-            f->memories = (ocrMemPlatform_t **)calloc(dependence_count, sizeof(ocrMemPlatform_t *));
+            f->memories = (ocrMemPlatform_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrMemPlatform_t *), "md: memtarget");
         }
         f->memories[dependence_index] = (ocrMemPlatform_t *)toinstance;
         break;
@@ -791,7 +805,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
         DPRINTF(DEBUG_LVL_INFO, "Allocator %d to %d\n", fromtype, totype);
         if (f->memoryCount == 0) {
             f->memoryCount = dependence_count;
-            f->memories = (ocrMemTarget_t **)calloc(dependence_count, sizeof(ocrMemTarget_t *));
+            f->memories = (ocrMemTarget_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrMemTarget_t *), "md: allocator");
         }
         f->memories[dependence_index] = (ocrMemTarget_t *)toinstance;
         break;
@@ -802,7 +816,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
 
         if (f->platformCount == 0) {
             f->platformCount = dependence_count;
-            f->platforms = (ocrCompPlatform_t **)calloc(dependence_count, sizeof(ocrCompPlatform_t *));
+            f->platforms = (ocrCompPlatform_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrCompPlatform_t *), "md: comptarget");
         }
         f->platforms[dependence_index] = (ocrCompPlatform_t *)toinstance;
         break;
@@ -813,7 +827,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
 
         if (f->computeCount == 0) {
             f->computeCount = dependence_count;
-            f->computes = (ocrCompTarget_t **)calloc(dependence_count, sizeof(ocrCompTarget_t *));
+            f->computes = (ocrCompTarget_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrCompTarget_t *), "md: worker");
         }
         f->computes[dependence_index] = (ocrCompTarget_t *)toinstance;
         break;
@@ -825,20 +839,20 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
         case workpile_type: {
             if (f->workpileCount == 0) {
                 f->workpileCount = dependence_count;
-                f->workpiles = (ocrWorkpile_t **)calloc(dependence_count, sizeof(ocrWorkpile_t *));
+                f->workpiles = (ocrWorkpile_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrWorkpile_t *), "md: scheduler");
             }
             f->workpiles[dependence_index] = (ocrWorkpile_t *)toinstance;
             break;
         }
-        case worker_type: {
+/*        case worker_type: {
             if (f->workerCount == 0) {
                 f->workerCount = dependence_count;
-                f->workers = (ocrWorker_t **)calloc(dependence_count, sizeof(ocrWorker_t *));
+                f->workers = (ocrWorker_t **)runtimeChunkAlloc(dependence_count, sizeof(ocrWorker_t *));
             }
             f->workers[dependence_index] = (ocrWorker_t *)toinstance;
             break;
         }
-        default:
+*/        default:
             break;
         }
         break;
@@ -853,41 +867,41 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
             break;
         }
         case memtarget_type: {
-            if (f->memories == NULL) {
+/*          if (f->memories == NULL) {
                 ASSERT(f->memoryCount == dependence_count);
-                f->memories = (ocrMemTarget_t **)calloc(dependence_count, sizeof(ocrMemTarget_t *));
+                f->memories = (ocrMemTarget_t **)runtimeChunkAlloc(dependence_count, sizeof(ocrMemTarget_t *));
             }
             f->memories[dependence_index] = (ocrMemTarget_t *)toinstance;
-            break;
+*/            break;
         }
         case allocator_type: {
             if (f->allocators == NULL) {
                 ASSERT(f->allocatorCount == dependence_count);
-                f->allocators = (ocrAllocator_t **)calloc(dependence_count, sizeof(ocrAllocator_t *));
+                f->allocators = (ocrAllocator_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrAllocator_t *), "md: allocator");
             }
             f->allocators[dependence_index] = (ocrAllocator_t *)toinstance;
             break;
         }
         case comptarget_type: {
-            if (f->computes == NULL) {
+/*            if (f->computes == NULL) {
                 ASSERT(f->computeCount == dependence_count);
-                f->computes = (ocrCompTarget_t **)calloc(dependence_count, sizeof(ocrCompTarget_t *));
+                f->computes = (ocrCompTarget_t **)runtimeChunkAlloc(dependence_count, sizeof(ocrCompTarget_t *));
             }
             f->computes[dependence_index] = (ocrCompTarget_t *)toinstance;
-            break;
+*/            break;
         }
         case workpile_type: {
-            if (f->workpiles == NULL) {
+/*            if (f->workpiles == NULL) {
                 ASSERT(f->workpileCount == dependence_count);
-                f->workpiles = (ocrWorkpile_t **)calloc(dependence_count, sizeof(ocrWorkpile_t *));
+                f->workpiles = (ocrWorkpile_t **)runtimeChunkAlloc(dependence_count, sizeof(ocrWorkpile_t *));
             }
             f->workpiles[dependence_index] = (ocrWorkpile_t *)toinstance;
-            break;
+*/            break;
         }
         case worker_type: {
             if (f->workers == NULL) {
                 ASSERT(f->workerCount == dependence_count);
-                f->workers = (ocrWorker_t **)calloc(dependence_count, sizeof(ocrWorker_t *));
+                f->workers = (ocrWorker_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrWorker_t *), "md: worker");
             }
             f->workers[dependence_index] = (ocrWorker_t *)toinstance;
             break;
@@ -895,7 +909,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
         case scheduler_type: {
             if (f->schedulers == NULL) {
                 ASSERT(f->schedulerCount == dependence_count);
-                f->schedulers = (ocrScheduler_t **)calloc(dependence_count, sizeof(ocrScheduler_t *));
+                f->schedulers = (ocrScheduler_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrScheduler_t *), "md: scheduler");
             }
             f->schedulers[dependence_index] = (ocrScheduler_t *)toinstance;
             break;
@@ -910,7 +924,7 @@ void add_dependence (type_enum fromtype, type_enum totype, ocrMappable_t *fromin
     }
 }
 
-s32 build_deps (dictionary *dict, s32 A, s32 B, char *refstr, ocrMappable_t ***all_instances, ocrParamList_t ***inst_params) {
+s32 build_deps (dictionary *dict, s32 A, s32 B, char *refstr, void ***all_instances, ocrParamList_t ***inst_params) {
     s32 i, j, k;
     s32 low, high;
     s32 l, h;

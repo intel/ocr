@@ -13,6 +13,7 @@
 #include "ocr-lib.h"
 #include "ocr-runtime.h"
 #include "ocr-types.h"
+#include "ocr-sysboot.h"
 #include "utils/ocr-utils.h"
 #include "ocr.h"
 
@@ -58,22 +59,18 @@ dep_t deps[] = {
     { comptarget_type, compplatform_type, "compplatform"},
     { worker_type, comptarget_type, "comptarget"},
     { scheduler_type, workpile_type, "workpile"},
-    { scheduler_type, worker_type, "worker"},
     { policydomain_type, guid_type, "guid"},
-    { policydomain_type, memtarget_type, "memtarget"},
     { policydomain_type, allocator_type, "allocator"},
-    { policydomain_type, comptarget_type, "comptarget"},
-    { policydomain_type, workpile_type, "workpile"},
     { policydomain_type, worker_type, "worker"},
     { policydomain_type, scheduler_type, "scheduler"},
 };
 
 extern char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *dict, char *secname);
-int populate_inst(ocrParamList_t **inst_param, ocrMappable_t **instance, int *type_counts, char ***factory_names, void ***all_factories, ocrMappable_t ***all_instances, type_enum index, dictionary *dict, char *secname);
-extern int build_deps (dictionary *dict, int A, int B, char *refstr, ocrMappable_t ***all_instances, ocrParamList_t ***inst_params);
+int populate_inst(ocrParamList_t **inst_param, void **instance, int *type_counts, char ***factory_names, void ***all_factories, void ***all_instances, type_enum index, dictionary *dict, char *secname);
+extern int build_deps (dictionary *dict, int A, int B, char *refstr, void ***all_instances, ocrParamList_t ***inst_params);
 extern void *create_factory (type_enum index, char *factory_name, ocrParamList_t *paramlist);
 extern int read_range(dictionary *dict, char *sec, char *field, int *low, int *high);
-extern void free_instance(ocrMappable_t *instance, type_enum inst_type);
+extern void free_instance(void *instance, type_enum inst_type);
 
 ocrGuid_t __attribute__ ((weak)) mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // This is just to make the linker happy and shouldn't be executed
@@ -83,7 +80,7 @@ ocrGuid_t __attribute__ ((weak)) mainEdt(u32 paramc, u64* paramv, u32 depc, ocrE
 }
 
 void **all_factories[sizeof(type_str)/sizeof(const char *)];
-ocrMappable_t **all_instances[sizeof(inst_str)/sizeof(const char *)];
+void **all_instances[sizeof(inst_str)/sizeof(const char *)];
 int total_types = sizeof(type_str)/sizeof(const char *);
 int type_counts[sizeof(type_str)/sizeof(const char *)];
 int inst_counts[sizeof(inst_str)/sizeof(const char *)];
@@ -119,9 +116,11 @@ void bringUpRuntime(const char *inifile) {
         for (j = 0; j < total_types; j++) {
             if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) {
                 if(type_counts[j] && type_params[j]==NULL) {
-                    type_params[j] = (ocrParamList_t **)calloc(1, type_counts[j] * sizeof(ocrParamList_t *));
-                    factory_names[j] = (char **)calloc(1, type_counts[j] * sizeof(char *));
-                    all_factories[j] = (void **)calloc(1, type_counts[j] * sizeof(void *));
+                    type_params[j] = (ocrParamList_t **)runtimeChunkAlloc(type_counts[j] * sizeof(ocrParamList_t *), "type params");
+                    factory_names[j] = (char **)calloc(type_counts[j], sizeof(char *));
+                    all_factories[j] = (void **)calloc(type_counts[j], sizeof(void *));
+//                    factory_names[j] = (char **)runtimeChunkAlloc(type_counts[j] * sizeof(char *), "factory names");
+//                    all_factories[j] = (void **)runtimeChunkAlloc(type_counts[j] * sizeof(void *), "all factories");
                     count = 0;
                 }
                 factory_names[j][count] = populate_type(&type_params[j][count], j, dict, iniparser_getsecname(dict, i));
@@ -153,8 +152,10 @@ void bringUpRuntime(const char *inifile) {
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) {
                 if(inst_counts[j] && inst_params[j] == NULL) {
                     DPRINTF(DEBUG_LVL_INFO, "Create %d instances of %s\n", inst_counts[j], inst_str[j]);
-                    inst_params[j] = (ocrParamList_t **)calloc(1, inst_counts[j] * sizeof(ocrParamList_t *));
-                    all_instances[j] = (ocrMappable_t **)calloc(1, inst_counts[j] * sizeof(ocrMappable_t *));
+//                    inst_params[j] = (ocrParamList_t **)runtimeChunkAlloc(inst_counts[j] * sizeof(ocrParamList_t *), "instance params");
+//                    all_instances[j] = (void **)runtimeChunkAlloc(inst_counts[j] * sizeof(void *), "all instances");
+                    inst_params[j] = (ocrParamList_t **)calloc(inst_counts[j], sizeof(ocrParamList_t *));
+                    all_instances[j] = (void **)calloc(inst_counts[j], sizeof(void *));
                     count = 0;
                 }
                 populate_inst(inst_params[j], all_instances[j], type_counts, factory_names, all_factories, all_instances, j, dict, iniparser_getsecname(dict, i));
@@ -168,7 +169,7 @@ void bringUpRuntime(const char *inifile) {
     if (type_counts[compplatform_type] != 1) {
         DPRINTF(DEBUG_LVL_WARN, "Only the first type of CompPlatform is used. If you don't want this behavior, please reorder!\n");
     }
-    compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
+    if(compPlatformFactory->setIdentifyingFunctions != NULL) compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
 
     // BUILD DEPENDENCES
     DPRINTF(DEBUG_LVL_INFO, "========= Build dependences ==========\n");
@@ -313,12 +314,14 @@ typedef struct _ocrPolicyDomainLinkedListNode {
 } ocrPolicyDomainLinkedListNode;
 
 // walkthrough the linked list and return TRUE if instance exists
+/*
 static s32 isMember ( ocrPolicyDomainLinkedListNode *dummyHead, ocrPolicyDomainLinkedListNode *tail, ocrPolicyDomain_t* instance ) {
     ocrPolicyDomainLinkedListNode* curr = dummyHead->next;
     for ( ; NULL != curr && curr->pd != instance; curr = curr -> next ) {
     }
     return NULL != curr;
 }
+*/
 
 static void recurseBuildDepthFirstSpanningTreeLinkedList (ocrPolicyDomainLinkedListNode *dummyHead,
                                                    ocrPolicyDomainLinkedListNode *tail, ocrPolicyDomain_t* currPD ) {
@@ -328,6 +331,7 @@ static void recurseBuildDepthFirstSpanningTreeLinkedList (ocrPolicyDomainLinkedL
     tail -> next = currNode;
     tail = currNode;
 
+/*
     u64 neighborCount = currPD->neighborCount;
     u64 i = 0;
     for ( ; i < neighborCount; ++i ) {
@@ -336,6 +340,7 @@ static void recurseBuildDepthFirstSpanningTreeLinkedList (ocrPolicyDomainLinkedL
             recurseBuildDepthFirstSpanningTreeLinkedList(dummyHead, tail, currNeighbor);
         }
     }
+*/
 }
 
 static ocrPolicyDomainLinkedListNode *buildDepthFirstSpanningTreeLinkedList ( ocrPolicyDomain_t* currPD ) {
