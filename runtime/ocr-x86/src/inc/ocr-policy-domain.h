@@ -635,7 +635,9 @@ typedef struct _ocrPolicyDomainFactory_t {
      */
 
     ocrPolicyDomain_t * (*instantiate)
-        (struct _ocrPolicyDomainFactory_t *factory, ocrTaskFactory_t *taskFactory,
+        (struct _ocrPolicyDomainFactory_t *factory, 
+         u64 schedulerCount, u64 allocatorCount, u64 workerCount,
+         ocrTaskFactory_t *taskFactory,
          ocrTaskTemplateFactory_t *taskTemplateFactory,
          ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
          ocrGuidProvider_t *guidProvider, ocrSal_t *salProvider,

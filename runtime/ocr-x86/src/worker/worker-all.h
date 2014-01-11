@@ -8,7 +8,7 @@
 #define __WORKER_ALL_H__
 
 #include "ocr-config.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 #include "ocr-worker.h"
 
 typedef enum _workerType_t {

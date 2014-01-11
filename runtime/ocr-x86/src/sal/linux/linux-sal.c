@@ -70,7 +70,7 @@ u64 linuxSalRead(ocrSal_t *self, char *str, u64 length, u64 id) {
 }
 
 ocrSal_t * newSalLinux(ocrSalFactory_t * factory, ocrParamList_t* perInstance) {
-    ocrSalLinux_t * sal = (ocrSalLinux_t*)runtimeChunkAlloc(sizeof(ocrSalLinux_t), "sal linux");
+    ocrSalLinux_t * sal = (ocrSalLinux_t*)runtimeChunkAlloc(sizeof(ocrSalLinux_t), NULL);
 
     sal->base.pd = NULL;
     sal->base.fcts = factory->salFcts;
@@ -87,7 +87,7 @@ static void destructSalFactoryLinux(ocrSalFactory_t *factory) {
 
 ocrSalFactory_t *newSalFactoryLinux(ocrParamList_t *perType) {
     ocrSalFactory_t *base = (ocrSalFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrSalFactoryLinux_t), "sal linux factory");
+        runtimeChunkAlloc(sizeof(ocrSalFactoryLinux_t), NULL);
     base->instantiate = &newSalLinux;
     base->destruct = &destructSalFactoryLinux;
     base->salFcts.destruct = &linuxSalDestruct;

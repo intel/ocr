@@ -116,7 +116,7 @@ void bringUpRuntime(const char *inifile) {
         for (j = 0; j < total_types; j++) {
             if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) {
                 if(type_counts[j] && type_params[j]==NULL) {
-                    type_params[j] = (ocrParamList_t **)runtimeChunkAlloc(type_counts[j] * sizeof(ocrParamList_t *), "type params");
+                    type_params[j] = (ocrParamList_t **)runtimeChunkAlloc(type_counts[j] * sizeof(ocrParamList_t *), NULL);
                     factory_names[j] = (char **)calloc(type_counts[j], sizeof(char *));
                     all_factories[j] = (void **)calloc(type_counts[j], sizeof(void *));
 //                    factory_names[j] = (char **)runtimeChunkAlloc(type_counts[j] * sizeof(char *), "factory names");

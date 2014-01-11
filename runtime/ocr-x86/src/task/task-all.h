@@ -15,7 +15,7 @@
 #include "debug.h"
 #include "ocr-config.h"
 #include "ocr-task.h"
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 
 typedef enum _taskType_t {
     taskHc_id,

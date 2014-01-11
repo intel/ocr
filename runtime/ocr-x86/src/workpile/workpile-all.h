@@ -9,7 +9,7 @@
 
 #include "ocr-config.h"
 
-#include "ocr-utils.h"
+#include "utils/ocr-utils.h"
 #include "ocr-workpile.h"
 
 typedef enum _workpileType_t {
