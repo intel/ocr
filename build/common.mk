@@ -23,7 +23,7 @@ VPATH  := $(shell find $(OCRDIR)/src -type d -print)
 # Global CFLAGS to be passed into all architecture builds
 # concatenated with the architecture-specific CFLAGS at the end
 #
-CFLAGS := -I . -I $(OCRDIR)/inc -I $(OCRDIR)/src -I $(OCRDIR)/src/inc -DELS_USER_SIZE=0 $(CFLAGS)
+CFLAGS := -g -I . -I $(OCRDIR)/inc -I $(OCRDIR)/src -I $(OCRDIR)/src/inc -DELS_USER_SIZE=0 $(CFLAGS)
 
 #
 # Objects build rules
@@ -42,9 +42,11 @@ $(OBJDIR)/%.o: %.S
 #
 # Build targets
 #
+all: CFLAGS := -O2 $(CFLAGS)
 all: $(OBJS)
 	@echo "$(ARCH): ALL RULE"
 
+debug: CFLAGS := -O0 $(CFLAGS)
 debug: $(OBJS)
 	@echo "$(ARCH): DEBUG RULE"
 
