@@ -10,9 +10,14 @@
 # Tool-chain to be used for the build
 #
 
-PREFIX := ../../../ss/bin/bin/rmd-linux-elf-
-CC     := $(PREFIX)clang
-CFLAGS := -frmd-extensions -fno-builtin
+PREFIX  := ../../../ss/bin/bin/rmd-linux-elf-
+CC      := $(PREFIX)clang
+CFLAGS  := -frmd-extensions -fno-builtin
+
+AR      := $(PREFIX)ar
+ARFLAGS := cru
+
+RANLIB  := $(PREFIX)ranlib
 
 RM      := rm
 RMFLAGS := -rf

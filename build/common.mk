@@ -2,6 +2,7 @@
 # OCR top level directory
 #
 OCRDIR := ../../runtime/ocr-x86
+OCRLIB := libocr.a
 
 #
 # Object & dependence file subdirectory
@@ -43,13 +44,14 @@ $(OBJDIR)/%.o: %.S
 # Build targets
 #
 all: CFLAGS := -O2 $(CFLAGS)
-all: $(OBJS)
-	@echo "$(ARCH): ALL RULE"
+all: default
 
 debug: CFLAGS := -O0 $(CFLAGS)
-debug: $(OBJS)
-	@echo "$(ARCH): DEBUG RULE"
+debug: default
+
+default: $(OBJS)
+	$(AR) $(ARFLAGS) $(OCRLIB) $^
+	$(RANLIB) $(OCRLIB)
 
 clean:
 	-$(RM) $(RMFLAGS) $(OBJDIR)/*
-

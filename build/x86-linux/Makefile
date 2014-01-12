@@ -10,8 +10,13 @@
 # Tool-chain to be used for the build
 #
 
-CC     := gcc
-CFLAGS := 
+CC      := gcc
+CFLAGS  := 
+
+AR      := ar
+ARFLAGS := cru
+
+RANLIB  := ranlib
 
 RM      := rm
 RMFLAGS := -rf
