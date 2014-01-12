@@ -31,3 +31,8 @@ debug:
 
 clean:
 	@$(MAKE) -C $(ARCH) clean
+
+squeaky:
+	@$(MAKE) -C x86-linux clean
+	@$(MAKE) -C fsim      clean
+
