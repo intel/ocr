@@ -64,7 +64,7 @@ void sharedStop(ocrMemTarget_t *self) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = self->fguid;
     PD_MSG_FIELD(properties) = 0;
-    self->pd->sendMessage(self->pd, &msg, false);
+    RESULT_ASSERT(self->pd->processMessage(self->pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
     self->fguid.guid = UNINITIALIZED_GUID;
@@ -111,7 +111,7 @@ u8 sharedQueryTag(ocrMemTarget_t *self, u64 *start, u64 *end,
 }
 
 ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
-                                   ocrPhysicalLocation_t location,
+                                   ocrLocation_t location,
                                    u64 size, ocrParamList_t *perInstance) {
 
     ocrMemTarget_t *result = (ocrMemTarget_t*)

@@ -13,15 +13,13 @@
 #include "ocr-allocator.h"
 #include "ocr-datablock.h"
 #include "ocr-db.h"
+#include "ocr-errors.h"
 #include "ocr-policy-domain.h"
 #include "ocr-runtime-types.h"
 
-// TODO: We need to get rid of this
-#include <errno.h>
-
-#if (__STDC_HOSTED__ == 1)
-#include <string.h>
-#endif
+//#if (__STDC_HOSTED__ == 1)
+//#include <string.h>
+//#endif
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -44,8 +42,8 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     getCurrentEnv(&policy, NULL, &task, &msg);
 
 #define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_MEM_CREATE
-    msg.type = PD_MSG_MEM_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+#define PD_TYPE PD_MSG_DB_CREATE
+    msg.type = PD_MSG_DB_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid.guid) = *db;
     PD_MSG_FIELD(edt.guid) = task->guid;
     PD_MSG_FIELD(edt.metaDataPtr) = task;
@@ -61,7 +59,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     } else {
         *addr = NULL;
     }
-    if(*addr == NULL) return ENOMEM;
+    if(*addr == NULL) return OCR_ENOMEM;
 #undef PD_MSG
 #undef PD_TYPE
     return 0;
@@ -75,9 +73,10 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     getCurrentEnv(&policy, NULL, &task, &msg);
 
 #define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_MEM_FREE
-    msg.type = PD_MSG_MEM_FREE | PD_MSG_REQUEST;
+#define PD_TYPE PD_MSG_DB_FREE
+    msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid.guid) = db;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(edt.guid) = task->guid;
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(properties) = 0;
@@ -95,9 +94,10 @@ u8 ocrDbRelease(ocrGuid_t db) {
     getCurrentEnv(&policy, NULL, &task, &msg);
 
 #define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_MEM_RELEASE
-    msg.type = PD_MSG_MEM_RELEASE | PD_MSG_REQUEST;
+#define PD_TYPE PD_MSG_DB_RELEASE
+    msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid.guid) = db;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(edt.guid) = task->guid;
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(properties) = 0;
@@ -108,11 +108,11 @@ u8 ocrDbRelease(ocrGuid_t db) {
 }
 
 u8 ocrDbMalloc(ocrGuid_t guid, u64 size, void** addr) {
-    return EINVAL; /* not yet implemented */
+    return OCR_EINVAL; /* not yet implemented */
 }
 
 u8 ocrDbMallocOffset(ocrGuid_t guid, u64 size, u64* offset) {
-    return EINVAL; /* not yet implemented */
+    return OCR_EINVAL; /* not yet implemented */
 }
 
 struct ocrDbCopy_args {
@@ -193,9 +193,9 @@ u8 ocrDbCopy(ocrGuid_t destination, u64 destinationOffset, ocrGuid_t source,
 }
 
 u8 ocrDbFree(ocrGuid_t guid, void* addr) {
-    return EINVAL; /* not yet implemented */
+    return OCR_EINVAL; /* not yet implemented */
 }
 
 u8 ocrDbFreeOffset(ocrGuid_t guid, u64 offset) {
-    return EINVAL; /* not yet implemented */
+    return OCR_EINVAL; /* not yet implemented */
 }

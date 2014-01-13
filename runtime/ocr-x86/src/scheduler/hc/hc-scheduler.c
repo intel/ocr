@@ -136,7 +136,7 @@ void hcSchedulerStop(ocrScheduler_t * self) {
     PD_MSG_FIELD(guid) = self->fguid;
     PD_MSG_FIELD(guid.metaDataPtr) = self;
     PD_MSG_FIELD(properties) = 0;
-    pd->sendMessage(pd, &msg, false);
+    RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
     self->fguid.guid = UNINITIALIZED_GUID;

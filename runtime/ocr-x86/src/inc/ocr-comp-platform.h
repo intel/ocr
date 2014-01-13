@@ -125,7 +125,7 @@ typedef struct _ocrCompPlatformFcts_t {
      * @return 0 on success and a non-zero error code
      */
     u8 (*sendMessage)(struct _ocrCompPlatform_t* self,
-                      ocrPhysicalLocation_t target,
+                      ocrLocation_t target,
                       struct _ocrPolicyMsg_t **message);
 
     /**
@@ -175,7 +175,7 @@ typedef struct _ocrCompPlatformFcts_t {
  */
 typedef struct _ocrCompPlatform_t {
     struct _ocrPolicyDomain_t *pd;  /**< Policy domain this comp-platform is used by */
-    ocrPhysicalLocation_t location;
+    ocrLocation_t location;
     ocrCompPlatformFcts_t fcts; /**< Functions for this instance */
 } ocrCompPlatform_t;
 
@@ -195,7 +195,7 @@ typedef struct _ocrCompPlatformFactory_t {
      * @param instanceArg   Arguments specific for this instance
      */
     ocrCompPlatform_t* (*instantiate)(struct _ocrCompPlatformFactory_t *factory,
-                                      ocrPhysicalLocation_t location,
+                                      ocrLocation_t location,
                                       ocrParamList_t *instanceArg);
 
     /**

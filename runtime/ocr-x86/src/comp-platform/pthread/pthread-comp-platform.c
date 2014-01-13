@@ -118,7 +118,7 @@ u8 pthreadSetThrottle(ocrCompPlatform_t *self, u64 value) {
     return 1;
 }
 
-u8 pthreadSendMessage(ocrCompPlatform_t *self, ocrPhysicalLocation_t target,
+u8 pthreadSendMessage(ocrCompPlatform_t *self, ocrLocation_t target,
                       ocrPolicyMsg_t **message) {
 
     // TODO: Need to implement some sort of queues and then use signal/wait
@@ -137,7 +137,7 @@ u8 pthreadWaitMessage(ocrCompPlatform_t *self, ocrPolicyMsg_t **message) {
 }
 
 ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
-                                          ocrPhysicalLocation_t location,
+                                          ocrLocation_t location,
                                           ocrParamList_t *perInstance) {
 
     pthread_once(&selfKeyInitialized,  initializeKey);

@@ -19,6 +19,7 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
 #define PD_TYPE PD_MSG_EVT_CREATE
     msg.type = PD_MSG_EVT_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid.guid) = *guid;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(properties) = takesArg;
     PD_MSG_FIELD(type) = eventType;
     if(pd->processMessage(pd, &msg, true) == 0) {
@@ -115,38 +116,18 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     ocrPolicyDomain_t * pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, &msg);
     
-    ocrTaskTemplate_t *taskTemplate = NULL;
-
-    // REC TODO: This is potentially dangerous!!!!
-    ocrFatGuid_t tGuid = {.guid = templateGuid, .metaDataPtr = NULL};
-    deguidify(pd, &tGuid, NULL);
-    taskTemplate = (ocrTaskTemplate_t*)tGuid.metaDataPtr;
-    
-    ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && paramc != EDT_PARAM_DEF) ||
-           (taskTemplate->paramc != EDT_PARAM_UNK && (paramc == EDT_PARAM_DEF ||
-                                                      taskTemplate->paramc == paramc)));
-    ASSERT(((taskTemplate->depc == EDT_PARAM_UNK) && depc != EDT_PARAM_DEF) ||
-           (taskTemplate->depc != EDT_PARAM_UNK && (depc == EDT_PARAM_DEF ||
-                                                    taskTemplate->depc == depc)));
-
-    if(paramc == EDT_PARAM_DEF) {
-        paramc = taskTemplate->paramc;
-    }
-    if(depc == EDT_PARAM_DEF) {
-        depc = taskTemplate->depc;
-    }
-
-    // If paramc are expected, double check paramv is not NULL
-    ASSERT((paramc > 0) ? (paramv != NULL) : true);
-
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_WORK_CREATE
     msg.type = PD_MSG_WORK_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid.guid) = *edtGuid;
     PD_MSG_FIELD(templateGuid.guid) = templateGuid;
-    PD_MSG_FIELD(templateGuid.metaDataPtr) = (void*)taskTemplate;
+    PD_MSG_FIELD(templateGuid.metaDataPtr) = NULL;
     PD_MSG_FIELD(affinity.guid) = affinity;
-    PD_MSG_FIELD(outputEvent.guid) = *outputEvent;
+    if(outputEvent) {
+        PD_MSG_FIELD(outputEvent.guid) = UNINITIALIZED_GUID;
+    } else {
+        PD_MSG_FIELD(outputEvent.guid) = NULL_GUID;
+    }
     PD_MSG_FIELD(paramv) = paramv;
     PD_MSG_FIELD(paramc) = paramc;
     PD_MSG_FIELD(depc) = depc;
@@ -188,7 +169,6 @@ u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
 #undef PD_TYPE
 }
 
-// TODO: Pass down the mode information!!
 u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
                     ocrDbAccessMode_t mode) {
     ocrPolicyMsg_t msg;

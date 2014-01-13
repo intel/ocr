@@ -1,3 +1,4 @@
+// TODO: This file is slated to go away once the runtime is the same
 #ifndef __COMPAT_H__
 #define __COMPAT_H__
 

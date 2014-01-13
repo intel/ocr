@@ -306,7 +306,7 @@ void destructTaskHc(ocrTask_t* base) {
 
 ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
                       u32 paramc, u64* paramv, u32 depc, u32 properties,
-                      ocrGuid_t affinity, ocrFatGuid_t * outputEventPtr,
+                      ocrFatGuid_t affinity, ocrFatGuid_t * outputEventPtr,
                       ocrParamList_t *perInstance) {
 
     // Get the current environment
@@ -516,6 +516,11 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot)
     return 0;
 }
 
+u8 unregisterSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot) {
+    ASSERT(0); // We don't support this at this time...
+    return 0;
+}
+
 u8 taskExecute(ocrTask_t* base) {
     DPRINTF(DEBUG_LVL_INFO, "Execute 0x%lx\n", base->guid);
     ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
@@ -544,8 +549,8 @@ u8 taskExecute(ocrTask_t* base) {
                 ASSERT(isDatablockGuid(depv[i].guid));
                 // We send a message that we want to acquire the DB
 #define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_MEM_ACQUIRE
-                msg.type = PD_MSG_MEM_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+#define PD_TYPE PD_MSG_DB_ACQUIRE
+                msg.type = PD_MSG_DB_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
                 PD_MSG_FIELD(guid.guid) = depv[i].guid;
                 PD_MSG_FIELD(guid.metaDataPtr) = NULL;
                 PD_MSG_FIELD(edt.guid) = base->guid;
@@ -590,8 +595,8 @@ u8 taskExecute(ocrTask_t* base) {
         for(i=0; i < depc; ++i) {
             if(depv[i].guid != NULL_GUID) {
 #define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_MEM_RELEASE
-                msg.type = PD_MSG_MEM_RELEASE | PD_MSG_REQUEST;
+#define PD_TYPE PD_MSG_DB_RELEASE
+                msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
                 PD_MSG_FIELD(guid.guid) = depv[i].guid;
                 PD_MSG_FIELD(guid.metaDataPtr) = NULL;
                 PD_MSG_FIELD(edt.guid) = base->guid;
@@ -635,6 +640,7 @@ ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance, u32 factoryId) 
     base->fcts.destruct = destructTaskHc;
     base->fcts.satisfy = satisfyTaskHc;
     base->fcts.registerSignaler = registerSignalerTaskHc;
+    base->fcts.unregisterSignaler = unregisterSignalerTaskHc;
     base->fcts.execute = taskExecute;
     
     return base;

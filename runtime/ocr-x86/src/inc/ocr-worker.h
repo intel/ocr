@@ -18,6 +18,7 @@
 #endif
 
 struct _ocrPolicyDomain_t;
+struct _ocrPolicyMsg_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -57,6 +58,40 @@ typedef struct _ocrWorkerFcts_t {
      *  @return true if the Worker is running, false otherwise
      */
     bool (*isRunning)(struct _ocrWorker_t *self);
+
+    /**
+     * @brief Send a message across to another PD
+     *
+     * @see ocr-comp-platform.h for more details on this function.
+     * The worker will pass to the comp-target which ends up passing
+     * to the comp-platform. This function will mostly be a
+     * pass-through but included here to allow the PD to be
+     * blissfully ignorant of the comp-*
+     */
+    u8 (*sendMessage)(struct _ocrWorker_t *self, ocrLocation_t target,
+                      struct _ocrPolicyMsg_t **message);
+
+    /**
+     * @brief Poll for a a message
+     *
+     * @see ocr-comp-platform.h for more details on this function.
+     * The worker will pass to the comp-target which ends up passing
+     * to the comp-platform. This function will mostly be a
+     * pass-through but included here to allow the PD to be
+     * blissfully ignorant of the comp-*
+     */
+    u8 (*pollMessage)(struct _ocrWorker_t *self, struct _ocrPolicyMsg_t **message);
+    
+    /**
+     * @brief Wait for a message from another PD
+     *
+     * @see ocr-comp-platform.h for more details on this function.
+     * The worker will pass to the comp-target which ends up passing
+     * to the comp-platform. This function will mostly be a
+     * pass-through but included here to allow the PD to be
+     * blissfully ignorant of the comp-*
+     */
+    u8 (*waitMessage)(struct _ocrWorker_t *self, struct _ocrPolicyMsg_t **message);
 } ocrWorkerFcts_t;
 
 typedef struct _ocrWorker_t {

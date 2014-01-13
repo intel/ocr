@@ -230,6 +230,21 @@ bool hcIsRunningWorker(ocrWorker_t * base) {
     return hcWorker->run;
 }
 
+u8 hcSendMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg) {
+    ASSERT(self->computeCount == 1);
+    return self->computes[0]->fcts.sendMessage(self->computes[0], location, msg);
+}
+
+u8 hcPollMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg) {
+    ASSERT(self->computeCount == 1);
+    return self->computes[0]->fcts.pollMessage(self->computes[0], msg);
+}
+
+u8 hcWaitMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg) {
+    ASSERT(self->computeCount == 1);
+    return self->computes[0]->fcts.waitMessage(self->computes[0], msg);
+}
+
 /******************************************************/
 /* OCR-HC WORKER FACTORY                              */
 /******************************************************/
@@ -248,6 +263,9 @@ ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
     base->workerFcts.stop = hcStopWorker;
     base->workerFcts.finish = hcFinishWorker;
     base->workerFcts.isRunning = hcIsRunningWorker;
+    base->workerFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrLocation_t, ocrPolicyMsg_t**), hcSendMessage);
+    base->workerFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**), hcPollMessage);
+    base->workerFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**), hcWaitMessage);
     return base;
 }
 

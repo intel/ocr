@@ -117,9 +117,20 @@ typedef struct {
     void* metaDataPtr;
 } ocrFatGuid_t;
 
-//TODO: FIXME: Placeholder for an ID for target/platform
-//compute or memories
-typedef u64 ocrPhysicalLocation_t;
+typedef enum {
+    KIND_GUIDPROP       = 0x1, /**< Request kind of the GUID */
+    WMETA_GUIDPROP      = 0x2, /**< Request the metadata of the GUID in write mode
+                                * Also used when returning the GUID to indicate if
+                                * the returned meta data can be written to */
+    RMETA_GUIDPROP      = 0x4, /**< Request the metadata of the GUID in read mode */
+    CMETA_GUIDPROP      = 0x8, /**< Indicates that the metadata returned is a copy (R/O
+                                * and should be freed with pdFree) */
+} ocrGuidInfoProp_t;
+
+// REC: FIXME
+// This is a placeholder for something that identifies a memory,
+// a compute node and a policy domain.
+typedef u64 ocrLocation_t;
 
 /**
  * @brief Returned by the pollMessage function in
@@ -138,3 +149,4 @@ typedef u64 ocrPhysicalLocation_t;
 #define POLL_ERR_MASK     0xF0
 
 #endif /* __OCR_RUNTIME_TYPES_H__ */
+

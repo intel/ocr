@@ -1025,7 +1025,7 @@ void tlsfStop(ocrAllocator_t *self) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = self->fguid;
     PD_MSG_FIELD(properties) = 0;
-    self->pd->sendMessage(self->pd, &msg, false);
+    self->pd->processMessage(self->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
     self->fguid.guid = NULL_GUID;

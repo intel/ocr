@@ -180,7 +180,7 @@ struct _ocrMemPlatform_t;
 typedef struct _ocrMemTarget_t {
     ocrFatGuid_t fguid; /**< GUID for this mem-target */
     struct _ocrPolicyDomain_t *pd; /**< Policy domain that uses this mem-target */
-    ocrPhysicalLocation_t location;
+    ocrLocation_t location;
     u64 size, startAddr, endAddr;
     struct _ocrMemPlatform_t **memories; /**< Pointers to underlying mem-target */
     u64 memoryCount;                     /**< Number of mem-targets */
@@ -203,7 +203,7 @@ typedef struct _ocrMemTargetFactory_t {
      * @param instanceArg   Arguments specific for this instance
      */
     ocrMemTarget_t * (*instantiate) (struct _ocrMemTargetFactory_t * factory,
-                                     ocrPhysicalLocation_t location,
+                                     ocrLocation_t location,
                                      u64 memSize, ocrParamList_t* perInstance);
     /**
      * @brief mem-target factory destructor

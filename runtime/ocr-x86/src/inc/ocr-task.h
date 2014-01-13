@@ -141,6 +141,20 @@ typedef struct _ocrTaskFcts_t {
     u8 (*registerSignaler)(struct _ocrTask_t* self, ocrFatGuid_t src, u32 slot);
 
     /**
+     * @brief Informs the task that the event/db 'src' is no longer linked
+     * to it on 'slot'
+     *
+     * This removes a dependence between an event/db and
+     * a task
+     *
+     * @param[in] self        Pointer to this task
+     * @param[in] signaler    GUID of the source (signaler)
+     * @param[in] slot        Slot on self that will be satisfied by signaler
+     * @return 0 on success and a non-zero value on failure
+     */
+    u8 (*unregisterSignaler)(struct _ocrTask_t* self, ocrFatGuid_t src, u32 slot);
+    
+    /**
      * @brief Executes this EDT
      *
      * This should be called by a worker to execute the EDT's code
@@ -203,7 +217,7 @@ typedef struct _ocrTaskFactory_t {
      */
     ocrTask_t* (*instantiate)(struct _ocrTaskFactory_t * factory, ocrFatGuid_t edtTemplate,
                               u32 paramc, u64* paramv, u32 depc, u32 properties,
-                              ocrGuid_t affinity, ocrFatGuid_t *outputEvent,
+                              ocrFatGuid_t affinity, ocrFatGuid_t *outputEvent,
                               ocrParamList_t *perInstance);
 
     /*! \brief Virtual destructor for the TaskFactory interface

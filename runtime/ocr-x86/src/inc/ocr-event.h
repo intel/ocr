@@ -85,6 +85,20 @@ typedef struct _ocrEventFcts_t {
      * @return 0 on success and a non-zero value on failure
      */
     u8 (*registerSignaler)(struct _ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot);
+
+    /**
+     * @brief Oppositor of registerSignaler()
+     *
+     * This call will unregister the signaler from the event. Note that
+     * the unregistration is per slot (ie: if a signaler is attached to
+     * multiple slots, it will need to be unregistered from all slots
+     *
+     * @param[in] self          Pointer to this event
+     * @param[in] signaler      GUID of the source (signaler)
+     * @param[in] slot          Slot on self that will be satisfied by the signaler
+     * @return 0 on success and a non-zero value on failure
+     */
+    u8 (*unregisterSignaler)(struct _ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot);
     
     /**
      * @brief Register a "waiter" (aka a dependence) on the event
@@ -101,6 +115,20 @@ typedef struct _ocrEventFcts_t {
      * @return 0 on success and a non-zero code on failure
      */
     u8 (*registerWaiter)(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot);
+
+    /**
+     * @brief Unregisters a "waiter" (aka a dependence) on the event
+     *
+     * Note again that if a waiter is registered multiple times (for multiple
+     * slots), you will need to unregister it multiple time as well.
+     *
+     * @param[in] self          Pointer to this event
+     * @param[in] waiter        EDT/Event to register as a waiter
+     * @param[in] slot          Slot to satisfy waiter on once this event
+     *                          is satisfied
+     * @return 0 on success and a non-zero code on failure
+     */
+    u8 (*unregisterWaiter)(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot);
 } ocrEventFcts_t;
 
 /**

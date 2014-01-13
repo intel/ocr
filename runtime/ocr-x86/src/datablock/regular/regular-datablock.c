@@ -16,6 +16,7 @@
 #include "debug.h"
 #include "ocr-comp-platform.h"
 #include "ocr-datablock.h"
+#include "ocr-errors.h"
 #include "ocr-policy-domain.h"
 #include "ocr-sysboot.h"
 #include "utils/ocr-utils.h"
@@ -24,9 +25,6 @@
 #include "ocr-statistics.h"
 #include "ocr-statistics-callbacks.h"
 #endif
-
-// TODO: Need to get our own ERRNO file
-#include <errno.h>
 
 // TODO: This is for the PRI things. Need to get rid of them 
 #include <inttypes.h>
@@ -101,7 +99,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrFatGuid_t edt,
         } else {
             // Definitely a problem here
             hal_unlock32(&(rself->lock));
-            return (u8)EACCES;
+            return (u8)OCR_EACCES;
         }
     }
 
@@ -145,17 +143,16 @@ void regularDestruct(ocrDataBlock_t *self) {
     ocrTask_t *task = NULL;
     ocrPolicyMsg_t msg;
     getCurrentEnv(&pd, NULL, &task, &msg);
-    
+
 #define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_MEM_DESTROY
-    msg.type = PD_MSG_MEM_DESTROY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid.guid) = self->guid;
-    PD_MSG_FIELD(guid.metaDataPtr) = self;
+#define PD_TYPE PD_MSG_MEM_UNALLOC
+    msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST;
+    PD_MSG_FIELD(ptr) = self->ptr;
     PD_MSG_FIELD(allocatingPD.guid) = self->allocatingPD;
     PD_MSG_FIELD(allocatingPD.metaDataPtr) = NULL;
     PD_MSG_FIELD(allocator.guid) = self->allocator;
     PD_MSG_FIELD(allocator.metaDataPtr) = NULL;
-    PD_MSG_FIELD(ptr) = self->ptr;
+    PD_MSG_FIELD(properties) = 0;
     RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
     
     
@@ -188,7 +185,7 @@ u8 regularFree(ocrDataBlock_t *self, ocrFatGuid_t edt) {
     hal_lock32(&(rself->lock));
     if(rself->attributes.freeRequested) {
         hal_unlock32(&(rself->lock));
-        return EPERM;
+        return OCR_EPERM;
     }
     rself->attributes.freeRequested = 1;
     hal_unlock32(&(rself->lock));

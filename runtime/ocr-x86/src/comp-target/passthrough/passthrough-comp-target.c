@@ -80,7 +80,7 @@ u8 ptSetThrottle(ocrCompTarget_t *compTarget, u64 value) {
     return compTarget->platforms[0]->fcts.setThrottle(compTarget->platforms[0], value);
 }
 
-u8 ptSendMessage(ocrCompTarget_t *compTarget, ocrPhysicalLocation_t target,
+u8 ptSendMessage(ocrCompTarget_t *compTarget, ocrLocation_t target,
                  ocrPolicyMsg_t **message) {
     ASSERT(compTarget->platformCount == 1);
     return compTarget->platforms[0]->fcts.sendMessage(compTarget->platforms[0], target, message);
@@ -97,7 +97,7 @@ u8 ptWaitMessage(ocrCompTarget_t *compTarget, ocrPolicyMsg_t **message) {
 }
 
 ocrCompTarget_t * newCompTargetPt(ocrCompTargetFactory_t * factory,
-                                  ocrPhysicalLocation_t location,
+                                  ocrLocation_t location,
                                   ocrParamList_t* perInstance) {
     ocrCompTargetPt_t * compTarget = (ocrCompTargetPt_t*)runtimeChunkAlloc(sizeof(ocrCompTargetPt_t), NULL);
 
