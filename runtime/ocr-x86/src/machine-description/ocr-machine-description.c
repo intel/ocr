@@ -864,41 +864,17 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
             /*	Special case handled during PD creation  */
             break;
         }
-        case memtarget_type: {
-/*          if (f->memories == NULL) {
-                ASSERT(f->memoryCount == dependence_count);
-                f->memories = (ocrMemTarget_t **)runtimeChunkAlloc(dependence_count, sizeof(ocrMemTarget_t *));
-            }
-            f->memories[dependence_index] = (ocrMemTarget_t *)toinstance;
-*/            break;
-        }
         case allocator_type: {
             if (f->allocators == NULL) {
-                ASSERT(f->allocatorCount == dependence_count);
+                f->allocatorCount = dependence_count;
                 f->allocators = (ocrAllocator_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrAllocator_t *), NULL);
             }
             f->allocators[dependence_index] = (ocrAllocator_t *)toinstance;
             break;
         }
-        case comptarget_type: {
-/*            if (f->computes == NULL) {
-                ASSERT(f->computeCount == dependence_count);
-                f->computes = (ocrCompTarget_t **)runtimeChunkAlloc(dependence_count, sizeof(ocrCompTarget_t *));
-            }
-            f->computes[dependence_index] = (ocrCompTarget_t *)toinstance;
-*/            break;
-        }
-        case workpile_type: {
-/*            if (f->workpiles == NULL) {
-                ASSERT(f->workpileCount == dependence_count);
-                f->workpiles = (ocrWorkpile_t **)runtimeChunkAlloc(dependence_count, sizeof(ocrWorkpile_t *));
-            }
-            f->workpiles[dependence_index] = (ocrWorkpile_t *)toinstance;
-*/            break;
-        }
         case worker_type: {
             if (f->workers == NULL) {
-                ASSERT(f->workerCount == dependence_count);
+                f->workerCount = dependence_count;
                 f->workers = (ocrWorker_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrWorker_t *), NULL);
             }
             f->workers[dependence_index] = (ocrWorker_t *)toinstance;
@@ -906,7 +882,7 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
         }
         case scheduler_type: {
             if (f->schedulers == NULL) {
-                ASSERT(f->schedulerCount == dependence_count);
+                f->schedulerCount = dependence_count;
                 f->schedulers = (ocrScheduler_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrScheduler_t *), NULL);
             }
             f->schedulers[dependence_index] = (ocrScheduler_t *)toinstance;

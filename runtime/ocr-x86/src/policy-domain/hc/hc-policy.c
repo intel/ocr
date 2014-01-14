@@ -809,10 +809,6 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
 
     ASSERT(base);
 
-    base->schedulerCount = 0;
-    base->allocatorCount = 0;
-    base->workerCount = 0;
-
     base->taskFactoryCount = 0;
     base->taskTemplateFactoryCount = 0;
     base->eventFactoryCount = 0;

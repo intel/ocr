@@ -12,13 +12,13 @@ OBJDIR := objs
 #
 # Generate a list of all source files and the respective objects
 #
-SRCS   := $(shell find $(OCRDIR)/src -name '*.[csS]' -print)
+SRCS   := $(shell find -L $(OCRDIR)/src -name '*.[csS]' -print)
 OBJS   := $(addprefix $(OBJDIR)/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
 
 #
 # Generate a source search path
 #
-VPATH  := $(shell find $(OCRDIR)/src -type d -print)
+VPATH  := $(shell find -L $(OCRDIR)/src -type d -print)
 
 #
 # Global CFLAGS to be passed into all architecture builds
