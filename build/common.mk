@@ -1,7 +1,7 @@
 #
 # OCR top level directory
 #
-OCRDIR := ../../runtime/ocr-x86
+OCRDIR := ../..
 OCRLIB := libocr.a
 
 #
