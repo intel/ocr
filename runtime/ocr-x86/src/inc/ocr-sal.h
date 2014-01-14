@@ -48,7 +48,7 @@ void sal_abort();
  * @note Use the ASSERT macro (in debug.h) which will call this
  * if debug mode is enabled
  */
-void sal_assert(bool cond);
+void sal_assert(bool cond, const char* file, u64 line);
 
 /**
  * @brief Causes the formatted string to be printed out

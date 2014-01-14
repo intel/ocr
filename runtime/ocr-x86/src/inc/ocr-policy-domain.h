@@ -170,6 +170,8 @@ typedef struct _paramListPolicyDomainInst_t {
 /**< Write operation */
 #define PD_MSG_SAL_WRITE        0x3100
 // TODO: Possibly add open, close, seek
+/**< Abort/exit the runtime */
+#define PD_MSG_SAL_TERMINATE    0x4100
 
 /**< And with this and if the result is non-null, PD management operations */
 #define PD_MSG_MGT_OP           0x200
@@ -502,6 +504,11 @@ typedef struct _ocrPolicyMsg_t {
             u32 properties;     /**< In: Properties for the write */
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_WRITE);
 
+        struct {
+            u64 errorCode;     /**< In: For exit: error code, for assert: line number */
+            const char* file;  /**< In: For assert: file of assert */ 
+            u32 properties;    /**< For now: 0 if normal exit, 1 if abort, 2 if assert*/
+        } PD_MSG_STRUCT_NAME(PD_MSG_SAL_TERMINATE);
         struct {
             u32 properties;
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_SHUTDOWN);
