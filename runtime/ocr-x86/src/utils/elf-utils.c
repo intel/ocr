@@ -1,14 +1,17 @@
 #include <ocr-types.h>
-
-#include <fcntl.h>
-#include <libelf.h>
-#include <gelf.h>
+#include <ocr-config.h>
 
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
+
+#ifdef ENABLE_EXTERNAL_ELF
+
+#include <libelf.h>
+#include <gelf.h>
 
 typedef struct _func_entry {
     u64 offset;
@@ -171,3 +174,4 @@ void elf_main(int argc, char *argv[])
   free_func_names(blob_func_lists, blob_func_list_size);
   free_func_names(app_func_lists, app_func_list_size);
 }
+#endif

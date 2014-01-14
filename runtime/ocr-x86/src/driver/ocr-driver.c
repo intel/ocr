@@ -88,6 +88,15 @@ ocrParamList_t **type_params[sizeof(type_str)/sizeof(const char *)];
 char **factory_names[sizeof(type_str)/sizeof(const char *)];        // ~9 different kinds (memtarget, comptarget, etc.); each with diff names (tlsf, malloc, etc.); each pointing to a char*
 ocrParamList_t **inst_params[sizeof(inst_str)/sizeof(const char *)];
 
+#ifdef ENABLE_BUILDER_ONLY
+void dumpPolicyDomain(void *pd, char *app_binary, char *output_binary)
+{
+    // TODO: Open app_binary, extract all functions
+    // TODO: Fix up the function pointers of pd
+    // TODO: Write the output into output_binary
+}
+#endif
+
 void bringUpRuntime(const char *inifile) {
     int i, j, count=0, nsec;
     dictionary *dict = iniparser_load(inifile);
@@ -188,7 +197,23 @@ void bringUpRuntime(const char *inifile) {
 #ifdef OCR_ENABLE_STATISTICS
     setCurrentPD(rootPolicy); // Statistics needs to know the current PD so we set it for this main thread
 #endif
+
+#ifdef ENABLE_BUILDER_ONLY
+#define APP_BINARY    "app_name"
+#define OUTPUT_BINARY "output_name"
+    {
+        char *app_binary = iniparser_getstring(d, APP_BINARY, NULL);
+        char *output_binary = iniparser_getstring(d, OUTPUT_BINARY, NULL);
+
+        if(app_binary==NULL || output_binary==NULL) {
+            printf("Foo\n");
+        } else 
+            for(i = 0; i < inst_counts[policydomain_type]; i++)
+                dumpPolicyDomain(all_instances[policydomain_type][i], app_binary, output_binary);
+    }
+#else
     rootPolicy->start(rootPolicy);
+#endif
 }
 
 void freeUpRuntime (void)
