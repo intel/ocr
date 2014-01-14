@@ -43,21 +43,26 @@ $(OBJDIR)/%.o: %.S
 #
 # Build targets
 #
+.PHONY: all
 all: CFLAGS := -O2 $(CFLAGS)
 all: default
 
+.PHONY: debug
 debug: CFLAGS := -O0 $(CFLAGS)
 debug: default
 
+.PHONY: default
 default: $(OBJS)
 	$(AR) $(ARFLAGS) $(OCRLIB) $^
 	$(RANLIB) $(OCRLIB)
 
+.PHONY: install
 install: default
 	$(CP) $(OCRLIB) $(OCRDIR)/install/$(ARCH)/lib
 	$(CP) -r $(OCRDIR)/inc/* $(OCRDIR)/install/$(ARCH)/include
 	$(CP) -r $(OCRDIR)/machine-configs/default.cfg $(OCRDIR)/install/$(ARCH)/config
 
+.PHONY:clean
 clean:
 	-$(RM) $(RMFLAGS) $(OBJDIR)/*
 	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/lib/*

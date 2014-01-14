@@ -6,6 +6,7 @@
 # Author: Ivan Ganev <ivan.b.ganev@intel.com>
 #
 
+.PHONY: default
 default:
 	@echo "Must specify an arch and a target, e.g.:"
 	@echo ""
@@ -25,18 +26,23 @@ default:
 	@echo "   squeaky      -- Clean-up all architectures"
 	@echo ""
 
+.PHONY: all
 all:
 	@$(MAKE) -C $(ARCH) $@
 
+.PHONY: debug
 debug:
 	@$(MAKE) -C $(ARCH) $@
 
+.PHONY: install
 install:
 	@$(MAKE) -C $(ARCH) $@
 
+.PHONY: clean
 clean:
 	@$(MAKE) -C $(ARCH) $@
 
+.PHONY: squeaky
 squeaky:
 	ARCH=x86-linux $(MAKE) -C x86-linux clean
 	ARCH=fsim      $(MAKE) -C fsim      clean
