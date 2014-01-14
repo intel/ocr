@@ -20,7 +20,9 @@ default:
 	@echo ""
 	@echo "   all          -- Optimized build"
 	@echo "   debug        -- Unoptimized build"
+	@echo "   install      -- Install built distribution"
 	@echo "   clean        -- Clean-up build objects, etc."
+	@echo "   squeaky      -- Clean-up all architectures"
 	@echo ""
 
 all:
