@@ -53,5 +53,13 @@ default: $(OBJS)
 	$(AR) $(ARFLAGS) $(OCRLIB) $^
 	$(RANLIB) $(OCRLIB)
 
+install: default
+	$(CP) $(OCRLIB) $(OCRDIR)/install/$(ARCH)/lib
+	$(CP) -r $(OCRDIR)/inc/* $(OCRDIR)/install/$(ARCH)/include
+	$(CP) -r $(OCRDIR)/machine-configs/default.cfg $(OCRDIR)/install/$(ARCH)/config
+
 clean:
 	-$(RM) $(RMFLAGS) $(OBJDIR)/*
+	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/lib/*
+	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/include/*
+	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/config/default.cfg

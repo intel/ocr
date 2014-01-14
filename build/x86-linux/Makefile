@@ -21,5 +21,6 @@ RANLIB  := ranlib
 RM      := rm
 RMFLAGS := -rf
 
+CP      := cp
 
 include ../common.mk

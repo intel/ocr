@@ -24,15 +24,18 @@ default:
 	@echo ""
 
 all:
-	@$(MAKE) -C $(ARCH) all
+	@$(MAKE) -C $(ARCH) $@
 
 debug:
-	@$(MAKE) -C $(ARCH) debug
+	@$(MAKE) -C $(ARCH) $@
+
+install:
+	@$(MAKE) -C $(ARCH) $@
 
 clean:
-	@$(MAKE) -C $(ARCH) clean
+	@$(MAKE) -C $(ARCH) $@
 
 squeaky:
-	@$(MAKE) -C x86-linux clean
-	@$(MAKE) -C fsim      clean
+	ARCH=x86-linux $(MAKE) -C x86-linux clean
+	ARCH=fsim      $(MAKE) -C fsim      clean
 
