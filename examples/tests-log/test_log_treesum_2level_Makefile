@@ -1,0 +1,9 @@
+make -C /home/ibganev/xstack/ocr/runtime/ocr-x86/examples/./treesum_2level  all-test
+make: Entering directory `/lustre/home/ibganev/xstack/ocr/runtime/ocr-x86/examples/treesum_2level'
+gcc -g -L/lib -I/include -locr -I. treesum_2level.c -o treesum_2level.exe
+treesum_2level.c:16:17: fatal error: ocr.h: No such file or directory
+ #include "ocr.h"
+                 ^
+compilation terminated.
+make: *** [compile] Error 1
+make: Leaving directory `/lustre/home/ibganev/xstack/ocr/runtime/ocr-x86/examples/treesum_2level'

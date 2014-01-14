@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite errors="0" failures="1" hostname="bar2" id="3" name="treesum_1level_Makefile" package="" tests="1" time=".045" timestamp="Wed Nov 13 15:51:07 PST 2013">
+<testcase classname="treesum_1level_Makefile" name="run" time=".045">
+<failure type="Failure!">
+<![CDATA[
+make -C /home/ibganev/xstack/ocr/runtime/ocr-x86/examples/./treesum_1level  all-test
+make: Entering directory `/lustre/home/ibganev/xstack/ocr/runtime/ocr-x86/examples/treesum_1level'
+gcc -g -L/lib -I/include -locr -I. treesum_1level.c -o treesum_1level.exe
+treesum_1level.c:16:17: fatal error: ocr.h: No such file or directory
+ #include "ocr.h"
+                 ^
+compilation terminated.
+make: *** [compile] Error 1
+make: Leaving directory `/lustre/home/ibganev/xstack/ocr/runtime/ocr-x86/examples/treesum_1level'
+]]>
+</failure>
+</testcase>
+<system-out><![CDATA[
+make -C /home/ibganev/xstack/ocr/runtime/ocr-x86/examples/./treesum_1level  all-test
+make: Entering directory `/lustre/home/ibganev/xstack/ocr/runtime/ocr-x86/examples/treesum_1level'
+gcc -g -L/lib -I/include -locr -I. treesum_1level.c -o treesum_1level.exe
+treesum_1level.c:16:17: fatal error: ocr.h: No such file or directory
+ #include "ocr.h"
+                 ^
+compilation terminated.
+make: *** [compile] Error 1
+make: Leaving directory `/lustre/home/ibganev/xstack/ocr/runtime/ocr-x86/examples/treesum_1level'
+]]></system-out>
+<system-err />
+</testsuite>

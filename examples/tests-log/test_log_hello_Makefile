@@ -1,0 +1,4 @@
+make -C /home/ibganev/xstack/ocr/runtime/ocr-x86/examples/./hello  all-test
+make: Entering directory `/lustre/home/ibganev/xstack/ocr/runtime/ocr-x86/examples/hello'
+Makefile:6: *** OCR_INSTALL not set.  Stop.
+make: Leaving directory `/lustre/home/ibganev/xstack/ocr/runtime/ocr-x86/examples/hello'

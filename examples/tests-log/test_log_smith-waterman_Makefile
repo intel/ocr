@@ -1,0 +1,4 @@
+make -C /home/ibganev/xstack/ocr/runtime/ocr-x86/examples/./smith-waterman  all-test
+make: Entering directory `/lustre/home/ibganev/xstack/ocr/runtime/ocr-x86/examples/smith-waterman'
+Makefile:9: *** OCR_INSTALL not set.  Stop.
+make: Leaving directory `/lustre/home/ibganev/xstack/ocr/runtime/ocr-x86/examples/smith-waterman'
