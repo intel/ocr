@@ -660,12 +660,12 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
             //ocrQueueFactory_t *qf;
             s32 low, high;
 
-            s32 schedulerCount, workerCount, allocatorCount;
-            schedulerCount = read_range(dict, secname, "scheduler", &low, &high);
-            workerCount = read_range(dict, secname, "worker", &low, &high);
+//            s32 schedulerCount, workerCount, allocatorCount;
+//            schedulerCount = read_range(dict, secname, "scheduler", &low, &high);
+//            workerCount = read_range(dict, secname, "worker", &low, &high);
 //            computeCount = read_range(dict, secname, "comptarget", &low, &high);
 //            workpileCount = read_range(dict, secname, "workpile", &low, &high);
-            allocatorCount = read_range(dict, secname, "allocator", &low, &high);
+//            allocatorCount = read_range(dict, secname, "allocator", &low, &high);
 //            memoryCount = read_range(dict, secname, "memtarget", &low, &high);
 
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "taskfactory");
@@ -712,11 +712,9 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
             ocrStatsFactory_t *sf = newStatsFactory(statisticsDefault_id, NULL);
 #endif
 
-
             ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
             instance[j] = (void *)((ocrPolicyDomainFactory_t *)factory)->instantiate(
-                factory, schedulerCount, allocatorCount, workerCount,
-                tf, ttf, dbf, ef, gf, NULL, NULL, 
+                factory, tf, ttf, dbf, ef, gf, NULL, NULL, 
                 inst_param[j]);
 
             if (instance[j])

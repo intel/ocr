@@ -795,7 +795,6 @@ void hcPdFree(ocrPolicyDomain_t *self, void* addr) {
 }
 
 ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
-                                      u64 schedulerCount, u64 allocatorCount, u64 workerCount,
                                       ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory,
                                       ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
                                       ocrGuidProvider_t *guidProvider,
@@ -810,9 +809,9 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
 
     ASSERT(base);
 
-    base->schedulerCount = schedulerCount;
-    base->allocatorCount = allocatorCount;
-    base->workerCount = workerCount;
+    base->schedulerCount = 0;
+    base->allocatorCount = 0;
+    base->workerCount = 0;
 
     base->taskFactoryCount = 0;
     base->taskTemplateFactoryCount = 0;
