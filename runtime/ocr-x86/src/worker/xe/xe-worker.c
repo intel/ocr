@@ -47,7 +47,6 @@ static void workerLoop(ocrWorker_t * worker) {
         u32 count = 1;
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_COMM_TAKE
-        msg.srcLocation = pd->myLocation;
         msg.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE; 
         PD_MSG_FIELD(guids) = &taskGuid;
         PD_MSG_FIELD(guidCount) = count;

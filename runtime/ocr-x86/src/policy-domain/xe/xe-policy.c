@@ -612,7 +612,7 @@ The following code is kicked to the curb in favor of the above code to forward t
         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
         // XE currently has no scheduler. So, it sends a message to CE asking for work.
         PD_MSG_FIELD(properties) = self->workers[0]->fcts.sendMessage(
-            self->workers[0], self->parentLocation, &msg); // this is a blocking call
+            self->workers[0], self->parentLocation, &msg); 
         // For now, we return the execute function for EDTs
         PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
 #undef PD_MSG
@@ -783,11 +783,12 @@ The following code is kicked to the curb in favor of the above code to forward t
         ASSERT(0);
     }
 
-    // This code is not needed but just shows how things would be handled (probably
-    // done by sub-functions)
+    // If we were blocking and needed a response we need to make sure there is one
     if(isBlocking && (msg->type & PD_MSG_REQ_RESPONSE)) {
-        ASSERT(msg->type & PD_MSG_RESPONSE); // If we were blocking and needed a response
-                                             // we need to make sure there is one
+        ASSERT(msg->type & PD_MSG_RESPONSE); 
+        returnCode = self->workers[0]->fcts.waitMessage(
+            self->workers[0], self->parentLocation, &msg); 
+        PD_MSG_FIELD(properties) = returnCode;
     }
     return returnCode;
 }

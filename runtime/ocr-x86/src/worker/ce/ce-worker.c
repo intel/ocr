@@ -44,13 +44,7 @@ static void workerLoop(ocrWorker_t * worker) {
     while(worker->fcts.isRunning(worker)) {
         worker->cePollMessage(worker, &msgPtr);
         if(pd->processMessage(pd, msgPtr, true) == 0) {
-#define PD_MSG (msgPtr)
-#define PD_TYPE PD_MSG_WORK_DESTROY
-                msgPtr->type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
-                PD_MSG_FIELD(properties) = 0;
-                RESULT_ASSERT(pd->processMessage(pd, msg, false), ==, 0);
-#undef PD_MSG
-#undef PD_TYPE
+            pd->pdFree(pd, msgPtr);
         } else {
             ASSERT(0); // we don't know (yet) what to do if something fails!
         }
