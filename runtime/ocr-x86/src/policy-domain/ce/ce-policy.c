@@ -201,12 +201,22 @@ static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
 // In all these functions, we consider only a single PD. In other words, in CE, we
 // deal with everything locally and never send messages
 static u8 ceAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, u64 size,
-                       u32 properties, ocrFatGuid_t affinity, ocrInDbAllocator_t allocator) {
+                       u32 properties, u64 engineIndex,
+                       ocrFatGuid_t affinity, ocrInDbAllocator_t allocator) {
+    // This function allocates a data block for the requestor, who is either this CE itself, or
+    // is one of this CE's XE children.  Currently, the "affinity" and "allocator" arguments are
+    // ignored.  Instead, we try to allocate the data block using the allocator corresponding to 
+    // the L1 memory located nearest the requesting agent.  Failing that, we try successive levels
+    // of the memory hierarchy -- L2, then L3, then DRAM -- each of which is managed by an
+    // allocator.  Thus for these levels, the allocators and their memories are a shared resource
+    // among this CE and its XE children, but NOT shared with any other CE's or XE's.
+    
 
-    // Currently a very simple model of just going through all allocators
     u64 i;
     void* result;
-    for(i=0; i < self->allocatorCount; ++i) {
+    for(i = engineIndex;            // First try the allocator for the L1 collocated with the engine
+        i < self->allocatorCount;
+        i = (i < numberOfEnginesInABlock ? numberOfEnginesInABlock : i+1) { // Then try L2, L3, DRAM.
         result = self->allocators[i]->fcts.allocate(self->allocators[i], size);
         if(result) break;
     }
@@ -220,6 +230,11 @@ static u8 ceAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, 
         (*guid).metaDataPtr = block;
         return 0;
     } 
+
+    // In the fullness of time, we might want to implement handling of failure of all above allocators
+    // by forwarding the request to an agent responsible for managing a huge, SHARED pool of DRAM
+    // (and maybe shared pools of L2 and/or L3, too.)
+    ASSERT (false);  // No memory available for block.
     return OCR_ENOMEM;
 }
 
@@ -322,11 +337,12 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_DB_CREATE
         // TODO: Add properties whether DB needs to be acquired or not
-        // This would impact where we do the PD_MSG_MEM_ALLOC for ex
+        // This would impact where we do the PD_MSG_MEM_ALLOC for example
         ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE);        
         returnCode = ceAllocateDb(self, &(PD_MSG_FIELD(guid)),
                                   &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
                                   PD_MSG_FIELD(properties),
+                                  ocrLocation_getEngineIndex(msg->srcLocation), // TODO: Placeholder.  Need a service function that disects an ocrLocation_t to produce the index of an XE or the CE.
                                   PD_MSG_FIELD(affinity),
                                   PD_MSG_FIELD(allocator));
         if(returnCode == 0) {
@@ -607,7 +623,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
             PD_MSG_FIELD(guids));
         returnCode = self->workers[0]->fcts.sendMessage(
-            self->workers[0], msg.srclocation, &msg); // respond to xe with task
+            self->workers[0], msg.srcLocation, &msg); // respond to xe with task
 
 #undef PD_MSG
 #undef PD_TYPE

@@ -254,7 +254,7 @@ typedef struct _ocrPolicyMsg_t {
     u32 type;                 /**< Type of the message. Also includes if this
                                * is a request or a response */
     u32 size;                 /**< Useful size of this message */
-    ocrLocation_t srclocation;  /**< Source of the message
+    ocrLocation_t srcLocation;  /**< Source of the message
                                          * (location making the request */
     ocrLocation_t destLocation; /**< Destination of the message
                                          * (location processing the request) */
