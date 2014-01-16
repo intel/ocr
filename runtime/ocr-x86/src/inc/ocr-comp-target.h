@@ -74,10 +74,11 @@ typedef struct _ocrCompTargetFcts_t {
      *
      * @param[in] self          Pointer to this comp-target
      * @param[in] PD            The policy domain bringing up the runtime
+     * @param[in] workerType    Type of the worker running on this comp-target
      * @param[in] launchArg     Arguments passed to the comp-target to launch
      */
     void (*start)(struct _ocrCompTarget_t *self, struct _ocrPolicyDomain_t * PD,
-                  struct _launchArg_t * launchArg);
+                  ocrWorkerType_t workerType, struct _launchArg_t * launchArg);
 
     /**
      * @brief Stops this comp-target
@@ -209,7 +210,6 @@ typedef struct _ocrCompTarget_t {
     ocrFatGuid_t fguid; /**< Guid of the comp-target */
     struct _ocrPolicyDomain_t *pd; /**< Policy domain this comp-target belongs to */
     ocrLocation_t location; /**< Location of this comp-target */
-    ocrWorkerType_t supportedWorkerType; /**< Types of workers that can run on this comp-target */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
@@ -238,8 +238,7 @@ typedef struct _ocrCompTargetFactory_t {
      * @param instanceArg   Arguments specific for this instance
      */
     ocrCompTarget_t * (*instantiate) ( struct _ocrCompTargetFactory_t * factory,
-                                       ocrLocation_t location, ocrWorkerType_t supportedType,
-                                       ocrParamList_t *instanceArg);
+                                       ocrLocation_t location, ocrParamList_t *instanceArg);
     /**
      * @brief comp-target factory destructor
      * @param factory       Pointer to the factory to destroy.

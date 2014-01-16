@@ -61,10 +61,11 @@ typedef struct _ocrCompPlatformFcts_t {
      *
      * @param[in] self          Pointer to this comp-platform
      * @param[in] PD            The policy domain bringing up the runtime
+     * @param[in] workerType    Type of the worker runnning on this comp-platform
      * @param[in] launchArg     Arguments passed to the comp-platform to launch
      */
     void (*start)(struct _ocrCompPlatform_t *self, struct _ocrPolicyDomain_t * PD,
-                  struct _launchArg_t * launchArg);
+                  ocrWorkerType_t workerType, struct _launchArg_t * launchArg);
 
     /**
      * @brief Stops this comp-platform
@@ -192,8 +193,6 @@ typedef struct _ocrCompPlatformFcts_t {
 typedef struct _ocrCompPlatform_t {
     struct _ocrPolicyDomain_t *pd;  /**< Policy domain this comp-platform is used by */
     ocrLocation_t location;
-    ocrWorkerType_t supportedWorkerType; /**< Types of workers that can run on this instance
-                                          * of the compute platform */
     ocrCompPlatformFcts_t fcts; /**< Functions for this instance */
 } ocrCompPlatform_t;
 
@@ -213,8 +212,7 @@ typedef struct _ocrCompPlatformFactory_t {
      * @param instanceArg   Arguments specific for this instance
      */
     ocrCompPlatform_t* (*instantiate)(struct _ocrCompPlatformFactory_t *factory,
-                                      ocrLocation_t location, ocrWorkerType_t supportedType,
-                                      ocrParamList_t *instanceArg);
+                                      ocrLocation_t location, ocrParamList_t *instanceArg);
 
     /**
      * @brief comp-platform factory destructor

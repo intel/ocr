@@ -24,17 +24,32 @@
 
 void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     // The PD should have been brought up by now and everything instantiated
-    // WARNING: Threads start should be the last thing we do here after
-    //          all data-structures have been initialized.
+    // This is a bit ugly but I can't find a cleaner solution:
+    //   - we need to associate the environment with the
+    //   currently running worker/PD so that we can use getCurrentEnv
+
     u64 i = 0;
     u64 maxCount = 0;
+    u64 countSetCurrentEnv = 0;
 
-    guidify(policy, (u64)policy, &(policy->fguid), OCR_GUID_POLICY);
+    maxCount = policy->workerCount;
+    for(i = 0; i < maxCount; ++i) {
+        if((policy->workers[i]->type == MASTER_WORKERTYPE) ||
+           (policy->workers[i]->type == SINGLE_WORKERTYPE)) {
 
+            policy->workers[i]->computes[0]->fcts.setCurrentEnv(
+                policy->workers[i]->computes[0], policy, policy->workers[i]);
+            ++countSetCurrentEnv;
+        }
+    }
+    ASSERT(countSetCurrentEnv == 1);
+    
     maxCount = policy->guidProviderCount;
     for(i = 0; i < maxCount; ++i) {
         policy->guidProviders[i]->fcts.start(policy->guidProviders[i], policy);
     }
+    
+    guidify(policy, (u64)policy, &(policy->fguid), OCR_GUID_POLICY);
     
     maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {

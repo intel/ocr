@@ -75,48 +75,43 @@ void pthreadDestruct (ocrCompPlatform_t * base) {
     runtimeChunkFree((u64)base, NULL);
 }
 
-void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
+void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType,
+                  launchArg_t * launchArg) {
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
     compPlatform->pd = PD;
     pthreadCompPlatform->launchArg = launchArg;
-    pthread_attr_t attr;
-    RESULT_ASSERT(pthread_attr_init(&attr), ==, 0);
-    //Note this call may fail if the system doesn't like the stack size asked for.
-    RESULT_ASSERT(pthread_attr_setstacksize(&attr, pthreadCompPlatform->stackSize), ==, 0);
-    ASSERT(compPlatform->supportedWorkerType == SLAVE_WORKERTYPE); // We should not be here
-                                                                   // for the master
-    RESULT_ASSERT(pthread_create(&(pthreadCompPlatform->osThread),
-                                 &attr, &pthreadRoutineWrapper,
-                                 pthreadCompPlatform), ==, 0);
+    pthreadCompPlatform->isMaster = (workerType==MASTER_WORKERTYPE);
+    if(pthreadCompPlatform->isMaster) {
+        // Only do the binding
+        s32 cpuBind = pthreadCompPlatform->binding;
+        if(cpuBind != -1) {
+            DPRINTF(DEBUG_LVL_INFO, "Binding comp-platform to cpu_id %d\n", cpuBind);
+            bindThread(cpuBind);
+        }
+        // The master starts executing when we call "stop" on it
+    } else {
+        pthread_attr_t attr;
+        RESULT_ASSERT(pthread_attr_init(&attr), ==, 0);
+        //Note this call may fail if the system doesn't like the stack size asked for.
+        RESULT_ASSERT(pthread_attr_setstacksize(&attr, pthreadCompPlatform->stackSize), ==, 0);
+        RESULT_ASSERT(pthread_create(&(pthreadCompPlatform->osThread),
+                                     &attr, &pthreadRoutineWrapper,
+                                     pthreadCompPlatform), ==, 0);
+    }
 }
 
 void pthreadStop(ocrCompPlatform_t * compPlatform) {
-    // This code must be called by thread '0' to join on other threads
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
-    RESULT_ASSERT(pthread_join(pthreadCompPlatform->osThread, NULL), ==, 0);
+    if(pthreadCompPlatform->isMaster) {
+        pthreadRoutineExecute(pthreadCompPlatform->launchArg);
+    } else {
+        // This code must be called by thread '0' to join on other threads
+        RESULT_ASSERT(pthread_join(pthreadCompPlatform->osThread, NULL), ==, 0);
+    }
 }
 
 void pthreadFinish(ocrCompPlatform_t *compPlatform) {
     // Nothing to do
-}
-
-void pthreadStartMaster(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
-    // This comp-platform represent the currently executing master thread.
-    ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
-    pthreadCompPlatform->launchArg = launchArg;
-    
-    // Only do the binding
-    s32 cpuBind = pthreadCompPlatform->binding;
-    if(cpuBind != -1) {
-        DPRINTF(DEBUG_LVL_INFO, "Binding comp-platform to cpu_id %d\n", cpuBind);
-        bindThread(cpuBind);
-    }
-    // The master starts executing when we call "stop" on it
-}
-
-void pthreadStopMaster(ocrCompPlatform_t * compPlatform) {
-    ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
-    pthreadRoutineExecute(pthreadCompPlatform->launchArg);
 }
 
 u8 pthreadGetThrottle(ocrCompPlatform_t *self, u64* value) {
@@ -156,29 +151,21 @@ u8 pthreadSetCurrentEnv(ocrCompPlatform_t *self, ocrPolicyDomain_t *pd,
 }
 
 ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
-                                          ocrLocation_t location, ocrWorkerType_t supportedType,
-                                          ocrParamList_t *perInstance) {
+                                          ocrLocation_t location, ocrParamList_t *perInstance) {
 
     pthread_once(&selfKeyInitialized,  initializeKey);
     ocrCompPlatformPthread_t * compPlatformPthread = (ocrCompPlatformPthread_t*)
         runtimeChunkAlloc(sizeof(ocrCompPlatformPthread_t), NULL);
 
     compPlatformPthread->base.location = location;
-    compPlatformPthread->base.supportedWorkerType = supportedType;
-    
+        
     paramListCompPlatformPthread_t * params =
         (paramListCompPlatformPthread_t *) perInstance;
-    if(supportedType == MASTER_WORKERTYPE) {
-        // This particular instance is the master thread
-        ocrCompPlatformFactoryPthread_t * pthreadFactory =
-            (ocrCompPlatformFactoryPthread_t *) factory;
-        compPlatformPthread->base.fcts = pthreadFactory->masterPlatformFcts;
-    } else {
-        // This is a regular thread, get regular function pointers
-        compPlatformPthread->base.fcts = factory->platformFcts;
-    }
+    
+    compPlatformPthread->base.fcts = factory->platformFcts;
     compPlatformPthread->binding = (params != NULL) ? params->binding : -1;
     compPlatformPthread->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
+    compPlatformPthread->isMaster = false;
     
     return (ocrCompPlatform_t*)compPlatformPthread;
 }
@@ -228,18 +215,6 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     base->platformFcts.pollMessage = &pthreadPollMessage;
     base->platformFcts.waitMessage = &pthreadWaitMessage;
     base->platformFcts.setCurrentEnv = &pthreadSetCurrentEnv;
-
-    // Setup master thread function pointer in the pthread factory
-    derived->masterPlatformFcts.destruct = &pthreadDestruct;
-    derived->masterPlatformFcts.finish = &pthreadFinish;
-    derived->masterPlatformFcts.start = &pthreadStartMaster;
-    derived->masterPlatformFcts.stop = &pthreadStopMaster;
-    derived->masterPlatformFcts.getThrottle = &pthreadGetThrottle;
-    derived->masterPlatformFcts.setThrottle = &pthreadSetThrottle;
-    derived->masterPlatformFcts.sendMessage = &pthreadSendMessage;
-    derived->masterPlatformFcts.pollMessage = &pthreadPollMessage;
-    derived->masterPlatformFcts.waitMessage = &pthreadWaitMessage;
-    derived->masterPlatformFcts.setCurrentEnv = &pthreadSetCurrentEnv;
 
     paramListCompPlatformPthread_t * params =
       (paramListCompPlatformPthread_t *) perType;

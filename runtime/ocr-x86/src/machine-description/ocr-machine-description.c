@@ -558,17 +558,16 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
         for (j = low; j<=high; j++) {
 
             compPlatformType_t mytype = -1;
-            // TODO BALA: We need something to get the worker type and not base it on
-            // ismasterthread
-            bool isMasterThread = false;
-            
+                        
             TO_ENUM (mytype, inststr, compPlatformType_t, compplatform_types, compPlatformMax_id);
             switch (mytype) {
                 case compPlatformPthread_id: {
                     ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformPthread_t);
+                    /* TODO BALA: We can remove this. Don't know if it needs to be removed elsewhere
                     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "ismasterthread");
                     INI_GET_BOOL (key, value, -1);
                     isMasterThread = value;
+                    */
                     
                     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
                     INI_GET_INT (key, value, -1);
@@ -585,9 +584,8 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
                     ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
                 break;
             }
-
-            ocrWorkerType_t workType = isMasterThread?MASTER_WORKERTYPE:SLAVE_WORKERTYPE;
-            instance[j] = (void *)((ocrCompPlatformFactory_t *)factory)->instantiate(factory, 0, workType, inst_param[j]);
+            
+            instance[j] = (void *)((ocrCompPlatformFactory_t *)factory)->instantiate(factory, 0, inst_param[j]);
 //            instance[j] = (void *)((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created compplatform of type %s, index %d\n", inststr, j);
@@ -596,8 +594,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
     case comptarget_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListCompTargetInst_t);
-            // TODO BALA: We need to get the worker type
-            instance[j] = (void *)((ocrCompTargetFactory_t *)factory)->instantiate(factory, 0, MASTER_WORKERTYPE, inst_param[j]);
+            instance[j] = (void *)((ocrCompTargetFactory_t *)factory)->instantiate(factory, 0, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created comptarget of type %s, index %d\n", inststr, j);
         }

@@ -23,7 +23,6 @@
 
 typedef struct {
     ocrCompPlatformFactory_t base;
-    ocrCompPlatformFcts_t masterPlatformFcts;
     u64 stackSize;
 } ocrCompPlatformFactoryPthread_t;
 
@@ -33,6 +32,7 @@ typedef struct {
     launchArg_t * launchArg;
     u64 stackSize;
     s32 binding;
+    bool isMaster;
 } ocrCompPlatformPthread_t;
 
 typedef struct {

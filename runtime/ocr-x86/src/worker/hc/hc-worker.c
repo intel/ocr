@@ -27,20 +27,6 @@
 /* OCR-HC WORKER                                      */
 /******************************************************/
 
-/*
- * TODO: Is this still needed? 
-static void associate_comp_platform_and_worker(ocrWorker_t * worker) {
-    // This function must only be used when the contextFactory has its PD set
-    ocrPolicyCtx_t * ctx = policy->contextFactory->instantiate(policy->contextFactory, NULL);
-    ctx->sourcePD = policy->guid;
-    ctx->PD = policy;
-    ctx->sourceObj = worker->guid;
-    ctx->sourceId = ((ocrWorkerHc_t *) worker)->id;
-    setCurrentPD(policy);
-    setCurrentWorkerContext(ctx);
-}
-*/
-
 /**
  * The computation worker routine that asks work to the scheduler
  */
@@ -97,9 +83,12 @@ static void * workerRoutine(launchArg_t* launchArg) {
     ocrWorker_t * worker = (ocrWorker_t *) launchArg->arg;
     ocrPolicyDomain_t *pd = worker->pd;
     pd->pdFree(pd, launchArg); // Free the launch argument
-    
-    // associate current thread with the worker
-    //associate_comp_platform_and_worker(pd, worker);
+
+    // Set who we are
+    u32 i;
+    for(i = 0; i < worker->computeCount; ++i) {
+        worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
+    }
     
     DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
     workerLoop(worker);
@@ -170,17 +159,19 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     launchArg->arg = base;
     ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
     u64 i = 0;
-    for(i = 0; i < computeCount; i++) {
-        base->computes[i]->fcts.start(base->computes[i], policy, launchArg);
+    for(i = 0; i < computeCount; ++i) {
+        base->computes[i]->fcts.start(base->computes[i], policy, base->type, launchArg);
 #ifdef OCR_ENABLE_STATISTICS
         statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
 #endif
     }
 
     if(base->type == MASTER_WORKERTYPE) {
-        // Master worker does not start the underlying thread
-        // since it falls through but it still sets up other things
-        //associate_comp_platform_and_worker(policy, base);
+        // For the master thread, we need to set the PD and worker
+        // The other threads will set this when they start
+        for(i = 0; i < computeCount; ++i) {
+            base->computes[i]->fcts.setCurrentEnv(base->computes[i], policy, base);
+        }
     }
 }
 

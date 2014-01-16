@@ -33,7 +33,8 @@ void ptDestruct(ocrCompTarget_t *compTarget) {
     runtimeChunkFree((u64)compTarget, NULL);
 }
 
-void ptStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, launchArg_t * launchArg) {
+void ptStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType,
+             launchArg_t * launchArg) {
     // Get a GUID
     guidify(PD, (u64)compTarget, &(compTarget->fguid), OCR_GUID_COMPTARGET);
     compTarget->pd = PD;
@@ -43,7 +44,7 @@ void ptStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, launchArg_t *
 #endif
 
     ASSERT(compTarget->platformCount == 1);
-    compTarget->platforms[0]->fcts.start(compTarget->platforms[0], PD, launchArg);
+    compTarget->platforms[0]->fcts.start(compTarget->platforms[0], PD, workerType, launchArg);
 }
 
 void ptStop(ocrCompTarget_t * compTarget) {
@@ -104,20 +105,16 @@ u8 ptSetCurrentEnv(ocrCompTarget_t *compTarget, ocrPolicyDomain_t *pd,
 }
 
 ocrCompTarget_t * newCompTargetPt(ocrCompTargetFactory_t * factory,
-                                  ocrLocation_t location, ocrWorkerType_t supportedWorkerType,
-                                  ocrParamList_t* perInstance) {
+                                  ocrLocation_t location, ocrParamList_t* perInstance) {
     ocrCompTargetPt_t * compTarget = (ocrCompTargetPt_t*)runtimeChunkAlloc(sizeof(ocrCompTargetPt_t), NULL);
 
     compTarget->base.fguid.guid = UNINITIALIZED_GUID;
     compTarget->base.fguid.metaDataPtr = compTarget;
     compTarget->base.location = location;
-    compTarget->base.supportedWorkerType = supportedWorkerType;
     
     compTarget->base.platforms = NULL;
     compTarget->base.platformCount = 0;
     compTarget->base.fcts = factory->targetFcts;
-
-    // TODO: Setup routine and routineArg. Should be in perInstance misc
     
     return (ocrCompTarget_t*)compTarget;
 }
