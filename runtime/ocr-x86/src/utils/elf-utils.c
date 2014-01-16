@@ -20,15 +20,10 @@ typedef struct _func_entry {
 
 #define MAXFNS (2048)
 #define BASE_ADDRESS (0x0)
-#define LIBOCR_SO "./libocr.so"
-
-// The below holds all functions from the .so
-func_entry blob_func_lists[MAXFNS];
-int blob_func_list_size = 0;
 
 // The below holds all functions in the app
-func_entry app_func_lists[MAXFNS];
-int app_func_list_size = 0;
+func_entry func_list[MAXFNS];
+int func_list_sz = 0;
 
 static inline u64 mark_addr_magic(u64 addr, void* base)
 {
@@ -36,7 +31,7 @@ static inline u64 mark_addr_magic(u64 addr, void* base)
 }
 
 /* Below code adapted from libelf tutorial example */
-int extract_funcs (const char *str, func_entry *func_list)
+static int extract_functions_internal (const char *str, func_entry *func_list)
 {
   Elf *e;
   Elf_Kind ek;
@@ -98,11 +93,21 @@ int extract_funcs (const char *str, func_entry *func_list)
   return func_count;
 }
 
-void free_func_names(func_entry *func_lists, int func_list_size)
+static void free_func_names(func_entry *func_lists, int func_list_size)
 {
   int i;
   for(i = 0; i < func_list_size; i++)
     free(func_lists[i].func_name);
+}
+
+void extract_functions (const char *str)
+{
+    func_list_sz = extract_functions_internal (str, func_list);
+}
+
+void free_functions (void)
+{
+    free_func_names(func_list, func_list_sz);
 }
 
 char* find_function(u64 address, func_entry *func_lists, int func_list_size)
@@ -128,6 +133,11 @@ u64 find_function_address (char *fname, func_entry *func_lists, int func_list_si
   return 0;
 }
 
+void *getAddress (char *fname)
+{
+    return (void *)find_function_address(fname, func_list, func_list_sz);
+}
+
 void fix_funcPtrs (void *to, void *from, func_entry *bloblist, int blobcount, func_entry *applist, int appcount)
 {
   u64 *src = (u64 *)from;
@@ -148,30 +158,4 @@ void fix_funcPtrs (void *to, void *from, func_entry *bloblist, int blobcount, fu
   }
 }
 
-void dump_fctPtrs (char *mem, void *fctPtrs, int count, char *base)
-{
-  int i;
-//  char *funcname = NULL;
-  u64 *src = fctPtrs;
-  u64 *dst = (u64 *)mem;
-
-  *dst = mark_addr_magic((u64)(mem+sizeof(void *)), base);
-
-  dst++;
-  for(i = 0; i < count; i++)
-    fix_funcPtrs (&dst[i], src++, blob_func_lists, blob_func_list_size, app_func_lists, app_func_list_size);
-}
-
-void elf_main(int argc, char *argv[])
-{
-  blob_func_list_size = extract_funcs(LIBOCR_SO, blob_func_lists);
-  app_func_list_size = extract_funcs(argv[2], app_func_lists);
-
-  //ptr = mybringUpRuntime(argv[1]);
-  //dumpAllStructs(argv[3], ptr);
-  //myfreeUpRuntime();
-
-  free_func_names(blob_func_lists, blob_func_list_size);
-  free_func_names(app_func_lists, app_func_list_size);
-}
 #endif

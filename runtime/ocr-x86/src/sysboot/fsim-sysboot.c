@@ -18,30 +18,32 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define CHUNKSZ 65536        // The chunk size of runtimeChunkAlloc's pool
-char *bigchunk = NULL;       // The underlying pool
-int pointer = 0;             // The pointer to the free area
+#define CHUNKSZ 32768                // The chunk size of runtimeChunkAlloc's pool
+char persistent_chunk[CHUNKSZ];      // The underlying pool - persistent memory
+char nonpersistent_chunk[CHUNKSZ];   // The underlying pool - non-persistent memory
+u64  persistent_pointer = 0;         // The pointer to the free area of persistent
+u64  nonpersistent_pointer = 0;      // The pointer to free area of non-persistent
 
 u64 FsimRuntimeChunkAlloc(u64 size, u64 *extra) {
     void* returnValue = NULL;
 
-    if(bigchunk == NULL) {
-        bigchunk = calloc(1, CHUNKSZ);
-        ASSERT(bigchunk && "Unable to allocate chunk heap");
-        pointer = 0;
+    if(extra != NULL) { // default, non-persistent
+        returnValue = &(nonpersistent_chunk[nonpersistent_pointer]);
+        nonpersistent_pointer += size;
+    } else {
+        returnValue = &(persistent_chunk[persistent_pointer]);
+        persistent_pointer += size;
     }
 
-    returnValue = &(bigchunk[pointer]);
+    ASSERT((persistent_pointer < CHUNKSZ) && "Persistent allocation needs more than CHUNKSZ bytes of memory");
+    ASSERT((nonpersistent_pointer < CHUNKSZ) && "Non-persistent allocation needs more than CHUNKSZ bytes of memory");
 
-    //printf("Allocing %ld bytes for %s at %lx\n", size, (char *)extra, (u64)returnValue);
-    pointer += size;
-    ASSERT(pointer < CHUNKSZ && "Allocation needs more than CHUNKSZ bytes of memory");
     return (u64)returnValue;
 }
 
 void FsimRuntimeChunkFree(u64 addr, u64* extra) {
     ASSERT(addr);
-    free((void*)addr);
+    // Nothing to do
 }
 
 void FsimRuntimeUpdateMemTarget(ocrMemTarget_t *me, u64 extra) {
@@ -50,9 +52,10 @@ void FsimRuntimeUpdateMemTarget(ocrMemTarget_t *me, u64 extra) {
     return;
 }
 
+extern void *getAddress(const char *fname);
+
 void *myGetFuncAddr (const char * fname) {
-    // TODO: Call into elf_utils to extract the function from a specified binary
-    return (void *)0xdeadc0de;
+    return getAddress(fname);
 }
 
 void* (*getFuncAddr)(const char*) = &myGetFuncAddr;

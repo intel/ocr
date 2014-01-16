@@ -195,15 +195,15 @@ void destructWorkerFactoryCe(ocrWorkerFactory_t * factory) {
 }
 
 ocrWorkerFactory_t * newOcrWorkerFactoryCe(ocrParamList_t * perType) {
-    ocrWorkerFactoryCe_t* derived = (ocrWorkerFactoryCe_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryCe_t), NULL);
+    ocrWorkerFactoryCe_t* derived = (ocrWorkerFactoryCe_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryCe_t), (void *)1);
     ocrWorkerFactory_t* base = (ocrWorkerFactory_t*) derived;
     base->instantiate = newWorkerCe;
     base->destruct =  destructWorkerFactoryCe;
-    base->workerFcts.destruct = destructWorkerCe;
-    base->workerFcts.start = ceStartWorker;
-    base->workerFcts.stop = ceStopWorker;
-    base->workerFcts.finish = ceFinishWorker;
-    base->workerFcts.isRunning = ceIsRunningWorker;
+    base->workerFcts.destruct = FUNC_ADDR(void (*)(ocrWorker_t*), destructWorkerCe);
+    base->workerFcts.start = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), ceStartWorker);
+    base->workerFcts.stop = FUNC_ADDR(void (*)(ocrWorker_t*), ceStopWorker);
+    base->workerFcts.finish = FUNC_ADDR(void (*)(ocrWorker_t*), ceFinishWorker);
+    base->workerFcts.isRunning = FUNC_ADDR(bool (*)(ocrWorker_t*), ceIsRunningWorker);
     base->workerFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrLocation_t, ocrPolicyMsg_t**), ceSendMessage);
     base->workerFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**), cePollMessage);
     base->workerFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**), ceWaitMessage);

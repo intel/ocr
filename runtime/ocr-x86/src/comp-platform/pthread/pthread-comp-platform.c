@@ -198,7 +198,7 @@ void setGetCurrentEnvPthread(ocrCompPlatformFactory_t *factory) {
 
 ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType) {
     ocrCompPlatformFactory_t *base = (ocrCompPlatformFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrCompPlatformFactoryPthread_t), NULL);
+        runtimeChunkAlloc(sizeof(ocrCompPlatformFactoryPthread_t), (void *)1);
 
     ocrCompPlatformFactoryPthread_t * derived = (ocrCompPlatformFactoryPthread_t *) base;
 

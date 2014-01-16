@@ -1098,7 +1098,7 @@ static void destructAllocatorFactoryTlsf(ocrAllocatorFactory_t * factory) {
 
 ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
     ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrAllocatorFactoryTlsf_t), NULL);
+        runtimeChunkAlloc(sizeof(ocrAllocatorFactoryTlsf_t), (void *)1);
     ASSERT(base);
     base->instantiate = newAllocatorTlsf;
     base->destruct =  &destructAllocatorFactoryTlsf;

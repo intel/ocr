@@ -97,7 +97,7 @@ void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
 }
 
 ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(ocrParamList_t *perType) {
-    ocrWorkpileFactoryHc_t* derived = (ocrWorkpileFactoryHc_t*)runtimeChunkAlloc(sizeof(ocrWorkpileFactoryHc_t), NULL);
+    ocrWorkpileFactoryHc_t* derived = (ocrWorkpileFactoryHc_t*)runtimeChunkAlloc(sizeof(ocrWorkpileFactoryHc_t), (void *)1);
     ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
     base->instantiate = newWorkpileHc;
     base->destruct = destructWorkpileFactoryHc;

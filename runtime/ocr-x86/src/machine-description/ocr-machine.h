@@ -37,6 +37,10 @@ typedef enum {
     worker_type,
     scheduler_type,
     policydomain_type,
+    taskfactory_type,
+    tasktemplatefactory_type,
+    datablockfactory_type,
+    eventfactory_type,
 } type_enum;
 
 /* Dependence information (from->to) referenced by refstr */

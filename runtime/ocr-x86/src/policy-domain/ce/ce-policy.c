@@ -877,7 +877,7 @@ static void destructPolicyDomainFactoryCe(ocrPolicyDomainFactory_t * factory) {
 }
 
 ocrPolicyDomainFactory_t * newPolicyDomainFactoryCe(ocrParamList_t *perType) {
-    ocrPolicyDomainFactoryCe_t* derived = (ocrPolicyDomainFactoryCe_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryCe_t), NULL);
+    ocrPolicyDomainFactoryCe_t* derived = (ocrPolicyDomainFactoryCe_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryCe_t), (void *)1);
     ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) derived;
     
     ASSERT(base); // Check allocation

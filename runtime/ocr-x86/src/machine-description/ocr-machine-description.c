@@ -90,7 +90,7 @@ bool key_exists(dictionary *dict, char *sec, char *field) {
 }
 
 // TODO: expand to parse comma separated values & ranges iterating the below thru strtok with ,
-// TODO: stretch goal, extend this to expressions: surely you're joking, Mr. Feynman
+// TODO: eventually, extend this to expressions
 s32 read_range(dictionary *dict, char *sec, char *field, s32 *low, s32 *high) {
     char key[MAX_KEY_SZ];
     s32 value;
@@ -866,7 +866,11 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
         switch (totype) {
         case guid_type: {
             ASSERT(dependence_count==1);
-            /*	Special case handled during PD creation  */
+            if (f->guidProviders == NULL) {
+                f->guidProviderCount = dependence_count;
+                f->guidProviders = (ocrGuidProvider_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrGuidProvider_t *), NULL);
+            }
+            f->guidProviders[dependence_index] = (ocrGuidProvider_t *)toinstance;
             break;
         }
         case allocator_type: {
@@ -891,6 +895,38 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
                 f->schedulers = (ocrScheduler_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrScheduler_t *), NULL);
             }
             f->schedulers[dependence_index] = (ocrScheduler_t *)toinstance;
+            break;
+        }
+        case taskfactory_type: {
+            if (f->taskFactories == NULL) {
+                f->taskFactoryCount = dependence_count;
+                f->taskFactories = (ocrTaskFactory_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrTaskFactory_t *), NULL);
+            }
+            f->taskFactories[dependence_index] = (ocrTaskFactory_t *)toinstance;
+            break;
+        }
+        case tasktemplatefactory_type: {
+            if (f->taskTemplateFactories == NULL) {
+                f->taskTemplateFactoryCount = dependence_count;
+                f->taskTemplateFactories = (ocrTaskTemplateFactory_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrTaskTemplateFactory_t *), NULL);
+            }
+            f->taskTemplateFactories[dependence_index] = (ocrTaskTemplateFactory_t *)toinstance;
+            break;
+        }
+        case datablockfactory_type: {
+            if (f->dbFactories == NULL) {
+                f->dbFactoryCount = dependence_count;
+                f->dbFactories = (ocrDataBlockFactory_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrDataBlockFactory_t *), NULL);
+            }
+            f->dbFactories[dependence_index] = (ocrDataBlockFactory_t *)toinstance;
+            break;
+        }
+        case eventfactory_type: {
+            if (f->eventFactories == NULL) {
+                f->eventFactoryCount = dependence_count;
+                f->eventFactories = (ocrEventFactory_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrEventFactory_t *), NULL);
+            }
+            f->eventFactories[dependence_index] = (ocrEventFactory_t *)toinstance;
             break;
         }
         default:
@@ -929,5 +965,19 @@ s32 build_deps (dictionary *dict, s32 A, s32 B, char *refstr, void ***all_instan
             }
         }
     }
+    return 0;
+}
+
+s32 build_deps_types (dictionary *dict, s32 B, char *refstr, void **pdinst, int pdcount, void ***all_factories, ocrParamList_t ***type_params) {
+    s32 i, j, k;
+    s32 low, high;
+    s32 l, h;
+
+    for (i = 0; i < pdcount; i++) {
+        add_dependence(policydomain_type, B, pdinst[i], NULL, all_factories[B][0], NULL, 0, 1);
+    }
+    
+    // FIXME: The above is highly simplified, needs change
+
     return 0;
 }

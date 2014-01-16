@@ -141,7 +141,7 @@ static void destructMemTargetFactoryShared(ocrMemTargetFactory_t *factory) {
 
 ocrMemTargetFactory_t *newMemTargetFactoryShared(ocrParamList_t *perType) {
     ocrMemTargetFactory_t *base = (ocrMemTargetFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrMemTargetFactoryShared_t), NULL);
+        runtimeChunkAlloc(sizeof(ocrMemTargetFactoryShared_t), (void *)1);
     base->instantiate = &newMemTargetShared;
     base->destruct = &destructMemTargetFactoryShared;
     base->targetFcts.destruct = &sharedDestruct;

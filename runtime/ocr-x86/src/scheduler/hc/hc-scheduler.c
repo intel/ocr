@@ -275,7 +275,7 @@ void destructSchedulerFactoryHc(ocrSchedulerFactory_t * factory) {
 
 ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(ocrParamList_t *perType) {
     ocrSchedulerFactoryHc_t* derived = (ocrSchedulerFactoryHc_t*) runtimeChunkAlloc(
-        sizeof(ocrSchedulerFactoryHc_t), NULL);
+        sizeof(ocrSchedulerFactoryHc_t), (void *)1);
     
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = &newSchedulerHc;

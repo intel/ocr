@@ -36,6 +36,11 @@ const char *type_str[] = {
     "WorkerType",
     "SchedulerType",
     "PolicyDomainType",
+    "TaskType",
+    "TaskTemplateType",
+    "DataBlockType",
+    "EventType",
+    "SalType",
 };
 
 const char *inst_str[] = {
@@ -49,6 +54,11 @@ const char *inst_str[] = {
     "WorkerInst",
     "SchedulerInst",
     "PolicyDomainInst",
+    "NULL",
+    "NULL",
+    "NULL",
+    "NULL",
+    "NULL",
 };
 
 /* The below array defines the list of dependences */
@@ -63,11 +73,16 @@ dep_t deps[] = {
     { policydomain_type, allocator_type, "allocator"},
     { policydomain_type, worker_type, "worker"},
     { policydomain_type, scheduler_type, "scheduler"},
+    { policydomain_type, taskfactory_type, "taskfactory"},
+    { policydomain_type, tasktemplatefactory_type, "tasktemplatefactory"},
+    { policydomain_type, datablockfactory_type, "datablockfactory"},
+    { policydomain_type, eventfactory_type, "eventfactory"},
 };
 
 extern char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *dict, char *secname);
 int populate_inst(ocrParamList_t **inst_param, void **instance, int *type_counts, char ***factory_names, void ***all_factories, void ***all_instances, type_enum index, dictionary *dict, char *secname);
 extern int build_deps (dictionary *dict, int A, int B, char *refstr, void ***all_instances, ocrParamList_t ***inst_params);
+extern int build_deps_types (dictionary *dict, int B, char *refstr, void **pdinst, int pdcount, void ***all_factories, ocrParamList_t ***type_params);
 extern void *create_factory (type_enum index, char *factory_name, ocrParamList_t *paramlist);
 extern int read_range(dictionary *dict, char *sec, char *field, int *low, int *high);
 extern void free_instance(void *instance, type_enum inst_type);
@@ -89,18 +104,46 @@ char **factory_names[sizeof(type_str)/sizeof(const char *)];        // ~9 differ
 ocrParamList_t **inst_params[sizeof(inst_str)/sizeof(const char *)];
 
 #ifdef ENABLE_BUILDER_ONLY
-void dumpPolicyDomain(void *pd, char *app_binary, char *output_binary)
-{
-    // TODO: Open app_binary, extract all functions
-    // TODO: Fix up the function pointers of pd
-    // TODO: Write the output into output_binary
+
+#define APP_BINARY    "CrossPlatform:app_file"
+#define OUTPUT_BINARY "CrossPlatform:struct_file"
+
+char *app_binary;
+char *output_binary;
+extern int extract_functions(const char *);
+extern void free_functions(void);
+
+void dumpPolicyDomain(void *pd, const char* output_binary) {
+    FILE *fp = fopen(output_binary, "w");
+
+    if(fp == NULL) printf("Unable to open file %s for writing\n", output_binary);
+    else {
+        fwrite(pd, sizeof(ocrPolicyDomain_t), 1, fp);
+    }
+    fclose(fp);
 }
+
+void builderPreamble(dictionary *dict) {
+
+    app_binary = iniparser_getstring(dict, APP_BINARY, NULL);
+    output_binary = iniparser_getstring(dict, OUTPUT_BINARY, NULL);
+
+    if(app_binary==NULL || output_binary==NULL) {
+        printf("Unable to read %s and %s; got %s and %s respectively\n", APP_BINARY, OUTPUT_BINARY, app_binary, output_binary);
+    } else {
+        extract_functions(app_binary);
+    }
+}
+
 #endif
 
 void bringUpRuntime(const char *inifile) {
     int i, j, count=0, nsec;
     dictionary *dict = iniparser_load(inifile);
 
+#ifdef ENABLE_BUILDER_ONLY
+    builderPreamble(dict);
+#endif
 
     // INIT
     for (j = 0; j < total_types; j++) {
@@ -125,11 +168,11 @@ void bringUpRuntime(const char *inifile) {
         for (j = 0; j < total_types; j++) {
             if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) {
                 if(type_counts[j] && type_params[j]==NULL) {
-                    type_params[j] = (ocrParamList_t **)runtimeChunkAlloc(type_counts[j] * sizeof(ocrParamList_t *), NULL);
-                    factory_names[j] = (char **)calloc(type_counts[j], sizeof(char *));
-                    all_factories[j] = (void **)calloc(type_counts[j], sizeof(void *));
-//                    factory_names[j] = (char **)runtimeChunkAlloc(type_counts[j] * sizeof(char *), "factory names");
-//                    all_factories[j] = (void **)runtimeChunkAlloc(type_counts[j] * sizeof(void *), "all factories");
+                    type_params[j] = (ocrParamList_t **)runtimeChunkAlloc(type_counts[j] * sizeof(ocrParamList_t *), (void *)1);
+//                    factory_names[j] = (char **)calloc(type_counts[j], sizeof(char *));
+//                    all_factories[j] = (void **)calloc(type_counts[j], sizeof(void *));
+                    factory_names[j] = (char **)runtimeChunkAlloc(type_counts[j] * sizeof(char *), (void *)1);
+                    all_factories[j] = (void **)runtimeChunkAlloc(type_counts[j] * sizeof(void *), (void *)1);
                     count = 0;
                 }
                 factory_names[j][count] = populate_type(&type_params[j][count], j, dict, iniparser_getsecname(dict, i));
@@ -161,10 +204,10 @@ void bringUpRuntime(const char *inifile) {
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) {
                 if(inst_counts[j] && inst_params[j] == NULL) {
                     DPRINTF(DEBUG_LVL_INFO, "Create %d instances of %s\n", inst_counts[j], inst_str[j]);
-//                    inst_params[j] = (ocrParamList_t **)runtimeChunkAlloc(inst_counts[j] * sizeof(ocrParamList_t *), "instance params");
-//                    all_instances[j] = (void **)runtimeChunkAlloc(inst_counts[j] * sizeof(void *), "all instances");
-                    inst_params[j] = (ocrParamList_t **)calloc(inst_counts[j], sizeof(ocrParamList_t *));
-                    all_instances[j] = (void **)calloc(inst_counts[j], sizeof(void *));
+                    inst_params[j] = (ocrParamList_t **)runtimeChunkAlloc(inst_counts[j] * sizeof(ocrParamList_t *), (void *)1);
+                    all_instances[j] = (void **)runtimeChunkAlloc(inst_counts[j] * sizeof(void *), (void *)1);
+//                    inst_params[j] = (ocrParamList_t **)calloc(inst_counts[j], sizeof(ocrParamList_t *));
+//                    all_instances[j] = (void **)calloc(inst_counts[j], sizeof(void *));
                     count = 0;
                 }
                 populate_inst(inst_params[j], all_instances[j], type_counts, factory_names, all_factories, all_instances, j, dict, iniparser_getsecname(dict, i));
@@ -183,10 +226,17 @@ void bringUpRuntime(const char *inifile) {
     // BUILD DEPENDENCES
     DPRINTF(DEBUG_LVL_INFO, "========= Build dependences ==========\n");
 
-    for (i = 0; i < sizeof(deps)/sizeof(dep_t); i++) {
+    // FIXME: Major hardcoding going on
+    for (i = 0; i < 9; i++) {
         build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr, all_instances, inst_params);
     }
-    dictionary_del (dict);
+
+    // FIXME: Major hardcoding going on
+    for (i = 9; i <= 12; i++) {
+        build_deps_types(dict, deps[i].to, deps[i].refstr, all_instances[policydomain_type],
+                         inst_counts[policydomain_type], all_factories, type_params);
+    }
+
     // START EXECUTION
     DPRINTF(DEBUG_LVL_INFO, "========= Start execution ==========\n");
     ocrPolicyDomain_t *rootPolicy;
@@ -199,18 +249,12 @@ void bringUpRuntime(const char *inifile) {
 #endif
 
 #ifdef ENABLE_BUILDER_ONLY
-#define APP_BINARY    "app_name"
-#define OUTPUT_BINARY "output_name"
     {
-        char *app_binary = iniparser_getstring(d, APP_BINARY, NULL);
-        char *output_binary = iniparser_getstring(d, OUTPUT_BINARY, NULL);
-
-        if(app_binary==NULL || output_binary==NULL) {
-            printf("Foo\n");
-        } else 
-            for(i = 0; i < inst_counts[policydomain_type]; i++)
-                dumpPolicyDomain(all_instances[policydomain_type][i], app_binary, output_binary);
+        for(i = 0; i < inst_counts[policydomain_type]; i++)
+            dumpPolicyDomain(all_instances[policydomain_type][i], output_binary);
+        free_functions();
     }
+    exit(0); // Nothing else to do in the builder, bail
 #else
     rootPolicy->start(rootPolicy);
 #endif

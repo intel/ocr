@@ -821,7 +821,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     ocrPolicyDomain_t * base = (ocrPolicyDomain_t *) derived;
 
     ASSERT(base);
-
+/*
     base->taskFactoryCount = 0;
     base->taskTemplateFactoryCount = 0;
     base->eventFactoryCount = 0;
@@ -832,7 +832,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->dbFactories = NULL;
     base->eventFactories = NULL;
     base->guidProviders = NULL;
-    
+*/    
 //    base->sysProvider = sysProvider;
 #ifdef OCR_ENABLE_STATISTICS
     base->statsObject = statsObject;
@@ -868,7 +868,7 @@ static void destructPolicyDomainFactoryHc(ocrPolicyDomainFactory_t * factory) {
 }
 
 ocrPolicyDomainFactory_t * newPolicyDomainFactoryHc(ocrParamList_t *perType) {
-    ocrPolicyDomainFactoryHc_t* derived = (ocrPolicyDomainFactoryHc_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryHc_t), NULL);
+    ocrPolicyDomainFactoryHc_t* derived = (ocrPolicyDomainFactoryHc_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryHc_t), (void *)1);
     ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) derived;
     
     ASSERT(base); // Check allocation

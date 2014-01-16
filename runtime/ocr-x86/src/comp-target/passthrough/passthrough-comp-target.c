@@ -128,7 +128,7 @@ static void destructCompTargetFactoryPt(ocrCompTargetFactory_t *factory) {
 
 ocrCompTargetFactory_t *newCompTargetFactoryPt(ocrParamList_t *perType) {
     ocrCompTargetFactory_t *base = (ocrCompTargetFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrCompTargetFactoryPt_t), NULL);
+        runtimeChunkAlloc(sizeof(ocrCompTargetFactoryPt_t), (void *)1);
     base->instantiate = &newCompTargetPt;
     base->destruct = &destructCompTargetFactoryPt;
     base->targetFcts.destruct = &ptDestruct;

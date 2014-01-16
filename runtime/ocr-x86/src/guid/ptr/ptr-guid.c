@@ -102,7 +102,7 @@ void destructGuidProviderFactoryPtr(ocrGuidProviderFactory_t *factory) {
 
 ocrGuidProviderFactory_t *newGuidProviderFactoryPtr(ocrParamList_t *typeArg, u32 factoryId) {
     ocrGuidProviderFactory_t *base = (ocrGuidProviderFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrGuidProviderFactoryPtr_t), NULL);
+        runtimeChunkAlloc(sizeof(ocrGuidProviderFactoryPtr_t), (void *)1);
     
     base->instantiate = &newGuidProviderPtr;
     base->destruct = &destructGuidProviderFactoryPtr;

@@ -245,7 +245,7 @@ void destructWorkerFactoryHc(ocrWorkerFactory_t * factory) {
 }
 
 ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
-    ocrWorkerFactoryHc_t* derived = (ocrWorkerFactoryHc_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryHc_t), NULL);
+    ocrWorkerFactoryHc_t* derived = (ocrWorkerFactoryHc_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryHc_t), (void *)1);
     ocrWorkerFactory_t* base = (ocrWorkerFactory_t*) derived;
     base->instantiate = newWorkerHc;
     base->destruct =  destructWorkerFactoryHc;

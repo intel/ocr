@@ -155,7 +155,7 @@ void destructMemPlatformFactoryMalloc(ocrMemPlatformFactory_t *factory) {
 
 ocrMemPlatformFactory_t *newMemPlatformFactoryMalloc(ocrParamList_t *perType) {
     ocrMemPlatformFactory_t *base = (ocrMemPlatformFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrMemPlatformFactoryMalloc_t), NULL);
+        runtimeChunkAlloc(sizeof(ocrMemPlatformFactoryMalloc_t), (void *)1);
     
     base->instantiate = &newMemPlatformMalloc;
     base->destruct = &destructMemPlatformFactoryMalloc;
