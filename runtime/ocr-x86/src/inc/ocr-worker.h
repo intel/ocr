@@ -97,6 +97,7 @@ typedef struct _ocrWorkerFcts_t {
 typedef struct _ocrWorker_t {
     ocrFatGuid_t fguid;
     struct _ocrPolicyDomain_t *pd;
+    ocrLocation_t location;
     ocrWorkerType_t type;
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
@@ -116,7 +117,8 @@ typedef struct _ocrWorker_t {
 /****************************************************/
 
 typedef struct _ocrWorkerFactory_t {
-    ocrWorker_t * (*instantiate) (struct _ocrWorkerFactory_t * factory, ocrParamList_t *perInstance);
+    ocrWorker_t * (*instantiate) (struct _ocrWorkerFactory_t * factory, ocrLocation_t location,
+                                  ocrWorkerType_t type, ocrParamList_t *perInstance);
     void (*destruct)(struct _ocrWorkerFactory_t * factory);
     ocrWorkerFcts_t workerFcts;
 } ocrWorkerFactory_t;

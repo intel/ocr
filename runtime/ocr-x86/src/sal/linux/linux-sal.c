@@ -22,14 +22,9 @@ void linuxSalTeardown(ocrPolicyDomain_t *pd) {
     // TODO: Implement
 }
 
-void linuxSalGetCurrentEnv(ocrPolicyDomain_t **pd, ocrWorker_t **worker,
-                           ocrTask_t **edt, ocrPolicyMsg_t *msg) {
-    // TODO: Implement
-}
-
 void (*teardown)(ocrPolicyDomain_t*) = &linuxSalTeardown;
 void (*getCurrentEnv)(ocrPolicyDomain_t**, ocrWorker_t**,
-                      ocrTask_t **, ocrPolicyMsg_t*) = &linuxSalGetCurrentEnv;
+                      ocrTask_t **, ocrPolicyMsg_t*) = NULL; // This is set by the comp-platform
 
 void linuxSalDestruct(ocrSal_t* self) {
     runtimeChunkFree((u64)self, NULL);

@@ -17,6 +17,7 @@
 #include "utils/ocr-utils.h"
 
 struct _ocrPolicyDomain_t;
+struct _ocrWorker_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -156,7 +157,7 @@ typedef struct _ocrCompPlatformFcts_t {
      * to pass the same message as the one given to sendMessage (as it may
      * have been modified by sendMessage for book-keeping purposes)
      *
-     * @param self[in]        Pointer to this comp-target
+     * @param self[in]        Pointer to this comp-platform
      * @param message[in/out] As input, this determines which message to wait
      *                        for. Note that this is a pointer to a pointer.
      *                        Both the passed-in message and the returned
@@ -167,6 +168,21 @@ typedef struct _ocrCompPlatformFcts_t {
      */
     u8 (*waitMessage)(struct _ocrCompPlatform_t *self, struct _ocrPolicyMsg_t **message);
 
+    /**
+     * @brief Function called from the worker when it starts "running" on the comp-platform
+     *
+     * @note This function is separate from the start function because, conceptually,
+     * multiple workers could share a comp-platform. The pd argument is used
+     * to verify that the worker's PD and the comp-platform's PD match
+     *
+     * @param[in] self        Pointer to this comp-platform
+     * @param[in] pd          Policy domain running on this comp-platform
+     * @param[in] worker      Worker running on this comp-platform
+     * @return 0 on success and a non-zero error code
+     */
+    u8 (*setCurrentEnv)(struct _ocrCompPlatform_t *self, struct _ocrPolicyDomain_t *pd,
+                        struct _ocrWorker_t *worker);
+
 } ocrCompPlatformFcts_t;
 
 /**
@@ -176,6 +192,8 @@ typedef struct _ocrCompPlatformFcts_t {
 typedef struct _ocrCompPlatform_t {
     struct _ocrPolicyDomain_t *pd;  /**< Policy domain this comp-platform is used by */
     ocrLocation_t location;
+    ocrWorkerType_t supportedWorkerType; /**< Types of workers that can run on this instance
+                                          * of the compute platform */
     ocrCompPlatformFcts_t fcts; /**< Functions for this instance */
 } ocrCompPlatform_t;
 
@@ -195,7 +213,7 @@ typedef struct _ocrCompPlatformFactory_t {
      * @param instanceArg   Arguments specific for this instance
      */
     ocrCompPlatform_t* (*instantiate)(struct _ocrCompPlatformFactory_t *factory,
-                                      ocrLocation_t location,
+                                      ocrLocation_t location, ocrWorkerType_t supportedType,
                                       ocrParamList_t *instanceArg);
 
     /**
@@ -206,11 +224,10 @@ typedef struct _ocrCompPlatformFactory_t {
 
 
     /**
-     * @brief Allows to setup global function pointers
+     * @brief Sets-up the getCurrentEnv function
      * @param factory       Pointer to this factory
-     * @todo May dissapear
      */
-    void (*setIdentifyingFunctions)(struct _ocrCompPlatformFactory_t *factory);
+    void (*setGetCurrentEnv)(struct _ocrCompPlatformFactory_t *factory);
 
     ocrCompPlatformFcts_t platformFcts; /**< Function pointers created instances should use */
 } ocrCompPlatformFactory_t;

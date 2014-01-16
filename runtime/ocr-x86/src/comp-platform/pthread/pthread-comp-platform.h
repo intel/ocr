@@ -37,9 +37,6 @@ typedef struct {
 
 typedef struct {
     paramListCompPlatformInst_t base;
-    void (*routine)(void*);
-    void* routineArg;
-    bool isMasterThread;
     u64 stackSize;
     s32 binding;
 } paramListCompPlatformPthread_t;

@@ -104,6 +104,14 @@ typedef enum {
 
 /**
  * @brief Type of worker
+ *
+ * This is used in workers as well as comp-* to determine what types
+ * of workers the specific instance of the platform supports.
+ * The distinction between SINGLE and MASTER is mostly to distinguish
+ * between machines that require a single point of entry/exit (such as
+ * a process with multiple threads that must fall back to only one thread
+ * to properly exit) and others that can have multiple "main" entry points
+ * (MPI nodes for example).
  */
 typedef enum {
     SINGLE_WORKERTYPE   = 0x1, /**< Single worker (starts/stops by itself) */

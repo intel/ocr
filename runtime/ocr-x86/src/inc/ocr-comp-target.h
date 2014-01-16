@@ -21,6 +21,7 @@
 #endif
 
 struct _ocrPolicyDomain_t;
+struct _ocrWorker_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -179,6 +180,21 @@ typedef struct _ocrCompTargetFcts_t {
      */
     u8 (*waitMessage)(struct _ocrCompTarget_t *self, struct _ocrPolicyMsg_t **message);
 
+    /**
+     * @brief Function called from the worker when it starts "running" on the comp-target
+     *
+     * @note This function is separate from the start function because, conceptually,
+     * multiple workers could share a comp-target. The pd argument is used
+     * to verify that the worker's PD and the comp-target's PD match
+     *
+     * @param[in] self        Pointer to this comp-target
+     * @param[in] pd          Policy domain running on this comp-target
+     * @param[in] worker      Worker running on this comp-target
+     * @return 0 on success and a non-zero error code
+     */
+    u8 (*setCurrentEnv)(struct _ocrCompTarget_t *self, struct _ocrPolicyDomain_t *pd,
+                        struct _ocrWorker_t *worker);
+
 } ocrCompTargetFcts_t;
 
 struct _ocrCompTarget_t;
@@ -193,6 +209,7 @@ typedef struct _ocrCompTarget_t {
     ocrFatGuid_t fguid; /**< Guid of the comp-target */
     struct _ocrPolicyDomain_t *pd; /**< Policy domain this comp-target belongs to */
     ocrLocation_t location; /**< Location of this comp-target */
+    ocrWorkerType_t supportedWorkerType; /**< Types of workers that can run on this comp-target */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
@@ -221,7 +238,7 @@ typedef struct _ocrCompTargetFactory_t {
      * @param instanceArg   Arguments specific for this instance
      */
     ocrCompTarget_t * (*instantiate) ( struct _ocrCompTargetFactory_t * factory,
-                                       ocrLocation_t location,
+                                       ocrLocation_t location, ocrWorkerType_t supportedType,
                                        ocrParamList_t *instanceArg);
     /**
      * @brief comp-target factory destructor
@@ -229,15 +246,7 @@ typedef struct _ocrCompTargetFactory_t {
      */
     void (*destruct)(struct _ocrCompTargetFactory_t * factory);
 
-    /**
-     * @brief Allows to setup global function pointers
-     * @param factory       Pointer to this factory
-     * @todo: May dissapear
-     */
-    void (*setIdentifyingFunctions)(struct _ocrCompTargetFactory_t *factory);
-
     ocrCompTargetFcts_t targetFcts;  /**< Function pointers created instances should use */
 } ocrCompTargetFactory_t;
 
 #endif /* __OCR_COMP_TARGET_H__ */
-

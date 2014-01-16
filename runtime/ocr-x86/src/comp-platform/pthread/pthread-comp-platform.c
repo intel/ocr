@@ -83,6 +83,8 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, laun
     RESULT_ASSERT(pthread_attr_init(&attr), ==, 0);
     //Note this call may fail if the system doesn't like the stack size asked for.
     RESULT_ASSERT(pthread_attr_setstacksize(&attr, pthreadCompPlatform->stackSize), ==, 0);
+    ASSERT(compPlatform->supportedWorkerType == SLAVE_WORKERTYPE); // We should not be here
+                                                                   // for the master
     RESULT_ASSERT(pthread_create(&(pthreadCompPlatform->osThread),
                                  &attr, &pthreadRoutineWrapper,
                                  pthreadCompPlatform), ==, 0);
@@ -102,6 +104,13 @@ void pthreadStartMaster(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD
     // This comp-platform represent the currently executing master thread.
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
     pthreadCompPlatform->launchArg = launchArg;
+    
+    // Only do the binding
+    s32 cpuBind = pthreadCompPlatform->binding;
+    if(cpuBind != -1) {
+        DPRINTF(DEBUG_LVL_INFO, "Binding comp-platform to cpu_id %d\n", cpuBind);
+        bindThread(cpuBind);
+    }
     // The master starts executing when we call "stop" on it
 }
 
@@ -136,8 +145,18 @@ u8 pthreadWaitMessage(ocrCompPlatform_t *self, ocrPolicyMsg_t **message) {
     return 0;
 }
 
+u8 pthreadSetCurrentEnv(ocrCompPlatform_t *self, ocrPolicyDomain_t *pd,
+                        ocrWorker_t *worker) {
+
+    ASSERT(pd->fguid.guid == self->pd->fguid.guid);
+    perThreadStorage_t *vals = pthread_getspecific(selfKey);
+    vals->pd = pd;
+    vals->worker = worker;
+    return 0;
+}
+
 ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
-                                          ocrLocation_t location,
+                                          ocrLocation_t location, ocrWorkerType_t supportedType,
                                           ocrParamList_t *perInstance) {
 
     pthread_once(&selfKeyInitialized,  initializeKey);
@@ -145,10 +164,11 @@ ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
         runtimeChunkAlloc(sizeof(ocrCompPlatformPthread_t), NULL);
 
     compPlatformPthread->base.location = location;
+    compPlatformPthread->base.supportedWorkerType = supportedType;
     
     paramListCompPlatformPthread_t * params =
         (paramListCompPlatformPthread_t *) perInstance;
-    if ((params != NULL) && (params->isMasterThread)) {
+    if(supportedType == MASTER_WORKERTYPE) {
         // This particular instance is the master thread
         ocrCompPlatformFactoryPthread_t * pthreadFactory =
             (ocrCompPlatformFactoryPthread_t *) factory;
@@ -167,21 +187,26 @@ ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
 /* OCR COMP PLATFORM PTHREAD FACTORY                  */
 /******************************************************/
 
-/*
- * Figure out where to put these 
-static ocrPolicyDomain_t * getCurrentPDPthread() {
-    perThreadStorage_t *vals = pthread_getspecific(selfKey);
-    return vals->pd;
-}
-
-static void setCurrentPDPthread(ocrPolicyDomain_t *val) {
-    perThreadStorage_t *vals = pthread_getspecific(selfKey);
-    vals->pd = val;
-}
-*/
-
 void destructCompPlatformFactoryPthread(ocrCompPlatformFactory_t *factory) {
     runtimeChunkFree((u64)factory, NULL);
+}
+
+void pthreadGetCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
+                          ocrTask_t **task, ocrPolicyMsg_t* msg) {
+
+    perThreadStorage_t *vals = pthread_getspecific(selfKey);
+    if(pd)
+        *pd = vals->pd;
+    if(worker)
+        *worker = vals->worker;
+    if(task)
+        *task = vals->worker->curTask;
+    if(msg)
+        msg->srcLocation = vals->pd->myLocation;
+}
+
+void setGetCurrentEnvPthread(ocrCompPlatformFactory_t *factory) {
+    getCurrentEnv = &pthreadGetCurrentEnv;
 }
 
 ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType) {
@@ -192,6 +217,7 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
 
     base->instantiate = &newCompPlatformPthread;
     base->destruct = &destructCompPlatformFactoryPthread;
+    base->setGetCurrentEnv = &setGetCurrentEnvPthread;
     base->platformFcts.destruct = &pthreadDestruct;
     base->platformFcts.start = &pthreadStart;
     base->platformFcts.stop = &pthreadStop;
@@ -201,6 +227,7 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     base->platformFcts.sendMessage = &pthreadSendMessage;
     base->platformFcts.pollMessage = &pthreadPollMessage;
     base->platformFcts.waitMessage = &pthreadWaitMessage;
+    base->platformFcts.setCurrentEnv = &pthreadSetCurrentEnv;
 
     // Setup master thread function pointer in the pthread factory
     derived->masterPlatformFcts.destruct = &pthreadDestruct;
@@ -212,6 +239,7 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     derived->masterPlatformFcts.sendMessage = &pthreadSendMessage;
     derived->masterPlatformFcts.pollMessage = &pthreadPollMessage;
     derived->masterPlatformFcts.waitMessage = &pthreadWaitMessage;
+    derived->masterPlatformFcts.setCurrentEnv = &pthreadSetCurrentEnv;
 
     paramListCompPlatformPthread_t * params =
       (paramListCompPlatformPthread_t *) perType;

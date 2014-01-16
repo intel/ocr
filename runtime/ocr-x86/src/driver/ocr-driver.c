@@ -178,7 +178,7 @@ void bringUpRuntime(const char *inifile) {
     if (type_counts[compplatform_type] != 1) {
         DPRINTF(DEBUG_LVL_WARN, "Only the first type of CompPlatform is used. If you don't want this behavior, please reorder!\n");
     }
-    if(compPlatformFactory->setIdentifyingFunctions != NULL) compPlatformFactory->setIdentifyingFunctions(compPlatformFactory);
+    if(compPlatformFactory->setGetCurrentEnv != NULL) compPlatformFactory->setGetCurrentEnv(compPlatformFactory);
 
     // BUILD DEPENDENCES
     DPRINTF(DEBUG_LVL_INFO, "========= Build dependences ==========\n");

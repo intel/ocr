@@ -20,15 +20,10 @@
 
 typedef struct {
     paramListCompTargetInst_t base;
-    void (*routine)(void*);
-    void* routineArg;
 } paramListCompTargetPt_t;
 
 typedef struct {
     ocrCompTarget_t base;
-
-    void (*routine)(void*);
-    void* routineArg;
 } ocrCompTargetPt_t;
 
 typedef struct {

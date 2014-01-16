@@ -49,8 +49,6 @@ void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     // REC: Moved all workers to start here. 
     // Note: it's important to first logically start all workers.
     // Once they are all up, start the runtime.
-    // It is assumed that the current worker (executing this code) is
-    // worker 0 and it will be started last.
     // Workers should start the underlying target and platforms
     maxCount = policy->workerCount;
     for(i = 0; i < maxCount; i++) {

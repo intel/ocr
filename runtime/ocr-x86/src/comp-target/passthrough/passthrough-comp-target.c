@@ -96,14 +96,22 @@ u8 ptWaitMessage(ocrCompTarget_t *compTarget, ocrPolicyMsg_t **message) {
     return compTarget->platforms[0]->fcts.waitMessage(compTarget->platforms[0], message);
 }
 
+u8 ptSetCurrentEnv(ocrCompTarget_t *compTarget, ocrPolicyDomain_t *pd,
+                   ocrWorker_t *worker) {
+
+    ASSERT(compTarget->platformCount == 1);
+    return compTarget->platforms[0]->fcts.setCurrentEnv(compTarget->platforms[0], pd, worker);
+}
+
 ocrCompTarget_t * newCompTargetPt(ocrCompTargetFactory_t * factory,
-                                  ocrLocation_t location,
+                                  ocrLocation_t location, ocrWorkerType_t supportedWorkerType,
                                   ocrParamList_t* perInstance) {
     ocrCompTargetPt_t * compTarget = (ocrCompTargetPt_t*)runtimeChunkAlloc(sizeof(ocrCompTargetPt_t), NULL);
 
     compTarget->base.fguid.guid = UNINITIALIZED_GUID;
     compTarget->base.fguid.metaDataPtr = compTarget;
     compTarget->base.location = location;
+    compTarget->base.supportedWorkerType = supportedWorkerType;
     
     compTarget->base.platforms = NULL;
     compTarget->base.platformCount = 0;
@@ -135,6 +143,7 @@ ocrCompTargetFactory_t *newCompTargetFactoryPt(ocrParamList_t *perType) {
     base->targetFcts.sendMessage = &ptSendMessage;
     base->targetFcts.pollMessage = &ptPollMessage;
     base->targetFcts.waitMessage = &ptWaitMessage;
+    base->targetFcts.setCurrentEnv = &ptSetCurrentEnv;
 
     return base;
 }
