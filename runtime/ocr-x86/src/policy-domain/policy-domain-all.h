@@ -14,8 +14,8 @@
 
 typedef enum _policyDomainType_t {
     policyDomainHc_id,
-    policyDomainFsimXE_id,
-    policyDomainFsimCE_id,
+    policyDomainXe_id,
+    policyDomainCe_id,
     policyDomainFsimMasterCE_id,
     policyDomainHcPlaced_id,
     policyDomainHcLeafPlace_id,
@@ -42,10 +42,15 @@ inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type
     case policyDomainHc_id:
         return newPolicyDomainFactoryHc(perType);
 #endif
-    case policyDomainFsimXE_id:
-//        return newPolicyDomainFactoryFsimXE(perType);
-    case policyDomainFsimCE_id:
-//        return newPolicyDomainFactoryFsimCE(perType);
+#ifdef ENABLE_POLICY_DOMAIN_XE
+    case policyDomainXe_id:
+        return newPolicyDomainFactoryXe(perType);
+#endif
+#ifdef ENABLE_POLICY_DOMAIN_CE
+    case policyDomainCe_id:
+        return newPolicyDomainFactoryCe(perType);
+#endif
+#if 0
     case policyDomainFsimMasterCE_id:
 //        return newPolicyDomainFactoryFsimMasterCE(perType);
     case policyDomainHcPlaced_id:
@@ -54,6 +59,7 @@ inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type
 //        return newPolicyDomainFactoryHcLeafPlace(perType);
     case policyDomainHcMasterLeafPlace_id:
 //        return newPolicyDomainFactoryHcMasterLeafPlace(perType);
+#endif
     default:
         ASSERT(0);
     }

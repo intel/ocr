@@ -14,6 +14,7 @@
 
 typedef enum _workpileType_t {
     workpileHc_id,
+    workpileCe_id,
     workpileFsimMessage_id,
     workpileMax_id,
 } workpileType_t;
@@ -31,6 +32,10 @@ inline ocrWorkpileFactory_t * newWorkpileFactory(workpileType_t type, ocrParamLi
 #ifdef ENABLE_WORKPILE_HC
     case workpileHc_id:
         return newOcrWorkpileFactoryHc(perType);
+#endif
+#ifdef ENABLE_WORKPILE_CE
+    case workpileCe_id:
+        return newOcrWorkpileFactoryCe(perType);
 #endif
     case workpileFsimMessage_id:
     case workpileMax_id:

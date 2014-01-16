@@ -13,9 +13,9 @@
 
 typedef enum _schedulerType_t {
     schedulerHc_id,
+    schedulerXe_id,
+    schedulerCe_id,
     schedulerHcPlaced_id,
-    schedulerFsimXE_id,
-    schedulerFsimCE_id,
     schedulerMax_id
 } schedulerType_t;
 
@@ -35,8 +35,11 @@ inline ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrPara
     case schedulerHc_id:
         return newOcrSchedulerFactoryHc(perType);
 #endif
-    case schedulerFsimXE_id:
-    case schedulerFsimCE_id:
+#ifdef ENABLE_SCHEDULER_CE
+    case schedulerCe_id:
+        return newOcrSchedulerFactoryCe(perType);
+#endif
+    case schedulerXe_id:
     case schedulerHcPlaced_id:
     default:
         ASSERT(0);
