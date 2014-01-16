@@ -21,6 +21,7 @@ typedef enum _workpileType_t {
 
 const char * workpile_types[] = {
     "HC",
+    "CE",
     "FSIM",
     NULL,
 };

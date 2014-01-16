@@ -808,9 +808,6 @@ void hcPdFree(ocrPolicyDomain_t *self, void* addr) {
 }
 
 ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
-                                      ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory,
-                                      ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
-                                      ocrGuidProvider_t *guidProvider,
                                       ocrSal_t *salProvider,
 #ifdef OCR_ENABLE_STATISTICS
                                       ocrStats_t *statsObject,
@@ -821,18 +818,6 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     ocrPolicyDomain_t * base = (ocrPolicyDomain_t *) derived;
 
     ASSERT(base);
-/*
-    base->taskFactoryCount = 0;
-    base->taskTemplateFactoryCount = 0;
-    base->eventFactoryCount = 0;
-    base->guidProviderCount = 0;
-    
-    base->taskFactories = NULL;
-    base->taskTemplateFactories = NULL;
-    base->dbFactories = NULL;
-    base->eventFactories = NULL;
-    base->guidProviders = NULL;
-*/    
 //    base->sysProvider = sysProvider;
 #ifdef OCR_ENABLE_STATISTICS
     base->statsObject = statsObject;

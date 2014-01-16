@@ -475,6 +475,18 @@ void *create_factory (type_enum index, char *factory_name, ocrParamList_t *param
     case policydomain_type:
         new_factory = (void *)create_factory_policydomain(factory_name, paramlist);
         break;
+    case taskfactory_type:
+        new_factory = (void *)create_factory_task(factory_name, paramlist);
+        break;
+    case tasktemplatefactory_type:
+        new_factory = (void *)create_factory_tasktemplate(factory_name, paramlist);
+        break;
+    case datablockfactory_type:
+        new_factory = (void *)create_factory_datablock(factory_name, paramlist);
+        break;
+    case eventfactory_type:
+        new_factory = (void *)create_factory_event(factory_name, paramlist);
+        break;
     default:
         DPRINTF(DEBUG_LVL_WARN, "Error: %d index unexpected\n", index);
         break;
@@ -672,7 +684,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
 //            workpileCount = read_range(dict, secname, "workpile", &low, &high);
 //            allocatorCount = read_range(dict, secname, "allocator", &low, &high);
 //            memoryCount = read_range(dict, secname, "memtarget", &low, &high);
-
+/*
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "taskfactory");
             INI_GET_STR (key, inststr, "");
             tf = create_factory_task(inststr, NULL);
@@ -688,7 +700,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "eventfactory");
             INI_GET_STR (key, inststr, "");
             ef = create_factory_event(inststr, NULL);
-/*
+
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "contextfactory");
             INI_GET_STR (key, inststr, "");
             cf = create_factory_context(inststr, NULL);
@@ -719,7 +731,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
 
             ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
             instance[j] = (void *)((ocrPolicyDomainFactory_t *)factory)->instantiate(
-                factory, tf, ttf, dbf, ef, gf, NULL, NULL, 
+                factory, NULL, NULL, 
                 inst_param[j]);
 
             if (instance[j])
