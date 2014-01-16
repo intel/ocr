@@ -70,22 +70,22 @@ typedef struct _paramListPolicyDomainInst_t {
 /**< AND with this and if the result non-null, memory chunks
  * related operation (goes directly to allocators) */
 #define PD_MSG_MEM_OP           0x002
-#define PD_MSG_MEM_ALLOC         0x6001
+#define PD_MSG_MEM_ALLOC        0x1002
 /**< De-allocates a chunk of memory (through an allocator).
  * This is called internally */
-#define PD_MSG_MEM_UNALLOC       0x7001
+#define PD_MSG_MEM_UNALLOC      0x2002
 
 
 /**< AND with this and if result non-null, work/task related operation.
  * Generally, these will be EDTs but it could be something else too
  */
-#define PD_MSG_WORK_OP           0x004
+#define PD_MSG_WORK_OP          0x004
 /**< Create an EDT */
-#define PD_MSG_WORK_CREATE       0x1004
+#define PD_MSG_WORK_CREATE      0x1004
 /**< Execute this EDT (originates from PD<->PD) */
-#define PD_MSG_WORK_EXECUTE      0x2004
+#define PD_MSG_WORK_EXECUTE     0x2004
 /**< Destroy an EDT (originates from PD<->PD) */
-#define PD_MSG_WORK_DESTROY      0x3004
+#define PD_MSG_WORK_DESTROY     0x3004
 
 /**< AND with this and if result non-null, EDT-template related operation */
 #define PD_MSG_EDTTEMP_OP       0x008
@@ -318,13 +318,17 @@ typedef struct _ocrPolicyMsg_t {
             void* ptr;                 /**< Out: Pointer of the allocated chunk */
             ocrFatGuid_t allocatingPD; /**< Out: GUID of the PD that owns the allocator */
             ocrFatGuid_t allocator;    /**< Out: GUID of the allocator that provided this memory */
+            ocrMemType_t type;         /**< In: Type of memory requested */
             u32 properties;            /**< In: Properties for the allocation */
         } PD_MSG_STRUCT_NAME(PD_MSG_MEM_ALLOC);
 
         struct {
             void* ptr;                 /**< In: Pointer to the memory to free */
-            ocrFatGuid_t allocatingPD; /**< In: GUID of the PD that owns the allocator */
-            ocrFatGuid_t allocator;    /**< In: GUID of the allocator that gave the memory */
+            ocrFatGuid_t allocatingPD; /**< In: GUID of the PD that owns the allocator; not necessarily
+                                        * required for all ocrMemType_t (in particular GUID_MEMTYPE) */
+            ocrFatGuid_t allocator;    /**< In: GUID of the allocator that gave the memory; same comment
+                                        * as above */
+            ocrMemType_t type;
             u32 properties;            /**< In: Properties for the free */
         } PD_MSG_STRUCT_NAME(PD_MSG_MEM_UNALLOC);
         

@@ -58,6 +58,21 @@ typedef enum {
 } ocrDataBlockType_t;
 
 /**
+ * @brief Type of memory allocated/unallocated
+ * by MEM_ALLOC and MEM_UNALLOC
+ *
+ * The PD_MSG_MEM_ALLOC and PD_MSG_MEM_UNALLOC
+ * messages allocate and de-allocate chunks of
+ * memory. This indicates what these chunks of
+ * memories are used for
+ */
+typedef enum {
+    DB_MEMTYPE      = 0x1, /**< Memory used for a data-block */
+    GUID_MEMTYPE    = 0x2, /**< Memory used for the metadata of an object */
+    MAX_MEMTYPE     = 0x3
+} ocrMemType_t;
+
+/**
  * @brief Types of work "scheduled" by the runtime
  *
  * For now this is EDT but other type of computation
