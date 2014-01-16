@@ -298,9 +298,9 @@
 #define STATUS0(format) STATUS("%s" format, "")
 
 #ifdef OCR_ASSERT
-#define ASSERT(a) do { sal_assert((a, __FILE__, __LINE__) == 0); } while(0);
-#define RESULT_ASSERT(a, op, b) do { sal_assert((a, __FILE__, __LINE__) op (b)); } while(0);
-#define RESULT_TRUE(a) do { sal_assert((a, __FILE__, __LINE__) != 0); } while(0);
+#define ASSERT(a) do { sal_assert((a) == 0, __FILE__, __LINE__); } while(0);
+#define RESULT_ASSERT(a, op, b) do { sal_assert((a) op (b), __FILE__, __LINE__); } while(0);
+#define RESULT_TRUE(a) do { sal_assert((a) != 0, __FILE__, __LINE__); } while(0);
 #else
 #define ASSERT(a)
 #define RESULT_ASSERT(a, op, b) do { a; } while(0);
