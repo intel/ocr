@@ -770,7 +770,6 @@ typedef struct _ocrPolicyDomainFactory_t {
     // except the physical location of itself and its parent
     ocrPolicyDomain_t * (*instantiate)
         (struct _ocrPolicyDomainFactory_t *factory, 
-         ocrSal_t *salProvider,
 #ifdef OCR_ENABLE_STATISTICS
          ocrStats_t *statsObject,
 #endif

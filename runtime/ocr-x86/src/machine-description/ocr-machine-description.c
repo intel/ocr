@@ -26,6 +26,7 @@
 #include "task/task-all.h"
 #include "worker/worker-all.h"
 #include "workpile/workpile-all.h"
+#include "sal/sal-all.h"
 
 #include "ocr-sysboot.h"
 
@@ -327,6 +328,18 @@ ocrPolicyDomainFactory_t *create_factory_policydomain(char *name, ocrParamList_t
     }
 }
 
+ocrSalFactory_t *create_factory_sal(char *name, ocrParamList_t *paramlist) {
+    salType_t mytype = salMax_id;
+    TO_ENUM (mytype, name, salType_t, sal_types, salMax_id);
+    if (mytype == salMax_id) {
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        return NULL;
+    } else {
+        DPRINTF(DEBUG_LVL_INFO, "Creating a worker factory of type %d\n", mytype);
+        return (ocrSalFactory_t *)newSalFactory(mytype, paramlist);
+    }
+}
+
 ocrTaskFactory_t *create_factory_task(char *name, ocrParamList_t *paramlist) {
     taskType_t mytype = taskMax_id;
     TO_ENUM (mytype, name, taskType_t, task_types, taskMax_id);
@@ -474,6 +487,9 @@ void *create_factory (type_enum index, char *factory_name, ocrParamList_t *param
         break;
     case policydomain_type:
         new_factory = (void *)create_factory_policydomain(factory_name, paramlist);
+        break;
+    case sal_type:
+        new_factory = (void *)create_factory_sal(factory_name, paramlist);
         break;
     case taskfactory_type:
         new_factory = (void *)create_factory_task(factory_name, paramlist);
@@ -731,13 +747,20 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
 
             ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
             instance[j] = (void *)((ocrPolicyDomainFactory_t *)factory)->instantiate(
-                factory, NULL, NULL, 
-                inst_param[j]);
+                factory, NULL, inst_param[j]);
 
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created policy domain of index %d\n", j);
 
 //            setBootPD((ocrPolicyDomain_t *)instance[j]);
+        }
+        break;
+    case sal_type:
+        for (j = low; j<=high; j++) {
+            ALLOC_PARAM_LIST(inst_param[j], paramListSalInst_t);
+            instance[j] = (void *)((ocrSalFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            if (instance[j])
+                DPRINTF(DEBUG_LVL_INFO, "Created sal of type %s, index %d\n", inststr, j);
         }
         break;
     default:
@@ -773,14 +796,10 @@ void free_instance (void *instance, type_enum mytype)
     case scheduler_type: {
         ocrScheduler_t *t = (ocrScheduler_t *)instance;
         free(t->workpiles);
-//        free(t->workers);
         break;
     }
     case policydomain_type: {
         ocrPolicyDomain_t *t = (ocrPolicyDomain_t *)instance;
-//        free(t->memories);
-//        free(t->computes);
-//        free(t->workpiles);
         free(t->workers);
         free(t->allocators);
         free(t->schedulers);
@@ -939,6 +958,12 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
                 f->eventFactories = (ocrEventFactory_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrEventFactory_t *), NULL);
             }
             f->eventFactories[dependence_index] = (ocrEventFactory_t *)toinstance;
+            break;
+        }
+        case sal_type: {
+            ASSERT(dependence_count==1);
+            f->salProvider = (ocrSal_t *)runtimeChunkAlloc(sizeof(ocrSal_t), NULL);
+            f->salProvider = (ocrSal_t *)toinstance;
             break;
         }
         default:

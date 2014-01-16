@@ -808,7 +808,6 @@ void hcPdFree(ocrPolicyDomain_t *self, void* addr) {
 }
 
 ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
-                                      ocrSal_t *salProvider,
 #ifdef OCR_ENABLE_STATISTICS
                                       ocrStats_t *statsObject,
 #endif

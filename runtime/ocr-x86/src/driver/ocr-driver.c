@@ -36,11 +36,11 @@ const char *type_str[] = {
     "WorkerType",
     "SchedulerType",
     "PolicyDomainType",
+    "SalType",
     "TaskType",
     "TaskTemplateType",
     "DataBlockType",
     "EventType",
-    "SalType",
 };
 
 const char *inst_str[] = {
@@ -54,7 +54,7 @@ const char *inst_str[] = {
     "WorkerInst",
     "SchedulerInst",
     "PolicyDomainInst",
-    "NULL",
+    "SalInst",
     "NULL",
     "NULL",
     "NULL",
@@ -73,6 +73,7 @@ dep_t deps[] = {
     { policydomain_type, allocator_type, "allocator"},
     { policydomain_type, worker_type, "worker"},
     { policydomain_type, scheduler_type, "scheduler"},
+    { policydomain_type, sal_type, "sal"},
     { policydomain_type, taskfactory_type, "taskfactory"},
     { policydomain_type, tasktemplatefactory_type, "tasktemplatefactory"},
     { policydomain_type, datablockfactory_type, "datablockfactory"},
@@ -227,12 +228,12 @@ void bringUpRuntime(const char *inifile) {
     DPRINTF(DEBUG_LVL_INFO, "========= Build dependences ==========\n");
 
     // FIXME: Major hardcoding going on
-    for (i = 0; i < 9; i++) {
+    for (i = 0; i < 10; i++) {
         build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr, all_instances, inst_params);
     }
 
     // FIXME: Major hardcoding going on
-    for (i = 9; i <= 12; i++) {
+    for (i = 10; i <= 13; i++) {
         build_deps_types(dict, deps[i].to, deps[i].refstr, all_instances[policydomain_type],
                          inst_counts[policydomain_type], all_factories, type_params);
     }

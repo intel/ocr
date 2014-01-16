@@ -37,6 +37,7 @@ typedef enum {
     worker_type,
     scheduler_type,
     policydomain_type,
+    sal_type,
     taskfactory_type,
     tasktemplatefactory_type,
     datablockfactory_type,

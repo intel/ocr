@@ -24,10 +24,10 @@ const char * sal_types [] = {
 
 #include "sal/linux/linux-sal.h"
 
-inline ocrPolicyDomainFactory_t * newSalFactory(salType_t type, ocrParamList_t *perType) {
+inline ocrSalFactory_t * newSalFactory(salType_t type, ocrParamList_t *perType) {
     switch(type) {
 #ifdef ENABLE_SAL_LINUX
-    case alLinux_id:
+    case salLinux_id:
         return newSalFactoryLinux(perType);
 #endif
     default:
