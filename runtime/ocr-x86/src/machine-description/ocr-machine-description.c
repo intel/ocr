@@ -697,62 +697,6 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
         break;
     case policydomain_type:
         for (j = low; j<=high; j++) {
-//            ocrTaskFactory_t *tf;
-//            ocrTaskTemplateFactory_t *ttf;
-//            ocrDataBlockFactory_t *dbf;
-//            ocrEventFactory_t *ef;
-            //ocrPolicyCtxFactory_t *cf;
-            ocrGuidProvider_t *gf;
-            //ocrLockFactory_t *lf;
-            //ocrAtomic64Factory_t *af;
-            //ocrQueueFactory_t *qf;
-//            s32 low, high;
-
-//            s32 schedulerCount, workerCount, allocatorCount;
-//            schedulerCount = read_range(dict, secname, "scheduler", &low, &high);
-//            workerCount = read_range(dict, secname, "worker", &low, &high);
-//            computeCount = read_range(dict, secname, "comptarget", &low, &high);
-//            workpileCount = read_range(dict, secname, "workpile", &low, &high);
-//            allocatorCount = read_range(dict, secname, "allocator", &low, &high);
-//            memoryCount = read_range(dict, secname, "memtarget", &low, &high);
-/*
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "taskfactory");
-            INI_GET_STR (key, inststr, "");
-            tf = create_factory_task(inststr, NULL);
-
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "tasktemplatefactory");
-            INI_GET_STR (key, inststr, "");
-            ttf = create_factory_tasktemplate(inststr, NULL);
-
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "datablockfactory");
-            INI_GET_STR (key, inststr, "");
-            dbf = create_factory_datablock(inststr, NULL);
-
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "eventfactory");
-            INI_GET_STR (key, inststr, "");
-            ef = create_factory_event(inststr, NULL);
-
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "contextfactory");
-            INI_GET_STR (key, inststr, "");
-            cf = create_factory_context(inststr, NULL);
-
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "sync");
-            INI_GET_STR (key, inststr, "");
-            lf = create_factory_lock(inststr, NULL);
-
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "sync");
-            INI_GET_STR (key, inststr, "");
-            af = create_factory_atomic64(inststr, NULL);
-
-            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "sync");
-            INI_GET_STR (key, inststr, "");
-            qf = create_factory_queue(inststr, NULL);
-*/
-            // Ugly but special case
-            read_range(dict, secname, "guid", &low, &high);
-            ASSERT (low == high);  // We don't expect more than one guid provider
-            gf = (ocrGuidProvider_t *)(all_instances[guid_type][low]);
-            ASSERT (gf);
 
 #ifdef OCR_ENABLE_STATISTICS
             // HUGE HUGE HUGE HUGE HUGE HACK. This needs to be parsed
@@ -977,7 +921,7 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
         }
         case sal_type: {
             ASSERT(dependence_count==1);
-            f->salProvider = (ocrSal_t *)runtimeChunkAlloc(sizeof(ocrSal_t), NULL);
+            //f->salProvider = (ocrSal_t *)runtimeChunkAlloc(sizeof(ocrSal_t), NULL);
             f->salProvider = (ocrSal_t *)toinstance;
             break;
         }

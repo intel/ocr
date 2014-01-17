@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 u64 x86RuntimeChunkAlloc(u64 size, u64 *extra) {
-    void* returnValue = malloc(size);
+    void* returnValue = calloc(1, size);
     ASSERT(returnValue);
     return (u64)returnValue;
 }
