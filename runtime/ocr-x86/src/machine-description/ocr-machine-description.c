@@ -211,6 +211,21 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
     case policydomain_type:
         ALLOC_PARAM_LIST(*type_param, paramListPolicyDomainFact_t);
         break;
+    case sal_type:
+        ALLOC_PARAM_LIST(*type_param, paramListSalFact_t);
+        break;
+    case taskfactory_type:
+        ALLOC_PARAM_LIST(*type_param, paramListTaskFact_t);
+        break;
+    case tasktemplatefactory_type:
+        ALLOC_PARAM_LIST(*type_param, paramListTaskTemplateFact_t);
+        break;
+    case datablockfactory_type:
+        ALLOC_PARAM_LIST(*type_param, paramListDataBlockFact_t);
+        break;
+    case eventfactory_type:
+        ALLOC_PARAM_LIST(*type_param, paramListEventFact_t);
+        break;
     default:
         DPRINTF(DEBUG_LVL_WARN, "Error: %d index unexpected\n", index);
         break;
@@ -682,16 +697,16 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
         break;
     case policydomain_type:
         for (j = low; j<=high; j++) {
-            ocrTaskFactory_t *tf;
-            ocrTaskTemplateFactory_t *ttf;
-            ocrDataBlockFactory_t *dbf;
-            ocrEventFactory_t *ef;
+//            ocrTaskFactory_t *tf;
+//            ocrTaskTemplateFactory_t *ttf;
+//            ocrDataBlockFactory_t *dbf;
+//            ocrEventFactory_t *ef;
             //ocrPolicyCtxFactory_t *cf;
             ocrGuidProvider_t *gf;
             //ocrLockFactory_t *lf;
             //ocrAtomic64Factory_t *af;
             //ocrQueueFactory_t *qf;
-            s32 low, high;
+//            s32 low, high;
 
 //            s32 schedulerCount, workerCount, allocatorCount;
 //            schedulerCount = read_range(dict, secname, "scheduler", &low, &high);
@@ -1006,9 +1021,7 @@ s32 build_deps (dictionary *dict, s32 A, s32 B, char *refstr, void ***all_instan
 }
 
 s32 build_deps_types (dictionary *dict, s32 B, char *refstr, void **pdinst, int pdcount, void ***all_factories, ocrParamList_t ***type_params) {
-    s32 i, j, k;
-    s32 low, high;
-    s32 l, h;
+    s32 i;
 
     for (i = 0; i < pdcount; i++) {
         add_dependence(policydomain_type, B, pdinst[i], NULL, all_factories[B][0], NULL, 0, 1);
