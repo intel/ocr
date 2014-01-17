@@ -289,29 +289,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
         ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
-#if 0
-The following code is kicked to the curb in favor of the above code to forward the request to the CE.
-        returnCode = xeAllocateDb(self, &(PD_MSG_FIELD(guid)),
-                                  &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
-                                  PD_MSG_FIELD(properties),
-                                  PD_MSG_FIELD(affinity),
-                                  PD_MSG_FIELD(allocator));
-        if(returnCode == 0) {
-            ocrDataBlock_t *db= PD_MSG_FIELD(guid.metaDataPtr);
-            ASSERT(db);
-            // TODO: Check if properties want DB acquired
-            ASSERT(db->funcId == self->dbFactories[0]->factoryId);
-            PD_MSG_FIELD(ptr) = self->dbFactories[0]->fcts.acquire(
-                db, PD_MSG_FIELD(edt), false);
-            PD_MSG_FIELD(properties) = 0;
-        } else {
-            // Cannot acquire
-            PD_MSG_FIELD(ptr) = NULL;
-            PD_MSG_FIELD(properties) = returnCode;
         }
-#endif
-// TODO:  The following line probably should be deleted, as it is probably already done by the CE.
-//      msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE); // Convert msg type for Request to Response.
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -351,15 +329,8 @@ The following code is kicked to the curb in favor of the above code to forward t
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
         ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
-#if 0
-The following code is kicked to the curb in favor of the above code to forward the request to the CE.
-        PD_MSG_FIELD(ptr) =
-            self->dbFactories[0]->fcts.acquire(db, PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
-#endif
 #undef PD_MSG
 #undef PD_TYPE
-// TODO:  The following line probably should be deleted, as it is probably already done by the CE.
-//      msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE); // Convert msg type for Request to Response.
         break;
     }
 
@@ -388,15 +359,8 @@ The following code is kicked to the curb in favor of the above code to forward t
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
         ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
-#if 0
-The following code is kicked to the curb in favor of the above code to forward the request to the CE.
-        PD_MSG_FIELD(properties) = 
-            self->dbFactories[0]->fcts.release(db, PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
-#endif
 #undef PD_MSG
 #undef PD_TYPE
-// TODO:  The following line probably should be deleted, as it is probably already done by the CE.
-//      msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE); // Convert msg type for Request to Response.
         break;
     }
 
@@ -410,11 +374,23 @@ The following code is kicked to the curb in favor of the above code to forward t
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->funcId == self->dbFactories[0]->factoryId);
         ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
-        PD_MSG_FIELD(properties) =
-            self->dbFactories[0]->fcts.free(db, PD_MSG_FIELD(edt));
+        ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
+        msg->srcLocation  = myLocation;
+        msg->destLocation = parentLocation;
+        ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
+        u8 msgResult;
+        msgResult = self->workers[0]->sendMessage( // Pass msg to CE.
+            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
+            parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
+            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
+        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
+        msgResult = self->workers[0]->waitMessage( // Pass msg to CE.
+            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
+            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
+        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
+        ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
         break;
     }
 
@@ -422,12 +398,22 @@ The following code is kicked to the curb in favor of the above code to forward t
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_ALLOC
-        ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);
-        PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
-        PD_MSG_FIELD(properties) =
-            xeMemAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
-                       &(PD_MSG_FIELD(ptr)));
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE.
+        ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
+        msg->srcLocation  = myLocation;
+        msg->destLocation = parentLocation;
+        ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
+        u8 msgResult;
+        msgResult = self->workers[0]->sendMessage( // Pass msg to CE.
+            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
+            parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
+            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
+        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
+        msgResult = self->workers[0]->waitMessage( // Pass msg to CE.
+            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
+            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
+        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
+        ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -437,11 +423,22 @@ The following code is kicked to the curb in favor of the above code to forward t
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_UNALLOC
-        ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);
-        PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
-        PD_MSG_FIELD(properties) =
-            xeMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr));
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE.
+        ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
+        msg->srcLocation  = myLocation;
+        msg->destLocation = parentLocation;
+        ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
+        u8 msgResult;
+        msgResult = self->workers[0]->sendMessage( // Pass msg to CE.
+            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
+            parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
+            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
+        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
+        msgResult = self->workers[0]->waitMessage( // Pass msg to CE.
+            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
+            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
+        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
+        ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
 #undef PD_MSG
 #undef PD_TYPE
         break;

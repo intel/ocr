@@ -210,8 +210,6 @@ static u8 ceAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, 
     // of the memory hierarchy -- L2, then L3, then DRAM -- each of which is managed by an
     // allocator.  Thus for these levels, the allocators and their memories are a shared resource
     // among this CE and its XE children, but NOT shared with any other CE's or XE's.
-    
-
     u64 i;
     void* result;
     for(i = engineIndex;            // First try the allocator for the L1 collocated with the engine
@@ -238,14 +236,26 @@ static u8 ceAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, 
     return OCR_ENOMEM;
 }
 
-static u8 ceMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size, void** ptr) {
+static u8 ceMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
+                     u64 engineIndex, ocrMemType_t memType, void** ptr) {
+    // This function allocates dynamic storage for the requestor, who is either this CE itself, or
+    // is one of this CE's XE children.  We first try to allocate the data block using the allocator
+    // corresponding to /the L1 memory located nearest the requesting agent.  Failing that, we try
+    // successive levels of the memory hierarchy -- L2, then L3, then DRAM -- each of which is
+    // managed by an allocator.  Thus for these levels, the allocators and their memories are a
+    // shared resource among this CE and its XE children, but NOT shared with any other CE's or XE's.
     u64 i;
     void* result;
-    for(i=0; i < self->allocatorCount; ++i) {
+    ASSERT (memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
+    for(i = (memType == GUID_MEMTYPE) ? // If we are allocating storage for a GUID...
+            (self->allocatorCount-1) :  // just allocate it in DRAM (for now).  Otherwise...
+            engineIndex;                // First try the allocator for L1 collocated with the engine
+        i < self->allocatorCount;
+        i = (i < numberOfEnginesInABlock ? numberOfEnginesInABlock : i+1) { // Then try L2, L3, DRAM.
         result = self->allocators[i]->fcts.allocate(self->allocators[i], size);
         if(result) break;
     }
-    
+
     if(i < self->allocatorCount) {
         *ptr = result;
         *allocator = self->allocators[i]->fguid;
@@ -254,16 +264,28 @@ static u8 ceMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
     return OCR_ENOMEM;
 }
 
-static u8 ceMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, void* ptr) {
+static u8 ceMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
+                       void* ptr, ocrMemType_t memType) {
+    // Look for the allocator that has a guid that matches the one provided in the unalloc
+    // request message.  (This pre-supposes that the caller properly conveys this information
+    // from the response gotten back on the alloc request, to the unalloc request.  This might
+    // be an error-prone design.  TODO: consider a more error-resistent design.)
     u64 i;
-    for(i=0; i < self->allocatorCount; ++i) {
-        if(self->allocators[i]->fguid.guid == allocator->guid) {
-            allocator->metaDataPtr = self->allocators[i]->fguid.metaDataPtr;
-            self->allocators[i]->fcts.free(self->allocators[i], ptr);
-            return 0;
+    ASSERT (memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
+    if (memType == DB_MEMTYPE) {
+        for(i=0; i < self->allocatorCount; ++i) {
+            if(self->allocators[i]->fguid.guid == allocator->guid) {
+                allocator->metaDataPtr = self->allocators[i]->fguid.metaDataPtr;
+                self->allocators[i]->fcts.free(self->allocators[i], ptr);
+                return 0;
+            }
         }
+        return OCR_EINVAL;
+    } else if (memType = GUID_MEMTYPE) {
+        self->allocators[self->allocatorCount-1]->fcts.free(self->allocators[self->allocatorCount-1], ptr);
+    } else {
+        ASSERT (false);
     }
-    return OCR_EINVAL;
 }
 
 static u8 ceCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
@@ -435,6 +457,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
             ceMemAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
+                       ocrLocation_getEngineIndex(msg->srcLocation), // TODO: Placeholder.  Need a service function that disects an ocrLocation_t to produce the index of an XE or the CE.
+                       msg->type,
                        &(PD_MSG_FIELD(ptr)));
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
 #undef PD_MSG
@@ -449,7 +473,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
-            ceMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr));
+            ceMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), msg->type);
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
 #undef PD_MSG
 #undef PD_TYPE
