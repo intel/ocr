@@ -17,7 +17,9 @@
 #include "ocr-comp-target.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
-//#include "workpile/ce/ce-deque.h" FIXME: cleanup
+#ifdef ENABLE_WORKPILE_CE
+#include "workpile/ce/ce-deque.h"
+#endif
 
 #include <pthread.h>
 

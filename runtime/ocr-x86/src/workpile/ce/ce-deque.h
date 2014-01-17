@@ -65,8 +65,8 @@ typedef struct {
     volatile void ** data;
 } nonConcDeque_t;
 
-void nonConcDequeInit(ocrPolicyDomain_t *pd, nonConcDeque_t * deq, void * init_value);
-void nonConcDequeDestroy(ocrPolicyDomain_t *pd, nonConcDeque_t* deq);
+void nonConcDequeInit(struct _ocrPolicyDomain_t *pd, nonConcDeque_t * deq, void * init_value);
+void nonConcDequeDestroy(struct _ocrPolicyDomain_t *pd, nonConcDeque_t* deq);
 void nonConcDequePush(nonConcDeque_t* deq, void* entry);
 void* nonConcDequePopHead (nonConcDeque_t* deq );
 void* nonConcDequePopTail (nonConcDeque_t* deq );
