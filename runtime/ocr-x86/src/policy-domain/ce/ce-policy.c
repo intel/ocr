@@ -211,10 +211,11 @@ static u8 ceAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, 
     // allocator.  Thus for these levels, the allocators and their memories are a shared resource
     // among this CE and its XE children, but NOT shared with any other CE's or XE's.
     u64 i;
+    u64 numberOfEnginesInABlock = 9;
     void* result;
     for(i = engineIndex;            // First try the allocator for the L1 collocated with the engine
         i < self->allocatorCount;
-        i = (i < numberOfEnginesInABlock ? numberOfEnginesInABlock : i+1) { // Then try L2, L3, DRAM.
+        i = (i < numberOfEnginesInABlock ? numberOfEnginesInABlock : i+1)) { // Then try L2, L3, DRAM.
         result = self->allocators[i]->fcts.allocate(self->allocators[i], size);
         if(result) break;
     }
@@ -245,13 +246,14 @@ static u8 ceMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
     // managed by an allocator.  Thus for these levels, the allocators and their memories are a
     // shared resource among this CE and its XE children, but NOT shared with any other CE's or XE's.
     u64 i;
+    u64 numberOfEnginesInABlock = 9;
     void* result;
     ASSERT (memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
     for(i = (memType == GUID_MEMTYPE) ? // If we are allocating storage for a GUID...
             (self->allocatorCount-1) :  // just allocate it in DRAM (for now).  Otherwise...
             engineIndex;                // First try the allocator for L1 collocated with the engine
         i < self->allocatorCount;
-        i = (i < numberOfEnginesInABlock ? numberOfEnginesInABlock : i+1) { // Then try L2, L3, DRAM.
+        i = (i < numberOfEnginesInABlock ? numberOfEnginesInABlock : i+1)) { // Then try L2, L3, DRAM.
         result = self->allocators[i]->fcts.allocate(self->allocators[i], size);
         if(result) break;
     }
@@ -281,11 +283,12 @@ static u8 ceMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
             }
         }
         return OCR_EINVAL;
-    } else if (memType = GUID_MEMTYPE) {
+    } else if (memType == GUID_MEMTYPE) {
         self->allocators[self->allocatorCount-1]->fcts.free(self->allocators[self->allocatorCount-1], ptr);
     } else {
         ASSERT (false);
     }
+    return 0;
 }
 
 static u8 ceCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
@@ -364,7 +367,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         returnCode = ceAllocateDb(self, &(PD_MSG_FIELD(guid)),
                                   &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
                                   PD_MSG_FIELD(properties),
-                                  ocrLocation_getEngineIndex(msg->srcLocation), // TODO: Placeholder.  Need a service function that disects an ocrLocation_t to produce the index of an XE or the CE.
+                                  0, //ocrLocation_getEngineIndex(msg->srcLocation), // TODO: Placeholder.  Need a service function that disects an ocrLocation_t to produce the index of an XE or the CE.
                                   PD_MSG_FIELD(affinity),
                                   PD_MSG_FIELD(allocator));
         if(returnCode == 0) {
@@ -457,7 +460,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
             ceMemAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
-                       ocrLocation_getEngineIndex(msg->srcLocation), // TODO: Placeholder.  Need a service function that disects an ocrLocation_t to produce the index of an XE or the CE.
+                       0, //ocrLocation_getEngineIndex(msg->srcLocation), // TODO: Placeholder.  Need a service function that disects an ocrLocation_t to produce the index of an XE or the CE.
                        msg->type,
                        &(PD_MSG_FIELD(ptr)));
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
@@ -647,7 +650,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
             PD_MSG_FIELD(guids));
         returnCode = self->workers[0]->fcts.sendMessage(
-            self->workers[0], msg.srcLocation, &msg); // respond to xe with task
+            self->workers[0], msg->srcLocation, &msg); // respond to xe with task
 
 #undef PD_MSG
 #undef PD_TYPE
@@ -836,11 +839,6 @@ void cePdFree(ocrPolicyDomain_t *self, void* addr) {
 }
 
 ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * policy,
-                                      u64 schedulerCount, u64 allocatorCount, u64 workerCount,
-                                      ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory,
-                                      ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
-                                      ocrGuidProvider_t *guidProvider,
-                                      ocrSal_t *salProvider,
 #ifdef OCR_ENABLE_STATISTICS
                                       ocrStats_t *statsObject,
 #endif
@@ -850,22 +848,6 @@ ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * policy,
     ocrPolicyDomain_t * base = (ocrPolicyDomain_t *) derived;
 
     ASSERT(base);
-
-    base->schedulerCount = schedulerCount;
-    base->allocatorCount = allocatorCount;
-    base->workerCount = workerCount;
-
-    base->taskFactoryCount = 0;
-    base->taskTemplateFactoryCount = 0;
-    base->eventFactoryCount = 0;
-    base->guidProviderCount = 0;
-    
-    base->taskFactories = NULL;
-    base->taskTemplateFactories = NULL;
-    base->dbFactories = NULL;
-    base->eventFactories = NULL;
-    base->guidProviders = NULL;
-    
 //    base->sysProvider = sysProvider;
 #ifdef OCR_ENABLE_STATISTICS
     base->statsObject = statsObject;

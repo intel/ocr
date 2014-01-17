@@ -26,7 +26,12 @@ const char * workpile_types[] = {
     NULL,
 };
 
+#ifdef ENABLE_WORKPILE_HC
 #include "workpile/hc/hc-workpile.h"
+#endif
+#ifdef ENABLE_WORKPILE_CE
+#include "workpile/ce/ce-workpile.h"
+#endif
 
 inline ocrWorkpileFactory_t * newWorkpileFactory(workpileType_t type, ocrParamList_t *perType) {
     switch(type) {

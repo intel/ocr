@@ -28,6 +28,7 @@ const char * scheduler_types[] = {
 };
 
 #include "scheduler/hc/hc-scheduler.h"
+#include "scheduler/ce/ce-scheduler.h"
 
 inline ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrParamList_t *perType) {
     switch(type) {

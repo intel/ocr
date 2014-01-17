@@ -8,7 +8,7 @@
 #include <string.h>
 #include <fcntl.h>
 
-#ifdef ENABLE_EXTERNAL_ELF
+#ifdef ENABLE_BUILDER_ONLY
 
 #include <libelf.h>
 #include <gelf.h>

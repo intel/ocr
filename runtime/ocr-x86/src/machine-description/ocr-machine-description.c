@@ -656,11 +656,19 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
             workerType_t mytype = -1;
             TO_ENUM (mytype, inststr, workerType_t, worker_types, workerMax_id);
             switch (mytype) {
+#ifdef ENABLE_WORKER_HC
                 case workerHc_id: {
                     ALLOC_PARAM_LIST(inst_param[j], paramListWorkerHcInst_t);
                     ((paramListWorkerHcInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
                 }
                 break;
+#endif
+#ifdef ENABLE_WORKER_CE
+                case workerCe_id: {
+                    ALLOC_PARAM_LIST(inst_param[j], paramListWorkerCeInst_t);
+                }
+                break;
+#endif
                 default:
                     ALLOC_PARAM_LIST(inst_param[j], paramListWorkerInst_t);
                 break;
@@ -678,6 +686,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
             schedulerType_t mytype = -1;
             TO_ENUM (mytype, inststr, schedulerType_t, scheduler_types, schedulerMax_id);
             switch (mytype) {
+#ifdef ENABLE_SCHEDULER_HC
                 case schedulerHc_id: {
                     ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerHcInst_t);
                     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "workeridfirst");
@@ -685,6 +694,13 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
                     ((paramListSchedulerHcInst_t *)inst_param[j])->workerIdFirst = value;
                 }
                 break;
+#endif
+#ifdef ENABLE_SCHEDULER_CE
+                case schedulerCe_id: {
+                    ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerCeInst_t);
+                }
+                break;
+#endif
                 default:
                     ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerInst_t);
                 break;

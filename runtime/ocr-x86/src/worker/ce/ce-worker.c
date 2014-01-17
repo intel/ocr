@@ -42,7 +42,7 @@ static void workerLoop(ocrWorker_t * worker) {
     ocrPolicyDomain_t *pd = worker->pd;
     ocrPolicyMsg_t *msgPtr;
     while(worker->fcts.isRunning(worker)) {
-        worker->cePollMessage(worker, &msgPtr);
+        worker->fcts.pollMessage(worker, &msgPtr);
         if(pd->processMessage(pd, msgPtr, true) == 0) {
             pd->pdFree(pd, msgPtr);
         } else {
@@ -75,7 +75,8 @@ void destructWorkerCe(ocrWorker_t * base) {
 /**
  * Builds an instance of a CE worker
  */
-ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
+ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory, ocrLocation_t location,
+                          ocrWorkerType_t type, ocrParamList_t * perInstance) {
     ocrWorkerCe_t * worker = (ocrWorkerCe_t*)runtimeChunkAlloc(
         sizeof(ocrWorkerCe_t), NULL);
     ocrWorker_t * base = (ocrWorker_t *) worker;
@@ -107,12 +108,12 @@ void ceStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     u64 computeCount = base->computeCount;
     // What the compute target will execute
     launchArg_t * launchArg = policy->pdMalloc(policy, sizeof(launchArg_t));
-    launchArg->routine = (base->type == MASTER_WORKERTYPE)?masterRoutine:workerRoutine;
+    launchArg->routine = workerRoutine;
     launchArg->arg = base;
     ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
     u64 i = 0;
     for(i = 0; i < computeCount; i++) {
-        base->computes[i]->fcts.start(base->computes[i], policy, launchArg);
+        base->computes[i]->fcts.start(base->computes[i], policy, SINGLE_WORKERTYPE, launchArg);
 #ifdef OCR_ENABLE_STATISTICS
         statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
 #endif

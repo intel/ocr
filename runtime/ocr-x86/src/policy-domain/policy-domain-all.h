@@ -35,6 +35,7 @@ const char * policyDomain_types [] = {
 };
 
 #include "policy-domain/hc/hc-policy.h"
+#include "policy-domain/ce/ce-policy.h"
 
 inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type, ocrParamList_t *perType) {
     switch(type) {

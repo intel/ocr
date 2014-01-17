@@ -17,6 +17,7 @@
 #include "ocr-comp-target.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
+//#include "workpile/ce/ce-deque.h" FIXME: cleanup
 
 #include <pthread.h>
 
@@ -33,8 +34,10 @@ typedef struct {
     u64 stackSize;
     s32 binding;
     bool isMaster;
+#ifdef ENABLE_WORKPILE_CE   // FIXME: cleanup
     nonConcDeque_t * request_queue;
     nonConcDeque_t * response_queue;
+#endif
 } ocrCompPlatformPthread_t;
 
 typedef struct {

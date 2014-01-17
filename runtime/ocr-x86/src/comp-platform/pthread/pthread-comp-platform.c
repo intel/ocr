@@ -107,8 +107,10 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
         // The upper level worker will only start us once
         pthreadRoutineExecute(pthreadCompPlatform->launchArg);
     }
-    nonConcDequeInit(base->pd, derived->request_queue, (void *) NULL_GUID);
-    nonConcDequeInit(base->pd, derived->response_queue, (void *) NULL_GUID);
+#ifdef ENABLE_WORKER_CE
+    nonConcDequeInit(compPlatform->pd, pthreadCompPlatform->request_queue, (void *) NULL_GUID);
+    nonConcDequeInit(compPlatform->pd, pthreadCompPlatform->response_queue, (void *) NULL_GUID);
+#endif
 }
 
 void pthreadStop(ocrCompPlatform_t * compPlatform) {
@@ -134,8 +136,7 @@ u8 pthreadSetThrottle(ocrCompPlatform_t *self, u64 value) {
 u8 pthreadSendMessage(ocrCompPlatform_t *self, ocrLocation_t target,
                       ocrPolicyMsg_t **message) {
 #ifdef ENABLE_WORKPILE_CE
-    int 
-    ocrCompPlatformFactoryPthread_t * derived = (ocrCompPlatformFactoryPthread_t *) base;
+    ocrCompPlatformPthread_t * derived = (ocrCompPlatformPthread_t *) self;
     nonConcDequePush(derived->request_queue, (void *)(message));
 #else
     ASSERT(0);
@@ -179,6 +180,11 @@ ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
     compPlatformPthread->binding = (params != NULL) ? params->binding : -1;
     compPlatformPthread->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
     compPlatformPthread->isMaster = false;
+
+#ifdef ENABLE_WORKER_CE
+    compPlatformPthread->request_queue = (nonConcDeque_t *) runtimeChunkAlloc(sizeof(nonConcDeque_t), NULL);
+    compPlatformPthread->response_queue = (nonConcDeque_t *) runtimeChunkAlloc(sizeof(nonConcDeque_t), NULL);
+#endif
     
     return (ocrCompPlatform_t*)compPlatformPthread;
 }
@@ -233,8 +239,6 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     paramListCompPlatformPthread_t * params =
       (paramListCompPlatformPthread_t *) perType;
     derived->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
-    derived->request_queue = (nonConcDeque_t *) runtimeChunkAlloc(sizeof(nonConcDeque_t), NULL);
-    derived->response_queue = (nonConcDeque_t *) runtimeChunkAlloc(sizeof(nonConcDeque_t), NULL);
 
     return base;
 }

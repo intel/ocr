@@ -11,7 +11,7 @@
 #include "debug.h"
 #include "ocr-policy-domain.h"
 #include "ocr-types.h"
-#include "workpile/hc/deque.h"
+#include "workpile/ce/ce-deque.h"
 
 
 void dequeInit(ocrPolicyDomain_t *pd, deque_t * deq, void * init_value) {
