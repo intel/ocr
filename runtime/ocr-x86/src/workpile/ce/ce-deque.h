@@ -60,8 +60,8 @@ void semiConcDequeDestroy(struct _ocrPolicyDomain_t *pd, semiConcDeque_t *deq);
 /****************************************************/
 
 typedef struct {
-    u32 head;
-    u32 tail;
+    volatile u32 head;
+    volatile u32 tail;
     volatile void ** data;
 } nonConcDeque_t;
 

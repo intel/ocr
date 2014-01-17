@@ -107,6 +107,8 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
         // The upper level worker will only start us once
         pthreadRoutineExecute(pthreadCompPlatform->launchArg);
     }
+    nonConcDequeInit(base->pd, derived->request_queue, (void *) NULL_GUID);
+    nonConcDequeInit(base->pd, derived->response_queue, (void *) NULL_GUID);
 }
 
 void pthreadStop(ocrCompPlatform_t * compPlatform) {
@@ -131,9 +133,13 @@ u8 pthreadSetThrottle(ocrCompPlatform_t *self, u64 value) {
 
 u8 pthreadSendMessage(ocrCompPlatform_t *self, ocrLocation_t target,
                       ocrPolicyMsg_t **message) {
-
-    // TODO: Need to implement some sort of queues and then use signal/wait
+#ifdef ENABLE_WORKPILE_CE
+    int 
+    ocrCompPlatformFactoryPthread_t * derived = (ocrCompPlatformFactoryPthread_t *) base;
+    nonConcDequePush(derived->request_queue, (void *)(message));
+#else
     ASSERT(0);
+#endif
     return 0;
 }
 
@@ -227,6 +233,8 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     paramListCompPlatformPthread_t * params =
       (paramListCompPlatformPthread_t *) perType;
     derived->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
+    derived->request_queue = (nonConcDeque_t *) runtimeChunkAlloc(sizeof(nonConcDeque_t), NULL);
+    derived->response_queue = (nonConcDeque_t *) runtimeChunkAlloc(sizeof(nonConcDeque_t), NULL);
 
     return base;
 }

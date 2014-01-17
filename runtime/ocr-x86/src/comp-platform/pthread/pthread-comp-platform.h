@@ -33,6 +33,8 @@ typedef struct {
     u64 stackSize;
     s32 binding;
     bool isMaster;
+    nonConcDeque_t * request_queue;
+    nonConcDeque_t * response_queue;
 } ocrCompPlatformPthread_t;
 
 typedef struct {
