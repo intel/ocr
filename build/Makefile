@@ -10,12 +10,13 @@
 default:
 	@echo "Must specify an arch and a target, e.g.:"
 	@echo ""
-	@echo "   ARCH=x86-linux make all"
+	@echo "   ARCH=x86-pthread-x86 make all"
 	@echo ""
 	@echo "Valid architectures are:"
 	@echo ""
-	@echo "   x86-linux    -- OCR for X86 Linux machines"
-	@echo "   fsim         -- OCR for Traleika Glacier FSIM"
+	@echo "   x86-pthread-x86    -- OCR for X86 Linux machines"
+	@echo "   fsim-null-fsim     -- OCR for Traleika Glacier FSIM"
+	@echo "   x86-pthread-fsim   -- OCR for Traleika Glacier FSIM but emulated on X86"
 	@echo ""
 	@echo "Valid targets are:"
 	@echo ""
@@ -44,6 +45,7 @@ clean:
 
 .PHONY: squeaky
 squeaky:
-	ARCH=x86-linux $(MAKE) -C x86-linux clean
-	ARCH=fsim      $(MAKE) -C fsim      clean
+	ARCH=x86-pthread-x86 $(MAKE) -C x86-pthread-x86 clean
+	ARCH=x86-pthread-fsim $(MAKE) -C x86-pthread-fsim clean
+	ARCH=fsim-null-fsim $(MAKE) -C fsim-null-fsim clean
 
