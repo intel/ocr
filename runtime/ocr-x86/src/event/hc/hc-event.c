@@ -856,32 +856,35 @@ ocrEventFactory_t * newEventFactoryHc(ocrParamList_t *perType, u32 factoryId) {
     ocrEventFactory_t* base = (ocrEventFactory_t*) runtimeChunkAlloc(
         sizeof(ocrEventFactoryHc_t), NULL);
     
-    base->instantiate = newEventHc;
-    base->destruct =  destructEventFactoryHc;
+    base->instantiate = FUNC_ADDR(ocrEvent_t* (*)(ocrEventFactory_t*, 
+                                     ocrEventTypes_t, bool, ocrParamList_t*), newEventHc);
+    base->destruct =  FUNC_ADDR(void (*)(ocrEventFactory_t*), destructEventFactoryHc);
     // Initialize the function pointers
     u32 i;
     // Setup functions properly
     // TODO
     for(i = 0; i < (u32)OCR_EVENT_T_MAX; ++i) {
-        base->fcts[i].destruct = destructEventHc;
-        base->fcts[i].get = getEventHc;
-        base->fcts[i].registerSignaler = registerSignalerHc;
-        base->fcts[i].unregisterSignaler = unregisterSignalerHc;
+        base->fcts[i].destruct = FUNC_ADDR(void (*)(ocrEvent_t*), destructEventHc);
+        base->fcts[i].get = FUNC_ADDR(ocrFatGuid_t (*)(ocrEvent_t*), getEventHc);
+        base->fcts[i].registerSignaler = FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), registerSignalerHc);
+        base->fcts[i].unregisterSignaler = FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), unregisterSignalerHc);
     }
-    base->fcts[OCR_EVENT_ONCE_T].satisfy = satisfyEventHcOnce;
+    base->fcts[OCR_EVENT_ONCE_T].satisfy = 
+        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcOnce);
     base->fcts[OCR_EVENT_IDEM_T].satisfy = base->fcts[OCR_EVENT_STICKY_T].satisfy =
-        satisfyEventHcPersist;
-    base->fcts[OCR_EVENT_LATCH_T].satisfy = satisfyEventHcLatch;
+        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcPersist);
+    base->fcts[OCR_EVENT_LATCH_T].satisfy = 
+        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcLatch);
 
     base->fcts[OCR_EVENT_ONCE_T].registerWaiter = base->fcts[OCR_EVENT_LATCH_T].registerWaiter =
-        registerWaiterEventHc;
+        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), registerWaiterEventHc);
     base->fcts[OCR_EVENT_IDEM_T].registerWaiter = base->fcts[OCR_EVENT_STICKY_T].registerWaiter =
-        registerWaiterEventHcPersist;
+        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), registerWaiterEventHcPersist);
 
     base->fcts[OCR_EVENT_ONCE_T].unregisterWaiter = base->fcts[OCR_EVENT_LATCH_T].unregisterWaiter =
-        unregisterWaiterEventHc;
+        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), unregisterWaiterEventHc);
     base->fcts[OCR_EVENT_IDEM_T].unregisterWaiter = base->fcts[OCR_EVENT_STICKY_T].unregisterWaiter =
-        unregisterWaiterEventHcPersist;
+        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), unregisterWaiterEventHcPersist);
     
     base->factoryId = factoryId;
 

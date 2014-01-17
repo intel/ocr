@@ -85,15 +85,15 @@ ocrSalFactory_t *newSalFactoryLinux(ocrParamList_t *perType) {
         runtimeChunkAlloc(sizeof(ocrSalFactoryLinux_t), (void *)1);
     base->instantiate = &newSalLinux;
     base->destruct = &destructSalFactoryLinux;
-    base->salFcts.destruct = &linuxSalDestruct;
-    base->salFcts.start = &linuxSalStart;
-    base->salFcts.stop = &linuxSalStop;
-    base->salFcts.finish = &linuxSalFinish;
-    base->salFcts.exit = &linuxSalExit;
-    base->salFcts.abort = &linuxSalAbort;
-    base->salFcts.print = &linuxSalPrint;
-    base->salFcts.write = &linuxSalWrite;
-    base->salFcts.read = &linuxSalRead;
+    base->salFcts.destruct = FUNC_ADDR(void (*)(ocrSal_t*), linuxSalDestruct);
+    base->salFcts.start = FUNC_ADDR(void (*)(ocrSal_t*, ocrPolicyDomain_t*), linuxSalStart);
+    base->salFcts.stop = FUNC_ADDR(void (*)(ocrSal_t*), linuxSalStop);
+    base->salFcts.finish = FUNC_ADDR(void (*)(ocrSal_t*), linuxSalFinish);
+    base->salFcts.exit = FUNC_ADDR(void (*)(ocrSal_t*, u64), linuxSalExit);
+    base->salFcts.abort = FUNC_ADDR(void (*)(ocrSal_t*), linuxSalAbort);
+    base->salFcts.print = FUNC_ADDR(void (*)(ocrSal_t*, const char*, u64), linuxSalPrint);
+    base->salFcts.write = FUNC_ADDR(u64 (*)(ocrSal_t*, const char*, u64, u64), linuxSalWrite);
+    base->salFcts.read = FUNC_ADDR(u64 (*)(ocrSal_t*, char*, u64, u64), linuxSalRead);
 
     return base;
 }

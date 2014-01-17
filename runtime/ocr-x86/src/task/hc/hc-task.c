@@ -108,10 +108,10 @@ void destructTaskTemplateFactoryHc(ocrTaskTemplateFactory_t* base) {
 ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType, u32 factoryId) {
     ocrTaskTemplateFactory_t* base = (ocrTaskTemplateFactory_t*)runtimeChunkAlloc(sizeof(ocrTaskTemplateFactoryHc_t), NULL);
     
-    base->instantiate = newTaskTemplateHc;
-    base->destruct =  destructTaskTemplateFactoryHc;
+    base->instantiate = FUNC_ADDR(ocrTaskTemplate_t* (*)(ocrTaskTemplateFactory_t*, ocrEdt_t, u32, u32, const char*, ocrParamList_t*), newTaskTemplateHc);
+    base->destruct =  FUNC_ADDR(void (*)(ocrTaskTemplateFactory_t*), destructTaskTemplateFactoryHc);
     base->factoryId = factoryId;
-    base->fcts.destruct = &destructTaskTemplateHc;
+    base->fcts.destruct = FUNC_ADDR(void (*)(ocrTaskTemplate_t*), destructTaskTemplateHc);
     return base;
 }
 
@@ -633,15 +633,15 @@ void destructTaskFactoryHc(ocrTaskFactory_t* base) {
 ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance, u32 factoryId) {
     ocrTaskFactory_t* base = (ocrTaskFactory_t*)runtimeChunkAlloc(sizeof(ocrTaskFactoryHc_t), NULL);
     
-    base->instantiate = newTaskHc;
-    base->destruct =  destructTaskFactoryHc;
+    base->instantiate = FUNC_ADDR(ocrTask_t* (*) (ocrTaskFactory_t*, ocrFatGuid_t, u32, u64*, u32, u32, ocrFatGuid_t, ocrFatGuid_t*, ocrParamList_t*), newTaskHc);
+    base->destruct =  FUNC_ADDR(void (*) (ocrTaskFactory_t*), destructTaskFactoryHc);
     base->factoryId = factoryId;
     
-    base->fcts.destruct = destructTaskHc;
-    base->fcts.satisfy = satisfyTaskHc;
-    base->fcts.registerSignaler = registerSignalerTaskHc;
-    base->fcts.unregisterSignaler = unregisterSignalerTaskHc;
-    base->fcts.execute = taskExecute;
+    base->fcts.destruct = FUNC_ADDR(void (*)(ocrTask_t*), destructTaskHc);
+    base->fcts.satisfy = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t, u32), satisfyTaskHc);
+    base->fcts.registerSignaler = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t, u32), registerSignalerTaskHc);
+    base->fcts.unregisterSignaler = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t, u32), unregisterSignalerTaskHc);
+    base->fcts.execute = FUNC_ADDR(u8 (*)(ocrTask_t*), taskExecute);
     
     return base;
 }

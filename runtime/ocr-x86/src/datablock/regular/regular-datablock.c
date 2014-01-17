@@ -275,12 +275,14 @@ ocrDataBlockFactory_t *newDataBlockFactoryRegular(ocrParamList_t *perType, u32 f
     ocrDataBlockFactory_t *base = (ocrDataBlockFactory_t*)
         runtimeChunkAlloc(sizeof(ocrDataBlockFactoryRegular_t), NULL);
 
-    base->instantiate = &newDataBlockRegular;
-    base->destruct = &destructRegularFactory;
-    base->fcts.destruct = &regularDestruct;
-    base->fcts.acquire = &regularAcquire;
-    base->fcts.release = &regularRelease;
-    base->fcts.free = &regularFree;
+    base->instantiate = FUNC_ADDR(ocrDataBlock_t* (*)
+                                     (ocrDataBlockFactory_t*, ocrFatGuid_t, ocrFatGuid_t, 
+                                      u64, void*, u32, ocrParamList_t*), newDataBlockRegular);
+    base->destruct = FUNC_ADDR(void (*)(ocrDataBlockFactory_t*), destructRegularFactory);
+    base->fcts.destruct = FUNC_ADDR(void (*)(ocrDataBlock_t*), regularDestruct);
+    base->fcts.acquire = FUNC_ADDR(void* (*)(ocrDataBlock_t*, ocrFatGuid_t, bool), regularAcquire);
+    base->fcts.release = FUNC_ADDR(u8 (*)(ocrDataBlock_t*, ocrFatGuid_t, bool), regularRelease);
+    base->fcts.free = FUNC_ADDR(u8 (*)(ocrDataBlock_t*, ocrFatGuid_t), regularFree);
     base->factoryId = factoryId;
 
     return base;
