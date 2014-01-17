@@ -45,7 +45,7 @@ void ptrFinish(ocrGuidProvider_t *self) {
 
 u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind kind) {
 // Comment out call to pdMalloc for the time being, and instead send a message to process a PD_MSG_MEM_ALLOC request.
-#if 0
+#if 1
     ocrGuidImpl_t * guidInst = self->pd->pdMalloc(self->pd, sizeof(ocrGuidImpl_t));
     guidInst->guid = (ocrGuid_t)val;
     guidInst->kind = kind;
@@ -55,11 +55,9 @@ u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind kin
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
     getCurrentEnv(&policy, NULL, &task, &msg);
-#define PD_MSG(&msg)
+#define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_ALLOC
     msg.type = PD_MSG_MEM_ALLOC | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    msg.srcLocation  = myLocation;
-    msg.destLocation = parentLocation;
     PD_MSG_FIELD(size) = sizeof(ocrGuidImpl_t);
     PD_MSG_FIELD(properties) = 0; // TODO:  What flags should be defined?  Where are symbolic constants for them defined?
     PD_MSG_FIELD(type) = GUID_MEMTYPE;
@@ -80,7 +78,7 @@ u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind kin
 
 u8 ptrCreateGuid(ocrGuidProvider_t* self, ocrFatGuid_t *fguid, u64 size, ocrGuidKind kind) {
 // Comment out call to pdMalloc for the time being, and instead send a message to process a PD_MSG_MEM_ALLOC request.
-#if 0
+#if 1
     // This is very stupid right now, we use pdMalloc/pdFree which means that
     // the metadata will not move easily but we can change this by asking the PD to
     // allocate memory for the metadata if needed.
@@ -94,11 +92,9 @@ u8 ptrCreateGuid(ocrGuidProvider_t* self, ocrFatGuid_t *fguid, u64 size, ocrGuid
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
     getCurrentEnv(&policy, NULL, &task, &msg);
-#define PD_MSG(&msg)
+#define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_ALLOC
     msg.type = PD_MSG_MEM_ALLOC | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    msg.srcLocation  = myLocation;
-    msg.destLocation = parentLocation;
     PD_MSG_FIELD(size) = sizeof(ocrGuidImpl_t);
     PD_MSG_FIELD(properties) = 0; // TODO:  What flags should be defined?  Where are symbolic constants for them defined?
     PD_MSG_FIELD(type) = GUID_MEMTYPE;
@@ -138,18 +134,16 @@ u8 ptrReleaseGuid(ocrGuidProvider_t *self, ocrFatGuid_t guid, bool releaseVal) {
         ASSERT((u64)guid.metaDataPtr == (u64)guid.guid + sizeof(ocrGuidImpl_t));
     }
 // Comment out call to pdFree for the time being, and instead send a message to process a PD_MSG_MEM_UNALLOC request.
-#if 0
+#if 1
     self->pd->pdFree(self->pd, (void*)guid.guid);
 #else
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
     getCurrentEnv(&policy, NULL, &task, &msg);
-#define PD_MSG(&msg)
+#define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_UNALLOC
     msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    msg.srcLocation  = myLocation;
-    msg.destLocation = parentLocation;
     PD_MSG_FIELD(ptr) = ((void *) guid.guid);
     PD_MSG_FIELD(type) = GUID_MEMTYPE;
     if (policy->processMessage (policy, &msg, true) != 0) {
