@@ -25,6 +25,10 @@ void hcWorkpileDestruct ( ocrWorkpile_t * base ) {
     runtimeChunkFree((u64)base, NULL);
 }
 
+void hcWorkpileBegin(ocrWorkpile_t *base, ocrPolicyDomain_t *PD) {
+    // Nothing to do
+}
+
 void hcWorkpileStart(ocrWorkpile_t *base, ocrPolicyDomain_t *PD) {
     guidify(PD, (u64)base, &(base->fguid), OCR_GUID_WORKPILE);
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*)base;
@@ -102,6 +106,7 @@ ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(ocrParamList_t *perType) {
     base->instantiate = newWorkpileHc;
     base->destruct = destructWorkpileFactoryHc;
     base->workpileFcts.destruct = hcWorkpileDestruct;
+    base->workpileFcts.begin = hcWorkpileBegin;
     base->workpileFcts.start = hcWorkpileStart;
     base->workpileFcts.stop = hcWorkpileStop;
     base->workpileFcts.finish = hcWorkpileFinish;

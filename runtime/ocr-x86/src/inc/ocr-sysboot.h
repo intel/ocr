@@ -74,6 +74,23 @@ extern void (*runtimeChunkFree)(u64 addr, u64 *extra);
 extern void (*runtimeUpdateMemTarget)(struct _ocrMemTarget_t *mem, u64 extra);
 
 /**
+ * @brief Function to bring down the machine if something goes wrong before
+ * the PD is started.
+ *
+ * This is basically equivalent to the SAL abort call but operates
+ * only before the PD is brought up
+ */
+extern void (*bootUpAbort)();
+
+/**
+ * @brief Function to print something before the PD is fully started.
+ *
+ * This is basically equivalent to the SAL print call but operates
+ * only before the PD is brought up
+ */
+extern void (*bootUpPrint)(const char* str, u64 length);
+
+/**
  * @brief Function called to temporarily set the answer of getCurrentPD and
  * to something sane when the workers have not
  * yet been brought up

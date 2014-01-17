@@ -45,7 +45,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 #define PD_TYPE PD_MSG_DB_CREATE
     msg.type = PD_MSG_DB_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid.guid) = *db;
-    PD_MSG_FIELD(edt.guid) = task->guid;
+    PD_MSG_FIELD(edt.guid) = task?task->guid:NULL_GUID; // Can happen when non EDT creates the DB
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(size) = len;
     PD_MSG_FIELD(affinity.guid) = affinity;
@@ -77,7 +77,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid.guid) = db;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(edt.guid) = task->guid;
+    PD_MSG_FIELD(edt.guid) = task?task->guid:NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(properties) = 0;
     
@@ -98,7 +98,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid.guid) = db;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(edt.guid) = task->guid;
+    PD_MSG_FIELD(edt.guid) = task?task->guid:NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(properties) = 0;
     

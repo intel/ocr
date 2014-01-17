@@ -22,6 +22,37 @@
 
 #define DEBUG_TYPE POLICY
 
+void hcPolicyDomainBegin(ocrPolicyDomain_t * policy) {
+    // The PD should have been brought up by now and everything instantiated
+    
+    u64 i = 0;
+    u64 maxCount = 0;
+        
+    maxCount = policy->guidProviderCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->guidProviders[i]->fcts.begin(policy->guidProviders[i], policy);
+    }
+    
+    maxCount = policy->allocatorCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->allocators[i]->fcts.begin(policy->allocators[i], policy);
+    }
+    
+    maxCount = policy->schedulerCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->schedulers[i]->fcts.begin(policy->schedulers[i], policy);
+    }
+
+    // REC: Moved all workers to start here. 
+    // Note: it's important to first logically start all workers.
+    // Once they are all up, start the runtime.
+    // Workers should start the underlying target and platforms
+    maxCount = policy->workerCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->workers[i]->fcts.begin(policy->workers[i], policy);
+    }
+}
+
 void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
     // The PD should have been brought up by now and everything instantiated
     // This is a bit ugly but I can't find a cleaner solution:
@@ -30,19 +61,6 @@ void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
 
     u64 i = 0;
     u64 maxCount = 0;
-    u64 countSetCurrentEnv = 0;
-
-    maxCount = policy->workerCount;
-    for(i = 0; i < maxCount; ++i) {
-        if((policy->workers[i]->type == MASTER_WORKERTYPE) ||
-           (policy->workers[i]->type == SINGLE_WORKERTYPE)) {
-
-            policy->workers[i]->computes[0]->fcts.setCurrentEnv(
-                policy->workers[i]->computes[0], policy, policy->workers[i]);
-            ++countSetCurrentEnv;
-        }
-    }
-    ASSERT(countSetCurrentEnv == 1);
     
     maxCount = policy->guidProviderCount;
     for(i = 0; i < maxCount; ++i) {
@@ -204,11 +222,25 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     policy->salProvider->fcts.destruct(policy->salProvider);
 
     // Destroy self
+    runtimeChunkFree((u64)policy->workers, NULL);
+    runtimeChunkFree((u64)policy->schedulers, NULL);
+    runtimeChunkFree((u64)policy->allocators, NULL);
+    runtimeChunkFree((u64)policy->taskFactories, NULL);
+    runtimeChunkFree((u64)policy->taskTemplateFactories, NULL);
+    runtimeChunkFree((u64)policy->dbFactories, NULL);
+    runtimeChunkFree((u64)policy->eventFactories, NULL);
+    runtimeChunkFree((u64)policy->guidProviders, NULL);
     runtimeChunkFree((u64)policy, NULL);
 }
 
 static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
-    // TODO
+    ASSERT(self->guidProviderCount == 1);
+    if(guid->guid != NULL_GUID && guid->guid != UNINITIALIZED_GUID) {
+        if(guid->metaDataPtr == NULL) {
+            self->guidProviders[0]->fcts.getVal(self->guidProviders[0], guid->guid,
+                                                (u64*)(&(guid->metaDataPtr)), NULL);
+        }
+    }
 }
 
 // In all these functions, we consider only a single PD. In other words, in HC, we
@@ -265,33 +297,33 @@ static u8 hcMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, void* p
 }
 
 static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
-                      ocrFatGuid_t  edtTemplate, u32 paramc, u64* paramv,
-                      u32 depc, u32 properties, ocrFatGuid_t affinity,
+                      ocrFatGuid_t  edtTemplate, u32 *paramc, u64* paramv,
+                      u32 *depc, u32 properties, ocrFatGuid_t affinity,
                       ocrFatGuid_t * outputEvent) {
 
     
     ocrTaskTemplate_t *taskTemplate = (ocrTaskTemplate_t*)edtTemplate.metaDataPtr;
     
-    ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && paramc != EDT_PARAM_DEF) ||
-           (taskTemplate->paramc != EDT_PARAM_UNK && (paramc == EDT_PARAM_DEF ||
-                                                      taskTemplate->paramc == paramc)));
-    ASSERT(((taskTemplate->depc == EDT_PARAM_UNK) && depc != EDT_PARAM_DEF) ||
-           (taskTemplate->depc != EDT_PARAM_UNK && (depc == EDT_PARAM_DEF ||
-                                                    taskTemplate->depc == depc)));
+    ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && *paramc != EDT_PARAM_DEF) ||
+           (taskTemplate->paramc != EDT_PARAM_UNK && (*paramc == EDT_PARAM_DEF ||
+                                                      taskTemplate->paramc == *paramc)));
+    ASSERT(((taskTemplate->depc == EDT_PARAM_UNK) && *depc != EDT_PARAM_DEF) ||
+           (taskTemplate->depc != EDT_PARAM_UNK && (*depc == EDT_PARAM_DEF ||
+                                                    taskTemplate->depc == *depc)));
 
-    if(paramc == EDT_PARAM_DEF) {
-        paramc = taskTemplate->paramc;
+    if(*paramc == EDT_PARAM_DEF) {
+        *paramc = taskTemplate->paramc;
     }
-    if(depc == EDT_PARAM_DEF) {
-        depc = taskTemplate->depc;
+    if(*depc == EDT_PARAM_DEF) {
+        *depc = taskTemplate->depc;
     }
     // If paramc are expected, double check paramv is not NULL
-    if((paramc > 0) && (paramv == NULL))
+    if((*paramc > 0) && (paramv == NULL))
         return OCR_EINVAL;
 
     ocrTask_t * base = self->taskFactories[0]->instantiate(
-        self->taskFactories[0], edtTemplate, paramc, paramv,
-        depc, properties, affinity, outputEvent, NULL);
+        self->taskFactories[0], edtTemplate, *paramc, paramv,
+        *depc, properties, affinity, outputEvent, NULL);
     
     (*guid).guid = base->guid;
     (*guid).metaDataPtr = base;
@@ -355,7 +387,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             PD_MSG_FIELD(ptr) = NULL;
             PD_MSG_FIELD(properties) = returnCode;
         }
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -379,12 +412,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(edt)));
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->funcId == self->dbFactories[0]->factoryId);
-        ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
         PD_MSG_FIELD(ptr) =
             self->dbFactories[0]->fcts.acquire(db, PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
@@ -402,7 +435,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self->dbFactories[0]->fcts.release(db, PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
@@ -420,7 +454,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self->dbFactories[0]->fcts.free(db, PD_MSG_FIELD(edt));
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
@@ -433,7 +468,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(properties) =
             hcMemAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
                        &(PD_MSG_FIELD(ptr)));
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -447,7 +483,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
             hcMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr));
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -466,9 +503,10 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(PD_MSG_FIELD(workType) == EDT_WORKTYPE);
         PD_MSG_FIELD(properties) = hcCreateEdt(
             self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(templateGuid),
-            PD_MSG_FIELD(paramc), PD_MSG_FIELD(paramv), PD_MSG_FIELD(depc),
+            &(PD_MSG_FIELD(paramc)), PD_MSG_FIELD(paramv), &(PD_MSG_FIELD(depc)),
             PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity), outputEvent);
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -484,7 +522,9 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     {
         // TODO: FIXME: Could be called directly by user but
         // we do not implement it just yet
-        ASSERT(0);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
+        //ASSERT(0);
         break;
     }
     
@@ -497,7 +537,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                                          PD_MSG_FIELD(funcPtr), PD_MSG_FIELD(paramc),
                                          PD_MSG_FIELD(depc), PD_MSG_FIELD(funcName));
                                  
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -525,7 +566,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                                                  PD_MSG_FIELD(type), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
         
@@ -553,7 +595,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(data) = self->eventFactories[0]->fcts[evt->kind].get(evt);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
     
@@ -576,7 +619,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         }
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
@@ -594,7 +638,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         }
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
     
@@ -607,7 +652,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self->guidProviders[0], PD_MSG_FIELD(guid), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
         
@@ -621,9 +667,17 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             PD_MSG_FIELD(guids));
         // For now, we return the execute function for EDTs
         PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
+
+        // We also consider that the task to be executed is local so we
+        // return it's fully deguidified value (TODO: this may need revising)
+        u64 i = 0, maxCount = PD_MSG_FIELD(guidCount);
+        for( ; i < maxCount; ++i) {
+            localDeguidify(self, &(PD_MSG_FIELD(guids)[i]));
+        }
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
         
@@ -637,7 +691,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             PD_MSG_FIELD(guids));
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
@@ -683,7 +738,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #endif
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
@@ -728,7 +784,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                                  PD_MSG_FIELD(length));
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
         
@@ -740,7 +797,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                                 PD_MSG_FIELD(inputId));
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
     
@@ -752,21 +810,24 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                                  PD_MSG_FIELD(length), PD_MSG_FIELD(outputId));
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);            
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
         
     case PD_MSG_MGT_SHUTDOWN:
     {
         self->stop(self);
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
         
     case PD_MSG_MGT_FINISH:
     {
         self->finish(self);
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
@@ -799,12 +860,16 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 }
 
 void* hcPdMalloc(ocrPolicyDomain_t *self, u64 size) {
-    // TODO
-    return NULL;
+    // Just try in the first allocator
+    return self->allocators[0]->fcts.allocate(self->allocators[0], size);
 }
 
 void hcPdFree(ocrPolicyDomain_t *self, void* addr) {
-    // TODO
+    return self->allocators[0]->fcts.free(self->allocators[0], addr);
+}
+
+ocrSal_t* hcPdGetSal(ocrPolicyDomain_t *self) {
+    return self->salProvider;
 }
 
 ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
@@ -824,13 +889,14 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->costFunction = costFunction;
 
     base->destruct = hcPolicyDomainDestruct;
+    base->begin = hcPolicyDomainBegin;
     base->start = hcPolicyDomainStart;
     base->stop = hcPolicyDomainStop;
     base->finish = hcPolicyDomainFinish;
     base->processMessage = hcPolicyDomainProcessMessage;
-//    base->sendMessage = hcPolicyDomainSendMessage;
-//    base->receiveMessage = hcPolicyDomainReceiveMessage;
-//    base->getSys = hcPolicyDomainGetSys;
+    base->pdMalloc = hcPdMalloc;
+    base->pdFree = hcPdFree;
+    base->getSal = hcPdGetSal;
 #ifdef OCR_ENABLE_STATISTICS
     base->getStats = hcGetStats;
 #endif

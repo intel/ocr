@@ -16,6 +16,7 @@
 #include "ocr-sysboot.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 u64 x86RuntimeChunkAlloc(u64 size, u64 *extra) {
     void* returnValue = malloc(size);
@@ -34,8 +35,19 @@ void x86RuntimeUpdateMemTarget(ocrMemTarget_t *me, u64 extra) {
     return;
 }
 
+void x86BootUpAbort() {
+    abort();
+}
+
+void x86BootUpPrint(const char* str, u64 length) {
+    printf("%s", str);
+}
+
 u64 (*runtimeChunkAlloc)(u64, u64*) = &x86RuntimeChunkAlloc;
 void (*runtimeChunkFree)(u64, u64*) = &x86RuntimeChunkFree;
 void (*runtimeUpdateMemTarget)(ocrMemTarget_t *, u64) = &x86RuntimeUpdateMemTarget;
+void (*bootUpAbort)() = &x86BootUpAbort;
+void (*bootUpPrint)(const char*, u64) = &x86BootUpPrint;
+
 
 #endif /* ENABLE_SYSBOOT_LINUX */

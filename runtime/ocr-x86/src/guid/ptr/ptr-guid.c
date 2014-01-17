@@ -26,6 +26,10 @@ void ptrDestruct(ocrGuidProvider_t* self) {
     runtimeChunkFree((u64)self, NULL);
 }
 
+void ptrBegin(ocrGuidProvider_t *self, ocrPolicyDomain_t *pd) {
+    // Nothing else to do
+}
+
 void ptrStart(ocrGuidProvider_t *self, ocrPolicyDomain_t *pd) {
     self->pd = pd;
     // Nothing else to do
@@ -183,6 +187,7 @@ ocrGuidProviderFactory_t *newGuidProviderFactoryPtr(ocrParamList_t *typeArg, u32
     base->destruct = &destructGuidProviderFactoryPtr;
     base->factoryId = factoryId;
     base->providerFcts.destruct = &ptrDestruct;
+    base->providerFcts.begin = &ptrBegin;
     base->providerFcts.start = &ptrStart;
     base->providerFcts.stop = &ptrStop;
     base->providerFcts.finish = &ptrFinish;

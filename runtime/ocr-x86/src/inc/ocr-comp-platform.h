@@ -56,6 +56,9 @@ typedef struct _ocrCompPlatformFcts_t {
      */
     void (*destruct)(struct _ocrCompPlatform_t *self);
 
+    void (*begin)(struct _ocrCompPlatform_t *self, struct _ocrPolicyDomain_t *PD,
+                  ocrWorkerType_t workerType);
+
     /**
      * @brief Starts a comp-platform (a thread of execution).
      *

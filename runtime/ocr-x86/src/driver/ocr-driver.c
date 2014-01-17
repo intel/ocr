@@ -257,6 +257,7 @@ void bringUpRuntime(const char *inifile) {
     }
     exit(0); // Nothing else to do in the builder, bail
 #else
+    rootPolicy->begin(rootPolicy);
     rootPolicy->start(rootPolicy);
 #endif
 }

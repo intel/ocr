@@ -11,7 +11,6 @@
 
 #include "ocr-hal.h"
 #include "debug.h"
-#include "ocr-policy-domain.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
 #include "utils/rangeTracker.h"
@@ -20,11 +19,82 @@
 
 // Defines to make this easier to port to
 // other platforms if needed
-#define MALLOC(pd, size) (pd)->pdMalloc((pd), (u64)(size))
-#define FREE(pd, addr)   (pd)->pdFree((pd), (void*)(addr))
+#define INIT_MALLOC(area, size)  chunkInit((area), (size))
+#define MALLOC(area, size) chunkMalloc((area), (u64)(size))
+#define FREE(area, addr)   chunkFree((area), (void*)(addr))
 #define INIT_LOCK(addr) do {*addr = 0;} while(0);
 #define LOCK(addr) do {hal_lock32(addr);} while(0);
 #define UNLOCK(addr) do {hal_unlock32(addr);} while(0);
+
+// Very stupid allocator that just hands out chunks of things
+void chunkInit(u64 startChunk, u64 size) {
+    u64* bitVector = (u64*)startChunk;
+    *bitVector = 0x0ULL;
+    ASSERT(size >= sizeof(u64));
+    ASSERT(size <= sizeof(u64)+64*sizeof(avlBinaryNode_t));
+    size -= sizeof(u64);
+    ASSERT(size % sizeof(avlBinaryNode_t) == 0); // Let's be clean
+    size /= sizeof(avlBinaryNode_t);
+    // Size now contains the number of "slots" we need to have
+    u64 shiftAmount = 0;
+    if(size >= 64) {
+        *bitVector |= 0xFFFFFFFFFFFFFFFFULL;
+        size -= 64;
+        shiftAmount += 64;
+    }
+    if(size >= 32) {
+        *bitVector |= (0xFFFFFFFFULL)<<(shiftAmount);
+        size -= 32;
+        shiftAmount += 32;
+    }
+    if(size >= 16) {
+        *bitVector |= (0xFFFFULL)<<(shiftAmount);
+        size -= 16;
+        shiftAmount += 16;
+    }
+    if(size >= 8) {
+        *bitVector |= (0xFFULL)<<(shiftAmount);
+        size -= 8;
+        shiftAmount += 8;
+    }
+    if(size >= 4) {
+        *bitVector |= (0xFULL)<<(shiftAmount);
+        size -= 4;
+        shiftAmount += 4;
+    }
+    if(size >= 2) {
+        *bitVector |= (0x3ULL)<<(shiftAmount);
+        size -= 2;
+        shiftAmount += 2;
+    }
+    if(size >= 1) {
+        *bitVector |= (0x1ULL)<(shiftAmount);
+        size -= 1;
+        shiftAmount += 1;
+    }
+    ASSERT(size == 0);
+}
+
+void* chunkMalloc(u64 startChunk, u64 size) {
+    u64* bitVector = (u64*)startChunk;
+    ASSERT(size <= sizeof(avlBinaryNode_t));
+    if(*bitVector == 0) {
+        return NULL;;
+    } else {
+        u64 bitId = fls64(*bitVector);
+        *bitVector &= ~(1ULL<<bitId);
+        return (void*)(startChunk + sizeof(u64) + bitId*sizeof(avlBinaryNode_t));
+    }
+}
+
+void chunkFree(u64 startChunk, void* addr) {
+    u64* bitVector = (u64*)startChunk;
+    u64 pos = (u64)addr;
+    pos = (u64)addr - startChunk - sizeof(u64);
+    ASSERT(pos % sizeof(avlBinaryNode_t) == 0);
+    pos /= sizeof(avlBinaryNode_t);
+    *bitVector |= (1ULL<<pos);
+}
 
 // AVL functions
 /**
@@ -34,14 +104,14 @@
  * key already exists, it will not be re-inserted but the
  * value will be updated
  *
- * @param pd[in]                Policy domain (for allocation/free) 
+ * @param startChunk[in]        Start of area (for free/malloc) 
  * @param root[in]              Root of the tree to insert into (or NULL)
  * @param key[in]               Key to insert
  * @param value[in]             Value to insert
  * @param node[out]             Returns the pointer to the inserted node
  * @return Root of the new tree
  */
-static avlBinaryNode_t* avlInsert(ocrPolicyDomain_t *pd, avlBinaryNode_t *root,
+static avlBinaryNode_t* avlInsert(u64 startChunk, avlBinaryNode_t *root,
                                   u64 key, u64 value, avlBinaryNode_t **node);
 
 /**
@@ -93,10 +163,10 @@ static avlBinaryNode_t* avlDelete(avlBinaryNode_t *root, u64 key,
 /**
  * @brief Destroys the tree and frees everything
  *
- * @param[in] pd                Policy domain (for free) 
+ * @param[in] startChunk        Start of the space (for alloc/free)
  * @param[in] root              Root of the tree to destroy
  */
-static void avlDestroy(ocrPolicyDomain_t *pd, avlBinaryNode_t *root);
+static void avlDestroy(u64 startChunk, avlBinaryNode_t *root);
 
 /********************************************
  * HELPER FUNCTIONS FOR AVL TREES           *
@@ -107,8 +177,8 @@ static u32 height(avlBinaryNode_t *node) {
     return 0; // All nodes will have height at least one usually
 }
 
-static avlBinaryNode_t *newTree(ocrPolicyDomain_t *pd) {
-    avlBinaryNode_t *tree = (avlBinaryNode_t*)MALLOC(pd, sizeof(avlBinaryNode_t));
+static avlBinaryNode_t *newTree(u64 startChunk) {
+    avlBinaryNode_t *tree = (avlBinaryNode_t*)MALLOC(startChunk, sizeof(avlBinaryNode_t));
     DPRINTF(DEBUG_LVL_INFO, "Created AVL tree/node @ 0x%lx\n", (u64)tree);
     ASSERT(tree);
     tree->key = 0;
@@ -156,8 +226,10 @@ static avlBinaryNode_t* rotateWithRight(avlBinaryNode_t *root) {
 static avlBinaryNode_t* avlFindMin(avlBinaryNode_t *root) {
     DPRINTF(DEBUG_LVL_VVERB, "Looking for minimum in tree rooted at 0x%lx\n",
             (u64)root);
-    
+
+#ifdef OCR_DEBUG
     avlBinaryNode_t *oldRoot = root;
+#endif
     avlBinaryNode_t *parent = NULL;
     while(root) {
         parent = root;
@@ -172,8 +244,10 @@ static avlBinaryNode_t* avlFindMin(avlBinaryNode_t *root) {
 static avlBinaryNode_t* avlFindMax(avlBinaryNode_t *root) {
     DPRINTF(DEBUG_LVL_VVERB, "Looking for maximum in tree rooted at 0x%lx\n",
             (u64)root);
-    
+
+#ifdef OCR_DEBUG
     avlBinaryNode_t *oldRoot = root;
+#endif
     avlBinaryNode_t *parent = NULL;
     while(root) {
         parent = root;
@@ -311,7 +385,7 @@ static void unlinkTag(rangeTracker_t *range, u64 idx) {
     } else {
         ASSERT(deleted->key = keyToRemove);
     }
-    FREE(range->pd, deleted);
+    FREE(range->startBKHeap, deleted);
 }
 
 // Remove the tag referred to by idx
@@ -322,13 +396,14 @@ static void linkTag(rangeTracker_t *range, u64 addr, ocrMemoryTag_t tag) {
     u32 tagIdxToUse = range->nextTag++;
     ASSERT(tagIdxToUse < range->maxSplits);
     avlBinaryNode_t *insertedNode = NULL;
-    range->rangeSplits = avlInsert(range->pd, range->rangeSplits, addr,
+    range->rangeSplits = avlInsert(range->startBKHeap, range->rangeSplits, addr,
                                    tagIdxToUse, &insertedNode);
     ASSERT(insertedNode);
     range->tags[tagIdxToUse].node = insertedNode;
     range->tags[tagIdxToUse].tag = tag;
     range->tags[tagIdxToUse].nextTag = range->heads[tag].headIdx;
     range->tags[tagIdxToUse].prevTag = 0;
+    range->heads[tag].headIdx = tagIdxToUse + 1;
     if(range->tags[tagIdxToUse].nextTag) {
         range->tags[range->tags[tagIdxToUse].nextTag].prevTag = tagIdxToUse + 1;
     }
@@ -337,13 +412,13 @@ static void linkTag(rangeTracker_t *range, u64 addr, ocrMemoryTag_t tag) {
 /********************************************
  * FUNCTIONS FOR AVL TREES                  *
  ********************************************/
-static avlBinaryNode_t* avlInsert(ocrPolicyDomain_t *pd, avlBinaryNode_t *root,
+static avlBinaryNode_t* avlInsert(u64 startChunk, avlBinaryNode_t *root,
                                   u64 key, u64 value, avlBinaryNode_t **node) {
     DPRINTF(DEBUG_LVL_VERB, "Inserting (%ld, %ld) into tree @ 0x%lx\n",
             key, value, (u64)root);
     if(!root) {
         DPRINTF(DEBUG_LVL_VVERB, "Creating new node\n");
-        root = newTree(pd);
+        root = newTree(startChunk);
         root->key = key;
         root->value = value;
         if(node) *node = root;
@@ -363,7 +438,7 @@ static avlBinaryNode_t* avlInsert(ocrPolicyDomain_t *pd, avlBinaryNode_t *root,
         // Go insert to the left
         DPRINTF(DEBUG_LVL_VVERB, "Inserting to the left (from 0x%lx to 0x%lx)\n",
                 (u64)root, (u64)root->left);
-        root->left = avlInsert(pd, root->left, key, value, node);
+        root->left = avlInsert(startChunk, root->left, key, value, node);
         DPRINTF(DEBUG_LVL_VVERB, "New left sub-tree is 0x%lx (root 0x%lx)\n",
                 (u64)root->left, (u64)root);
         
@@ -384,7 +459,7 @@ static avlBinaryNode_t* avlInsert(ocrPolicyDomain_t *pd, avlBinaryNode_t *root,
         // Got insert on the right
         DPRINTF(DEBUG_LVL_VVERB, "Inserting to the right (from 0x%lx to 0x%lx)\n",
                 (u64)root, (u64)root->right);
-        root->right = avlInsert(pd, root->right, key, value, node);
+        root->right = avlInsert(startChunk, root->right, key, value, node);
         DPRINTF(DEBUG_LVL_VVERB, "New right sub-tree is 0x%lx (root 0x%lx)\n",
                 (u64)root->right, (u64)root);
                         
@@ -465,29 +540,34 @@ static avlBinaryNode_t* avlDelete(avlBinaryNode_t *root, u64 key,
     return root;
 }
 
-static void avlDestroy(ocrPolicyDomain_t *pd, avlBinaryNode_t *root) {
+static void avlDestroy(u64 startChunk, avlBinaryNode_t *root) {
     if(root) {
-        if(root->left) avlDestroy(pd, root->left); // Check just avoids one recursion
-        if(root->right) avlDestroy(pd, root->right);
-        FREE(pd, root);
+        if(root->left) avlDestroy(startChunk, root->left); // Check just avoids one recursion
+        if(root->right) avlDestroy(startChunk, root->right);
+        FREE(startChunk, root);
     }
 }
 
 // Range functions
-void initializeRange(ocrPolicyDomain_t *pd, rangeTracker_t *dest, u32 maxSplits,
+void initializeRange(rangeTracker_t *dest, u32 maxSplits,
                      u64 minRange, u64 maxRange, ocrMemoryTag_t initTag) {
     ASSERT(minRange < maxRange);
     ASSERT(initTag < MAX_TAG);
     ASSERT(maxSplits > 0);
     u32 i;
-
-    dest->pd = pd;
+    
     dest->minimum = minRange;
+    dest->startBKHeap = minRange + sizeof(tagNode_t)*maxSplits; // Start of our book-keeping heap
     dest->maximum = maxRange;
     dest->maxSplits = maxSplits;
     dest->nextTag = 1; // We will use tags[0]
-    dest->tags = (tagNode_t *)MALLOC(dest->pd, sizeof(tagNode_t)*maxSplits);
 
+    // We use the beginning as our tags table and then we use a stupid
+    // allocator for the tree nodes
+    dest->tags = (tagNode_t *)dest->minimum;
+    INIT_MALLOC(dest->startBKHeap, sizeof(u64) +
+                dest->maxSplits*sizeof(avlBinaryNode_t)); // We allocate at most the number of maxsplits
+    
     DPRINTF(DEBUG_LVL_INFO, "Initializing a range @ 0x%lx from 0x%lx to 0x%lx with tag %d\n",
             (u64)dest, minRange, maxRange, initTag);
     
@@ -503,7 +583,7 @@ void initializeRange(ocrPolicyDomain_t *pd, rangeTracker_t *dest, u32 maxSplits,
 
     // Set up one point with initTag
     
-    dest->rangeSplits = avlInsert(dest->pd, dest->rangeSplits, minRange, 0, NULL);
+    dest->rangeSplits = avlInsert(dest->startBKHeap, dest->rangeSplits, minRange, 0, NULL);
     ASSERT(dest->rangeSplits);
     
     dest->tags[0].tag = initTag;
@@ -512,14 +592,16 @@ void initializeRange(ocrPolicyDomain_t *pd, rangeTracker_t *dest, u32 maxSplits,
     dest->tags[0].prevTag = 0;
     
     dest->heads[initTag].headIdx = 1; // Offset by 1
-    
+
+    // Now say that the first part is reserved for OS stuff (basically our book-keeping space)
+    splitRange(dest, dest->minimum, sizeof(u64) + dest->maxSplits*2*sizeof(avlBinaryNode_t),
+               RESERVED_TAG);
 }
 
 void destroyRange(rangeTracker_t *self) {
     
     DPRINTF(DEBUG_LVL_INFO, "Destroying range @ 0x%lx", (u64)self);
-    FREE(self->pd, (u64)self->tags);
-    avlDestroy(self->pd, self->rangeSplits);
+    avlDestroy(self->startBKHeap, self->rangeSplits);
 }
 
 u8 splitRange(rangeTracker_t *range, u64 startAddr, u64 size, ocrMemoryTag_t tag) {
@@ -553,7 +635,7 @@ u8 splitRange(rangeTracker_t *range, u64 startAddr, u64 size, ocrMemoryTag_t tag
 
     DPRINTF(DEBUG_LVL_VERB, "Splitting range 0x%lx: adding %d for [0x%lx; 0x%lx[\n",
             (u64)range, (u32)tag, startAddr, startAddr + size);
-    // Start by removing all old values
+    // Start by removing all old values between start and end (lookupKey)
     do {
         v = avlSearch(range->rangeSplits, lookupKey, -1); // Search lower-bound or exact
         if(v) {
@@ -562,9 +644,12 @@ u8 splitRange(rangeTracker_t *range, u64 startAddr, u64 size, ocrMemoryTag_t tag
                 DPRINTF(DEBUG_LVL_VVERB, "Range 0x%lx: Tag post split will be %d\n",
                         (u64)range, oldLastTag);
             }
-            unlinkTag(range, v->value);
+            if(v->key >= startAddr)
+                unlinkTag(range, v->value);
+            else
+                break;
         }
-    } while(v->key >= startAddr);
+    } while(range->rangeSplits); // We may remove everything
     ASSERT(oldLastTag < MAX_TAG);
     
     // Add start and end points

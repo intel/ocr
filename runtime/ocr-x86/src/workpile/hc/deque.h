@@ -19,8 +19,8 @@ struct _ocrPolicyDomain_t;
 /****************************************************/
 
 typedef struct {
-    volatile u32 head;
-    volatile u32 tail;
+    volatile s32 head;
+    volatile s32 tail;
     volatile void ** data;
 } deque_t;
 

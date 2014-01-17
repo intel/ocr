@@ -138,7 +138,10 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
         return 1; // Some error code
     
     *edtGuid = PD_MSG_FIELD(guid.guid);
-    *outputEvent = PD_MSG_FIELD(outputEvent.guid);
+    paramc = PD_MSG_FIELD(paramc);
+    depc = PD_MSG_FIELD(depc);
+    if(outputEvent)
+        *outputEvent = PD_MSG_FIELD(outputEvent.guid);
     
     // If guids dependences were provided, add them now
     // TODO: This should probably just send the messages

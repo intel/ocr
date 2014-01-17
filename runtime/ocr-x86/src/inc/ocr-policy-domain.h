@@ -342,8 +342,9 @@ typedef struct _ocrPolicyMsg_t {
                                        * EDT. If NULL_GUID, no event will be created
                                        * and returned. */
             u64 *paramv;               /**< In: Parameters for this EDT */
-            u32 paramc;                /**< In: Number of parameters */
-            u32 depc;                  /**< In: Number of dependence slots */
+            u32 paramc;                /**< In/out: Number of parameters; on out returns real number
+                                        * in case of EDT_PARAM_DEF as input for example */
+            u32 depc;                  /**< In/out: Number of dependence slots; same comment as above */
             u32 properties;            /**< In: properties for the creation */
             ocrWorkType_t workType;    /**< In: Type of work to create */
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_CREATE);
@@ -622,6 +623,8 @@ typedef struct _ocrPolicyDomain_t {
      */
     void (*destruct)(struct _ocrPolicyDomain_t *self);
 
+    void (*begin)(struct _ocrPolicyDomain_t *self);
+    
     /**
      * @brief Starts this policy domain
      *

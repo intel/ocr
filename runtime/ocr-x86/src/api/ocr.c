@@ -13,7 +13,9 @@
 void ocrShutdown() {
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, NULL);
-    teardown(pd);
+    pd->stop(pd);
+    // TODO: Re-enable teardown for other platforms
+    //teardown(pd);
 }
 
 u64 getArgc(void* dbPtr) {

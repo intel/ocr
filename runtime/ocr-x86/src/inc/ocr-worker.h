@@ -42,6 +42,8 @@ struct _ocrTask_t;
 typedef struct _ocrWorkerFcts_t {
     void (*destruct)(struct _ocrWorker_t *self);
 
+    void (*begin)(struct _ocrWorker_t *self, struct _ocrPolicyDomain_t * PD);
+    
     /** @brief Start Worker
      */
     void (*start)(struct _ocrWorker_t *self, struct _ocrPolicyDomain_t * PD);

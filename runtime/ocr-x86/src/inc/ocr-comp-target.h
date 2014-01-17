@@ -69,6 +69,8 @@ typedef struct _ocrCompTargetFcts_t {
      */
     void (*destruct)(struct _ocrCompTarget_t *self);
 
+    void (*begin)(struct _ocrCompTarget_t *self, struct _ocrPolicyDomain_t *PD,
+                  ocrWorkerType_t workerType);
     /**
      * @brief Starts a comp-target (a thread of execution).
      *

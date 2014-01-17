@@ -154,7 +154,6 @@ void ocrInit(ocrConfig_t * ocrConfig) {
     ASSERT(iniFile != NULL);
 
     bringUpRuntime(iniFile);
-
 }
 
 void ocrParseArgs(s32 argc, const char* argv[], ocrConfig_t * ocrConfig) {
@@ -190,11 +189,23 @@ void ocrParseArgs(s32 argc, const char* argv[], ocrConfig_t * ocrConfig) {
     ocrConfig->userArgv = (char **) argv;
 }
 
+// This function is for x86 for now. We may need to make this a function
+// pointer for other platforms
 void ocrFinalize() {
-    /** REC: TODO
+    ocrPolicyDomain_t *pd = NULL;
+    ocrWorker_t *worker = NULL;
+    getCurrentEnv(&pd, &worker, NULL, NULL);
+    // We start the current worker. After it starts, it will loop
+    // until ocrShutdown is called which will cause it the entire PD to
+    // stop (including this worker). The current worker
+    // will then fall through here so that it can finish the PD
+    worker->fcts.start(worker, pd);
+    pd->finish(pd);
+    /*
     ocrPolicyDomain_t* masterPD = getMasterPD();
     stopAllPD(masterPD);
     masterPD->destruct(masterPD);
+    */
     freeUpRuntime();
     //TODO we need to start by stopping the master PD which
     //controls stopping down PD located on the same machine.
@@ -202,7 +213,7 @@ void ocrFinalize() {
 //     ocrStatsProcessDestruct(&GfakeProcess);
 //     GocrFilterAggregator->destruct(GocrFilterAggregator);
 // #endif
-*/
+
 }
 
 ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
@@ -222,4 +233,3 @@ ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
     */
     return NULL_GUID;
 }
-

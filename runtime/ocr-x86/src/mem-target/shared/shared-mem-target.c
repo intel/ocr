@@ -38,6 +38,12 @@ void sharedDestruct(ocrMemTarget_t *self) {
     runtimeChunkFree((u64)self, NULL);    
 }
 
+void sharedBegin(ocrMemTarget_t *self, ocrPolicyDomain_t * PD ) {
+    // Nothing to do here. In other implementations, this is
+    // when you update the range you can use using the sysboot functions
+    ASSERT(self->memoryCount == 1);
+    self->memories[0]->fcts.begin(self->memories[0], PD);
+}
 
 void sharedStart(ocrMemTarget_t *self, ocrPolicyDomain_t * PD ) {
     // Get a GUID
@@ -145,6 +151,7 @@ ocrMemTargetFactory_t *newMemTargetFactoryShared(ocrParamList_t *perType) {
     base->instantiate = &newMemTargetShared;
     base->destruct = &destructMemTargetFactoryShared;
     base->targetFcts.destruct = &sharedDestruct;
+    base->targetFcts.begin = &sharedBegin;
     base->targetFcts.start = &sharedStart;
     base->targetFcts.stop = &sharedStop;
     base->targetFcts.finish = &sharedFinish;

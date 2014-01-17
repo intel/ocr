@@ -157,6 +157,8 @@ typedef struct _ocrSalFcts_t {
      */
     void (*destruct)(struct _ocrSal_t* self);
 
+    void (*begin)(struct _ocrSal_t* self, struct _ocrPolicyDomain_t *pd);
+    
     void (*start)(struct _ocrSal_t* self, struct _ocrPolicyDomain_t *pd);
 
     void (*stop)(struct _ocrSal_t* self);

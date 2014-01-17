@@ -27,7 +27,6 @@
  * Need to think of the merging of the different tag regions
  */
 
-struct _ocrPolicyDomain_t;
 
 /**
  * @brief A node for an AVL binary tree
@@ -56,8 +55,8 @@ typedef struct _tagHead_t {
 } tagHead_t;
 
 typedef struct _rangeTracker_t {
-    struct _ocrPolicyDomain_t *pd; /**< Policy domain this range-tracker operates in */
     u64 minimum, maximum; /**< Minimum and maximum of this range */
+    u64 startBKHeap; /**< Area for book-keeping (heap) */
     u32 maxSplits, nextTag;
     avlBinaryNode_t *rangeSplits; /**< Binary tree containing the "splits" in the range.
                                    * The "split" point is the key and the value is an
@@ -78,16 +77,14 @@ typedef struct _rangeTracker_t {
  * This does not do any allocation for the range tracker (it must be pre-allocated
  * at the address passed in as dest
  *
- * @param[in] pd            Policy-domain inside which this tracker will be used
  * @param[in] dest          Pointer to this rangeTracker_t
  * @param[in] maxSplits     Maximum number of splits that will occur
  * @param[in] minRange      Smallest value for the range (inclusive)
  * @param[in] maxRange      Largest value for the range (exclusive)
  * @param[in] initTag       Initial tag for the entire range
  */
-void initializeRange(struct _ocrPolicyDomain_t *pd, rangeTracker_t *dest,
-                     u32 maxSplits, u64 minRange, u64 maxRange,
-                     ocrMemoryTag_t initTag);
+void initializeRange(rangeTracker_t *dest, u32 maxSplits, u64 minRange,
+                     u64 maxRange, ocrMemoryTag_t initTag);
 
 /**
  * @brief Destroys the range

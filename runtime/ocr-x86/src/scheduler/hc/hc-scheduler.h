@@ -31,7 +31,7 @@ typedef struct {
 
 typedef struct {
     ocrScheduler_t scheduler;
-    hcWorkpileIterator_t ** stealIterators;
+    hcWorkpileIterator_t * stealIterators;
     u64 workerIdFirst;
 } ocrSchedulerHc_t;
 

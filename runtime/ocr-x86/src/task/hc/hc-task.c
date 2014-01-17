@@ -89,7 +89,6 @@ ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory, ocrEdt_
     base->name = fctName;
 #endif
     base->fctId = factory->factoryId;
-    base->guid = UNINITIALIZED_GUID;
     
 #ifdef OCR_ENABLE_STATISTICS
     {
@@ -387,10 +386,12 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     // Set up outputEventPtr:
     //   - if a finish EDT, wait on its latch event
     //   - if not a finish EDT, wait on its output event
-    if(base->finishLatch) {
-        outputEventPtr->guid = base->finishLatch;
-    } else {
-        outputEventPtr->guid = base->outputEvent;
+    if(outputEventPtr) {
+        if(base->finishLatch) {
+            outputEventPtr->guid = base->finishLatch;
+        } else {
+            outputEventPtr->guid = base->outputEvent;
+        }
     }
 #undef PD_MSG
 #undef PD_TYPE
@@ -412,7 +413,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
         }
     }
 #endif /* OCR_ENABLE_STATISTICS */
-    DPRINTF(DEBUG_LVL_INFO, "Create 0x%lx depc %d outputEvent 0x%lx\n", base->guid, depc, outputEventPtr->guid);
+    DPRINTF(DEBUG_LVL_INFO, "Create 0x%lx depc %d outputEvent 0x%lx\n", base->guid, depc, outputEventPtr?outputEventPtr->guid:NULL_GUID);
 
     // Check to see if the EDT can be run
     if(base->depc == edt->slotSatisfiedCount) {
@@ -494,20 +495,24 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot)
     node->guid = signalerGuid.guid;
     if(signalerGuid.guid == NULL_GUID) {
         node->slot = slot;
-    } else if(isEventGuid(signalerGuid.guid)) {
-        node->slot = slot;
-        // REC: TODO: This is dangerous as it implies a deguidify which
-        // may not be very easy to do. It is a read-only thing though
-        // so maybe it is OK (change deguidify to specify mode?)
-        if(isEventGuidOfKind(signalerGuid.guid, OCR_EVENT_ONCE_T)
-           || isEventGuidOfKind(signalerGuid.guid, OCR_EVENT_LATCH_T)) {
-            node->slot = (u32)-2; // To signal that this is a once event
-        }
-    } else if(isDatablockGuid(signalerGuid.guid)) {
-        node->slot = (u32)-1; // Already satisfied
-        ++(self->slotSatisfiedCount);
     } else {
-        ASSERT(0);
+        if(isEventGuid(signalerGuid.guid)) {
+            node->slot = slot;
+            // REC: TODO: This is dangerous as it implies a deguidify which
+            // may not be very easy to do. It is a read-only thing though
+            // so maybe it is OK (change deguidify to specify mode?)
+            if(isEventGuidOfKind(signalerGuid.guid, OCR_EVENT_ONCE_T)
+               || isEventGuidOfKind(signalerGuid.guid, OCR_EVENT_LATCH_T)) {
+                node->slot = (u32)-2; // To signal that this is a once event
+            }
+        } else {
+            if(isDatablockGuid(signalerGuid.guid)) {
+                node->slot = (u32)-1; // Already satisfied
+                ++(self->slotSatisfiedCount);
+            } else {
+                ASSERT(0);
+            }
+        }
     }
     if(base->depc == self->slotSatisfiedCount) {
         taskSchedule(base);

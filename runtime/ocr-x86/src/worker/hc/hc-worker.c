@@ -58,10 +58,10 @@ static void workerLoop(ocrWorker_t * worker) {
             // We got a response
             count = PD_MSG_FIELD(guidCount);
             if(count == 1) {
-                // REC: TODO: Do we need a message to execute this
                 ASSERT(taskGuid.guid != NULL_GUID && taskGuid.metaDataPtr != NULL);
                 worker->curTask = (ocrTask_t*)taskGuid.metaDataPtr;
-                //worker->curTask->fctPtrs->execute(worker->curTask);
+                u8 (*executeFunc)(ocrTask_t *) = (u8 (*)(ocrTask_t*))PD_MSG_FIELD(extra); // Execute is stored in extra
+                executeFunc(worker->curTask);
                 worker->curTask = NULL;
                 // Destroy the work
 #undef PD_TYPE
@@ -132,6 +132,7 @@ ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrLocation_t location,
     
     worker->id = ((paramListWorkerHcInst_t*)perInstance)->workerId;
     worker->run = false;
+    worker->secondStart = false;
 
     base->location = location;
     base->type = type;
@@ -142,12 +143,42 @@ ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrLocation_t location,
     return base;
 }
 
+void hcBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
+    
+    // Starts everybody, the first comp-platform has specific
+    // code to represent the master thread.
+    u64 computeCount = base->computeCount;
+    ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
+    u64 i = 0;
+    for(i = 0; i < computeCount; ++i) {
+        base->computes[i]->fcts.begin(base->computes[i], policy, base->type);
+#ifdef OCR_ENABLE_STATISTICS
+        statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
+#endif
+    }
+
+    if(base->type == MASTER_WORKERTYPE) {
+        // For the master thread, we need to set the PD and worker
+        // The other threads will set this when they start
+        for(i = 0; i < computeCount; ++i) {
+            base->computes[i]->fcts.setCurrentEnv(base->computes[i], policy, base);
+        }
+    }
+}
+
 void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     // Get a GUID
     guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
     base->pd = policy;
     
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
+    if(base->type == MASTER_WORKERTYPE) {
+        if(!hcWorker->secondStart) {
+            hcWorker->secondStart = true;
+            return; // Don't start right away
+        }
+    }
+    ASSERT(base->type != MASTER_WORKERTYPE || hcWorker->secondStart);
     hcWorker->run = true;
 
     // Starts everybody, the first comp-platform has specific
@@ -164,14 +195,6 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 #ifdef OCR_ENABLE_STATISTICS
         statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
 #endif
-    }
-
-    if(base->type == MASTER_WORKERTYPE) {
-        // For the master thread, we need to set the PD and worker
-        // The other threads will set this when they start
-        for(i = 0; i < computeCount; ++i) {
-            base->computes[i]->fcts.setCurrentEnv(base->computes[i], policy, base);
-        }
     }
 }
 
@@ -250,6 +273,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
     base->instantiate = newWorkerHc;
     base->destruct =  destructWorkerFactoryHc;
     base->workerFcts.destruct = destructWorkerHc;
+    base->workerFcts.begin = hcBeginWorker;
     base->workerFcts.start = hcStartWorker;
     base->workerFcts.stop = hcStopWorker;
     base->workerFcts.finish = hcFinishWorker;

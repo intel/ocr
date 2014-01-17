@@ -55,6 +55,8 @@ typedef struct _ocrMemPlatformFcts_t {
      */
     void (*destruct)(struct _ocrMemPlatform_t* self);
 
+    void (*begin)(struct _ocrMemPlatform_t* self, struct _ocrPolicyDomain_t * PD);
+    
     /** @brief Starts the mem-platform
      *
      *  @param[in] self       Pointer to this mem-platform

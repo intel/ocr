@@ -75,12 +75,11 @@ void pthreadDestruct (ocrCompPlatform_t * base) {
     runtimeChunkFree((u64)base, NULL);
 }
 
-void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType,
-                  launchArg_t * launchArg) {
+void pthreadBegin(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
+    
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
     compPlatform->pd = PD;
-    pthreadCompPlatform->launchArg = launchArg;
-    pthreadCompPlatform->isMaster = (workerType==MASTER_WORKERTYPE);
+    pthreadCompPlatform->isMaster = (workerType == MASTER_WORKERTYPE);
     if(pthreadCompPlatform->isMaster) {
         // Only do the binding
         s32 cpuBind = pthreadCompPlatform->binding;
@@ -89,7 +88,14 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
             bindThread(cpuBind);
         }
         // The master starts executing when we call "stop" on it
-    } else {
+    }
+}
+
+void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType,
+                  launchArg_t * launchArg) {
+    ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
+    pthreadCompPlatform->launchArg = launchArg;
+    if(!pthreadCompPlatform->isMaster) {
         pthread_attr_t attr;
         RESULT_ASSERT(pthread_attr_init(&attr), ==, 0);
         //Note this call may fail if the system doesn't like the stack size asked for.
@@ -97,21 +103,22 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
         RESULT_ASSERT(pthread_create(&(pthreadCompPlatform->osThread),
                                      &attr, &pthreadRoutineWrapper,
                                      pthreadCompPlatform), ==, 0);
+    } else {
+        // The upper level worker will only start us once
+        pthreadRoutineExecute(pthreadCompPlatform->launchArg);
     }
 }
 
 void pthreadStop(ocrCompPlatform_t * compPlatform) {
-    ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
-    if(pthreadCompPlatform->isMaster) {
-        pthreadRoutineExecute(pthreadCompPlatform->launchArg);
-    } else {
-        // This code must be called by thread '0' to join on other threads
-        RESULT_ASSERT(pthread_join(pthreadCompPlatform->osThread, NULL), ==, 0);
-    }
+    // Nothing to do really
 }
 
 void pthreadFinish(ocrCompPlatform_t *compPlatform) {
-    // Nothing to do
+    // This code will be called by the main thread to join everyone else
+    ocrCompPlatformPthread_t *pthreadCompPlatform = (ocrCompPlatformPthread_t*)compPlatform;
+    if(!pthreadCompPlatform->isMaster) {
+        RESULT_ASSERT(pthread_join(pthreadCompPlatform->osThread, NULL), ==, 0);
+    }
 }
 
 u8 pthreadGetThrottle(ocrCompPlatform_t *self, u64* value) {
@@ -186,9 +193,9 @@ void pthreadGetCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
         *pd = vals->pd;
     if(worker)
         *worker = vals->worker;
-    if(task)
+    if(vals->worker && task)
         *task = vals->worker->curTask;
-    if(msg)
+    if(vals->pd && msg)
         msg->srcLocation = vals->pd->myLocation;
 }
 
@@ -206,6 +213,7 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     base->destruct = &destructCompPlatformFactoryPthread;
     base->setGetCurrentEnv = &setGetCurrentEnvPthread;
     base->platformFcts.destruct = &pthreadDestruct;
+    base->platformFcts.begin = &pthreadBegin;
     base->platformFcts.start = &pthreadStart;
     base->platformFcts.stop = &pthreadStop;
     base->platformFcts.finish = &pthreadFinish;

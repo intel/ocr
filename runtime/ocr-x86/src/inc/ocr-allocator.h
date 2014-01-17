@@ -68,6 +68,8 @@ typedef struct _ocrAllocatorFcts_t {
     void (*destruct)(struct _ocrAllocator_t* self);
 
 
+    void (*begin)(struct _ocrAllocator_t* self, struct _ocrPolicyDomain_t *PD);
+    
     void (*start)(struct _ocrAllocator_t* self, struct _ocrPolicyDomain_t * PD);
 
     void (*stop)(struct _ocrAllocator_t* self);

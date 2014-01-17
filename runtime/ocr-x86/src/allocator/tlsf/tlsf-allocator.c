@@ -985,10 +985,38 @@ void tlsfDestruct(ocrAllocator_t *self) {
         self->memories[0]->fcts.tag(self->memories[0], rself->addr,
                                     rself->addr + rself->totalSize,
                                     USER_FREE_TAG);
+        self->memories[0]->fcts.destruct(self->memories[0]);
+        // TODO: Should we do this? It is the clean thing to do but may
+        // cause mismatch between way it was created and freed
         runtimeChunkFree((u64)self->memories, NULL);
     }
 
     runtimeChunkFree((u64)self, NULL);
+}
+
+void tlsfBegin(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
+    ASSERT(self->memoryCount == 1);
+    self->memories[0]->fcts.begin(self->memories[0], PD);
+
+    // Do the allocation
+    ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
+    RESULT_ASSERT(rself->base.memories[0]->fcts.chunkAndTag(
+                      rself->base.memories[0], &(rself->poolAddr), rself->totalSize,
+                      USER_FREE_TAG, USER_USED_TAG), ==, 0);
+    ASSERT(rself->poolAddr);
+    // Adjust alignment if required
+    rself->addr = rself->poolAddr;
+    u64 t = (rself->poolAddr & ((1ULL<<ALIGN_LOG2) - 1));
+    if(t) {
+        // Not properly aligned
+        t = (1ULL<<ALIGN_LOG2) - t; // t now has how much we have to add to align
+        rself->addr += t;
+        rself->totalSize -= t;
+    }
+#ifdef OCR_ENABLE_STATISTICS
+    statsALLOCATOR_START(PD, self->guid, self, self->memories[0]->guid, self->memories[0]);
+#endif
+    RESULT_ASSERT(tlsfInit(rself->addr, rself->totalSize), ==, 0);
 }
 
 void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
@@ -996,19 +1024,9 @@ void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
     guidify(PD, (u64)self, &(self->fguid), OCR_GUID_ALLOCATOR);
     self->pd = PD;
     
-    // Do the allocation
-    ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     ASSERT(self->memoryCount == 1);
-    
-    RESULT_ASSERT(rself->base.memories[0]->fcts.chunkAndTag(
-                      rself->base.memories[0], &(rself->addr), rself->totalSize,
-                      USER_FREE_TAG, USER_USED_TAG), ==, 0);
-    ASSERT(rself->addr);
-    rself->poolAddr = rself->addr;
-#ifdef OCR_ENABLE_STATISTICS
-    statsALLOCATOR_START(PD, self->guid, self, self->memories[0]->guid, self->memories[0]);
-#endif
-    RESULT_ASSERT(tlsfInit(rself->addr, rself->totalSize), ==, 0);
+
+    self->memories[0]->fcts.start(self->memories[0], PD);
 }
 
 void tlsfStop(ocrAllocator_t *self) {
@@ -1019,6 +1037,9 @@ void tlsfStop(ocrAllocator_t *self) {
     statsALLOCATOR_STOP(self->pd, self->guid, self, self->memories[0]->guid,
                         self->memories[0]);
 #endif
+
+    ASSERT(self->memoryCount == 1);
+    self->memories[0]->fcts.stop(self->memories[0]);
     
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
@@ -1032,7 +1053,13 @@ void tlsfStop(ocrAllocator_t *self) {
 }
 
 void tlsfFinish(ocrAllocator_t *self) {
-    // Nothing to do
+    ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
+    RESULT_ASSERT(rself->base.memories[0]->fcts.tag(
+                      rself->base.memories[0], rself->poolAddr, rself->totalSize + rself->addr,
+                      USER_FREE_TAG), ==, 0);
+    
+    ASSERT(self->memoryCount == 1);
+    self->memories[0]->fcts.finish(self->memories[0]);
 }
 
 void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
@@ -1103,6 +1130,7 @@ ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
     base->instantiate = newAllocatorTlsf;
     base->destruct =  &destructAllocatorFactoryTlsf;
     base->allocFcts.destruct = FUNC_ADDR(void (*)(ocrAllocator_t*), tlsfDestruct);
+    base->allocFcts.begin = FUNC_ADDR(void (*)(ocrAllocator_t*, ocrPolicyDomain_t*), tlsfBegin);
     base->allocFcts.start = FUNC_ADDR(void (*)(ocrAllocator_t*, ocrPolicyDomain_t*), tlsfStart);
     base->allocFcts.stop = FUNC_ADDR(void (*)(ocrAllocator_t*), tlsfStop);
     base->allocFcts.finish = FUNC_ADDR(void (*)(ocrAllocator_t*), tlsfFinish);

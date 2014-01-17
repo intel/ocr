@@ -33,6 +33,12 @@ void ptDestruct(ocrCompTarget_t *compTarget) {
     runtimeChunkFree((u64)compTarget, NULL);
 }
 
+void ptBegin(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
+    
+    ASSERT(compTarget->platformCount == 1);
+    compTarget->platforms[0]->fcts.begin(compTarget->platforms[0], PD, workerType);
+}
+
 void ptStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType,
              launchArg_t * launchArg) {
     // Get a GUID
@@ -132,6 +138,7 @@ ocrCompTargetFactory_t *newCompTargetFactoryPt(ocrParamList_t *perType) {
     base->instantiate = &newCompTargetPt;
     base->destruct = &destructCompTargetFactoryPt;
     base->targetFcts.destruct = &ptDestruct;
+    base->targetFcts.begin = &ptBegin;
     base->targetFcts.start = &ptStart;
     base->targetFcts.stop = &ptStop;
     base->targetFcts.finish = &ptFinish;

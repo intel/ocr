@@ -82,6 +82,7 @@ void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) 
 /* OCR-HC Debug                                       */
 /******************************************************/
 
+#ifdef OCR_DEBUG
 static char * eventTypeToString(ocrEvent_t * base) {
     ocrEventTypes_t type = base->kind;
     if(type == OCR_EVENT_ONCE_T) {
@@ -96,6 +97,7 @@ static char * eventTypeToString(ocrEvent_t * base) {
         return "unknown";
     }
 }
+#endif
 
 
 /******************************************************/

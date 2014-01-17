@@ -60,6 +60,8 @@ typedef struct _ocrMemTargetFcts_t {
      */
     void (*destruct)(struct _ocrMemTarget_t* self);
 
+    void (*begin)(struct _ocrMemTarget_t* self, struct _ocrPolicyDomain_t * PD);
+    
     /** @brief Starts the mem-target
      *  @param[in] self          Pointer to this mem-target
      *  @param[in] PD            Current policy domain

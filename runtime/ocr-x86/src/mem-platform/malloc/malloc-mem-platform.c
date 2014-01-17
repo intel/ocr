@@ -37,26 +37,31 @@ void mallocDestruct(ocrMemPlatform_t *self) {
 
 struct _ocrPolicyDomain_t;
 
-void mallocStart(ocrMemPlatform_t *self, struct _ocrPolicyDomain_t * PD ) {
-    self->pd = PD;
+void mallocBegin(ocrMemPlatform_t *self, struct _ocrPolicyDomain_t * PD ) {
+    // This is where we need to update the memory
+    // using the sysboot functions
     self->startAddr = (u64)malloc(self->size);
     ASSERT(self->startAddr);
     self->endAddr = self->startAddr + self->size;
 
     ocrMemPlatformMalloc_t *rself = (ocrMemPlatformMalloc_t*)self;
-    initializeRange(self->pd, &(rself->rangeTracker), 16, self->startAddr,
+    initializeRange(&(rself->rangeTracker), 16, self->startAddr,
                     self->endAddr, USER_FREE_TAG);
+}
 
+void mallocStart(ocrMemPlatform_t *self, struct _ocrPolicyDomain_t * PD ) {
+    self->pd = PD;
+    // Nothing much else to do
 }
 
 void mallocStop(ocrMemPlatform_t *self) {
-    ocrMemPlatformMalloc_t *rself = (ocrMemPlatformMalloc_t*)self;
-    destroyRange(&(rself->rangeTracker));
-    free((void*)self->startAddr);
+    // Nothing to do
 }
 
 void mallocFinish(ocrMemPlatform_t *self) {
-    // Nothing to do
+    ocrMemPlatformMalloc_t *rself = (ocrMemPlatformMalloc_t*)self;
+    destroyRange(&(rself->rangeTracker));
+    free((void*)self->startAddr);
 }
 
 u8 mallocGetThrottle(ocrMemPlatform_t *self, u64 *value) {
@@ -160,6 +165,7 @@ ocrMemPlatformFactory_t *newMemPlatformFactoryMalloc(ocrParamList_t *perType) {
     base->instantiate = &newMemPlatformMalloc;
     base->destruct = &destructMemPlatformFactoryMalloc;
     base->platformFcts.destruct = &mallocDestruct;
+    base->platformFcts.begin = &mallocBegin;
     base->platformFcts.start = &mallocStart;
     base->platformFcts.stop = &mallocStop;
     base->platformFcts.finish = &mallocFinish;

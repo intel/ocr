@@ -7,13 +7,17 @@
 #include "debug.h"
 #include "ocr-policy-domain.h"
 #include "ocr-sal.h"
+#include "ocr-sysboot.h"
 #include "ocr-types.h"
+
+#include <stdio.h>
 
 // Forward declarations
 static void itona(char ** buf, u32* chars, u32 size, u32 base, s64 d);
 static void ftona(char** buf, u32* chars, u32 size, double fp , u32 precision);
 static u32 sal_internalPrintf(char* buf, u32 size, const char* fmt, void** rest);
 
+// TODO: Modify exit to properly handle bootup
 void sal_exit(u64 errorCode) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
@@ -32,7 +36,13 @@ void sal_exit(u64 errorCode) {
 void sal_abort(const char* file, u64 line) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL, &msg);
+    if(getCurrentEnv) {
+        getCurrentEnv(&pd, NULL, NULL, &msg);
+    }
+    if(!pd) {
+        bootUpAbort();
+        return;
+    }
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_SAL_TERMINATE
     msg.type = PD_MSG_SAL_TERMINATE | PD_MSG_REQUEST;
@@ -48,7 +58,12 @@ void sal_assert(bool cond, const char* file, u64 line) {
     if(!cond) {
         ocrPolicyMsg_t msg;
         ocrPolicyDomain_t *pd = NULL;
-        getCurrentEnv(&pd, NULL, NULL, &msg);
+        if(getCurrentEnv)
+            getCurrentEnv(&pd, NULL, NULL, &msg);
+        if(!pd) {
+            bootUpAbort();
+            return;
+        }
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_SAL_TERMINATE
         msg.type = PD_MSG_SAL_TERMINATE | PD_MSG_REQUEST;
@@ -66,11 +81,19 @@ void sal_printf(const char* string, ...) {
     static char printfBuf[PRINTF_MAX];
     __builtin_va_list t;
     __builtin_va_start(t, string);
+    // HACK
+    vprintf(string, (void**)t);
+    /*
     len = sal_internalPrintf(printfBuf, PRINTF_MAX, string, (void**)t);
 
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL, &msg);
+    if(getCurrentEnv)
+        getCurrentEnv(&pd, NULL, NULL, &msg);
+    if(!pd) {
+        bootUpPrint(printfBuf, len);
+        return;
+    }
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_SAL_PRINT
     // We now have the buffer and the length of things to print. We can
@@ -82,6 +105,7 @@ void sal_printf(const char* string, ...) {
     RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
+    */
 }
 
 /********************************************/

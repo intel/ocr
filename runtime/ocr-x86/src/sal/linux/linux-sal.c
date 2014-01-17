@@ -30,6 +30,10 @@ void linuxSalDestruct(ocrSal_t* self) {
     runtimeChunkFree((u64)self, NULL);
 }
 
+void linuxSalBegin(ocrSal_t *self, ocrPolicyDomain_t *pd) {
+    // Nothing to do
+}
+
 void linuxSalStart(ocrSal_t *self, ocrPolicyDomain_t *pd) {
     // No GUID for the system. Do we need one?
     self->pd = pd;
@@ -86,6 +90,7 @@ ocrSalFactory_t *newSalFactoryLinux(ocrParamList_t *perType) {
     base->instantiate = &newSalLinux;
     base->destruct = &destructSalFactoryLinux;
     base->salFcts.destruct = FUNC_ADDR(void (*)(ocrSal_t*), linuxSalDestruct);
+    base->salFcts.begin = FUNC_ADDR(void (*)(ocrSal_t*, ocrPolicyDomain_t*), linuxSalBegin);
     base->salFcts.start = FUNC_ADDR(void (*)(ocrSal_t*, ocrPolicyDomain_t*), linuxSalStart);
     base->salFcts.stop = FUNC_ADDR(void (*)(ocrSal_t*), linuxSalStop);
     base->salFcts.finish = FUNC_ADDR(void (*)(ocrSal_t*), linuxSalFinish);

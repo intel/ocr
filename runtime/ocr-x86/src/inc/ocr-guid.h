@@ -73,6 +73,8 @@ typedef struct _ocrGuidProviderFcts_t {
      */
     void (*destruct)(struct _ocrGuidProvider_t* self);
 
+    void (*begin)(struct _ocrGuidProvider_t *self, struct _ocrPolicyDomain_t *pd);
+    
     /**
      * @brief "Starts" the GUID provider
      *

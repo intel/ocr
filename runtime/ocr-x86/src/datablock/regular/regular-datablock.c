@@ -134,10 +134,12 @@ u8 regularRelease(ocrDataBlock_t *self, ocrFatGuid_t edt,
 
 void regularDestruct(ocrDataBlock_t *self) {
     // We don't use a lock here. Maybe we should
+#ifdef OCR_ASSERT
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
     ASSERT(rself->attributes.numUsers == 0);
     ASSERT(rself->attributes.freeRequested == 1);
     ASSERT(rself->lock == 0);
+#endif
     
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *task = NULL;

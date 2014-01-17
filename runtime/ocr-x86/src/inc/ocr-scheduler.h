@@ -38,6 +38,8 @@ struct _ocrPolicyCtx_t;
 typedef struct _ocrSchedulerFcts_t {
     void (*destruct)(struct _ocrScheduler_t *self);
 
+    void (*begin)(struct _ocrScheduler_t *self, struct _ocrPolicyDomain_t * PD);
+    
     void (*start)(struct _ocrScheduler_t *self, struct _ocrPolicyDomain_t * PD);
 
     void (*stop)(struct _ocrScheduler_t *self);
