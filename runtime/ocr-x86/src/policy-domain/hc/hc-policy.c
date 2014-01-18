@@ -268,10 +268,17 @@ static u8 hcAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, 
     return OCR_ENOMEM;
 }
 
-static u8 hcMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size, void** ptr) {
+static u8 hcMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size, 
+                     ocrMemType_t memType, void** ptr) {
     u64 i;
     void* result;
-    for(i=0; i < self->allocatorCount; ++i) {
+ 
+    ASSERT (self->allocatorCount >= 0);
+    for(i = (memType == GUID_MEMTYPE) ? // If we are allocating storage for a GUID...
+            (self->allocatorCount-1) :  // just allocate it in DRAM (for now).  Otherwise...
+            0;                          // try first allocator (L1) first.
+        i < self->allocatorCount;
+        i++) {                          // Then try L2, L3, DRAM.
         result = self->allocators[i]->fcts.allocate(self->allocators[i], size);
         if(result) break;
     }
@@ -284,14 +291,25 @@ static u8 hcMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
     return OCR_ENOMEM;
 }
 
-static u8 hcMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, void* ptr) {
+static u8 hcMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
+                       void* ptr, ocrMemType_t memType) {
     u64 i;
-    for(i=0; i < self->allocatorCount; ++i) {
-        if(self->allocators[i]->fguid.guid == allocator->guid) {
-            allocator->metaDataPtr = self->allocators[i]->fguid.metaDataPtr;
-            self->allocators[i]->fcts.free(self->allocators[i], ptr);
-            return 0;
+    ASSERT (memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
+    if (memType == DB_MEMTYPE) {
+        for(i=0; i < self->allocatorCount; ++i) {
+            if(self->allocators[i]->fguid.guid == allocator->guid) {
+                allocator->metaDataPtr = self->allocators[i]->fguid.metaDataPtr;
+                self->allocators[i]->fcts.free(self->allocators[i], ptr);
+                return 0;
+            }
         }
+        return OCR_EINVAL;
+    } else if (memType == GUID_MEMTYPE) {
+        ASSERT (self->allocatorCount >= 0);
+        self->allocators[self->allocatorCount-1]->fcts.free(self->allocators[self->allocatorCount-1], ptr);
+        return 0;
+    } else {
+        ASSERT (false);
     }
     return OCR_EINVAL;
 }
@@ -467,6 +485,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
             hcMemAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
+                       msg->type,
                        &(PD_MSG_FIELD(ptr)));
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
@@ -482,7 +501,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
-            hcMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr));
+            hcMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), msg->type);
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG

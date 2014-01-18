@@ -249,6 +249,7 @@ static u8 ceMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
     u64 numberOfEnginesInABlock = 9;
     void* result;
     ASSERT (memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
+    ASSERT (self->allocatorCount > 0);
     for(i = (memType == GUID_MEMTYPE) ? // If we are allocating storage for a GUID...
             (self->allocatorCount-1) :  // just allocate it in DRAM (for now).  Otherwise...
             engineIndex;                // First try the allocator for L1 collocated with the engine
@@ -284,7 +285,9 @@ static u8 ceMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
         }
         return OCR_EINVAL;
     } else if (memType == GUID_MEMTYPE) {
+        ASSERT (self->allocatorCount > 0);
         self->allocators[self->allocatorCount-1]->fcts.free(self->allocators[self->allocatorCount-1], ptr);
+        return 0;
     } else {
         ASSERT (false);
     }
