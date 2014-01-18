@@ -1,7 +1,7 @@
 #
 # Makefile for the OCR Runtime
 #
-# For OCR licensing terms, see ../runtime/LICENSE.
+# For OCR licensing terms, see top level LICENSE file.
 #
 # Author: Ivan Ganev <ivan.b.ganev@intel.com>
 #
