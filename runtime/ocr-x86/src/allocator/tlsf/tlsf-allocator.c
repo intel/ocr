@@ -452,7 +452,9 @@ static void markBlockFree(u64 pgStart, u64 me /* header_t* */) {
 #ifdef ENABLE_VALGRIND
     // Weird case so I'll just hack it for now
     VALGRIND_MAKE_MEM_DEFINED(locationToWrite, sizeof(tlsfSize_t));
+#endif
     ST_SIZE(locationToWrite, temp);
+#ifdef ENABLE_VALGRIND
     VALGRIND_MAKE_MEM_NOACCESS(locationToWrite, sizeof(tlsfSize_t));
 #endif
 
