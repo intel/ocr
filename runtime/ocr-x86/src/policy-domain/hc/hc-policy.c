@@ -272,7 +272,8 @@ static u8 hcMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
                      ocrMemType_t memType, void** ptr) {
     u64 i;
     void* result;
- 
+
+    ASSERT(memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
     ASSERT (self->allocatorCount >= 0);
     for(i = (memType == GUID_MEMTYPE) ? // If we are allocating storage for a GUID...
             (self->allocatorCount-1) :  // just allocate it in DRAM (for now).  Otherwise...
@@ -485,8 +486,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
             hcMemAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
-                       msg->type,
-                       &(PD_MSG_FIELD(ptr)));
+                       PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)));
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
@@ -498,10 +498,9 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_UNALLOC
-        ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
-            hcMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), msg->type);
+            hcMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), PD_MSG_FIELD(type));
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
@@ -727,14 +726,14 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         self->guidProviders[0]->fcts.getVal(
             self->guidProviders[0], PD_MSG_FIELD(dest.guid),
             (u64*)(&(PD_MSG_FIELD(dest.metaDataPtr))), &dstKind);
-
+        
         ocrFatGuid_t src = PD_MSG_FIELD(source);
         ocrFatGuid_t dest = PD_MSG_FIELD(dest);
         if(srcKind == OCR_GUID_EVENT) {
             ocrEvent_t *evt = (ocrEvent_t*)(src.metaDataPtr);
             ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
             self->eventFactories[0]->fcts[evt->kind].registerWaiter(
-                evt, dest, PD_MSG_FIELD(slot));
+                evt, dest, PD_MSG_FIELD(slot), true);
         } else {
             // Some sanity check
             ASSERT(srcKind == OCR_GUID_DB || srcKind == OCR_GUID_EDT);
@@ -742,18 +741,19 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         if(dstKind == OCR_GUID_EDT) {
             ocrTask_t *task = (ocrTask_t*)(dest.metaDataPtr);
             ASSERT(task->fctId == self->taskFactories[0]->factoryId);
-            self->taskFactories[0]->fcts.registerSignaler(task, src, PD_MSG_FIELD(slot));
+            self->taskFactories[0]->fcts.registerSignaler(task, src, PD_MSG_FIELD(slot), true);
         } else if(dstKind == OCR_GUID_EVENT) {
             ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
             ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
             self->eventFactories[0]->fcts[evt->kind].registerSignaler(
-                evt, src, PD_MSG_FIELD(slot));
+                evt, src, PD_MSG_FIELD(slot), true);
         } else {
             ASSERT(0); // Cannot have other types of destinations
         }
+
 #ifdef OCR_ENABLE_STATISTICS
         // TODO: Fixme
-    statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
+        statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
 #endif
 #undef PD_MSG
 #undef PD_TYPE
@@ -764,21 +764,117 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
     case PD_MSG_DEP_REGSIGNALER:
     {
-        // Never used for now
-        ASSERT(0);
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_DEP_REGSIGNALER
+        // We first get information about the signaler and destination
+        ocrGuidKind signalerKind, dstKind;
+        self->guidProviders[0]->fcts.getVal(
+            self->guidProviders[0], PD_MSG_FIELD(signaler.guid),
+            (u64*)(&(PD_MSG_FIELD(signaler.metaDataPtr))), &signalerKind);
+        self->guidProviders[0]->fcts.getVal(
+            self->guidProviders[0], PD_MSG_FIELD(dest.guid),
+            (u64*)(&(PD_MSG_FIELD(dest.metaDataPtr))), &dstKind);
+        
+        ocrFatGuid_t signaler = PD_MSG_FIELD(signaler);
+        ocrFatGuid_t dest = PD_MSG_FIELD(dest);
+        
+        switch(dstKind) {
+        case OCR_GUID_EVENT:
+        {
+            ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
+            ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
+            self->eventFactories[0]->fcts[evt->kind].registerSignaler(
+                evt, signaler, PD_MSG_FIELD(slot), false);
+            break;
+        }
+        case OCR_GUID_EDT:
+        {
+            ocrTask_t *edt = (ocrTask_t*)(dest.metaDataPtr);
+            ASSERT(edt->fctId == self->taskFactories[0]->factoryId);
+            self->taskFactories[0]->fcts.registerSignaler(
+                edt, signaler, PD_MSG_FIELD(slot), false);
+            break;
+        }
+        default:
+            ASSERT(0); // No other things we can register signalers on
+        }
+#ifdef OCR_ENABLE_STATISTICS
+        // TODO: Fixme
+        statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
+#endif
+#undef PD_MSG
+#undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
     case PD_MSG_DEP_REGWAITER:
     {
-        // Never used for now
-        ASSERT(0);
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_DEP_REGWAITER        
+// We first get information about the signaler and destination
+        ocrGuidKind waiterKind, dstKind;
+        self->guidProviders[0]->fcts.getVal(
+            self->guidProviders[0], PD_MSG_FIELD(waiter.guid),
+            (u64*)(&(PD_MSG_FIELD(waiter.metaDataPtr))), &waiterKind);
+        self->guidProviders[0]->fcts.getVal(
+            self->guidProviders[0], PD_MSG_FIELD(dest.guid),
+            (u64*)(&(PD_MSG_FIELD(dest.metaDataPtr))), &dstKind);
+        
+        ocrFatGuid_t waiter = PD_MSG_FIELD(waiter);
+        ocrFatGuid_t dest = PD_MSG_FIELD(dest);
+
+        ASSERT(dstKind == OCR_GUID_EVENT); // Waiters can only wait on events
+        ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
+        ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
+        self->eventFactories[0]->fcts[evt->kind].registerWaiter(
+            evt, waiter, PD_MSG_FIELD(slot), false);
+#ifdef OCR_ENABLE_STATISTICS
+        // TODO: Fixme
+        statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
+#endif
+#undef PD_MSG
+#undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
     case PD_MSG_DEP_SATISFY:
     {
-        // TODO
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_DEP_SATISFY
+        ocrGuidKind dstKind;
+        self->guidProviders[0]->fcts.getVal(
+            self->guidProviders[0], PD_MSG_FIELD(guid.guid),
+            (u64*)(&(PD_MSG_FIELD(guid.metaDataPtr))), &dstKind);
+
+        ocrFatGuid_t dst = PD_MSG_FIELD(guid);
+        if(dstKind == OCR_GUID_EVENT) {
+            ocrEvent_t *evt = (ocrEvent_t*)(dst.metaDataPtr);
+            ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
+            self->eventFactories[0]->fcts[evt->kind].satisfy(
+                evt, PD_MSG_FIELD(payload), PD_MSG_FIELD(slot));
+        } else {
+            if(dstKind == OCR_GUID_EDT) {
+                ocrTask_t *edt = (ocrTask_t*)(dst.metaDataPtr);
+                ASSERT(edt->fctId == self->taskFactories[0]->factoryId);
+                self->taskFactories[0]->fcts.satisfy(
+                    edt, PD_MSG_FIELD(payload), PD_MSG_FIELD(slot));
+            } else {
+                ASSERT(0); // We can't satisfy anything else
+            }
+        }
+#ifdef OCR_ENABLE_STATISTICS
+        // TODO: Fixme
+        statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
+#endif
+#undef PD_MSG
+#undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
+        break;            
     }
 
     case PD_MSG_DEP_UNREGSIGNALER:

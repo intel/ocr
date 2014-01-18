@@ -35,49 +35,6 @@
 
 #define DEBUG_TYPE EVENT
 
-// TODO: We need to handle dependences better between signalers and waiters in particular
-// when they dissapear (for ex, an EDT executes and goes away or a STICKY event is
-// destroyed). With only ONCE events, that should be OK but if we add sticky events, we
-// may run into issues.
-
-// TODO
-// REC: This will move to the PD arbitration
-/*
-void registerDependence(ocrGuid_t signalerGuid, ocrGuid_t waiterGuid, int slot) {
-    // Warning: signalerGuid can actually be a NULL_GUID.
-    // This can happen when users declared a certain number of
-    // depc but dynamically decide some are not used.
-
-    // WAIT MODE: event-to-event registration
-    // Note: do not call 'registerWaiter' here as it triggers event-to-edt
-    // registration, which should only be done on edtSchedule.
-    ocrPolicyDomain_t *pd = getCurrentPD();
-    if (isEventGuid(signalerGuid) && isEventGuid(waiterGuid)) {
-        ocrEventHcAwaitable_t * target;
-        deguidify(pd, signalerGuid, (u64*)&target, NULL);
-        awaitableEventRegisterWaiter(target, waiterGuid, slot);
-        return;
-    }
-    // ONCE event must know who are consuming them so that 
-    // they are not deallocated prematurely 
-    if (isEventGuidOfKind(signalerGuid, OCR_EVENT_ONCE_T) && isEdtGuid(waiterGuid)) {
-        ocrEvent_t * signalerEvent;
-        deguidify(pd, signalerGuid, (u64*)&signalerEvent, NULL);
-        onceEventRegisterEdtWaiter(signalerEvent, waiterGuid, slot);
-    }
-
-    // SIGNAL MODE:
-    //  - anything-to-edt registration
-    //  - db-to-event registration
-    // Make sure to do this before signaling in case
-    // the registerSignaler causes the waiter to fire
-#ifdef OCR_ENABLE_STATISTICS
-    statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
-#endif    
-    registerSignaler(signalerGuid, waiterGuid, slot);
-}
-*/
-
 /******************************************************/
 /* OCR-HC Debug                                       */
 /******************************************************/
@@ -127,8 +84,8 @@ void destructEventHc(ocrEvent_t *base) {
     // with this event
     
 #define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_DB_DESTROY
-    msg.type = PD_MSG_DB_DESTROY | PD_MSG_REQUEST;
+#define PD_TYPE PD_MSG_DB_FREE
+    msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->waitersDb;
     PD_MSG_FIELD(edt.guid) = curTask->guid;
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
@@ -136,7 +93,7 @@ void destructEventHc(ocrEvent_t *base) {
     RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
 
     /* Signalers not used
-    msg.type = PD_MSG_DB_DESTROY | PD_MSG_REQUEST;
+    msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->signalersDb;
     RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
     */
@@ -252,7 +209,7 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
     ASSERT(event->base.base.kind == OCR_EVENT_IDEM_T ||
            event->data == UNINITIALIZED_GUID); // Sticky events can be satisfied once
 
-    if(event->data == UNINITIALIZED_GUID) {
+    if(event->data != UNINITIALIZED_GUID) {
         return 1; // TODO: Put some error code here.
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Satisfy %s: 0x%lx with 0x%lx\n", eventTypeToString(base),
@@ -299,7 +256,7 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #define PD_TYPE PD_MSG_DEP_SATISFY
         PD_MSG_FIELD(payload) = db; // Do this once as it may get resolved the first time
         PD_MSG_FIELD(properties) = 0;
-        for(i = 0; i < event->base.waitersCount; ++i) {
+        for(i = 0; i < waitersCount; ++i) {
 #ifdef OCR_ENABLE_STATISTICS
             // We do this *before* calling signalWaiter because otherwise
             // if the event is a OCR_EVENT_ONCE_T, it will get freed
@@ -411,16 +368,17 @@ u8 satisfyEventHcLatch(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
     return 0;
 }
 
-u8 registerSignalerHc(ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot) {
+u8 registerSignalerHc(ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot, bool isDepAdd) {
     return 0; // We do not do anything for signalers
 }
 
-u8 unregisterSignalerHc(ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot) {
+u8 unregisterSignalerHc(ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot, bool isDepRem) {
     return 0; // We do not do anything for signalers
 }
 
 // In this call, we do not contend with the satisfy (once and latch events)
-u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot) {
+u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool isDepAdd) {
+    // Here we always add the waiter to our list so we ignore isDepAdd
     ocrEventHc_t *event = (ocrEventHc_t*)base;
     
     
@@ -468,7 +426,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot) {
         waitersNew = (regNode_t*)PD_MSG_FIELD(ptr);
         newGuid = PD_MSG_FIELD(guid);
 #undef PD_TYPE   
-        hal_memCopy(waitersNew, waiters, sizeof(regNode_t*)*event->waitersCount, false);
+        hal_memCopy(waitersNew, waiters, sizeof(regNode_t)*event->waitersCount, false);
         event->waitersMax *= 2;
         for(i = event->waitersCount; i < event->waitersMax; ++i) {
             waitersNew[i].guid = NULL_GUID;
@@ -484,8 +442,8 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot) {
     // Now release the DB(s)
     if(waitersNew) {
         // We need to destroy the old DB and release the new one
-#define PD_TYPE PD_MSG_DB_DESTROY
-        msg.type = PD_MSG_DB_DESTROY | PD_MSG_REQUEST;
+#define PD_TYPE PD_MSG_DB_FREE
+        msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->waitersDb;
         PD_MSG_FIELD(edt.guid) = curTask->guid;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
@@ -509,8 +467,13 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot) {
 }
 
 
-// In this call, we do not contend with the satisfy (once and latch events)
-u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot) {
+// In this call, we do have to contend with concurrent satisfies (persistent events)
+u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool isDepAdd) {
+    // For persistent events, we only consider waiters that register
+    // for "real" and not when a dependence is being added
+    if(isDepAdd) {
+        return 0;
+    }
     ocrEventHcPersist_t *event = (ocrEventHcPersist_t*)base;
     
     
@@ -576,7 +539,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot)
         waitersNew = (regNode_t*)PD_MSG_FIELD(ptr);
         newGuid = PD_MSG_FIELD(guid);
 #undef PD_TYPE   
-        hal_memCopy(waitersNew, waiters, sizeof(regNode_t*)*event->base.waitersCount, false);
+        hal_memCopy(waitersNew, waiters, sizeof(regNode_t)*event->base.waitersCount, false);
         event->base.waitersMax *= 2;
         for(i = event->base.waitersCount; i < event->base.waitersMax; ++i) {
             waitersNew[i].guid = NULL_GUID;
@@ -590,8 +553,8 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot)
     // Now release the DB(s)
     if(waitersNew) {
         // We need to destroy the old DB and release the new one
-#define PD_TYPE PD_MSG_DB_DESTROY
-        msg.type = PD_MSG_DB_DESTROY | PD_MSG_REQUEST;
+#define PD_TYPE PD_MSG_DB_FREE
+        msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->base.waitersDb;
         PD_MSG_FIELD(edt.guid) = curTask->guid;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
@@ -616,8 +579,10 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot)
     return 0;
 }
 
-// In this call, we do not contend with the satisfy (once and latch events)
-u8 unregisterWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot) {
+// In this call, we do not contend with satisfy
+u8 unregisterWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool isDepRem) {
+    // Always search for the waiter because we don't know if it registered or not so
+    // ignore isDepRem
     ocrEventHc_t *event = (ocrEventHc_t*)base;
     
     
@@ -755,6 +720,10 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     if(eventType == OCR_EVENT_LATCH_T) {
         sizeOfGuid = sizeof(ocrEventHcLatch_t);
     }
+    if(eventType == OCR_EVENT_IDEM_T || OCR_EVENT_STICKY_T) {
+        sizeOfGuid = sizeof(ocrEventHcPersist_t);
+    }
+    
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_CREATE
     msg.type = PD_MSG_GUID_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -868,8 +837,8 @@ ocrEventFactory_t * newEventFactoryHc(ocrParamList_t *perType, u32 factoryId) {
     for(i = 0; i < (u32)OCR_EVENT_T_MAX; ++i) {
         base->fcts[i].destruct = FUNC_ADDR(void (*)(ocrEvent_t*), destructEventHc);
         base->fcts[i].get = FUNC_ADDR(ocrFatGuid_t (*)(ocrEvent_t*), getEventHc);
-        base->fcts[i].registerSignaler = FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), registerSignalerHc);
-        base->fcts[i].unregisterSignaler = FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), unregisterSignalerHc);
+        base->fcts[i].registerSignaler = FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), registerSignalerHc);
+        base->fcts[i].unregisterSignaler = FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), unregisterSignalerHc);
     }
     base->fcts[OCR_EVENT_ONCE_T].satisfy = 
         FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcOnce);
@@ -879,14 +848,14 @@ ocrEventFactory_t * newEventFactoryHc(ocrParamList_t *perType, u32 factoryId) {
         FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcLatch);
 
     base->fcts[OCR_EVENT_ONCE_T].registerWaiter = base->fcts[OCR_EVENT_LATCH_T].registerWaiter =
-        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), registerWaiterEventHc);
+        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), registerWaiterEventHc);
     base->fcts[OCR_EVENT_IDEM_T].registerWaiter = base->fcts[OCR_EVENT_STICKY_T].registerWaiter =
-        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), registerWaiterEventHcPersist);
+        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), registerWaiterEventHcPersist);
 
     base->fcts[OCR_EVENT_ONCE_T].unregisterWaiter = base->fcts[OCR_EVENT_LATCH_T].unregisterWaiter =
-        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), unregisterWaiterEventHc);
+        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), unregisterWaiterEventHc);
     base->fcts[OCR_EVENT_IDEM_T].unregisterWaiter = base->fcts[OCR_EVENT_STICKY_T].unregisterWaiter =
-        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), unregisterWaiterEventHcPersist);
+        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), unregisterWaiterEventHcPersist);
     
     base->factoryId = factoryId;
 

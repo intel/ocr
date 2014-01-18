@@ -82,9 +82,12 @@ typedef struct _ocrEventFcts_t {
      * @param[in] self          Pointer to this event
      * @param[in] signaler      GUID of the source (signaler)
      * @param[in] slot          Slot on self that will be satisfied by the signaler
+     * @param[in] isDepAdd      True if this call is part of adding a dependence. False
+     *                          if due to a standalone call
      * @return 0 on success and a non-zero value on failure
      */
-    u8 (*registerSignaler)(struct _ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot);
+    u8 (*registerSignaler)(struct _ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot,
+                           bool isDepAdd);
 
     /**
      * @brief Oppositor of registerSignaler()
@@ -96,9 +99,11 @@ typedef struct _ocrEventFcts_t {
      * @param[in] self          Pointer to this event
      * @param[in] signaler      GUID of the source (signaler)
      * @param[in] slot          Slot on self that will be satisfied by the signaler
+     * @param[in] isDepRem      True if this call is part of removing a dependence
      * @return 0 on success and a non-zero value on failure
      */
-    u8 (*unregisterSignaler)(struct _ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot);
+    u8 (*unregisterSignaler)(struct _ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot,
+                             bool isDepRem);
     
     /**
      * @brief Register a "waiter" (aka a dependence) on the event
@@ -112,9 +117,14 @@ typedef struct _ocrEventFcts_t {
      * @param[in] waiter        EDT/Event to register as a waiter
      * @param[in] slot          Slot to satisfy waiter on once this event
      *                          is satisfied
+     * @param[in] isDepAdd      True if this call is part of adding a dependence.
+     *                          False if due to a standalone call. This will be
+     *                          important for STICKY events for example where
+     *                          we only register waiters on their dependence frontier
      * @return 0 on success and a non-zero code on failure
      */
-    u8 (*registerWaiter)(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot);
+    u8 (*registerWaiter)(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot,
+                         bool isDepAdd);
 
     /**
      * @brief Unregisters a "waiter" (aka a dependence) on the event
@@ -126,9 +136,11 @@ typedef struct _ocrEventFcts_t {
      * @param[in] waiter        EDT/Event to register as a waiter
      * @param[in] slot          Slot to satisfy waiter on once this event
      *                          is satisfied
+     * @param[in] isDepRem      True if part of removing a dependence
      * @return 0 on success and a non-zero code on failure
      */
-    u8 (*unregisterWaiter)(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot);
+    u8 (*unregisterWaiter)(struct _ocrEvent_t *self, ocrFatGuid_t waiter, u32 slot,
+                           bool isDepRem);
 } ocrEventFcts_t;
 
 /**

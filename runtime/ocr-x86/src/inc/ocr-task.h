@@ -136,9 +136,13 @@ typedef struct _ocrTaskFcts_t {
      * @param[in] self        Pointer to this task
      * @param[in] signaler    GUID of the source (signaler)
      * @param[in] slot        Slot on self that will be satisfied by signaler
+     * @param[in] isDepAdd    True if the registerSignaler is part of the initial
+     *                        adding of the dependence. False if this was a
+     *                        standalone signaler register.
      * @return 0 on success and a non-zero value on failure
      */
-    u8 (*registerSignaler)(struct _ocrTask_t* self, ocrFatGuid_t src, u32 slot);
+    u8 (*registerSignaler)(struct _ocrTask_t* self, ocrFatGuid_t src, u32 slot,
+                           bool isDepAdd);
 
     /**
      * @brief Informs the task that the event/db 'src' is no longer linked
@@ -150,9 +154,12 @@ typedef struct _ocrTaskFcts_t {
      * @param[in] self        Pointer to this task
      * @param[in] signaler    GUID of the source (signaler)
      * @param[in] slot        Slot on self that will be satisfied by signaler
+     * @param[in] isDepRem    True if the unregisterSignaler is part of a
+     *                        dependence removal. False if standalone call
      * @return 0 on success and a non-zero value on failure
      */
-    u8 (*unregisterSignaler)(struct _ocrTask_t* self, ocrFatGuid_t src, u32 slot);
+    u8 (*unregisterSignaler)(struct _ocrTask_t* self, ocrFatGuid_t src, u32 slot,
+                             bool isDepRem);
     
     /**
      * @brief Executes this EDT
