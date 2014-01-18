@@ -23,4 +23,7 @@ RMFLAGS := -rf
 
 CP      := cp
 
+# For Valgrind, uncomment this line
+CFLAGS += -I/usr/include -DENABLE_VALGRIND
+
 include ../common.mk

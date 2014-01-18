@@ -11,7 +11,7 @@
 #
 
 CC      := gcc
-CFLAGS  := 
+CFLAGS  :=  
 
 AR      := ar
 ARFLAGS := cru
@@ -22,5 +22,8 @@ RM      := rm
 RMFLAGS := -rf
 
 CP      := cp
+
+# Enable this if you want valgrind for allocators
+CFLAGS += -DENABLE_VALGRIND
 
 include ../common.mk
