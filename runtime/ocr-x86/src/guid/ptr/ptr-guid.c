@@ -63,10 +63,10 @@ u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind kin
     PD_MSG_FIELD(type) = GUID_MEMTYPE;
 
     if (policy->processMessage (policy, &msg, true) == 0) {
-        ocrGuidImpl_t * guidInst = ((ocrGuidImpl_t *) ((u64) PD_MSG_FIELD(ptr)));
+        ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *)PD_MSG_FIELD(ptr);
         guidInst->guid = (ocrGuid_t)val;
         guidInst->kind = kind;
-        *guid = (ocrGuid_t) guidInst;  // TODO:  Is this right?  Note that "(ocrGuid_t)" WAS "(u64)", and though ocrGuid_t is #defined to u64, it seems like we should use ocrGuid_t, not u64.
+        *guid = (ocrGuid_t) guidInst;
     } else {
         ASSERT (false);  // TODO: Deal with failed request.
     }
@@ -95,15 +95,15 @@ u8 ptrCreateGuid(ocrGuidProvider_t* self, ocrFatGuid_t *fguid, u64 size, ocrGuid
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_ALLOC
     msg.type = PD_MSG_MEM_ALLOC | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(size) = sizeof(ocrGuidImpl_t);
+    PD_MSG_FIELD(size) = sizeof(ocrGuidImpl_t) + size;
     PD_MSG_FIELD(properties) = 0; // TODO:  What flags should be defined?  Where are symbolic constants for them defined?
     PD_MSG_FIELD(type) = GUID_MEMTYPE;
 
     if (policy->processMessage (policy, &msg, true) == 0) {
-        ocrGuidImpl_t * guidInst = ((ocrGuidImpl_t *) ((u64) PD_MSG_FIELD(ptr)));
+        ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *)PD_MSG_FIELD(ptr);
         guidInst->guid = (ocrGuid_t)((u64)guidInst + sizeof(ocrGuidImpl_t));
         guidInst->kind = kind;
-        fguid->guid = (ocrGuid_t)guidInst; // TODO:  Is this right?  Note that "(ocrGuid_t)" WAS "(u64)", and though ocrGuid_t is #defined to u64, it seems like we should use ocrGuid_t, not u64.
+        fguid->guid = (ocrGuid_t)guidInst;
         fguid->metaDataPtr = (void*)((u64)guidInst + sizeof(ocrGuidImpl_t));
     } else {
         ASSERT (false);  // TODO: Deal with failed request.
