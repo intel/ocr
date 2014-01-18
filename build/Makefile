@@ -69,6 +69,3 @@ squeaky:
 	ARCH=x86-pthread-fsim $(MAKE) -C x86-pthread-fsim clean
 	ARCH=fsim-null-fsim-ce $(MAKE) -C fsim-null-fsim-ce clean
 	ARCH=fsim-null-fsim-xe $(MAKE) -C fsim-null-fsim-xe clean
-
-
-
