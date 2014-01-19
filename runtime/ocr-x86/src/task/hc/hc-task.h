@@ -36,9 +36,10 @@ ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType, u32
 typedef struct {
     ocrTask_t base;
     regNode_t * signalers; // Does not grow, set once when the task is created
-    u32 frontierSlot; // Slot of the execution frontier
-                      // This excludes once events
-    u32 slotSatisfiedCount; // Number of slots satisfied
+    volatile u32 frontierSlot; // Slot of the execution frontier
+                               // This excludes once events
+    volatile u32 slotSatisfiedCount; // Number of slots satisfied
+    volatile u32 lock; // TODO: We can probably do with just atomics on frontierSlot and slotSatisfiedCount
 } ocrTaskHc_t;
 
 typedef struct {

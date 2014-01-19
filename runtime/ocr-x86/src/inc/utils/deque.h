@@ -58,19 +58,19 @@ typedef struct _ocrDeque_t {
 
     /** @brief Push element at tail
      */
-    void (*pushAtTail)(struct _ocrDeque_t *self, void* entry, u8 try);
+    void (*pushAtTail)(struct _ocrDeque_t *self, void* entry, u8 doTry);
 
     /** @brief Pop element from tail
      */
-    void* (*popFromTail)(struct _ocrDeque_t *self, u8 try);
+    void* (*popFromTail)(struct _ocrDeque_t *self, u8 doTry);
 
     /** @brief Push element at head
      */
-    void (*pushAtHead)(struct _ocrDeque_t *self, void* entry, u8 try);
+    void (*pushAtHead)(struct _ocrDeque_t *self, void* entry, u8 doTry);
 
     /** @brief Pop element from head
      */
-    void* (*popFromHead)(struct _ocrDeque_t *self, u8 try);
+    void* (*popFromHead)(struct _ocrDeque_t *self, u8 doTry);
 } deque_t;
 
 /****************************************************/
@@ -95,8 +95,8 @@ typedef struct _ocrDequeDualLocked_t {
 /****************************************************/
 /* DEQUE API                                        */
 /****************************************************/
-deque_t* newWorkStealingDeque(ocrPolicyDomain_t *pd, void * init_value);
-deque_t* newNonConcurrentQueue(ocrPolicyDomain_t *pd, void * init_value);
-deque_t* newSemiConcurrentQueue(ocrPolicyDomain_t *pd, void * init_value);
+deque_t* newWorkStealingDeque(ocrPolicyDomain_t *pd, void * initValue);
+deque_t* newNonConcurrentQueue(ocrPolicyDomain_t *pd, void * initValue);
+deque_t* newSemiConcurrentQueue(ocrPolicyDomain_t *pd, void * initValue);
 
 #endif /* DEQUE_H_ */

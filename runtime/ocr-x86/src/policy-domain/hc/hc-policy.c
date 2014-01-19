@@ -264,7 +264,7 @@ static u8 hcAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, 
         (*guid).guid = block->guid;
         (*guid).metaDataPtr = block;
         return 0;
-    } 
+    }
     return OCR_ENOMEM;
 }
 

@@ -907,13 +907,7 @@ static u64 tlsfMalloc(u64 pgStart, u64 size) {
 
     allocSize = getRealSizeOfRequest(size);
     if(size > 0 && allocSize == 0) {
-        DPRINTF(DEBUG_LVL_WARN, "tslfMalloc@0x%lx returning NULL for size %ld\n",
-                pgStart, size);
-        return _NULL;
-    }
-
-    if(allocSize == 0 && size != 0) {
-        DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @0x%lx returning NULL for too large size %ld\n",
+        DPRINTF(DEBUG_LVL_WARN, "tslfMalloc @ 0x%lx returning NULL for too large size %ld\n",
                 pgStart, size);
         return _NULL;
     }
@@ -925,7 +919,7 @@ static u64 tlsfMalloc(u64 pgStart, u64 size) {
 
     VALGRIND_DEFINED1(freeBlockPtr);
     if(IS_NULL(freeBlockPtr)) {
-        DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @ 0x%lx returning NULL for size %ld\n",
+        DPRINTF(DEBUG_LVL_WARN, "tlsfMalloc @ 0x%lx returning NULL for size %ld\n",
                 pgStart, size);
         return _NULL;
     }

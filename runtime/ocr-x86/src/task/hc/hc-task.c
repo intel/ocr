@@ -166,15 +166,15 @@ static inline bool hasProperty(u32 properties, u32 property) {
 }
 
 static void registerOnFrontier(ocrTaskHc_t *self, ocrPolicyDomain_t *pd,
-                               ocrPolicyMsg_t *msg) {
+                               ocrPolicyMsg_t *msg, u32 slot) {
 #define PD_MSG (msg)
 #define PD_TYPE PD_MSG_DEP_REGWAITER
     msg->type = PD_MSG_DEP_REGWAITER | PD_MSG_REQUEST;
     PD_MSG_FIELD(waiter.guid) = self->base.guid;
     PD_MSG_FIELD(waiter.metaDataPtr) = self;
-    PD_MSG_FIELD(dest.guid) = self->signalers[self->frontierSlot].guid;
+    PD_MSG_FIELD(dest.guid) = self->signalers[slot].guid;
     PD_MSG_FIELD(dest.metaDataPtr) = NULL;
-    PD_MSG_FIELD(slot) = self->signalers[self->frontierSlot].slot;
+    PD_MSG_FIELD(slot) = self->signalers[slot].slot;
     PD_MSG_FIELD(properties) = 0;
     RESULT_ASSERT(pd->processMessage(pd, msg, false), ==, 0);
 #undef PD_MSG
@@ -193,6 +193,7 @@ static void initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
 
     task->frontierSlot = 0;
     task->slotSatisfiedCount = 0;
+    task->lock = 0;
     
     if(task->base.depc == 0) {
         task->signalers = END_OF_LIST;
@@ -414,6 +415,8 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
 
     // Check to see if the EDT can be run
     if(base->depc == edt->slotSatisfiedCount) {
+        DPRINTF(DEBUG_LVL_VVERB, "Scheduling task 0x%lx due to initial satisfactions\n",
+                base->guid);
         taskSchedule(base);
     }
     return base;
@@ -436,6 +439,10 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     // Replace the signaler's guid by the data guid, this to avoid
     // further references to the event's guid, which is good in general
     // and crucial for once-event since they are being destroyed on satisfy.
+    
+    // Could be moved a little later if the ASSERT was not here
+    // Should not make a huge difference
+    hal_lock32(&(self->lock));
     ASSERT((self->signalers[slot].slot == slot &&
             (self->signalers[slot].slot == self->frontierSlot)) ||
            self->signalers[slot].slot != (u32)-2); // Checks if not already satisfied
@@ -443,7 +450,11 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     self->signalers[slot].guid = data.guid;
     self->signalers[slot].slot = (u32)-1; // Say that it is satisfied
     if(++self->slotSatisfiedCount == base->depc) {
+        ++(self->slotSatisfiedCount); // So others don't catch the satisfaction
+        hal_unlock32(&(self->lock));
         // All dependencies have been satisfied, schedule the edt
+        DPRINTF(DEBUG_LVL_VERB, "Scheduling task 0x%lx due to last satisfied dependence\n",
+                self->base.guid);
         taskSchedule(base);
     } else if(self->frontierSlot == slot) {
         // We need to go register to the next non-once dependence
@@ -451,9 +462,13 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
         ASSERT(self->frontierSlot < base->depc);
         // We found a slot that is == to slot (so unsatisfied and not once)
         if(self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
-            registerOnFrontier(self, pd, &msg);
+            u32 tslot = self->frontierSlot;
+            hal_unlock32(&(self->lock));
+            registerOnFrontier(self, pd, &msg, tslot);
             // If we are UNITIALIZED_GUID, we will do the REGWAITER
             // when we do get the dependence
+        } else {
+            hal_unlock32(&(self->lock));
         }
     }
     return 0;
@@ -481,21 +496,29 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
                 ocrPolicyDomain_t *pd = NULL;
                 ocrPolicyMsg_t msg;
                 getCurrentEnv(&pd, NULL, NULL, &msg);
-                registerOnFrontier(self, pd, &msg);
+                registerOnFrontier(self, pd, &msg, slot);
             }
         }
     } else {
         if(isDatablockGuid(signalerGuid.guid)) {
             node->slot = (u32)-1; // Already satisfied
+            hal_lock32(&(self->lock));
             ++(self->slotSatisfiedCount);
+            if(base->depc == self->slotSatisfiedCount) {
+                ++(self->slotSatisfiedCount); // We make it go one over to not schedule twice
+                hal_unlock32(&(self->lock));
+                DPRINTF(DEBUG_LVL_VERB, "Scheduling task 0x%lx due to an add dependence\n",
+                        self->base.guid);
+                taskSchedule(base);
+            } else {
+                hal_unlock32(&(self->lock));
+            }
+            hal_unlock32(&(self->lock));
         } else {
             ASSERT(0);
         }
     }
-
-    if(base->depc == self->slotSatisfiedCount) {
-        taskSchedule(base);
-    }
+    
     DPRINTF(DEBUG_LVL_INFO, "AddDependence from 0x%lx to 0x%lx slot %d\n", signalerGuid.guid, base->guid, slot);
     return 0;
 }
@@ -526,6 +549,8 @@ u8 taskExecute(ocrTask_t* base) {
         depv = pd->pdMalloc(pd, sizeof(ocrEdtDep_t)*depc);
         // Double-check we're not rescheduling an already executed edt
         ASSERT(derived->signalers != END_OF_LIST);
+        // Make sure the task was actually fully satisfied
+        ASSERT(derived->slotSatisfiedCount == depc+1);
         while( i < depc ) {
             //TODO would be nice to standardize that on satisfy
             depv[i].guid = derived->signalers[i].guid;
