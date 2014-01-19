@@ -108,8 +108,8 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
         pthreadRoutineExecute(pthreadCompPlatform->launchArg);
     }
 #ifdef ENABLE_WORKER_CE
-    nonConcDequeInit(compPlatform->pd, pthreadCompPlatform->request_queue, (void *) NULL_GUID);
-    nonConcDequeInit(compPlatform->pd, pthreadCompPlatform->response_queue, (void *) NULL_GUID);
+    pthreadCompPlatform->request_queue = newNonConcurrentQueue(PD, (void *) NULL_GUID);
+    pthreadCompPlatform->response_queue = newNonConcurrentQueue(PD, (void *) NULL_GUID);
 #endif
 }
 
@@ -137,7 +137,7 @@ u8 pthreadSendMessage(ocrCompPlatform_t *self, ocrLocation_t target,
                       ocrPolicyMsg_t **message) {
 #ifdef ENABLE_WORKPILE_CE
     ocrCompPlatformPthread_t * derived = (ocrCompPlatformPthread_t *) self;
-    nonConcDequePush(derived->request_queue, (void *)(message));
+    derived->request_queue->push_at_tail(derived->request_queue, (void *)(message), 0);
 #else
     ASSERT(0);
 #endif
@@ -181,11 +181,6 @@ ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
     compPlatformPthread->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
     compPlatformPthread->isMaster = false;
 
-#ifdef ENABLE_WORKER_CE
-    compPlatformPthread->request_queue = (nonConcDeque_t *) runtimeChunkAlloc(sizeof(nonConcDeque_t), NULL);
-    compPlatformPthread->response_queue = (nonConcDeque_t *) runtimeChunkAlloc(sizeof(nonConcDeque_t), NULL);
-#endif
-    
     return (ocrCompPlatform_t*)compPlatformPthread;
 }
 

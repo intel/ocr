@@ -12,8 +12,8 @@
 #ifdef ENABLE_WORKPILE_CE
 
 #include "utils/ocr-utils.h"
+#include "utils/deque.h"
 #include "ocr-workpile.h"
-#include "workpile/ce/ce-deque.h"
 
 typedef struct {
     ocrWorkpileFactory_t base;
@@ -21,7 +21,7 @@ typedef struct {
 
 typedef struct {
     ocrWorkpile_t base;
-    nonConcDeque_t * deque;
+    deque_t * deque;
 } ocrWorkpileCe_t;
 
 ocrWorkpileFactory_t* newOcrWorkpileFactoryCe(ocrParamList_t *perType);

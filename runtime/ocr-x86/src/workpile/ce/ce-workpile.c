@@ -20,8 +20,8 @@
 
 void ceWorkpileDestruct ( ocrWorkpile_t * base ) {
     ocrWorkpileCe_t* derived = (ocrWorkpileCe_t*) base;
-    nonConcDequeDestroy(base->pd, derived->deque);
-    runtimeChunkFree((u64)(derived->deque), NULL);
+    derived->deque->destruct(base->pd, derived->deque);
+    base->pd->pdFree(base->pd, derived->deque);
     runtimeChunkFree((u64)base, NULL);
 }
 
@@ -29,7 +29,7 @@ void ceWorkpileStart(ocrWorkpile_t *base, ocrPolicyDomain_t *PD) {
     guidify(PD, (u64)base, &(base->fguid), OCR_GUID_WORKPILE);
     ocrWorkpileCe_t* derived = (ocrWorkpileCe_t*)base;
     base->pd = PD;
-    nonConcDequeInit(base->pd, derived->deque, (void *) NULL_GUID);
+    derived->deque = newNonConcurrentQueue(base->pd, (void *) NULL_GUID);
 }
 
 void ceWorkpileStop(ocrWorkpile_t *base) {
@@ -59,7 +59,7 @@ ocrFatGuid_t ceWorkpilePop(ocrWorkpile_t * base, ocrWorkPopType_t type,
     ocrFatGuid_t fguid;
     switch(type) {
     case POP_WORKPOPTYPE:
-        fguid.guid = (ocrGuid_t)nonConcDequePopHead(derived->deque);
+        fguid.guid = (ocrGuid_t)derived->deque->pop_from_head(derived->deque, 0); 
         break;
     default:
         ASSERT(0);
@@ -71,7 +71,7 @@ ocrFatGuid_t ceWorkpilePop(ocrWorkpile_t * base, ocrWorkPopType_t type,
 void ceWorkpilePush(ocrWorkpile_t * base, ocrWorkPushType_t type,
                     ocrFatGuid_t g ) {
     ocrWorkpileCe_t* derived = (ocrWorkpileCe_t*) base;
-    nonConcDequePush(derived->deque, (void *)(g.guid));
+    derived->deque->push_at_tail(derived->deque, (void *)(g.guid), 0);
 }
 
 ocrWorkpile_t * newWorkpileCe(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
@@ -82,7 +82,7 @@ ocrWorkpile_t * newWorkpileCe(ocrWorkpileFactory_t * factory, ocrParamList_t *pe
     base->fguid.metaDataPtr = base;
     base->pd = NULL;
     base->fcts = factory->workpileFcts;
-    derived->deque = (nonConcDeque_t *) runtimeChunkAlloc(sizeof(nonConcDeque_t), NULL);
+    derived->deque = NULL;
     return base;
 }
 

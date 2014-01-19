@@ -18,7 +18,7 @@
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
 #ifdef ENABLE_WORKPILE_CE
-#include "workpile/ce/ce-deque.h"
+#include "utils/deque.h"
 #endif
 
 #include <pthread.h>
@@ -37,8 +37,8 @@ typedef struct {
     s32 binding;
     bool isMaster;
 #ifdef ENABLE_WORKPILE_CE   // FIXME: cleanup
-    nonConcDeque_t * request_queue;
-    nonConcDeque_t * response_queue;
+    deque_t * request_queue;
+    deque_t * response_queue;
 #endif
 } ocrCompPlatformPthread_t;
 
