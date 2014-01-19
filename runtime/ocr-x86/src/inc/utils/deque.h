@@ -58,19 +58,19 @@ typedef struct _ocrDeque_t {
 
     /** @brief Push element at tail
      */
-    void (*push_at_tail)(struct _ocrDeque_t *self, void* entry, u8 try);
+    void (*pushAtTail)(struct _ocrDeque_t *self, void* entry, u8 try);
 
     /** @brief Pop element from tail
      */
-    void* (*pop_from_tail)(struct _ocrDeque_t *self, u8 try);
+    void* (*popFromTail)(struct _ocrDeque_t *self, u8 try);
 
     /** @brief Push element at head
      */
-    void (*push_at_head)(struct _ocrDeque_t *self, void* entry, u8 try);
+    void (*pushAtHead)(struct _ocrDeque_t *self, void* entry, u8 try);
 
     /** @brief Pop element from head
      */
-    void* (*pop_from_head)(struct _ocrDeque_t *self, u8 try);
+    void* (*popFromHead)(struct _ocrDeque_t *self, u8 try);
 } deque_t;
 
 /****************************************************/

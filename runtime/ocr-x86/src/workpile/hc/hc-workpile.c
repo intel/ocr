@@ -20,8 +20,8 @@
 
 void hcWorkpileDestruct ( ocrWorkpile_t * base ) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
-    dequeDestroy(base->pd, derived->deque);
-    runtimeChunkFree((u64)(derived->deque), NULL);
+    derived->deque->destruct(base->pd, derived->deque);
+    base->pd->pdFree(base->pd, derived->deque);
     runtimeChunkFree((u64)base, NULL);
 }
 
@@ -33,7 +33,7 @@ void hcWorkpileStart(ocrWorkpile_t *base, ocrPolicyDomain_t *PD) {
     guidify(PD, (u64)base, &(base->fguid), OCR_GUID_WORKPILE);
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*)base;
     base->pd = PD;
-    dequeInit(base->pd, derived->deque, (void *) NULL_GUID);
+    derived->deque = newWorkStealingDeque(base->pd, (void *) NULL_GUID);
 }
 
 void hcWorkpileStop(ocrWorkpile_t *base) {
@@ -63,10 +63,10 @@ ocrFatGuid_t hcWorkpilePop(ocrWorkpile_t * base, ocrWorkPopType_t type,
     ocrFatGuid_t fguid;
     switch(type) {
     case POP_WORKPOPTYPE:
-        fguid.guid = (ocrGuid_t)dequePop(derived->deque);
+        fguid.guid = (ocrGuid_t)derived->deque->popFromTail(derived->deque, 0); 
         break;
     case STEAL_WORKPOPTYPE:
-        fguid.guid = (ocrGuid_t)dequeSteal(derived->deque);
+        fguid.guid = (ocrGuid_t)derived->deque->popFromHead(derived->deque, 1); 
     default:
         ASSERT(0);
     }
@@ -77,7 +77,7 @@ ocrFatGuid_t hcWorkpilePop(ocrWorkpile_t * base, ocrWorkPopType_t type,
 void hcWorkpilePush(ocrWorkpile_t * base, ocrWorkPushType_t type,
                     ocrFatGuid_t g ) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
-    dequePush(derived->deque, (void *)(g.guid));
+    derived->deque->pushAtTail(derived->deque, (void *)(g.guid), 0);
 }
 
 ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
@@ -88,7 +88,6 @@ ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *pe
     base->fguid.metaDataPtr = base;
     base->pd = NULL;
     base->fcts = factory->workpileFcts;
-    derived->deque = (deque_t *) runtimeChunkAlloc(sizeof(deque_t), NULL);
     return base;
 }
 

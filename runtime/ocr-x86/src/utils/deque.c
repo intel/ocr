@@ -33,10 +33,10 @@ static void baseDequeInit(deque_t* deq, ocrPolicyDomain_t *pd, void * init_value
         ++i;
     }
     deq->destruct = dequeDestroy;
-    deq->push_at_tail = NULL;
-    deq->pop_from_tail = NULL;
-    deq->push_at_head = NULL;
-    deq->pop_from_head = NULL;
+    deq->pushAtTail = NULL;
+    deq->popFromTail = NULL;
+    deq->pushAtHead = NULL;
+    deq->popFromHead = NULL;
 }
 
 static void singleLockedDequeInit(dequeSingleLocked_t* deq, ocrPolicyDomain_t *pd, void * init_value) {
@@ -221,28 +221,28 @@ void singleLockedDequePushTail(deque_t* deq, void* entry, u8 try) {
 /******************************************************/
 deque_t* newWorkStealingDeque(ocrPolicyDomain_t *pd, void * init_value) {
     deque_t* deq = dequeInit(pd, init_value, BASE_DEQUETYPE);
-    deq->push_at_tail = concDequePushTail;
-    deq->pop_from_tail = concDequePopTail;
-    deq->push_at_head = NULL;
-    deq->pop_from_head = concDequePopHead;
+    deq->pushAtTail = concDequePushTail;
+    deq->popFromTail = concDequePopTail;
+    deq->pushAtHead = NULL;
+    deq->popFromHead = concDequePopHead;
     return deq;
 }
 
 deque_t* newNonConcurrentQueue(ocrPolicyDomain_t *pd, void * init_value) {
     deque_t* deq = dequeInit(pd, init_value, BASE_DEQUETYPE);
-    deq->push_at_tail = nonConcDequePushTail;
-    deq->pop_from_tail = nonConcDequePopTail;
-    deq->push_at_head = NULL;
-    deq->pop_from_head = nonConcDequePopHead;
+    deq->pushAtTail = nonConcDequePushTail;
+    deq->popFromTail = nonConcDequePopTail;
+    deq->pushAtHead = NULL;
+    deq->popFromHead = nonConcDequePopHead;
     return deq;
 }
 
 deque_t* newSemiConcurrentQueue(ocrPolicyDomain_t *pd, void * init_value) {
     deque_t* deq = dequeInit(pd, init_value, SINGLE_LOCKED_DEQUETYPE);
-    deq->push_at_tail = singleLockedDequePushTail;
-    deq->pop_from_tail = NULL;
-    deq->push_at_head = NULL;
-    deq->pop_from_head = nonConcDequePopHead;
+    deq->pushAtTail = singleLockedDequePushTail;
+    deq->popFromTail = NULL;
+    deq->pushAtHead = NULL;
+    deq->popFromHead = nonConcDequePopHead;
     return deq;
 }
 

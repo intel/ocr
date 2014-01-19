@@ -12,8 +12,8 @@
 #ifdef ENABLE_WORKPILE_HC
 
 #include "utils/ocr-utils.h"
+#include "utils/deque.h"
 #include "ocr-workpile.h"
-#include "workpile/hc/deque.h"
 
 typedef struct {
     ocrWorkpileFactory_t base;

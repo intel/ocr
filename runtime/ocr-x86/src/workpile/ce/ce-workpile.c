@@ -59,7 +59,7 @@ ocrFatGuid_t ceWorkpilePop(ocrWorkpile_t * base, ocrWorkPopType_t type,
     ocrFatGuid_t fguid;
     switch(type) {
     case POP_WORKPOPTYPE:
-        fguid.guid = (ocrGuid_t)derived->deque->pop_from_head(derived->deque, 0); 
+        fguid.guid = (ocrGuid_t)derived->deque->popFromHead(derived->deque, 0); 
         break;
     default:
         ASSERT(0);
@@ -71,7 +71,7 @@ ocrFatGuid_t ceWorkpilePop(ocrWorkpile_t * base, ocrWorkPopType_t type,
 void ceWorkpilePush(ocrWorkpile_t * base, ocrWorkPushType_t type,
                     ocrFatGuid_t g ) {
     ocrWorkpileCe_t* derived = (ocrWorkpileCe_t*) base;
-    derived->deque->push_at_tail(derived->deque, (void *)(g.guid), 0);
+    derived->deque->pushAtTail(derived->deque, (void *)(g.guid), 0);
 }
 
 ocrWorkpile_t * newWorkpileCe(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {

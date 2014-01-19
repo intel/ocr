@@ -137,7 +137,7 @@ u8 pthreadSendMessage(ocrCompPlatform_t *self, ocrLocation_t target,
                       ocrPolicyMsg_t **message) {
 #ifdef ENABLE_WORKPILE_CE
     ocrCompPlatformPthread_t * derived = (ocrCompPlatformPthread_t *) self;
-    derived->request_queue->push_at_tail(derived->request_queue, (void *)(message), 0);
+    derived->request_queue->pushAtTail(derived->request_queue, (void *)(message), 0);
 #else
     ASSERT(0);
 #endif
