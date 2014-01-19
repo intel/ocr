@@ -66,7 +66,8 @@ ocrFatGuid_t hcWorkpilePop(ocrWorkpile_t * base, ocrWorkPopType_t type,
         fguid.guid = (ocrGuid_t)derived->deque->popFromTail(derived->deque, 0); 
         break;
     case STEAL_WORKPOPTYPE:
-        fguid.guid = (ocrGuid_t)derived->deque->popFromHead(derived->deque, 1); 
+        fguid.guid = (ocrGuid_t)derived->deque->popFromHead(derived->deque, 1);
+        break;
     default:
         ASSERT(0);
     }

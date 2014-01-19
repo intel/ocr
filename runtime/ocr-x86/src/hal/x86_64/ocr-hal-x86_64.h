@@ -32,7 +32,7 @@
  */
 
 #define hal_fence() \
-    do { __asm__ __volatile__("mfence":: : "memory"); } while(0);
+    do { __sync_synchronize(); } while(0);
 
 /**
  * @brief Memory copy from source to destination
@@ -68,18 +68,10 @@
  *
  * @return Old value of the atomic
  */
-#define hal_cmpswap64(atomic, cmpValue, newValue)                          \
-    ({                                                                     \
-        u64 tmp = 0;                                                       \
-        __asm__ __volatile__("lock;\n"                                     \
-                             "cmpxchg %1, %3"                              \
-                             : "=rax" (tmp) /* %0 RAX, return value */     \
-                             : "r" (newValue), /* %1 reg, new value */     \
-                               "0" (cmpValue), /* %2 RAX, compare value */ \
-                               "m" (*(atomic)) /* %3 mem, dest. operand */ \
-                             : "memory", "cc" /* memory and cond reg */    \
-            );                                                             \
-        tmp;                                                               \
+#define hal_cmpswap64(atomic, cmpValue, newValue)                            \
+    ({                                                                       \
+        u64 __tmp = __sync_val_compare_and_swap(atomic, cmpValue, newValue); \
+        __tmp;                                                               \
     })
 
 /**
@@ -122,18 +114,10 @@
  *
  * @return Old value of the atomic
  */
-#define hal_cmpswap32(atomic, cmpValue, newValue)                          \
-    ({                                                                     \
-        u32 tmp = 0;                                                       \
-        __asm__ __volatile__("lock;\n"                                     \
-                             "cmpxchg %1, %3"                              \
-                             : "=eax" (tmp) /* %0 EAX, return value */     \
-                             : "r" (newValue), /* %1 reg, new value */     \
-                               "0" (cmpValue), /* %2 EAX, compare value */ \
-                               "m" (*(atomic)) /* %3 mem, dest. operand */ \
-                             : "memory", "cc" /* memory and cond reg */    \
-            );                                                             \
-        tmp;                                                               \
+#define hal_cmpswap32(atomic, cmpValue, newValue)                              \
+    ({                                                                         \
+        u32 __tmp = __sync_val_compare_and_swap(atomic, cmpValue, newValue);   \
+        __tmp;                                                                 \
     })
 
 /**
@@ -171,10 +155,10 @@
  *
  * @param lock      Pointer to a 32 bit value
  */
-#define hal_lock32(lock)                                \
-    do {                                                \
-        while(hal_cmpswap32((lock), 0, 1) != 0) ;       \
-    } while(0)
+#define hal_lock32(lock)                                    \
+    do {                                                    \
+        while(__sync_lock_test_and_set(lock, 1) != 0) ;     \
+    } while(0);
 
 /**
  * @brief Convenience function to implement a simple
@@ -182,9 +166,9 @@
  *
  * @param lock      Pointer to a 32 bit value
  */
-#define hal_unlock32(lock) \
-    do {                   \
-        *(lock) = 0;       \
+#define hal_unlock32(lock)         \
+    do {                           \
+        __sync_lock_release(lock); \
     } while(0)
 
 /**
@@ -195,8 +179,12 @@
  * @return 0 if the lock has been acquired and a non-zero
  * value if it cannot be acquired
  */
-#define hal_trylock32(lock) hal_cmpswap32(lock, 0, 1)
-
+#define hal_trylock32(lock)                                             \
+    ({                                                                  \
+        u32 __tmp = __sync_lock_test_and_set(lock, 1);                  \
+        __tmp;                                                          \
+    })
+    
 /**
  * @brief Abort the runtime
  *
@@ -212,4 +200,3 @@
 #define hal_exit(arg) exit(arg)
 
 #endif /* __OCR_HAL_X86_64_H__ */
-
