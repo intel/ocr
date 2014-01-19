@@ -85,7 +85,7 @@ void hcSchedulerBegin(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     u64 workpileCount = self->workpileCount;
     u64 i;
     for(i = 0; i < workpileCount; ++i) {
-        self->workpiles[0]->fcts.begin(self->workpiles[0], PD);
+        self->workpiles[i]->fcts.begin(self->workpiles[i], PD);
     }
 }
 
@@ -99,7 +99,7 @@ void hcSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     u64 workpileCount = self->workpileCount;
     u64 i;
     for(i = 0; i < workpileCount; ++i) {
-        self->workpiles[0]->fcts.start(self->workpiles[0], PD);
+        self->workpiles[i]->fcts.start(self->workpiles[i], PD);
     }
     
     ocrWorkpile_t ** workpiles = self->workpiles;

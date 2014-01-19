@@ -30,7 +30,7 @@ ocrGuid_t sequential_cholesky_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDe
 
     PTR_T lBlock_db;
     ocrGuid_t out_lkji_kkkp1_db_guid;
-    ocrGuid_t out_lkji_kkkp1_db_affinity;
+    ocrGuid_t out_lkji_kkkp1_db_affinity = NULL_GUID;
 
     DBCREATE(&out_lkji_kkkp1_db_guid, &lBlock_db,
         sizeof(double)*tileSize*tileSize, FLAGS, out_lkji_kkkp1_db_affinity, NO_ALLOC);
@@ -79,7 +79,7 @@ ocrGuid_t trisolve_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
     double* liBlock = (double*) (depv[1].ptr);
 
     ocrGuid_t out_lkji_jkkp1_db_guid;
-    ocrGuid_t out_lkji_jkkp1_db_affinity;
+    ocrGuid_t out_lkji_jkkp1_db_affinity = NULL_GUID;
     PTR_T loBlock_db;
 
     DBCREATE(&out_lkji_jkkp1_db_guid, &loBlock_db,
@@ -209,7 +209,7 @@ inline static void sequential_cholesky_task_prescriber (ocrGuid_t edtTemp, int k
     func_args[1] = tileSize;
     func_args[2] = GUIDTOU64(lkji_event_guids[k][k][k+1]);
 
-    ocrGuid_t affinity;
+    ocrGuid_t affinity = NULL_GUID;
     ocrEdtCreate(&seq_cholesky_task_guid, edtTemp, 3, func_args, 1, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[k][k][k], seq_cholesky_task_guid, 0, DB_MODE_ITW);
@@ -226,7 +226,7 @@ inline static void trisolve_task_prescriber ( ocrGuid_t edtTemp, int k, int j, i
     func_args[3] = GUIDTOU64(lkji_event_guids[j][k][k+1]);
 
 
-    ocrGuid_t affinity;
+    ocrGuid_t affinity = NULL_GUID;
     ocrEdtCreate(&trisolve_task_guid, edtTemp, 4, func_args, 2, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[j][k][k], trisolve_task_guid, 0, DB_MODE_ITW);
@@ -244,7 +244,7 @@ inline static void update_nondiagonal_task_prescriber ( ocrGuid_t edtTemp, int k
     func_args[3] = tileSize;
     func_args[4] = GUIDTOU64(lkji_event_guids[j][i][k+1]);
 
-    ocrGuid_t affinity;
+    ocrGuid_t affinity = NULL_GUID;
     ocrEdtCreate(&update_nondiagonal_task_guid, edtTemp, 5, func_args, 3, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[j][i][k], update_nondiagonal_task_guid, 0, DB_MODE_ITW);
@@ -264,7 +264,7 @@ inline static void update_diagonal_task_prescriber ( ocrGuid_t edtTemp, int k, i
     func_args[3] = tileSize;
     func_args[4] = GUIDTOU64(lkji_event_guids[j][j][k+1]);
 
-    ocrGuid_t affinity;
+    ocrGuid_t affinity = NULL_GUID;
     ocrEdtCreate(&update_diagonal_task_guid, edtTemp, 5, func_args, 2, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[j][j][k], update_diagonal_task_guid, 0, DB_MODE_ITW);
@@ -280,7 +280,7 @@ inline static void wrap_up_task_prescriber ( ocrGuid_t edtTemp, int numTiles, in
     func_args[0]=(int)numTiles;
     func_args[1]=(int)tileSize;
 
-    ocrGuid_t affinity;
+    ocrGuid_t affinity = NULL_GUID;
     ocrEdtCreate(&wrap_up_task_guid, edtTemp, 2, func_args, (numTiles+1)*numTiles/2, NULL, PROPERTIES, affinity, NULL);
 
     int index = 0;
@@ -319,7 +319,7 @@ inline static void satisfyInitialTiles(int numTiles, int tileSize, double** matr
     for( i = 0 ; i < numTiles ; ++i ) {
         for( j = 0 ; j <= i ; ++j ) {
             ocrGuid_t db_guid;
-            ocrGuid_t db_affinity;
+            ocrGuid_t db_affinity = NULL_GUID;
             PTR_T temp_db;
             DBCREATE(&db_guid, &temp_db, sizeof(double)*tileSize*tileSize,
                      FLAGS, db_affinity, NO_ALLOC);
@@ -400,10 +400,12 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtTemplateCreate(&templateWrap, wrap_up_task, 2, (numTiles+1)*numTiles/2);
 
     matrix = readMatrix( matrixSize, in );
+    PRINTF("Going to satisfy initial tiles\n");
     satisfyInitialTiles( numTiles, tileSize, matrix, lkji_event_guids);
     gettimeofday(&a,0);
 
     for ( k = 0; k < numTiles; ++k ) {
+        PRINTF("Prescribing sequential task %d\n", k);
         sequential_cholesky_task_prescriber ( templateSeq, k, tileSize,
                                               lkji_event_guids);
 
@@ -422,6 +424,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 
     wrap_up_task_prescriber ( templateWrap, numTiles, tileSize, lkji_event_guids );
 
+    PRINTF("Wrapping up mainEdt\n");
     return NULL_GUID;
 }
 

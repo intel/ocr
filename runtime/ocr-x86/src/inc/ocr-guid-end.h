@@ -86,7 +86,7 @@ static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 val,
 static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t *res,
                            ocrGuidKind* kindRes) {
 
-    if(res->metaDataPtr == NULL || kindRes) {
+    if((res->metaDataPtr == NULL) || (kindRes)) {
         u8 returnCode = 0;
         ocrPolicyMsg_t msg;
         getCurrentEnv(&pd, NULL, NULL, &msg);
@@ -95,17 +95,16 @@ static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t *res,
         msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guid.metaDataPtr) = NULL;
         PD_MSG_FIELD(guid.guid) = res->guid;
-        returnCode = pd->processMessage(pd, &msg, true);
+        PD_MSG_FIELD(properties) = KIND_GUIDPROP | RMETA_GUIDPROP;
+        RESULT_ASSERT(pd->processMessage(pd, &msg, true), ==, 0);
         
-        if(returnCode == 0) {
-            if(res->metaDataPtr) {
-                ASSERT(PD_MSG_FIELD(guid.metaDataPtr) == res->metaDataPtr);
-            } else {
-                res->metaDataPtr = PD_MSG_FIELD(guid.metaDataPtr);
-            }
-            if(kindRes) {
-                *kindRes = PD_MSG_FIELD(kind);
-            }
+        if(res->metaDataPtr) {
+            ASSERT(PD_MSG_FIELD(guid.metaDataPtr) == res->metaDataPtr);
+        } else {
+            res->metaDataPtr = PD_MSG_FIELD(guid.metaDataPtr);
+        }
+        if(kindRes) {
+            *kindRes = PD_MSG_FIELD(kind);
         }
 #undef PD_MSG
 #undef PD_TYPE

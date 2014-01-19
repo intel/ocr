@@ -1124,17 +1124,17 @@ void tlsfFinish(ocrAllocator_t *self) {
 void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
 
+    hal_lock32(&(rself->lock));
 #ifdef ENABLE_VALGRIND
     VALGRIND_MAKE_MEM_DEFINED(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t));
 #endif
-    hal_lock32(&(rself->lock));
     void* toReturn = (void*)tlsfMalloc(rself->addr, size);
-    hal_unlock32(&(rself->lock));
 #ifdef ENABLE_VALGRIND
     VALGRIND_MEMPOOL_ALLOC(rself->addr, toReturn, size);
     VALGRIND_MAKE_MEM_NOACCESS(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t)); // The tlsfSize_t is because the last part
                                                                                   // of mainBlock can be accessed as part of the
                                                                                   // first allocated block
+    hal_unlock32(&(rself->lock));
 #endif
     
     return toReturn;
@@ -1142,32 +1142,32 @@ void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
 
 void tlsfDeallocate(ocrAllocator_t *self, void* address) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-
+    
+    hal_lock32(&(rself->lock));
 #ifdef ENABLE_VALGRIND
     VALGRIND_MAKE_MEM_DEFINED(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t));
 #endif
-    hal_lock32(&(rself->lock));
     tlsfFree(rself->addr, (u64)address);
-    hal_unlock32(&(rself->lock));
 #ifdef ENABLE_VALGRIND
     VALGRIND_MEMPOOL_FREE(rself->addr, address);
     VALGRIND_MAKE_MEM_NOACCESS(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t));
 #endif
+    hal_unlock32(&(rself->lock));
 }
 
 void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
 
+    hal_lock32(&(rself->lock));
 #ifdef ENABLE_VALGRIND
     VALGRIND_MAKE_MEM_DEFINED(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t));
 #endif
-    hal_lock32(&(rself->lock));
     void* toReturn = (void*)(tlsfRealloc(rself->addr, (u64)address, size));
-    hal_unlock32(&(rself->lock));
 #ifdef ENABLE_VALGRIND
     VALGRIND_MEMPOOL_CHANGE(rself->addr, address, toReturn, size);
     VALGRIND_MAKE_MEM_NOACCESS(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t));
 #endif
+    hal_unlock32(&(rself->lock));
     return toReturn;
 }
 
