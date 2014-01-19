@@ -21,8 +21,11 @@ default:
 	@echo ""
 	@echo "Valid targets are:"
 	@echo ""
-	@echo "   all          -- Optimized build"
-	@echo "   debug        -- Unoptimized build"
+	@echo "   all          -- Optimized build (alias for static)"
+	@echo "   static       -- Optimized static build (produces a .a)"
+	@echo "   shared       -- Optimized shared build (produces a .so)"
+	@echo "   debug-static -- Unoptimized static build"
+	@echo "   debug-shared -- Unoptimized shared build"
 	@echo "   install      -- Install built distribution"
 	@echo "   clean        -- Clean-up build objects, etc."
 	@echo "   squeaky      -- Clean-up all architectures"
@@ -32,8 +35,20 @@ default:
 all:
 	@$(MAKE) -C $(ARCH) $@
 
-.PHONY: debug
-debug:
+.PHONY: static
+static:
+	@$(MAKE) -C $(ARCH) $@
+
+.PHONY: shared
+shared:
+	@$(MAKE) -C $(ARCH) $@
+
+.PHONY: debug-static
+debug-static:
+	@$(MAKE) -C $(ARCH) $@
+
+.PHONY: debug-shared
+debug-shared:
 	@$(MAKE) -C $(ARCH) $@
 
 .PHONY: install

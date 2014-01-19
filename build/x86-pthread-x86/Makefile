@@ -12,6 +12,7 @@
 
 CC      := gcc
 CFLAGS  := 
+LDFLAGS := -shared
 
 AR      := ar
 ARFLAGS := cru
@@ -25,5 +26,12 @@ CP      := cp
 
 # For Valgrind, uncomment this line
 CFLAGS += -I/usr/include -DENABLE_VALGRIND
+
+.PHONY: supports-shared
+supports-shared:
+
+.PHONY: supports-static
+supports-static:
+
 
 include ../common.mk

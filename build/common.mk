@@ -2,7 +2,11 @@
 # OCR top level directory
 #
 OCRDIR := ../..
-OCRLIB := libocr.a
+
+# Static library name (only set if not set in ARCH specific file)
+OCRSTATIC ?= libocr.a
+# Shared library name (only set if not set in ARCH specific file)
+OCRSHARED ?= libocr.so
 
 #
 # Object & dependence file subdirectory
@@ -33,7 +37,7 @@ VPATH  := $(shell find -L $(OCRDIR)/src -type d -print)
 # Enable debug
 CFLAGS += -DOCR_DEBUG
 # Define level
-CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_VVERB
+CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_WARN
 # Define which modules you want for debugging
 # You can optionally define an individual debuging level by
 # defining DEBUG_LVL_XXX like OCR_DEBUG_LEVEL. If not defined,
@@ -67,10 +71,12 @@ CFLAGS := -g -Wall -I . -I $(OCRDIR)/inc -I $(OCRDIR)/src -I $(OCRDIR)/src/inc -
 # Objects build rules
 #
 $(OBJDIR)/%.o: %.c
-	$(CC) $(CFLAGS) -MMD -c $< -o $@
+	@echo "Compiling $<"
+	@$(CC) $(CFLAGS) -MMD -c $< -o $@
 
 $(OBJDIR)/%.o: %.S
-	$(CC) $(CFLAGS) -MMD -c $< -o $@
+	@echo "Assembling $<"
+	@$(CC) $(CFLAGS) -MMD -c $< -o $@
 
 #
 # Include auto-generated dependence files
@@ -81,21 +87,46 @@ $(OBJDIR)/%.o: %.S
 # Build targets
 #
 .PHONY: all
-all: CFLAGS := -O2 $(CFLAGS)
-all: default
+all: static
 
-.PHONY: debug
-debug: CFLAGS := -O0 $(CFLAGS)
-debug: default
+.PHONY: static
+static: CFLAGS := -O2 $(CFLAGS)
+static: supports-static info-static $(OCRSTATIC)
 
-.PHONY: default
-default: $(OBJS)
-	$(AR) $(ARFLAGS) $(OCRLIB) $^
-	$(RANLIB) $(OCRLIB)
+.PHONY: shared
+shared: CFLAGS := -fpic -O2 $(CFLAGS)
+shared: supports-shared info-shared $(OCRSHARED)
+
+.PHONY: debug-static
+debug-static: CFLAGS := -O0 $(CFLAGS)
+debug-static: supports-static info-static $(OCRSTATIC)
+
+.PHONY: debug-shared
+debug-shared: CFLAGS := -O0 -fpic $(CFLAGS)
+debug-shared: supports-shared info-shared $(OCRSHARED)
+
+.PHONY: info-compile
+info-compile:
+	@echo ">>>>Compile command for .c files is '$(CC) $(CFLAGS) -MMD -c <src> -o <obj>'"
+
+.PHONY: info-static
+info-static: info-compile
+	@echo ">>>>Building a static library with '$(AR) $(ARFLAGS)'"
+
+.PHONY: info-shared
+info-shared: info-compile
+	@echo ">>>>Building a shared library with ''"
+
+$(OCRSTATIC): $(OBJS)
+	$(AR) $(ARFLAGS) $(OCRSTATIC) $^
+	$(RANLIB) $(OCRSTATIC)
+
+$(OCRSHARED): $(OBJS)
+	$(CC) $(LDFLAGS) -o $(OCRSHARED) $^
 
 .PHONY: install
 install: default
-	$(CP) $(OCRLIB) $(OCRDIR)/install/$(ARCH)/lib
+	$(CP) *.so *.a $(OCRDIR)/install/$(ARCH)/lib
 	$(CP) -r $(OCRDIR)/inc/* $(OCRDIR)/install/$(ARCH)/include
 	$(CP) -r $(OCRDIR)/machine-configs/default.cfg $(OCRDIR)/install/$(ARCH)/config
 
