@@ -429,7 +429,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_DB_CREATE
         // TODO: Add properties whether DB needs to be acquired or not
         // This would impact where we do the PD_MSG_MEM_ALLOC for example
-        ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE);        
+        // For now we deal with both USER and RT dbs the same way
+        ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE || PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE);
         returnCode = ceAllocateDb(self, &(PD_MSG_FIELD(guid)),
                                   &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
                                   PD_MSG_FIELD(properties),
@@ -527,8 +528,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(properties) =
             ceMemAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
                        0, //ocrLocation_getEngineIndex(msg->srcLocation), // TODO: Placeholder.  Need a service function that disects an ocrLocation_t to produce the index of an XE or the CE.
-                       msg->type,
-                       &(PD_MSG_FIELD(ptr)));
+                       PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)));
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
 #undef PD_MSG
 #undef PD_TYPE
@@ -542,7 +542,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
-            ceMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), msg->type);
+            ceMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), PD_MSG_FIELD(type));
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
 #undef PD_MSG
 #undef PD_TYPE

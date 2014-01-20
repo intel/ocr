@@ -337,7 +337,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_DB_CREATE
         // TODO: Add properties whether DB needs to be acquired or not
         // This would impact where we do the PD_MSG_MEM_ALLOC for example
-        ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE); // Assert this is a user-requested data block.
+        // For now we deal with both USER and RT dbs the same way
+        ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE || PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE);
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
         msg->srcLocation  = myLocation;
         msg->destLocation = parentLocation;

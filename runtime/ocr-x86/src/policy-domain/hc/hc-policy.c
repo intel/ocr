@@ -274,7 +274,7 @@ static u8 hcMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
     void* result;
 
     ASSERT(memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
-    ASSERT (self->allocatorCount >= 0);
+    ASSERT (self->allocatorCount > 0);
     for(i = (memType == GUID_MEMTYPE) ? // If we are allocating storage for a GUID...
             (self->allocatorCount-1) :  // just allocate it in DRAM (for now).  Otherwise...
             0;                          // try first allocator (L1) first.
