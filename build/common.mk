@@ -88,34 +88,6 @@ CFLAGS_SHARED := ${CFLAGS} ${CFLAGS_SHARED}
 OCRSHARED ?= libocr.so
 endif
 
-#
-# Objects build rules
-#
-$(OBJDIR)/static/%.o: %.c supports-static
-	@echo "Compiling $<"
-	@$(CC) $(CFLAGS_STATIC) -MMD -c $< -o $@
-
-$(OBJDIR)/shared/%.o: %.c supports-shared
-	@echo "Compiling $<"
-	@$(CC) $(CFLAGS_SHARED) -MMD -c $< -o $@
-
-$(OBJDIR)/static/%.o: %.S supports-static
-	@echo "Assembling $<"
-	@$(CC) $(CFLAGS_STATIC) -MMD -c $< -o $@
-
-$(OBJDIR)/shared/%.o: %.S supports-shared
-	@echo "Assembling $<"
-	@$(CC) $(CFLAGS_SHARED) -MMD -c $< -o $@
-
-#
-# Include auto-generated dependence files
-#
-ifeq (${SUPPORTS_STATIC}, yes)
--include $(wildcard $(OBJDIR)/static/*.d)
-endif
-ifeq (${SUPPORTS_SHARED}, yes)
--include $(wildcard $(OBJDIR)/shared/*.d)
-endif
 
 #
 # Build targets
@@ -145,15 +117,16 @@ debug-shared: supports-shared info-shared $(OCRSHARED)
 supports-static:
 ifneq (${SUPPORTS_STATIC}, yes)
 	$(error Architecture ${ARCH} does not support static library building)
-else
-	$(MKDIR) -p $(OBJDIR)/static
 endif
+
+${OBJDIR}/static:
+	@$(MKDIR) -p $(OBJDIR)/static
 
 
 .PHONY: info-static
 info-static:
-	@echo ">>>>Compile command for .c files is '$(CC) $(CFLAGS_STATIC) -MMD -c <src> -o <obj>'"
-	@echo ">>>>Building a static library with '$(AR) $(ARFLAGS)'"
+	@echo -e "\e[32m>>>> Compile command for .c files is\e[1;30m '$(CC) $(CFLAGS_STATIC) -MMD -c <src> -o <obj>'\e[0m"
+	@echo -e "\e[32m>>>> Building a static library with\e[1;30m '$(AR) $(ARFLAGS)'\e[0m"
 
 $(OCRSTATIC): $(OBJS_STATIC)
 	@echo "Linking static library ${OCRSTATIC}"
@@ -166,18 +139,48 @@ $(OCRSTATIC): $(OBJS_STATIC)
 supports-shared:
 ifneq (${SUPPORTS_SHARED}, yes)
 	$(error Architecture ${ARCH} does not support shared library building)
-else
-	$(MKDIR) -p ${OBJDIR}/shared
 endif
+
+${OBJDIR}/shared:
+	@$(MKDIR) -p ${OBJDIR}/shared
 
 .PHONY: info-shared
 info-shared:
-	@echo ">>>>Compile command for .c files is '$(CC) $(CFLAGS_SHARED) -MMD -c <src> -o <obj>'"
-	@echo ">>>>Building a shared library with '$(CC) $(LDFLAGS)'"
+	@echo -e "\e[32m>>>> Compile command for .c files is\e[1;30m '$(CC) $(CFLAGS_SHARED) -MMD -c <src> -o <obj>'\e[0m"
+	@echo -e "\e[32m>>>> Building a shared library with\e[1;30m '$(CC) $(LDFLAGS)'\e[0m"
 
 $(OCRSHARED): $(OBJS_SHARED)
 	@echo "Linking shared library ${OCRSHARED}"
 	@$(CC) $(LDFLAGS) -o $(OCRSHARED) $^
+
+#
+# Objects build rules
+#
+$(OBJDIR)/static/%.o: %.c | $(OBJDIR)/static
+	@echo "Compiling $<"
+	@$(CC) $(CFLAGS_STATIC) -MMD -c $< -o $@
+
+$(OBJDIR)/shared/%.o: %.c | $(OBJDIR)/shared
+	@echo "Compiling $<"
+	@$(CC) $(CFLAGS_SHARED) -MMD -c $< -o $@
+
+$(OBJDIR)/static/%.o: %.S | $(OBJDIR)/static
+	@echo "Assembling $<"
+	@$(CC) $(CFLAGS_STATIC) -MMD -c $< -o $@
+
+$(OBJDIR)/shared/%.o: %.S | $(OBJDIR)/shared
+	@echo "Assembling $<"
+	@$(CC) $(CFLAGS_SHARED) -MMD -c $< -o $@
+
+#
+# Include auto-generated dependence files
+#
+ifeq (${SUPPORTS_STATIC}, yes)
+-include $(wildcard $(OBJDIR)/static/*.d)
+endif
+ifeq (${SUPPORTS_SHARED}, yes)
+-include $(wildcard $(OBJDIR)/shared/*.d)
+endif
 
 # Install
 INSTALL_TARGETS :=
@@ -193,10 +196,11 @@ endif
 
 .PHONY: install
 install: ${INSTALL_TARGETS}
-	$(CP) ${INSTALL_FILES} $(OCRDIR)/install/$(ARCH)/lib
-	$(CP) -r $(OCRDIR)/inc/* $(OCRDIR)/install/$(ARCH)/include
-	$(CP) -r $(OCRDIR)/machine-configs/* $(OCRDIR)/install/$(ARCH)/config
-	$(LN) -s ./$(DEFAULT_CONFIG) $(OCRDIR)/install/$(ARCH)/config/default.cfg
+	@echo -e "\e[32m Installing '$(INSTALL_FILES)' into '$(OCRDIR)/install/$(ARCH)'\e[0m"
+	@$(CP) ${INSTALL_FILES} $(OCRDIR)/install/$(ARCH)/lib
+	@$(CP) -r $(OCRDIR)/inc/* $(OCRDIR)/install/$(ARCH)/include
+	@$(CP) -r $(OCRDIR)/machine-configs/* $(OCRDIR)/install/$(ARCH)/config
+	-@$(LN) -fs ./$(DEFAULT_CONFIG) $(OCRDIR)/install/$(ARCH)/config/default.cfg
 
 .PHONY: uninstall
 uninstall: 
@@ -207,4 +211,3 @@ uninstall:
 .PHONY:clean
 clean:
 	-$(RM) $(RMFLAGS) $(OBJDIR)/* $(OCRSHARED) $(OCRSTATIC)
-
