@@ -107,9 +107,6 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
         // The upper level worker will only start us once
         pthreadRoutineExecute(pthreadCompPlatform->launchArg);
     }
-#ifdef ENABLE_WORKER_CE
-    pthreadCompPlatform->request_queue = newNonConcurrentQueue(PD, (void *) NULL_GUID);
-#endif
 }
 
 void pthreadStop(ocrCompPlatform_t * compPlatform) {
@@ -134,12 +131,7 @@ u8 pthreadSetThrottle(ocrCompPlatform_t *self, u64 value) {
 
 u8 pthreadSendMessage(ocrCompPlatform_t *self, ocrLocation_t target,
                       ocrPolicyMsg_t **message) {
-#ifdef ENABLE_WORKPILE_CE
-    ocrCompPlatformPthread_t * derived = (ocrCompPlatformPthread_t *) self;
-    derived->request_queue->pushAtTail(derived->request_queue, (void *)(message), 0);
-#else
     ASSERT(0);
-#endif
     return 0;
 }
 

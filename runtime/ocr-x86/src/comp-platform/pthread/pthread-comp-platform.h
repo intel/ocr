@@ -36,9 +36,6 @@ typedef struct {
     u64 stackSize;
     s32 binding;
     bool isMaster;
-#ifdef ENABLE_WORKPILE_CE   // FIXME: cleanup
-    deque_t * request_queue;
-#endif
 } ocrCompPlatformPthread_t;
 
 typedef struct {
