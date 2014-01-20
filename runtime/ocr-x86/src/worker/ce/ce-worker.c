@@ -56,6 +56,12 @@ static void * workerRoutine(launchArg_t* launchArg) {
     ocrWorker_t * worker = (ocrWorker_t *) launchArg->arg;
     ocrPolicyDomain_t *pd = worker->pd;
     pd->pdFree(pd, launchArg); // Free the launch argument
+
+    // Set who we are
+    u32 i;
+    for(i = 0; i < worker->computeCount; ++i) {
+        worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
+    }
     
     DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of CE worker %ld\n", getWorkerId(worker));
     workerLoop(worker);
@@ -86,6 +92,7 @@ ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory, ocrLocation_t location,
     base->pd = NULL;
     base->curTask = NULL;
     base->fcts = factory->workerFcts;
+    ASSERT(type == MASTER_WORKERTYPE);
     base->type = MASTER_WORKERTYPE;
     
     worker->id = ((paramListWorkerCeInst_t*)perInstance)->workerId;
@@ -95,12 +102,44 @@ ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory, ocrLocation_t location,
     return base;
 }
 
+void ceBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
+    
+    // Starts everybody, the first comp-platform has specific
+    // code to represent the master thread.
+    u64 computeCount = base->computeCount;
+    ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
+    u64 i = 0;
+    for(i = 0; i < computeCount; ++i) {
+        base->computes[i]->fcts.begin(base->computes[i], policy, base->type);
+#ifdef OCR_ENABLE_STATISTICS
+        statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
+#endif
+    }
+
+    if(base->type == MASTER_WORKERTYPE) {
+        // For the master thread, we need to set the PD and worker
+        // The other threads will set this when they start
+        for(i = 0; i < computeCount; ++i) {
+            base->computes[i]->fcts.setCurrentEnv(base->computes[i], policy, base);
+        }
+    }
+}
+
 void ceStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
+
+    ocrWorkerCe_t * ceWorker = (ocrWorkerCe_t *) base;
+    if(base->type == MASTER_WORKERTYPE) {
+        if(!ceWorker->secondStart) {
+            ceWorker->secondStart = true;
+            return; // Don't start right away
+        }
+    }
+    
     // Get a GUID
     guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
     base->pd = policy;
 
-    ocrWorkerCe_t * ceWorker = (ocrWorkerCe_t *) base;
+    ASSERT(base->type != MASTER_WORKERTYPE || ceWorker->secondStart);
     ceWorker->run = true;
 
     // Starts everybody, the first comp-platform has specific
@@ -117,12 +156,6 @@ void ceStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 #ifdef OCR_ENABLE_STATISTICS
         statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
 #endif
-    }
-
-    if(base->type == MASTER_WORKERTYPE) {
-        // Master worker does not start the underlying thread
-        // since it falls through but it still sets up other things
-        //associate_comp_platform_and_worker(policy, base);
     }
 }
 
@@ -201,6 +234,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryCe(ocrParamList_t * perType) {
     base->instantiate = newWorkerCe;
     base->destruct =  destructWorkerFactoryCe;
     base->workerFcts.destruct = FUNC_ADDR(void (*)(ocrWorker_t*), destructWorkerCe);
+    base->workerFcts.begin = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), ceBeginWorker);
     base->workerFcts.start = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), ceStartWorker);
     base->workerFcts.stop = FUNC_ADDR(void (*)(ocrWorker_t*), ceStopWorker);
     base->workerFcts.finish = FUNC_ADDR(void (*)(ocrWorker_t*), ceFinishWorker);

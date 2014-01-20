@@ -109,7 +109,6 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
     }
 #ifdef ENABLE_WORKER_CE
     pthreadCompPlatform->request_queue = newNonConcurrentQueue(PD, (void *) NULL_GUID);
-    pthreadCompPlatform->response_queue = newNonConcurrentQueue(PD, (void *) NULL_GUID);
 #endif
 }
 

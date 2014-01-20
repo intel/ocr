@@ -86,6 +86,15 @@ void ceSchedulerDestruct(ocrScheduler_t * self) {
     runtimeChunkFree((u64)self, NULL);
 }
 
+void ceSchedulerBegin(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
+    // Nothing to do locally
+    u64 workpileCount = self->workpileCount;
+    u64 i;
+    for(i = 0; i < workpileCount; ++i) {
+        self->workpiles[i]->fcts.begin(self->workpiles[i], PD);
+    }
+}
+
 void ceSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     
     // Get a GUID
@@ -94,6 +103,11 @@ void ceSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     ocrSchedulerCe_t * derived = (ocrSchedulerCe_t *) self;
     
     u64 workpileCount = self->workpileCount;
+    u64 i;
+    for(i = 0; i < workpileCount; ++i) {
+        self->workpiles[i]->fcts.start(self->workpiles[i], PD);
+    }
+    
     ocrWorkpile_t ** workpiles = self->workpiles;
     
     // allocate steal iterator cache. Use pdMalloc since this is something
@@ -102,7 +116,7 @@ void ceSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
         PD, sizeof(ceWorkpileIterator_t)*workpileCount);
     
     // Initialize steal iterator cache
-    u64 i = 0;
+    i = 0;
     while(i < workpileCount) {
         // Note: here we assume workpile 'i' will match worker 'i' => Not great
         initWorkpileIterator(stealIteratorsCache[i], i, workpileCount, workpiles);
@@ -282,6 +296,7 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryCe(ocrParamList_t *perType) {
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = &newSchedulerCe;
     base->destruct = &destructSchedulerFactoryCe;
+    base->schedulerFcts.begin = &ceSchedulerBegin;
     base->schedulerFcts.start = &ceSchedulerStart;
     base->schedulerFcts.stop = &ceSchedulerStop;
     base->schedulerFcts.finish = &ceSchedulerFinish;

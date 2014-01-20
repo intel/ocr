@@ -88,8 +88,11 @@ static void * workerRoutine(launchArg_t* launchArg) {
     ocrPolicyDomain_t *pd = worker->pd;
     pd->pdFree(pd, launchArg); // Free the launch argument
     
-    // associate current thread with the worker
-    //associate_comp_platform_and_worker(pd, worker);
+    // Set who we are
+    u32 i;
+    for(i = 0; i < worker->computeCount; ++i) {
+        worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
+    }
     
     DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
     workerLoop(worker);
@@ -109,7 +112,8 @@ void destructWorkerXe(ocrWorker_t * base) {
 /**
  * Builds an instance of a XE worker
  */
-ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
+ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory, ocrLocation_t location,
+                          ocrWorkerType_t type, ocrParamList_t * perInstance) {
     ocrWorkerXe_t * worker = (ocrWorkerXe_t*)runtimeChunkAlloc(
         sizeof(ocrWorkerXe_t), NULL);
     ocrWorker_t * base = (ocrWorker_t *) worker;
@@ -119,15 +123,33 @@ ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory, ocrParamList_t * perInst
     base->pd = NULL;
     base->curTask = NULL;
     base->fcts = factory->workerFcts;
+    base->location = location;
     base->type = SLAVE_WORKERTYPE;
     
     worker->id = ((paramListWorkerXeInst_t*)perInstance)->workerId;
     worker->run = false;
+    worker->secondStart = false;
 
     return base;
 }
 
+void xeBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
+    
+    // Starts everybody, the first comp-platform has specific
+    // code to represent the master thread.
+    u64 computeCount = base->computeCount;
+    ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
+    u64 i = 0;
+    for(i = 0; i < computeCount; ++i) {
+        base->computes[i]->fcts.begin(base->computes[i], policy, base->type);
+#ifdef OCR_ENABLE_STATISTICS
+        statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
+#endif
+    }
+}
+
 void xeStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
+    
     // Get a GUID
     guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
     base->pd = policy;
@@ -227,6 +249,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryXe(ocrParamList_t * perType) {
     base->instantiate = newWorkerXe;
     base->destruct =  destructWorkerFactoryXe;
     base->workerFcts.destruct = FUNC_ADDR(void (*)(ocrWorker_t*), destructWorkerXe);
+    base->workerFcts.begin = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), xeBeginWorker);
     base->workerFcts.start = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), xeStartWorker);
     base->workerFcts.stop = FUNC_ADDR(void (*)(ocrWorker_t*), xeStopWorker);
     base->workerFcts.finish = FUNC_ADDR(void (*)(ocrWorker_t*), xeFinishWorker);

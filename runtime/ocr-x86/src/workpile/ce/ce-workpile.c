@@ -25,6 +25,10 @@ void ceWorkpileDestruct ( ocrWorkpile_t * base ) {
     runtimeChunkFree((u64)base, NULL);
 }
 
+void ceWorkpileBegin(ocrWorkpile_t *base, ocrPolicyDomain_t *PD) {
+    // Nothing to do
+}
+
 void ceWorkpileStart(ocrWorkpile_t *base, ocrPolicyDomain_t *PD) {
     guidify(PD, (u64)base, &(base->fguid), OCR_GUID_WORKPILE);
     ocrWorkpileCe_t* derived = (ocrWorkpileCe_t*)base;
@@ -100,6 +104,7 @@ ocrWorkpileFactory_t * newOcrWorkpileFactoryCe(ocrParamList_t *perType) {
     base->instantiate = newWorkpileCe;
     base->destruct = destructWorkpileFactoryCe;
     base->workpileFcts.destruct = ceWorkpileDestruct;
+    base->workpileFcts.begin = ceWorkpileBegin;
     base->workpileFcts.start = ceWorkpileStart;
     base->workpileFcts.stop = ceWorkpileStop;
     base->workpileFcts.finish = ceWorkpileFinish;

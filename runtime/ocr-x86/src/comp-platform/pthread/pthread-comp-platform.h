@@ -38,7 +38,6 @@ typedef struct {
     bool isMaster;
 #ifdef ENABLE_WORKPILE_CE   // FIXME: cleanup
     deque_t * request_queue;
-    deque_t * response_queue;
 #endif
 } ocrCompPlatformPthread_t;
 

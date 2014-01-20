@@ -22,19 +22,52 @@
 
 #define DEBUG_TYPE POLICY
 
-void xePolicyDomainStart(ocrPolicyDomain_t * policy) {
+void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     // The PD should have been brought up by now and everything instantiated
-    // WARNING: Threads start should be the last thing we do here after
-    //          all data-structures have been initialized.
+    
     u64 i = 0;
     u64 maxCount = 0;
+        
+    maxCount = policy->guidProviderCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->guidProviders[i]->fcts.begin(policy->guidProviders[i], policy);
+    }
+    
+    maxCount = policy->allocatorCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->allocators[i]->fcts.begin(policy->allocators[i], policy);
+    }
+    
+    maxCount = policy->schedulerCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->schedulers[i]->fcts.begin(policy->schedulers[i], policy);
+    }
 
-    guidify(policy, (u64)policy, &(policy->fguid), OCR_GUID_POLICY);
+    // REC: Moved all workers to start here. 
+    // Note: it's important to first logically start all workers.
+    // Once they are all up, start the runtime.
+    // Workers should start the underlying target and platforms
+    maxCount = policy->workerCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->workers[i]->fcts.begin(policy->workers[i], policy);
+    }
+}
 
+void xePolicyDomainStart(ocrPolicyDomain_t * policy) {
+    // The PD should have been brought up by now and everything instantiated
+    // This is a bit ugly but I can't find a cleaner solution:
+    //   - we need to associate the environment with the
+    //   currently running worker/PD so that we can use getCurrentEnv
+
+    u64 i = 0;
+    u64 maxCount = 0;
+    
     maxCount = policy->guidProviderCount;
     for(i = 0; i < maxCount; ++i) {
         policy->guidProviders[i]->fcts.start(policy->guidProviders[i], policy);
     }
+    
+    guidify(policy, (u64)policy, &(policy->fguid), OCR_GUID_POLICY);
     
     maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
@@ -49,8 +82,6 @@ void xePolicyDomainStart(ocrPolicyDomain_t * policy) {
     // REC: Moved all workers to start here. 
     // Note: it's important to first logically start all workers.
     // Once they are all up, start the runtime.
-    // It is assumed that the current worker (executing this code) is
-    // worker 0 and it will be started last.
     // Workers should start the underlying target and platforms
     maxCount = policy->workerCount;
     for(i = 0; i < maxCount; i++) {
@@ -191,44 +222,61 @@ void xePolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     policy->salProvider->fcts.destruct(policy->salProvider);
 
     // Destroy self
+    runtimeChunkFree((u64)policy->workers, NULL);
+    runtimeChunkFree((u64)policy->schedulers, NULL);
+    runtimeChunkFree((u64)policy->allocators, NULL);
+    runtimeChunkFree((u64)policy->taskFactories, NULL);
+    runtimeChunkFree((u64)policy->taskTemplateFactories, NULL);
+    runtimeChunkFree((u64)policy->dbFactories, NULL);
+    runtimeChunkFree((u64)policy->eventFactories, NULL);
+    runtimeChunkFree((u64)policy->guidProviders, NULL);
     runtimeChunkFree((u64)policy, NULL);
 }
 
 static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
-    // TODO
+    ASSERT(self->guidProviderCount == 1);
+    if(guid->guid != NULL_GUID && guid->guid != UNINITIALIZED_GUID) {
+        if(guid->metaDataPtr == NULL) {
+            self->guidProviders[0]->fcts.getVal(self->guidProviders[0], guid->guid,
+                                                (u64*)(&(guid->metaDataPtr)), NULL);
+        }
+    }
 }
 
 // In all these functions, we consider only a single PD. In other words, in XE, we
 // deal with everything locally and never send messages
 
+
 static u8 xeCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
-                      ocrFatGuid_t  edtTemplate, u32 paramc, u64* paramv,
-                      u32 depc, u32 properties, ocrFatGuid_t affinity,
+                      ocrFatGuid_t  edtTemplate, u32 *paramc, u64* paramv,
+                      u32 *depc, u32 properties, ocrFatGuid_t affinity,
                       ocrFatGuid_t * outputEvent) {
 
     
     ocrTaskTemplate_t *taskTemplate = (ocrTaskTemplate_t*)edtTemplate.metaDataPtr;
     
-    ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && paramc != EDT_PARAM_DEF) ||
-           (taskTemplate->paramc != EDT_PARAM_UNK && (paramc == EDT_PARAM_DEF ||
-                                                      taskTemplate->paramc == paramc)));
-    ASSERT(((taskTemplate->depc == EDT_PARAM_UNK) && depc != EDT_PARAM_DEF) ||
-           (taskTemplate->depc != EDT_PARAM_UNK && (depc == EDT_PARAM_DEF ||
-                                                    taskTemplate->depc == depc)));
+    ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && *paramc != EDT_PARAM_DEF) ||
+           (taskTemplate->paramc != EDT_PARAM_UNK && (*paramc == EDT_PARAM_DEF ||
+                                                      taskTemplate->paramc == *paramc)));
+    ASSERT(((taskTemplate->depc == EDT_PARAM_UNK) && *depc != EDT_PARAM_DEF) ||
+           (taskTemplate->depc != EDT_PARAM_UNK && (*depc == EDT_PARAM_DEF ||
+                                                    taskTemplate->depc == *depc)));
 
-    if(paramc == EDT_PARAM_DEF) {
-        paramc = taskTemplate->paramc;
+    if(*paramc == EDT_PARAM_DEF) {
+        *paramc = taskTemplate->paramc;
     }
-    if(depc == EDT_PARAM_DEF) {
-        depc = taskTemplate->depc;
+    if(*depc == EDT_PARAM_DEF) {
+        *depc = taskTemplate->depc;
     }
     // If paramc are expected, double check paramv is not NULL
-    if((paramc > 0) && (paramv == NULL))
+    if((*paramc > 0) && (paramv == NULL)) {
+        ASSERT(0);
         return OCR_EINVAL;
+    }
 
     ocrTask_t * base = self->taskFactories[0]->instantiate(
-        self->taskFactories[0], edtTemplate, paramc, paramv,
-        depc, properties, affinity, outputEvent, NULL);
+        self->taskFactories[0], edtTemplate, *paramc, paramv,
+        *depc, properties, affinity, outputEvent, NULL);
     
     (*guid).guid = base->guid;
     (*guid).metaDataPtr = base;
@@ -256,6 +304,22 @@ static u8 xeCreateEvent(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
     return 0;
 }
 
+static void convertDepAddToSatisfy(ocrPolicyDomain_t *self, ocrFatGuid_t dbGuid,
+                                   ocrFatGuid_t destGuid, u32 slot) {
+
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(NULL, NULL, NULL, &msg);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_DEP_SATISFY
+    msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
+    PD_MSG_FIELD(guid) = destGuid;
+    PD_MSG_FIELD(payload) = dbGuid;
+    PD_MSG_FIELD(slot) = slot;
+    PD_MSG_FIELD(properties) = 0;
+    RESULT_ASSERT(self->processMessage(self, &msg, false), ==, 0);
+#undef PD_MSG
+#undef PD_TYPE
+}
 #ifdef OCR_ENABLE_STATISTICS
 static ocrStats_t* xeGetStats(ocrPolicyDomain_t *self) {
     return self->statsObject;
@@ -623,9 +687,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_GIVE
         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
-        PD_MSG_FIELD(properties) = self->schedulers[0]->fcts.giveEdt(
-            self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
-            PD_MSG_FIELD(guids));
+        PD_MSG_FIELD(properties) = self->workers[0]->fcts.sendMessage(
+            self->workers[0], self->parentLocation, &msg); 
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
@@ -647,26 +710,31 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
         ocrFatGuid_t src = PD_MSG_FIELD(source);
         ocrFatGuid_t dest = PD_MSG_FIELD(dest);
-        if(srcKind == OCR_GUID_EVENT) {
-            ocrEvent_t *evt = (ocrEvent_t*)(src.metaDataPtr);
-            ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-            self->eventFactories[0]->fcts[evt->kind].registerWaiter(
-                evt, dest, PD_MSG_FIELD(slot));
+        if(srcKind == OCR_GUID_DB) {
+            // This is equivalent to an immediate satisfy
+            convertDepAddToSatisfy(self, src, dest, PD_MSG_FIELD(slot));
         } else {
-            // Some sanity check
-            ASSERT(srcKind == OCR_GUID_DB || srcKind == OCR_GUID_EDT);
-        }
-        if(dstKind == OCR_GUID_EDT) {
-            ocrTask_t *task = (ocrTask_t*)(dest.metaDataPtr);
-            ASSERT(task->fctId == self->taskFactories[0]->factoryId);
-            self->taskFactories[0]->fcts.registerSignaler(task, src, PD_MSG_FIELD(slot));
-        } else if(dstKind == OCR_GUID_EVENT) {
-            ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
-            ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-            self->eventFactories[0]->fcts[evt->kind].registerSignaler(
-                evt, src, PD_MSG_FIELD(slot));
-        } else {
-            ASSERT(0); // Cannot have other types of destinations
+            if(srcKind == OCR_GUID_EVENT) {
+                ocrEvent_t *evt = (ocrEvent_t*)(src.metaDataPtr);
+                ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
+                self->eventFactories[0]->fcts[evt->kind].registerWaiter(
+                    evt, dest, PD_MSG_FIELD(slot), true);
+            } else {
+                // Some sanity check
+                ASSERT(srcKind == OCR_GUID_EDT);
+            }
+            if(dstKind == OCR_GUID_EDT) {
+                ocrTask_t *task = (ocrTask_t*)(dest.metaDataPtr);
+                ASSERT(task->fctId == self->taskFactories[0]->factoryId);
+                self->taskFactories[0]->fcts.registerSignaler(task, src, PD_MSG_FIELD(slot), true);
+            } else if(dstKind == OCR_GUID_EVENT) {
+                ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
+                ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
+                self->eventFactories[0]->fcts[evt->kind].registerSignaler(
+                    evt, src, PD_MSG_FIELD(slot), true);
+            } else {
+                ASSERT(0); // Cannot have other types of destinations
+            }
         }
 #ifdef OCR_ENABLE_STATISTICS
         // TODO: Fixme
@@ -680,21 +748,117 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
     case PD_MSG_DEP_REGSIGNALER:
     {
-        // Never used for now
-        ASSERT(0);
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_DEP_REGSIGNALER
+        // We first get information about the signaler and destination
+        ocrGuidKind signalerKind, dstKind;
+        self->guidProviders[0]->fcts.getVal(
+            self->guidProviders[0], PD_MSG_FIELD(signaler.guid),
+            (u64*)(&(PD_MSG_FIELD(signaler.metaDataPtr))), &signalerKind);
+        self->guidProviders[0]->fcts.getVal(
+            self->guidProviders[0], PD_MSG_FIELD(dest.guid),
+            (u64*)(&(PD_MSG_FIELD(dest.metaDataPtr))), &dstKind);
+        
+        ocrFatGuid_t signaler = PD_MSG_FIELD(signaler);
+        ocrFatGuid_t dest = PD_MSG_FIELD(dest);
+        
+        switch(dstKind) {
+        case OCR_GUID_EVENT:
+        {
+            ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
+            ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
+            self->eventFactories[0]->fcts[evt->kind].registerSignaler(
+                evt, signaler, PD_MSG_FIELD(slot), false);
+            break;
+        }
+        case OCR_GUID_EDT:
+        {
+            ocrTask_t *edt = (ocrTask_t*)(dest.metaDataPtr);
+            ASSERT(edt->fctId == self->taskFactories[0]->factoryId);
+            self->taskFactories[0]->fcts.registerSignaler(
+                edt, signaler, PD_MSG_FIELD(slot), false);
+            break;
+        }
+        default:
+            ASSERT(0); // No other things we can register signalers on
+        }
+#ifdef OCR_ENABLE_STATISTICS
+        // TODO: Fixme
+        statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
+#endif
+#undef PD_MSG
+#undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
     case PD_MSG_DEP_REGWAITER:
     {
-        // Never used for now
-        ASSERT(0);
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_DEP_REGWAITER        
+// We first get information about the signaler and destination
+        ocrGuidKind waiterKind, dstKind;
+        self->guidProviders[0]->fcts.getVal(
+            self->guidProviders[0], PD_MSG_FIELD(waiter.guid),
+            (u64*)(&(PD_MSG_FIELD(waiter.metaDataPtr))), &waiterKind);
+        self->guidProviders[0]->fcts.getVal(
+            self->guidProviders[0], PD_MSG_FIELD(dest.guid),
+            (u64*)(&(PD_MSG_FIELD(dest.metaDataPtr))), &dstKind);
+        
+        ocrFatGuid_t waiter = PD_MSG_FIELD(waiter);
+        ocrFatGuid_t dest = PD_MSG_FIELD(dest);
+
+        ASSERT(dstKind == OCR_GUID_EVENT); // Waiters can only wait on events
+        ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
+        ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
+        self->eventFactories[0]->fcts[evt->kind].registerWaiter(
+            evt, waiter, PD_MSG_FIELD(slot), false);
+#ifdef OCR_ENABLE_STATISTICS
+        // TODO: Fixme
+        statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
+#endif
+#undef PD_MSG
+#undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
     case PD_MSG_DEP_SATISFY:
     {
-        // TODO
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_DEP_SATISFY
+        ocrGuidKind dstKind;
+        self->guidProviders[0]->fcts.getVal(
+            self->guidProviders[0], PD_MSG_FIELD(guid.guid),
+            (u64*)(&(PD_MSG_FIELD(guid.metaDataPtr))), &dstKind);
+
+        ocrFatGuid_t dst = PD_MSG_FIELD(guid);
+        if(dstKind == OCR_GUID_EVENT) {
+            ocrEvent_t *evt = (ocrEvent_t*)(dst.metaDataPtr);
+            ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
+            self->eventFactories[0]->fcts[evt->kind].satisfy(
+                evt, PD_MSG_FIELD(payload), PD_MSG_FIELD(slot));
+        } else {
+            if(dstKind == OCR_GUID_EDT) {
+                ocrTask_t *edt = (ocrTask_t*)(dst.metaDataPtr);
+                ASSERT(edt->fctId == self->taskFactories[0]->factoryId);
+                self->taskFactories[0]->fcts.satisfy(
+                    edt, PD_MSG_FIELD(payload), PD_MSG_FIELD(slot));
+            } else {
+                ASSERT(0); // We can't satisfy anything else
+            }
+        }
+#ifdef OCR_ENABLE_STATISTICS
+        // TODO: Fixme
+        statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
+#endif
+#undef PD_MSG
+#undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
+        break;            
     }
 
     case PD_MSG_DEP_UNREGSIGNALER:
@@ -791,12 +955,16 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 }
 
 void* xePdMalloc(ocrPolicyDomain_t *self, u64 size) {
-    // TODO
-    return NULL;
+    // Just try in the first allocator
+    return self->allocators[0]->fcts.allocate(self->allocators[0], size);
 }
 
 void xePdFree(ocrPolicyDomain_t *self, void* addr) {
-    // TODO
+    return self->allocators[0]->fcts.free(self->allocators[0], addr);
+}
+
+ocrSal_t* xePdGetSal(ocrPolicyDomain_t *self) {
+    return self->salProvider;
 }
 
 ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * policy,
@@ -839,13 +1007,14 @@ ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * policy,
     base->costFunction = costFunction;
 
     base->destruct = xePolicyDomainDestruct;
+    base->begin = xePolicyDomainBegin;
     base->start = xePolicyDomainStart;
     base->stop = xePolicyDomainStop;
     base->finish = xePolicyDomainFinish;
     base->processMessage = xePolicyDomainProcessMessage;
-//    base->sendMessage = xePolicyDomainSendMessage;
-//    base->receiveMessage = xePolicyDomainReceiveMessage;
-//    base->getSys = xePolicyDomainGetSys;
+    base->pdMalloc = xePdMalloc;
+    base->pdFree = xePdFree;
+    base->getSal = xePdGetSal;
 #ifdef OCR_ENABLE_STATISTICS
     base->getStats = xeGetStats;
 #endif
