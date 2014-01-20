@@ -27,6 +27,7 @@ default:
 	@echo "   debug-static -- Unoptimized static build"
 	@echo "   debug-shared -- Unoptimized shared build"
 	@echo "   install      -- Install built distribution"
+	@echo "   uninstall    -- Remove installed distribution"
 	@echo "   clean        -- Clean-up build objects, etc."
 	@echo "   squeaky      -- Clean-up all architectures"
 	@echo ""
@@ -55,6 +56,9 @@ debug-shared:
 install:
 	@$(MAKE) -C $(ARCH) $@
 
+.PHONY: uninstall
+	@$(MAKE) -C $(ARCH) $@
+
 .PHONY: clean
 clean:
 	@$(MAKE) -C $(ARCH) $@
@@ -63,5 +67,8 @@ clean:
 squeaky:
 	ARCH=x86-pthread-x86 $(MAKE) -C x86-pthread-x86 clean
 	ARCH=x86-pthread-fsim $(MAKE) -C x86-pthread-fsim clean
-	ARCH=fsim-null-fsim $(MAKE) -C fsim-null-fsim clean
+	ARCH=fsim-null-fsim-ce $(MAKE) -C fsim-null-fsim-ce clean
+	ARCH=fsim-null-fsim-xe $(MAKE) -C fsim-null-fsim-xe clean
+
+
 

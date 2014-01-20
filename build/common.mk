@@ -3,26 +3,10 @@
 #
 OCRDIR := ../..
 
-# Static library name (only set if not set in ARCH specific file)
-OCRSTATIC ?= libocr.a
-# Shared library name (only set if not set in ARCH specific file)
-OCRSHARED ?= libocr.so
-
 #
 # Object & dependence file subdirectory
 #
 OBJDIR := objs
-
-#
-# Generate a list of all source files and the respective objects
-#
-SRCS   := $(shell find -L $(OCRDIR)/src -name '*.[csS]' -print)
-OBJS   := $(addprefix $(OBJDIR)/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
-
-#
-# Generate a source search path
-#
-VPATH  := $(shell find -L $(OCRDIR)/src -type d -print)
 
 # Debug flags
 
@@ -65,23 +49,68 @@ CFLAGS += -DOCR_DEBUG_WORKPILE
 # Global CFLAGS to be passed into all architecture builds
 # concatenated with the architecture-specific CFLAGS at the end
 
-CFLAGS := -g -Wall -I . -I $(OCRDIR)/inc -I $(OCRDIR)/src -I $(OCRDIR)/src/inc -DELS_USER_SIZE=0 $(CFLAGS)
+CFLAGS := -g -Wall -DELS_USER_SIZE=0 $(CFLAGS)
+
+################################################################
+# END OF USER CONFIGURABLE OPTIONS                             #
+################################################################
+
+#
+# Generate a list of all source files and the respective objects
+#
+SRCS   := $(shell find -L $(OCRDIR)/src -name '*.[csS]' -print)
+OBJS_STATIC   := $(addprefix $(OBJDIR)/static/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
+OBJS_SHARED   := $(addprefix $(OBJDIR)/shared/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
+
+#
+# Generate a source search path
+#
+VPATH  := $(shell find -L $(OCRDIR)/src -type d -print)
+
+# Update include paths
+CFLAGS := -I . -I $(OCRDIR)/inc -I $(OCRDIR)/src -I $(OCRDIR)/src/inc $(CFLAGS)
+
+# Static library name (only set if not set in ARCH specific file)
+ifeq (${SUPPORTS_STATIC}, yes)
+OCRSTATIC ?= libocr.a
+CFLAGS_STATIC ?=
+CFLAGS_STATIC := ${CFLAGS} ${CFLAGS_STATIC}
+endif
+# Shared library name (only set if not set in ARCH specific file)
+ifeq (${SUPPORTS_SHARED}, yes)
+CFLAGS_SHARED ?= 
+CFLAGS_SHARED := ${CFLAGS} ${CFLAGS_SHARED}
+OCRSHARED ?= libocr.so
+endif
 
 #
 # Objects build rules
 #
-$(OBJDIR)/%.o: %.c
+$(OBJDIR)/static/%.o: %.c supports-static
 	@echo "Compiling $<"
-	@$(CC) $(CFLAGS) -MMD -c $< -o $@
+	@$(CC) $(CFLAGS_STATIC) -MMD -c $< -o $@
 
-$(OBJDIR)/%.o: %.S
+$(OBJDIR)/shared/%.o: %.c supports-shared
+	@echo "Compiling $<"
+	@$(CC) $(CFLAGS_SHARED) -MMD -c $< -o $@
+
+$(OBJDIR)/static/%.o: %.S supports-static
 	@echo "Assembling $<"
-	@$(CC) $(CFLAGS) -MMD -c $< -o $@
+	@$(CC) $(CFLAGS_STATIC) -MMD -c $< -o $@
+
+$(OBJDIR)/shared/%.o: %.S supports-shared
+	@echo "Assembling $<"
+	@$(CC) $(CFLAGS_SHARED) -MMD -c $< -o $@
 
 #
 # Include auto-generated dependence files
 #
--include $(wildcard $(OBJDIR)/*.d)
+ifeq (${SUPPORTS_STATIC}, yes)
+-include $(wildcard $(OBJDIR)/static/*.d)
+endif
+ifeq (${SUPPORTS_SHARED}, yes)
+-include $(wildcard $(OBJDIR)/shared/*.d)
+endif
 
 #
 # Build targets
@@ -94,7 +123,7 @@ static: CFLAGS := -O2 $(CFLAGS)
 static: supports-static info-static $(OCRSTATIC)
 
 .PHONY: shared
-shared: CFLAGS := -fpic -O2 $(CFLAGS)
+shared: CFLAGS := -O2 $(CFLAGS)
 shared: supports-shared info-shared $(OCRSHARED)
 
 .PHONY: debug-static
@@ -102,37 +131,74 @@ debug-static: CFLAGS := -O0 $(CFLAGS)
 debug-static: supports-static info-static $(OCRSTATIC)
 
 .PHONY: debug-shared
-debug-shared: CFLAGS := -O0 -fpic $(CFLAGS)
+debug-shared: CFLAGS := -O0 $(CFLAGS)
 debug-shared: supports-shared info-shared $(OCRSHARED)
 
-.PHONY: info-compile
-info-compile:
-	@echo ">>>>Compile command for .c files is '$(CC) $(CFLAGS) -MMD -c <src> -o <obj>'"
+# Static target
+
+.PHONY: supports-static
+supports-static:
+ifneq (${SUPPORTS_STATIC}, yes)
+	$(error Architecture ${ARCH} does not support static library building)
+else
+	$(MKDIR) -p $(OBJDIR)/static
+endif
+
 
 .PHONY: info-static
-info-static: info-compile
+info-static:
+	@echo ">>>>Compile command for .c files is '$(CC) $(CFLAGS_STATIC) -MMD -c <src> -o <obj>'"
 	@echo ">>>>Building a static library with '$(AR) $(ARFLAGS)'"
 
+$(OCRSTATIC): $(OBJS_STATIC)
+	@echo "Linking static library ${OCRSTATIC}"
+	@$(AR) $(ARFLAGS) $(OCRSTATIC) $^
+	@$(RANLIB) $(OCRSTATIC)
+
+
+# Shared target
+.PHONY: supports-shared
+supports-shared:
+ifneq (${SUPPORTS_SHARED}, yes)
+	$(error Architecture ${ARCH} does not support shared library building)
+else
+	$(MKDIR) -p ${OBJDIR}/shared
+endif
+
 .PHONY: info-shared
-info-shared: info-compile
-	@echo ">>>>Building a shared library with ''"
+info-shared:
+	@echo ">>>>Compile command for .c files is '$(CC) $(CFLAGS_SHARED) -MMD -c <src> -o <obj>'"
+	@echo ">>>>Building a shared library with '$(CC) $(LDFLAGS)'"
 
-$(OCRSTATIC): $(OBJS)
-	$(AR) $(ARFLAGS) $(OCRSTATIC) $^
-	$(RANLIB) $(OCRSTATIC)
+$(OCRSHARED): $(OBJS_SHARED)
+	@echo "Linking shared library ${OCRSHARED}"
+	@$(CC) $(LDFLAGS) -o $(OCRSHARED) $^
 
-$(OCRSHARED): $(OBJS)
-	$(CC) $(LDFLAGS) -o $(OCRSHARED) $^
+# Install
+INSTALL_TARGETS :=
+INSTALL_FILES := 
+ifeq (${SUPPORTS_STATIC}, yes)
+INSTALL_TARGETS += static
+INSTALL_FILES += $(OCRSTATIC)
+endif
+ifeq (${SUPPORTS_SHARED}, yes)
+INSTALL_TARGETS += shared
+INSTALL_FILES += $(OCRSHARED)
+endif
 
 .PHONY: install
-install: default
-	$(CP) *.so *.a $(OCRDIR)/install/$(ARCH)/lib
+install: ${INSTALL_TARGETS}
+	$(CP) ${INSTALL_FILES} $(OCRDIR)/install/$(ARCH)/lib
 	$(CP) -r $(OCRDIR)/inc/* $(OCRDIR)/install/$(ARCH)/include
-	$(CP) -r $(OCRDIR)/machine-configs/default.cfg $(OCRDIR)/install/$(ARCH)/config
+	$(CP) -r $(OCRDIR)/machine-configs/* $(OCRDIR)/install/$(ARCH)/config
+
+.PHONY: uninstall
+uninstall: 
+	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/lib/*
+	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/include/*
+	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/config/*
 
 .PHONY:clean
 clean:
-	-$(RM) $(RMFLAGS) $(OBJDIR)/*
-	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/lib/*
-	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/include/*
-	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/config/default.cfg
+	-$(RM) $(RMFLAGS) $(OBJDIR)/* $(OCRSHARED) $(OCRSTATIC)
+

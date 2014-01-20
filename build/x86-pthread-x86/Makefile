@@ -6,32 +6,49 @@
 # Author: Ivan Ganev <ivan.b.ganev@intel.com>
 #
 
+ifndef ARCH
+ARCH=x86-pthread-x86
+else
+ifneq (${ARCH}, x86-pthread-x86)
+$(error ARCH is set to ${ARCH} but expected x86-pthread-x86)
+endif
+endif
 #
 # Tool-chain to be used for the build
 #
 
 CC      := gcc
 CFLAGS  := 
-LDFLAGS := -shared
-
-AR      := ar
-ARFLAGS := cru
-
-RANLIB  := ranlib
 
 RM      := rm
 RMFLAGS := -rf
 
 CP      := cp
+MKDIR   := mkdir
+
+# Shared libraries specific builds
+LDFLAGS := -shared -fpic
+
+# CFLAGS_SHARED will be concatenated with any
+# common CFLAGS options
+CFLAGS_SHARED := -fpic
+
+# Static libraries specific builds
+# Same as for CFLAGS_SHARED
+CFLAGS_STATIC := 
+AR := ar
+ARFLAGS := cru
+
+RANLIB := ranlib
+
+# Library supported
+SUPPORTS_SHARED=yes
+SUPPORTS_STATIC=yes
+
 
 # For Valgrind, uncomment this line
 CFLAGS += -I/usr/include -DENABLE_VALGRIND
 
-.PHONY: supports-shared
-supports-shared:
-
-.PHONY: supports-static
-supports-static:
-
 
 include ../common.mk
+
