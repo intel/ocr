@@ -1,12 +1,17 @@
 #
 # OCR top level directory
 #
-OCRDIR := ../..
+OCRDIR ?= ../..
 
 #
 # Object & dependence file subdirectory
 #
-OBJDIR := objs
+OBJDIR ?= objs
+
+#
+# Default machine configuration
+#
+DEFAULT_CONFIG ?= mach-hc-4w.cfg
 
 # Debug flags
 
@@ -191,6 +196,7 @@ install: ${INSTALL_TARGETS}
 	$(CP) ${INSTALL_FILES} $(OCRDIR)/install/$(ARCH)/lib
 	$(CP) -r $(OCRDIR)/inc/* $(OCRDIR)/install/$(ARCH)/include
 	$(CP) -r $(OCRDIR)/machine-configs/* $(OCRDIR)/install/$(ARCH)/config
+	$(LN) -s ./$(DEFAULT_CONFIG) $(OCRDIR)/install/$(ARCH)/config/default.cfg
 
 .PHONY: uninstall
 uninstall: 

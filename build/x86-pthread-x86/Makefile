@@ -25,6 +25,7 @@ RMFLAGS := -rf
 
 CP      := cp
 MKDIR   := mkdir
+LN      := ln
 
 # Shared libraries specific builds
 LDFLAGS := -shared -fpic
