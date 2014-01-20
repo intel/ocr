@@ -21,11 +21,6 @@
 #include "ocr-statistics.h"
 #endif
 
-
-// Define internal finish-latch event id after user-level events
-#define OCR_EVENT_FINISH_LATCH_T OCR_EVENT_T_MAX+1
-
-
 /****************************************************/
 /* PARAMETER LISTS                                  */
 /****************************************************/

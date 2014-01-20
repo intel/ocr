@@ -209,7 +209,7 @@ u8 ocrEdtDestroy(ocrGuid_t guid);
  *                      equivalent to giving a sticky event
  *                      pre-satisfied with the DB
  *
- * @param source            GUID of the source
+ * @param source            GUID of the source or NULL_GUID which is equivalent to an instant satisfaction
  * @param destination       GUID of the destination
  * @param slot              Dependence "slot" on the EDT/Event to connect to
  *                          (up to n-1 where n is the number of dependences

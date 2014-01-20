@@ -469,16 +469,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
 
 // In this call, we do have to contend with concurrent satisfies (persistent events)
 u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool isDepAdd) {
-    // For persistent events, we only consider waiters that register
-    // for "real" and not when a dependence is being added
-    if(isDepAdd) {
-        return 0;
-    }
     ocrEventHcPersist_t *event = (ocrEventHcPersist_t*)base;
-    
-    
-    DPRINTF(DEBUG_LVL_INFO, "Register waiter %s: 0x%lx with waiter 0x%lx on slot %d\n",
-            eventTypeToString(base), base->guid, waiter.guid, slot);
     
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *curTask = NULL;
@@ -489,6 +480,20 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
     u32 i;
     
     getCurrentEnv(&pd, NULL, &curTask, &msg);
+
+    // EDTs will register on persistent events when they are really
+    // waiting on it. Other events however, register when the dependence
+    // is added
+    ocrGuidKind waiterKind = OCR_GUID_NONE;
+    RESULT_ASSERT(guidKind(pd, waiter, &waiterKind), ==, 0);
+    
+    if(isDepAdd && waiterKind == OCR_GUID_EDT) {
+        return 0;
+    }
+    ASSERT(waiterKind == OCR_GUID_EDT || waiterKind == OCR_GUID_EVENT);
+
+    DPRINTF(DEBUG_LVL_INFO, "Register waiter %s: 0x%lx with waiter 0x%lx on slot %d\n",
+            eventTypeToString(base), base->guid, waiter.guid, slot);
     hal_lock32(&(event->waitersLock));
     if(event->data != UNINITIALIZED_GUID) {
         hal_unlock32(&(event->waitersLock));
@@ -833,7 +838,6 @@ ocrEventFactory_t * newEventFactoryHc(ocrParamList_t *perType, u32 factoryId) {
     // Initialize the function pointers
     u32 i;
     // Setup functions properly
-    // TODO
     for(i = 0; i < (u32)OCR_EVENT_T_MAX; ++i) {
         base->fcts[i].destruct = FUNC_ADDR(void (*)(ocrEvent_t*), destructEventHc);
         base->fcts[i].get = FUNC_ADDR(ocrFatGuid_t (*)(ocrEvent_t*), getEventHc);

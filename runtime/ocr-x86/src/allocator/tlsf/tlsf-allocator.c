@@ -358,7 +358,15 @@ static headerAddr_t getPrevBlock(u64 pgStart, u64 me /* const header_t* */) {
     headerAddr_t res;
     ASSERT(isPrevBlockFree(me));
     tlsfSize_t offset;
+#ifdef ENABLE_VALGRIND
+    // Weird case so I'll just hack it for now
+    VALGRIND_MAKE_MEM_DEFINED(me - sizeof(tlsfSize_t), sizeof(tlsfSize_t));
+#endif
     LD_SIZE(offset, me - sizeof(tlsfSize_t));
+#ifdef ENABLE_VALGRIND
+    // Weird case so I'll just hack it for now
+    VALGRIND_MAKE_MEM_NOACCESS(me - sizeof(tlsfSize_t), sizeof(tlsfSize_t));
+#endif
     FENCE_LOAD;
     offset += GusedBlockOverhead;   // Gets sizeBlock2 in previous block (which is free)
 
@@ -953,11 +961,23 @@ static void tlsfFree(u64 pgStart, u64 ptr) {
 
     bl = blockForAddress(pgStart, ptr);
 
+#ifdef ENABLE_VALGRIND
+    headerAddr_t bltemp = bl;
     VALGRIND_DEFINED1(GET_ADDRESS(bl));
+    bl = mergePrevious(pgStart, bl);
+    VALGRIND_NOACCESS1(GET_ADDRESS(bltemp));
+    bltemp = bl;
+    VALGRIND_DEFINED1(GET_ADDRESS(bl));
+    bl = mergeNext(pgStart, bl);
+    VALGRIND_NOACCESS1(GET_ADDRESS(bltemp));
+    VALGRIND_DEFINED1(GET_ADDRESS(bl));
+    addFreeBlock(pgStart, bl);
+    VALGRIND_NOACCESS1(GET_ADDRESS(bl));
+#else
     bl = mergePrevious(pgStart, bl);
     bl = mergeNext(pgStart, bl);
     addFreeBlock(pgStart, bl);
-    VALGRIND_NOACCESS1(GET_ADDRESS(bl));
+#endif
 }
 
 static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {

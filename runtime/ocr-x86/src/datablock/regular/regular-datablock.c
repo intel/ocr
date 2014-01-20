@@ -154,6 +154,7 @@ void regularDestruct(ocrDataBlock_t *self) {
     PD_MSG_FIELD(allocatingPD.metaDataPtr) = NULL;
     PD_MSG_FIELD(allocator.guid) = self->allocator;
     PD_MSG_FIELD(allocator.metaDataPtr) = NULL;
+    PD_MSG_FIELD(type) = DB_MEMTYPE;
     PD_MSG_FIELD(properties) = 0;
     RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
     

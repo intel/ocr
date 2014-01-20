@@ -205,43 +205,75 @@ typedef struct _ocrGuidProviderFactory_t {
 /* OCR GUID CONVENIENCE FUNCTIONS                   */
 /****************************************************/
 
-static inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrGuid_t guid,
+/**
+ * @brief Resolve the kind of a guid (could be an event, an edt, etc...)
+ * @param[in] pd          Policy domain
+ * @param[in] guid        The GUID for which we need the kind
+ * @param[out] kindRes    Parameter-result to contain the kind
+ */
+static inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t guid,
                           ocrGuidKind* kindRes) __attribute__((unused));
 
 /**
- * @brief Associates a GUID with val
+ *  @brief Generates a GUID based on the value 'val'.
  *
- * This call will cause a GUID to be associated with 'val' but
- * will not create any metadata storage (ie: if val is the pointer
- * to the metadata, it should already be valid)
+ *  This does not allocate space for the metadata associated with the GUID
+ *  but rather associates a GUID with the value passed in.
+ *  
+ *  @param[in] pd          Policy domain
+ *  @param[in] ptr         The pointer for which we want a guid
+ *  @param[out] guidRes    Parameter-result to contain the guid
+ *  @param[in] kind        The kind of the guid (whether is an event, an edt, etc...)
  *
- * @param[in] pd            Policy domain (current one)
- * @param[in] val           Value to associate
- * @param[out] guidRes      Fat GUID containing the new GUID and val as metaDataPtr
- * @param[in] kind          Kind of the GUID to create
- * @return 0 on success and a non-zero value on failure
+ *  @return 0 on success and a non zero failure on failure
  */
 static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 val, ocrFatGuid_t * guidRes,
                          ocrGuidKind kind) __attribute__((unused));
 
 /**
- * @brief Returns the value associated with GUID which allows the caller
- * to access the meta-data associated with the GUID
+ * @brief Resolves the pointer to the metadata out of the GUID
  *
- * @param[in] pd            Policy domain (current one)
- * @param[in/out] res       Fat-GUID to 'deguidify'. Note that if
- *                          metaDataPtr is non-NULL, this call is a no-op.
- *                          On input, res.guid should be valid
- * @param[out] kindRes      (optional) If non-NULL, returns kind of GUID
- * @return 0 on success and a non-zero value on failure
+ * Note that the value in metaDataPtr should only be used as a
+ * READ-ONLY value. This call may return a COPY of the metadata
+ * area.
+ * @param[in] pd          Policy domain
+ * @param[in/out] res     Parameter-result to contain the fully resolved GUID
+ * @param[out] kindRes    Parameter-result to contain the kind
  */
 static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t *res,
                            ocrGuidKind* kindRes) __attribute__((unused));
 
-static inline bool isDatablockGuid(ocrGuid_t guid) __attribute__((unused));
-static inline bool isEventGuid(ocrGuid_t guid) __attribute__((unused));
-static inline bool isEdtGuid(ocrGuid_t guid) __attribute__((unused));
-static inline bool isEventLatchGuid(ocrGuid_t guid) __attribute__((unused));
-static inline bool isEventSingleGuid(ocrGuid_t guid) __attribute__((unused));
+/**
+ * @brief Check if a GUID represents a data-block
+ *
+ * @param[in] pd          Policy domain in which we are
+ * @param[in] guid        The GUID to check the kind
+ */
+static inline bool isDatablockGuid(struct _ocrPolicyDomain_t *pd,
+                                   ocrFatGuid_t guid) __attribute__((unused));
+
+/**
+ * @brief Check if a GUID represents an event
+ *
+ * @param[in] pd          Policy domain in which we are
+ * @param[in] guid        The GUID to check the kind
+ */
+static inline bool isEventGuid(struct _ocrPolicyDomain_t *pd,
+                               ocrFatGuid_t guid) __attribute__((unused));
+
+/**
+ * @brief Check if a GUID represents an EDT
+ *
+ * @param[in] pd          Policy domain in which we are
+ * @param[in] guid        The GUID to check the kind
+ */
+static inline bool isEdtGuid(struct _ocrPolicyDomain_t *pd,
+                             ocrFatGuid_t guid) __attribute__((unused));
+
+/*! \brief Check if a guid represents a latch-event
+ *  \param[in] guid        The guid to check the kind
+ */
+static inline ocrEventTypes_t eventType(struct _ocrPolicyDomain_t *pd,
+                                        ocrFatGuid_t guid) __attribute__((unused));
 
 #endif /* __OCR_GUID__H_ */

@@ -202,9 +202,10 @@ static void initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
     if (hasProperty(properties, EDT_PROP_FINISH)) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_CREATE
+        msg.type = PD_MSG_EVT_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guid.guid) = NULL_GUID;
         PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-        PD_MSG_FIELD(type) = OCR_EVENT_FINISH_LATCH_T;
+        PD_MSG_FIELD(type) = OCR_EVENT_LATCH_T;
         PD_MSG_FIELD(properties) = 0;
         RESULT_ASSERT(pd->processMessage(pd, &msg, true), ==, 0);
 
@@ -213,9 +214,6 @@ static void initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
 #undef PD_TYPE
         ASSERT(latchFGuid.guid != NULL_GUID && latchFGuid.metaDataPtr != NULL);
         
-        ocrEventHcFinishLatch_t * hcLatch = (ocrEventHcFinishLatch_t *)latchFGuid.metaDataPtr;
-        // Set the owner of the latch
-        hcLatch->ownerGuid = task->base.guid;
         if (parentLatch.guid != NULL_GUID) {
             DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on parent flatch 0x%lx\n", task->base.guid, parentLatch.guid);
             // Check in current finish latch
@@ -443,10 +441,11 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     // Could be moved a little later if the ASSERT was not here
     // Should not make a huge difference
     hal_lock32(&(self->lock));
-    ASSERT((self->signalers[slot].slot == slot &&
-            (self->signalers[slot].slot == self->frontierSlot)) ||
-           self->signalers[slot].slot != (u32)-2); // Checks if not already satisfied
-                                                   // -2 means once event or latch
+    ASSERT(self->signalers[slot].slot != (u32)-1); // Check to see if not already satisfied
+    ASSERT((data.guid == NULL_GUID) || (self->signalers[slot].slot == slot &&
+                                        (self->signalers[slot].slot == self->frontierSlot)) ||
+           self->signalers[slot].slot == (u32)-2); // Check to see if we are getting satisfied on the correct slot
+                                                   
     self->signalers[slot].guid = data.guid;
     self->signalers[slot].slot = (u32)-1; // Say that it is satisfied
     if(++self->slotSatisfiedCount == base->depc) {
@@ -458,10 +457,11 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
         taskSchedule(base);
     } else if(self->frontierSlot == slot) {
         // We need to go register to the next non-once dependence
-        while(self->signalers[++self->frontierSlot].slot != ++slot) ;
-        ASSERT(self->frontierSlot < base->depc);
+        while(++self->frontierSlot < base->depc &&
+              self->signalers[self->frontierSlot].slot != ++slot) ;
         // We found a slot that is == to slot (so unsatisfied and not once)
-        if(self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
+        if(self->frontierSlot < base->depc &&
+           self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
             u32 tslot = self->frontierSlot;
             hal_unlock32(&(self->lock));
             registerOnFrontier(self, pd, &msg, tslot);
@@ -470,26 +470,51 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
         } else {
             hal_unlock32(&(self->lock));
         }
+    } else {
+        hal_unlock32(&(self->lock));
     }
     return 0;
 }
 
 u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot, bool isDepAdd) {
     ASSERT(isDepAdd); // This should only be called when adding a dependence
-    // Check if event or data-block
-    ASSERT((isEventGuid(signalerGuid.guid) || isDatablockGuid(signalerGuid.guid)));
+    
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
     regNode_t * node = &(self->signalers[slot]);
     
     node->guid = signalerGuid.guid;
-    if(isEventGuid(signalerGuid.guid)) {
+
+    ocrPolicyDomain_t *pd = NULL;
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(&pd, NULL, NULL, &msg);
+    
+    ocrGuidKind signalerKind;
+    deguidify(pd, &signalerGuid, &signalerKind);
+    if(signalerKind == OCR_GUID_EVENT) {
         node->slot = slot;
-        // REC: TODO: This is dangerous as it implies a deguidify which
-        // may not be very easy to do. It is a read-only thing though
-        // so maybe it is OK (change deguidify to specify mode?)
-        if(isEventGuidOfKind(signalerGuid.guid, OCR_EVENT_ONCE_T)
-           || isEventGuidOfKind(signalerGuid.guid, OCR_EVENT_LATCH_T)) {
+        ocrEventTypes_t evtKind = eventType(pd, signalerGuid);
+        if(evtKind == OCR_EVENT_ONCE_T ||
+           evtKind == OCR_EVENT_LATCH_T) {
+
             node->slot = (u32)-2; // To signal that this is a once event
+            
+            // We need to move the frontier slot over
+            hal_lock32(&(self->lock));
+            while(++self->frontierSlot < base->depc &&
+                  self->signalers[self->frontierSlot].slot != ++slot) ;
+            
+            // We found a slot that is == to slot (so unsatisfied and not once)
+            if(self->frontierSlot < base->depc &&
+               self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
+                u32 tslot = self->frontierSlot;
+                hal_unlock32(&(self->lock));
+                
+                registerOnFrontier(self, pd, &msg, tslot);
+                // If we are UNITIALIZED_GUID, we will do the REGWAITER
+                // when we add the dependence (just below)
+            } else {
+                hal_unlock32(&(self->lock));
+            }   
         } else {
             if(slot == self->frontierSlot) {
                 // We actually need to register ourself as a waiter here
@@ -500,7 +525,7 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
             }
         }
     } else {
-        if(isDatablockGuid(signalerGuid.guid)) {
+        if(signalerKind == OCR_GUID_DB) {
             node->slot = (u32)-1; // Already satisfied
             hal_lock32(&(self->lock));
             ++(self->slotSatisfiedCount);
@@ -513,7 +538,6 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
             } else {
                 hal_unlock32(&(self->lock));
             }
-            hal_unlock32(&(self->lock));
         } else {
             ASSERT(0);
         }
@@ -555,7 +579,6 @@ u8 taskExecute(ocrTask_t* base) {
             //TODO would be nice to standardize that on satisfy
             depv[i].guid = derived->signalers[i].guid;
             if(depv[i].guid != NULL_GUID) {
-                ASSERT(isDatablockGuid(depv[i].guid));
                 // We send a message that we want to acquire the DB
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_ACQUIRE

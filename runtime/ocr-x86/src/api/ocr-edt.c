@@ -177,14 +177,29 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, &msg);
+    if(source != NULL_GUID) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_ADD
-    msg.type = PD_MSG_DEP_ADD | PD_MSG_REQUEST;
-    PD_MSG_FIELD(source.guid) = source;
-    PD_MSG_FIELD(dest.guid) = destination;
-    PD_MSG_FIELD(slot) = slot;
-    PD_MSG_FIELD(properties) = mode;
+        msg.type = PD_MSG_DEP_ADD | PD_MSG_REQUEST;
+        PD_MSG_FIELD(source.guid) = source;
+        PD_MSG_FIELD(dest.guid) = destination;
+        PD_MSG_FIELD(slot) = slot;
+        PD_MSG_FIELD(properties) = mode;
 #undef PD_MSG
 #undef PD_TYPE
+    } else {
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_DEP_SATISFY
+        msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
+        PD_MSG_FIELD(guid.guid) = destination;
+        PD_MSG_FIELD(payload.guid) = NULL_GUID;
+        PD_MSG_FIELD(payload.metaDataPtr) = 0ULL;
+        PD_MSG_FIELD(slot) = slot;
+        PD_MSG_FIELD(properties) = 0;
+#undef PD_MSG
+#undef PD_TYPE
+    }
     return pd->processMessage(pd, &msg, false);
 }
+
+

@@ -337,8 +337,10 @@ static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
         *depc = taskTemplate->depc;
     }
     // If paramc are expected, double check paramv is not NULL
-    if((*paramc > 0) && (paramv == NULL))
+    if((*paramc > 0) && (paramv == NULL)) {
+        ASSERT(0);
         return OCR_EINVAL;
+    }
 
     ocrTask_t * base = self->taskFactories[0]->instantiate(
         self->taskFactories[0], edtTemplate, *paramc, paramv,
@@ -370,6 +372,22 @@ static u8 hcCreateEvent(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
     return 0;
 }
 
+static void convertDepAddToSatisfy(ocrPolicyDomain_t *self, ocrFatGuid_t dbGuid,
+                                   ocrFatGuid_t destGuid, u32 slot) {
+
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(NULL, NULL, NULL, &msg);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_DEP_SATISFY
+    msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
+    PD_MSG_FIELD(guid) = destGuid;
+    PD_MSG_FIELD(payload) = dbGuid;
+    PD_MSG_FIELD(slot) = slot;
+    PD_MSG_FIELD(properties) = 0;
+    RESULT_ASSERT(self->processMessage(self, &msg, false), ==, 0);
+#undef PD_MSG
+#undef PD_TYPE
+}
 #ifdef OCR_ENABLE_STATISTICS
 static ocrStats_t* hcGetStats(ocrPolicyDomain_t *self) {
     return self->statsObject;
@@ -729,26 +747,31 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         
         ocrFatGuid_t src = PD_MSG_FIELD(source);
         ocrFatGuid_t dest = PD_MSG_FIELD(dest);
-        if(srcKind == OCR_GUID_EVENT) {
-            ocrEvent_t *evt = (ocrEvent_t*)(src.metaDataPtr);
-            ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-            self->eventFactories[0]->fcts[evt->kind].registerWaiter(
-                evt, dest, PD_MSG_FIELD(slot), true);
+        if(srcKind == OCR_GUID_DB) {
+            // This is equivalent to an immediate satisfy
+            convertDepAddToSatisfy(self, src, dest, PD_MSG_FIELD(slot));
         } else {
-            // Some sanity check
-            ASSERT(srcKind == OCR_GUID_DB || srcKind == OCR_GUID_EDT);
-        }
-        if(dstKind == OCR_GUID_EDT) {
-            ocrTask_t *task = (ocrTask_t*)(dest.metaDataPtr);
-            ASSERT(task->fctId == self->taskFactories[0]->factoryId);
-            self->taskFactories[0]->fcts.registerSignaler(task, src, PD_MSG_FIELD(slot), true);
-        } else if(dstKind == OCR_GUID_EVENT) {
-            ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
-            ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-            self->eventFactories[0]->fcts[evt->kind].registerSignaler(
-                evt, src, PD_MSG_FIELD(slot), true);
-        } else {
-            ASSERT(0); // Cannot have other types of destinations
+            if(srcKind == OCR_GUID_EVENT) {
+                ocrEvent_t *evt = (ocrEvent_t*)(src.metaDataPtr);
+                ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
+                self->eventFactories[0]->fcts[evt->kind].registerWaiter(
+                    evt, dest, PD_MSG_FIELD(slot), true);
+            } else {
+                // Some sanity check
+                ASSERT(srcKind == OCR_GUID_EDT);
+            }
+            if(dstKind == OCR_GUID_EDT) {
+                ocrTask_t *task = (ocrTask_t*)(dest.metaDataPtr);
+                ASSERT(task->fctId == self->taskFactories[0]->factoryId);
+                self->taskFactories[0]->fcts.registerSignaler(task, src, PD_MSG_FIELD(slot), true);
+            } else if(dstKind == OCR_GUID_EVENT) {
+                ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
+                ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
+                self->eventFactories[0]->fcts[evt->kind].registerSignaler(
+                    evt, src, PD_MSG_FIELD(slot), true);
+            } else {
+                ASSERT(0); // Cannot have other types of destinations
+            }
         }
 
 #ifdef OCR_ENABLE_STATISTICS

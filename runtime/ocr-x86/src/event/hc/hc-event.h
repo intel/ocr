@@ -46,15 +46,6 @@ typedef struct ocrEventHcLatch_t {
     volatile s32 counter;
 } ocrEventHcLatch_t;
 
-// TODO: do I need this?
-typedef struct ocrEventHcFinishLatch_t {
-    ocrEventHc_t base;
-    // Dependences to be signaled
-    
-    ocrGuid_t ownerGuid; // finish-edt starting the finish scope
-    volatile ocrGuid_t returnGuid;
-    volatile s32 counter;
-} ocrEventHcFinishLatch_t;
 
 ocrEventFactory_t* newEventFactoryHc(ocrParamList_t *perType, u32 factoryId);
 

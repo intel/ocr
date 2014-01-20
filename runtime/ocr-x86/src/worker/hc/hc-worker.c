@@ -167,9 +167,6 @@ void hcBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 }
 
 void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
-    // Get a GUID
-    guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
-    base->pd = policy;
     
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
     if(base->type == MASTER_WORKERTYPE) {
@@ -178,6 +175,11 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
             return; // Don't start right away
         }
     }
+    
+    // Get a GUID
+    guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
+    base->pd = policy;
+    
     ASSERT(base->type != MASTER_WORKERTYPE || hcWorker->secondStart);
     hcWorker->run = true;
 
