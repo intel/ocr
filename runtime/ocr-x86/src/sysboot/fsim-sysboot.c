@@ -52,6 +52,14 @@ void FsimRuntimeUpdateMemTarget(ocrMemTarget_t *me, u64 extra) {
     return;
 }
 
+void FsimBootUpAbort() {
+ // TODO: Crash & burn
+}
+
+void FsimBootUpPrint(const char* str, u64 length) {
+ // TODO
+}
+
 extern void *getAddress(const char *fname);
 
 void *myGetFuncAddr (const char * fname) {
@@ -63,5 +71,7 @@ void* (*getFuncAddr)(const char*) = &myGetFuncAddr;
 u64 (*runtimeChunkAlloc)(u64, u64*) = &FsimRuntimeChunkAlloc;
 void (*runtimeChunkFree)(u64, u64*) = &FsimRuntimeChunkFree;
 void (*runtimeUpdateMemTarget)(ocrMemTarget_t *, u64) = &FsimRuntimeUpdateMemTarget;
+void (*bootUpAbort)() = &FsimBootUpAbort;
+void (*bootUpPrint)(const char*, u64) = &FsimBootUpPrint;
 
 #endif /* ENABLE_SYSBOOT_FSIM */

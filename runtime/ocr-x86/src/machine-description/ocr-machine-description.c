@@ -606,11 +606,6 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
             switch (mytype) {
                 case compPlatformPthread_id: {
                     ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformPthread_t);
-                    /* TODO BALA: We can remove this. Don't know if it needs to be removed elsewhere
-                    snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "ismasterthread");
-                    INI_GET_BOOL (key, value, -1);
-                    isMasterThread = value;
-                    */
                     
                     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
                     INI_GET_INT (key, value, -1);
@@ -658,7 +653,16 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
             switch (mytype) {
 #ifdef ENABLE_WORKER_HC
                 case workerHc_id: {
+                    char *workerstr;
+                    char workertypekey[MAX_KEY_SZ];
+                    ocrWorkerType_t workertype = MAX_WORKERTYPE;
+
+                    snprintf(workertypekey, MAX_KEY_SZ, "%s:%s", secname, "workertype");
+                    INI_GET_STR (workertypekey, workerstr, "");
+                    TO_ENUM (workertype, workerstr, ocrWorkerType_t, ocrWorkerType_types, MAX_WORKERTYPE-1);
+                    workertype += 1;  // because workertype is 1-indexed, not 0-indexed
                     ALLOC_PARAM_LIST(inst_param[j], paramListWorkerHcInst_t);
+                    ((paramListWorkerHcInst_t *)inst_param[j])->workerType = workertype;
                     ((paramListWorkerHcInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
                 }
                 break;
@@ -674,9 +678,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
                 break;
             }
 
-            // TODO BALA: We need to get the worker type
-            ocrWorkerType_t workType = j==0?MASTER_WORKERTYPE:SLAVE_WORKERTYPE;
-            instance[j] = (void *)((ocrWorkerFactory_t *)factory)->instantiate(factory, 0, workType, inst_param[j]);
+            instance[j] = (void *)((ocrWorkerFactory_t *)factory)->instantiate(factory, 0, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created worker of type %s, index %d\n", inststr, j);
         }
@@ -853,15 +855,7 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
             f->workpiles[dependence_index] = (ocrWorkpile_t *)toinstance;
             break;
         }
-/*        case worker_type: {
-            if (f->workerCount == 0) {
-                f->workerCount = dependence_count;
-                f->workers = (ocrWorker_t **)runtimeChunkAlloc(dependence_count, sizeof(ocrWorker_t *));
-            }
-            f->workers[dependence_index] = (ocrWorker_t *)toinstance;
-            break;
-        }
-*/        default:
+        default:
             break;
         }
         break;
@@ -937,7 +931,6 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
         }
         case sal_type: {
             ASSERT(dependence_count==1);
-            //f->salProvider = (ocrSal_t *)runtimeChunkAlloc(sizeof(ocrSal_t), NULL);
             f->salProvider = (ocrSal_t *)toinstance;
             break;
         }
@@ -980,14 +973,14 @@ s32 build_deps (dictionary *dict, s32 A, s32 B, char *refstr, void ***all_instan
     return 0;
 }
 
-s32 build_deps_types (dictionary *dict, s32 B, char *refstr, void **pdinst, int pdcount, void ***all_factories, ocrParamList_t ***type_params) {
+s32 build_deps_types (s32 B, void **pdinst, int pdcount, void ***all_factories, ocrParamList_t ***type_params) {
     s32 i;
 
     for (i = 0; i < pdcount; i++) {
         add_dependence(policydomain_type, B, pdinst[i], NULL, all_factories[B][0], NULL, 0, 1);
     }
     
-    // FIXME: The above is highly simplified, needs change
+    // FIXME: The above is highly simplified, needs review/change
 
     return 0;
 }

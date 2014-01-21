@@ -38,6 +38,8 @@ typedef enum {
     scheduler_type,
     policydomain_type,
     sal_type,
+    // Everything above is used as instances
+    // Everything below is used as types
     taskfactory_type,
     tasktemplatefactory_type,
     datablockfactory_type,

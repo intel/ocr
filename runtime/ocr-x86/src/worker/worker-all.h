@@ -25,6 +25,14 @@ const char * worker_types[] = {
     NULL
 };
 
+// The below is to look up ocrWorkerType_t in inc/ocr-runtime-types.h
+const char * ocrWorkerType_types[] = {
+    "single",   
+    "master",   
+    "slave",
+    NULL
+};
+
 #include "worker/hc/hc-worker.h"
 #include "worker/ce/ce-worker.h"
 

@@ -119,7 +119,7 @@ void destructWorkerHc(ocrWorker_t * base) {
  * Builds an instance of a HC worker
  */
 ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrLocation_t location,
-                          ocrWorkerType_t type, ocrParamList_t * perInstance) {
+                          ocrParamList_t * perInstance) {
     ocrWorkerHc_t * worker = (ocrWorkerHc_t*)runtimeChunkAlloc(
         sizeof(ocrWorkerHc_t), NULL);
     ocrWorker_t * base = (ocrWorker_t *) worker;
@@ -135,7 +135,7 @@ ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory, ocrLocation_t location,
     worker->secondStart = false;
 
     base->location = location;
-    base->type = type;
+    base->type = ((paramListWorkerHcInst_t*)perInstance)->workerType;
     ASSERT((worker->id && base->type == SLAVE_WORKERTYPE) ||
            (worker->id == 0 && base->type == MASTER_WORKERTYPE));
     

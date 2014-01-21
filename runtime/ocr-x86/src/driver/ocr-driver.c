@@ -83,7 +83,7 @@ dep_t deps[] = {
 extern char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *dict, char *secname);
 int populate_inst(ocrParamList_t **inst_param, void **instance, int *type_counts, char ***factory_names, void ***all_factories, void ***all_instances, type_enum index, dictionary *dict, char *secname);
 extern int build_deps (dictionary *dict, int A, int B, char *refstr, void ***all_instances, ocrParamList_t ***inst_params);
-extern int build_deps_types (dictionary *dict, int B, char *refstr, void **pdinst, int pdcount, void ***all_factories, ocrParamList_t ***type_params);
+extern int build_deps_types (int B, void **pdinst, int pdcount, void ***all_factories, ocrParamList_t ***type_params);
 extern void *create_factory (type_enum index, char *factory_name, ocrParamList_t *paramlist);
 extern int read_range(dictionary *dict, char *sec, char *field, int *low, int *high);
 extern void free_instance(void *instance, type_enum inst_type);
@@ -101,25 +101,45 @@ int total_types = sizeof(type_str)/sizeof(const char *);
 int type_counts[sizeof(type_str)/sizeof(const char *)];
 int inst_counts[sizeof(inst_str)/sizeof(const char *)];
 ocrParamList_t **type_params[sizeof(type_str)/sizeof(const char *)];
-char **factory_names[sizeof(type_str)/sizeof(const char *)];        // ~9 different kinds (memtarget, comptarget, etc.); each with diff names (tlsf, malloc, etc.); each pointing to a char*
+char **factory_names[sizeof(type_str)/sizeof(const char *)];
 ocrParamList_t **inst_params[sizeof(inst_str)/sizeof(const char *)];
 
 #ifdef ENABLE_BUILDER_ONLY
 
 #define APP_BINARY    "CrossPlatform:app_file"
 #define OUTPUT_BINARY "CrossPlatform:struct_file"
+#define START_ADDRESS "CrossPlatform:start_address"
 
 char *app_binary;
 char *output_binary;
 extern int extract_functions(const char *);
 extern void free_functions(void);
+extern char *persistent_chunk;
+extern u64 persistent_pointer;
 
-void dumpPolicyDomain(void *pd, const char* output_binary) {
+void dumpPolicyDomain(void *pd, const char* output_binary, int start_address) {
     FILE *fp = fopen(output_binary, "w");
+    u64 i;
+    u64 *ptrs = (u64 *)&persistent_chunk;
 
     if(fp == NULL) printf("Unable to open file %s for writing\n", output_binary);
     else {
-        fwrite(pd, sizeof(ocrPolicyDomain_t), 1, fp);
+        u64 pdoffset = (u64)pd - (u64)&persistent_chunk;
+        fwrite(&pdoffset, sizeof(u64), 1, fp);
+
+        //TODO: Make a list of all ocrLocation_t offsets here
+
+        fwrite(&persistent_pointer, sizeof(u64), 1, fp);
+
+        // Fix up all the pointers (FIXME: potential low-likelihood bug; need to be improved upon)
+        for(i = 0; i<(persistent_pointer/sizeof(u64)); i++) {
+            if(ptrs[i] > (u64)ptrs && ptrs[i] < (u64)(ptrs+persistent_pointer)) {
+                ptrs[i] -= (u64)ptrs; 
+                ptrs[i] += start_address;
+            }
+        }
+        fwrite(&persistent_chunk, sizeof(char), persistent_pointer, fp);
+        printf("Wrote %ld bytes to %s\n", persistent_pointer+2, output_binary);
     }
     fclose(fp);
 }
@@ -227,14 +247,13 @@ void bringUpRuntime(const char *inifile) {
     // BUILD DEPENDENCES
     DPRINTF(DEBUG_LVL_INFO, "========= Build dependences ==========\n");
 
-    // FIXME: Major hardcoding going on
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i <= 9; i++) {
         build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr, all_instances, inst_params);
     }
 
-    // FIXME: Major hardcoding going on
+    // Special case of policy domain pointing to types rather than instances
     for (i = 10; i <= 13; i++) {
-        build_deps_types(dict, deps[i].to, deps[i].refstr, all_instances[policydomain_type],
+        build_deps_types(deps[i].to, all_instances[policydomain_type],
                          inst_counts[policydomain_type], all_factories, type_params);
     }
 
@@ -246,21 +265,25 @@ void bringUpRuntime(const char *inifile) {
         DPRINTF(DEBUG_LVL_WARN, "Only the first policy domain is started for execution. Rest is currently ignored!\n");
     }
    
-    iniparser_freedict(dict);
 #ifdef OCR_ENABLE_STATISTICS
     setCurrentPD(rootPolicy); // Statistics needs to know the current PD so we set it for this main thread
 #endif
 
 #ifdef ENABLE_BUILDER_ONLY
     {
+        int start_address = iniparser_getint(dict, START_ADDRESS, 0);
         for(i = 0; i < inst_counts[policydomain_type]; i++)
-            dumpPolicyDomain(all_instances[policydomain_type][i], output_binary);
+            dumpPolicyDomain(all_instances[policydomain_type][i], output_binary, start_address);
         free_functions();
     }
-    exit(0); // Nothing else to do in the builder, bail
 #else
     rootPolicy->begin(rootPolicy);
     rootPolicy->start(rootPolicy);
+#endif
+    iniparser_freedict(dict);
+
+#ifdef ENABLE_BUILDER_ONLY
+    exit(0);
 #endif
 }
 

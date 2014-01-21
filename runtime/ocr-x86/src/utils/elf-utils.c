@@ -25,11 +25,6 @@ typedef struct _func_entry {
 func_entry func_list[MAXFNS];
 int func_list_sz = 0;
 
-static inline u64 mark_addr_magic(u64 addr, void* base)
-{
-  return (addr-(u64)base) + BASE_ADDRESS;
-}
-
 /* Below code adapted from libelf tutorial example */
 static int extract_functions_internal (const char *str, func_entry *func_list)
 {
@@ -136,26 +131,6 @@ u64 find_function_address (char *fname, func_entry *func_lists, int func_list_si
 void *getAddress (char *fname)
 {
     return (void *)find_function_address(fname, func_list, func_list_sz);
-}
-
-void fix_funcPtrs (void *to, void *from, func_entry *bloblist, int blobcount, func_entry *applist, int appcount)
-{
-  u64 *src = (u64 *)from;
-  u64 *dst = (u64 *)to;
-  char *funcname = NULL;
-  u64 address = 0;
-
-  funcname = find_function(*src, bloblist, blobcount);
-  if(funcname) {
-    address = find_function_address(funcname, applist, appcount);
-    if(address) {
-      *dst = address;
-      //printf("%x        %s\n", address, funcname);
-    } else {
-      printf("Function %s needed by OCR not built into the app!\n", funcname);
-      *dst = 0xdeadc0de;
-    }
-  }
 }
 
 #endif
