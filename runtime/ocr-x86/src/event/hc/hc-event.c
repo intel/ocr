@@ -87,7 +87,7 @@ u8 destructEventHc(ocrEvent_t *base) {
 #define PD_TYPE PD_MSG_DB_FREE
     msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->waitersDb;
-    PD_MSG_FIELD(edt.guid) = curTask->guid;
+    PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = 0;
     RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
@@ -157,7 +157,7 @@ u8 satisfyEventHcOnce(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #define PD_TYPE PD_MSG_DB_ACQUIRE
         msg.type = PD_MSG_DB_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guid) = event->waitersDb;
-        PD_MSG_FIELD(edt.guid) = curTask->guid;
+        PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(properties) = 1;
         RESULT_PROPAGATE(pd->processMessage(pd, &msg, true));
@@ -190,7 +190,7 @@ u8 satisfyEventHcOnce(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #define PD_TYPE PD_MSG_DB_RELEASE
         msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->waitersDb;
-        PD_MSG_FIELD(edt.guid) = curTask->guid;
+        PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(properties) = 1;
         RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
@@ -243,7 +243,7 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #define PD_TYPE PD_MSG_DB_ACQUIRE
         msg.type = PD_MSG_DB_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guid) = event->base.waitersDb;
-        PD_MSG_FIELD(edt.guid) = curTask->guid;
+        PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(properties) = 1;
         RESULT_PROPAGATE(pd->processMessage(pd, &msg, true));
@@ -275,7 +275,7 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #define PD_TYPE PD_MSG_DB_RELEASE
         msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->base.waitersDb;
-        PD_MSG_FIELD(edt.guid) = curTask->guid;
+        PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(properties) = 1;
         RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
@@ -324,7 +324,7 @@ u8 satisfyEventHcLatch(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #define PD_TYPE PD_MSG_DB_ACQUIRE
         msg.type = PD_MSG_DB_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guid) = event->base.waitersDb;
-        PD_MSG_FIELD(edt.guid) = curTask->guid;
+        PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(properties) = 1;
         RESULT_PROPAGATE(pd->processMessage(pd, &msg, true));
@@ -356,7 +356,7 @@ u8 satisfyEventHcLatch(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #define PD_TYPE PD_MSG_DB_RELEASE
         msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->base.waitersDb;
-        PD_MSG_FIELD(edt.guid) = curTask->guid;
+        PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(properties) = 1;
         RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
@@ -399,7 +399,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
 #define PD_TYPE PD_MSG_DB_ACQUIRE
     msg.type = PD_MSG_DB_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid) = event->waitersDb;
-    PD_MSG_FIELD(edt.guid) = curTask->guid;
+    PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = 1;
     RESULT_PROPAGATE(pd->processMessage(pd, &msg, true));
@@ -413,7 +413,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
 #define PD_TYPE PD_MSG_DB_CREATE
         msg.type = PD_MSG_DB_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guid) = event->waitersDb;
-        PD_MSG_FIELD(edt.guid) = curTask->guid;
+        PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(size) = sizeof(regNode_t)*event->waitersMax*2;
         PD_MSG_FIELD(affinity.guid) = NULL_GUID;
@@ -444,7 +444,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
 #define PD_TYPE PD_MSG_DB_FREE
         msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->waitersDb;
-        PD_MSG_FIELD(edt.guid) = curTask->guid;
+        PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(properties) = 0;
         RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
@@ -456,7 +456,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
 #define PD_TYPE PD_MSG_DB_RELEASE
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->waitersDb;
-    PD_MSG_FIELD(edt.guid) = curTask->guid;
+    PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = waitersNew?0:1;
     RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
@@ -521,7 +521,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
 #define PD_TYPE PD_MSG_DB_ACQUIRE
     msg.type = PD_MSG_DB_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid) = event->base.waitersDb;
-    PD_MSG_FIELD(edt.guid) = curTask->guid;
+    PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = 1;
     if((toReturn = pd->processMessage(pd, &msg, true))) {
@@ -538,7 +538,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
 #define PD_TYPE PD_MSG_DB_CREATE
         msg.type = PD_MSG_DB_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guid) = event->base.waitersDb;
-        PD_MSG_FIELD(edt.guid) = curTask->guid;
+        PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(size) = sizeof(regNode_t)*event->base.waitersMax*2;
         PD_MSG_FIELD(affinity.guid) = NULL_GUID;
@@ -570,7 +570,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
 #define PD_TYPE PD_MSG_DB_FREE
         msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->base.waitersDb;
-        PD_MSG_FIELD(edt.guid) = curTask->guid;
+        PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(properties) = 0;
         if((toReturn = pd->processMessage(pd, &msg, false))) {
@@ -587,7 +587,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
 #define PD_TYPE PD_MSG_DB_RELEASE
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->base.waitersDb;
-    PD_MSG_FIELD(edt.guid) = curTask->guid;
+    PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = waitersNew?0:1;
     RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
@@ -619,7 +619,7 @@ u8 unregisterWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool
 #define PD_TYPE PD_MSG_DB_ACQUIRE
     msg.type = PD_MSG_DB_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid) = event->waitersDb;
-    PD_MSG_FIELD(edt.guid) = curTask->guid;
+    PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = 1;
     RESULT_PROPAGATE(pd->processMessage(pd, &msg, true));
@@ -643,7 +643,7 @@ u8 unregisterWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool
 #define PD_TYPE PD_MSG_DB_RELEASE
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->waitersDb;
-    PD_MSG_FIELD(edt.guid) = curTask->guid;
+    PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = 1;
     RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
@@ -682,7 +682,7 @@ u8 unregisterWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slo
 #define PD_TYPE PD_MSG_DB_ACQUIRE
     msg.type = PD_MSG_DB_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid) = event->base.waitersDb;
-    PD_MSG_FIELD(edt.guid) = curTask->guid;
+    PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = 1;
     if((toReturn = pd->processMessage(pd, &msg, true))) {
@@ -712,7 +712,7 @@ u8 unregisterWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slo
 #define PD_TYPE PD_MSG_DB_RELEASE
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->base.waitersDb;
-    PD_MSG_FIELD(edt.guid) = curTask->guid;
+    PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = 1;
     RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
@@ -732,10 +732,10 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     // Get the current environment
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
-    ocrTask_t *curEdt = NULL;
+    ocrTask_t *curTask = NULL;
     u32 i;
 
-    getCurrentEnv(&pd, NULL, &curEdt, &msg);
+    getCurrentEnv(&pd, NULL, &curTask, &msg);
     
     // Create the event itself by getting a GUID
     u64 sizeOfGuid = sizeof(ocrEventHc_t);
@@ -793,8 +793,8 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
 #define PD_TYPE PD_MSG_DB_CREATE
     msg.type = PD_MSG_DB_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid) = event->waitersDb;
-    PD_MSG_FIELD(edt.guid) = curEdt->guid;
-    PD_MSG_FIELD(edt.metaDataPtr) = curEdt;
+    PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
+    PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(size) = sizeof(regNode_t)*INIT_WAITER_COUNT;
     PD_MSG_FIELD(affinity.guid) = NULL_GUID;
     PD_MSG_FIELD(properties) = 0;
@@ -827,8 +827,8 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
 #define PD_TYPE PD_MSG_DB_RELEASE
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->waitersDb;
-    PD_MSG_FIELD(edt.guid) = curEdt->guid;
-    PD_MSG_FIELD(edt.metaDataPtr) = curEdt;
+    PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
+    PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = 0;
     RESULT_PROPAGATE2(pd->processMessage(pd, &msg, false), NULL);
 #undef PD_MSG
