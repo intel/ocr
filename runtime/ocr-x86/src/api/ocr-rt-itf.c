@@ -37,7 +37,7 @@ ocrGuid_t currentEdtUserGet() {
     getCurrentEnv(NULL, NULL, &task, NULL);
     if(task) {
         return task->guid;
-    }
+    }   
     return NULL_GUID;
 }
 
@@ -48,4 +48,11 @@ u64 ocrNbWorkers() {
     if(pd != NULL)
         return pd->workerCount;
     return 0;
+}
+
+// exposed to runtime implementers as convenience
+ocrGuid_t ocrCurrentWorkerGuid() {
+    ocrWorker_t *worker = NULL;
+    getCurrentEnv(NULL, &worker, NULL, NULL);
+    return worker->fguid.guid;
 }

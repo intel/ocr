@@ -53,10 +53,10 @@ ocrGuid_t currentEdtUserGet();
 u64 ocrNbWorkers();
 
 /**
- *  @brief Get the currently executing worker 'id'
+ *  @brief Get the currently executing worker guid.
  *  Note: exposed as a convenience to runtime implementors, may be deprecated anytime.
  **/
-u64 ocrCurrentWorkerId();
+ocrGuid_t ocrCurrentWorkerGuid();
 
 /**
  * @}
