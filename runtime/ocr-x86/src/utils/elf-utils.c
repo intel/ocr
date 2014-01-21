@@ -1,14 +1,14 @@
 #include <ocr-types.h>
 #include <ocr-config.h>
 
+#ifdef ENABLE_BUILDER_ONLY
+
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-
-#ifdef ENABLE_BUILDER_ONLY
 
 #include <libelf.h>
 #include <gelf.h>
