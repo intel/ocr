@@ -18,7 +18,7 @@ endif
 #
 
 PREFIX  := ../../../ss/bin/bin/rmd-linux-elf-
-CC      := $(PREFIX)/clang
+CC      := $(PREFIX)clang
 CFLAGS  := -frmd-extensions -fno-builtin
 
 RM      := rm
