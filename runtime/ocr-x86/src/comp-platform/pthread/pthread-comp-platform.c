@@ -9,6 +9,7 @@
 
 #include "debug.h"
 
+#include "ocr-comm-platform.h"
 #include "ocr-policy-domain.h"
 
 #include "ocr-sysboot.h"
@@ -19,6 +20,7 @@
 
 #include <stdlib.h> // For malloc for TLS
 
+
 #define DEBUG_TYPE COMP_PLATFORM
 
 extern void bindThread(u32 mask);
@@ -27,6 +29,7 @@ extern void bindThread(u32 mask);
  * @brief Structure stored on a per-thread basis to keep track of
  * "who we are"
  */
+
 typedef struct {
     ocrPolicyDomain_t *pd;
     ocrWorker_t *worker;
@@ -72,6 +75,8 @@ static void initializeKey() {
 }
 
 void pthreadDestruct (ocrCompPlatform_t * base) {
+    // HACK
+    //base->comm->fcts.destruct(base->comm);
     runtimeChunkFree((u64)base, NULL);
 }
 
@@ -80,6 +85,10 @@ void pthreadBegin(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
     compPlatform->pd = PD;
     pthreadCompPlatform->isMaster = (workerType == MASTER_WORKERTYPE);
+
+    // HACK
+    //compPlatform->comm->fcts.begin(compPlatform->comm, PD, workerType);
+    
     if(pthreadCompPlatform->isMaster) {
         // Only do the binding
         s32 cpuBind = pthreadCompPlatform->binding;
@@ -95,6 +104,9 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
                   launchArg_t * launchArg) {
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
     pthreadCompPlatform->launchArg = launchArg;
+
+    // HACK
+    //compPlatform->comm->fcts.start(compPlatform->comm, PD, workerType, launchArg);
     if(!pthreadCompPlatform->isMaster) {
         pthread_attr_t attr;
         RESULT_ASSERT(pthread_attr_init(&attr), ==, 0);
@@ -111,11 +123,15 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
 
 void pthreadStop(ocrCompPlatform_t * compPlatform) {
     // Nothing to do really
+    // HACK
+    //compPlatform->comm->fcts.stop(compPlatform->comm);
 }
 
 void pthreadFinish(ocrCompPlatform_t *compPlatform) {
     // This code will be called by the main thread to join everyone else
     ocrCompPlatformPthread_t *pthreadCompPlatform = (ocrCompPlatformPthread_t*)compPlatform;
+    // HACK
+    //compPlatform->comm->fcts.finish(compPlatform->comm);
     if(!pthreadCompPlatform->isMaster) {
         RESULT_ASSERT(pthread_join(pthreadCompPlatform->osThread, NULL), ==, 0);
     }
@@ -131,18 +147,16 @@ u8 pthreadSetThrottle(ocrCompPlatform_t *self, u64 value) {
 
 u8 pthreadSendMessage(ocrCompPlatform_t *self, ocrLocation_t target,
                       ocrPolicyMsg_t **message) {
-    ASSERT(0);
-    return 0;
+    
+    return self->comm->fcts.sendMessage(self->comm, target, message);
 }
 
-u8 pthreadPollMessage(ocrCompPlatform_t *self, ocrPolicyMsg_t **message) {
-    ASSERT(0);
-    return 0;
+u8 pthreadPollMessage(ocrCompPlatform_t *self, ocrPolicyMsg_t **message, u32 mask) {
+    return self->comm->fcts.pollMessage(self->comm, message, mask);
 }
 
 u8 pthreadWaitMessage(ocrCompPlatform_t *self, ocrPolicyMsg_t **message) {
-    ASSERT(0);
-    return 0;
+    return self->comm->fcts.waitMessage(self->comm, message);
 }
 
 u8 pthreadSetCurrentEnv(ocrCompPlatform_t *self, ocrPolicyDomain_t *pd,
@@ -163,6 +177,7 @@ ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
         runtimeChunkAlloc(sizeof(ocrCompPlatformPthread_t), NULL);
 
     compPlatformPthread->base.location = location;
+    compPlatformPthread->base.comm = NULL;
         
     paramListCompPlatformPthread_t * params =
         (paramListCompPlatformPthread_t *) perInstance;
@@ -193,11 +208,12 @@ void pthreadGetCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
         *worker = vals->worker;
     if(vals->worker && task)
         *task = vals->worker->curTask;
-    if(vals->pd && msg)
+    if(msg) {
         msg->srcLocation = vals->pd->myLocation;
+    }
 }
 
-void setGetCurrentEnvPthread(ocrCompPlatformFactory_t *factory) {
+void pthreadSetEnvFuncs(ocrCompPlatformFactory_t *factory) {
     getCurrentEnv = &pthreadGetCurrentEnv;
 }
 
@@ -209,7 +225,7 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
 
     base->instantiate = &newCompPlatformPthread;
     base->destruct = &destructCompPlatformFactoryPthread;
-    base->setGetCurrentEnv = &setGetCurrentEnvPthread;
+    base->setEnvFuncs = &pthreadSetEnvFuncs;
     base->platformFcts.destruct = &pthreadDestruct;
     base->platformFcts.begin = &pthreadBegin;
     base->platformFcts.start = &pthreadStart;

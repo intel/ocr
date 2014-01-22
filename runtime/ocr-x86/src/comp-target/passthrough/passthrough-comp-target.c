@@ -93,9 +93,9 @@ u8 ptSendMessage(ocrCompTarget_t *compTarget, ocrLocation_t target,
     return compTarget->platforms[0]->fcts.sendMessage(compTarget->platforms[0], target, message);
 }
 
-u8 ptPollMessage(ocrCompTarget_t *compTarget, ocrPolicyMsg_t **message) {
+u8 ptPollMessage(ocrCompTarget_t *compTarget, ocrPolicyMsg_t **message, u32 mask) {
     ASSERT(compTarget->platformCount == 1);
-    return compTarget->platforms[0]->fcts.pollMessage(compTarget->platforms[0], message);
+    return compTarget->platforms[0]->fcts.pollMessage(compTarget->platforms[0], message, mask);
 }
 
 u8 ptWaitMessage(ocrCompTarget_t *compTarget, ocrPolicyMsg_t **message) {

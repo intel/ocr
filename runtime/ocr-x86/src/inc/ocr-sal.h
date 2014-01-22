@@ -93,36 +93,34 @@ extern void (*teardown)(struct _ocrPolicyDomain_t *pd);
 
 /**
  * @brief Returns the current environment (policy domain, current EDT and
- * an initialized message)
+ * current worker)
  *
  * This function allows you to select what you want returned by
- * passing NULL for what you do not want
+ * passing NULL for what you do not want. For all these parameters, if
+ * *parameter is non NULL, the function may consider that to be the
+ * current value of the parameter. If the parameter is NULL, no
+ * value will be returned (ie: the caller does not care about the policy-domain
+ * or worker or edt or msg). None of the returned pointers should be freed.
  *
  * @param pd[out]             Will return a pointer to the current policy
- *                            domain. The resulting pointer should *not*
+ *                            domain.
  *                            be freed. If NULL, will not return anything.
- *                            Note that if *pd is non NULL on input, the call
- *                            will consider that to be the PD to use (saves
- *                            on overhead). If *pd is NULL on return, no policy
- *                            domain is currently active (boot-up or shut-down)
+ *                            If *pd is NULL on return, no policy domain is
+ *                            active (boot-up)
  * @param worker[out]         Will return a pointer to the current worker
- *                            The resulting pointer should *not* be freed. If NULL,
- *                            will not return anything. If *worker is NULL on
- *                            return, the worker has not started yet
+ *                            If NULL, will not return anything. If *worker is
+ *                            NULL on return, the worker has not started yet.
  * @param edt[out]            Will return a pointer to the current EDT
- *                            The resulting pointer should *not* be
- *                            freed. If NULL, will not return anything. If
+ *                            If NULL, will not return anything. If
  *                            *edt is NULL on return, no EDT is currently
  *                            executing (runtime code)
- * @param msg[out]            Will initialize the ocrPolicyMsg_t pointed
- *                            to by msg. If NULL, no initialization will
- *                            occur. Note that no allocation of msg will
- *                            happen so it needs to already be either
- *                            allocated or on the stack
+ * @param msg[out]            If NULL, will not return anything. On return, initializes
+ *                            the message passed in to a value that is initialized
+ *                            for communication if needed.
+ *                            The message should be used at most once.
  */
 extern void (*getCurrentEnv)(struct _ocrPolicyDomain_t **pd, struct _ocrWorker_t **worker,
                              struct _ocrTask_t **edt, struct _ocrPolicyMsg_t *msg);
-
 
 /****************************************************/
 /* PARAMETER LISTS                                  */

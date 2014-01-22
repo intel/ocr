@@ -1,5 +1,5 @@
 /**
- * @brief OCR interface to computation platforms
+ * @brief OCR interface to communication platforms
  **/
 
 /*
@@ -9,101 +9,73 @@
  */
 
 
-#ifndef __OCR_COMP_PLATFORM_H__
-#define __OCR_COMP_PLATFORM_H__
+#ifndef __OCR_COMM_PLATFORM_H__
+#define __OCR_COMM_PLATFORM_H__
 
 #include "ocr-runtime-types.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
 
-struct _ocrCommPlatform_t;
 struct _ocrPolicyDomain_t;
-struct _ocrWorker_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
 /****************************************************/
 
 /**
- * @brief Parameter list to create a comp-platform factory
+ * @brief Parameter list to create a comm-platform factory
  */
-typedef struct _paramListCompPlatformFact_t {
+typedef struct _paramListCommPlatformFact_t {
     ocrParamList_t base;    /**< Base class */
-} paramListCompPlatformFact_t;
+} paramListCommPlatformFact_t;
 
 /**
- * @brief Parameter list to create a comp-platform instance
+ * @brief Parameter list to create a comm-platform instance
  */
-typedef struct _paramListCompPlatformInst_t {
+typedef struct _paramListCommPlatformInst_t {
     ocrParamList_t base;    /**< Base class */
-} paramListCompPlatformInst_t;
+} paramListCommPlatformInst_t;
 
 
 /****************************************************/
-/* OCR COMPUTE PLATFORM                             */
+/* OCR COMMUNICATION PLATFORM                       */
 /****************************************************/
 
-struct _ocrCompPlatform_t;
+struct _ocrCommPlatform_t;
 struct _ocrPolicyMsg_t;
 struct _launchArg_t; // Defined in ocr-comp-target.h
 /**
- * @brief Comp-platform function pointers
+ * @brief Comm-platform function pointers
  *
- * The function pointers are separate from the comp-platform instance to allow for
- * the sharing of function pointers for comp-platform from the same factory
+ * The function pointers are separate from the comm-platform instance to allow for
+ * the sharing of function pointers for comm-platform from the same factory
  */
-typedef struct _ocrCompPlatformFcts_t {
-    /*! \brief Destroys a comp-platform
+typedef struct _ocrCommPlatformFcts_t {
+    /*! \brief Destroys a comm-platform
      */
-    void (*destruct)(struct _ocrCompPlatform_t *self);
+    void (*destruct)(struct _ocrCommPlatform_t *self);
 
-    void (*begin)(struct _ocrCompPlatform_t *self, struct _ocrPolicyDomain_t *PD,
+    void (*begin)(struct _ocrCommPlatform_t *self, struct _ocrPolicyDomain_t *PD,
                   ocrWorkerType_t workerType);
 
     /**
-     * @brief Starts a comp-platform (a thread of execution).
+     * @brief Starts a comm-platform (a communication entity).
      *
-     * @param[in] self          Pointer to this comp-platform
+     * @param[in] self          Pointer to this comm-platform
      * @param[in] PD            The policy domain bringing up the runtime
      * @param[in] workerType    Type of the worker runnning on this comp-platform
-     * @param[in] launchArg     Arguments passed to the comp-platform to launch
+     * @param[in] launchArg     Arguments passed to the comm-platform to launch
      */
-    void (*start)(struct _ocrCompPlatform_t *self, struct _ocrPolicyDomain_t * PD,
+    void (*start)(struct _ocrCommPlatform_t *self, struct _ocrPolicyDomain_t * PD,
                   ocrWorkerType_t workerType, struct _launchArg_t * launchArg);
 
     /**
      * @brief Stops this comp-platform
      * @param[in] self          Pointer to this comp-platform
      */
-    void (*stop)(struct _ocrCompPlatform_t *self);
+    void (*stop)(struct _ocrCommPlatform_t *self);
 
-    void (*finish)(struct _ocrCompPlatform_t *self);
-    
-    /**
-     * @brief Gets the throttle value for this compute node
-     *
-     * A value of 100 indicates nominal throttling.
-     *
-     * @param[in] self        Pointer to this comp-platform
-     * @param[out] value      Throttling value
-     * @return 0 on success or the following error code:
-     *     - 1 if the functionality is not supported
-     *     - other codes implementation dependent
-     */
-    u8 (*getThrottle)(struct _ocrCompPlatform_t* self, u64 *value);
-
-    /**
-     * @brief Sets the throttle value for this compute node
-     *
-     * A value of 100 indicates nominal throttling.
-     *
-     * @param[in] self        Pointer to this comp-platform
-     * @param[in] value       Throttling value
-     * @return 0 on success or the following error code:
-     *     - 1 if the functionality is not supported
-     *     - other codes implementation dependent
-     */
-    u8 (*setThrottle)(struct _ocrCompPlatform_t* self, u64 value);
+    void (*finish)(struct _ocrCommPlatform_t *self);
     
     /**
      * @brief Send a message to another target
@@ -117,7 +89,6 @@ typedef struct _ocrCompPlatformFcts_t {
      * and may even be a fully synchronous call but users of this call
      * should assume asynchrony. The exact communication protocol is also
      * implementation dependent.
-     *
      *
      * @param[in] self        Pointer to this
      * @param[in] target      Target to communicate with
@@ -134,7 +105,7 @@ typedef struct _ocrCompPlatformFcts_t {
      *                        be disposed of with pdFree
      * @return 0 on success and a non-zero error code
      */
-    u8 (*sendMessage)(struct _ocrCompPlatform_t* self,
+    u8 (*sendMessage)(struct _ocrCommPlatform_t* self,
                       ocrLocation_t target,
                       struct _ocrPolicyMsg_t **message);
 
@@ -148,19 +119,19 @@ typedef struct _ocrCompPlatformFcts_t {
      * If waiting for a specific message, make sure to pass the message returned
      * by sendMessage.
      *
-     * @param self[in]        Pointer to this comm-platform
+     * @param self[in]        Pointer to this comp-platform
      * @param message[in/out] If a message is available, its pointer will be.
      *                        If *message is NULL on input, this function will
      *                        poll for ANY messages that meet the mask property (see
      *                        below). If *message is non NULL, this function
      *                        will poll for only that specific message.
-     *                        The message returned needs to be freed with pdFree.
+     *                        The message returned needs to be freed using pdFree.
      * @param mask[in]        If non-zero, this function will only return messages
      *                        whose 'property' variable ORed with this mask returns
      *                        a non-zero value
      * @return #POLL_MO_MESSAGE, #POLL_MORE_MESSAGE, #POLL_ERR_MASK
      */
-    u8 (*pollMessage)(struct _ocrCompPlatform_t *self, struct _ocrPolicyMsg_t **message, u32 mask);
+    u8 (*pollMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t **message, u32 mask);
 
     /**
      * @brief Waits for a response to the message 'message'
@@ -173,42 +144,25 @@ typedef struct _ocrCompPlatformFcts_t {
      * to pass the same message as the one returned by sendMessage (as it may
      * have been modified by sendMessage for book-keeping purposes)
      *
-     * @param self[in]        Pointer to this comp-platform
+     * @param self[in]        Pointer to this comm-platform
      * @param message[in/out] As input, this determines which message to wait
      *                        for. Note that this is a pointer to a pointer.
      *                        The returned message, once used, needs to be
      *                        freed with pdFree.
      * @return 0 on success and a non-zero error code
      */
-    u8 (*waitMessage)(struct _ocrCompPlatform_t *self, struct _ocrPolicyMsg_t **message);
-
-    /**
-     * @brief Function called from the worker when it starts "running" on the comp-platform
-     *
-     * @note This function is separate from the start function because, conceptually,
-     * multiple workers could share a comp-platform. The pd argument is used
-     * to verify that the worker's PD and the comp-platform's PD match
-     *
-     * @param[in] self        Pointer to this comp-platform
-     * @param[in] pd          Policy domain running on this comp-platform
-     * @param[in] worker      Worker running on this comp-platform
-     * @return 0 on success and a non-zero error code
-     */
-    u8 (*setCurrentEnv)(struct _ocrCompPlatform_t *self, struct _ocrPolicyDomain_t *pd,
-                        struct _ocrWorker_t *worker);
-
-} ocrCompPlatformFcts_t;
+    u8 (*waitMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t **message);    
+} ocrCommPlatformFcts_t;
 
 /**
  * @brief Interface to a comp-platform representing a
  * resource able to perform computation.
  */
-typedef struct _ocrCompPlatform_t {
-    struct _ocrPolicyDomain_t *pd;  /**< Policy domain this comp-platform is used by */
+typedef struct _ocrCommPlatform_t {
+    struct _ocrPolicyDomain_t *pd;  /**< Policy domain this comm-platform is used by */
     ocrLocation_t location;
-    struct _ocrCommPlatform_t *comm; /**< Communication platform to use */
-    ocrCompPlatformFcts_t fcts; /**< Functions for this instance */
-} ocrCompPlatform_t;
+    ocrCommPlatformFcts_t fcts; /**< Functions for this instance */
+} ocrCommPlatform_t;
 
 
 /****************************************************/
@@ -216,32 +170,26 @@ typedef struct _ocrCompPlatform_t {
 /****************************************************/
 
 /**
- * @brief comp-platform factory
+ * @brief comm-platform factory
  */
-typedef struct _ocrCompPlatformFactory_t {
+typedef struct _ocrCommPlatformFactory_t {
     /**
-     * @brief Instantiate a new comp-platform and returns a pointer to it.
+     * @brief Instantiate a new comm-platform and returns a pointer to it.
      *
      * @param factory       Pointer to this factory
      * @param instanceArg   Arguments specific for this instance
      */
-    ocrCompPlatform_t* (*instantiate)(struct _ocrCompPlatformFactory_t *factory,
+    ocrCommPlatform_t* (*instantiate)(struct _ocrCommPlatformFactory_t *factory,
                                       ocrLocation_t location, ocrParamList_t *instanceArg);
 
     /**
-     * @brief comp-platform factory destructor
+     * @brief comm-platform factory destructor
      * @param factory       Pointer to the factory to destroy.
      */
-    void (*destruct)(struct _ocrCompPlatformFactory_t *factory);
+    void (*destruct)(struct _ocrCommPlatformFactory_t *factory);
+    
+    ocrCommPlatformFcts_t platformFcts; /**< Function pointers created instances should use */
+} ocrCommPlatformFactory_t;
 
+#endif /* __OCR_COMM_PLATFORM_H__ */
 
-    /**
-     * @brief Sets-up the getCurrentEnv function
-     * @param factory       Pointer to this factory
-     */
-    void (*setEnvFuncs)(struct _ocrCompPlatformFactory_t *factory);
-
-    ocrCompPlatformFcts_t platformFcts; /**< Function pointers created instances should use */
-} ocrCompPlatformFactory_t;
-
-#endif /* __OCR_COMP_PLATFORM_H__ */

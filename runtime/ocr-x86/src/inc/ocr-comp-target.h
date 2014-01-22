@@ -118,7 +118,7 @@ typedef struct _ocrCompTargetFcts_t {
     /**
      * @brief Send a message to another target
      *
-     * This call, which executes on the compute target
+     * This call, which executes on the compute platform
      * making the call, will send an asynchronous message to target. There is
      * no expectation of a result to be sent back but the target may send
      * "back" a one-way message at a later point.
@@ -128,16 +128,19 @@ typedef struct _ocrCompTargetFcts_t {
      * should assume asynchrony. The exact communication protocol is also
      * implementation dependent.
      *
-     * @param[in] self        Pointer to this comp-target
-     * @param[in] target      Comp-target to communicate with
+     * @param[in] self        Pointer to this
+     * @param[in] target      Target to communicate with
      * @param[in/out] message Message to send. In the general case, this is
      *                        used as input and instructs the comp-target
      *                        to send the message given but it may be updated
      *                        and should be used if waitMessage is called
      *                        later. Note the pointer-to-pointer argument.
      *                        If a new message is created (and its pointer
-     *                        returned in the call), the old message is
-     *                        *not* freed and that is up to the caller
+     *                        returned in the call), the old message will *not*
+     *                        be freed and it is up to the caller to properly
+     *                        dispose of it (may be on the stack).
+     *                        The new message, once fully used, needs to
+     *                        be disposed of with pdFree
      * @return 0 on success and a non-zero error code
      */
     u8 (*sendMessage)(struct _ocrCompTarget_t* self,
@@ -145,21 +148,28 @@ typedef struct _ocrCompTargetFcts_t {
                       struct _ocrPolicyMsg_t **message);
 
     /**
-     * @brief Checks if a message has been received by the comp target and,
+     * @brief Checks if a message has been received by the comm platform and,
      * if so, will return a pointer to that message in 'message'
      *
      * The use case for this function is for the worker "loop" to
-     * periodically check if it has services to perform for other policy domains
+     * periodically check if it has services to perform for other policy domains.
+     *
+     * If waiting for a specific message, make sure to pass the message returned
+     * by sendMessage.
      *
      * @param self[in]        Pointer to this comp-target
-     * @param message[out]    If a message is available, its pointer will be
-     *                        returned here. Do not pre-allocate a message
-     *                        (the returned message will be allocated properly).
-     *                        The message needs to be freed once it has been
-     *                        used (using pdFree)
+     * @param message[in/out] If a message is available, its pointer will be.
+     *                        If *message is NULL on input, this function will
+     *                        poll for ANY messages that meet the mask property (see
+     *                        below). If *message is non NULL, this function
+     *                        will poll for only that specific message.
+     *                        The message returned needs to be freed using pdFree.
+     * @param mask[in]        If non-zero, this function will only return messages
+     *                        whose 'property' variable ORed with this mask returns
+     *                        a non-zero value
      * @return #POLL_MO_MESSAGE, #POLL_MORE_MESSAGE, #POLL_ERR_MASK
      */
-    u8 (*pollMessage)(struct _ocrCompTarget_t *self, struct _ocrPolicyMsg_t **message);
+    u8 (*pollMessage)(struct _ocrCompTarget_t *self, struct _ocrPolicyMsg_t **message, u32 mask);
 
     /**
      * @brief Waits for a response to the message 'message'
@@ -169,16 +179,14 @@ typedef struct _ocrCompTargetFcts_t {
      * user calls to OCR).
      *
      * This call will block until message has received a response. Make sure
-     * to pass the same message as the one given to sendMessage (as it may
+     * to pass the same message as the one returned by sendMessage (as it may
      * have been modified by sendMessage for book-keeping purposes)
      *
      * @param self[in]        Pointer to this comp-target
      * @param message[in/out] As input, this determines which message to wait
      *                        for. Note that this is a pointer to a pointer.
-     *                        Both the passed-in message and the returned
-     *                        message need to be freed by the caller using
-     *                        pdFree.
-     * 
+     *                        The returned message, once used, needs to be
+     *                        freed with pdFree.
      * @return 0 on success and a non-zero error code
      */
     u8 (*waitMessage)(struct _ocrCompTarget_t *self, struct _ocrPolicyMsg_t **message);
