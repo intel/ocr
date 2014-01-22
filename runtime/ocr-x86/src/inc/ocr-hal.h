@@ -14,7 +14,9 @@
 #include "ocr-config.h"
 
 #if defined(HAL_XE)
-#include "hal/xe/ocr-hal-xe.h"
+#include "hal/fsim-xe/ocr-hal-xe.h"
+#elif defined(HAL_FSIM_CE)
+#include "hal/fsim-ce/ocr-hal-fsim-ce.h"
 #elif defined(HAL_X86_64)
 #include "hal/x86_64/ocr-hal-x86_64.h"
 #else

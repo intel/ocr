@@ -17,9 +17,8 @@ endif
 # Tool-chain to be used for the build
 #
 
-PREFIX  := ../../../ss/bin/bin/rmd-linux-elf-
-CC      := $(PREFIX)clang
-CFLAGS  := -frmd-extensions -fno-builtin
+CC      := gcc
+CFLAGS  := 
 
 RM      := rm
 RMFLAGS := -rf
@@ -38,10 +37,10 @@ CFLAGS_SHARED :=
 # Static libraries specific builds
 # Same as for CFLAGS_SHARED
 CFLAGS_STATIC := 
-AR := $(PREFIX)ar
+AR := ar
 ARFLAGS := cru
 
-RANLIB := $(PREFIX)ranlib
+RANLIB := ranlib
 
 # Library supported
 SUPPORTS_SHARED=no
