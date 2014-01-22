@@ -25,6 +25,9 @@
 // Allocator
 #define ENABLE_ALLOCATOR_TLSF
 
+// Comm-platform
+#define ENABLE_COMM_PLATFORM_NULL
+
 // Comp-platform
 #define ENABLE_COMP_PLATFORM_PTHREAD
 //#define ENABLE_COMP_PLATFORM_FSIM
@@ -78,6 +81,7 @@
 // Workpile
 #define ENABLE_WORKPILE_HC
 
+// Build the OCR-lib support
+#define ENABLE_OCR_LIB
 #endif /* __OCR_CONFIG_H__ */
-
 

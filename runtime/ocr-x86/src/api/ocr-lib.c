@@ -4,6 +4,8 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+#ifdef ENABLE_OCR_LIB
 #include "debug.h"
 #include "machine-description/ocr-machine.h"
 #include "ocr-lib.h"
@@ -233,3 +235,5 @@ ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
     */
     return NULL_GUID;
 }
+
+#endif /* ENABLE_OCR_LIB */
