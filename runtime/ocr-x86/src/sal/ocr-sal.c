@@ -10,12 +10,7 @@
 #include "ocr-sysboot.h"
 #include "ocr-types.h"
 
-//#include <stdio.h>
-
-// Forward declarations
-static void itona(char ** buf, u32* chars, u32 size, u32 base, s64 d);
-static void ftona(char** buf, u32* chars, u32 size, double fp , u32 precision);
-static u32 sal_internalPrintf(char* buf, u32 size, const char* fmt, void** rest);
+#include <stdarg.h>
 
 // TODO: Modify exit to properly handle bootup
 void sal_exit(u64 errorCode) {
@@ -74,71 +69,133 @@ void sal_assert(bool cond, const char* file, u64 line) {
     }
 }
 
-void sal_printf(const char* string, ...) {
-    u32 len;
-    static char printfBuf[PRINTF_MAX];
-    __builtin_va_list t;
-    __builtin_va_start(t, string);
-    // HACK
-    vprintf(string, (void**)t);
-    /*
-    len = sal_internalPrintf(printfBuf, PRINTF_MAX, string, (void**)t);
-
-    ocrPolicyMsg_t msg;
-    ocrPolicyDomain_t *pd = NULL;
-    if(getCurrentEnv)
-        getCurrentEnv(&pd, NULL, NULL, &msg);
-    if(!pd) {
-        bootUpPrint(printfBuf, len);
-        return;
-    }
-#define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_SAL_PRINT
-    // We now have the buffer and the length of things to print. We can
-    // call into the PD
-    msg.type = PD_MSG_SAL_PRINT | PD_MSG_REQUEST;
-    PD_MSG_FIELD(buffer) = printfBuf;
-    PD_MSG_FIELD(length) = len;
-    PD_MSG_FIELD(properties) = 0;
-    RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
-#undef PD_MSG
-#undef PD_TYPE
-    */
-}
-
 /********************************************/
 /* SUPPORT FUNCTIONS FOR PRINTF             */
 /********************************************/
 
-static __attribute__((aligned(8))) char msgFmt[]    = "%s";
-static __attribute__((aligned(8))) char msgNull[]   = "(null)";
-static __attribute__((aligned(8))) char msgBadFmt[] = "(bad fmt)";
+#define HASH_FLAG     (1 << (sizeof(int) * 8 - 1))
 
-#define max(a, b) ((a) >= (b) ? (a) : (b))
+static void itona (char ** buf, int * chars, int size, int base, void * pd)
+{
+    char * p = *buf;
+    char * p1, * p2;
 
-static void itona(char ** buf, u32* chars, u32 size, u32 base, s64 d) {
-    char *p = *buf;
-    char *p1, *p2;
-    u64 ud = d;
-    u32 radix = 10;
+    long long d;
+    unsigned long long ud;
 
-    if(base == 'd' && d < 0) {
-        if(*chars == (size - 1)) {
-            *buf = p;
-            return;
-        }
+    int radix;
+    int upper;
 
-        *p++ = '-';
-        (*buf)++;
-        (*chars)++;
+    int hash;
 
-        ud = -d;
-    } else if (base == 'x' || base == 'X') {
+    // Demux hash from base encoding
+    hash = base & HASH_FLAG;
+    base ^= hash;
+
+    switch(base) {
+    case 'p':
+        ud = *(unsigned long long *)pd;
+
+        upper = 0;
         radix = 16;
+        hash = HASH_FLAG;
+        break;
+
+    case 'd':
+        d = *(int *)pd;
+        goto decimal;
+
+    case ('l' << 8) + 'd':
+        d = *(long *)pd;
+        goto decimal;
+
+    case ('l' << 16) + ('l' << 8) + 'd':
+        d = *(long long *)pd;
+        // Fall-through
+
+    decimal:
+
+        radix = 10;
+        upper = 0;
+
+        // Handle negative integer cases
+        if(d < 0) {
+            if(*chars == (size - 1)) {
+                *buf = p;
+                return;
+            }
+
+            *p++ = '-';
+            (*buf)++;
+            (*chars)++;
+
+            ud = -d;
+        } else {
+            ud = d;
+        }
+        break;
+
+    case 'u':
+        ud = *(unsigned int *)pd;
+        goto usigned;
+
+    case ('l' << 8) + 'u':
+        ud = *(unsigned long *)pd;
+        goto usigned;
+
+    case ('l' << 16) + ('l' << 8) + 'u':
+        ud = *(unsigned long long *)pd;
+        // Fall-through
+
+    usigned:
+
+        radix = 10;
+        upper = 0;
+        break;
+
+    case 'x':
+        ud = *(unsigned int *)pd;
+        goto lohex;
+
+    case ('l' << 8) + 'x':
+        ud = *(unsigned long *)pd;
+        goto lohex;
+
+    case ('l' << 16) + ('l' << 8) + 'x':
+        ud = *(unsigned long long *)pd;
+        // Fall-through
+
+    lohex:
+
+        radix = 16;
+        upper = 0;
+        break;
+
+    case 'X':
+        ud = *(unsigned int *)pd;
+        goto hihex;
+
+    case ('l' << 8) + 'X':
+        ud = *(unsigned long *)pd;
+        goto hihex;
+
+    case ('l' << 16) + ('l' << 8) + 'X':
+        ud = *(unsigned long long *)pd;
+        // Fall-through
+
+    hihex:
+
+        radix = 16;
+        upper = 1;
+        break;
+
+    default:
+        // Bad format, shouldn't happen, so just give up
+        return;
     }
 
     do {
-        u32 remainder = ud % radix;
+        unsigned long long remainder = ud % radix;
 
         if(*chars == (size - 1)) {
             *buf = p;
@@ -148,11 +205,19 @@ static void itona(char ** buf, u32* chars, u32 size, u32 base, s64 d) {
         if(remainder < 10) {
             *p++ = remainder + '0';
         } else {
-            *p++ = remainder + (base == 'x' ? 'a' : 'A') - 10;
+            *p++ = remainder + (upper ? 'A' : 'a') - 10;
         }
 
         (*chars)++;
+
     } while (ud /= radix);
+
+    // Currently, we only support xX "%#" formatting
+    if(hash && radix == 16) {
+        *p++ = upper ? 'X' : 'x';
+        *p++ = '0';
+        *chars += 2;
+    }
 
     p1 = *buf;
     p2 = p-1;
@@ -163,222 +228,194 @@ static void itona(char ** buf, u32* chars, u32 size, u32 base, s64 d) {
         p1++;
         p2--;
     }
+
     *buf = p;
 }
 
-/* quick and dirty fp printer */
-static void ftona(char** buf, u32* chars, u32 size, double fp , u32 precision) {
-    u32 i, j;
-    if(*chars >= (size - 1 - 4)) { //check size - must fit atleast '+inf'.
-        return;
-    }
+static __attribute__((aligned(sizeof(u64)))) char msg_null[]   = "(null)";
+static __attribute__((aligned(sizeof(u64)))) char msg_badfmt[] = "(bad fmt)";
 
-    //Grab the msbs of the FP number.
-    u32 v = 1;
-    if(*(char *)&v == 1) //endianness check.
-        v = ((u32*)&fp)[1];
-    else
-        v = ((u32*)&fp)[0];
-
-    //Check if NaN, +Inf, or -Inf.
-    if ((v & 0x7ff80000L) == 0x7ff80000L) {
-        *(*buf)++ = 'N';
-        *(*buf)++ = 'a';
-        *(*buf)++ = 'N';
-        *(*buf)++ = '\0';
-        (*chars)+=3;
-        return;
-    }
-    if ((v & 0xfff10000L) == 0x7ff00000L) {
-        *(*buf)++ = '+';
-        *(*buf)++ = 'I';
-        *(*buf)++ = 'n';
-        *(*buf)++ = 'f';
-        *(*buf)++ = '\0';
-        (*chars)+=4;
-        return;
-    }
-    if ((v & 0xfff10000L) == 0xfff00000L) {
-        *(*buf)++ = '-';
-        *(*buf)++ = 'I';
-        *(*buf)++ = 'n';
-        *(*buf)++ = 'f';
-        *(*buf)++ = '\0';
-        (*chars)+=4;
-        return;
-    }
-
-    //Write if negative or positive FP number.
-    if (fp < 0.0) { //don't check size here.
-        fp = -1*fp;
-        *(*buf)++ = '-';
-        (*chars)++;
-    }
-
-    //Round to the given precision - symmetrical.
-    double fact = 0.5;
-    for(i=0; i<precision; ++i)
-        fact/=10;
-    fp+=fact;
-
-    u64 inte = (u64)fp;      //integral part of the number.
-    double frac = fp - inte; //fractional part of the number.
-
-    //Write integral part in reversal.
-    i = 0;
-    if(inte > 0) {
-        for(; inte > 0; ++i) {
-            if(*chars >= (size - 1)) { //check size.
-                return;
-            }
-            *(*buf)++ = '0' + inte%10;
-            inte = inte/10;
-            (*chars)++;
-        }
-    } else { //don't check size here.
-        *(*buf)++ = '0';
-        (*chars)++;
-    }
-
-    //Reverse integral part.
-    for(j=0; j<i/2; ++j) {
-        char ch = (*buf)[-1*j-1];
-        (*buf)[-1*j-1] = (*buf)[-1*i+j];
-        (*buf)[-1*i+j] = ch;
-    }
-
-    //Write decimal point.
-    *(*buf)++ = '.';
-    (*chars)++;
-
-    //Write fractional part.
-    for(i=0; i < precision; ++i) {
-        if(*chars >= (size - 1)) { //check size.
-            return;
-        }
-        frac *= 10;
-        inte = (u64)frac;
-        frac = frac - inte;
-
-        if(i<16) //Inaccurate after 16 bits - this is true of libc printf also.
-            *(*buf)++ = '0' + inte;
-        else
-            *(*buf)++ = '0'; //clip.
-        (*chars)++;
-    }
-
-    *(*buf) = '\0';//NULL terminate.
-}
-
-static u32 sal_internalPrintf(char* buf, u32 size, const char* fmt, void** rest) {
+static int internal_vsnprintf(char *buf, int size, const char *fmt, va_list ap)
+{
     char c;
-    char ** arg = (char **)rest;
 
-    u32 tmp;
-    u32 chars = 0;
+    int chars = 0;
 
-    // Advance to first argument
-    // arg++;
+    int hash;
+
+    unsigned int       arg_d   = 0; // 32-bit
+    unsigned long long arg_lld = 0; // 64-bit
+
     while ((c = *fmt++) != 0) {
+
+        hash = 0;
+
         // Check limit
         if(chars == (size - 1)) break;
+
         if (c != '%') {
+
             // Plain character case
             *buf++ = c;
             chars++;
+
         } else {
+
             // Format specifier case
             char * p;
-            char isLong = 0;
-            char hasPrecision = 0;
-            u32 width = 0; /* Unused */
-            u32 precision = 0;
-            while(true) {
+            char done;
+
+            do {
+
+                done = 1;
+
                 c = *fmt++;
                 switch (c) {
-                case 'l':
-                    isLong = 1;
-                    continue;
+                case '%':
+                    // Percent escape case
+                    *buf++ = c;
+                    chars++;
+                    break;
 
-                case '.':
-                    hasPrecision = 1;
-                    continue;
-                    
-                case '0': case '1': case '2': case '3': case '4':
-                case '5': case '6': case '7': case '8': case '9':
-                    if(hasPrecision == 0) {
-                        width = width*10 + c-0x30;
+                case '#':
+                    if(hash) {
+                        goto badfmt;
                     } else {
-                        precision = precision*10 + c-0x30;
+                        hash = HASH_FLAG;
+
+                        // Loop one more time for more formatting
+                        done = 0;
+                    };
+                    break;
+
+                case 'p':
+                    arg_lld = (unsigned long long)va_arg(ap, void *);
+                    itona(&buf, &chars, size, hash | c, (void *)&arg_lld);
+                    break;
+
+                case 'l':
+
+                    c = *fmt++;
+
+                    if(c == 'l') {
+                        // This must be a 'long long' -- fold into 'long'
+                        // sizeof(long) == sizeof(long long) == 8 bytes
+                        c = *fmt++;
                     }
-                    continue;
-                    
+
+                    switch(c) {
+                    case 'd':
+                    case 'u':
+                    case 'x':
+                    case 'X':
+                        arg_lld = (unsigned long long)va_arg(ap, long long);
+                        itona(&buf, &chars, size, hash | ('l' << 8) | c, (void *)&arg_lld);
+                        break;
+
+                    default:
+                        goto badfmt;
+                    }
+
+                    break;
+
                 case 'd':
                 case 'u':
                 case 'x':
                 case 'X':
-                    if(isLong) {
-                        // We make sure we are properly aligned
-                        arg = (char**)(((u64)arg + 0x7)&(-0x8));
-                        itona(&buf, &chars, size, c, *((s64*)arg));
-                        arg = (char**)((s64*)arg + 1);
-                    } else {
-                        // We make sure we are properly aligned
-                        arg = (char**)(((u64)arg + 0x3)&(-0x4));
-                        itona(&buf, &chars, size, c, *((u32 *)arg));
-                        // Note that '((int*)arg + 1) CANNOT be replaced by
-                        // ((int*)arg++) (nor can it be put in the xe_itona call above)
-                        // because of precendence rules: '++' takes precedence over
-                        // the casting operator and therefore (int*)arg++ will perform
-                        // pointer arithmetic on a char** and therefore increment by 8 bytes
-                        // as opposed to 4. You also cannot write ((int*)arg)++ as the conversion
-                        // makes arg an rvalue and ++ requires an lvalue
-                        arg = (char**)((u32*)arg + 1);
-                    }
-                    break;
-
-                case 'f':
-                case 'F': /*%lf falls through to here for compatibility*/
-                    if(!hasPrecision)
-                        precision = 6;
-                    // We are always promoted to a double.
-                    // We make sure we are properly aligned
-                    arg = (char**)(((u64)arg + 0x7)&(-0x8));
-                    ftona(&buf, &chars, size, *((double *)arg), precision);
-                    arg = (char**)((double*)arg + 1);
+                    // %d, %u, %x, %X are all 32-bit so we can pull 'unsigned int'-worth of bits
+                    arg_d = va_arg(ap, unsigned int);
+                    itona(&buf, &chars, size, hash | c, (void *)&arg_d);
                     break;
 
                 case 's':
-                    if (!isLong) { /*long string not supported*/
-                        p = *arg++;
-                        if (! p) {
-                            char ** ptrToMsg = (char**)&msgNull;
-                            tmp = sal_internalPrintf(buf, max(7, size - 1 - chars), msgFmt, (void**)&ptrToMsg);
-                            chars += tmp;
-                            buf += tmp;
-                        } else {
-                            while(*p) {
-                                if(chars == (size-1)) break;
+                    // Get a string pointer arg
+                    p = va_arg(ap, char *);
 
-                                *buf++ = *p++;
-                                chars++;
-                            }
-                        }
-                        break;
+                    // If NULL, substitute a null message
+                    if (! p) p = msg_null;
+
+                    // Copy into output buffer
+                    while(*p) {
+                        if(chars == (size-1)) break;
+
+                        *buf++ = *p++;
+                        chars++;
                     }
-                    /* fallthrough */
+                    break;
+
                 default:
-                {
-                    char ** ptrToMsg = (char**)&msgBadFmt;
-                    tmp = sal_internalPrintf(buf, max(10, size - 1 - chars), msgFmt, (void**)&ptrToMsg);
-                    chars += tmp;
-                    buf += tmp;
+
+                badfmt:
+                    p = msg_badfmt;
+
+                    // Copy into output buffer
+                    while(*p) {
+                        if(chars == (size-1)) break;
+
+                        *buf++ = *p++;
+                        chars++;
+                    }
                     break;
                 }
-                } /* end of switch statement */
-                break; /*while(true)*/
-            }
+            } while(!done);
         }
     }
+
+    // The terminating \0 is not counted
+    *buf++ = 0;
+
     return chars;
+}
+
+
+int sal_snprintf(char * buf, int size, const char * fmt, ...)
+{
+    int tmp;
+    va_list ap;
+
+    va_start(ap, fmt);
+
+    tmp = internal_vsnprintf(buf, size, fmt, ap);
+
+    va_end(ap);
+
+    return tmp;
+}
+
+static char printf_buf[PRINTF_MAX] __attribute__((aligned(sizeof(u64))));
+
+int sal_printf(const char * fmt, ...) {
+
+    int len;
+    va_list ap;
+
+    ocrPolicyMsg_t msg;
+    ocrPolicyDomain_t *pd = NULL;
+
+    va_start(ap, fmt);
+
+    len = internal_vsnprintf(printf_buf, PRINTF_MAX, fmt, ap);
+
+    va_end(ap);
+
+
+    if(getCurrentEnv)
+        getCurrentEnv(&pd, NULL, NULL, &msg);
+    if(!pd) {
+        bootUpPrint(printf_buf, len);
+        return len;
+    }
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_SAL_PRINT
+    // We now have the buffer and the length of things to print. We can
+    // call into the PD
+    msg.type = PD_MSG_SAL_PRINT | PD_MSG_REQUEST;
+    PD_MSG_FIELD(buffer) = printf_buf;
+    PD_MSG_FIELD(length) = len;
+    PD_MSG_FIELD(properties) = 0;
+    RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
+#undef PD_MSG
+#undef PD_TYPE
+
+    return len;
 }

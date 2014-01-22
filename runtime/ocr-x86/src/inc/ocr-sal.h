@@ -56,7 +56,15 @@ void sal_assert(bool cond, const char* file, u64 line);
  *
  * This operation may be a no-op on some platforms
  */
-void sal_printf(const char* string, ...);
+int sal_printf(const char * fmt, ...);
+
+/**
+ * @brief Causes the formatted string to be printed out
+ * to a memory buffer
+ *
+ * This operation may be a no-op on some platforms
+ */
+int sal_snprintf(char * buf, int size, const char * fmt, ...);
 
 /****************************************************/
 /* SYSTEM FUNCTIONS                                 */
