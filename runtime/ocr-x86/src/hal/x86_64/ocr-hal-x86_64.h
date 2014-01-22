@@ -85,7 +85,11 @@
  * @param addValue  u64: Value to add to location
  * @return New value of the location
  */
-#define hal_xadd64(atomic, addValue) ({ ASSERT(0); 0; })
+#define hal_xadd64(atomic, addValue)                                    \
+    ({                                                                  \
+        u64 __tmp = __sync_add_and_fetch(atomic, addValue);             \
+        __tmp;                                                          \
+    })
 
 /**
  * @brief Remote atomic add (64 bit)
@@ -98,7 +102,8 @@
  * @param atomic    u64*: Pointer to the atomic value (location)
  * @param addValue  u64: Value to add to location
  */
-#define hal_radd64(atomic, addValue) { ASSERT(0); }
+#define hal_radd64(atomic, addValue)            \
+    __sync_add_and_fetch(atomic, addValue)
 
 /**
  * @brief Compare and swap (32 bit)
@@ -131,7 +136,11 @@
  * @param addValue  u32: Value to add to location
  * @return New value of the location
  */
-#define hal_xadd32(atomic, addValue) ({ ASSERT(0); 0; })
+#define hal_xadd32(atomic, addValue)                                    \
+    ({                                                                  \
+        u32 __tmp = __sync_add_and_fetch(atomic, addValue);             \
+        __tmp;                                                          \
+    })
 
 /**
  * @brief Remote atomic add (32 bit)
@@ -144,7 +153,8 @@
  * @param atomic    u32*: Pointer to the atomic value (location)
  * @param addValue  u32: Value to add to location
  */
-#define hal_radd32(atomic, addValue) ASSERT(0)
+#define hal_radd32(atomic, addValue)            \
+    __sync_add_and_fetch(atomic, addValue)
 
 /**
  * @brief Convenience function that basically implements a simple
