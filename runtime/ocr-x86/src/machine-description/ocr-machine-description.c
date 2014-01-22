@@ -728,7 +728,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
             ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
 
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "location");
-            INI_GET_INT (key, value, 0); // FIXME: Is 0 an acceptable default for location?
+            INI_GET_INT (key, value, -1); // FIXME: Is 0 an acceptable default for location?
             ((paramListPolicyDomainInst_t*)inst_param[j])->location = value;
 
             instance[j] = (void *)((ocrPolicyDomainFactory_t *)factory)->instantiate(

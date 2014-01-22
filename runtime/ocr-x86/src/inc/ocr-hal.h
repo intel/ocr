@@ -13,8 +13,8 @@
 
 #include "ocr-config.h"
 
-#if defined(HAL_XE)
-#include "hal/fsim-xe/ocr-hal-xe.h"
+#if defined(HAL_FSIM_XE)
+#include "hal/fsim-xe/ocr-hal-fsim-xe.h"
 #elif defined(HAL_FSIM_CE)
 #include "hal/fsim-ce/ocr-hal-fsim-ce.h"
 #elif defined(HAL_X86_64)
