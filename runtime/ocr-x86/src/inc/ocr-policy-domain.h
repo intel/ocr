@@ -511,8 +511,7 @@ typedef struct _ocrPolicyMsg_t {
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_WRITE);
 
         struct {
-            u64 errorCode;     /**< In: For exit: error code, for assert: line number */
-            const char* file;  /**< In: For assert: file of assert */ 
+            u64 errorCode;     /**< In: Error code if applicable */
             u32 properties;    /**< For now: 0 if normal exit, 1 if abort, 2 if assert*/
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_TERMINATE);
         struct {

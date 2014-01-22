@@ -26,7 +26,6 @@ void sal_exit(u64 errorCode) {
 #define PD_TYPE PD_MSG_SAL_TERMINATE
     msg.type = PD_MSG_SAL_TERMINATE | PD_MSG_REQUEST;
     PD_MSG_FIELD(errorCode) = errorCode;
-    PD_MSG_FIELD(file) = NULL;
     PD_MSG_FIELD(properties) = 0;
     RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0); // Would be funny if this failed... nice loop
 #undef PD_MSG
@@ -47,7 +46,6 @@ void sal_abort(const char* file, u64 line) {
 #define PD_TYPE PD_MSG_SAL_TERMINATE
     msg.type = PD_MSG_SAL_TERMINATE | PD_MSG_REQUEST;
     PD_MSG_FIELD(errorCode) = 0;
-    PD_MSG_FIELD(file) = NULL;
     PD_MSG_FIELD(properties) = 1;
     RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0); // Would be funny if this failed... nice loop
 #undef PD_MSG
@@ -64,11 +62,11 @@ void sal_assert(bool cond, const char* file, u64 line) {
             bootUpAbort();
             return;
         }
+        sal_printf("ASSERT failure in file '%s' line %lu\n", file, line);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_SAL_TERMINATE
         msg.type = PD_MSG_SAL_TERMINATE | PD_MSG_REQUEST;
-        PD_MSG_FIELD(errorCode) = line;
-        PD_MSG_FIELD(file) = file;
+        PD_MSG_FIELD(errorCode) = 0;
         PD_MSG_FIELD(properties) = 2;
         RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0); // Would be funny if this failed... nice loop
 #undef PD_MSG

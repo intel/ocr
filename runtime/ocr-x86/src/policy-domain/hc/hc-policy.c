@@ -952,7 +952,27 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |= PD_MSG_RESPONSE;
         break;
     }
-        
+
+    case PD_MSG_SAL_TERMINATE:
+    {
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_SAL_TERMINATE
+        switch(PD_MSG_FIELD(properties)) {
+        case 0:
+            self->salProvider->fcts.exit(self->salProvider, PD_MSG_FIELD(errorCode));
+            break;
+        case 1: case 2:
+            self->salProvider->fcts.abort(self->salProvider);
+            break;
+        default:
+            ASSERT(0);
+        }
+#undef PD_MSG
+#undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
+        break;
+    }
     case PD_MSG_MGT_SHUTDOWN:
     {
         self->stop(self);

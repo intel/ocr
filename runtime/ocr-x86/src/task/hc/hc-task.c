@@ -322,7 +322,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
         PD_MSG_FIELD(guid.guid) = NULL_GUID;
         PD_MSG_FIELD(guid.metaDataPtr) = NULL;
         PD_MSG_FIELD(properties) = 0;
-        PD_MSG_FIELD(type) = OCR_EVENT_STICKY_T;
+        PD_MSG_FIELD(type) = OCR_EVENT_ONCE_T; // Output events of EDTs are non sticky
 
         RESULT_ASSERT(pd->processMessage(pd, &msg, true), ==, 0);
         outputEvent = PD_MSG_FIELD(guid);
