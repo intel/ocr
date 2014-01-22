@@ -10,7 +10,7 @@
 #include "ocr-sysboot.h"
 #include "ocr-types.h"
 
-#include <stdio.h>
+//#include <stdio.h>
 
 // Forward declarations
 static void itona(char ** buf, u32* chars, u32 size, u32 base, s64 d);

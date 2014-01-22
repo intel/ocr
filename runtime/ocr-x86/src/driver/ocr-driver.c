@@ -74,6 +74,7 @@ dep_t deps[] = {
     { policydomain_type, worker_type, "worker"},
     { policydomain_type, scheduler_type, "scheduler"},
     { policydomain_type, sal_type, "sal"},
+    { policydomain_type, policydomain_type, "parent"},
     { policydomain_type, taskfactory_type, "taskfactory"},
     { policydomain_type, tasktemplatefactory_type, "tasktemplatefactory"},
     { policydomain_type, datablockfactory_type, "datablockfactory"},
@@ -117,7 +118,24 @@ extern void free_functions(void);
 extern char *persistent_chunk;
 extern u64 persistent_pointer;
 
-void dumpPolicyDomain(void *pd, const char* output_binary, int start_address) {
+/* Format of this file:
+ *
+ * +--------------------------+
+ * |    offset of PD (u64)    |
+ * +--------------------------+
+ * | size of all structs (u64)|
+ * +--------------------------+
+ * | (TODO) location table sz |
+ * +--------------------------+
+ * | (TODO) location entries  |
+ * +--------------------------+
+ * |                          |
+ * |     structs be here      |
+ * |                          |
+ * +--------------------------+
+ */
+
+void dumpStructs(void *pd, const char* output_binary, int start_address) {
     FILE *fp = fopen(output_binary, "w");
     u64 i;
     u64 *ptrs = (u64 *)&persistent_chunk;
@@ -127,7 +145,7 @@ void dumpPolicyDomain(void *pd, const char* output_binary, int start_address) {
         u64 pdoffset = (u64)pd - (u64)&persistent_chunk;
         fwrite(&pdoffset, sizeof(u64), 1, fp);
 
-        //TODO: Make a list of all ocrLocation_t offsets here
+        //TODO: dump the list of all ocrLocation_t offsets here
 
         fwrite(&persistent_pointer, sizeof(u64), 1, fp);
 
@@ -247,12 +265,12 @@ void bringUpRuntime(const char *inifile) {
     // BUILD DEPENDENCES
     DPRINTF(DEBUG_LVL_INFO, "========= Build dependences ==========\n");
 
-    for (i = 0; i <= 9; i++) {
+    for (i = 0; i <= 10; i++) {
         build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr, all_instances, inst_params);
     }
 
     // Special case of policy domain pointing to types rather than instances
-    for (i = 10; i <= 13; i++) {
+    for (i = 11; i <= 14; i++) {
         build_deps_types(deps[i].to, all_instances[policydomain_type],
                          inst_counts[policydomain_type], all_factories, type_params);
     }
@@ -273,7 +291,7 @@ void bringUpRuntime(const char *inifile) {
     {
         int start_address = iniparser_getint(dict, START_ADDRESS, 0);
         for(i = 0; i < inst_counts[policydomain_type]; i++)
-            dumpPolicyDomain(all_instances[policydomain_type][i], output_binary, start_address);
+            dumpStructs(all_instances[policydomain_type][i], output_binary, start_address);
         free_functions();
     }
 #else

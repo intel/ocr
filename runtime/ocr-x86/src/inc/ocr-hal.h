@@ -13,7 +13,9 @@
 
 #include "ocr-config.h"
 
-#if HAL_LAYER == "x86_64"
+#if defined(HAL_XE)
+#include "hal/xe/ocr-hal-xe.h"
+#elif defined(HAL_X86_64)
 #include "hal/x86_64/ocr-hal-x86_64.h"
 #else
 #error "Unknown HAL layer"

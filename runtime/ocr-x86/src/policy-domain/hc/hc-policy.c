@@ -1039,6 +1039,8 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->getStats = hcGetStats;
 #endif
 
+    base->myLocation = ((paramListPolicyDomainInst_t*)perInstance)->location;
+
     // no inter-policy domain for simple HC
     base->neighbors = NULL;
     base->neighborCount = 0;

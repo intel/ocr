@@ -4,6 +4,8 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+#ifdef ENABLE_POLICY_DOMAIN_HC
 
 #include "allocator/allocator-all.h"
 #include "comp-platform/comp-platform-all.h"
@@ -661,6 +663,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
                     INI_GET_STR (workertypekey, workerstr, "");
                     TO_ENUM (workertype, workerstr, ocrWorkerType_t, ocrWorkerType_types, MAX_WORKERTYPE-1);
                     workertype += 1;  // because workertype is 1-indexed, not 0-indexed
+                    if (workertype == MAX_WORKERTYPE) workertype = SLAVE_WORKERTYPE; // TODO: is this a reasonable default?
                     ALLOC_PARAM_LIST(inst_param[j], paramListWorkerHcInst_t);
                     ((paramListWorkerHcInst_t *)inst_param[j])->workerType = workertype;
                     ((paramListWorkerHcInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
@@ -723,6 +726,11 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
 #endif
 
             ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
+
+            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "location");
+            INI_GET_INT (key, value, 0); // FIXME: Is 0 an acceptable default for location?
+            ((paramListPolicyDomainInst_t*)inst_param[j])->location = value;
+
             instance[j] = (void *)((ocrPolicyDomainFactory_t *)factory)->instantiate(
                 factory, NULL, inst_param[j]);
 
@@ -934,6 +942,10 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
             f->salProvider = (ocrSal_t *)toinstance;
             break;
         }
+        case policydomain_type: {
+            f->parentLocation = (u64)toinstance; // FIXME: PD2Location
+            break;
+        }
         default:
             break;
         }
@@ -984,3 +996,5 @@ s32 build_deps_types (s32 B, void **pdinst, int pdcount, void ***all_factories, 
 
     return 0;
 }
+
+#endif

@@ -34,6 +34,7 @@ typedef struct _paramListPolicyDomainFact_t {
 
 typedef struct _paramListPolicyDomainInst_t {
     ocrParamList_t base;
+    ocrLocation_t location;
 } paramListPolicyDomainInst_t;
 
 

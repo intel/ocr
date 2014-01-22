@@ -41,37 +41,37 @@
 #define ENABLE_GUID_PTR
 
 // HAL layer to use
-#define HAL_LAYER x86_64
+#define HAL_XE
 
 // Mem-platform
-#define ENABLE_MEM_PLATFORM_MALLOC
+//#define ENABLE_MEM_PLATFORM_MALLOC
 
 // Mem-target
-#define ENABLE_MEM_TARGET_SHARED
+//#define ENABLE_MEM_TARGET_SHARED
 
 // Policy domain
-#define ENABLE_POLICY_DOMAIN_HC
+#define ENABLE_POLICY_DOMAIN_XE
 
 // Scheduler
-#define ENABLE_SCHEDULER_HC
+#define ENABLE_SCHEDULER_XE
 
 // SAL layer to use
-#define ENABLE_SAL_LINUX
+//#define ENABLE_SAL_LINUX
 
 // Sysboot layer to use
-#define ENABLE_SYSBOOT_LINUX
+//#define ENABLE_SYSBOOT_LINUX
 
 // Task
-#define ENABLE_TASK_HC
+#define ENABLE_TASK_XE
 
 // Task template
-#define ENABLE_TASKTEMPLATE_HC
+#define ENABLE_TASKTEMPLATE_XE
 
 // Worker
-#define ENABLE_WORKER_HC
+#define ENABLE_WORKER_XE
 
 // Workpile
-#define ENABLE_WORKPILE_HC
+//#define ENABLE_WORKPILE_HC
 
 #endif /* __OCR_CONFIG_H__ */
 
