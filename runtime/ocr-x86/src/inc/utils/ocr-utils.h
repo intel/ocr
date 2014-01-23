@@ -10,6 +10,8 @@
 
 #include "ocr-types.h"
 
+#define PAD_SIZE 8
+
 // Forward declaration
 struct _ocrPolicyDomain_t;
 

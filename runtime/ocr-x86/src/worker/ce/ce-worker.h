@@ -21,6 +21,7 @@ typedef struct {
 typedef struct _paramListWorkerCeInst_t {
     paramListWorkerInst_t base;
     u64 workerId;
+    ocrWorkerType_t workerType;
 } paramListWorkerCeInst_t;
 
 typedef struct {

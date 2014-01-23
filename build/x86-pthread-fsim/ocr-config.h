@@ -61,7 +61,7 @@
 #define ENABLE_SCHEDULER_CE
 
 // SAL layer to use
-#define ENABLE_SAL_LINUX
+#define SAL_LINUX
 
 // Sysboot layer to use
 #define ENABLE_SYSBOOT_LINUX

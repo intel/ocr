@@ -42,7 +42,7 @@ static void workerLoop(ocrWorker_t * worker) {
     ocrPolicyDomain_t *pd = worker->pd;
     ocrPolicyMsg_t *msgPtr;
     while(worker->fcts.isRunning(worker)) {
-        worker->fcts.pollMessage(worker, &msgPtr, 0);   // FIXME: mask is zeroed out
+        worker->fcts.waitMessage(worker, &msgPtr);
         if(pd->processMessage(pd, msgPtr, true) == 0) {
             pd->pdFree(pd, msgPtr);
         } else {
@@ -92,7 +92,8 @@ ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory, ocrLocation_t location,
     base->pd = NULL;
     base->curTask = NULL;
     base->fcts = factory->workerFcts;
-    base->type = MASTER_WORKERTYPE;
+    base->type = ((paramListWorkerCeInst_t*)perInstance)->workerType;
+    ASSERT(base->type == MASTER_WORKERTYPE);
     
     worker->id = ((paramListWorkerCeInst_t*)perInstance)->workerId;
     worker->run = false;
