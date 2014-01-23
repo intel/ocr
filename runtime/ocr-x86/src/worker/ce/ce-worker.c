@@ -42,7 +42,7 @@ static void workerLoop(ocrWorker_t * worker) {
     ocrPolicyDomain_t *pd = worker->pd;
     ocrPolicyMsg_t *msgPtr;
     while(worker->fcts.isRunning(worker)) {
-        worker->fcts.pollMessage(worker, &msgPtr);
+        worker->fcts.pollMessage(worker, &msgPtr, 0);   // FIXME: mask is zeroed out
         if(pd->processMessage(pd, msgPtr, true) == 0) {
             pd->pdFree(pd, msgPtr);
         } else {
@@ -82,7 +82,7 @@ void destructWorkerCe(ocrWorker_t * base) {
  * Builds an instance of a CE worker
  */
 ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory, ocrLocation_t location,
-                          ocrWorkerType_t type, ocrParamList_t * perInstance) {
+                          ocrParamList_t * perInstance) {
     ocrWorkerCe_t * worker = (ocrWorkerCe_t*)runtimeChunkAlloc(
         sizeof(ocrWorkerCe_t), NULL);
     ocrWorker_t * base = (ocrWorker_t *) worker;
@@ -92,7 +92,6 @@ ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory, ocrLocation_t location,
     base->pd = NULL;
     base->curTask = NULL;
     base->fcts = factory->workerFcts;
-    ASSERT(type == MASTER_WORKERTYPE);
     base->type = MASTER_WORKERTYPE;
     
     worker->id = ((paramListWorkerCeInst_t*)perInstance)->workerId;
@@ -210,9 +209,9 @@ u8 ceSendMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg
     return self->computes[0]->fcts.sendMessage(self->computes[0], location, msg);
 }
 
-u8 cePollMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg) {
+u8 cePollMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg, u32 mask) {
     ASSERT(self->computeCount == 1);
-    return self->computes[0]->fcts.pollMessage(self->computes[0], msg);
+    return self->computes[0]->fcts.pollMessage(self->computes[0], msg, mask);
 }
 
 u8 ceWaitMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg) {
@@ -240,7 +239,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryCe(ocrParamList_t * perType) {
     base->workerFcts.finish = FUNC_ADDR(void (*)(ocrWorker_t*), ceFinishWorker);
     base->workerFcts.isRunning = FUNC_ADDR(bool (*)(ocrWorker_t*), ceIsRunningWorker);
     base->workerFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrLocation_t, ocrPolicyMsg_t**), ceSendMessage);
-    base->workerFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**), cePollMessage);
+    base->workerFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**, u32), cePollMessage);
     base->workerFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**), ceWaitMessage);
     return base;
 }

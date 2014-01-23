@@ -12,17 +12,22 @@
 #ifndef __OCR_CONFIG_H__
 #define __OCR_CONFIG_H__
 
+// Constants used in the runtime
+
+// Maximum number of characters in a single printf
+#define PRINTF_MAX 1024
+
 // Define this if building the PD builder program
 // If this is defined, this will exclude everything
 // that does not contribute to building the policy domain
-//#define ENABLE_BUILDER_ONLY
+#define ENABLE_BUILDER_ONLY
 
 // Allocator
 #define ENABLE_ALLOCATOR_TLSF
 
 // Comp-platform
-//#define ENABLE_COMP_PLATFORM_PTHREAD
-#define ENABLE_COMP_PLATFORM_FSIM
+#define ENABLE_COMP_PLATFORM_PTHREAD
+//#define ENABLE_COMP_PLATFORM_FSIM
 
 // Comp-target
 #define ENABLE_COMP_TARGET_PASSTHROUGH
@@ -34,42 +39,45 @@
 #define ENABLE_EVENT_HC
 
 // External things (mostly needed by the INI parser)
+#define ENABLE_EXTERNAL_DICTIONARY
+#define ENABLE_EXTERNAL_INIPARSER
 
 // GUID provider
 #define ENABLE_GUID_PTR
 
 // HAL layer to use
-#define HAL_FSIM_XE
+#define HAL_LAYER x86_64
 
 // Mem-platform
-//#define ENABLE_MEM_PLATFORM_MALLOC
+#define ENABLE_MEM_PLATFORM_MALLOC
 
 // Mem-target
-//#define ENABLE_MEM_TARGET_SHARED
+#define ENABLE_MEM_TARGET_SHARED
 
 // Policy domain
-#define ENABLE_POLICY_DOMAIN_XE
+#define ENABLE_POLICY_DOMAIN_HC
 
 // Scheduler
-#define ENABLE_SCHEDULER_XE
+#define ENABLE_SCHEDULER_HC
 
 // SAL layer to use
-#define SAL_FSIM_XE
+#define ENABLE_SAL_LINUX
 
 // Sysboot layer to use
 //#define ENABLE_SYSBOOT_LINUX
+#define ENABLE_SYSBOOT_FSIM
 
 // Task
-#define ENABLE_TASK_XE
+#define ENABLE_TASK_HC
 
 // Task template
-#define ENABLE_TASKTEMPLATE_XE
+#define ENABLE_TASKTEMPLATE_HC
 
 // Worker
-#define ENABLE_WORKER_XE
+#define ENABLE_WORKER_HC
 
 // Workpile
-//#define ENABLE_WORKPILE_HC
+#define ENABLE_WORKPILE_HC
 
 #endif /* __OCR_CONFIG_H__ */
 

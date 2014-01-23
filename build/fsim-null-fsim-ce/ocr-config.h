@@ -34,8 +34,6 @@
 #define ENABLE_EVENT_HC
 
 // External things (mostly needed by the INI parser)
-#define ENABLE_EXTERNAL_DICTIONARY
-#define ENABLE_EXTERNAL_INIPARSER
 
 // GUID provider
 #define ENABLE_GUID_PTR
@@ -53,10 +51,16 @@
 #define ENABLE_MEM_TARGET_SHARED
 
 // Policy domain
-#define ENABLE_POLICY_DOMAIN_HC
+#define ENABLE_POLICY_DOMAIN_CE
 
 // Scheduler
-#define ENABLE_SCHEDULER_HC
+#define ENABLE_SCHEDULER_CE
+
+// SAL layer to use
+#define SAL_FSIM_CE
+
+// Sysboot layer to use
+#define ENABLE_SYSBOOT_FSIM
 
 // Task
 #define ENABLE_TASK_HC
@@ -65,10 +69,10 @@
 #define ENABLE_TASKTEMPLATE_HC
 
 // Worker
-#define ENABLE_WORKER_HC
+#define ENABLE_WORKER_CE
 
 // Workpile
-#define ENABLE_WORKPILE_HC
+#define ENABLE_WORKPILE_CE
 
 #endif /* __OCR_CONFIG_H__ */
 

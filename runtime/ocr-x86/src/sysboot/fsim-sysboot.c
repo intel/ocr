@@ -15,9 +15,6 @@
 #include "ocr-mem-target.h"
 #include "ocr-sysboot.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-
 #define CHUNKSZ 32768                // The chunk size of runtimeChunkAlloc's pool
 char persistent_chunk[CHUNKSZ];      // The underlying pool - persistent memory
 char nonpersistent_chunk[CHUNKSZ];   // The underlying pool - non-persistent memory

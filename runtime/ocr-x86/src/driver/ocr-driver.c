@@ -4,6 +4,9 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+
+#if defined(ENABLE_BUILDER_ONLY) || defined(ENABLE_POLICY_DOMAIN_HC)
 
 #include "debug.h"
 #include "machine-description/ocr-machine.h"
@@ -418,92 +421,4 @@ int __attribute__ ((weak)) main(int argc, const char* argv[]) {
     return 0;
 }
 
-// Tearing down the PD
-
-// TODO sagnak everything below is DUMB and RIDICULOUS and
-// will have to be undone and done again
-typedef struct _ocrPolicyDomainLinkedListNode {
-    ocrPolicyDomain_t* pd;
-    struct _ocrPolicyDomainLinkedListNode* next;
-} ocrPolicyDomainLinkedListNode;
-
-// walkthrough the linked list and return TRUE if instance exists
-/*
-static s32 isMember ( ocrPolicyDomainLinkedListNode *dummyHead, ocrPolicyDomainLinkedListNode *tail, ocrPolicyDomain_t* instance ) {
-    ocrPolicyDomainLinkedListNode* curr = dummyHead->next;
-    for ( ; NULL != curr && curr->pd != instance; curr = curr -> next ) {
-    }
-    return NULL != curr;
-}
-*/
-
-static void recurseBuildDepthFirstSpanningTreeLinkedList (ocrPolicyDomainLinkedListNode *dummyHead,
-                                                   ocrPolicyDomainLinkedListNode *tail, ocrPolicyDomain_t* currPD ) {
-    ocrPolicyDomainLinkedListNode *currNode = (ocrPolicyDomainLinkedListNode*) malloc(sizeof(ocrPolicyDomainLinkedListNode));
-    currNode -> pd = currPD;
-    currNode -> next = NULL;
-    tail -> next = currNode;
-    tail = currNode;
-
-/*
-    u64 neighborCount = currPD->neighborCount;
-    u64 i = 0;
-    for ( ; i < neighborCount; ++i ) {
-        ocrPolicyDomain_t* currNeighbor = currPD->neighbors[i];
-        if ( !isMember(dummyHead,tail,currNeighbor) ) {
-            recurseBuildDepthFirstSpanningTreeLinkedList(dummyHead, tail, currNeighbor);
-        }
-    }
-*/
-}
-
-static ocrPolicyDomainLinkedListNode *buildDepthFirstSpanningTreeLinkedList ( ocrPolicyDomain_t* currPD ) {
-
-    ocrPolicyDomainLinkedListNode *dummyHead = (ocrPolicyDomainLinkedListNode*) malloc(sizeof(ocrPolicyDomainLinkedListNode));
-    ocrPolicyDomainLinkedListNode *tail = dummyHead;
-    dummyHead -> pd = NULL;
-    dummyHead -> next = NULL;
-
-    recurseBuildDepthFirstSpanningTreeLinkedList(dummyHead, tail, currPD);
-    ocrPolicyDomainLinkedListNode *head = dummyHead->next;
-    free(dummyHead);
-    return head;
-}
-
-static void destructLinkedList ( ocrPolicyDomainLinkedListNode* head ) {
-    ocrPolicyDomainLinkedListNode *curr = head;
-    ocrPolicyDomainLinkedListNode *next = NULL;
-    while ( NULL != curr ) {
-        next = curr->next;
-        free(curr);
-        curr = next;
-    }
-}
-
-static void linearTraverseFinish( ocrPolicyDomainLinkedListNode* curr ) {
-    ocrPolicyDomainLinkedListNode *head = curr;
-    for ( ; NULL != curr; curr = curr -> next ) {
-        ocrPolicyDomain_t* pd = curr->pd;
-        pd->finish(pd);
-    }
-    destructLinkedList(head);
-}
-
-static void linearTraverseStop ( ocrPolicyDomainLinkedListNode* curr ) {
-    ocrPolicyDomainLinkedListNode *head = curr;
-    for ( ; NULL != curr; curr = curr -> next ) {
-        ocrPolicyDomain_t* pd = curr->pd;
-        pd->stop(pd);
-    }
-    destructLinkedList(head);
-}
-
-void stopAllPD(ocrPolicyDomain_t *pd) {
-    ocrPolicyDomainLinkedListNode *spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(pd); // N^2
-    linearTraverseStop(spanningTreeHead);
-}
-
-void finishAllPD(ocrPolicyDomain_t *pd) {
-    ocrPolicyDomainLinkedListNode *spanningTreeHead = buildDepthFirstSpanningTreeLinkedList(pd);
-    linearTraverseFinish(spanningTreeHead);
-}
+#endif

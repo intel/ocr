@@ -117,7 +117,6 @@ void cePolicyDomainFinish(ocrPolicyDomain_t * policy) {
         policy->guidProviders[i]->fcts.finish(policy->guidProviders[i]);
     }
 
-    policy->salProvider->fcts.finish(policy->salProvider);
 }
 
 void cePolicyDomainStop(ocrPolicyDomain_t * policy) {
@@ -159,7 +158,6 @@ void cePolicyDomainStop(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; ++i) {
         policy->guidProviders[i]->fcts.stop(policy->guidProviders[i]);
     }
-    policy->salProvider->fcts.stop(policy->salProvider);
 }
 
 void cePolicyDomainDestruct(ocrPolicyDomain_t * policy) {
@@ -219,8 +217,6 @@ void cePolicyDomainDestruct(ocrPolicyDomain_t * policy) {
         policy->guidProviders[i]->fcts.destruct(policy->guidProviders[i]);
     }
     
-    policy->salProvider->fcts.destruct(policy->salProvider);
-
     // Destroy self
     runtimeChunkFree((u64)policy->workers, NULL);
     runtimeChunkFree((u64)policy->schedulers, NULL);
@@ -921,36 +917,18 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         
     case PD_MSG_SAL_PRINT:
     {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_SAL_PRINT
-        self->salProvider->fcts.print(self->salProvider, PD_MSG_FIELD(buffer),
-                                 PD_MSG_FIELD(length));
-#undef PD_MSG
-#undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
         break;
     }
         
     case PD_MSG_SAL_READ:
     {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_SAL_READ
-        self->salProvider->fcts.read(self->salProvider, PD_MSG_FIELD(buffer), PD_MSG_FIELD(length),
-                                PD_MSG_FIELD(inputId));
-#undef PD_MSG
-#undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
         break;
     }
     
     case PD_MSG_SAL_WRITE:
     {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_SAL_WRITE
-        self->salProvider->fcts.write(self->salProvider, PD_MSG_FIELD(buffer),
-                                 PD_MSG_FIELD(length), PD_MSG_FIELD(outputId));
-#undef PD_MSG
-#undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);            
         break;
     }
@@ -1006,10 +984,6 @@ void cePdFree(ocrPolicyDomain_t *self, void* addr) {
     return self->allocators[0]->fcts.free(self->allocators[0], addr);
 }
 
-ocrSal_t* cePdGetSal(ocrPolicyDomain_t *self) {
-    return self->salProvider;
-}
-
 ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * policy,
 #ifdef OCR_ENABLE_STATISTICS
                                       ocrStats_t *statsObject,
@@ -1034,7 +1008,6 @@ ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * policy,
     base->processMessage = cePolicyDomainProcessMessage;
     base->pdMalloc = cePdMalloc;
     base->pdFree = cePdFree;
-    base->getSal = cePdGetSal;
 #ifdef OCR_ENABLE_STATISTICS
     base->getStats = ceGetStats;
 #endif

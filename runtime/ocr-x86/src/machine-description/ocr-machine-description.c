@@ -5,7 +5,7 @@
  */
 
 #include "ocr-config.h"
-#ifdef ENABLE_POLICY_DOMAIN_HC
+#if defined(ENABLE_BUILDER_ONLY) || defined(ENABLE_POLICY_DOMAIN_HC)
 
 #include "allocator/allocator-all.h"
 #include "comp-platform/comp-platform-all.h"
@@ -24,7 +24,6 @@
 #ifdef OCR_ENABLE_STATISTICS
 #include "statistics/statistics-all.h"
 #endif
-//#include "sync/sync-all.h"
 #include "task/task-all.h"
 #include "worker/worker-all.h"
 #include "workpile/workpile-all.h"
@@ -184,6 +183,7 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
             compPlatformType_t mytype = -1;
             TO_ENUM (mytype, typestr, compPlatformType_t, compplatform_types, compPlatformMax_id);
             switch (mytype) {
+#ifdef ENABLE_COMP_PLATFORM_PTHREAD 
                 case compPlatformPthread_id: {
                     ALLOC_PARAM_LIST(*type_param, paramListCompPlatformPthread_t);
                     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
@@ -191,6 +191,7 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
                     ((paramListCompPlatformPthread_t *)(*type_param))->stackSize = (value==-1)?0:value;
                 }
                 break;
+#endif
                 default:
                     ALLOC_PARAM_LIST(*type_param, paramListCompPlatformFact_t);
                 break;
@@ -587,6 +588,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
                         
             TO_ENUM (mytype, inststr, compPlatformType_t, compplatform_types, compPlatformMax_id);
             switch (mytype) {
+#ifdef ENABLE_COMP_PLATFORM_PTHREAD 
                 case compPlatformPthread_id: {
                     ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformPthread_t);
                     
@@ -601,6 +603,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
                     }
                 }
                 break;
+#endif
                 default:
                     ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
                 break;
