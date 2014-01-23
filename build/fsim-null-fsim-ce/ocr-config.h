@@ -43,6 +43,9 @@
 // HAL layer to use
 #define HAL_FSIM_CE
 
+// SAL layer to use
+#define SAL_FSIM_CE
+
 // Mem-platform
 #define ENABLE_MEM_PLATFORM_MALLOC
 
@@ -54,12 +57,6 @@
 
 // Scheduler
 #define ENABLE_SCHEDULER_HC
-
-// SAL layer to use
-#define ENABLE_SAL_LINUX
-
-// Sysboot layer to use
-#define ENABLE_SYSBOOT_LINUX
 
 // Task
 #define ENABLE_TASK_HC

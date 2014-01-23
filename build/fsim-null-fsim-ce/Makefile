@@ -18,7 +18,7 @@ endif
 #
 
 CC      := gcc
-CFLAGS  := 
+CFLAGS  := -fno-builtin
 
 RM      := rm
 RMFLAGS := -rf
