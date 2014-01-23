@@ -28,7 +28,6 @@
 #include "task/task-all.h"
 #include "worker/worker-all.h"
 #include "workpile/workpile-all.h"
-#include "sal/sal-all.h"
 
 #include "ocr-sysboot.h"
 
@@ -213,9 +212,6 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
     case policydomain_type:
         ALLOC_PARAM_LIST(*type_param, paramListPolicyDomainFact_t);
         break;
-    case sal_type:
-        ALLOC_PARAM_LIST(*type_param, paramListSalFact_t);
-        break;
     case taskfactory_type:
         ALLOC_PARAM_LIST(*type_param, paramListTaskFact_t);
         break;
@@ -342,18 +338,6 @@ ocrPolicyDomainFactory_t *create_factory_policydomain(char *name, ocrParamList_t
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a worker factory of type %d\n", mytype);
         return (ocrPolicyDomainFactory_t *)newPolicyDomainFactory(mytype, paramlist);
-    }
-}
-
-ocrSalFactory_t *create_factory_sal(char *name, ocrParamList_t *paramlist) {
-    salType_t mytype = salMax_id;
-    TO_ENUM (mytype, name, salType_t, sal_types, salMax_id);
-    if (mytype == salMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
-        return NULL;
-    } else {
-        DPRINTF(DEBUG_LVL_INFO, "Creating a worker factory of type %d\n", mytype);
-        return (ocrSalFactory_t *)newSalFactory(mytype, paramlist);
     }
 }
 
@@ -504,9 +488,6 @@ void *create_factory (type_enum index, char *factory_name, ocrParamList_t *param
         break;
     case policydomain_type:
         new_factory = (void *)create_factory_policydomain(factory_name, paramlist);
-        break;
-    case sal_type:
-        new_factory = (void *)create_factory_sal(factory_name, paramlist);
         break;
     case taskfactory_type:
         new_factory = (void *)create_factory_task(factory_name, paramlist);
@@ -740,14 +721,6 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
 //            setBootPD((ocrPolicyDomain_t *)instance[j]);
         }
         break;
-    case sal_type:
-        for (j = low; j<=high; j++) {
-            ALLOC_PARAM_LIST(inst_param[j], paramListSalInst_t);
-            instance[j] = (void *)((ocrSalFactory_t *)factory)->instantiate(factory, inst_param[j]);
-            if (instance[j])
-                DPRINTF(DEBUG_LVL_INFO, "Created sal of type %s, index %d\n", inststr, j);
-        }
-        break;
     default:
         DPRINTF(DEBUG_LVL_WARN, "Error: %d index unexpected\n", index);
         break;
@@ -935,11 +908,6 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
                 f->eventFactories = (ocrEventFactory_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrEventFactory_t *), NULL);
             }
             f->eventFactories[dependence_index] = (ocrEventFactory_t *)toinstance;
-            break;
-        }
-        case sal_type: {
-            ASSERT(dependence_count==1);
-            f->salProvider = (ocrSal_t *)toinstance;
             break;
         }
         case policydomain_type: {

@@ -198,8 +198,8 @@ void destructCompPlatformFactoryPthread(ocrCompPlatformFactory_t *factory) {
     runtimeChunkFree((u64)factory, NULL);
 }
 
-void pthreadGetCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
-                          ocrTask_t **task, ocrPolicyMsg_t* msg) {
+void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
+                   ocrTask_t **task, ocrPolicyMsg_t* msg) {
 
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
     if(pd)
@@ -213,10 +213,6 @@ void pthreadGetCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
     }
 }
 
-void pthreadSetEnvFuncs(ocrCompPlatformFactory_t *factory) {
-    getCurrentEnv = &pthreadGetCurrentEnv;
-}
-
 ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType) {
     ocrCompPlatformFactory_t *base = (ocrCompPlatformFactory_t*)
         runtimeChunkAlloc(sizeof(ocrCompPlatformFactoryPthread_t), (void *)1);
@@ -225,7 +221,6 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
 
     base->instantiate = &newCompPlatformPthread;
     base->destruct = &destructCompPlatformFactoryPthread;
-    base->setEnvFuncs = &pthreadSetEnvFuncs;
     base->platformFcts.destruct = &pthreadDestruct;
     base->platformFcts.begin = &pthreadBegin;
     base->platformFcts.start = &pthreadStart;

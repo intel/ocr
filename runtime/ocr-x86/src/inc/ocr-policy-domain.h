@@ -18,7 +18,6 @@
 #include "ocr-statistics.h"
 #endif
 
-#include "ocr-sal.h"
 #include "ocr-task.h"
 #include "ocr-tuning.h"
 #include "ocr-types.h"
@@ -594,8 +593,6 @@ typedef struct _ocrPolicyDomain_t {
     ocrEventFactory_t ** eventFactories;        /**< Factories to produce events*/
     ocrGuidProvider_t ** guidProviders;         /**< GUID generators */
 
-    ocrSal_t *salProvider;                      /**< Low-level system functions */
-
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t *statsObject;                    /**< Statistics object */
 #endif
@@ -732,8 +729,6 @@ typedef struct _ocrPolicyDomain_t {
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t* (*getStats)(struct _ocrPolicyDomain_t *self);
 #endif
-
-    ocrSal_t* (*getSal)(struct _ocrPolicyDomain_t *self);    
 } ocrPolicyDomain_t;
 
 /****************************************************/

@@ -51,6 +51,9 @@
 // HAL layer to use
 #define HAL_X86_64
 
+// SAL layer to use
+#define SAL_LINUX
+
 // Mem-platform
 #define ENABLE_MEM_PLATFORM_MALLOC
 
@@ -62,9 +65,6 @@
 
 // Scheduler
 #define ENABLE_SCHEDULER_HC
-
-// SAL layer to use
-#define ENABLE_SAL_LINUX
 
 // Sysboot layer to use
 #define ENABLE_SYSBOOT_LINUX

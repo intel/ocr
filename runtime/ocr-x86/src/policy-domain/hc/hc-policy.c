@@ -116,8 +116,6 @@ void hcPolicyDomainFinish(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; ++i) {
         policy->guidProviders[i]->fcts.finish(policy->guidProviders[i]);
     }
-
-    policy->salProvider->fcts.finish(policy->salProvider);
 }
 
 void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
@@ -159,7 +157,6 @@ void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; ++i) {
         policy->guidProviders[i]->fcts.stop(policy->guidProviders[i]);
     }
-    policy->salProvider->fcts.stop(policy->salProvider);
 }
 
 void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
@@ -219,8 +216,6 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
         policy->guidProviders[i]->fcts.destruct(policy->guidProviders[i]);
     }
     
-    policy->salProvider->fcts.destruct(policy->salProvider);
-
     // Destroy self
     runtimeChunkFree((u64)policy->workers, NULL);
     runtimeChunkFree((u64)policy->schedulers, NULL);
@@ -916,61 +911,25 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         
     case PD_MSG_SAL_PRINT:
     {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_SAL_PRINT
-        self->salProvider->fcts.print(self->salProvider, PD_MSG_FIELD(buffer),
-                                 PD_MSG_FIELD(length));
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
+        ASSERT(0);
         break;
     }
         
     case PD_MSG_SAL_READ:
     {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_SAL_READ
-        self->salProvider->fcts.read(self->salProvider, PD_MSG_FIELD(buffer), PD_MSG_FIELD(length),
-                                PD_MSG_FIELD(inputId));
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
+        ASSERT(0);
         break;
     }
     
     case PD_MSG_SAL_WRITE:
     {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_SAL_WRITE
-        self->salProvider->fcts.write(self->salProvider, PD_MSG_FIELD(buffer),
-                                 PD_MSG_FIELD(length), PD_MSG_FIELD(outputId));
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
+        ASSERT(0);
         break;
     }
 
     case PD_MSG_SAL_TERMINATE:
     {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_SAL_TERMINATE
-        switch(PD_MSG_FIELD(properties)) {
-        case 0:
-            self->salProvider->fcts.exit(self->salProvider, PD_MSG_FIELD(errorCode));
-            break;
-        case 1: case 2:
-            self->salProvider->fcts.abort(self->salProvider);
-            break;
-        default:
-            ASSERT(0);
-        }
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
+        ASSERT(0);
         break;
     }
     case PD_MSG_MGT_SHUTDOWN:
@@ -1026,10 +985,6 @@ void hcPdFree(ocrPolicyDomain_t *self, void* addr) {
     return self->allocators[0]->fcts.free(self->allocators[0], addr);
 }
 
-ocrSal_t* hcPdGetSal(ocrPolicyDomain_t *self) {
-    return self->salProvider;
-}
-
 ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
 #ifdef OCR_ENABLE_STATISTICS
                                       ocrStats_t *statsObject,
@@ -1054,7 +1009,6 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     base->processMessage = hcPolicyDomainProcessMessage;
     base->pdMalloc = hcPdMalloc;
     base->pdFree = hcPdFree;
-    base->getSal = hcPdGetSal;
 #ifdef OCR_ENABLE_STATISTICS
     base->getStats = hcGetStats;
 #endif
