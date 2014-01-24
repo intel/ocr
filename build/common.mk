@@ -66,6 +66,7 @@ CFLAGS := -g -Wall -DELS_USER_SIZE=0 $(CFLAGS)
 SRCS   := $(shell find -L $(OCRDIR)/src -name '*.[csS]' -print)
 OBJS_STATIC   := $(addprefix $(OBJDIR)/static/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
 OBJS_SHARED   := $(addprefix $(OBJDIR)/shared/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
+OBJS_EXEC     := $(addprefix $(OBJDIR)/exec/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
 
 #
 # Generate a source search path
@@ -87,13 +88,19 @@ CFLAGS_SHARED ?=
 CFLAGS_SHARED := ${CFLAGS} ${CFLAGS_SHARED}
 OCRSHARED ?= libocr.so
 endif
+# Executable name (only set if not set in ARCH specific file)
+ifeq (${SUPPORTS_EXEC}, yes)
+CFLAGS_EXEC ?=
+CFLAGS_EXEC := ${CFLAGS} ${CFLAGS_EXEC}
+OCREXEC ?= builder.exe
+endif
 
 
 #
 # Build targets
 #
 .PHONY: all
-all: static
+#all: static
 
 .PHONY: static
 static: CFLAGS := -O2 $(CFLAGS)
@@ -103,6 +110,10 @@ static: supports-static info-static $(OCRSTATIC)
 shared: CFLAGS := -O2 $(CFLAGS)
 shared: supports-shared info-shared $(OCRSHARED)
 
+.PHONY: exec
+exec: CFLAGS := -O2 $(CFLAGS)
+exec: supports-exec info-exec $(OCREXEC)
+
 .PHONY: debug-static
 debug-static: CFLAGS := -O0 $(CFLAGS)
 debug-static: supports-static info-static $(OCRSTATIC)
@@ -110,6 +121,10 @@ debug-static: supports-static info-static $(OCRSTATIC)
 .PHONY: debug-shared
 debug-shared: CFLAGS := -O0 $(CFLAGS)
 debug-shared: supports-shared info-shared $(OCRSHARED)
+
+.PHONY: debug-exec
+debug-exec: CFLAGS := -O0 $(CFLAGS)
+debug-exec: supports-exec info-exec $(OCREXEC)
 
 # Static target
 
@@ -153,6 +168,27 @@ $(OCRSHARED): $(OBJS_SHARED)
 	@echo "Linking shared library ${OCRSHARED}"
 	@$(CC) $(LDFLAGS) -o $(OCRSHARED) $^
 
+# Exec target
+
+.PHONY: supports-exec
+supports-exec:
+ifneq (${SUPPORTS_EXEC}, yes)
+	$(error Architecture ${ARCH} does not support executable binary building)
+endif
+
+${OBJDIR}/exec:
+	@$(MKDIR) -p $(OBJDIR)/exec
+
+
+.PHONY: info-exec
+info-exec:
+	@echo -e "\e[32m>>>> Compile command for .c files is\e[1;30m '$(CC) $(CFLAGS_EXEC) -MMD -c <src> -o <obj>'\e[0m"
+
+$(OCREXEC): $(OBJS_EXEC)
+	@echo "Linking executable binary ${OCREXEC}"
+	@$(CC) $(EXEFLAGS) -o $(OCREXEC) $^
+
+
 #
 # Objects build rules
 #
@@ -163,6 +199,10 @@ $(OBJDIR)/static/%.o: %.c | $(OBJDIR)/static
 $(OBJDIR)/shared/%.o: %.c | $(OBJDIR)/shared
 	@echo "Compiling $<"
 	@$(CC) $(CFLAGS_SHARED) -MMD -c $< -o $@
+
+$(OBJDIR)/exec/%.o: %.c | $(OBJDIR)/exec
+	@echo "Compiling $<"
+	@$(CC) $(CFLAGS_EXEC) -MMD -c $< -o $@
 
 $(OBJDIR)/static/%.o: %.S | $(OBJDIR)/static
 	@echo "Assembling $<"
@@ -180,6 +220,9 @@ ifeq (${SUPPORTS_STATIC}, yes)
 endif
 ifeq (${SUPPORTS_SHARED}, yes)
 -include $(wildcard $(OBJDIR)/shared/*.d)
+endif
+ifeq (${SUPPORTS_EXEC}, yes)
+-include $(wildcard $(OBJDIR)/exec/*.d)
 endif
 
 # Install

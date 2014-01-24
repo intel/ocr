@@ -51,5 +51,7 @@ SUPPORTS_STATIC=yes
 # For Valgrind, uncomment this line
 CFLAGS += -I/usr/include -DENABLE_VALGRIND
 
+.PHONY: all
+all: static shared
 
 include ../common.mk

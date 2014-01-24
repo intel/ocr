@@ -60,9 +60,10 @@ static void workerLoop(ocrWorker_t * worker) {
                 // REC: TODO: Do we need a message to execute this
                 ASSERT(taskGuid.guid != NULL_GUID && taskGuid.metaDataPtr != NULL);
                 worker->curTask = (ocrTask_t*)taskGuid.metaDataPtr;
-                worker->curTask->fctPtrs->execute = PD_MSG_FIELD(extra); // task execute func ptr is set in the "extra" field of msg
-                worker->curTask->fctPtrs->execute(worker->curTask); 
-                worker->curTask = NULL;
+                ASSERT(0 && "Fix the below");
+//                worker->curTask->fctPtrs->execute = PD_MSG_FIELD(extra); // task execute func ptr is set in the "extra" field of msg
+//                worker->curTask->fctPtrs->execute(worker->curTask); 
+//                worker->curTask = NULL;
                 // Destroy the work
 #undef PD_MSG
 #undef PD_TYPE
@@ -128,7 +129,6 @@ ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory, ocrLocation_t location,
     
     worker->id = ((paramListWorkerXeInst_t*)perInstance)->workerId;
     worker->run = false;
-    worker->secondStart = false;
 
     return base;
 }
@@ -167,7 +167,7 @@ void xeStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
     u64 i = 0;
     for(i = 0; i < computeCount; i++) {
-        base->computes[i]->fcts.start(base->computes[i], policy, launchArg);
+        base->computes[i]->fcts.start(base->computes[i], policy, base->type, launchArg);
 #ifdef OCR_ENABLE_STATISTICS
         statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
 #endif
@@ -227,7 +227,7 @@ u8 xeSendMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg
 
 u8 xePollMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg) {
     ASSERT(self->computeCount == 1);
-    return self->computes[0]->fcts.pollMessage(self->computes[0], msg);
+    return self->computes[0]->fcts.pollMessage(self->computes[0], msg, 0);
 }
 
 u8 xeWaitMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg) {

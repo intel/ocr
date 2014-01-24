@@ -25,9 +25,12 @@
 // Allocator
 #define ENABLE_ALLOCATOR_TLSF
 
+// Comm-platform
+#define ENABLE_COMM_PLATFORM_NULL
+
 // Comp-platform
-#define ENABLE_COMP_PLATFORM_PTHREAD
-//#define ENABLE_COMP_PLATFORM_FSIM
+//#define ENABLE_COMP_PLATFORM_PTHREAD
+#define ENABLE_COMP_PLATFORM_FSIM
 
 // Comp-target
 #define ENABLE_COMP_TARGET_PASSTHROUGH
@@ -46,7 +49,7 @@
 #define ENABLE_GUID_PTR
 
 // HAL layer to use
-#define HAL_LAYER x86_64
+#define HAL_FSIM_XE
 
 // Mem-platform
 #define ENABLE_MEM_PLATFORM_MALLOC
@@ -55,13 +58,13 @@
 #define ENABLE_MEM_TARGET_SHARED
 
 // Policy domain
-#define ENABLE_POLICY_DOMAIN_HC
+#define ENABLE_POLICY_DOMAINXE_
 
 // Scheduler
-#define ENABLE_SCHEDULER_HC
+#define ENABLE_SCHEDULER_XE
 
 // SAL layer to use
-#define ENABLE_SAL_LINUX
+#define SAL_LINUX
 
 // Sysboot layer to use
 //#define ENABLE_SYSBOOT_LINUX
@@ -74,11 +77,13 @@
 #define ENABLE_TASKTEMPLATE_HC
 
 // Worker
-#define ENABLE_WORKER_HC
+#define ENABLE_WORKER_XE
 
 // Workpile
-#define ENABLE_WORKPILE_HC
+#define ENABLE_WORKPILE_XE
 
+// Build the OCR-lib support
+#define ENABLE_OCR_LIB
 #endif /* __OCR_CONFIG_H__ */
 
 

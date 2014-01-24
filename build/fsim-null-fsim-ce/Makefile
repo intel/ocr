@@ -46,6 +46,8 @@ RANLIB := ranlib
 SUPPORTS_SHARED=no
 SUPPORTS_STATIC=yes
 
+.PHONY: all
+all: static
 
 include ../common.mk
 

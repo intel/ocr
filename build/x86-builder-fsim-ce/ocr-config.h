@@ -80,6 +80,8 @@
 // Workpile
 #define ENABLE_WORKPILE_CE
 
+// Build the OCR-lib support
+#define ENABLE_OCR_LIB
 #endif /* __OCR_CONFIG_H__ */
 
 
