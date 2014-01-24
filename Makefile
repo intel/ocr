@@ -33,6 +33,10 @@ default:
 	@echo "   squeaky      -- Clean-up all architectures"
 	@echo ""
 
+.PHONY: tags
+tags:
+	@find src/ -type f -name '*.[ch]' | xargs etags -a
+
 .PHONY: all
 all:
 	@$(MAKE) -C build $@
@@ -64,9 +68,11 @@ uninstall:
 .PHONY: clean
 clean:
 	@$(MAKE) -C build $@
+	-@$(RM) $(RMFLAGS) TAGS
 
 .PHONY: squeaky
 squeaky:
-	$(MAKE) -C build $@
+	@$(MAKE) -C build $@
+	-@$(RM) $(RMFLAGS) TAGS
 
 
