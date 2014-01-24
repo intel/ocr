@@ -253,4 +253,4 @@ uninstall:
 
 .PHONY:clean
 clean:
-	-$(RM) $(RMFLAGS) $(OBJDIR)/* $(OCRSHARED) $(OCRSTATIC)
+	-$(RM) $(RMFLAGS) $(OBJDIR)/* $(OCRSHARED) $(OCRSTATIC) $(OCREXEC)

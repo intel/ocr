@@ -34,6 +34,7 @@ typedef struct _paramListCommPlatformFact_t {
  */
 typedef struct _paramListCommPlatformInst_t {
     ocrParamList_t base;    /**< Base class */
+    ocrLocation_t location;
 } paramListCommPlatformInst_t;
 
 
@@ -180,7 +181,7 @@ typedef struct _ocrCommPlatformFactory_t {
      * @param instanceArg   Arguments specific for this instance
      */
     ocrCommPlatform_t* (*instantiate)(struct _ocrCommPlatformFactory_t *factory,
-                                      ocrLocation_t location, ocrParamList_t *instanceArg);
+                                      ocrParamList_t *instanceArg);
 
     /**
      * @brief comm-platform factory destructor

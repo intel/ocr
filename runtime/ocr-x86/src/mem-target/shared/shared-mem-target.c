@@ -117,7 +117,6 @@ u8 sharedQueryTag(ocrMemTarget_t *self, u64 *start, u64 *end,
 }
 
 ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
-                                   ocrLocation_t location,
                                    u64 size, ocrParamList_t *perInstance) {
 
     ocrMemTarget_t *result = (ocrMemTarget_t*)
@@ -126,7 +125,6 @@ ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
     result->fguid.guid = UNINITIALIZED_GUID;
     result->fguid.metaDataPtr = result;
     result->pd = NULL;
-    result->location = location;
 
     result->size = size;
     result->startAddr = result->endAddr = 0ULL;

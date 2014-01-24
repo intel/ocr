@@ -170,13 +170,12 @@ u8 pthreadSetCurrentEnv(ocrCompPlatform_t *self, ocrPolicyDomain_t *pd,
 }
 
 ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
-                                          ocrLocation_t location, ocrParamList_t *perInstance) {
+                                          ocrParamList_t *perInstance) {
 
     pthread_once(&selfKeyInitialized,  initializeKey);
     ocrCompPlatformPthread_t * compPlatformPthread = (ocrCompPlatformPthread_t*)
         runtimeChunkAlloc(sizeof(ocrCompPlatformPthread_t), NULL);
 
-    compPlatformPthread->base.location = location;
     compPlatformPthread->base.comm = NULL;
         
     paramListCompPlatformPthread_t * params =

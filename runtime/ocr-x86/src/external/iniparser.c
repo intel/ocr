@@ -442,6 +442,20 @@ int iniparser_getint(dictionary * d, const char * key, int notfound)
 
 /*-------------------------------------------------------------------------*/
 /**
+  Like getint except uses strtoll(not available in all platforms)
+ */
+/*--------------------------------------------------------------------------*/
+long long iniparser_getlonglong(dictionary * d, const char * key, int notfound)
+{
+    char    *   str ;
+
+    str = iniparser_getstring(d, key, INI_INVALID_KEY);
+    if (str==INI_INVALID_KEY) return notfound ;
+    return (long long)strtoll(str, NULL, 0);
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief    Get the string associated to a key, convert to a double
   @param    d Dictionary to search
   @param    key Key string to look for

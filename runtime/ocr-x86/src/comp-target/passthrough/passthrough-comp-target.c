@@ -111,12 +111,11 @@ u8 ptSetCurrentEnv(ocrCompTarget_t *compTarget, ocrPolicyDomain_t *pd,
 }
 
 ocrCompTarget_t * newCompTargetPt(ocrCompTargetFactory_t * factory,
-                                  ocrLocation_t location, ocrParamList_t* perInstance) {
+                                  ocrParamList_t* perInstance) {
     ocrCompTargetPt_t * compTarget = (ocrCompTargetPt_t*)runtimeChunkAlloc(sizeof(ocrCompTargetPt_t), NULL);
 
     compTarget->base.fguid.guid = UNINITIALIZED_GUID;
     compTarget->base.fguid.metaDataPtr = compTarget;
-    compTarget->base.location = location;
     
     compTarget->base.platforms = NULL;
     compTarget->base.platformCount = 0;

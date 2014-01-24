@@ -113,7 +113,7 @@ void destructWorkerXe(ocrWorker_t * base) {
 /**
  * Builds an instance of a XE worker
  */
-ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory, ocrLocation_t location,
+ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory,
                           ocrWorkerType_t type, ocrParamList_t * perInstance) {
     ocrWorkerXe_t * worker = (ocrWorkerXe_t*)runtimeChunkAlloc(
         sizeof(ocrWorkerXe_t), NULL);
@@ -124,7 +124,6 @@ ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory, ocrLocation_t location,
     base->pd = NULL;
     base->curTask = NULL;
     base->fcts = factory->workerFcts;
-    base->location = location;
     base->type = SLAVE_WORKERTYPE;
     
     worker->id = ((paramListWorkerXeInst_t*)perInstance)->workerId;

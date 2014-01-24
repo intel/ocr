@@ -219,7 +219,6 @@ struct _ocrCompTarget_t;
 typedef struct _ocrCompTarget_t {
     ocrFatGuid_t fguid; /**< Guid of the comp-target */
     struct _ocrPolicyDomain_t *pd; /**< Policy domain this comp-target belongs to */
-    ocrLocation_t location; /**< Location of this comp-target */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif
@@ -244,11 +243,10 @@ typedef struct _ocrCompTargetFactory_t {
      * Initiates a new comp-target and returns a pointer to it.
      *
      * @param factory       Pointer to this factory
-     * @param location      Location of this comp-target
      * @param instanceArg   Arguments specific for this instance
      */
     ocrCompTarget_t * (*instantiate) ( struct _ocrCompTargetFactory_t * factory,
-                                       ocrLocation_t location, ocrParamList_t *instanceArg);
+                                       ocrParamList_t *instanceArg);
     /**
      * @brief comp-target factory destructor
      * @param factory       Pointer to the factory to destroy.

@@ -160,7 +160,7 @@ typedef struct _ocrWorker_t {
 /****************************************************/
 
 typedef struct _ocrWorkerFactory_t {
-    ocrWorker_t * (*instantiate) (struct _ocrWorkerFactory_t * factory, ocrLocation_t location,
+    ocrWorker_t * (*instantiate) (struct _ocrWorkerFactory_t * factory,
                                   ocrParamList_t *perInstance);
     void (*destruct)(struct _ocrWorkerFactory_t * factory);
     ocrWorkerFcts_t workerFcts;

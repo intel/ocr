@@ -131,7 +131,6 @@ u8 mallocQueryTag(ocrMemPlatform_t *self, u64 *start, u64* end,
 }
 
 ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
-                                       ocrLocation_t location,
                                        u64 memSize, ocrParamList_t *perInstance) {
 
     // TODO: This will be replaced by the runtime/GUID meta-data allocator
@@ -141,7 +140,6 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
         runtimeChunkAlloc(sizeof(ocrMemPlatformMalloc_t), NULL);
 
     result->pd = NULL;
-    result->location = location;
     result->fcts = factory->platformFcts;
     result->size = memSize;
     result->startAddr = result->endAddr = 0ULL;

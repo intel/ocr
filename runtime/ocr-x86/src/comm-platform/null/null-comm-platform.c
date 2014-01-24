@@ -57,12 +57,12 @@ u8 nullCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message) {
 }
 
 ocrCommPlatform_t* newCommPlatformNull(ocrCommPlatformFactory_t *factory,
-                                       ocrLocation_t location, ocrParamList_t *perInstance) {
+                                       ocrParamList_t *perInstance) {
 
     ocrCommPlatformNull_t * commPlatformNull = (ocrCommPlatformNull_t*)
         runtimeChunkAlloc(sizeof(ocrCommPlatformNull_t), NULL);
 
-    commPlatformNull->base.location = location;
+    commPlatformNull->base.location = ((paramListCommPlatformInst_t *)perInstance)->location;
     commPlatformNull->base.fcts = factory->platformFcts;
     
     return (ocrCommPlatform_t*)commPlatformNull;
@@ -82,7 +82,7 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryNull(ocrParamList_t *perType) {
 
     
     base->instantiate = FUNC_ADDR(ocrCommPlatform_t* (*)(
-                                      ocrCommPlatformFactory_t*, ocrLocation_t, ocrParamList_t*),
+                                      ocrCommPlatformFactory_t*, ocrParamList_t*),
                                   newCommPlatformNull);
     base->destruct = FUNC_ADDR(void (*)(ocrCommPlatformFactory_t*), destructCommPlatformFactoryNull);
     base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCommPlatform_t*), nullCommDestruct);

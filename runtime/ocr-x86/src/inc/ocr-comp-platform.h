@@ -205,7 +205,6 @@ typedef struct _ocrCompPlatformFcts_t {
  */
 typedef struct _ocrCompPlatform_t {
     struct _ocrPolicyDomain_t *pd;  /**< Policy domain this comp-platform is used by */
-    ocrLocation_t location;
     struct _ocrCommPlatform_t *comm; /**< Communication platform to use */
     ocrCompPlatformFcts_t fcts; /**< Functions for this instance */
 } ocrCompPlatform_t;
@@ -226,7 +225,7 @@ typedef struct _ocrCompPlatformFactory_t {
      * @param instanceArg   Arguments specific for this instance
      */
     ocrCompPlatform_t* (*instantiate)(struct _ocrCompPlatformFactory_t *factory,
-                                      ocrLocation_t location, ocrParamList_t *instanceArg);
+                                      ocrParamList_t *instanceArg);
 
     /**
      * @brief comp-platform factory destructor

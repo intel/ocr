@@ -81,7 +81,7 @@ void destructWorkerCe(ocrWorker_t * base) {
 /**
  * Builds an instance of a CE worker
  */
-ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory, ocrLocation_t location,
+ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory,
                           ocrParamList_t * perInstance) {
     ocrWorkerCe_t * worker = (ocrWorkerCe_t*)runtimeChunkAlloc(
         sizeof(ocrWorkerCe_t), NULL);
