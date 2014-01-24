@@ -584,7 +584,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
             INI_GET_INT(key, value, -1);
-            instance[j] = (void *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, 0, value, inst_param[j]);  // FIXME: Location
+            instance[j] = (void *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, 0, value, inst_param[j]);  // FIXME: Location to be pulled from PD
 //            instance[j] = (void *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, value, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created memtarget of type %s, index %d\n", inststr, j);
@@ -605,7 +605,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
         ASSERT(low == high);
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListCommPlatformInst_t);
-            instance[j] = (void *)((ocrCommPlatformFactory_t *)factory)->instantiate(factory, 0, inst_param[j]); // FIXME: Location
+            instance[j] = (void *)((ocrCommPlatformFactory_t *)factory)->instantiate(factory, 0, inst_param[j]); // FIXME: Location to be specified
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created commplatform of type %s, index %d\n", inststr, j);
         }
