@@ -10,11 +10,15 @@
 #include "debug.h"
 
 #include "ocr-policy-domain.h"
+#include "ocr-worker.h"
+#include "ocr-comp-target.h"
+#include "ocr-comp-platform.h"
 
 #include "ocr-sysboot.h"
 #include "utils/ocr-utils.h"
 
 #include "xe-pthread-comm-platform.h"
+#include "../ce-pthread/ce-pthread-comm-platform.h"
 
 #define DEBUG_TYPE COMM_PLATFORM
 
@@ -23,10 +27,9 @@ void xePthreadCommDestruct (ocrCommPlatform_t * base) {
 }
 
 void xePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
-    // We are a NULL communication so we don't do anything
     ocrCommPlatformXePthread_t * commPlatformXePthread = (ocrCommPlatformXePthread_t*)commPlatform;
     ocrPolicyDomain_t * cePD = (ocrPolicyDomain_t *)PD->parentLocation;
-    ocrCommPlatformCePthread_t * commPlatformCePthread = (commPlatformCePthread *)(cePD->workers[0]->computes[0]->platforms[0]->comm);
+    ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t *)cePD->workers[0]->computes[0]->platforms[0]->comm;
     ASSERT(PD->myLocation < cePD->neighborCount);
     commPlatformXePthread->requestQueue = commPlatformCePthread->requestQueues[PD->myLocation]; 
     commPlatformXePthread->responseQueue = commPlatformCePthread->responseQueues[PD->myLocation];
@@ -53,7 +56,7 @@ u8 xePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
                        ocrPolicyMsg_t **message) {
     ocrCommPlatformXePthread_t * commPlatformXePthread = (ocrCommPlatformXePthread_t*)self;
     commPlatformXePthread->requestQueue->pushAtTail(commPlatformXePthread->requestQueue, (void*)message, 0);
-    (*commPlatformXePthread->requestCount)++;
+    *commPlatformXePthread->requestCount += 1;
     return 0;
 }
 
@@ -67,7 +70,7 @@ u8 xePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message) {
     //FIXME: Currently all sends are blocking. This will not work when non-blocking send messages occur.
     //In future, either we need a list(concurrent)  or a local buffer of unclaimed responses (nonconcurrrent).
     while(*(commPlatformXePthread->responseCount) <= commPlatformXePthread->xeLocalResponseCount); 
-    *message = (ocrPolicyMsg_t *)commPlatformXePthread->responseQueue->popAtHead(commPlatformXePthread->responseQueue, 0);
+    *message = (ocrPolicyMsg_t *)commPlatformXePthread->responseQueue->popFromHead(commPlatformXePthread->responseQueue, 0);
     commPlatformXePthread->xeLocalResponseCount++;
     return 0;
 }

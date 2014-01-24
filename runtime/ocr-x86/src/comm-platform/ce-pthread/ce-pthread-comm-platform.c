@@ -24,20 +24,20 @@ void cePthreadCommDestruct (ocrCommPlatform_t * base) {
 
 void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
     // We are a NULL communication so we don't do anything
-    u32 i;
+    u32 i, numXE;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*) commPlatform;
     numXE = PD->neighborCount;
     commPlatformCePthread->numXE = numXE;
     commPlatformCePthread->requestQueues = (deque_t**)PD->pdMalloc(PD, numXE * sizeof(deque_t*));
     commPlatformCePthread->responseQueues = (deque_t**)PD->pdMalloc(PD, numXE * sizeof(deque_t*));
-    commPlatformCePthread->requestCounts = (volatile int *)PD->pdMalloc(PD, PAD_SIZE * numXE * sizeof(int));
-    commPlatformCePthread->responseCounts = (volatile int *)PD->pdMalloc(PD, PAD_SIZE * numXE * sizeof(int));
-    commPlatformCePthread->ceLocalRequestCounts = (int *)PD->pdMalloc(PD, numXE * sizeof(int));
+    commPlatformCePthread->requestCounts = (volatile u64 *)PD->pdMalloc(PD, PAD_SIZE * numXE * sizeof(u64));
+    commPlatformCePthread->responseCounts = (volatile u64 *)PD->pdMalloc(PD, PAD_SIZE * numXE * sizeof(u64));
+    commPlatformCePthread->ceLocalRequestCounts = (u64 *)PD->pdMalloc(PD, numXE * sizeof(u64));
     for (i = 0; i < numXE; i++) {
         commPlatformCePthread->requestQueues[i] = newNonConcurrentQueue(PD, NULL); 
         commPlatformCePthread->responseQueues[i] = newNonConcurrentQueue(PD, NULL); 
-        commPlatformCePthread->requestCounts[i] = 0;
-        commPlatformCePthread->responseCounts[i] = 0;
+        commPlatformCePthread->requestCounts[i * PAD_SIZE] = 0;
+        commPlatformCePthread->responseCounts[i * PAD_SIZE] = 0;
     	commPlatformCePthread->ceLocalRequestCounts[i] = 0;
     }
     return;
@@ -61,35 +61,31 @@ u8 cePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
     deque_t * q = commPlatformCePthread->responseQueues[target];
     q->pushAtTail(q, message, 0);
-    commPlatformCePthread->responseCounters[target]++;
+    commPlatformCePthread->responseCounts[target * PAD_SIZE]++;
     return 0;
 }
 
-//FIXME: sanjay: Currently polls for only XE messages.
+//NOTE: sanjay: Currently polls for only XE messages.
 u8 cePthreadCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message, u32 mask) {
+    u32 i, startIdx, numXE;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
-    for (i = 0; i < commPlatformCePthread->numXE; i++) { //FIXME: sanjay: potential starvation loop
-        if (commPlatformCePthread->requestCounters[i] > commPlatformCePthread->ceLocalRequestCounts[i]) {
-            deque_t * q = commPlatformCePthread->requestQueues[i];
-            *message = (ocrPolicyMsg_t *) q->popAtHead(q, 0); 
-            return 1;
+    startIdx = commPlatformCePthread->startIdx;
+    numXE = commPlatformCePthread->numXE;
+    for (i = 0; i < numXE; i++) { 
+        u32 idx = (startIdx + i) % numXE;
+        if (commPlatformCePthread->requestCounts[idx * PAD_SIZE] > commPlatformCePthread->ceLocalRequestCounts[idx]) {
+            deque_t * q = commPlatformCePthread->requestQueues[idx];
+            *message = (ocrPolicyMsg_t *) q->popFromHead(q, 0); 
+            commPlatformCePthread->ceLocalRequestCounts[idx]++;
+            commPlatformCePthread->startIdx = (idx + 1) % numXE;
+            return 0;
         }
     } 
-    return 0;
+    return 1;
 }
 
-//FIXME: sanjay: Currently waits for only XE messages.
 u8 cePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message) {
-    while (1) {
-        ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
-        for (i = 0; i < commPlatformCePthread->numXE; i++) { //FIXME: sanjay: potential starvation loop
-            if (commPlatformCePthread->requestCounters[i] > commPlatformCePthread->ceLocalRequestCounts[i]) {
-                deque_t * q = commPlatformCePthread->requestQueues[i];
-                *message = (ocrPolicyMsg_t *) q->popAtHead(q, 0); 
-                return 1;
-            }
-        } 
-    }
+    while (cePthreadCommPollMessage(self, message, 0) != 0);
     return 0;
 }
 

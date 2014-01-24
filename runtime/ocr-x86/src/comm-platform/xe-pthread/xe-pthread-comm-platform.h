@@ -17,6 +17,7 @@
 #include "ocr-policy-domain.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
+#include "utils/deque.h"
 
 
 typedef struct {
@@ -27,9 +28,9 @@ typedef struct {
     ocrCommPlatform_t base;
     deque_t * requestQueue;
     deque_t * responseQueue;
-    volatile int * requestCount; // counter to increment after XE puts in a request
-    volatile int * responseCount; // counter that will be incremented by CE when a response arrives
-    int xeLocalResponseCount; // counter maintained locally be XE to monitor incomming response
+    volatile u64 * requestCount; // counter to increment after XE puts in a request
+    volatile u64 * responseCount; // counter that will be incremented by CE when a response arrives
+    u64 xeLocalResponseCount; // counter maintained locally be XE to monitor incomming response
 } ocrCommPlatformXePthread_t;
 
 typedef struct {

@@ -17,6 +17,7 @@
 #include "ocr-policy-domain.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
+#include "utils/deque.h"
 
 
 typedef struct {
@@ -25,12 +26,13 @@ typedef struct {
 
 typedef struct {
     ocrCommPlatform_t base;
-    int numXE;
     deque_t ** requestQueues; // Q array (one per XE) for XE's to send a request message to the CE
     deque_t ** responseQueues; // Q array (one per XE) for the CE to send a response message to a XE
-    volatile int * requestCounts; // padded array of request counters (one per XE)
-    volatile int * responseCounts; // padded array of response counters (one per XE)
-    int * ceLocalRequestCounts; // array of counters (one per XE) maintained locally be CE
+    volatile u64 * requestCounts; // padded array of request counters (one per XE)
+    volatile u64 * responseCounts; // padded array of response counters (one per XE)
+    u64 * ceLocalRequestCounts; // array of counters (one per XE) maintained locally be CE
+    u32 numXE;
+    u32 startIdx; // start of next poll loop to avoid starvation
 } ocrCommPlatformCePthread_t;
 
 typedef struct {
