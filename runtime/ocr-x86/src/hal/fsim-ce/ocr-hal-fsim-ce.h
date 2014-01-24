@@ -49,7 +49,7 @@
  * source and destination
  */
 #define hal_memCopy(destination, source, size, isBackground) \
-    do { memcpy((void*)(destination), (const void*)(source), (size)); } while(0)
+    do { __builtin_memcpy((void*)(destination), (const void*)(source), (size)); } while(0)
     
     
 /**
