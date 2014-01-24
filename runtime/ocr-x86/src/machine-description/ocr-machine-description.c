@@ -9,6 +9,7 @@
 
 #include "allocator/allocator-all.h"
 #include "comp-platform/comp-platform-all.h"
+#include "comm-platform/comm-platform-all.h"
 #include "comp-target/comp-target-all.h"
 #include "datablock/datablock-all.h"
 #include "debug.h"
@@ -225,12 +226,28 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
     case eventfactory_type:
         ALLOC_PARAM_LIST(*type_param, paramListEventFact_t);
         break;
+    case commplatform_type:
+        ALLOC_PARAM_LIST(*type_param, paramListCommPlatformFact_t);
+        break;
     default:
         DPRINTF(DEBUG_LVL_WARN, "Error: %d index unexpected\n", index);
         break;
     }
 
     return strdup(typestr);
+}
+
+ocrCommPlatformFactory_t *create_factory_commplatform (char *name, ocrParamList_t *paramlist) {
+    commPlatformType_t mytype = commPlatformMax_id;
+    TO_ENUM (mytype, name, commPlatformType_t, commplatform_types, commPlatformMax_id);
+
+    if (mytype == commPlatformMax_id) {
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        return NULL;
+    } else {
+        DPRINTF(DEBUG_LVL_INFO, "Creating a commplatform factory of type %d\n", mytype);
+        return newCommPlatformFactory(mytype, paramlist);
+    }
 }
 
 ocrCompPlatformFactory_t *create_factory_compplatform (char *name, ocrParamList_t *paramlist) {
@@ -502,6 +519,9 @@ void *create_factory (type_enum index, char *factory_name, ocrParamList_t *param
     case eventfactory_type:
         new_factory = (void *)create_factory_event(factory_name, paramlist);
         break;
+    case commplatform_type:
+        new_factory = (void *)create_factory_commplatform(factory_name, paramlist);
+        break;
     default:
         DPRINTF(DEBUG_LVL_WARN, "Error: %d index unexpected\n", index);
         break;
@@ -548,7 +568,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
             INI_GET_INT(key, value, -1);
-            instance[j] = (void *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, 0, value, inst_param[j]);
+            instance[j] = (void *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, 0, value, inst_param[j]); //FIXME: Location
 //            instance[j] = (void *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, value, inst_param[j]);
 /*
 ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
@@ -564,7 +584,7 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
             INI_GET_INT(key, value, -1);
-            instance[j] = (void *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, 0, value, inst_param[j]);
+            instance[j] = (void *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, 0, value, inst_param[j]);  // FIXME: Location
 //            instance[j] = (void *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, value, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created memtarget of type %s, index %d\n", inststr, j);
@@ -579,6 +599,15 @@ ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
             instance[j] = (void *)((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created allocator of type %s, index %d\n", inststr, j);
+        }
+        break;
+    case commplatform_type:
+        ASSERT(low == high);
+        for (j = low; j<=high; j++) {
+            ALLOC_PARAM_LIST(inst_param[j], paramListCommPlatformInst_t);
+            instance[j] = (void *)((ocrCommPlatformFactory_t *)factory)->instantiate(factory, 0, inst_param[j]); // FIXME: Location
+            if (instance[j])
+                DPRINTF(DEBUG_LVL_INFO, "Created commplatform of type %s, index %d\n", inststr, j);
         }
         break;
     case compplatform_type:
@@ -769,6 +798,7 @@ void free_instance (void *instance, type_enum mytype)
     case guid_type:
     case memplatform_type:
     case compplatform_type:
+    case commplatform_type:
     case workpile_type:
     default:
         break;
@@ -779,11 +809,17 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
     switch(fromtype) {
     case guid_type:
     case memplatform_type:
-    case compplatform_type:
+    case commplatform_type:
     case workpile_type:
         DPRINTF(DEBUG_LVL_WARN, "Unexpected: this should have no dependences! (incorrect dependence: %d to %d)\n", fromtype, totype);
         break;
 
+    case compplatform_type: {
+        ocrCompPlatform_t *f = (ocrCompPlatform_t *)frominstance;
+        DPRINTF(DEBUG_LVL_INFO, "Compplatform %d to %d\n", fromtype, totype);
+        f->comm = (ocrCommPlatform_t *)toinstance;
+        break;
+    }
     case memtarget_type: {
         ocrMemTarget_t *f = (ocrMemTarget_t *)frominstance;
         DPRINTF(DEBUG_LVL_INFO, "Memtarget %d to %d\n", fromtype, totype);

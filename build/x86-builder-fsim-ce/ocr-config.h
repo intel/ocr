@@ -53,7 +53,6 @@
 // SAL layer to use
 #define SAL_LINUX
 
-
 // Mem-platform
 #define ENABLE_MEM_PLATFORM_MALLOC
 

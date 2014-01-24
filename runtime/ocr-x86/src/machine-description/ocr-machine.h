@@ -32,6 +32,7 @@ typedef enum {
     memtarget_type,
     allocator_type,
     compplatform_type,
+    commplatform_type,
     comptarget_type,
     workpile_type,
     worker_type,
