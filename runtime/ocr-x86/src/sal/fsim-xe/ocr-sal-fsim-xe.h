@@ -9,11 +9,11 @@
 
 #include "ocr-hal.h"
 
-#define sal_abort()
+#define sal_abort() hal_abort()
 
-#define sal_exit(x)
+#define sal_exit(x) hal_exit(x)
 
-#define sal_assert(x, f, l)
+#define sal_assert(x, f, l) if(x) hal_abort()
 
 #define sal_snprintf(buf, size, fmt, ...)
 
