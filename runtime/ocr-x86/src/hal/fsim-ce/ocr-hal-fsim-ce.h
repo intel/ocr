@@ -77,15 +77,15 @@
  *
  * The semantics are as follows (all operations performed atomically):
  *     - atomically increment location by addValue
- *     - return new value (after addition)
+ *     - return old value (before addition)
  *
  * @param atomic    u64*: Pointer to the atomic value (location)
  * @param addValue  u64: Value to add to location
- * @return New value of the location
+ * @return Old value of the location
  */
 #define hal_xadd64(atomic, addValue)                                    \
     ({                                                                  \
-        u64 __tmp = __sync_add_and_fetch(atomic, addValue);             \
+        u64 __tmp = __sync_fetch_and_add(atomic, addValue);             \
         __tmp;                                                          \
     })
 
@@ -101,7 +101,7 @@
  * @param addValue  u64: Value to add to location
  */
 #define hal_radd64(atomic, addValue)            \
-    __sync_add_and_fetch(atomic, addValue)
+    __sync_fetch_and_add(atomic, addValue)
 
 /**
  * @brief Compare and swap (32 bit)
@@ -128,15 +128,15 @@
  *
  * The semantics are as follows (all operations performed atomically):
  *     - atomically increment location by addValue
- *     - return new value (after addition)
+ *     - return old value (before addition)
  *
  * @param atomic    u32*: Pointer to the atomic value (location)
  * @param addValue  u32: Value to add to location
- * @return New value of the location
+ * @return Old value of the location
  */
 #define hal_xadd32(atomic, addValue)                                    \
     ({                                                                  \
-        u32 __tmp = __sync_add_and_fetch(atomic, addValue);             \
+        u32 __tmp = __sync_fetch_and_add(atomic, addValue);             \
         __tmp;                                                          \
     })
 
@@ -152,7 +152,7 @@
  * @param addValue  u32: Value to add to location
  */
 #define hal_radd32(atomic, addValue)            \
-    __sync_add_and_fetch(atomic, addValue)
+    __sync_fetch_and_add(atomic, addValue)
 
 /**
  * @brief Convenience function that basically implements a simple

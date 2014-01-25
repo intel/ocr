@@ -87,17 +87,16 @@
  *
  * The semantics are as follows (all operations performed atomically):
  *     - atomically increment location by addValue
- *     - return new value (after addition)
+ *     - return old value (before addition)
  *
  * @param atomic    u64*: Pointer to the atomic value (location)
  * @param addValue  u64: Value to add to location
- * @return New value of the location
+ * @return Old value of the location
  */
 #define hal_xadd64(atomic, addValue)                                    \
     ({                                                                  \
         u64 __tmp;                                                      \
         __asm__ __volatile__("xadd64.any %0, %1, %2\n\t"                \
-                             "addI64     %0, %0, %2\n\t"                \
                              : "=r" (__tmp)                             \
                              : "r" (atomic),                            \
                                "r" (addValue));                         \
@@ -151,17 +150,16 @@
  *
  * The semantics are as follows (all operations performed atomically):
  *     - atomically increment location by addValue
- *     - return new value (after addition)
+ *     - return old value (before addition)
  *
  * @param atomic    u32*: Pointer to the atomic value (location)
  * @param addValue  u32: Value to add to location
- * @return New value of the location
+ * @return Old value of the location
  */
 #define hal_xadd32(atomic, addValue)                                    \
     ({                                                                  \
         u32 __tmp;                                                      \
         __asm__ __volatile__("xadd32.any %0, %1, %2\n\t"                \
-                             "addI32     %0, %0, %2\n\t"                \
                              : "=r" (__tmp)                             \
                              : "r" (atomic),                            \
                                "r" (addValue));                         \
