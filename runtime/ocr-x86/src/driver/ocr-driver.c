@@ -283,10 +283,7 @@ void bringUpRuntime(const char *inifile) {
     // START EXECUTION
     DPRINTF(DEBUG_LVL_INFO, "========= Start execution ==========\n");
     ocrPolicyDomain_t *rootPolicy;
-    rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0];
-    if (inst_counts[policydomain_type] != 1) {
-        DPRINTF(DEBUG_LVL_WARN, "Only the first policy domain is started for execution. Rest is currently ignored!\n");
-    }
+    rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0]; 
    
 #ifdef OCR_ENABLE_STATISTICS
     setCurrentPD(rootPolicy); // Statistics needs to know the current PD so we set it for this main thread
@@ -300,8 +297,14 @@ void bringUpRuntime(const char *inifile) {
         free_functions();
     }
 #else
+    ocrPolicyDomain_t *otherPolicyDomains = NULL;
     rootPolicy->begin(rootPolicy);
     rootPolicy->start(rootPolicy);
+    for (i = 1; i < inst_counts[policydomain_type]; i++) {
+        otherPolicyDomains = (ocrPolicyDomain_t*)all_instances[policydomain_type][i];
+        otherPolicyDomains->begin(otherPolicyDomains);
+        otherPolicyDomains->start(otherPolicyDomains);
+    }
 #endif
     iniparser_freedict(dict);
 
