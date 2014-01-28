@@ -36,6 +36,7 @@ void ptDestruct(ocrCompTarget_t *compTarget) {
 void ptBegin(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
     
     ASSERT(compTarget->platformCount == 1);
+    compTarget->pd = PD;
     compTarget->platforms[0]->fcts.begin(compTarget->platforms[0], PD, workerType);
 }
 
@@ -43,7 +44,6 @@ void ptStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, ocrWorkerType
              launchArg_t * launchArg) {
     // Get a GUID
     guidify(PD, (u64)compTarget, &(compTarget->fguid), OCR_GUID_COMPTARGET);
-    compTarget->pd = PD;
 
 #ifdef OCR_ENABLE_STATISTICS
     statsCOMPTARGET_START(PD, compTarget->fguid.guid, compTarget->fguid.metaDataPtr);
@@ -66,7 +66,7 @@ void ptStop(ocrCompTarget_t * compTarget) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = compTarget->fguid;
     PD_MSG_FIELD(properties) = 0;
-    compTarget->pd->processMessage(compTarget->pd, &msg, false);
+    compTarget->pd->processMessage(compTarget->pd, &msg, false); // Don't really care about result
 #undef PD_MSG
 #undef PD_TYPE
     compTarget->fguid.guid = UNINITIALIZED_GUID;

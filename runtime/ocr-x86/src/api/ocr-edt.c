@@ -13,6 +13,7 @@
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t * pd = NULL;
+    u8 returnCode = 0;
     getCurrentEnv(&pd, NULL, NULL, &msg);
 
 #define PD_MSG (&msg)
@@ -22,14 +23,14 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(properties) = takesArg;
     PD_MSG_FIELD(type) = eventType;
-    if(pd->processMessage(pd, &msg, true) == 0) {
+    returnCode = pd->processMessage(pd, &msg, true);
+    if(returnCode == 0)
         *guid = PD_MSG_FIELD(guid.guid);
-        return 0;
-    }
-    *guid = NULL_GUID;
+    else
+        *guid = NULL_GUID;
 #undef PD_MSG
 #undef PD_TYPE
-    return 1;
+    return returnCode;
 }
 
 u8 ocrEventDestroy(ocrGuid_t eventGuid) {
@@ -76,6 +77,7 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
 #endif
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
+    u8 returnCode = 0;
     getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
@@ -86,13 +88,14 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
     PD_MSG_FIELD(depc) = depc;
     PD_MSG_FIELD(funcName) = funcName;
 
-    if(pd->processMessage(pd, &msg, true) == 0) {
+    returnCode = pd->processMessage(pd, &msg, true);
+    if(returnCode == 0)
         *guid = PD_MSG_FIELD(guid.guid);
-        return 0;
-    }
-    return 1;
+    else
+        *guid = NULL_GUID;
 #undef PD_MSG
 #undef PD_TYPE
+    return returnCode;
 }
 
 u8 ocrEdtTemplateDestroy(ocrGuid_t guid) {
@@ -114,6 +117,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
 
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t * pd = NULL;
+    u8 returnCode = 0;
     getCurrentEnv(&pd, NULL, NULL, &msg);
     
 #define PD_MSG (&msg)
@@ -134,8 +138,9 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     PD_MSG_FIELD(properties) = properties;
     PD_MSG_FIELD(workType) = EDT_WORKTYPE;
 
-    if(pd->processMessage(pd, &msg, true) != 0)
-        return 1; // Some error code
+    returnCode = pd->processMessage(pd, &msg, true);
+    if(returnCode)
+        return returnCode;
     
     *edtGuid = PD_MSG_FIELD(guid.guid);
     paramc = PD_MSG_FIELD(paramc);
@@ -150,8 +155,11 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
         ASSERT(depc != 0);
         u32 i = 0;
         while(i < depc) {
-            ocrAddDependence(depv[i], *edtGuid, i, DB_DEFAULT_MODE);
+            // FIXME: Not really good. We would need to undo maybe
+            returnCode = ocrAddDependence(depv[i], *edtGuid, i, DB_DEFAULT_MODE);
             ++i;
+            if(returnCode)
+                return returnCode;
         }
     }
     return 0;

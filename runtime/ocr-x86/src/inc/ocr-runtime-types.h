@@ -171,5 +171,21 @@ typedef u64 ocrLocation_t;
  */
 #define POLL_ERR_MASK     0xF0
 
+/**
+ * @brief Some useful macros
+ */
+#define RESULT_PROPAGATE(expression)            \
+    do {                                        \
+        u8 __result = (expression);             \
+        if(__result) return __result;           \
+    } while(0);
+
+#define RESULT_PROPAGATE2(expression, returnValue)  \
+    do {                                            \
+        u8 __result = (expression);                 \
+        if(__result) return (returnValue);          \
+    } while(0);
+
 #endif /* __OCR_RUNTIME_TYPES_H__ */
+
 

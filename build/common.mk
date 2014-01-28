@@ -26,7 +26,7 @@ DEFAULT_CONFIG ?= mach-hc-4w.cfg
 # Enable debug
 CFLAGS += -DOCR_DEBUG
 # Define level
-CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_WARN
+CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_VERB
 # Define which modules you want for debugging
 # You can optionally define an individual debuging level by
 # defining DEBUG_LVL_XXX like OCR_DEBUG_LEVEL. If not defined,
@@ -192,19 +192,19 @@ $(OCREXEC): $(OBJS_EXEC)
 #
 # Objects build rules
 #
-$(OBJDIR)/static/%.o: %.c | $(OBJDIR)/static
+$(OBJDIR)/static/%.o: %.c Makefile | $(OBJDIR)/static
 	@echo "Compiling $<"
 	@$(CC) $(CFLAGS_STATIC) -MMD -c $< -o $@
 
-$(OBJDIR)/shared/%.o: %.c | $(OBJDIR)/shared
+$(OBJDIR)/shared/%.o: %.c Makefile | $(OBJDIR)/shared
 	@echo "Compiling $<"
 	@$(CC) $(CFLAGS_SHARED) -MMD -c $< -o $@
 
-$(OBJDIR)/exec/%.o: %.c | $(OBJDIR)/exec
+$(OBJDIR)/exec/%.o: %.c Makefile | $(OBJDIR)/exec
 	@echo "Compiling $<"
 	@$(CC) $(CFLAGS_EXEC) -MMD -c $< -o $@
 
-$(OBJDIR)/static/%.o: %.S | $(OBJDIR)/static
+$(OBJDIR)/static/%.o: %.S Makefile | $(OBJDIR)/static
 	@echo "Assembling $<"
 	@$(CC) $(CFLAGS_STATIC) -MMD -c $< -o $@
 

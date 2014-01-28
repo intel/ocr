@@ -56,7 +56,7 @@ typedef struct _ocrDataBlockFcts_t {
      * @param self          Pointer for this data-block
      * @todo: FIXME. This does perform a free!!!!
      */
-    void (*destruct)(struct _ocrDataBlock_t *self);
+    u8 (*destruct)(struct _ocrDataBlock_t *self);
 
     /**
      * @brief Acquires the data-block for an EDT
@@ -118,7 +118,7 @@ typedef struct _ocrDataBlock_t {
     u64 size;               /**< Size of the data-block */
     void* ptr;              /**< Current location for this data-block */
     u32 properties;         /**< Properties for the data-block */
-    u32 funcId;             /**< ID determining which functions to use */
+    u32 fctId;              /**< ID determining which functions to use */
 } ocrDataBlock_t;
 
 

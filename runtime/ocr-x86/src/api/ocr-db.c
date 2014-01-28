@@ -39,6 +39,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
+    u8 returnCode = 0;
     getCurrentEnv(&policy, NULL, &task, &msg);
 
 #define PD_MSG (&msg)
@@ -53,7 +54,8 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     PD_MSG_FIELD(dbType) = USER_DBTYPE;
     PD_MSG_FIELD(allocator) = allocator;
 
-    if(policy->processMessage(policy, &msg, true) == 0) {
+    returnCode = policy->processMessage(policy, &msg, true);
+    if(returnCode == 0) {
         *db = PD_MSG_FIELD(guid.guid);
         *addr = PD_MSG_FIELD(ptr);
     } else {

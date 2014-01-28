@@ -44,7 +44,7 @@ struct _ocrTaskTemplate_t;
 typedef struct ocrTaskTemplateFcts_t {
     /** @brief Virtual destructor for the task template interface
      */
-    void (*destruct)(struct _ocrTaskTemplate_t* self);
+    u8 (*destruct)(struct _ocrTaskTemplate_t* self);
 } ocrTaskTemplateFcts_t;
 
 /** @brief Abstract class to represent OCR task templates.
@@ -107,7 +107,7 @@ typedef struct _ocrTaskFcts_t {
     /**
      * @brief Virtual destructor for the Task interface
      */
-    void (*destruct)(struct _ocrTask_t* self);
+    u8 (*destruct)(struct _ocrTask_t* self);
 
     /**
      * @brief "Satisfy" an input dependence for this EDT

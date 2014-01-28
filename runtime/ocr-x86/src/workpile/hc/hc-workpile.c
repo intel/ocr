@@ -46,6 +46,7 @@ void hcWorkpileStop(ocrWorkpile_t *base) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = base->fguid;
     PD_MSG_FIELD(properties) = 0;
+    // Shutting down so ignore error
     base->pd->processMessage(base->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE

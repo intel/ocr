@@ -23,6 +23,15 @@ typedef struct {
 
 typedef struct {
     ocrPolicyDomain_t base;
+    volatile u32 state; // State of the policy domain
+                        // Bottom 4 bits indicate state:
+                        //  - 0000b: Unitialized
+                        //  - 0001b: PD usable (up and running)
+                        //  - 0010b: Request to enter stop (no more users can use the PD)
+                        //  - 0110b: Stop entered. Users have stopped using the PD
+                        //  - 1010b: Stop completed successfully, can 'finish' the PD
+                        //  - 1110b: Policy domain fully shut down
+                        // The upper bits count the number of users ('readers')
 } ocrPolicyDomainHc_t;
 
 ocrPolicyDomainFactory_t *newPolicyDomainFactoryHc(ocrParamList_t *perType);

@@ -540,7 +540,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
     char *inststr;
     char key[MAX_KEY_SZ];
     void *factory;
-    s32 value;
+    s32 value = 0;
 
     read_range(dict, secname, "id", &low, &high);
 

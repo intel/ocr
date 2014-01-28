@@ -33,7 +33,7 @@
 #define DEBUG_TYPE DATABLOCK
 
 // Forward declaraction
-void regularDestruct(ocrDataBlock_t *self);
+u8 regularDestruct(ocrDataBlock_t *self);
 
 void* regularAcquire(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
     
@@ -123,7 +123,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrFatGuid_t edt,
        rself->attributes.freeRequested == 1) {
         // We need to actually free the data-block
         hal_unlock32(&(rself->lock));
-        regularDestruct(self);
+        return regularDestruct(self);
     } else {
         hal_unlock32(&(rself->lock));
     }
@@ -132,7 +132,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrFatGuid_t edt,
     return 0;
 }
 
-void regularDestruct(ocrDataBlock_t *self) {
+u8 regularDestruct(ocrDataBlock_t *self) {
     // We don't use a lock here. Maybe we should
 #ifdef OCR_ASSERT
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
@@ -156,7 +156,7 @@ void regularDestruct(ocrDataBlock_t *self) {
     PD_MSG_FIELD(allocator.metaDataPtr) = NULL;
     PD_MSG_FIELD(type) = DB_MEMTYPE;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
+    RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
     
     
 #ifdef OCR_ENABLE_STATISTICS
@@ -173,9 +173,10 @@ void regularDestruct(ocrDataBlock_t *self) {
     PD_MSG_FIELD(guid.guid) = self->guid;
     PD_MSG_FIELD(guid.metaDataPtr) = self;
     PD_MSG_FIELD(properties) = 1; // Free metadata
-    RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
+    RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
 #undef PD_MSG
 #undef PD_TYPE
+    return 0;
 }
 
 u8 regularFree(ocrDataBlock_t *self, ocrFatGuid_t edt) {
@@ -205,7 +206,7 @@ u8 regularFree(ocrDataBlock_t *self, ocrFatGuid_t edt) {
         hal_lock32(&(rself->lock));
         if(rself->attributes.numUsers == 0 && rself->attributes.internalUsers == 0) {
             hal_unlock32(&(rself->lock));
-            regularDestruct(self);
+            return regularDestruct(self);
         } else {
             hal_unlock32(&(rself->lock));
         }
@@ -232,8 +233,8 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
     PD_MSG_FIELD(size) = sizeof(ocrDataBlockRegular_t);
     PD_MSG_FIELD(kind) = OCR_GUID_DB;
     PD_MSG_FIELD(properties) = 0;
-
-    RESULT_ASSERT(pd->processMessage(pd, &msg, true), ==, 0);
+    
+    RESULT_PROPAGATE2(pd->processMessage(pd, &msg, true), NULL);
 
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)PD_MSG_FIELD(guid.metaDataPtr);
     result->base.guid = PD_MSG_FIELD(guid.guid);
@@ -246,7 +247,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
     result->base.size = size;
     result->base.ptr = ptr;
     result->base.properties = properties;
-    result->base.funcId = factory->factoryId;
+    result->base.fctId = factory->factoryId;
     
     result->lock =0;
     result->attributes.flags = result->base.properties;
@@ -282,7 +283,7 @@ ocrDataBlockFactory_t *newDataBlockFactoryRegular(ocrParamList_t *perType, u32 f
                                      (ocrDataBlockFactory_t*, ocrFatGuid_t, ocrFatGuid_t, 
                                       u64, void*, u32, ocrParamList_t*), newDataBlockRegular);
     base->destruct = FUNC_ADDR(void (*)(ocrDataBlockFactory_t*), destructRegularFactory);
-    base->fcts.destruct = FUNC_ADDR(void (*)(ocrDataBlock_t*), regularDestruct);
+    base->fcts.destruct = FUNC_ADDR(u8 (*)(ocrDataBlock_t*), regularDestruct);
     base->fcts.acquire = FUNC_ADDR(void* (*)(ocrDataBlock_t*, ocrFatGuid_t, bool), regularAcquire);
     base->fcts.release = FUNC_ADDR(u8 (*)(ocrDataBlock_t*, ocrFatGuid_t, bool), regularRelease);
     base->fcts.free = FUNC_ADDR(u8 (*)(ocrDataBlock_t*, ocrFatGuid_t), regularFree);

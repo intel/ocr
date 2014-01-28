@@ -39,7 +39,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t outputEvent;
     ocrGuid_t edtGuid;
     ocrGuid_t taskForEdtTemplateGuid;
-    ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, 0 /*paramc*/, 0 /*depc*/);
+    ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, 0 /*paramc*/, 1 /*depc*/);
     ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
                     /*properties=*/0, NULL_GUID, /*outEvent=*/&outputEvent);
 
@@ -50,6 +50,9 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtCreate(&chainedEdtGuid, chainedEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
                     /*properties=*/ 0, NULL_GUID, /*outEvent=*/NULL_GUID);
     ocrAddDependence(outputEvent, chainedEdtGuid, 0, DB_MODE_RO);
+
+    // Start the first EDT
+    ocrAddDependence(NULL_GUID, edtGuid, 0, DB_DEFAULT_MODE);
 
     return NULL_GUID;
 }

@@ -70,7 +70,7 @@ void sharedStop(ocrMemTarget_t *self) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = self->fguid;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_ASSERT(self->pd->processMessage(self->pd, &msg, false), ==, 0);
+    self->pd->processMessage(self->pd, &msg, false); // Probably shutting down
 #undef PD_MSG
 #undef PD_TYPE
     self->fguid.guid = UNINITIALIZED_GUID;

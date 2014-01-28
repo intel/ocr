@@ -74,13 +74,13 @@ static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t *res,
                            ocrGuidKind* kindRes) {
 
     u32 properties = 0;
+    u8 returnCode = 0;
     if(kindRes)
         properties |= KIND_GUIDPROP;
     if(res->metaDataPtr == NULL)
         properties |= RMETA_GUIDPROP;
     
     if(properties) {
-        u8 returnCode = 0;
         ocrPolicyMsg_t msg;
         getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
@@ -88,7 +88,12 @@ static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t *res,
         msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guid) = *res;
         PD_MSG_FIELD(properties) = properties;
-        RESULT_ASSERT(pd->processMessage(pd, &msg, true), ==, 0);
+        returnCode = pd->processMessage(pd, &msg, true);
+
+        if(returnCode) {
+            res->metaDataPtr = NULL;
+            return returnCode;
+        }
         
         if(!(res->metaDataPtr)) {
             res->metaDataPtr = PD_MSG_FIELD(guid.metaDataPtr);

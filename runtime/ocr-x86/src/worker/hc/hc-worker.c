@@ -70,7 +70,8 @@ static void workerLoop(ocrWorker_t * worker) {
                 msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
                 PD_MSG_FIELD(guid) = taskGuid;
                 PD_MSG_FIELD(properties) = 0;
-                RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
+                // Ignore failures, we may be shutting down
+                pd->processMessage(pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
             }
@@ -187,16 +188,19 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     u64 computeCount = base->computeCount;
     // What the compute target will execute
     launchArg_t * launchArg = policy->pdMalloc(policy, sizeof(launchArg_t));
-    launchArg->routine = (base->type == MASTER_WORKERTYPE)?masterRoutine:workerRoutine;
-    launchArg->arg = base;
-    ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
-    u64 i = 0;
-    for(i = 0; i < computeCount; ++i) {
-        base->computes[i]->fcts.start(base->computes[i], policy, base->type, launchArg);
+    if(launchArg) {
+        launchArg->routine = (base->type == MASTER_WORKERTYPE)?masterRoutine:workerRoutine;
+        launchArg->arg = base;
+        ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
+        u64 i = 0;
+        for(i = 0; i < computeCount; ++i) {
+            base->computes[i]->fcts.start(base->computes[i], policy, base->type, launchArg);
 #ifdef OCR_ENABLE_STATISTICS
-        statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
+            statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
 #endif
+        }
     }
+    // Otherwise, it is highly likely that we are shutting down
 }
 
 void hcFinishWorker(ocrWorker_t * base) {
@@ -234,7 +238,8 @@ void hcStopWorker(ocrWorker_t * base) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = base->fguid;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_ASSERT(base->pd->processMessage(base->pd, &msg, false), ==, 0);
+    // Ignore failure here, we are most likely shutting down
+    base->pd->processMessage(base->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
     base->fguid.guid = UNINITIALIZED_GUID;

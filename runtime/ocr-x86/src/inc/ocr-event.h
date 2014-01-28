@@ -49,7 +49,7 @@ typedef struct _ocrEventFcts_t {
      * @brief Virtual destructor for the Event interface
      * @param[in] self          Pointer to this event
      */
-    void (*destruct)(struct _ocrEvent_t* self);
+    u8 (*destruct)(struct _ocrEvent_t* self);
 
     /**
      * @brief Interface to get the GUID of the entity that satisfied an event.
