@@ -231,4 +231,43 @@
 #define hal_exit(arg)                           \
     __asm__ __volatile__(".long 0\n\t")
 
+
+/*
+ * --------- FSIM-only API below ---------
+ */
+
+/*
+ * Queue API: limited subset of QMA
+ *
+ * WARNING: Work-in-progress. May not apply to other archs.
+ *
+ * Messages are "small" and always multiples of u64.
+ * Q @ tail, DQ @ head. All ops are synchronous.
+ *
+ * Scream if you don't like it.
+ *
+ *   ----
+ *
+ * #define hal_qtype     void *
+ * 
+ * #define hal_makeq(p, n)      // make a new queue at p with n slots
+ * 
+ * #define hal_qenq(q, a)       // dequeue 1 item by value
+ * #define hal_qenq(q, a, b)    / dequeue 2 items by value
+ * 
+ * #define hal_qdeq(q, a)       // enqueue 1 item by reference
+ * #define hal_qdeq(q, a, b)    // enqueue 2 items by reference
+ */
+
+#define hal_qtype     void *
+
+#define hal_makeq(p, n)      /* MSR[QBUFF]=p, MSR[QSIZE]=n, MSR[QSTATUS] |= 1 */
+
+#define hal_qenq(q, a)       __asm__ __volatile__("qma.add1 %0, %1, T, W\n\t" : : "r" (q), "r" (a))
+#define hal_qenq(q, a, b)    __asm__ __volatile__("qma.add1 %0, %1, %2, T, W\n\t" : : "r" (q), "r" (a), "r" (b))
+
+#define hal_qdeq(q, a)       __asm__ __volatile__("qma.rem1 %1, %0, H, W\n\t" : "=r" (a) : "r" (q))
+#define hal_qdeq(q, a, b)    __asm__ __volatile__("qma.rem1 %2, %0, %1, H, W\n\t" : "=r" (a), "=r" (b) : "r" (q))
+
+
 #endif /* __OCR_HAL_FSIM_XE_H__ */
