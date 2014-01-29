@@ -5,7 +5,7 @@
  */
 
 #include "ocr-config.h"
-#if defined(ENABLE_BUILDER_ONLY) || defined(ENABLE_POLICY_DOMAIN_HC)
+#ifdef SAL_LINUX
 
 #include "allocator/allocator-all.h"
 #include "comp-platform/comp-platform-all.h"
@@ -167,7 +167,6 @@ s32 get_key_value(dictionary *dict, char *sec, char *field, s32 offset) {
 char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *dict, char *secname) {
     char *typestr;
     char key[MAX_KEY_SZ];
-    int value = 0;
 
     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "name");
     INI_GET_STR (key, typestr, "");
@@ -192,6 +191,7 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
             switch (mytype) {
 #ifdef ENABLE_COMP_PLATFORM_PTHREAD 
                 case compPlatformPthread_id: {
+                    int value = 0;
                     ALLOC_PARAM_LIST(*type_param, paramListCompPlatformPthread_t);
                     snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
                     INI_GET_INT (key, value, -1);
@@ -605,7 +605,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListCommPlatformInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "location");
-//            INI_GET_LONG (key, value, -1); TODO: Decide if this is needed
+            //INI_GET_LONG (key, value, -1); TODO: Decide if this is needed
             ((paramListCommPlatformInst_t *)inst_param[j])->location = (ocrLocation_t)value;
             instance[j] = (void *)((ocrCommPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
@@ -686,7 +686,18 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
 #endif
 #ifdef ENABLE_WORKER_CE
                 case workerCe_id: {
+                    char *workerstr;
+                    char workertypekey[MAX_KEY_SZ];
+                    ocrWorkerType_t workertype = MAX_WORKERTYPE;
+
+                    snprintf(workertypekey, MAX_KEY_SZ, "%s:%s", secname, "workertype");
+                    INI_GET_STR (workertypekey, workerstr, "");
+                    TO_ENUM (workertype, workerstr, ocrWorkerType_t, ocrWorkerType_types, MAX_WORKERTYPE-1);
+                    workertype += 1;  // because workertype is 1-indexed, not 0-indexed
+                    if (workertype == MAX_WORKERTYPE) workertype = SLAVE_WORKERTYPE; // TODO: is this a reasonable default?
                     ALLOC_PARAM_LIST(inst_param[j], paramListWorkerCeInst_t);
+                    ((paramListWorkerCeInst_t *)inst_param[j])->workerType = workertype;
+                    ((paramListWorkerCeInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
                 }
                 break;
 #endif

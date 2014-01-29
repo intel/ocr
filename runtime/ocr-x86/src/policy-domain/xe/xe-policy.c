@@ -117,7 +117,6 @@ void xePolicyDomainFinish(ocrPolicyDomain_t * policy) {
         policy->guidProviders[i]->fcts.finish(policy->guidProviders[i]);
     }
 
-    policy->salProvider->fcts.finish(policy->salProvider);
 }
 
 void xePolicyDomainStop(ocrPolicyDomain_t * policy) {
@@ -159,7 +158,6 @@ void xePolicyDomainStop(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; ++i) {
         policy->guidProviders[i]->fcts.stop(policy->guidProviders[i]);
     }
-    policy->salProvider->fcts.stop(policy->salProvider);
 }
 
 void xePolicyDomainDestruct(ocrPolicyDomain_t * policy) {
@@ -219,8 +217,6 @@ void xePolicyDomainDestruct(ocrPolicyDomain_t * policy) {
         policy->guidProviders[i]->fcts.destruct(policy->guidProviders[i]);
     }
     
-    policy->salProvider->fcts.destruct(policy->salProvider);
-
     // Destroy self
     runtimeChunkFree((u64)policy->workers, NULL);
     runtimeChunkFree((u64)policy->schedulers, NULL);
@@ -878,36 +874,18 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         
     case PD_MSG_SAL_PRINT:
     {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_SAL_PRINT
-        self->salProvider->fcts.print(self->salProvider, PD_MSG_FIELD(buffer),
-                                 PD_MSG_FIELD(length));
-#undef PD_MSG
-#undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
         break;
     }
         
     case PD_MSG_SAL_READ:
     {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_SAL_READ
-        self->salProvider->fcts.read(self->salProvider, PD_MSG_FIELD(buffer), PD_MSG_FIELD(length),
-                                PD_MSG_FIELD(inputId));
-#undef PD_MSG
-#undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
         break;
     }
     
     case PD_MSG_SAL_WRITE:
     {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_SAL_WRITE
-        self->salProvider->fcts.write(self->salProvider, PD_MSG_FIELD(buffer),
-                                 PD_MSG_FIELD(length), PD_MSG_FIELD(outputId));
-#undef PD_MSG
-#undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);            
         break;
     }
@@ -964,16 +942,7 @@ void xePdFree(ocrPolicyDomain_t *self, void* addr) {
     return self->allocators[0]->fcts.free(self->allocators[0], addr);
 }
 
-ocrSal_t* xePdGetSal(ocrPolicyDomain_t *self) {
-    return self->salProvider;
-}
-
 ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * policy,
-                                      u64 schedulerCount, u64 allocatorCount, u64 workerCount,
-                                      ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory,
-                                      ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
-                                      ocrGuidProvider_t *guidProvider,
-                                      ocrSal_t *salProvider,
 #ifdef OCR_ENABLE_STATISTICS
                                       ocrStats_t *statsObject,
 #endif
@@ -983,24 +952,6 @@ ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * policy,
     ocrPolicyDomain_t * base = (ocrPolicyDomain_t *) derived;
 
     ASSERT(base);
-	ASSERT(schedulerCount == 0);
-	ASSERT(workerCount == 1);
-
-    base->schedulerCount = schedulerCount;
-    base->allocatorCount = allocatorCount;
-    base->workerCount = workerCount;
-
-    base->taskFactoryCount = 0;
-    base->taskTemplateFactoryCount = 0;
-    base->eventFactoryCount = 0;
-    base->guidProviderCount = 0;
-    
-    base->taskFactories = NULL;
-    base->taskTemplateFactories = NULL;
-    base->dbFactories = NULL;
-    base->eventFactories = NULL;
-    base->guidProviders = NULL;
-    
 //    base->sysProvider = sysProvider;
 #ifdef OCR_ENABLE_STATISTICS
     base->statsObject = statsObject;
@@ -1015,7 +966,6 @@ ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * policy,
     base->processMessage = xePolicyDomainProcessMessage;
     base->pdMalloc = xePdMalloc;
     base->pdFree = xePdFree;
-    base->getSal = xePdGetSal;
 #ifdef OCR_ENABLE_STATISTICS
     base->getStats = xeGetStats;
 #endif

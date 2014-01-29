@@ -21,9 +21,9 @@ typedef enum _schedulerType_t {
 
 const char * scheduler_types[] = {
     "HC",
-    "HC_Placed",
     "XE",
     "CE",
+    "HC_Placed",
     NULL
 };
 

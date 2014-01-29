@@ -6,7 +6,7 @@
 
 #include "ocr-config.h"
 
-#if defined(ENABLE_BUILDER_ONLY) || defined(ENABLE_POLICY_DOMAIN_HC)
+#ifdef SAL_LINUX
 
 #include "debug.h"
 #include "machine-description/ocr-machine.h"
@@ -130,9 +130,9 @@ extern u64 persistent_pointer;
  * +--------------------------+
  * | size of all structs (u64)|
  * +--------------------------+
- * | (TODO) location table sz |
+ * | (u64)  location table sz |
  * +--------------------------+
- * | (TODO) location entries  |
+ * |(u64 offs) locn entries   |
  * +--------------------------+
  * |                          |
  * |     structs be here      |
@@ -142,27 +142,33 @@ extern u64 persistent_pointer;
 
 void dumpStructs(void *pd, const char* output_binary, int start_address) {
     FILE *fp = fopen(output_binary, "w");
-    u64 i;
+    u64 i, totu64 = 0;
     u64 *ptrs = (u64 *)&persistent_chunk;
 
     if(fp == NULL) printf("Unable to open file %s for writing\n", output_binary);
     else {
-        u64 pdoffset = (u64)pd - (u64)&persistent_chunk;
-        fwrite(&pdoffset, sizeof(u64), 1, fp);
+        u64 offset = (u64)pd - (u64)&persistent_chunk + (u64)start_address;
+        fwrite(&offset, sizeof(u64), 1, fp); totu64++;
 
-        //TODO: dump the list of all ocrLocation_t offsets here
+        fwrite(&persistent_pointer, sizeof(u64), 1, fp); totu64++;
 
-        fwrite(&persistent_pointer, sizeof(u64), 1, fp);
+        //TODO: dump the list of all ocrLocation_t offsets here: so far it's just PD
+        
+        i = 1;
+        fwrite(&i, sizeof(u64), 1, fp); totu64++;
+
+        offset = (u64)(&((ocrPolicyDomain_t *)pd)->myLocation) - (u64)&persistent_chunk + (u64)start_address;
+        fwrite(&offset, sizeof(u64), 1, fp); totu64++;
 
         // Fix up all the pointers (FIXME: potential low-likelihood bug; need to be improved upon)
         for(i = 0; i<(persistent_pointer/sizeof(u64)); i++) {
-            if(ptrs[i] > (u64)ptrs && ptrs[i] < (u64)(ptrs+persistent_pointer)) {
+            if((ptrs[i] > (u64)ptrs) && (ptrs[i] < (u64)(ptrs+persistent_pointer))) {
                 ptrs[i] -= (u64)ptrs; 
                 ptrs[i] += start_address;
             }
         }
         fwrite(&persistent_chunk, sizeof(char), persistent_pointer, fp);
-        printf("Wrote %ld bytes to %s\n", persistent_pointer+2, output_binary);
+        printf("Wrote %ld bytes to %s\n", persistent_pointer+totu64*8, output_binary);
     }
     fclose(fp);
 }

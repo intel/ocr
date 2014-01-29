@@ -60,6 +60,7 @@
 
 // Policy domain
 #define ENABLE_POLICY_DOMAIN_CE
+#define ENABLE_POLICY_DOMAIN_XE
 
 // Scheduler
 #define ENABLE_SCHEDULER_CE
@@ -78,9 +79,12 @@
 
 // Worker
 #define ENABLE_WORKER_CE
+#define ENABLE_WORKER_XE
 
 // Workpile
 #define ENABLE_WORKPILE_CE
+
+#define ENABLE_OCR_LIB
 
 #endif /* __OCR_CONFIG_H__ */
 
