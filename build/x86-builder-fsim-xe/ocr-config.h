@@ -49,7 +49,7 @@
 #define ENABLE_GUID_PTR
 
 // HAL layer to use
-#define HAL_FSIM_XE
+#define HAL_X86_64
 
 // Mem-platform
 #define ENABLE_MEM_PLATFORM_MALLOC

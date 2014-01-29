@@ -551,7 +551,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
         if (factory_names[index][i] && (0 == strncmp(factory_names[index][i], inststr, strlen(factory_names[index][i])))) break;
     }
     if (factory_names[index][i] == NULL || strncmp(factory_names[index][i], inststr, strlen(factory_names[index][i]))) {
-        DPRINTF(DEBUG_LVL_WARN, "Unknown type %s\n", inststr);
+        DPRINTF(DEBUG_LVL_WARN, "Unknown type %s while reading key %s\n", inststr, key);
         return 0;
     }
 

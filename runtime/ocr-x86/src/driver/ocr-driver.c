@@ -40,7 +40,6 @@ const char *type_str[] = {
     "WorkerType",
     "SchedulerType",
     "PolicyDomainType",
-    "SalType",
     "TaskType",
     "TaskTemplateType",
     "DataBlockType",
@@ -59,7 +58,6 @@ const char *inst_str[] = {
     "WorkerInst",
     "SchedulerInst",
     "PolicyDomainInst",
-    "SalInst",
     "NULL",
     "NULL",
     "NULL",
@@ -305,10 +303,14 @@ void bringUpRuntime(const char *inifile) {
 #else
     ocrPolicyDomain_t *otherPolicyDomains = NULL;
     rootPolicy->begin(rootPolicy);
-    rootPolicy->start(rootPolicy);
     for (i = 1; i < inst_counts[policydomain_type]; i++) {
         otherPolicyDomains = (ocrPolicyDomain_t*)all_instances[policydomain_type][i];
         otherPolicyDomains->begin(otherPolicyDomains);
+    }
+
+    rootPolicy->start(rootPolicy);
+    for (i = 1; i < inst_counts[policydomain_type]; i++) {
+        otherPolicyDomains = (ocrPolicyDomain_t*)all_instances[policydomain_type][i];
         otherPolicyDomains->start(otherPolicyDomains);
     }
 #endif
