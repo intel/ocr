@@ -26,7 +26,7 @@ DEFAULT_CONFIG ?= mach-hc-4w.cfg
 # Enable debug
 CFLAGS += -DOCR_DEBUG
 # Define level
-CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_VERB
+CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_WARN
 # Define which modules you want for debugging
 # You can optionally define an individual debuging level by
 # defining DEBUG_LVL_XXX like OCR_DEBUG_LEVEL. If not defined,
@@ -103,27 +103,27 @@ endif
 #all: static
 
 .PHONY: static
-static: CFLAGS := -O2 $(CFLAGS)
+static: CFLAGS_STATIC += -O2
 static: supports-static info-static $(OCRSTATIC)
 
 .PHONY: shared
-shared: CFLAGS := -O2 $(CFLAGS)
+shared: CFLAGS_SHARED += -O2
 shared: supports-shared info-shared $(OCRSHARED)
 
 .PHONY: exec
-exec: CFLAGS := -O2 $(CFLAGS)
+exec: CFLAGS_EXEC += -O2
 exec: supports-exec info-exec $(OCREXEC)
 
 .PHONY: debug-static
-debug-static: CFLAGS := -O0 $(CFLAGS)
+debug-static: CFLAGS_STATIC += -O0
 debug-static: supports-static info-static $(OCRSTATIC)
 
 .PHONY: debug-shared
-debug-shared: CFLAGS := -O0 $(CFLAGS)
+debug-shared: CFLAGS_SHARED += -O0
 debug-shared: supports-shared info-shared $(OCRSHARED)
 
 .PHONY: debug-exec
-debug-exec: CFLAGS := -O0 $(CFLAGS)
+debug-exec: CFLAGS_EXEC += -O0
 debug-exec: supports-exec info-exec $(OCREXEC)
 
 # Static target
@@ -192,23 +192,23 @@ $(OCREXEC): $(OBJS_EXEC)
 #
 # Objects build rules
 #
-$(OBJDIR)/static/%.o: %.c Makefile | $(OBJDIR)/static
+$(OBJDIR)/static/%.o: %.c Makefile ../common.mk | $(OBJDIR)/static
 	@echo "Compiling $<"
 	@$(CC) $(CFLAGS_STATIC) -MMD -c $< -o $@
 
-$(OBJDIR)/shared/%.o: %.c Makefile | $(OBJDIR)/shared
+$(OBJDIR)/shared/%.o: %.c Makefile ../common.mk | $(OBJDIR)/shared
 	@echo "Compiling $<"
 	@$(CC) $(CFLAGS_SHARED) -MMD -c $< -o $@
 
-$(OBJDIR)/exec/%.o: %.c Makefile | $(OBJDIR)/exec
+$(OBJDIR)/exec/%.o: %.c Makefile ../common.mk | $(OBJDIR)/exec
 	@echo "Compiling $<"
 	@$(CC) $(CFLAGS_EXEC) -MMD -c $< -o $@
 
-$(OBJDIR)/static/%.o: %.S Makefile | $(OBJDIR)/static
+$(OBJDIR)/static/%.o: %.S Makefile ../common.mk | $(OBJDIR)/static
 	@echo "Assembling $<"
 	@$(CC) $(CFLAGS_STATIC) -MMD -c $< -o $@
 
-$(OBJDIR)/shared/%.o: %.S | $(OBJDIR)/shared
+$(OBJDIR)/shared/%.o: %.S Makefile ../common.mk | $(OBJDIR)/shared
 	@echo "Assembling $<"
 	@$(CC) $(CFLAGS_SHARED) -MMD -c $< -o $@
 
@@ -254,3 +254,4 @@ uninstall:
 .PHONY:clean
 clean:
 	-$(RM) $(RMFLAGS) $(OBJDIR)/* $(OCRSHARED) $(OCRSTATIC) $(OCREXEC)
+
