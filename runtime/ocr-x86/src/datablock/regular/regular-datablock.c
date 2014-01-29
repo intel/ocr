@@ -26,9 +26,6 @@
 #include "ocr-statistics-callbacks.h"
 #endif
 
-// TODO: This is for the PRI things. Need to get rid of them 
-#include <inttypes.h>
-
 
 #define DEBUG_TYPE DATABLOCK
 
@@ -39,7 +36,7 @@ void* regularAcquire(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
     
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
-    DPRINTF(DEBUG_LVL_VERB, "Acquiring DB @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (isInternal %d)\n",
+    DPRINTF(DEBUG_LVL_VERB, "Acquiring DB @ 0x%lx (GUID: 0x%lx) from EDT 0x%lx (isInternal %d)\n",
                 (u64)self->ptr, rself->base.guid, edt.guid, (u32)isInternal);
 
     // Critical section
@@ -67,7 +64,7 @@ void* regularAcquire(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
 
     hal_unlock32(&(rself->lock));
     // End critical section
-    DPRINTF(DEBUG_LVL_VERB, "Added EDT GUID 0x%"PRIx64" at position %d. Have %d users and %d internal\n",
+    DPRINTF(DEBUG_LVL_VERB, "Added EDT GUID 0x%lx at position %d. Have %d users and %d internal\n",
             (u64)edt.guid, idForEdt, rself->attributes.numUsers, rself->attributes.internalUsers);
 
 #ifdef OCR_ENABLE_STATISTICS
@@ -85,7 +82,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrFatGuid_t edt,
     u32 edtId = ocrGuidTrackerFind(&(rself->usersTracker), edt.guid);
     bool isTracked = true;
 
-    DPRINTF(DEBUG_LVL_VERB, "Releasing DB @ 0x%"PRIx64" (GUID 0x%"PRIdPTR") from EDT 0x%"PRIdPTR" (%d) (internal: %d)\n",
+    DPRINTF(DEBUG_LVL_VERB, "Releasing DB @ 0x%lx (GUID 0x%lx) from EDT 0x%lx (%d) (internal: %d)\n",
                 (u64)self->ptr, rself->base.guid, edt.guid, edtId, (u32)isInternal);
     // Start critical section
     hal_lock32(&(rself->lock));
@@ -183,7 +180,7 @@ u8 regularFree(ocrDataBlock_t *self, ocrFatGuid_t edt) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
     
     u32 id = ocrGuidTrackerFind(&(rself->usersTracker), edt.guid);
-    DPRINTF(DEBUG_LVL_VERB, "Requesting a free for DB @ 0x%"PRIx64" (GUID 0x%"PRIdPTR")\n",
+    DPRINTF(DEBUG_LVL_VERB, "Requesting a free for DB @ 0x%lx (GUID 0x%lx)\n",
             (u64)self->ptr, rself->base.guid);
     // Begin critical section
     hal_lock32(&(rself->lock));
@@ -262,7 +259,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
                    &(result->base));
 #endif /* OCR_ENABLE_STATISTICS */
     
-    DPRINTF(DEBUG_LVL_VERB, "Creating a datablock of size %"PRIu64" @ 0x%"PRIx64" (GUID: 0x%"PRIdPTR")\n",
+    DPRINTF(DEBUG_LVL_VERB, "Creating a datablock of size %lu @ 0x%lx (GUID: 0x%lx)\n",
             size, (u64)result->base.ptr, result->base.guid);
 
     return (ocrDataBlock_t*)result;
