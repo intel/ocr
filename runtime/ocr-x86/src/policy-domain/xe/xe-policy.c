@@ -336,21 +336,20 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // For now we deal with both USER and RT dbs the same way
         ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE || PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE);
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = myLocation;
-        msg->destLocation = parentLocation;
+        msg->srcLocation  = self->myLocation;
+        msg->destLocation = self->parentLocation;
         ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
         u8 msgResult;
-        msgResult = self->workers[0]->sendMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
+            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->waitMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
         ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
-        }
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -376,16 +375,16 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
         ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = myLocation;
-        msg->destLocation = parentLocation;
+        msg->srcLocation  = self->myLocation;
+        msg->destLocation = self->parentLocation;
         ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
         u8 msgResult;
-        msgResult = self->workers[0]->sendMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
+            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->waitMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
@@ -406,16 +405,16 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
         ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = myLocation;
-        msg->destLocation = parentLocation;
+        msg->srcLocation  = self->myLocation;
+        msg->destLocation = self->parentLocation;
         ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
         u8 msgResult;
-        msgResult = self->workers[0]->sendMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
+            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->waitMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
@@ -436,16 +435,16 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
         ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = myLocation;
-        msg->destLocation = parentLocation;
+        msg->srcLocation  = self->myLocation;
+        msg->destLocation = self->parentLocation;
         ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
         u8 msgResult;
-        msgResult = self->workers[0]->sendMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
+            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->waitMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
@@ -461,16 +460,16 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_MEM_ALLOC
         // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE.
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = myLocation;
-        msg->destLocation = parentLocation;
+        msg->srcLocation  = self->myLocation;
+        msg->destLocation = self->parentLocation;
         ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
         u8 msgResult;
-        msgResult = self->workers[0]->sendMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
+            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->waitMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
@@ -486,16 +485,16 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_MEM_UNALLOC
         // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE.
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = myLocation;
-        msg->destLocation = parentLocation;
+        msg->srcLocation  = self->myLocation;
+        msg->destLocation = self->parentLocation;
         ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
         u8 msgResult;
-        msgResult = self->workers[0]->sendMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
+            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->waitMessage( // Pass msg to CE.
+        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
             self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
             &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
         ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
@@ -518,7 +517,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(PD_MSG_FIELD(workType) == EDT_WORKTYPE);
         PD_MSG_FIELD(properties) = xeCreateEdt(
             self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(templateGuid),
-            PD_MSG_FIELD(paramc), PD_MSG_FIELD(paramv), PD_MSG_FIELD(depc),
+            &PD_MSG_FIELD(paramc), PD_MSG_FIELD(paramv), &PD_MSG_FIELD(depc),
             PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity), outputEvent);
         msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
 #undef PD_MSG
@@ -927,8 +926,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     if(isBlocking && (msg->type & PD_MSG_REQ_RESPONSE)) {
         ASSERT(msg->type & PD_MSG_RESPONSE); 
         returnCode = self->workers[0]->fcts.waitMessage(
-            self->workers[0], self->parentLocation, &msg); 
-        PD_MSG_FIELD(properties) = returnCode;
+            self->workers[0], &msg); 
     }
     return returnCode;
 }

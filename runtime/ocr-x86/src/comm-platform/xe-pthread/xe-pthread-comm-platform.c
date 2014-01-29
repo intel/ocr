@@ -76,12 +76,12 @@ u8 xePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message) {
 }
 
 ocrCommPlatform_t* newCommPlatformXePthread(ocrCommPlatformFactory_t *factory,
-                                       ocrLocation_t location, ocrParamList_t *perInstance) {
+                                       ocrParamList_t *perInstance) {
 
     ocrCommPlatformXePthread_t * commPlatformXePthread = (ocrCommPlatformXePthread_t*)
         runtimeChunkAlloc(sizeof(ocrCommPlatformXePthread_t), NULL);
 
-    commPlatformXePthread->base.location = location;
+    commPlatformXePthread->base.location = ((paramListCommPlatformInst_t *)perInstance)->location;
     commPlatformXePthread->base.fcts = factory->platformFcts;
     
     return (ocrCommPlatform_t*)commPlatformXePthread;
@@ -101,7 +101,7 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryXePthread(ocrParamList_t *perTyp
 
     
     base->instantiate = FUNC_ADDR(ocrCommPlatform_t* (*)(
-                                      ocrCommPlatformFactory_t*, ocrLocation_t, ocrParamList_t*),
+                                      ocrCommPlatformFactory_t*, ocrParamList_t*),
                                   newCommPlatformXePthread);
     base->destruct = FUNC_ADDR(void (*)(ocrCommPlatformFactory_t*), destructCommPlatformFactoryXePthread);
     base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCommPlatform_t*), xePthreadCommDestruct);

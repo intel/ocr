@@ -90,12 +90,12 @@ u8 cePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message) {
 }
 
 ocrCommPlatform_t* newCommPlatformCePthread(ocrCommPlatformFactory_t *factory,
-                                       ocrLocation_t location, ocrParamList_t *perInstance) {
+                                       ocrParamList_t *perInstance) {
 
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)
         runtimeChunkAlloc(sizeof(ocrCommPlatformCePthread_t), NULL);
 
-    commPlatformCePthread->base.location = location;
+    commPlatformCePthread->base.location = ((paramListCommPlatformInst_t *)perInstance)->location;
     commPlatformCePthread->base.fcts = factory->platformFcts;
     commPlatformCePthread->requestQueues = NULL;
     commPlatformCePthread->responseQueues = NULL;
@@ -117,7 +117,7 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryCePthread(ocrParamList_t *perTyp
 
     
     base->instantiate = FUNC_ADDR(ocrCommPlatform_t* (*)(
-                                      ocrCommPlatformFactory_t*, ocrLocation_t, ocrParamList_t*),
+                                      ocrCommPlatformFactory_t*, ocrParamList_t*),
                                   newCommPlatformCePthread);
     base->destruct = FUNC_ADDR(void (*)(ocrCommPlatformFactory_t*), destructCommPlatformFactoryCePthread);
     base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCommPlatform_t*), cePthreadCommDestruct);

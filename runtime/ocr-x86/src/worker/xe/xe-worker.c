@@ -113,8 +113,7 @@ void destructWorkerXe(ocrWorker_t * base) {
 /**
  * Builds an instance of a XE worker
  */
-ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory,
-                          ocrWorkerType_t type, ocrParamList_t * perInstance) {
+ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
     ocrWorkerXe_t * worker = (ocrWorkerXe_t*)runtimeChunkAlloc(
         sizeof(ocrWorkerXe_t), NULL);
     ocrWorker_t * base = (ocrWorker_t *) worker;
@@ -224,12 +223,12 @@ u8 xeSendMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg
     return self->computes[0]->fcts.sendMessage(self->computes[0], location, msg);
 }
 
-u8 xePollMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg) {
+u8 xePollMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg, u32 mask) {
     ASSERT(self->computeCount == 1);
     return self->computes[0]->fcts.pollMessage(self->computes[0], msg, 0);
 }
 
-u8 xeWaitMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg) {
+u8 xeWaitMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg) {
     ASSERT(self->computeCount == 1);
     return self->computes[0]->fcts.waitMessage(self->computes[0], msg);
 }
@@ -254,7 +253,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryXe(ocrParamList_t * perType) {
     base->workerFcts.finish = FUNC_ADDR(void (*)(ocrWorker_t*), xeFinishWorker);
     base->workerFcts.isRunning = FUNC_ADDR(bool (*)(ocrWorker_t*), xeIsRunningWorker);
     base->workerFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrLocation_t, ocrPolicyMsg_t**), xeSendMessage);
-    base->workerFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**), xePollMessage);
+    base->workerFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**, u32), xePollMessage);
     base->workerFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**), xeWaitMessage);
     return base;
 }

@@ -35,6 +35,7 @@ const char * ocrWorkerType_types[] = {
 
 #include "worker/hc/hc-worker.h"
 #include "worker/ce/ce-worker.h"
+#include "worker/xe/xe-worker.h"
 
 
 inline ocrWorkerFactory_t * newWorkerFactory(workerType_t type, ocrParamList_t *perType) {
