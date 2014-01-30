@@ -63,7 +63,7 @@ static inline ocrWorkpile_t * pushMappingOneToOne (ocrScheduler_t* base, u64 wor
 static inline ceWorkpileIterator_t* stealMappingOneToAllButSelf (ocrScheduler_t* base, u64 workerId ) {
     u64 idx = (workerId - ((ocrSchedulerCe_t*)base)->workerIdFirst);
     ocrSchedulerCe_t* derived = (ocrSchedulerCe_t*) base;
-    ceWorkpileIterator_t * stealIterator = derived->stealIterators[idx];
+    ceWorkpileIterator_t * stealIterator = &(derived->stealIterators[idx]);
     workpileIteratorReset(stealIterator);
     return stealIterator;
 }
@@ -77,12 +77,6 @@ void ceSchedulerDestruct(ocrScheduler_t * self) {
     }
     runtimeChunkFree((u64)(self->workpiles), NULL);
     
-    // Free the workpile steal iterator cache
-    ocrSchedulerCe_t * derived = (ocrSchedulerCe_t *) self;
-    ceWorkpileIterator_t ** stealIterators = derived->stealIterators;
-    
-    self->pd->pdFree(self->pd, stealIterators);
-
     runtimeChunkFree((u64)self, NULL);
 }
 
@@ -112,14 +106,14 @@ void ceSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     
     // allocate steal iterator cache. Use pdMalloc since this is something
     // local to the policy domain and that will never be shared
-    ceWorkpileIterator_t ** stealIteratorsCache = PD->pdMalloc(
+    ceWorkpileIterator_t * stealIteratorsCache = PD->pdMalloc(
         PD, sizeof(ceWorkpileIterator_t)*workpileCount);
     
     // Initialize steal iterator cache
     i = 0;
     while(i < workpileCount) {
         // Note: here we assume workpile 'i' will match worker 'i' => Not great
-        initWorkpileIterator(stealIteratorsCache[i], i, workpileCount, workpiles);
+        initWorkpileIterator(&stealIteratorsCache[i], i, workpileCount, workpiles);
         ++i;
     }
     derived->stealIterators = stealIteratorsCache;
