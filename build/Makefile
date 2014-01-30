@@ -19,7 +19,7 @@ default:
 	@echo "   fsim-null-fsim-ce   -- CE parts of OCR for Traleika Glacier FSIM"
 	@echo "   fsim-null-fsim-xe   -- XE parts of OCR for Traleika Glacier FSIM"
 	@echo "   x86-builder-fsim-ce -- CE struct builder for Traleika Glacier FSIM on X86"
-	@echo "   x86-builder-fsim-ce -- XE struct builder for Traleika Glacier FSIM on X86"
+	@echo "   x86-builder-fsim-xe -- XE struct builder for Traleika Glacier FSIM on X86"
 	@echo ""
 	@echo "Valid targets are:"
 	@echo ""

@@ -417,6 +417,8 @@ static ocrStats_t* ceGetStats(ocrPolicyDomain_t *self) {
 u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlocking) {
 
     u8 returnCode = 0;
+    u64 engineIndex = 0;  // Default to CE-sourced message.
+//printf ("Msg Type upon entry to ProcMsg: 0x%0lx\n", (u64) msg->type);
     ASSERT((msg->type & PD_MSG_REQUEST) && !(msg->type & PD_MSG_RESPONSE))
     switch(msg->type & PD_MSG_TYPE_ONLY) {
     case PD_MSG_DB_CREATE:
@@ -430,7 +432,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         returnCode = ceAllocateDb(self, &(PD_MSG_FIELD(guid)),
                                   &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
                                   PD_MSG_FIELD(properties),
-                                  0, //ocrLocation_getEngineIndex(msg->srcLocation), // TODO: Placeholder.  Need a service function that disects an ocrLocation_t to produce the index of an XE or the CE.
+                                  ocrLocation_getEngineIndex(msg->srcLocation),
                                   PD_MSG_FIELD(affinity),
                                   PD_MSG_FIELD(allocator));
         if(returnCode == 0) {
@@ -446,7 +448,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             PD_MSG_FIELD(ptr) = NULL;
             PD_MSG_FIELD(properties) = returnCode;
         }
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -475,7 +478,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self->dbFactories[0]->fcts.acquire(db, PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -493,7 +497,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self->dbFactories[0]->fcts.release(db, PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -511,26 +516,34 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self->dbFactories[0]->fcts.free(db, PD_MSG_FIELD(edt));
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
+    case PD_MSG_MEM_ALLOC_FOR_CLIENT:
+        engineIndex = ocrLocation_getEngineIndex(msg->srcLocation); // ...then the messasge provided the XE's engine index.
+        ASSERT (engineIndex >= 1);
+        ASSERT (engineIndex == 0);
     case PD_MSG_MEM_ALLOC:
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_ALLOC
-        ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
             ceMemAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
-                       0, //ocrLocation_getEngineIndex(msg->srcLocation), // TODO: Placeholder.  Need a service function that disects an ocrLocation_t to produce the index of an XE or the CE.
-                       PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)));
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+                       engineIndex, PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)));
 #undef PD_MSG
 #undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
+    case PD_MSG_MEM_UNALLOC_FOR_CLIENT:
+        engineIndex = ocrLocation_getEngineIndex(msg->srcLocation); // ...then the messasge provided the XE's engine index.
+        ASSERT (engineIndex >= 1);
+        ASSERT (engineIndex == 0);
     case PD_MSG_MEM_UNALLOC:
     {
 #define PD_MSG msg
@@ -539,9 +552,10 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
             ceMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), PD_MSG_FIELD(type));
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
 #undef PD_MSG
 #undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
@@ -560,7 +574,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(templateGuid),
             &PD_MSG_FIELD(paramc), PD_MSG_FIELD(paramv), &PD_MSG_FIELD(depc),
             PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity), outputEvent);
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -589,7 +604,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                                          PD_MSG_FIELD(funcPtr), PD_MSG_FIELD(paramc),
                                          PD_MSG_FIELD(depc), PD_MSG_FIELD(funcName));
                                  
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -617,7 +633,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                                                  PD_MSG_FIELD(type), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
@@ -645,7 +662,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(data) = self->eventFactories[0]->fcts[evt->kind].get(evt);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
@@ -668,7 +686,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         }
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -686,7 +705,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         }
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
@@ -699,7 +719,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self->guidProviders[0], PD_MSG_FIELD(guid), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
@@ -716,7 +737,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
@@ -730,7 +752,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             PD_MSG_FIELD(guids));
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -782,7 +805,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #endif
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -917,33 +941,38 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         
     case PD_MSG_SAL_PRINT:
     {
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
     case PD_MSG_SAL_READ:
     {
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
     case PD_MSG_SAL_WRITE:
     {
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);            
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
     case PD_MSG_MGT_SHUTDOWN:
     {
         self->stop(self);
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
     case PD_MSG_MGT_FINISH:
     {
         self->finish(self);
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -965,6 +994,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // Not handled
         ASSERT(0);
     }
+//printf ("Msg Type upon exit  of ProcMsg: 0x%0lx\n", (u64) msg->type);
 
     // This code is not needed but just shows how things would be handled (probably
     // done by sub-functions)
@@ -1011,6 +1041,8 @@ ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * policy,
 #ifdef OCR_ENABLE_STATISTICS
     base->getStats = ceGetStats;
 #endif
+
+    base->myLocation = ((paramListPolicyDomainInst_t*)perInstance)->location;
 
     // no inter-policy domain for simple CE
     base->neighbors = NULL;

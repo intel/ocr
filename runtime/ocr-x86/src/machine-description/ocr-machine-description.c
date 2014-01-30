@@ -606,6 +606,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             ALLOC_PARAM_LIST(inst_param[j], paramListCommPlatformInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "location");
             //INI_GET_LONG (key, value, -1); TODO: Decide if this is needed
+            value |= j;  // Or the id into value for location.
             ((paramListCommPlatformInst_t *)inst_param[j])->location = (ocrLocation_t)value;
             instance[j] = (void *)((ocrCommPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
@@ -754,6 +755,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
 
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "location");
             INI_GET_INT (key, value, -1); // FIXME: Is 0 an acceptable default for location?
+            value |= j;  // Or the id into value for location.
             ((paramListPolicyDomainInst_t*)inst_param[j])->location = value;
 
             instance[j] = (void *)((ocrPolicyDomainFactory_t *)factory)->instantiate(

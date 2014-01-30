@@ -458,9 +458,13 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_ALLOC
-        // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE.
+        msg->type -= PD_MSG_MEM_ALLOC;            // Help CE differentiate between XE-sent messages
+        msg->type += PD_MSG_MEM_ALLOC_FOR_CLIENT; // and those of its own making.
+        // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE. BRN
+        ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  // TODO: On second thought, maybe it is still applicable.  Experiment.  BRN 29 Jan 2014
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
         msg->srcLocation  = self->myLocation;
+ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
         msg->destLocation = self->parentLocation;
         ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
         u8 msgResult;
@@ -483,6 +487,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_UNALLOC
+        msg->type -= PD_MSG_MEM_UNALLOC;            // Help CE differentiate between XE-sent messages
+        msg->type += PD_MSG_MEM_UNALLOC_FOR_CLIENT; // and those of its own making.
         // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE.
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
         msg->srcLocation  = self->myLocation;
@@ -519,7 +525,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(templateGuid),
             &PD_MSG_FIELD(paramc), PD_MSG_FIELD(paramv), &PD_MSG_FIELD(depc),
             PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity), outputEvent);
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -548,7 +555,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                                          PD_MSG_FIELD(funcPtr), PD_MSG_FIELD(paramc),
                                          PD_MSG_FIELD(depc), PD_MSG_FIELD(funcName));
                                  
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -576,7 +584,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                                                  PD_MSG_FIELD(type), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
@@ -604,7 +613,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(data) = self->eventFactories[0]->fcts[evt->kind].get(evt);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
@@ -627,7 +637,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         }
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -645,7 +656,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         }
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
@@ -658,7 +670,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self->guidProviders[0], PD_MSG_FIELD(guid), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
@@ -674,7 +687,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
@@ -687,7 +701,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self->workers[0], self->parentLocation, &msg); 
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -738,7 +753,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #endif
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -873,33 +889,38 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         
     case PD_MSG_SAL_PRINT:
     {
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
     case PD_MSG_SAL_READ:
     {
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
     case PD_MSG_SAL_WRITE:
     {
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);            
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
     case PD_MSG_MGT_SHUTDOWN:
     {
         self->stop(self);
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
     case PD_MSG_MGT_FINISH:
     {
         self->finish(self);
-        msg->type &= (~PD_MSG_REQUEST | PD_MSG_RESPONSE);
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -967,6 +988,8 @@ ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * policy,
 #ifdef OCR_ENABLE_STATISTICS
     base->getStats = xeGetStats;
 #endif
+
+    base->myLocation = ((paramListPolicyDomainInst_t*)perInstance)->location;
 
     // no inter-policy domain for simple XE
     base->neighbors = NULL;

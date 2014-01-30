@@ -152,8 +152,13 @@ typedef enum {
 
 // REC: FIXME
 // This is a placeholder for something that identifies a memory,
-// a compute node and a policy domain.
+// a compute node and a policy domain.  Whatever else this becomes in the future, it
+// includes the "engine index" in the low order eight bits.  Irrelevant for other
+// platforms, this is needed by TG where it provides the block-based index for which
+// processor or memory is identified:  0 == CE, 1-8 == XE; additional bits allow for
+// a differnt number of XE's in other potential TG hardware family members.
 typedef u64 ocrLocation_t;
+#define ocrLocation_getEngineIndex(x) (x & 0xFFul)
 
 /**
  * @brief Returned by the pollMessage function in
