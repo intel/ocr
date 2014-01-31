@@ -28,7 +28,7 @@ MKDIR   := mkdir
 LN      := ln
 
 # Shared libraries specific builds
-LDFLAGS := -shared -fpic
+LDFLAGS := -shared -fpic -lpthread
 
 # CFLAGS_SHARED will be concatenated with any
 # common CFLAGS options
@@ -48,7 +48,7 @@ SUPPORTS_STATIC=yes
 
 
 # For Valgrind, uncomment this line
-CFLAGS += -I/usr/include -DENABLE_VALGRIND
+CFLAGS += -I/usr/include -DENABLE_VALGRIND -DELS_USER_SIZE=2
 
 .PHONY: all
 all: static shared

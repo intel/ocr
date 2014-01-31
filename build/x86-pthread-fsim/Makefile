@@ -29,7 +29,7 @@ MKDIR   := mkdir
 LN      := ln
 
 # Shared libraries specific builds
-LDFLAGS := -shared -fpic
+LDFLAGS := -shared -fpic -lpthread
 
 # CFLAGS_SHARED will be concatenated with any
 # common CFLAGS options
