@@ -43,7 +43,7 @@ inline ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrPara
     case schedulerCe_id:
         return newOcrSchedulerFactoryCe(perType);
 #endif
-#ifdef ENABLE_SCHEDULER_CE
+#ifdef ENABLE_SCHEDULER_XE
     case schedulerXe_id:
         return newOcrSchedulerFactoryXe(perType);
 #endif
