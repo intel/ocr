@@ -606,8 +606,8 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             ALLOC_PARAM_LIST(inst_param[j], paramListCommPlatformInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "location");
             //INI_GET_LONG (key, value, -1); TODO: Decide if this is needed
-            value |= j;  // Or the id into value for location.
-            ((paramListCommPlatformInst_t *)inst_param[j])->location = (ocrLocation_t)value;
+            //value |= j;  // Or the id into value for location.
+            //((paramListCommPlatformInst_t *)inst_param[j])->location = (ocrLocation_t)value;
             instance[j] = (void *)((ocrCommPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created commplatform of type %s, index %d\n", inststr, j);
@@ -772,9 +772,12 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
 
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "location");
-            INI_GET_INT (key, value, -1); // FIXME: Is 0 an acceptable default for location?
-            value |= j;  // Or the id into value for location.
-            ((paramListPolicyDomainInst_t*)inst_param[j])->location = value;
+            if(INI_IS_RANGE(key)) {
+                ((paramListPolicyDomainInst_t*)inst_param[j])->location =  j-1;  // FIXME: HACKHACKHACK
+            } else {
+                INI_GET_INT (key, value, -1);
+                ((paramListPolicyDomainInst_t*)inst_param[j])->location = value;
+            }
 
             instance[j] = (void *)((ocrPolicyDomainFactory_t *)factory)->instantiate(
                 factory, NULL, inst_param[j]);
@@ -782,7 +785,6 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created policy domain of index %d\n", j);
 
-//            setBootPD((ocrPolicyDomain_t *)instance[j]);
         }
         break;
     default:

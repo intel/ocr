@@ -287,7 +287,7 @@ void bringUpRuntime(const char *inifile) {
     // START EXECUTION
     DPRINTF(DEBUG_LVL_INFO, "========= Start execution ==========\n");
     ocrPolicyDomain_t *rootPolicy;
-    rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0]; 
+    rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0];
    
 #ifdef OCR_ENABLE_STATISTICS
     setCurrentPD(rootPolicy); // Statistics needs to know the current PD so we set it for this main thread

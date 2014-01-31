@@ -27,6 +27,7 @@ void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD
     u32 i, numXE;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*) commPlatform;
     numXE = PD->neighborCount;
+    numXE = 8;  // FIXME: Temporary hardcoding
     commPlatformCePthread->numXE = numXE;
     commPlatformCePthread->requestQueues = (deque_t**)PD->pdMalloc(PD, numXE * sizeof(deque_t*));
     commPlatformCePthread->responseQueues = (deque_t**)PD->pdMalloc(PD, numXE * sizeof(deque_t*));

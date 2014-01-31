@@ -965,12 +965,11 @@ void* xePdMalloc(ocrPolicyDomain_t *self, u64 size) {
 //    ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  // TODO: On second thought, maybe it is still applicable.  Experiment.  BRN 29 Jan 2014
     ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
     msg.srcLocation  = self->myLocation;
-    ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
     msg.destLocation = self->parentLocation;
     u8 msgResult;
     msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
         self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-        0,  // FIXME: currently assumes it's always to CE      // Input: ocrLocation_t target; (location of parent ce)
+        8,  // FIXME: currently assumes it's always to CE      // Input: ocrLocation_t target; (location of parent ce)
         &pmsg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
     ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
     msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
