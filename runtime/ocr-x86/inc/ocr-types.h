@@ -36,8 +36,6 @@ typedef u8 bool;
 #define FALSE false
 #endif /* __cplusplus */
 
-#define OCR_EINVAL (-1)
-
 /**
  * @brief Type describing the unique identifier of most
  * objects in OCR (EDTs, data-blocks, etc).
