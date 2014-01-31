@@ -48,9 +48,36 @@
  * @todo Define what behavior we want for overlapping
  * source and destination
  */
-#define hal_memCopy(destination, source, size, isBackground) \
-    do { __builtin_memcpy((void*)(destination), (const void*)(source), (size)); } while(0)
-    
+#define hal_memCopy(dst, src, n, isBackground)                          \
+    ({                                                                  \
+        int d0, d1, d2;                                                 \
+        switch (n % 4)                                                  \
+        {                                                               \
+        case 0:                                                         \
+            __asm__ __volatile__("rep movsl\n\t"                        \
+                                 : "=&c" (d0), "=&D" (d1), "=&S" (d2)   \
+                                 : "0" ((n)/4),"1" ((void *)(dst)),"2" ((void *)(src)) \
+                                 : "memory"); break;                    \
+        case 1:                                                         \
+            __asm__ __volatile__("rep movsl\n\tmovsb\n\t"               \
+                                 : "=&c" (d0), "=&D" (d1), "=&S" (d2)   \
+                                 : "0" ((n)/4),"1" ((void *)(dst)),"2" ((void *)(src)) \
+                                 : "memory"); break;                    \
+        case 2:                                                         \
+            __asm__ __volatile__("rep movsl\n\tmovsw\n\t"               \
+                                 : "=&c" (d0), "=&D" (d1), "=&S" (d2)   \
+                                 : "0" ((n)/4),"1" ((void *)(dst)),"2" ((void *)(src)) \
+                                 : "memory"); break;                    \
+        default:                                                        \
+            __asm__ __volatile__("rep movsl\n\tmovsw\n\tmovsb\n\t"      \
+                                 : "=&c" (d0), "=&D" (d1), "=&S" (d2)   \
+                                 : "0" ((n)/4),"1" ((void *)(dst)),"2" ((void *)(src)) \
+                                 : "memory"); break;                    \
+        }                                                               \
+        (void)(d0); (void)(d1); (void)(d2);                             \
+        n;                                                              \
+    })
+
     
 /**
  * @brief Compare and swap (64 bit)
