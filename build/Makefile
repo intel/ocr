@@ -59,6 +59,7 @@ install:
 	@$(MAKE) -C $(ARCH) $@
 
 .PHONY: uninstall
+uninstall:
 	@$(MAKE) -C $(ARCH) $@
 
 .PHONY: clean
