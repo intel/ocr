@@ -29,11 +29,20 @@ void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD
     numXE = PD->neighborCount;
     numXE = 8;  // FIXME: Temporary hardcoding
     commPlatformCePthread->numXE = numXE;
+/*
     commPlatformCePthread->requestQueues = (deque_t**)PD->pdMalloc(PD, numXE * sizeof(deque_t*));
     commPlatformCePthread->responseQueues = (deque_t**)PD->pdMalloc(PD, numXE * sizeof(deque_t*));
     commPlatformCePthread->requestCounts = (volatile u64 *)PD->pdMalloc(PD, PAD_SIZE * numXE * sizeof(u64));
     commPlatformCePthread->responseCounts = (volatile u64 *)PD->pdMalloc(PD, PAD_SIZE * numXE * sizeof(u64));
     commPlatformCePthread->ceLocalRequestCounts = (u64 *)PD->pdMalloc(PD, numXE * sizeof(u64));
+*/
+
+    commPlatformCePthread->requestQueues = (deque_t**) runtimeChunkAlloc(sizeof(deque_t*)*numXE, NULL);
+    commPlatformCePthread->responseQueues = (deque_t**) runtimeChunkAlloc(sizeof(deque_t*)*numXE, NULL);
+    commPlatformCePthread->requestCounts = (volatile u64 *)runtimeChunkAlloc(PAD_SIZE * numXE * sizeof(u64), NULL);
+    commPlatformCePthread->responseCounts = (volatile u64 *)runtimeChunkAlloc(PAD_SIZE * numXE * sizeof(u64), NULL);
+    commPlatformCePthread->ceLocalRequestCounts = (u64 *)runtimeChunkAlloc(numXE * sizeof(u64), NULL);
+
     for (i = 0; i < numXE; i++) {
         commPlatformCePthread->requestQueues[i] = newNonConcurrentQueue(PD, NULL); 
         commPlatformCePthread->responseQueues[i] = newNonConcurrentQueue(PD, NULL); 
