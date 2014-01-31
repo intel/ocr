@@ -252,11 +252,11 @@ static u8 ceAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, 
     // allocator.  Thus for these levels, the allocators and their memories are a shared resource
     // among this CE and its XE children, but NOT shared with any other CE's or XE's.
     u64 i;
-    u64 numberOfEnginesInABlock = 9;
+    u64 numberOfL1AllocatorsInABlock = ocrLocation_getEngineIndex(self->myLocation)+1; // CE's L1 is the last in the block.
     void* result;
     for(i = engineIndex;            // First try the allocator for the L1 collocated with the engine
         i < self->allocatorCount;
-        i = (i < numberOfEnginesInABlock ? numberOfEnginesInABlock : i+1)) { // Then try L2, L3, DRAM.
+        i = (i < numberOfL1AllocatorsInABlock ? numberOfL1AllocatorsInABlock : i+1)) { // Then try L2, L3, DRAM.
         result = self->allocators[i]->fcts.allocate(self->allocators[i], size);
         if(result) break;
     }
@@ -417,8 +417,7 @@ static ocrStats_t* ceGetStats(ocrPolicyDomain_t *self) {
 u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlocking) {
 
     u8 returnCode = 0;
-    u64 engineIndex = 0;  // Default to CE-sourced message.
-//printf ("Msg Type upon entry to ProcMsg: 0x%0lx\n", (u64) msg->type);
+    u64 engineIndex = ocrLocation_getEngineIndex(self->myLocation); // Default to CE's engine index.
     ASSERT((msg->type & PD_MSG_REQUEST) && !(msg->type & PD_MSG_RESPONSE))
     switch(msg->type & PD_MSG_TYPE_ONLY) {
     case PD_MSG_DB_CREATE:
@@ -523,8 +522,6 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
     case PD_MSG_MEM_ALLOC_FOR_CLIENT:
         engineIndex = ocrLocation_getEngineIndex(msg->srcLocation); // ...then the messasge provided the XE's engine index.
-        ASSERT (engineIndex >= 1);
-        ASSERT (engineIndex == 0);
     case PD_MSG_MEM_ALLOC:
     {
 #define PD_MSG msg
@@ -542,8 +539,6 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
     case PD_MSG_MEM_UNALLOC_FOR_CLIENT:
         engineIndex = ocrLocation_getEngineIndex(msg->srcLocation); // ...then the messasge provided the XE's engine index.
-        ASSERT (engineIndex >= 1);
-        ASSERT (engineIndex == 0);
     case PD_MSG_MEM_UNALLOC:
     {
 #define PD_MSG msg
@@ -994,7 +989,6 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // Not handled
         ASSERT(0);
     }
-//printf ("Msg Type upon exit  of ProcMsg: 0x%0lx\n", (u64) msg->type);
 
     // This code is not needed but just shows how things would be handled (probably
     // done by sub-functions)
