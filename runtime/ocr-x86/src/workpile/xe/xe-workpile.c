@@ -71,13 +71,14 @@ ocrWorkpileFactory_t * newOcrWorkpileFactoryXe(ocrParamList_t *perType) {
     ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
     base->instantiate = newWorkpileXe;
     base->destruct = destructWorkpileFactoryXe;
-    base->workpileFcts.destruct = xeWorkpileDestruct;
-    base->workpileFcts.begin = xeWorkpileBegin;
-    base->workpileFcts.start = xeWorkpileStart;
-    base->workpileFcts.stop = xeWorkpileStop;
-    base->workpileFcts.finish = xeWorkpileFinish;
-    base->workpileFcts.pop = xeWorkpilePop;
-    base->workpileFcts.push = xeWorkpilePush;
+    base->workpileFcts.destruct = FUNC_ADDR(void (*)(ocrWorkpile_t*), xeWorkpileDestruct);
+    base->workpileFcts.begin = FUNC_ADDR(void (*)(ocrWorkpile_t*, ocrPolicyDomain_t*), xeWorkpileBegin);
+    base->workpileFcts.start = FUNC_ADDR(void (*)(ocrWorkpile_t*, ocrPolicyDomain_t*), xeWorkpileStart);
+    base->workpileFcts.stop = FUNC_ADDR(void (*)(ocrWorkpile_t*), xeWorkpileStop);
+    base->workpileFcts.finish = FUNC_ADDR(void (*)(ocrWorkpile_t*), xeWorkpileFinish);
+    base->workpileFcts.pop = FUNC_ADDR(ocrFatGuid_t (*)(ocrWorkpile_t*, ocrWorkPopType_t, ocrCost_t*), xeWorkpilePop);
+    base->workpileFcts.push = FUNC_ADDR(void (*)(ocrWorkpile_t*, ocrWorkPushType_t, ocrFatGuid_t), xeWorkpilePush);
+
     return base;
 }
 #endif /* ENABLE_WORKPILE_XE */

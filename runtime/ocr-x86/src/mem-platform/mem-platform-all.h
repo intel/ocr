@@ -18,16 +18,19 @@
 
 typedef enum _memPlatformType_t {
     memPlatformMalloc_id,
+    memPlatformFsim_id,
     memPlatformMax_id
 } memPlatformType_t;
 
 const char * memplatform_types[] = {
     "malloc",
+    "fsim",
     NULL
 };
 
 // Malloc memory platform
 #include "mem-platform/malloc/malloc-mem-platform.h"
+#include "mem-platform/fsim/fsim-mem-platform.h"
 
 // Add other memory platforms using the same pattern as above
 
@@ -36,6 +39,10 @@ inline ocrMemPlatformFactory_t *newMemPlatformFactory(memPlatformType_t type, oc
 #ifdef ENABLE_MEM_PLATFORM_MALLOC
     case memPlatformMalloc_id:
         return newMemPlatformFactoryMalloc(typeArg);
+#endif
+#ifdef ENABLE_MEM_PLATFORM_FSIM
+    case memPlatformFsim_id:
+        return newMemPlatformFactoryFsim(typeArg);
 #endif
     default:
         ASSERT(0);

@@ -67,13 +67,13 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryXe(ocrParamList_t *perType) {
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = &newSchedulerXe;
     base->destruct = &destructSchedulerFactoryXe;
-    base->schedulerFcts.begin = &xeSchedulerBegin;
-    base->schedulerFcts.start = &xeSchedulerStart;
-    base->schedulerFcts.stop = &xeSchedulerStop;
-    base->schedulerFcts.finish = &xeSchedulerFinish;
-    base->schedulerFcts.destruct = &xeSchedulerDestruct;
-    base->schedulerFcts.takeEdt = &xeSchedulerTake;
-    base->schedulerFcts.giveEdt = &xeSchedulerGive;
+    base->schedulerFcts.begin = FUNC_ADDR(void (*)(ocrScheduler_t*, ocrPolicyDomain_t*), xeSchedulerBegin);
+    base->schedulerFcts.start = FUNC_ADDR(void (*)(ocrScheduler_t*, ocrPolicyDomain_t*), xeSchedulerStart);
+    base->schedulerFcts.stop = FUNC_ADDR(void (*)(ocrScheduler_t*), xeSchedulerStop);
+    base->schedulerFcts.finish = FUNC_ADDR(void (*)(ocrScheduler_t*), xeSchedulerFinish);
+    base->schedulerFcts.destruct = FUNC_ADDR(void (*)(ocrScheduler_t*), xeSchedulerDestruct);
+    base->schedulerFcts.takeEdt = FUNC_ADDR(u8 (*)(ocrScheduler_t*, u32*, ocrFatGuid_t*), xeSchedulerTake);
+    base->schedulerFcts.giveEdt = FUNC_ADDR(u8 (*)(ocrScheduler_t*, u32*, ocrFatGuid_t*), xeSchedulerGive);
     return base;
 }
 
