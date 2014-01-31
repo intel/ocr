@@ -16,6 +16,7 @@ typedef enum _schedulerType_t {
     schedulerXe_id,
     schedulerCe_id,
     schedulerHcPlaced_id,
+    schedulerNull_id,
     schedulerMax_id
 } schedulerType_t;
 
@@ -24,11 +25,13 @@ const char * scheduler_types[] = {
     "XE",
     "CE",
     "HC_Placed",
+    "null",
     NULL
 };
 
 #include "scheduler/hc/hc-scheduler.h"
 #include "scheduler/ce/ce-scheduler.h"
+#include "scheduler/xe/xe-scheduler.h"
 
 inline ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrParamList_t *perType) {
     switch(type) {
@@ -40,7 +43,10 @@ inline ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrPara
     case schedulerCe_id:
         return newOcrSchedulerFactoryCe(perType);
 #endif
+#ifdef ENABLE_SCHEDULER_CE
     case schedulerXe_id:
+        return newOcrSchedulerFactoryXe(perType);
+#endif
     case schedulerHcPlaced_id:
     default:
         ASSERT(0);

@@ -982,7 +982,7 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
             break;
         }
         case policydomain_type: {
-            f->parentLocation = (u64)toinstance; // FIXME: PD2Location
+            f->parentLocation = (u64) toinstance; // FIXME: PD2Location
             break;
         }
         default:

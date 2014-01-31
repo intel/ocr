@@ -30,7 +30,7 @@ void xePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD
     ocrCommPlatformXePthread_t * commPlatformXePthread = (ocrCommPlatformXePthread_t*)commPlatform;
     ocrPolicyDomain_t * cePD = (ocrPolicyDomain_t *)PD->parentLocation;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t *)cePD->workers[0]->computes[0]->platforms[0]->comm;
-    ASSERT(PD->myLocation < cePD->neighborCount);
+    //ASSERT(PD->myLocation < cePD->neighborCount); FIXME: Uncomment after populating neighbor relationships
     commPlatformXePthread->requestQueue = commPlatformCePthread->requestQueues[PD->myLocation]; 
     commPlatformXePthread->responseQueue = commPlatformCePthread->responseQueues[PD->myLocation];
     commPlatformXePthread->requestCount = commPlatformCePthread->requestCounts + (PD->myLocation * PAD_SIZE);

@@ -23,4 +23,4 @@ run:
 	./$(PROG).exe -ocr:cfg fsim_x86.cfg
 
 clean:
-	-rm -Rf *.o $(PROG).exe
+	-rm -Rf *.o $(PROG).exe core*

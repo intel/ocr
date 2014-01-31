@@ -24,6 +24,7 @@
 
 // Allocator
 #define ENABLE_ALLOCATOR_TLSF
+#define ENABLE_ALLOCATOR_NULL
 
 // Comm-platform
 #define ENABLE_COMM_PLATFORM_CE_PTHREAD 
@@ -64,6 +65,7 @@
 
 // Scheduler
 #define ENABLE_SCHEDULER_CE
+#define ENABLE_SCHEDULER_XE
 
 // SAL layer to use
 #define SAL_LINUX
@@ -83,6 +85,7 @@
 
 // Workpile
 #define ENABLE_WORKPILE_CE
+#define ENABLE_WORKPILE_XE
 
 #define ENABLE_OCR_LIB
 

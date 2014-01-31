@@ -87,7 +87,7 @@ void pthreadBegin(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
     pthreadCompPlatform->isMaster = (workerType == MASTER_WORKERTYPE);
 
     // HACK
-    //compPlatform->comm->fcts.begin(compPlatform->comm, PD, workerType);
+    compPlatform->comm->fcts.begin(compPlatform->comm, PD, workerType);
     
     if(pthreadCompPlatform->isMaster) {
         // Only do the binding
