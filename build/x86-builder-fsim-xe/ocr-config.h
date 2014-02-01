@@ -67,8 +67,7 @@
 #define SAL_LINUX
 
 // Sysboot layer to use
-//#define ENABLE_SYSBOOT_LINUX
-#define ENABLE_SYSBOOT_FSIM
+// None - this is a builder
 
 // Task
 #define ENABLE_TASK_HC

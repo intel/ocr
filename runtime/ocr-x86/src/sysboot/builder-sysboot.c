@@ -1,5 +1,5 @@
 /**
- * @brief System boot dependences for fsim - empty because there should be none
+ * @brief System boot dependences for fsim-builder
  */
 
 /*
@@ -9,15 +9,33 @@
  */
 
 #include "ocr-config.h"
-#ifdef ENABLE_SYSBOOT_FSIM
+#ifdef ENABLE_BUILDER_ONLY
 #include "debug.h"
 
 #include "ocr-mem-target.h"
 #include "ocr-sysboot.h"
 
+#define CHUNKSZ 32768                // The chunk size of runtimeChunkAlloc's pool
+char persistent_chunk[CHUNKSZ];      // The underlying pool - persistent memory
+char nonpersistent_chunk[CHUNKSZ];   // The underlying pool - non-persistent memory
+u64  persistent_pointer = 0;         // The pointer to the free area of persistent
+u64  nonpersistent_pointer = 0;      // The pointer to free area of non-persistent
+
 u64 FsimRuntimeChunkAlloc(u64 size, u64 *extra) {
-    ASSERT(0);
-    return (u64)0;
+    void* returnValue = NULL;
+
+    if(extra != NULL) { // default, non-persistent
+        returnValue = &(nonpersistent_chunk[nonpersistent_pointer]);
+        nonpersistent_pointer += size;
+    } else {
+        returnValue = &(persistent_chunk[persistent_pointer]);
+        persistent_pointer += size;
+    }
+
+    ASSERT((persistent_pointer < CHUNKSZ) && "Persistent allocation needs more than CHUNKSZ bytes of memory");
+    ASSERT((nonpersistent_pointer < CHUNKSZ) && "Non-persistent allocation needs more than CHUNKSZ bytes of memory");
+
+    return (u64)returnValue;
 }
 
 void FsimRuntimeChunkFree(u64 addr, u64* extra) {
@@ -39,8 +57,10 @@ void FsimBootUpPrint(const char* str, u64 length) {
  // TODO
 }
 
+extern void *getAddress(const char *fname);
+
 void *myGetFuncAddr (const char * fname) {
-    return NULL;
+    return getAddress(fname);
 }
 
 void* (*getFuncAddr)(const char*) = &myGetFuncAddr;

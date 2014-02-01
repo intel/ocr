@@ -66,7 +66,7 @@
 #define ENABLE_SCHEDULER_CE
 
 // Sysboot layer to use
-#define ENABLE_SYSBOOT_FSIM
+// None - this is a builder
 
 // Task
 #define ENABLE_TASK_HC

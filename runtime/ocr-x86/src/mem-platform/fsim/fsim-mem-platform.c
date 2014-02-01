@@ -19,8 +19,6 @@
 #include "ocr-mem-platform.h"
 #include "ocr-sysboot.h"
 
-#include <stdlib.h>
-
 // Poor man's basic lock
 #define INIT_LOCK(addr) do {*addr = 0;} while(0);
 #define LOCK(addr) do { hal_lock32(addr); } while(0);
@@ -61,7 +59,6 @@ void fsimStop(ocrMemPlatform_t *self) {
 void fsimFinish(ocrMemPlatform_t *self) {
     ocrMemPlatformFsim_t *rself = (ocrMemPlatformFsim_t*)self;
     destroyRange(&(rself->rangeTracker));
-    free((void*)self->startAddr);
 }
 
 u8 fsimGetThrottle(ocrMemPlatform_t *self, u64 *value) {

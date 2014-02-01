@@ -22,7 +22,7 @@
 
 #define DEBUG_TYPE ALLOCATOR
 
-#ifndef ENABLE_BUILDER_ONLY
+//#ifndef ENABLE_BUILDER_ONLY
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -1185,7 +1185,7 @@ void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
     return toReturn;
 }
 
-#endif /* ENABLE_BUILDER_ONLY */
+//#endif /* ENABLE_BUILDER_ONLY */
 
 // Method to create the TLSF allocator
 ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_t *perInstance) {
