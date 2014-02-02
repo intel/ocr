@@ -1,7 +1,7 @@
 SUBDIRS =
 
 # Includes folder we need when compiling ocr
-OCR_INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/hc -I$(top_srcdir)/src/inc/fsim -I$(top_srcdir)/src/machine-description/iniparser/src
+OCR_INCLUDES_DIR = -I$(top_srcdir)/../../build/x86-pthread-x86 -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/inc/hc -I$(top_srcdir)/src/inc/fsim -I$(top_srcdir)/src/machine-description/iniparser/src
 
 # cflags: important to define that otherwise we inherit default values too
 CFLAGS = -Wall -g -O0
@@ -67,6 +67,7 @@ libocr_la_LIBADD =
 
 include allocator/Makefile.inc
 include api/Makefile.inc
+include comm-platform/Makefile.inc
 include comp-platform/Makefile.inc
 include comp-target/Makefile.inc
 include datablock/Makefile.inc
@@ -78,7 +79,6 @@ include machine-description/Makefile.inc
 include mem-platform/Makefile.inc
 include mem-target/Makefile.inc
 include policy-domain/Makefile.inc
-include sal/Makefile.inc
 include scheduler/Makefile.inc
 include statistics/Makefile.inc
 include sysboot/Makefile.inc
