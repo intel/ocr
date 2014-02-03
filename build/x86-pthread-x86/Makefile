@@ -48,7 +48,7 @@ SUPPORTS_STATIC=yes
 
 
 # For Valgrind, uncomment this line
-CFLAGS += -I/usr/include -DENABLE_VALGRIND #-DELS_USER_SIZE=2
+#CFLAGS += -I/usr/include -DENABLE_VALGRIND #-DELS_USER_SIZE=2
 
 .PHONY: all
 all: static shared

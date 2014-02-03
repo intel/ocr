@@ -1148,9 +1148,8 @@ void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
     VALGRIND_MAKE_MEM_NOACCESS(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t)); // The tlsfSize_t is because the last part
                                                                                   // of mainBlock can be accessed as part of the
                                                                                   // first allocated block
-    hal_unlock32(&(rself->lock));
 #endif
-    
+    hal_unlock32(&(rself->lock));
     return toReturn;
 }
 
