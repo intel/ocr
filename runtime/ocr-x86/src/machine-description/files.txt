@@ -1,0 +1,1 @@
+ocr-machine-description.c - contains helper functions that read the configuration file, create and build relationships between the various entities. It relies on driver to invoke its functions and relies on runtimeChunkAlloc for its memory allocation needs

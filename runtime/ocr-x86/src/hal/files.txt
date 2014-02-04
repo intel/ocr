@@ -1,0 +1,3 @@
+fsim-ce  - CE-specific architectural functionality
+fsim-xe  - XE-specific architectural functionality
+x86_64   - 64-bit x86 specific architectural functionality

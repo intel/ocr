@@ -1,0 +1,3 @@
+builder-sysboot.c - boot-time functionality for building the struct binary for later use with FSim loader
+fsim-sysboot.c    - (non-existent) boot-time functionality for FSim at runtime
+linux-sysboot.c   - linux-specific boot-time functionality

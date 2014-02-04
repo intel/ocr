@@ -1,0 +1,1 @@
+dictionary.c, iniparser.c - functionality to interpret an .ini file

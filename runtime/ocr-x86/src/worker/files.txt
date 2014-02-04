@@ -1,0 +1,3 @@
+ce - a CE worker that just loops to handle requests from XEs
+xe - an XE worker that loops to pull available work from CE and executes them (TODO: check accuracy)
+hc - TODO: add description

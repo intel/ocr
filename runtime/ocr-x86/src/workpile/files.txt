@@ -1,0 +1,3 @@
+ce - manages tasks on its XEs' behalf
+xe - empty workpile that lacks any functionality (since its CE handles it)
+hc - workpile implementation with support for work stealing

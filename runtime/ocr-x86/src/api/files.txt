@@ -1,0 +1,5 @@
+ocr.c           - shutdown & argc management
+ocr-db.c        - public DB API
+ocr-edt.c       - public EDT API
+ocr-lib.c       - intialization helper functions
+ocr-rt-itf.c    - runtime implementors support functions

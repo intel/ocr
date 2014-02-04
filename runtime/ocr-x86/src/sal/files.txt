@@ -1,0 +1,3 @@
+fsim-ce - support for system-specific functions for FSim/CE; calls into rmdkrnl
+fsim-xe - minimal support for system-specific functions for FSim/XE
+linux   - functions dependent on Linux/libc support

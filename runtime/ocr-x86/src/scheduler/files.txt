@@ -1,0 +1,3 @@
+ce - the minimal CE scheduler
+xe - the (non-existent) XE scheduler
+hc - work-stealing based HCLib scheduler

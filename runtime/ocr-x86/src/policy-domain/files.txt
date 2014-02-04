@@ -1,0 +1,3 @@
+ce - policy domain encapsulating all functions needed to manage a single CE
+xe - policy domain encapsulating all functions needed to manage a single XE
+hc - policy domain encapsulating all functions needed to manage a single HCLib process

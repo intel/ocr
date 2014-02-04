@@ -1,0 +1,25 @@
+allocator            - to manage internal & external requests for memory allocation & management
+api                  - functions exposed for use by the application (OCR User API)
+comm-platform        - functions used by policy domains to communicate with each other
+comp-platform        - computation environment that OCR runs on
+comp-target          - computation environment that OCR is targeted to
+datablock            - datablock (DB) management functions
+defunct              - deprecated stuff, to be disregarded
+driver               - OCR initialization and start up
+event                - event management functions
+external             - files that provide utilities that are external to our LICENSE
+guid                 - guid management functions
+hal                  - hardware architecture specific functions (locks, atomics, etc.)
+inc                  - headers
+machine-description  - functions to interpret the configuration file that describes the machine & runtime
+mem-platform         - memory environment that OCR uses
+mem-target           - memory environment that OCR is targeted to use
+policy-domain        - functions to manage policy domains (abstract containers for managing local resources)
+sal                  - system specific functionality (print, file I/O, etc.)
+scheduler            - scheduler management functions
+statistics           - statistics related functions
+sysboot              - boot time functionality needed by OCR
+task                 - task (EDT) management functions
+utils                - utility functions of general use
+worker               - worker (encapsulates an EDT) management functions
+workpile             - workpile (a collection of workers operated upon by scheduler) management functions

@@ -1,0 +1,1 @@
+ptr - currently the only type of guid functionality implemented

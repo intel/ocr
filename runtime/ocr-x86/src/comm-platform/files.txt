@@ -1,0 +1,3 @@
+null       - an empty communication framework (where communication is not required)
+xe-pthread - communications based on shared memory for x86 emulation of XE
+ce-pthread - communications based on shared memory for x86 emulation of CE
