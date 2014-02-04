@@ -23,6 +23,7 @@ typedef struct {
 
 typedef struct {
     ocrPolicyDomain_t base;
+    u32 rank;           // For MPI use
     volatile u32 state; // State of the policy domain
                         // Bottom 4 bits indicate state:
                         //  - 0000b: Unitialized
@@ -33,6 +34,11 @@ typedef struct {
                         //  - 1110b: Policy domain fully shut down
                         // The upper bits count the number of users ('readers')
 } ocrPolicyDomainHc_t;
+
+typedef struct {
+    paramListPolicyDomainInst_t base;
+    u32 rank;
+} paramListPolicyDomainHcInst_t;
 
 ocrPolicyDomainFactory_t *newPolicyDomainFactoryHc(ocrParamList_t *perType);
 

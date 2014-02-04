@@ -1159,6 +1159,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
     
 //    base->guid = UNINITIALIZED_GUID;
 
+    derived->rank = ((paramListPolicyDomainHcInst_t*)perInstance)->rank;
     derived->state = 0;
     return base;
 }

@@ -762,15 +762,33 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
         break;
     case policydomain_type:
         for (j = low; j<=high; j++) {
-
+            policyDomainType_t mytype = policyDomainMax_id;
 #ifdef OCR_ENABLE_STATISTICS
             // HUGE HUGE HUGE HUGE HUGE HACK. This needs to be parsed
             // but for now just passing some default one
             ocrStatsFactory_t *sf = newStatsFactory(statisticsDefault_id, NULL);
 #endif
 
-            ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
+            TO_ENUM (mytype, inststr, policyDomainType_t, policyDomain_types, policyDomainMax_id);
+            switch (mytype) {
+#ifdef ENABLE_POLICY_DOMAIN_HC
+            case policyDomainHc_id: {
+                ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainHcInst_t);
+                if (key_exists(dict, secname, "rank")) {
+                    value = get_key_value(dict, secname, "rank", j-low);
+                    ((paramListPolicyDomainHcInst_t *)inst_param[j])->rank = (u32)value;
+                } else {
+                    ((paramListPolicyDomainHcInst_t *)inst_param[j])->rank = (u32)-1;
+                }
+            }
+            break;
+#endif
+            default:
+                ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
+            break;
+            }
 
+            // TODO: Redo the below to mirror rank config changes
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "location");
             if(INI_IS_RANGE(key)) {
                 ((paramListPolicyDomainInst_t*)inst_param[j])->location =  j-1;  // FIXME: HACKHACKHACK
