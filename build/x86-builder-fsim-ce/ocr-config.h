@@ -26,7 +26,7 @@
 #define ENABLE_ALLOCATOR_TLSF
 
 // Comm-platform
-#define ENABLE_COMM_PLATFORM_NULL
+#define ENABLE_COMM_PLATFORM_CE
 
 // Comp-platform
 #define ENABLE_COMP_PLATFORM_FSIM

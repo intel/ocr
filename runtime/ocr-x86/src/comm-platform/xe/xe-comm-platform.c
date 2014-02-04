@@ -40,7 +40,7 @@ void xeCommFinish(ocrCommPlatform_t *commPlatform) {
 
 u8 xeCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
                        ocrPolicyMsg_t **message) {
-    //TODO: DMA the message into XE's spad and wake it up
+    //TODO: Send an alarm to the CE
     return 0;
 }
 
@@ -60,7 +60,7 @@ ocrCommPlatform_t* newCommPlatformXe(ocrCommPlatformFactory_t *factory,
                                        ocrParamList_t *perInstanxe) {
 
     ocrCommPlatformXe_t * commPlatformXe = (ocrCommPlatformXe_t*)
-        runtimeChunkAlloc(sizeof(ocrCommPlatformXe_t), XE);
+        runtimeChunkAlloc(sizeof(ocrCommPlatformXe_t), NULL);
 
     commPlatformXe->base.location = ((paramListCommPlatformInst_t *)perInstanxe)->location;
     commPlatformXe->base.fcts = factory->platformFcts;

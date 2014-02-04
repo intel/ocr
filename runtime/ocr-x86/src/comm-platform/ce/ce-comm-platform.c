@@ -19,7 +19,7 @@
 #define DEBUG_TYPE COMM_PLATFORM
 
 void ceCommDestruct (ocrCommPlatform_t * base) {
-    runtimeChunkFree((u64)base, CE);
+    runtimeChunkFree((u64)base, NULL);
 }
 
 void ceCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
@@ -60,7 +60,7 @@ ocrCommPlatform_t* newCommPlatformCe(ocrCommPlatformFactory_t *factory,
                                        ocrParamList_t *perInstance) {
 
     ocrCommPlatformCe_t * commPlatformCe = (ocrCommPlatformCe_t*)
-        runtimeChunkAlloc(sizeof(ocrCommPlatformCe_t), CE);
+        runtimeChunkAlloc(sizeof(ocrCommPlatformCe_t), NULL);
 
     commPlatformCe->base.location = ((paramListCommPlatformInst_t *)perInstance)->location;
     commPlatformCe->base.fcts = factory->platformFcts;
@@ -73,7 +73,7 @@ ocrCommPlatform_t* newCommPlatformCe(ocrCommPlatformFactory_t *factory,
 /******************************************************/
 
 void destructCommPlatformFactoryCe(ocrCommPlatformFactory_t *factory) {
-    runtimeChunkFree((u64)factory, CE);
+    runtimeChunkFree((u64)factory, NULL);
 }
 
 ocrCommPlatformFactory_t *newCommPlatformFactoryCe(ocrParamList_t *perType) {
