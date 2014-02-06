@@ -601,7 +601,6 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
         }
         break;
     case commplatform_type:
-        ASSERT(low == high);
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListCommPlatformInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "location");

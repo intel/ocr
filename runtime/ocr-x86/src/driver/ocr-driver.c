@@ -124,13 +124,15 @@ extern u64 persistent_pointer;
 /* Format of this file:
  *
  * +--------------------------+
- * |    offset of PD (u64)    |
+ * |  abs. location  (u64)    |
  * +--------------------------+
- * | size of all structs (u64)|
+ * |  abs. offset of PD (u64) |
+ * +--------------------------+
+ * |  size (from here) (u64)  |
  * +--------------------------+
  * | (u64)  location table sz |
  * +--------------------------+
- * |(u64 offs) locn entries   |
+ * |  (u64 abs offs) locns    |
  * +--------------------------+
  * |                          |
  * |     structs be here      |
@@ -138,7 +140,7 @@ extern u64 persistent_pointer;
  * +--------------------------+
  */
 
-void dumpStructs(void *pd, const char* output_binary, int start_address) {
+void dumpStructs(void *pd, const char* output_binary, u64 start_address) {
     FILE *fp = fopen(output_binary, "w");
     u64 i, totu64 = 0;
     u64 *ptrs = (u64 *)&persistent_chunk;
@@ -146,6 +148,8 @@ void dumpStructs(void *pd, const char* output_binary, int start_address) {
     if(fp == NULL) printf("Unable to open file %s for writing\n", output_binary);
     else {
         u64 offset = (u64)pd - (u64)&persistent_chunk + (u64)start_address;
+        fwrite(&start_address, sizeof(u64), 1, fp); totu64++;
+         
         fwrite(&offset, sizeof(u64), 1, fp); totu64++;
 
         fwrite(&persistent_pointer, sizeof(u64), 1, fp); totu64++;
@@ -295,7 +299,7 @@ void bringUpRuntime(const char *inifile) {
 
 #ifdef ENABLE_BUILDER_ONLY
     {
-        int start_address = iniparser_getint(dict, START_ADDRESS, 0);
+        u64 start_address = iniparser_getlonglong(dict, START_ADDRESS, 0);
         for(i = 0; i < inst_counts[policydomain_type]; i++)
             dumpStructs(all_instances[policydomain_type][i], output_binary, start_address);
         free_functions();
