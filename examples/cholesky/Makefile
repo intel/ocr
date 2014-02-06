@@ -2,7 +2,8 @@ OCR_INPUT_HOME=.
 PROG=cholesky
 SUFFIX=.exe
 CFLAGS= -O0 -g
-OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr -lm
+OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include 
+LIB_FLAGS=-locr -lm
 OCR_INPUT=${OCR_INPUT_HOME}/cholesky
 
 ifndef OCR_INSTALL
@@ -23,14 +24,14 @@ OCR_RUN_FLAGS=-ocr:cfg ${OCR_CONFIG}
 all: compile run
 all-test: compile run verify
 
-MATRIX_SIZE=2000
-TILE_SIZE=80
+MATRIX_SIZE=100
+TILE_SIZE=10
 
 INPUT_FILE=m_${MATRIX_SIZE}.in
 OUTPUT_FILE=cholesky_out_${MATRIX_SIZE}.txt
 
 compile:
-	gcc -g $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)$(SUFFIX)
+	gcc -g $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)$(SUFFIX) $(LIB_FLAGS)
 
 compile.omp.task:
 	gcc -fopenmp $(CFLAGS) $(PROG).omp.task.c -o $(PROG).omp.task$(SUFFIX) -lm
