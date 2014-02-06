@@ -32,12 +32,10 @@ typedef struct {
 typedef struct {
     ocrScheduler_t scheduler;
     ceWorkpileIterator_t * stealIterators;
-    u64 workerIdFirst;
 } ocrSchedulerCe_t;
 
 typedef struct _paramListSchedulerCeInst_t {
     paramListSchedulerInst_t base;
-    u64 workerIdFirst;
 } paramListSchedulerCeInst_t;
 
 ocrSchedulerFactory_t * newOcrSchedulerFactoryCe(ocrParamList_t *perType);

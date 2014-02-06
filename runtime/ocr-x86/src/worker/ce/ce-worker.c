@@ -27,45 +27,27 @@
 /* OCR-CE WORKER                                      */
 /******************************************************/
 
-/**
- * The computation worker routine that asks work to the scheduler
- */
-static void * workerRoutine(launchArg_t * arg);
-
 // Convenient to have an id to index workers in pools
 static inline u64 getWorkerId(ocrWorker_t * worker) {
     ocrWorkerCe_t * ceWorker = (ocrWorkerCe_t *) worker;
     return ceWorker->id;
 }
 
+/**
+ * The computation worker routine that asks for work to the scheduler
+ */
 static void workerLoop(ocrWorker_t * worker) {
     ocrPolicyDomain_t *pd = worker->pd;
     ocrPolicyMsg_t *msgPtr;
     while(worker->fcts.isRunning(worker)) {
+        msgPtr = NULL;
         worker->fcts.waitMessage(worker, &msgPtr);
         if(pd->processMessage(pd, msgPtr, true) == 0) {
-            pd->pdFree(pd, msgPtr);
+            /*pd->pdFree(pd, msgPtr);*/ //FIXME: Message allocation is done at XE. CE should deallocate only if it own message allocation.
         } else {
             ASSERT(0); // we don't know (yet) what to do if something fails!
         }
     } /* End of while loop */
-}
-
-static void * workerRoutine(launchArg_t* launchArg) {
-    // Need to pass down a data-structure
-    ocrWorker_t * worker = (ocrWorker_t *) launchArg->arg;
-    ocrPolicyDomain_t *pd = worker->pd;
-    pd->pdFree(pd, launchArg); // Free the launch argument
-
-    // Set who we are
-    u32 i;
-    for(i = 0; i < worker->computeCount; ++i) {
-        worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
-    }
-    
-    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of CE worker %ld\n", getWorkerId(worker));
-    workerLoop(worker);
-    return NULL;
 }
 
 void destructWorkerCe(ocrWorker_t * base) {
@@ -96,7 +78,8 @@ ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory,
     ASSERT(base->type == MASTER_WORKERTYPE);
     
     worker->id = ((paramListWorkerCeInst_t*)perInstance)->workerId;
-    worker->run = false;
+    worker->running = false;
+    worker->secondStart = false;
 
     base->fcts = factory->workerFcts;
     return base;
@@ -107,7 +90,7 @@ void ceBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
     u64 computeCount = base->computeCount;
-    ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
+    ASSERT(computeCount == 1); 
     u64 i = 0;
     for(i = 0; i < computeCount; ++i) {
         base->computes[i]->fcts.begin(base->computes[i], policy, base->type);
@@ -128,40 +111,49 @@ void ceBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 void ceStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 
     ocrWorkerCe_t * ceWorker = (ocrWorkerCe_t *) base;
-    if(base->type == MASTER_WORKERTYPE) {
-        if(!ceWorker->secondStart) {
-            ceWorker->secondStart = true;
-            return; // Don't start right away
-        }
+    if(!ceWorker->secondStart) {
+        ceWorker->secondStart = true;
+        return; // Don't start right away
     }
     
     // Get a GUID
     guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
     base->pd = policy;
+    ASSERT(base->type == MASTER_WORKERTYPE);
 
-    ASSERT(base->type != MASTER_WORKERTYPE || ceWorker->secondStart);
-    ceWorker->run = true;
+    ceWorker->running = true;
 
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
     u64 computeCount = base->computeCount;
-    // What the compute target will execute
-    launchArg_t * launchArg = policy->pdMalloc(policy, sizeof(launchArg_t));
-    launchArg->routine = workerRoutine;
-    launchArg->arg = base;
-    ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
+    ASSERT(computeCount == 1); 
     u64 i = 0;
     for(i = 0; i < computeCount; i++) {
-        base->computes[i]->fcts.start(base->computes[i], policy, SINGLE_WORKERTYPE, launchArg);
+        base->computes[i]->fcts.start(base->computes[i], policy, base);
 #ifdef OCR_ENABLE_STATISTICS
         statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
 #endif
     }
 }
 
+void* ceRunWorker(ocrWorker_t * worker) {
+    // Need to pass down a data-structure
+    ocrPolicyDomain_t *pd = worker->pd;
+
+    // Set who we are
+    u32 i;
+    for(i = 0; i < worker->computeCount; ++i) {
+        worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
+    }
+    
+    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of CE worker %ld\n", getWorkerId(worker));
+    workerLoop(worker);
+    return NULL;
+}
+
 void ceFinishWorker(ocrWorker_t * base) {
     DPRINTF(DEBUG_LVL_INFO, "Finishing worker routine %ld\n", getWorkerId(base));
-    ASSERT(base->computeCount == 1); // For now; o/w have to create more launchArg
+    ASSERT(base->computeCount == 1); 
     u64 i = 0;
     for(i = 0; i < base->computeCount; i++) {
         base->computes[i]->fcts.finish(base->computes[i]);
@@ -170,7 +162,7 @@ void ceFinishWorker(ocrWorker_t * base) {
 
 void ceStopWorker(ocrWorker_t * base) {
     ocrWorkerCe_t * ceWorker = (ocrWorkerCe_t *) base;
-    ceWorker->run = false;
+    ceWorker->running = false;
     
     u64 computeCount = base->computeCount;
     u64 i = 0;
@@ -202,7 +194,7 @@ void ceStopWorker(ocrWorker_t * base) {
 
 bool ceIsRunningWorker(ocrWorker_t * base) {
     ocrWorkerCe_t * ceWorker = (ocrWorkerCe_t *) base;
-    return ceWorker->run;
+    return ceWorker->running;
 }
 
 u8 ceSendMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg) {
@@ -215,7 +207,7 @@ u8 cePollMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg, u32 mask) {
     return self->computes[0]->fcts.pollMessage(self->computes[0], msg, mask);
 }
 
-u8 ceWaitMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg) {
+u8 ceWaitMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg) {
     ASSERT(self->computeCount == 1);
     return self->computes[0]->fcts.waitMessage(self->computes[0], msg);
 }
@@ -236,6 +228,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryCe(ocrParamList_t * perType) {
     base->workerFcts.destruct = FUNC_ADDR(void (*)(ocrWorker_t*), destructWorkerCe);
     base->workerFcts.begin = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), ceBeginWorker);
     base->workerFcts.start = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), ceStartWorker);
+    base->workerFcts.run = FUNC_ADDR(void* (*)(ocrWorker_t*), ceRunWorker);
     base->workerFcts.stop = FUNC_ADDR(void (*)(ocrWorker_t*), ceStopWorker);
     base->workerFcts.finish = FUNC_ADDR(void (*)(ocrWorker_t*), ceFinishWorker);
     base->workerFcts.isRunning = FUNC_ADDR(bool (*)(ocrWorker_t*), ceIsRunningWorker);

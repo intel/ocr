@@ -15,6 +15,7 @@
 
 #include "ocr-comp-platform.h"
 #include "ocr-comp-target.h"
+#include "ocr-worker.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
 #ifdef ENABLE_WORKPILE_CE
@@ -32,7 +33,6 @@ typedef struct {
 typedef struct {
     ocrCompPlatform_t base;
     pthread_t osThread;
-    launchArg_t * launchArg;
     u64 stackSize;
     s32 binding;
     bool isMaster;

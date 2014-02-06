@@ -42,8 +42,8 @@ typedef struct {
 pthread_key_t selfKey;
 pthread_once_t selfKeyInitialized = PTHREAD_ONCE_INIT;
 
-static void * pthreadRoutineExecute(launchArg_t * launchArg) {
-    return launchArg->routine(launchArg);
+static void * pthreadRoutineExecute(ocrWorker_t * worker) {
+    return worker->fcts.run(worker);
 }
 
 static void * pthreadRoutineWrapper(void * arg) {
@@ -54,13 +54,11 @@ static void * pthreadRoutineWrapper(void * arg) {
         DPRINTF(DEBUG_LVL_INFO, "Binding comp-platform to cpu_id %d\n", cpuBind);
         bindThread(cpuBind);
     }
-    launchArg_t * launchArg = (launchArg_t *) pthreadCompPlatform->launchArg;
     // Wrapper routine to allow initialization of local storage
     // before entering the worker routine.
     perThreadStorage_t *data = (perThreadStorage_t*)malloc(sizeof(perThreadStorage_t));
     RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
-    ASSERT(launchArg);
-    return pthreadRoutineExecute(launchArg);
+    return pthreadRoutineExecute(pthreadCompPlatform->base.worker);
 }
 
 static void destroyKey(void* arg) {
@@ -100,10 +98,9 @@ void pthreadBegin(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
     }
 }
 
-void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType,
-                  launchArg_t * launchArg) {
+void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrWorker_t * worker) {
     ocrCompPlatformPthread_t * pthreadCompPlatform = (ocrCompPlatformPthread_t *) compPlatform;
-    pthreadCompPlatform->launchArg = launchArg;
+    compPlatform->worker = worker;
 
     // HACK
     //compPlatform->comm->fcts.start(compPlatform->comm, PD, workerType, launchArg);
@@ -117,7 +114,7 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
                                      pthreadCompPlatform), ==, 0);
     } else {
         // The upper level worker will only start us once
-        pthreadRoutineExecute(pthreadCompPlatform->launchArg);
+        pthreadRoutineExecute(worker);
     }
 }
 

@@ -727,6 +727,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(properties) = self->schedulers[0]->fcts.takeEdt(
             self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
             PD_MSG_FIELD(guids));
+        DPRINTF(DEBUG_LVL_INFO, "[CE] Sending Edt to XE%lu: guid: %lu metadata: %p\n", 
+                (u64)msg->srcLocation, (PD_MSG_FIELD(guids))->guid, 
+                (PD_MSG_FIELD(guids))->metaDataPtr);
         returnCode = self->workers[0]->fcts.sendMessage(
             self->workers[0], msg->srcLocation, &msg); // respond to xe with task
 

@@ -25,7 +25,6 @@ typedef struct {
 
 typedef struct {
     ocrCompPlatform_t base;
-    launchArg_t * launchArg;
     u64 stackSize;
     s32 binding;
     bool isMaster;

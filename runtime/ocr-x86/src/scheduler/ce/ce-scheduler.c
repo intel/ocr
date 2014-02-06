@@ -51,19 +51,16 @@ static inline void initWorkpileIterator(ceWorkpileIterator_t *base, u64 id,
 /******************************************************/
 
 static inline ocrWorkpile_t * popMappingOneToOne (ocrScheduler_t* base, u64 workerId ) {
-    u64 idx = (workerId - ((ocrSchedulerCe_t*)base)->workerIdFirst);
-    return base->workpiles[idx];
+    return base->workpiles[0];
 }
 
 static inline ocrWorkpile_t * pushMappingOneToOne (ocrScheduler_t* base, u64 workerId ) {
-    u64 idx = (workerId - ((ocrSchedulerCe_t*)base)->workerIdFirst);
-    return base->workpiles[idx];
+    return base->workpiles[0];
 }
 
 static inline ceWorkpileIterator_t* stealMappingOneToAllButSelf (ocrScheduler_t* base, u64 workerId ) {
-    u64 idx = (workerId - ((ocrSchedulerCe_t*)base)->workerIdFirst);
     ocrSchedulerCe_t* derived = (ocrSchedulerCe_t*) base;
-    ceWorkpileIterator_t * stealIterator = &(derived->stealIterators[idx]);
+    ceWorkpileIterator_t * stealIterator = &(derived->stealIterators[0]);
     workpileIteratorReset(stealIterator);
     return stealIterator;
 }
@@ -272,9 +269,6 @@ ocrScheduler_t* newSchedulerCe(ocrSchedulerFactory_t * factory, ocrParamList_t *
     base->workpiles = NULL;
     base->workpileCount = 0;
     base->fcts = factory->schedulerFcts;
-    
-    paramListSchedulerCeInst_t *mapper = (paramListSchedulerCeInst_t*)perInstance;
-    derived->workerIdFirst = mapper->workerIdFirst;
     
     return base;
 }

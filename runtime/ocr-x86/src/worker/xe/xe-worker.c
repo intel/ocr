@@ -27,17 +27,15 @@
 /* OCR-XE WORKER                                      */
 /******************************************************/
 
-/**
- * The computation worker routine that asks work to the scheduler
- */
-static void * workerRoutine(launchArg_t * arg);
-
 // Convenient to have an id to index workers in pools
 static inline u64 getWorkerId(ocrWorker_t * worker) {
     ocrWorkerXe_t * xeWorker = (ocrWorkerXe_t *) worker;
     return xeWorker->id;
 }
 
+/**
+ * The computation worker routine that asks work to the scheduler
+ */
 static void workerLoop(ocrWorker_t * worker) {
     ocrPolicyDomain_t *pd = worker->pd;
     ocrPolicyMsg_t msg;
@@ -55,15 +53,13 @@ static void workerLoop(ocrWorker_t * worker) {
         if(pd->processMessage(pd, &msg, true) == 0) {
             // We got a response
             count = PD_MSG_FIELD(guidCount);
-			ASSERT(count > 0);
             if(count == 1) {
                 // REC: TODO: Do we need a message to execute this
                 ASSERT(taskGuid.guid != NULL_GUID && taskGuid.metaDataPtr != NULL);
                 worker->curTask = (ocrTask_t*)taskGuid.metaDataPtr;
-                ASSERT(0 && "Fix the below");
-//                worker->curTask->fctPtrs->execute = PD_MSG_FIELD(extra); // task execute func ptr is set in the "extra" field of msg
-//                worker->curTask->fctPtrs->execute(worker->curTask); 
-//                worker->curTask = NULL;
+                u8 (*executeFunc)(ocrTask_t *) = (u8 (*)(ocrTask_t*))PD_MSG_FIELD(extra); // Execute is stored in extra
+                executeFunc(worker->curTask);
+                worker->curTask = NULL;
                 // Destroy the work
 #undef PD_MSG
 #undef PD_TYPE
@@ -75,29 +71,12 @@ static void workerLoop(ocrWorker_t * worker) {
                 RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
-            } else {
-        		// TODO: In the future, potentially take more than one)
-				ASSERT(0);
-			}
+            } else if (count > 1) {
+                // TODO: In the future, potentially take more than one)
+                ASSERT(0);
+            }
         }
     } /* End of while loop */
-}
-
-static void * workerRoutine(launchArg_t* launchArg) {
-    // Need to pass down a data-structure
-    ocrWorker_t * worker = (ocrWorker_t *) launchArg->arg;
-    ocrPolicyDomain_t *pd = worker->pd;
-    pd->pdFree(pd, launchArg); // Free the launch argument
-    
-    // Set who we are
-    u32 i;
-    for(i = 0; i < worker->computeCount; ++i) {
-        worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
-    }
-    
-    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
-    workerLoop(worker);
-    return NULL;
 }
 
 void destructWorkerXe(ocrWorker_t * base) {
@@ -126,7 +105,7 @@ ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory, ocrParamList_t * perInst
     base->type = SLAVE_WORKERTYPE;
     
     worker->id = ((paramListWorkerXeInst_t*)perInstance)->workerId;
-    worker->run = false;
+    worker->running = false;
 
     return base;
 }
@@ -136,7 +115,7 @@ void xeBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
     u64 computeCount = base->computeCount;
-    ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
+    ASSERT(computeCount == 1); 
     u64 i = 0;
     for(i = 0; i < computeCount; ++i) {
         base->computes[i]->fcts.begin(base->computes[i], policy, base->type);
@@ -153,28 +132,39 @@ void xeStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     base->pd = policy;
     
     ocrWorkerXe_t * xeWorker = (ocrWorkerXe_t *) base;
-    xeWorker->run = true;
+    xeWorker->running = true;
 
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
     u64 computeCount = base->computeCount;
-    // What the compute target will execute
-    launchArg_t * launchArg = policy->pdMalloc(policy, sizeof(launchArg_t));
-    launchArg->routine = workerRoutine;
-    launchArg->arg = base;
-    ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
+    ASSERT(computeCount == 1); 
     u64 i = 0;
     for(i = 0; i < computeCount; i++) {
-        base->computes[i]->fcts.start(base->computes[i], policy, base->type, launchArg);
+        base->computes[i]->fcts.start(base->computes[i], policy, base);
 #ifdef OCR_ENABLE_STATISTICS
         statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
 #endif
     }
 }
 
+void* xeRunWorker(ocrWorker_t * worker) {
+    // Need to pass down a data-structure
+    ocrPolicyDomain_t *pd = worker->pd;
+    
+    // Set who we are
+    u32 i;
+    for(i = 0; i < worker->computeCount; ++i) {
+        worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
+    }
+    
+    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
+    workerLoop(worker);
+    return NULL;
+}
+
 void xeFinishWorker(ocrWorker_t * base) {
     DPRINTF(DEBUG_LVL_INFO, "Finishing worker routine %ld\n", getWorkerId(base));
-    ASSERT(base->computeCount == 1); // For now; o/w have to create more launchArg
+    ASSERT(base->computeCount == 1); 
     u64 i = 0;
     for(i = 0; i < base->computeCount; i++) {
         base->computes[i]->fcts.finish(base->computes[i]);
@@ -183,7 +173,7 @@ void xeFinishWorker(ocrWorker_t * base) {
 
 void xeStopWorker(ocrWorker_t * base) {
     ocrWorkerXe_t * xeWorker = (ocrWorkerXe_t *) base;
-    xeWorker->run = false;
+    xeWorker->running = false;
     
     u64 computeCount = base->computeCount;
     u64 i = 0;
@@ -215,7 +205,7 @@ void xeStopWorker(ocrWorker_t * base) {
 
 bool xeIsRunningWorker(ocrWorker_t * base) {
     ocrWorkerXe_t * xeWorker = (ocrWorkerXe_t *) base;
-    return xeWorker->run;
+    return xeWorker->running;
 }
 
 u8 xeSendMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg) {
@@ -249,6 +239,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryXe(ocrParamList_t * perType) {
     base->workerFcts.destruct = FUNC_ADDR(void (*)(ocrWorker_t*), destructWorkerXe);
     base->workerFcts.begin = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), xeBeginWorker);
     base->workerFcts.start = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), xeStartWorker);
+    base->workerFcts.run = FUNC_ADDR(void* (*)(ocrWorker_t*), xeRunWorker);
     base->workerFcts.stop = FUNC_ADDR(void (*)(ocrWorker_t*), xeStopWorker);
     base->workerFcts.finish = FUNC_ADDR(void (*)(ocrWorker_t*), xeFinishWorker);
     base->workerFcts.isRunning = FUNC_ADDR(bool (*)(ocrWorker_t*), xeIsRunningWorker);

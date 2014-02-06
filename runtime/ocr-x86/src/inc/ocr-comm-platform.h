@@ -44,7 +44,6 @@ typedef struct _paramListCommPlatformInst_t {
 
 struct _ocrCommPlatform_t;
 struct _ocrPolicyMsg_t;
-struct _launchArg_t; // Defined in ocr-comp-target.h
 /**
  * @brief Comm-platform function pointers
  *
@@ -65,10 +64,9 @@ typedef struct _ocrCommPlatformFcts_t {
      * @param[in] self          Pointer to this comm-platform
      * @param[in] PD            The policy domain bringing up the runtime
      * @param[in] workerType    Type of the worker runnning on this comp-platform
-     * @param[in] launchArg     Arguments passed to the comm-platform to launch
      */
     void (*start)(struct _ocrCommPlatform_t *self, struct _ocrPolicyDomain_t * PD,
-                  ocrWorkerType_t workerType, struct _launchArg_t * launchArg);
+                  ocrWorkerType_t workerType);
 
     /**
      * @brief Stops this comp-platform

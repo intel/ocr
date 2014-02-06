@@ -29,13 +29,6 @@ void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD
     numXE = PD->neighborCount;
     numXE = 8;  // FIXME: Temporary hardcoding
     commPlatformCePthread->numXE = numXE;
-/*
-    commPlatformCePthread->requestQueues = (deque_t**)PD->pdMalloc(PD, numXE * sizeof(deque_t*));
-    commPlatformCePthread->responseQueues = (deque_t**)PD->pdMalloc(PD, numXE * sizeof(deque_t*));
-    commPlatformCePthread->requestCounts = (volatile u64 *)PD->pdMalloc(PD, PAD_SIZE * numXE * sizeof(u64));
-    commPlatformCePthread->responseCounts = (volatile u64 *)PD->pdMalloc(PD, PAD_SIZE * numXE * sizeof(u64));
-    commPlatformCePthread->ceLocalRequestCounts = (u64 *)PD->pdMalloc(PD, numXE * sizeof(u64));
-*/
 
     commPlatformCePthread->requestQueues = (deque_t**) runtimeChunkAlloc(sizeof(deque_t*)*numXE, NULL);
     commPlatformCePthread->responseQueues = (deque_t**) runtimeChunkAlloc(sizeof(deque_t*)*numXE, NULL);
@@ -48,13 +41,12 @@ void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD
         commPlatformCePthread->responseQueues[i] = newNonConcurrentQueue(PD, NULL); 
         commPlatformCePthread->requestCounts[i * PAD_SIZE] = 0;
         commPlatformCePthread->responseCounts[i * PAD_SIZE] = 0;
-    	commPlatformCePthread->ceLocalRequestCounts[i] = 0;
+        commPlatformCePthread->ceLocalRequestCounts[i] = 0;
     }
     return;
 }
 
-void cePthreadCommStart(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType,
-                   launchArg_t * launchArg) {
+void cePthreadCommStart(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
     return;
 }
 
@@ -69,8 +61,12 @@ void cePthreadCommFinish(ocrCommPlatform_t *commPlatform) {
 u8 cePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
                        ocrPolicyMsg_t **message) {
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
+    DPRINTF(DEBUG_LVL_INFO, "[CE] Sending Message: To %lu Src: %lu Count: %lu Type: %u\n", 
+            (u64)target, (u64)((*message)->srcLocation), 
+            commPlatformCePthread->responseCounts[target * PAD_SIZE], 
+            (*message)->type);
     deque_t * q = commPlatformCePthread->responseQueues[target];
-    q->pushAtTail(q, message, 0);
+    q->pushAtTail(q, (void*)(*message), 0);
     commPlatformCePthread->responseCounts[target * PAD_SIZE]++;
     return 0;
 }
@@ -87,6 +83,9 @@ u8 cePthreadCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message, u
             deque_t * q = commPlatformCePthread->requestQueues[idx];
             *message = (ocrPolicyMsg_t *) q->popFromHead(q, 0); 
             commPlatformCePthread->ceLocalRequestCounts[idx]++;
+            DPRINTF(DEBUG_LVL_INFO, "[CE] Received Message: From %lu Idx: %u Count: %lu Type: %u\n", 
+                   (u64)((*message)->srcLocation), idx, 
+                   commPlatformCePthread->ceLocalRequestCounts[idx], (*message)->type);
             commPlatformCePthread->startIdx = (idx + 1) % numXE;
             return 0;
         }
@@ -134,7 +133,7 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryCePthread(ocrParamList_t *perTyp
     base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*,
                                                   ocrWorkerType_t), cePthreadCommBegin);
     base->platformFcts.start = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*,
-                                                  ocrWorkerType_t, launchArg_t *), cePthreadCommStart);
+                                                  ocrWorkerType_t), cePthreadCommStart);
     base->platformFcts.stop = FUNC_ADDR(void (*)(ocrCommPlatform_t*), cePthreadCommStop);
     base->platformFcts.finish = FUNC_ADDR(void (*)(ocrCommPlatform_t*), cePthreadCommFinish);
     base->platformFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrLocation_t,

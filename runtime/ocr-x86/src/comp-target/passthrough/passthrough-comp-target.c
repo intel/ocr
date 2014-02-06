@@ -40,17 +40,17 @@ void ptBegin(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, ocrWorkerType
     compTarget->platforms[0]->fcts.begin(compTarget->platforms[0], PD, workerType);
 }
 
-void ptStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType,
-             launchArg_t * launchArg) {
+void ptStart(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, ocrWorker_t * worker) {
     // Get a GUID
     guidify(PD, (u64)compTarget, &(compTarget->fguid), OCR_GUID_COMPTARGET);
+    compTarget->worker = worker;
 
 #ifdef OCR_ENABLE_STATISTICS
     statsCOMPTARGET_START(PD, compTarget->fguid.guid, compTarget->fguid.metaDataPtr);
 #endif
 
     ASSERT(compTarget->platformCount == 1);
-    compTarget->platforms[0]->fcts.start(compTarget->platforms[0], PD, workerType, launchArg);
+    compTarget->platforms[0]->fcts.start(compTarget->platforms[0], PD, worker);
 }
 
 void ptStop(ocrCompTarget_t * compTarget) {

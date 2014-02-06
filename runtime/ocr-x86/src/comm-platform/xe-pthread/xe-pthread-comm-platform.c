@@ -28,6 +28,7 @@ void xePthreadCommDestruct (ocrCommPlatform_t * base) {
 
 void xePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
     ocrCommPlatformXePthread_t * commPlatformXePthread = (ocrCommPlatformXePthread_t*)commPlatform;
+    commPlatform->pd = PD;
     ocrPolicyDomain_t * cePD = (ocrPolicyDomain_t *)PD->parentLocation;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t *)cePD->workers[0]->computes[0]->platforms[0]->comm;
     //ASSERT(PD->myLocation < cePD->neighborCount); FIXME: Uncomment after populating neighbor relationships
@@ -39,8 +40,7 @@ void xePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD
     return;
 }
 
-void xePthreadCommStart(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType,
-                   launchArg_t * launchArg) {
+void xePthreadCommStart(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
     return;
 }
 
@@ -55,7 +55,11 @@ void xePthreadCommFinish(ocrCommPlatform_t *commPlatform) {
 u8 xePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
                        ocrPolicyMsg_t **message) {
     ocrCommPlatformXePthread_t * commPlatformXePthread = (ocrCommPlatformXePthread_t*)self;
-    commPlatformXePthread->requestQueue->pushAtTail(commPlatformXePthread->requestQueue, (void*)message, 0);
+    DPRINTF(DEBUG_LVL_INFO, "[XE%lu] Sending Message: From %lu Count: %lu Type: %u\n", 
+            (u64)commPlatformXePthread->base.pd->myLocation, 
+            (u64)((*message)->srcLocation), *commPlatformXePthread->requestCount, 
+            (*message)->type);
+    commPlatformXePthread->requestQueue->pushAtTail(commPlatformXePthread->requestQueue, (void*)(*message), 0);
     *commPlatformXePthread->requestCount += 1;
     return 0;
 }
@@ -108,7 +112,7 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryXePthread(ocrParamList_t *perTyp
     base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*,
                                                   ocrWorkerType_t), xePthreadCommBegin);
     base->platformFcts.start = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*,
-                                                  ocrWorkerType_t, launchArg_t *), xePthreadCommStart);
+                                                  ocrWorkerType_t), xePthreadCommStart);
     base->platformFcts.stop = FUNC_ADDR(void (*)(ocrCommPlatform_t*), xePthreadCommStop);
     base->platformFcts.finish = FUNC_ADDR(void (*)(ocrCommPlatform_t*), xePthreadCommFinish);
     base->platformFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrLocation_t,

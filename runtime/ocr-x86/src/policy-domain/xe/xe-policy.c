@@ -69,7 +69,7 @@ void xePolicyDomainStart(ocrPolicyDomain_t * policy) {
     
     guidify(policy, (u64)policy, &(policy->fguid), OCR_GUID_POLICY);
     
-    maxCount = policy->allocatorCount;
+    /*maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
         policy->allocators[i]->fcts.start(policy->allocators[i], policy);
     }
@@ -77,7 +77,7 @@ void xePolicyDomainStart(ocrPolicyDomain_t * policy) {
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
         policy->schedulers[i]->fcts.start(policy->schedulers[i], policy);
-    }
+    }*/
 
     // REC: Moved all workers to start here. 
     // Note: it's important to first logically start all workers.
@@ -681,8 +681,12 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
 #define PD_TYPE PD_MSG_COMM_TAKE
         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
         // XE currently has no scheduler. So, it sends a message to CE asking for work.
+        localDeguidify(self, (PD_MSG_FIELD(guids)));
         PD_MSG_FIELD(properties) = self->workers[0]->fcts.sendMessage(
             self->workers[0], self->parentLocation, &msg); 
+        PD_MSG_FIELD(properties) = self->workers[0]->fcts.waitMessage(
+            self->workers[0], &msg); 
+        localDeguidify(self, (PD_MSG_FIELD(guids)));
         // For now, we return the execute function for EDTs
         PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
 #undef PD_MSG
@@ -699,6 +703,8 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
         PD_MSG_FIELD(properties) = self->workers[0]->fcts.sendMessage(
             self->workers[0], self->parentLocation, &msg); 
+        PD_MSG_FIELD(properties) = self->workers[0]->fcts.waitMessage(
+            self->workers[0], &msg); 
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
@@ -943,11 +949,9 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
         ASSERT(0);
     }
 
-    // If we were blocking and needed a response we need to make sure there is one
     if(isBlocking && (msg->type & PD_MSG_REQ_RESPONSE)) {
-        ASSERT(msg->type & PD_MSG_RESPONSE); 
-        returnCode = self->workers[0]->fcts.waitMessage(
-            self->workers[0], &msg); 
+        ASSERT(msg->type & PD_MSG_RESPONSE); // If we were blocking and needed a response
+                                             // we need to make sure there is one
     }
     return returnCode;
 }
@@ -960,7 +964,7 @@ void* xePdMalloc(ocrPolicyDomain_t *self, u64 size) {
     ocrPolicyMsg_t* pmsg = &msg;
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_ALLOC
-    msg.type = PD_MSG_MEM_ALLOC_FOR_CLIENT; // and those of its own making.
+    msg.type = PD_MSG_MEM_ALLOC_FOR_CLIENT  | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE; // and those of its own making.
     // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE. BRN
 //    ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  // TODO: On second thought, maybe it is still applicable.  Experiment.  BRN 29 Jan 2014
     ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.

@@ -50,11 +50,6 @@ typedef struct _paramListCompTargetInst_t {
  * @brief Structure to store arguments when starting underlying
  * comp-platforms.
  */
-typedef struct _launchArg_t {
-    void * (*routine)(struct _launchArg_t *self); /**< function pointer to execute */
-    void * arg; /**< Optional argument */
-} launchArg_t;
-
 struct _ocrCompTarget_t;
 struct _ocrPolicyMsg_t;
 
@@ -75,12 +70,11 @@ typedef struct _ocrCompTargetFcts_t {
      * @brief Starts a comp-target (a thread of execution).
      *
      * @param[in] self          Pointer to this comp-target
-     * @param[in] PD            The policy domain bringing up the runtime
-     * @param[in] workerType    Type of the worker running on this comp-target
-     * @param[in] launchArg     Arguments passed to the comp-target to launch
+     * @param[in] PD            Policy domain of this comp-target
+     * @param[in] worker        Worker running on this comp-target
      */
-    void (*start)(struct _ocrCompTarget_t *self, struct _ocrPolicyDomain_t * PD,
-                  ocrWorkerType_t workerType, struct _launchArg_t * launchArg);
+    void (*start)(struct _ocrCompTarget_t *self, struct _ocrPolicyDomain_t *PD, 
+                  struct _ocrWorker_t * worker);
 
     /**
      * @brief Stops this comp-target
@@ -219,6 +213,7 @@ struct _ocrCompTarget_t;
 typedef struct _ocrCompTarget_t {
     ocrFatGuid_t fguid; /**< Guid of the comp-target */
     struct _ocrPolicyDomain_t *pd; /**< Policy domain this comp-target belongs to */
+    struct _ocrWorker_t * worker;  /**< Worker for this comp target */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif

@@ -27,18 +27,15 @@
 /* OCR-HC WORKER                                      */
 /******************************************************/
 
-/**
- * The computation worker routine that asks work to the scheduler
- */
-static void * workerRoutine(launchArg_t * arg);
-static void * masterRoutine(launchArg_t * arg);
-
 // Convenient to have an id to index workers in pools
 static inline u64 getWorkerId(ocrWorker_t * worker) {
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) worker;
     return hcWorker->id;
 }
 
+/**
+ * The computation worker routine that asks work to the scheduler
+ */
 static void workerLoop(ocrWorker_t * worker) {
     ocrPolicyDomain_t *pd = worker->pd;
     ocrPolicyMsg_t msg;
@@ -79,33 +76,6 @@ static void workerLoop(ocrWorker_t * worker) {
     } /* End of while loop */
 }
 
-static void * workerRoutine(launchArg_t* launchArg) {
-    // Need to pass down a data-structure
-    ocrWorker_t * worker = (ocrWorker_t *) launchArg->arg;
-    ocrPolicyDomain_t *pd = worker->pd;
-    pd->pdFree(pd, launchArg); // Free the launch argument
-
-    // Set who we are
-    u32 i;
-    for(i = 0; i < worker->computeCount; ++i) {
-        worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
-    }
-    
-    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
-    workerLoop(worker);
-    return NULL;
-}
-
-static void * masterRoutine(launchArg_t * launchArg) {
-    ocrWorker_t * worker = (ocrWorker_t *) launchArg->arg;
-    ocrPolicyDomain_t *pd = worker->pd;
-    pd->pdFree(pd, launchArg); // Free the launch argument
-    
-    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of master worker %ld\n", getWorkerId(worker));
-    workerLoop(worker);
-    return NULL;
-}
-
 void destructWorkerHc(ocrWorker_t * base) {
     u64 i = 0;
     while(i < base->computeCount) {
@@ -132,7 +102,7 @@ ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory,
     base->fcts = factory->workerFcts;
     
     worker->id = ((paramListWorkerHcInst_t*)perInstance)->workerId;
-    worker->run = false;
+    worker->running = false;
     worker->secondStart = false;
 
     base->type = ((paramListWorkerHcInst_t*)perInstance)->workerType;
@@ -148,7 +118,7 @@ void hcBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
     u64 computeCount = base->computeCount;
-    ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
+    ASSERT(computeCount == 1); 
     u64 i = 0;
     for(i = 0; i < computeCount; ++i) {
         base->computes[i]->fcts.begin(base->computes[i], policy, base->type);
@@ -181,31 +151,41 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     base->pd = policy;
     
     ASSERT(base->type != MASTER_WORKERTYPE || hcWorker->secondStart);
-    hcWorker->run = true;
+    hcWorker->running = true;
 
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
     u64 computeCount = base->computeCount;
     // What the compute target will execute
-    launchArg_t * launchArg = policy->pdMalloc(policy, sizeof(launchArg_t));
-    if(launchArg) {
-        launchArg->routine = (base->type == MASTER_WORKERTYPE)?masterRoutine:workerRoutine;
-        launchArg->arg = base;
-        ASSERT(computeCount == 1); // For now; o/w have to create more launchArg
-        u64 i = 0;
-        for(i = 0; i < computeCount; ++i) {
-            base->computes[i]->fcts.start(base->computes[i], policy, base->type, launchArg);
+    ASSERT(computeCount == 1); 
+    u64 i = 0;
+    for(i = 0; i < computeCount; ++i) {
+        base->computes[i]->fcts.start(base->computes[i], policy, base);
 #ifdef OCR_ENABLE_STATISTICS
-            statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
+        statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
 #endif
-        }
     }
     // Otherwise, it is highly likely that we are shutting down
 }
 
+void* hcRunWorker(ocrWorker_t * worker) {
+    if (worker->type != MASTER_WORKERTYPE) {
+        // Set who we are
+        ocrPolicyDomain_t *pd = worker->pd;
+        u32 i;
+        for(i = 0; i < worker->computeCount; ++i) {
+            worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
+        }
+    }
+    
+    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
+    workerLoop(worker);
+    return NULL;
+}
+
 void hcFinishWorker(ocrWorker_t * base) {
     DPRINTF(DEBUG_LVL_INFO, "Finishing worker routine %ld\n", getWorkerId(base));
-    ASSERT(base->computeCount == 1); // For now; o/w have to create more launchArg
+    ASSERT(base->computeCount == 1); 
     u64 i = 0;
     for(i = 0; i < base->computeCount; i++) {
         base->computes[i]->fcts.finish(base->computes[i]);
@@ -214,7 +194,7 @@ void hcFinishWorker(ocrWorker_t * base) {
 
 void hcStopWorker(ocrWorker_t * base) {
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
-    hcWorker->run = false;
+    hcWorker->running = false;
     
     u64 computeCount = base->computeCount;
     u64 i = 0;
@@ -247,7 +227,7 @@ void hcStopWorker(ocrWorker_t * base) {
 
 bool hcIsRunningWorker(ocrWorker_t * base) {
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
-    return hcWorker->run;
+    return hcWorker->running;
 }
 
 u8 hcSendMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg) {
@@ -281,6 +261,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
     base->workerFcts.destruct = destructWorkerHc;
     base->workerFcts.begin = hcBeginWorker;
     base->workerFcts.start = hcStartWorker;
+    base->workerFcts.run = hcRunWorker;
     base->workerFcts.stop = hcStopWorker;
     base->workerFcts.finish = hcFinishWorker;
     base->workerFcts.isRunning = hcIsRunningWorker;
