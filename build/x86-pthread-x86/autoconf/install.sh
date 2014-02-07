@@ -44,7 +44,7 @@ fi
 if [ -n "${INSTALL_ROOT}" ]; then
     INSTALL_ROOT="--prefix=${INSTALL_ROOT}"
 else
-    INSTALL_ROOT="--prefix=${PWD}/ocr-install"
+    INSTALL_ROOT="--prefix=${PWD}/../../../install/x86-pthread-x86"
 fi
 
 echo "[${PROJECT_NAME}] Bootstrap..."
