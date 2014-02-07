@@ -121,8 +121,9 @@ u64 find_function_address (char *fname, func_entry *func_lists, int func_list_si
   int i;
 
   for(i = 0; i<func_list_size; i++)
-    if(!strcmp(func_lists[i].func_name, fname))
+    if(!strcmp(func_lists[i].func_name, fname)) {
       return func_lists[i].offset;
+    }
 
   printf("Warning: %s not found in app, continuing...\n", fname);
   return 0;

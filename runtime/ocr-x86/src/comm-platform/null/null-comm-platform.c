@@ -80,10 +80,8 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryNull(ocrParamList_t *perType) {
         runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryNull_t), (void *)1);
 
     
-    base->instantiate = FUNC_ADDR(ocrCommPlatform_t* (*)(
-                                      ocrCommPlatformFactory_t*, ocrParamList_t*),
-                                  newCommPlatformNull);
-    base->destruct = FUNC_ADDR(void (*)(ocrCommPlatformFactory_t*), destructCommPlatformFactoryNull);
+    base->instantiate = newCommPlatformNull;
+    base->destruct = destructCommPlatformFactoryNull;
     base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCommPlatform_t*), nullCommDestruct);
     base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*,
                                                   ocrWorkerType_t), nullCommBegin);

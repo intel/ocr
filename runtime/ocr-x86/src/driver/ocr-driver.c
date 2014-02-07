@@ -124,15 +124,15 @@ extern u64 persistent_pointer;
 /* Format of this file:
  *
  * +--------------------------+
- * |  abs. location  (u64)    |
+ * | header size (incl) (u64) | = (5)*sizeof(u64)
  * +--------------------------+
- * |  abs. offset of PD (u64) |
+ * |  abs. location  (u64)    | = CeMemSize - 4K
  * +--------------------------+
- * |  size (from here) (u64)  |
+ * |  abs.address of PD (u64) | = abs.location + PD offset
  * +--------------------------+
- * | (u64)  location table sz |
+ * |  size (of structs) (u64) | = persistent_pointer
  * +--------------------------+
- * |  (u64 abs offs) locns    |
+ * |      PD->mylocation      |
  * +--------------------------+
  * |                          |
  * |     structs be here      |
@@ -142,27 +142,34 @@ extern u64 persistent_pointer;
 
 void dumpStructs(void *pd, const char* output_binary, u64 start_address) {
     FILE *fp = fopen(output_binary, "w");
-    u64 i, totu64 = 0;
+    u64 value, i, totu64 = 0;
+    u64 offset;
     u64 *ptrs = (u64 *)&persistent_chunk;
 
     if(fp == NULL) printf("Unable to open file %s for writing\n", output_binary);
     else {
-        u64 offset = (u64)pd - (u64)&persistent_chunk + (u64)start_address;
+        
+        // Write the header
+        // Header size
+        value = 5*sizeof(u64);
+        fwrite(&value, sizeof(u64), 1, fp); totu64++;
+
+        // Absolute location - currently read from config file
         fwrite(&start_address, sizeof(u64), 1, fp); totu64++;
-         
+
+        // PD address        
+        offset = (u64)pd - (u64)&persistent_chunk + (u64)start_address;
         fwrite(&offset, sizeof(u64), 1, fp); totu64++;
 
+        // Size of all structs
         fwrite(&persistent_pointer, sizeof(u64), 1, fp); totu64++;
 
-        //TODO: dump the list of all ocrLocation_t offsets here: so far it's just PD
-        
-        i = 1;
-        fwrite(&i, sizeof(u64), 1, fp); totu64++;
-
+        // myLocation
         offset = (u64)(&((ocrPolicyDomain_t *)pd)->myLocation) - (u64)&persistent_chunk + (u64)start_address;
         fwrite(&offset, sizeof(u64), 1, fp); totu64++;
 
-        // Fix up all the pointers (FIXME: potential low-likelihood bug; need to be improved upon)
+        // Fix up all the pointers 
+        // (FIXME: potential low-likelihood bug due to address collision; need to be improved upon)
         for(i = 0; i<(persistent_pointer/sizeof(u64)); i++) {
             if((ptrs[i] > (u64)ptrs) && (ptrs[i] < (u64)(ptrs+persistent_pointer))) {
                 ptrs[i] -= (u64)ptrs; 

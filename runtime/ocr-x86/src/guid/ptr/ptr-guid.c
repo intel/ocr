@@ -149,16 +149,16 @@ ocrGuidProviderFactory_t *newGuidProviderFactoryPtr(ocrParamList_t *typeArg, u32
     base->instantiate = &newGuidProviderPtr;
     base->destruct = &destructGuidProviderFactoryPtr;
     base->factoryId = factoryId;
-    base->providerFcts.destruct = &ptrDestruct;
-    base->providerFcts.begin = &ptrBegin;
-    base->providerFcts.start = &ptrStart;
-    base->providerFcts.stop = &ptrStop;
-    base->providerFcts.finish = &ptrFinish;
-    base->providerFcts.getGuid = &ptrGetGuid;
-    base->providerFcts.createGuid = &ptrCreateGuid;
-    base->providerFcts.getVal = &ptrGetVal;
-    base->providerFcts.getKind = &ptrGetKind;
-    base->providerFcts.releaseGuid = &ptrReleaseGuid;
+    base->providerFcts.destruct = FUNC_ADDR(void (*)(ocrGuidProvider_t*), ptrDestruct);
+    base->providerFcts.begin = FUNC_ADDR(void (*)(ocrGuidProvider_t*, ocrPolicyDomain_t*), ptrBegin);
+    base->providerFcts.start = FUNC_ADDR(void (*)(ocrGuidProvider_t*, ocrPolicyDomain_t*), ptrStart);
+    base->providerFcts.stop = FUNC_ADDR(void (*)(ocrGuidProvider_t*), ptrStop);
+    base->providerFcts.finish = FUNC_ADDR(void (*)(ocrGuidProvider_t*), ptrFinish);
+    base->providerFcts.getGuid = FUNC_ADDR(u8 (*)(ocrGuidProvider_t*, ocrGuid_t*, u64, ocrGuidKind), ptrGetGuid);
+    base->providerFcts.createGuid = FUNC_ADDR(u8 (*)(ocrGuidProvider_t*, ocrFatGuid_t*, u64, ocrGuidKind), ptrCreateGuid);
+    base->providerFcts.getVal = FUNC_ADDR(u8 (*)(ocrGuidProvider_t*, ocrGuid_t, u64*, ocrGuidKind*), ptrGetVal);
+    base->providerFcts.getKind = FUNC_ADDR(u8 (*)(ocrGuidProvider_t*, ocrGuid_t, ocrGuidKind*), ptrGetKind);
+    base->providerFcts.releaseGuid = FUNC_ADDR(u8 (*)(ocrGuidProvider_t*, ocrFatGuid_t, bool), ptrReleaseGuid);
 
     return base;
 }

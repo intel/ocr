@@ -268,7 +268,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
 /* OCR DATABLOCK REGULAR FACTORY                      */
 /******************************************************/
 
-static void destructRegularFactory(ocrDataBlockFactory_t *factory) {
+void destructRegularFactory(ocrDataBlockFactory_t *factory) {
     runtimeChunkFree((u64)factory, NULL);
 }
 

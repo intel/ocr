@@ -1135,7 +1135,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * policy,
 #endif
     base->costFunction = costFunction;
 
-    base->destruct = hcPolicyDomainDestruct;
+    base->destruct = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), hcPolicyDomainDestruct);
     base->begin = hcPolicyDomainBegin;
     base->start = hcPolicyDomainStart;
     base->stop = hcPolicyDomainStop;

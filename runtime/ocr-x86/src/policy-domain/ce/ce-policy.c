@@ -1027,14 +1027,14 @@ ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * policy,
 #endif
     base->costFunction = costFunction;
 
-    base->destruct = cePolicyDomainDestruct;
-    base->begin = cePolicyDomainBegin;
-    base->start = cePolicyDomainStart;
-    base->stop = cePolicyDomainStop;
-    base->finish = cePolicyDomainFinish;
-    base->processMessage = cePolicyDomainProcessMessage;
-    base->pdMalloc = cePdMalloc;
-    base->pdFree = cePdFree;
+    base->destruct = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), cePolicyDomainDestruct);
+    base->begin = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), cePolicyDomainBegin);
+    base->start = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), cePolicyDomainStart);
+    base->stop = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), cePolicyDomainStop);
+    base->finish = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), cePolicyDomainFinish);
+    base->processMessage = FUNC_ADDR(u8 (*)(ocrPolicyDomain_t *, ocrPolicyMsg_t *msg, u8 isBlocking), cePolicyDomainProcessMessage);
+    base->pdMalloc = FUNC_ADDR(void* (*)(ocrPolicyDomain_t *, u64), cePdMalloc);
+    base->pdFree = FUNC_ADDR(void (*)(ocrPolicyDomain_t *, void*), cePdFree);
 #ifdef OCR_ENABLE_STATISTICS
     base->getStats = ceGetStats;
 #endif
