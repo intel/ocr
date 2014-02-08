@@ -17,20 +17,20 @@ XE_STRUCT=4096
 # Total size in ascii goes first: 8 characters
 let size=${LEAF_CE_STRUCT}+${XE_STRUCT}
 size=`printf "%08d" $size`
-echo -n $size > ${3}
+echo -n $size > ${4}
 
 # Copy the CE struct file
-cat $1 >> $3
+cat $1 >> $4
 
 # Zero pad it
 size=`stat -c%s $1`
 let size=${LEAF_CE_STRUCT}-$size
-dd if=/dev/zero ibs=1 count=$size status=none >> $3
+dd if=/dev/zero ibs=1 count=$size status=none >> $4
 
 # Do the same with XE struct file
-cat $2 >> $3
+cat $2 >> $4
 size=`stat -c%s $1`
 let size=${LEAF_CE_STRUCT}-$size
-dd if=/dev/zero ibs=1 count=$size status=none >> $3
+dd if=/dev/zero ibs=1 count=$size status=none >> $4
 
 fi
