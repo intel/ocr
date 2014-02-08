@@ -1,0 +1,36 @@
+#!/bin/bash
+
+if [ $# -ne 4 ]
+then
+echo "Usage: ${0} <CE struct file> <XE struct file> <Existing bin file> <Output bin file>" 
+else
+
+LEAF_CE_STRUCT=4096
+XE_STRUCT=4096 
+
+# This file aggregates multiple binary files resulting in the following layout:
+# 1. Total size of "struct binaries" in ascii
+# 2. CE Struct binary
+# 3. XE Struct binary
+# 4. Rest of binary
+
+# Total size in ascii goes first: 8 characters
+let size=${LEAF_CE_STRUCT}+${XE_STRUCT}
+size=`printf "%08d" $size`
+echo -n $size > ${3}
+
+# Copy the CE struct file
+cat $1 >> $3
+
+# Zero pad it
+size=`stat -c%s $1`
+let size=${LEAF_CE_STRUCT}-$size
+dd if=/dev/zero ibs=1 count=$size status=none >> $3
+
+# Do the same with XE struct file
+cat $2 >> $3
+size=`stat -c%s $1`
+let size=${LEAF_CE_STRUCT}-$size
+dd if=/dev/zero ibs=1 count=$size status=none >> $3
+
+fi
