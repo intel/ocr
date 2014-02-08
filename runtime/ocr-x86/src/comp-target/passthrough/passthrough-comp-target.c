@@ -136,17 +136,17 @@ ocrCompTargetFactory_t *newCompTargetFactoryPt(ocrParamList_t *perType) {
         runtimeChunkAlloc(sizeof(ocrCompTargetFactoryPt_t), (void *)1);
     base->instantiate = &newCompTargetPt;
     base->destruct = &destructCompTargetFactoryPt;
-    base->targetFcts.destruct = &ptDestruct;
-    base->targetFcts.begin = &ptBegin;
-    base->targetFcts.start = &ptStart;
-    base->targetFcts.stop = &ptStop;
-    base->targetFcts.finish = &ptFinish;
-    base->targetFcts.getThrottle = &ptGetThrottle;
-    base->targetFcts.setThrottle = &ptSetThrottle;
-    base->targetFcts.sendMessage = &ptSendMessage;
-    base->targetFcts.pollMessage = &ptPollMessage;
-    base->targetFcts.waitMessage = &ptWaitMessage;
-    base->targetFcts.setCurrentEnv = &ptSetCurrentEnv;
+    base->targetFcts.destruct = FUNC_ADDR(void (*)(ocrCompTarget_t*), ptDestruct);
+    base->targetFcts.begin = FUNC_ADDR(void (*)(ocrCompTarget_t*, ocrPolicyDomain_t*, ocrWorkerType_t), ptBegin);
+    base->targetFcts.start = FUNC_ADDR(void (*)(ocrCompTarget_t*, ocrPolicyDomain_t*, ocrWorker_t*), ptStart);
+    base->targetFcts.stop = FUNC_ADDR(void (*)(ocrCompTarget_t*), ptStop);
+    base->targetFcts.finish = FUNC_ADDR(void (*)(ocrCompTarget_t*), ptFinish);
+    base->targetFcts.getThrottle = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, u64*), ptGetThrottle);
+    base->targetFcts.setThrottle = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, u64), ptSetThrottle);
+    base->targetFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, ocrLocation_t, ocrPolicyMsg_t**), ptSendMessage);
+    base->targetFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, ocrPolicyMsg_t**, u32), ptPollMessage);
+    base->targetFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, ocrPolicyMsg_t**), ptWaitMessage);
+    base->targetFcts.setCurrentEnv = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, ocrPolicyDomain_t*, ocrWorker_t*), ptSetCurrentEnv);
 
     return base;
 }

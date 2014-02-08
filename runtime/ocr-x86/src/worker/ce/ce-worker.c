@@ -39,6 +39,7 @@ static inline u64 getWorkerId(ocrWorker_t * worker) {
 static void workerLoop(ocrWorker_t * worker) {
     ocrPolicyDomain_t *pd = worker->pd;
     ocrPolicyMsg_t *msgPtr;
+    DPRINTF(DEBUG_LVL_VERB, "Starting scheduler routine of CE worker %ld\n", getWorkerId(worker));
     while(worker->fcts.isRunning(worker)) {
         msgPtr = NULL;
         worker->fcts.waitMessage(worker, &msgPtr);
@@ -111,10 +112,14 @@ void ceBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 void ceStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 
     ocrWorkerCe_t * ceWorker = (ocrWorkerCe_t *) base;
+
+#ifdef ENABLE_COMP_PLATFORM_PTHREAD  // Sanjay, the below should go away
+                                     // since it's not applicable to FSim
     if(!ceWorker->secondStart) {
         ceWorker->secondStart = true;
         return; // Don't start right away
     }
+#endif
     
     // Get a GUID
     guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);

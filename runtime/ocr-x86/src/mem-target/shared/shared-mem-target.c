@@ -148,17 +148,17 @@ ocrMemTargetFactory_t *newMemTargetFactoryShared(ocrParamList_t *perType) {
         runtimeChunkAlloc(sizeof(ocrMemTargetFactoryShared_t), (void *)1);
     base->instantiate = &newMemTargetShared;
     base->destruct = &destructMemTargetFactoryShared;
-    base->targetFcts.destruct = &sharedDestruct;
-    base->targetFcts.begin = &sharedBegin;
-    base->targetFcts.start = &sharedStart;
-    base->targetFcts.stop = &sharedStop;
-    base->targetFcts.finish = &sharedFinish;
-    base->targetFcts.getThrottle = &sharedGetThrottle;
-    base->targetFcts.setThrottle = &sharedSetThrottle;
-    base->targetFcts.getRange = &sharedGetRange;
-    base->targetFcts.chunkAndTag = &sharedChunkAndTag;
-    base->targetFcts.tag = &sharedTag;
-    base->targetFcts.queryTag = &sharedQueryTag;
+    base->targetFcts.destruct = FUNC_ADDR(void (*)(ocrMemTarget_t*), sharedDestruct);
+    base->targetFcts.begin = FUNC_ADDR(void (*)(ocrMemTarget_t*, ocrPolicyDomain_t*), sharedBegin);
+    base->targetFcts.start = FUNC_ADDR(void (*)(ocrMemTarget_t*, ocrPolicyDomain_t*), sharedStart);
+    base->targetFcts.stop = FUNC_ADDR(void (*)(ocrMemTarget_t*), sharedStop);
+    base->targetFcts.finish = FUNC_ADDR(void (*)(ocrMemTarget_t*), sharedFinish);
+    base->targetFcts.getThrottle = FUNC_ADDR(u8 (*)(ocrMemTarget_t*, u64*), sharedGetThrottle);
+    base->targetFcts.setThrottle = FUNC_ADDR(u8 (*)(ocrMemTarget_t*, u64), sharedSetThrottle);
+    base->targetFcts.getRange = FUNC_ADDR(void (*)(ocrMemTarget_t*, u64*, u64*), sharedGetRange);
+    base->targetFcts.chunkAndTag = FUNC_ADDR(u8 (*)(ocrMemTarget_t*, u64*, u64, ocrMemoryTag_t, ocrMemoryTag_t), sharedChunkAndTag);
+    base->targetFcts.tag = FUNC_ADDR(u8 (*)(ocrMemTarget_t*, u64, u64, ocrMemoryTag_t), sharedTag);
+    base->targetFcts.queryTag = FUNC_ADDR(u8 (*)(ocrMemTarget_t*, u64*, u64*, ocrMemoryTag_t*, u64), sharedQueryTag);
     
     return base;
 }

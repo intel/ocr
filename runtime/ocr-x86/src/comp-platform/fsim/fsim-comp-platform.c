@@ -20,6 +20,82 @@
 
 #define DEBUG_TYPE COMP_PLATFORM
 
+// Ugly globals, but similar globals exist in pthread as well
+// FIXME: These globals need to be moved out into their own registers
+
+ocrPolicyDomain_t *myPD = NULL;
+ocrWorker_t *myWorker = NULL;
+
+static void * fsimRoutineExecute(ocrWorker_t * worker) {
+    return worker->fcts.run(worker);
+}
+
+void fsimCompDestruct (ocrCompPlatform_t * base) {
+    // HACK
+    //base->comm->fcts.destruct(base->comm);
+    runtimeChunkFree((u64)base, NULL);
+}
+
+void fsimCompBegin(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
+    
+    ocrCompPlatformFsim_t * fsimCompPlatform = (ocrCompPlatformFsim_t *) compPlatform;
+    compPlatform->pd = PD;
+
+    // HACK
+    compPlatform->comm->fcts.begin(compPlatform->comm, PD, workerType);
+}
+
+void fsimCompStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrWorker_t * worker) {
+    ocrCompPlatformFsim_t * fsimCompPlatform = (ocrCompPlatformFsim_t *) compPlatform;
+    compPlatform->worker = worker;
+
+    fsimRoutineExecute(worker);
+}
+
+void fsimCompStop(ocrCompPlatform_t * compPlatform) {
+    // Nothing to do really
+    // HACK
+    //compPlatform->comm->fcts.stop(compPlatform->comm);
+}
+
+void fsimCompFinish(ocrCompPlatform_t *compPlatform) {
+    // HACK
+    //compPlatform->comm->fcts.finish(compPlatform->comm);
+}
+
+u8 fsimCompGetThrottle(ocrCompPlatform_t *self, u64* value) {
+    return 1;
+}
+
+u8 fsimCompSetThrottle(ocrCompPlatform_t *self, u64 value) {
+    return 1;
+}
+
+u8 fsimCompSendMessage(ocrCompPlatform_t *self, ocrLocation_t target,
+                      ocrPolicyMsg_t **message) {
+    return self->comm->fcts.sendMessage(self->comm, target, message);
+}
+
+u8 fsimCompPollMessage(ocrCompPlatform_t *self, ocrPolicyMsg_t **message, u32 mask) {
+    return self->comm->fcts.pollMessage(self->comm, message, mask);
+}
+
+u8 fsimCompWaitMessage(ocrCompPlatform_t *self, ocrPolicyMsg_t **message) {
+    return self->comm->fcts.waitMessage(self->comm, message);
+}
+
+u8 fsimCompSetCurrentEnv(ocrCompPlatform_t *self, ocrPolicyDomain_t *pd,
+                        ocrWorker_t *worker) {
+
+    myPD = pd;
+    myWorker = worker;
+    return 0;
+}
+
+/******************************************************/
+/* OCR COMP PLATFORM FSIM FACTORY                  */
+/******************************************************/
+
 ocrCompPlatform_t* newCompPlatformFsim(ocrCompPlatformFactory_t *factory,
                                        ocrParamList_t *perInstance) {
 
@@ -28,17 +104,10 @@ ocrCompPlatform_t* newCompPlatformFsim(ocrCompPlatformFactory_t *factory,
 
     compPlatformFsim->base.comm = NULL;
         
-    paramListCompPlatformFsim_t * params =
-        (paramListCompPlatformFsim_t *) perInstance;
-    
     compPlatformFsim->base.fcts = factory->platformFcts;
 
     return (ocrCompPlatform_t*)compPlatformFsim;
 }
-
-/******************************************************/
-/* OCR COMP PLATFORM FSIM FACTORY                  */
-/******************************************************/
 
 void destructCompPlatformFactoryFsim(ocrCompPlatformFactory_t *factory) {
     runtimeChunkFree((u64)factory, NULL);
@@ -46,7 +115,14 @@ void destructCompPlatformFactoryFsim(ocrCompPlatformFactory_t *factory) {
 
 void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
                    ocrTask_t **task, ocrPolicyMsg_t* msg) {
-
+    if(pd)
+        *pd = myPD;
+    if(worker)
+        *worker = myWorker;
+    if(myWorker && task)
+        *task = myWorker->curTask;
+    if(msg)
+        msg->srcLocation = myPD->myLocation;
 }
 
 ocrCompPlatformFactory_t *newCompPlatformFactoryFsim(ocrParamList_t *perType) {
@@ -57,20 +133,17 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryFsim(ocrParamList_t *perType) {
 
     base->instantiate = &newCompPlatformFsim;
     base->destruct = &destructCompPlatformFactoryFsim;
-    base->platformFcts.destruct = NULL;
-    base->platformFcts.begin = NULL;
-    base->platformFcts.start = NULL;
-    base->platformFcts.stop = NULL;
-    base->platformFcts.finish = NULL;
-    base->platformFcts.getThrottle = NULL;
-    base->platformFcts.setThrottle = NULL;
-    base->platformFcts.sendMessage = NULL;
-    base->platformFcts.pollMessage = NULL;
-    base->platformFcts.waitMessage = NULL;
-    base->platformFcts.setCurrentEnv = NULL;
-
-    paramListCompPlatformFsim_t * params =
-      (paramListCompPlatformFsim_t *) perType;
+    base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCompPlatform_t*), fsimCompDestruct);
+    base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCompPlatform_t*, ocrPolicyDomain_t*, ocrWorkerType_t), fsimCompBegin);
+    base->platformFcts.start = FUNC_ADDR(void (*)(ocrCompPlatform_t*, ocrPolicyDomain_t*, ocrWorker_t*), fsimCompStart);
+    base->platformFcts.stop = FUNC_ADDR(void (*)(ocrCompPlatform_t*), fsimCompStop);
+    base->platformFcts.finish = FUNC_ADDR(void (*)(ocrCompPlatform_t*), fsimCompFinish);
+    base->platformFcts.getThrottle = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, u64*), fsimCompGetThrottle);
+    base->platformFcts.setThrottle = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, u64), fsimCompSetThrottle);
+    base->platformFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, ocrLocation_t, ocrPolicyMsg_t**), fsimCompSendMessage);
+    base->platformFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, ocrPolicyMsg_t**, u32), fsimCompPollMessage);
+    base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, ocrPolicyMsg_t**), fsimCompWaitMessage);
+    base->platformFcts.setCurrentEnv = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, ocrPolicyDomain_t*, ocrWorker_t*), fsimCompSetCurrentEnv);
 
     return base;
 }

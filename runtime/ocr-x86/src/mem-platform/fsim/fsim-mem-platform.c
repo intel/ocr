@@ -19,6 +19,8 @@
 #include "ocr-mem-platform.h"
 #include "ocr-sysboot.h"
 
+#define DEBUG_TYPE MEM_PLATFORM
+
 // Poor man's basic lock
 #define INIT_LOCK(addr) do {*addr = 0;} while(0);
 #define LOCK(addr) do { hal_lock32(addr); } while(0);
@@ -38,10 +40,11 @@ struct _ocrPolicyDomain_t;
 void fsimBegin(ocrMemPlatform_t *self, struct _ocrPolicyDomain_t * PD ) {
     // This is where we need to update the memory
     // using the sysboot functions
-    self->startAddr = (u64)0xdeadbeef; // TODO: Bala to update this based on cfg file
+    self->startAddr = (u64)0x20000; // TODO: Bala to update this based on cfg file
     ASSERT(self->startAddr);
     self->endAddr = self->startAddr + self->size;
 
+DPRINTF(DEBUG_LVL_VERB, "Initializing memory range %lx to %lx\n", self->startAddr, self->endAddr);
     ocrMemPlatformFsim_t *rself = (ocrMemPlatformFsim_t*)self;
     initializeRange(&(rself->rangeTracker), 16, self->startAddr,
                     self->endAddr, USER_FREE_TAG);

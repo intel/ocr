@@ -55,6 +55,7 @@
 
 // Mem-platform
 #define ENABLE_MEM_PLATFORM_MALLOC
+#define ENABLE_MEM_PLATFORM_FSIM
 
 // Mem-target
 #define ENABLE_MEM_TARGET_SHARED

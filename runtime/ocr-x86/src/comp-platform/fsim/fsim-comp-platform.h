@@ -26,14 +26,11 @@ typedef struct {
 typedef struct {
     ocrCompPlatform_t base;
     u64 stackSize;
-    s32 binding;
-    bool isMaster;
 } ocrCompPlatformFsim_t;
 
 typedef struct {
     paramListCompPlatformInst_t base;
     u64 stackSize;
-    s32 binding;
 } paramListCompPlatformFsim_t;
 
 extern ocrCompPlatformFactory_t* newCompPlatformFactoryFsim(ocrParamList_t *perType);
