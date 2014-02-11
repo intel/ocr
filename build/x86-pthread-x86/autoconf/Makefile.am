@@ -10,8 +10,10 @@ AUX_DIST = \
 	$(ac_aux_dir)/depcomp
 
 library_includedir=$(includedir)
-library_include_HEADERS = $(rootdir)/inc/ocr-db.h $(rootdir)/inc/ocr-edt.h $(rootdir)/inc/ocr-tuning.h \
-$(rootdir)/inc/ocr-types.h $(rootdir)/inc/ocr.h $(rootdir)/inc/compat.h $(rootdir)/inc/ocr-stathooks.h
+library_include_HEADERS = $(rootdir)/inc/ocr-db.h $(rootdir)/inc/ocr-edt.h $(rootdir)/inc/ocr-errors.h \
+$(rootdir)/inc/ocr-tuning.h $(rootdir)/inc/ocr-types.h $(rootdir)/inc/ocr.h $(rootdir)/inc/compat.h \
+$(rootdir)/inc/ocr-stathooks.h
+
 
 # Distribute runtime interface headers - set by configure
 if INCLUDE_RUNTIME_ITF_HEADERS
