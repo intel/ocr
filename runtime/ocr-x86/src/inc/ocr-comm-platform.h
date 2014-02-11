@@ -16,7 +16,9 @@
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
 
+struct _ocrCommApi_t;
 struct _ocrPolicyDomain_t;
+struct _ocrPolicyMsg_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -43,7 +45,7 @@ typedef struct _paramListCommPlatformInst_t {
 /****************************************************/
 
 struct _ocrCommPlatform_t;
-struct _ocrPolicyMsg_t;
+
 /**
  * @brief Comm-platform function pointers
  *
@@ -56,7 +58,7 @@ typedef struct _ocrCommPlatformFcts_t {
     void (*destruct)(struct _ocrCommPlatform_t *self);
 
     void (*begin)(struct _ocrCommPlatform_t *self, struct _ocrPolicyDomain_t *PD,
-                  ocrWorkerType_t workerType);
+                  struct _ocrCommApi_t *comm);
 
     /**
      * @brief Starts a comm-platform (a communication entity).
@@ -66,7 +68,7 @@ typedef struct _ocrCommPlatformFcts_t {
      * @param[in] workerType    Type of the worker runnning on this comp-platform
      */
     void (*start)(struct _ocrCommPlatform_t *self, struct _ocrPolicyDomain_t * PD,
-                  ocrWorkerType_t workerType);
+                  struct _ocrCommApi_t *comm);
 
     /**
      * @brief Stops this comp-platform
@@ -75,82 +77,149 @@ typedef struct _ocrCommPlatformFcts_t {
     void (*stop)(struct _ocrCommPlatform_t *self);
 
     void (*finish)(struct _ocrCommPlatform_t *self);
+
+    /**
+     * @brief Tells the communication platfrom that the biggest
+     * messages expected are of size 'size'
+     *
+     * Certain implementations may need/want to pre-allocated
+     * structures to receive incomming messages. This indicates how
+     * big the biggest message that is expected is for a particular
+     * mask (mask of 0 means all messages).
+     *
+     * This call can be called multiple times if new information about
+     * message sizes comes in (for example a query will require a larger
+     * response than usual).
+     *
+     * @param[in] self          Pointer to this
+     * @param[in] size          Maximum expected size for the mask given
+     * @param[in] mask          Mask (0 means no mask so all messages)
+     * @return 0 on success and a non-zero error code
+     */
+    u8 (*setMaxExpectedMessageSize)(struct _ocrCommPlatform_t *self, u64 size, u32 mask);
     
     /**
      * @brief Send a message to another target
      *
-     * This call, which executes on the compute platform
-     * making the call, will send an asynchronous message to target. There is
-     * no expectation of a result to be sent back but the target may send
-     * "back" a one-way message at a later point.
+     * This call, which executes on the compute platform making the call,
+     * will send an asynchronous message to target. The call will, if the user
+     * wants it, return an ID to check on the status of the message
      *
-     * The exact implementation of the message sent is implementation dependent
-     * and may even be a fully synchronous call but users of this call
-     * should assume asynchrony. The exact communication protocol is also
-     * implementation dependent.
+     * The actual implementation of this function may be a fully synchronous
+     * call but users of this call should assume asynchrony.
+     *
+     * The 'properties' field allows the caller to specify the way the call
+     * is being made with regards to the lifetime of 'message':
+     *    - if (properties & TWOWAY_MSG_PROP) is non zero:
+     *        - An "answer" to this message is expected. This flag is used in
+     *          conjunction with PERSIST_MSG_PROP
+     *    - if (properties & PERSIST_MSG_PROP) is non zero:
+     *        - If TWOWAY_MSG_PROP: the comm-platform can use the message space
+     *          to send the message and does not need to free it
+     *        - If not TWOWAY_MSG_PROP: the comm-platform must free message using
+     *          pdFree when it no longer needs it.
+     * To recap the values of properties:
+     *     - 0: The comm-platform needs to make a copy of the message or "fully"
+     *          send it before returning
+     *     - TWOWAY_MSG_PROP: Invalid value (ignored)
+     *     - TWOWAY_MSG_PROP | PERSIST_MSG_PROP: The comm-platform can use
+     *       msg to send the message (no copy needed). It should NOT free msg
+     *     - PERSIST_MSG_PROP: The comm-platform needs to free msg at some point
+     *       using pdFree when it has finished using the buffer.
+     * The properties can also encode a priority which, if supported, will cause
+     * the receiving end's poll/wait to prioritize messages with higher priority
+     * if multiple messages are available.
+     *
+     * The 'bufferSize' parameter indicates to the underlying implementation:
+     *   - how big the message to send effectively is
+     *   - how big the actual allocation of message really is
+     *   - usually, the message to send is much smaller than sizeof(ocrPolicyMsg_t)
+     *     due to the use of a union in that structure.
+     *
+     * The mask parameter allows the underlying implementation to differentiate
+     * messages if it wants to (see setMaxExpectedMessageSize())
      *
      * @param[in] self        Pointer to this
      * @param[in] target      Target to communicate with
-     * @param[in/out] message Message to send. In the general case, this is
-     *                        used as input and instructs the comp-target
-     *                        to send the message given but it may be updated
-     *                        and should be used if waitMessage is called
-     *                        later. Note the pointer-to-pointer argument.
-     *                        If a new message is created (and its pointer
-     *                        returned in the call), the old message will *not*
-     *                        be freed and it is up to the caller to properly
-     *                        dispose of it (may be on the stack).
-     *                        The new message, once fully used, needs to
-     *                        be disposed of with pdFree
+     * @param[in] message     Message to send
+     * @param[in] bufferSize  Bottom 32 bits: actual size of the message to send
+     *                        (starting at 'message').
+     *                        Top 32 bits: real size of the buffer starting at
+     *                        buffer. 
+     * @param[out] id         If non-NULL, an ID is returned which can be used
+     *                        in getMessageStatus. Note that getMessageStatus
+     *                        may always return MSG_NORMAL.
+     * @param[in] properties  Properties for this send. See above.
+     * @param[in] mask        Mask of the outgoing message (may be ignored)
      * @return 0 on success and a non-zero error code
      */
-    u8 (*sendMessage)(struct _ocrCommPlatform_t* self,
-                      ocrLocation_t target,
-                      struct _ocrPolicyMsg_t **message);
+    u8 (*sendMessage)(struct _ocrCommPlatform_t* self, ocrLocation_t target,
+                      struct _ocrPolicyMsg_t *message, u64 bufferSize, u64 *id,
+                      u32 properties, u32 mask);
 
     /**
-     * @brief Checks if a message has been received by the comm platform and,
-     * if so, will return a pointer to that message in 'message'
+     * @brief Non-blocking check for incomming messages
      *
-     * The use case for this function is for the worker "loop" to
-     * periodically check if it has services to perform for other policy domains.
-     *
-     * If waiting for a specific message, make sure to pass the message returned
-     * by sendMessage.
-     *
-     * @param self[in]        Pointer to this comp-platform
-     * @param message[in/out] If a message is available, its pointer will be.
-     *                        If *message is NULL on input, this function will
-     *                        poll for ANY messages that meet the mask property (see
-     *                        below). If *message is non NULL, this function
-     *                        will poll for only that specific message.
-     *                        The message returned needs to be freed using pdFree.
-     * @param mask[in]        If non-zero, this function will only return messages
-     *                        whose 'property' variable ORed with this mask returns
-     *                        a non-zero value
-     * @return #POLL_MO_MESSAGE, #POLL_MORE_MESSAGE, #POLL_ERR_MASK
+     * This function checks for ANY incomming message
+     * @param[in] self        Pointer to this comm-platform
+     * @param[out] msg        Returns a pointer to an ocrPolicyMsg_t. Once
+     *                        used by the upper levels, the returned pointer
+     *                        needs to be "freed" using destructMessage.
+     *                        If *msg is NULL on return, check return code
+     *                        to see if there was an error or if no messages
+     *                        were available
+     * @param[in] properties  Unused for now
+     * @param[out] mask       Mask of the returned message (may always be 0)
+     * @return 
+     * #POLL_NO_MESSAGE: 0 messages found
+     * 0 : Only 1 message found
+     * #POLL_MORE_MESSAGE: 1 message found but more available
+     * #POLL_ERR_MASK
      */
-    u8 (*pollMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t **message, u32 mask);
+    u8 (*pollMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t **msg,
+                      u32 properties, u32 *mask);
 
     /**
-     * @brief Waits for a response to the message 'message'
+     * @brief Blocking check for incomming messages
      *
-     * This call should only be called in very limited circumstances when the
-     * originating call that generated the message is synchronous (for example
-     * user calls to OCR).
-     *
-     * This call will block until message has received a response. Make sure
-     * to pass the same message as the one returned by sendMessage (as it may
-     * have been modified by sendMessage for book-keeping purposes)
-     *
-     * @param self[in]        Pointer to this comm-platform
-     * @param message[in/out] As input, this determines which message to wait
-     *                        for. Note that this is a pointer to a pointer.
-     *                        The returned message, once used, needs to be
-     *                        freed with pdFree.
+     * This function checks for ANY incomming message
+     * @param[in] self        Pointer to this comm-platform
+     * @param[out] msg        Returns a pointer to an ocrPolicyMsg_t. Once
+     *                        used by the upper levels, the returned pointer
+     *                        needs to be "freed" using destructMessage.
+     *                        If *msg is NULL on return, an error has occured
+     * @param[in] properties  Unused for now
+     * @param[out] mask       Mask of the returned message (may always be 0)
      * @return 0 on success and a non-zero error code
      */
-    u8 (*waitMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t **message);    
+    u8 (*waitMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t **msg,
+                      u32 properties, u32 *mask);
+
+    /**
+     * @brief Releases/frees a message returned by pollMessage/waitMessage
+     *
+     * Implementations may vary in how this is implemented. This call must
+     * be called at some point after pollMessage/waitMessage on the returned message
+     * buffer
+     *
+     * @param[in] self          Pointer to this comm-platform
+     * @param[out] msg          Pointer to the message to destroy. The caller guarantees
+     *                          that it is done using that message buffer
+     * @return 0 on success and a non-zero error code
+     */
+    u8 (*destructMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t *msg);
+
+    /**
+     * @brief Returns the status of a message sent via sentMessage
+     *
+     * Note that some implementations may not return any useful status and always
+     * return UNKNOWN_MSG_STATUS.
+     *
+     * @param[in] self          Pointer to this comm-platform
+     * @param[in] id            ID returned by sendMessage
+     * @return The status of the message
+     */
+    ocrMsgStatus_t (*getMessageStatus)(struct _ocrCommPlatform_t *self, u64 id);
 } ocrCommPlatformFcts_t;
 
 /**
@@ -188,11 +257,10 @@ typedef struct _ocrCommPlatformFactory_t {
      * @param factory       Pointer to the factory to destroy.
      */
     void (*destruct)(struct _ocrCommPlatformFactory_t *factory);
-    
+
     ocrCommPlatformFcts_t platformFcts; /**< Function pointers created instances should use */
 } ocrCommPlatformFactory_t;
 
 void initializeCommPlatformOcr(ocrCommPlatformFactory_t * factory, ocrCommPlatform_t * self, ocrParamList_t *perInstance);
 
 #endif /* __OCR_COMM_PLATFORM_H__ */
-

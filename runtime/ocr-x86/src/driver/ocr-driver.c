@@ -33,8 +33,9 @@ const char *type_str[] = {
     "MemPlatformType",
     "MemTargetType",
     "AllocatorType",
-    "CompPlatformType",
+    "CommApiType",
     "CommPlatformType",
+    "CompPlatformType",
     "CompTargetType",
     "WorkPileType",
     "WorkerType",
@@ -51,8 +52,9 @@ const char *inst_str[] = {
     "MemPlatformInst",
     "MemTargetInst",
     "AllocatorInst",
-    "CompPlatformInst",
+    "CommApiInst",
     "CommPlatformInst",
+    "CompPlatformInst",
     "CompTargetInst",
     "WorkPileInst",
     "WorkerInst",
@@ -69,7 +71,7 @@ const char *inst_str[] = {
 dep_t deps[] = {
     { memtarget_type, memplatform_type, "memplatform"},
     { allocator_type, memtarget_type, "memtarget"},
-    { compplatform_type, commplatform_type, "commplatform"},
+    { commapi_type, commplatform_type, "commplatform"},
     { comptarget_type, compplatform_type, "compplatform"},
     { worker_type, comptarget_type, "comptarget"},
     { scheduler_type, workpile_type, "workpile"},
@@ -77,6 +79,7 @@ dep_t deps[] = {
     { policydomain_type, allocator_type, "allocator"},
     { policydomain_type, worker_type, "worker"},
     { policydomain_type, scheduler_type, "scheduler"},
+    { policydomain_type, commapi_type, "commapi"},
     { policydomain_type, policydomain_type, "parent"},
     { policydomain_type, taskfactory_type, "taskfactory"},
     { policydomain_type, tasktemplatefactory_type, "tasktemplatefactory"},
@@ -289,12 +292,12 @@ void bringUpRuntime(const char *inifile) {
     // BUILD DEPENDENCES
     DPRINTF(DEBUG_LVL_INFO, "========= Build dependences ==========\n");
 
-    for (i = 0; i <= 10; i++) {
+    for (i = 0; i <= 11; i++) {
         build_deps(dict, deps[i].from, deps[i].to, deps[i].refstr, all_instances, inst_params);
     }
 
     // Special case of policy domain pointing to types rather than instances
-    for (i = 11; i <= 14; i++) {
+    for (i = 12; i <= 15; i++) {
         build_deps_types(deps[i].to, all_instances[policydomain_type],
                          inst_counts[policydomain_type], all_factories, type_params);
     }
@@ -349,11 +352,7 @@ void freeUpRuntime (void)
         }
         free (all_factories[i]);
     }
-/*
-    for (i = 0; i < total_types; i++)
-        for (j = 0; j < inst_counts[i]; j++)
-            free_instance(all_instances[i][j], i);
-*/
+
     for (i = 0; i < total_types; i++) {
         for (j = 0; j < inst_counts[i]; j++) {
             if(inst_params[i][j])

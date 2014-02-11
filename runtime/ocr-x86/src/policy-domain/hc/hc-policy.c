@@ -1159,6 +1159,19 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     return returnCode;
 }
 
+u8 hcPdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t *message, 
+                   ocrMsgHandle_t **handle, u32 properties) {
+    ASSERT(0);
+}
+
+u8 hcPdPollMessage(ocrPolicyDomain_t *self, ocrMsgHandle_t **handle) {
+    ASSERT(0);
+}
+
+u8 hcPdWaitMessage(ocrPolicyDomain_t *self,  ocrMsgHandle_t **handle) {
+    ASSERT(0);
+}
+
 void* hcPdMalloc(ocrPolicyDomain_t *self, u64 size) {
     if(hcGrabPd((ocrPolicyDomainHc_t*)self))
         return NULL;
@@ -1241,6 +1254,12 @@ ocrPolicyDomainFactory_t * newPolicyDomainFactoryHc(ocrParamList_t *perType) {
     base->policyDomainFcts.stop = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), hcPolicyDomainStop);
     base->policyDomainFcts.finish = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), hcPolicyDomainFinish);
     base->policyDomainFcts.processMessage = FUNC_ADDR(u8(*)(ocrPolicyDomain_t*,ocrPolicyMsg_t*,u8), hcPolicyDomainProcessMessage);
+
+    base->policyDomainFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrPolicyDomain_t*, ocrLocation_t, ocrPolicyMsg_t *, ocrMsgHandle_t**, u32), 
+                                                   hcPdSendMessage);
+    base->policyDomainFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrPolicyDomain_t*, ocrMsgHandle_t**), hcPdPollMessage);
+    base->policyDomainFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrPolicyDomain_t*, ocrMsgHandle_t**), hcPdWaitMessage);
+    
     base->policyDomainFcts.pdMalloc = FUNC_ADDR(void*(*)(ocrPolicyDomain_t*,u64), hcPdMalloc);
     base->policyDomainFcts.pdFree = FUNC_ADDR(void(*)(ocrPolicyDomain_t*,void*), hcPdFree);
 #ifdef OCR_ENABLE_STATISTICS

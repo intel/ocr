@@ -14,6 +14,7 @@
 #include "ocr-sal.h"
 
 #include "ocr-allocator.h"
+#include "ocr-comm-api.h"
 #include "ocr-datablock.h"
 #include "ocr-event.h"
 #include "ocr-guid.h"
@@ -297,7 +298,7 @@ typedef struct _ocrPolicyMsg_t {
             ocrDataBlockType_t dbType;    /**< In: Type of memory requested */
             ocrInDbAllocator_t allocator; /**< In: In-DB allocator */
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_CREATE);
-        
+
         struct {
             ocrFatGuid_t guid;         /**< In: GUID of the DB to destroy */
             ocrFatGuid_t edt;          /**< In: EDT doing the destruction */
@@ -341,7 +342,7 @@ typedef struct _ocrPolicyMsg_t {
             ocrMemType_t type;
             u32 properties;            /**< In: Properties for the free */
         } PD_MSG_STRUCT_NAME(PD_MSG_MEM_UNALLOC);
-        
+
         struct {
             ocrFatGuid_t guid;         /**< In/Out: GUID of the EDT/Work
                                         * to create */
@@ -363,12 +364,12 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t guid; /**< In: GUID of the EDT to execute */
             u32 properties;    /**< In: Properties for the execution */
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_EXECUTE);
-        
+
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the EDT to destroy */
             u32 properties;    /**< In: properties for the destruction */
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_DESTROY);
-        
+
         struct {
             ocrFatGuid_t guid;     /**< In/Out: GUID of the EDT template */
             ocrEdt_t funcPtr;      /**< In: Function to execute for this EDT */
@@ -377,18 +378,18 @@ typedef struct _ocrPolicyMsg_t {
             u32 properties;        /**< In: Properties */
             const char * funcName; /**< In: Debug help: user identifier */
         } PD_MSG_STRUCT_NAME(PD_MSG_EDTTEMP_CREATE);
-        
+
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the EDT template to destroy */
             u32 properties;    /**< In: properties for the destruction */
         } PD_MSG_STRUCT_NAME(PD_MSG_EDTTEMP_DESTROY);
-        
+
         struct {
             ocrFatGuid_t guid;    /**< In/Out: GUID of the event to create */
             u32 properties;       /**< In: Properties for this creation */
             ocrEventTypes_t type; /**< Type of the event created: Bit 0: 1 if event takes an argument */
         } PD_MSG_STRUCT_NAME(PD_MSG_EVT_CREATE);
-        
+
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the event to destroy */
             u32 properties;    /**< In: properties for the destruction */
@@ -399,7 +400,7 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t data; /**< Out: GUID of the DB used to satisfy the event */
             u32 properties;    /**< In: Properties for the get */
         } PD_MSG_STRUCT_NAME(PD_MSG_EVT_GET);
-        
+
         struct {
             ocrFatGuid_t guid; /**< In/Out:
                                *  In: The metaDataPtr field contains the value
@@ -420,13 +421,13 @@ typedef struct _ocrPolicyMsg_t {
             ocrGuidKind kind; /**< Out: Contains the type of the GUID */
             u32 properties;   /**< In: Properties for the info. See ocrGuidInfoProp_t */
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_INFO);
-            
+
         struct {
             ocrFatGuid_t guid; /**< In: GUID to destroy */
             u32 properties;    /**< In: Properties for the destruction:
                                 * Bit 0: If 1, metadata area is "freed" */
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_DESTROY);
-        
+
         struct {
             ocrFatGuid_t *guids; /**< In/Out: GUID(s) of the work/DB/etc taken:
                                  * Input (optional): GUID(s) requested
@@ -441,7 +442,7 @@ typedef struct _ocrPolicyMsg_t {
             ocrGuidKind type;    /**< In: Kind of GUIDs requested */
             // TODO: Add something about cost/choice heuristic
         } PD_MSG_STRUCT_NAME(PD_MSG_COMM_TAKE);
-        
+
         struct {
             ocrFatGuid_t *guids; /**< In/Out: GUID(s) of the work/DB/etc given:
                                  * Input: GUID(s) the caller wants to hand-off
@@ -474,7 +475,7 @@ typedef struct _ocrPolicyMsg_t {
             u32 slot;              /**< In: The slot on waiter that will be notified */
             u32 properties;        /**< In: Properties */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_REGWAITER);
-        
+
         struct {
             ocrFatGuid_t guid;    /**< In: GUID of the event/task to satisfy */
             ocrFatGuid_t payload; /**< In: GUID of the "payload" to satisfy the
@@ -508,7 +509,7 @@ typedef struct _ocrPolicyMsg_t {
             u32 slot;              /**< In: The slot on waiter that will be notified */
             u32 properties;        /**< In: Properties */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_UNREGWAITER);
-        
+
         struct {
             const char* buffer;  /**< In: ASCIIZ character string to print */
             u64 length;          /**< In: Length to print, including NULL termination */
@@ -522,7 +523,7 @@ typedef struct _ocrPolicyMsg_t {
             u64 inputId;        /**< In: Identifier for where to read from */
             u32 properties;     /**< In: Properties for the read */
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_READ);
-        
+
         struct {
             const char* buffer; /**< In: Buffer to write */
             u64 length;         /**< In/Out: Number of bytes to write. On return contains
@@ -556,13 +557,39 @@ typedef struct _ocrPolicyMsg_t {
     } args;
 } ocrPolicyMsg_t;
 
-
-typedef struct _ocrMsgHandler_t {
-    ocrPolicyMsg_t * msg;
-    struct _ocrMsgHandler_t * response;
-    bool done;
-    void (*destruct)(struct _ocrMsgHandler_t * self);
-} ocrMsgHandler_t;
+/**
+ * @brief Structure describing a message "handle" that is
+ * used to keep track of the status of a communication.
+ *
+ * The handle is always created by the communication layer (comm-worker)
+ * and destroyed by the user (caller of sendMessage, waitMessage...) using
+ * the provided 'destruct' function.
+ *
+ * 
+ *
+ * The response message will always be contained in handle->response.
+ * To check whether a message has:
+ *    - been sent: check the 'done' field
+ *    - a valid response (response in response->msg), check to the
+ *      'response->done' field
+ * If 'msg' is non-NULL after a successful poll (handle->status = HDL_RESPONSE_OK),
+ * or a wait, this serves as a reminder to the caller that the message
+ * was passed in with PERSIST_MESSAGE_PROP (pointer to original message).
+ *
+ * The handle needs to be freed by the caller using the 'destruct' function.
+ *
+ * @see sendMessage() in ocr-comm-worker.h for more detail
+ */
+typedef struct _ocrMsgHandle_t {
+    ocrPolicyMsg_t * msg;           /**< The message associated with the communication
+                                       the handle represents. */
+    ocrPolicyMsg_t * response;      /**< The response (if applicable) */
+    
+    ocrMsgHandleStatus_t status;   /**< Status of this handle. See ocrMsgHandleState */
+    void (*destruct)(struct _ocrMsgHandle_t * self); /**< Destructor for this
+                                                       * instance of the message
+                                                       * handle */
+} ocrMsgHandle_t;
 
 typedef struct _ocrPolicyDomainFcts_t {
     /**
@@ -577,7 +604,7 @@ typedef struct _ocrPolicyDomainFcts_t {
     void (*destruct)(struct _ocrPolicyDomain_t *self);
 
     void (*begin)(struct _ocrPolicyDomain_t *self);
-    
+
     /**
      * @brief Starts this policy domain
      *
@@ -632,35 +659,48 @@ typedef struct _ocrPolicyDomainFcts_t {
     u8 (*processMessage)(struct _ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg,
                          u8 isBlocking);
 
-    // REC: Evaluate if we need this and other message (wait, poll) related
-    // functions up at the PD level
     /**
-     * @brief Called to request that the message 'msg' be sent outside
-     * this policy domain
+     * @brief Send a message outside of the policy domain.
+     * This API can be used by any client of the policy domain and 
+     * will call into the correct comm-api sendMessage to actually 
+     * send the message.
      *
-     * If a policy domain cannot handle a message locally, it can
-     * forward it to another compute target (belonging to another
-     * policy domain). This call may lead to asynchronous
-     * execution but if isBlocking is true, the call will not return
-     * until a response (if required) is received. Note that
-     * this does not mean that the compute target blocks (this is
-     * implementation dependent)
-     *
-     * @param[in]     self       This policy domain
-     * @param[in/out] msg        Message to send. If 'isBlocking' is true and
-     *                           the message required a response, the response
-     *                           will be contained in msg. In all cases, the
-     *                           caller is responsible for freeing 'msg' (ie:
-     *                           if the message is sent asynchronously, the
-     *                           runtime will make a copy if needed)
-     * @param[in]     isBlocking True if the response needs to be received
-     *                           prior to returning
-     * @return 0 on success and a non-zero value on failure
+     * See ocr-comm-api.h for a detailed description
+     * @param[in] self          This policy-domain
+     * @param[in] target        Where to send the message
+     * @param[in/out] handle    Handle for the message
+     * @param[in] properties    Properties for the send
+     * @return 0 on success and a non-zero error code
      */
-    //u8 (*sendMessage)(struct _ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg,
-    //u8 isBlocking);
+    u8 (*sendMessage)(struct _ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t *message,
+                      ocrMsgHandle_t **handle, u32 properties);
 
+    /**
+     * @brief Non-blocking check for incomming messages
+     * This API can be used by any client of the policy domain and 
+     * will call into the correct comm-api pollMessage to actually 
+     * poll for a message.
+     *
+     * See ocr-comm-api.h for a detailed description
+     * @param[in] self          This policy-domain
+     * @param[in/out] handle    Handle for the message
+     * @return 0 on success and a non-zero error code
+     */
+    u8 (*pollMessage)(struct _ocrPolicyDomain_t *self, ocrMsgHandle_t **handle);
 
+    /**
+     * @brief Blocking check for incomming messages
+     * This API can be used by any client of the policy domain and 
+     * will call into the correct comm-api waitMessage to actually 
+     * wait for a message.
+     *
+     * See ocr-comm-api.h for a detailed description
+     * @param[in] self          This policy-domain
+     * @param[in/out] handle    Handle for the message
+     * @return 0 on success and a non-zero error code
+     */
+    u8 (*waitMessage)(struct _ocrPolicyDomain_t *self, ocrMsgHandle_t **handle);
+    
     /**
      * @brief Policy-domain only allocation.
      *
@@ -681,7 +721,7 @@ typedef struct _ocrPolicyDomainFcts_t {
      * @param addr Address to free
      */
     void (*pdFree)(struct _ocrPolicyDomain_t *self, void* addr);
-    
+
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t* (*getStats)(struct _ocrPolicyDomain_t *self);
 #endif
@@ -725,6 +765,7 @@ typedef struct _ocrPolicyDomain_t {
     u64 schedulerCount;                         /**< Number of schedulers */
     u64 allocatorCount;                         /**< Number of allocators */
     u64 workerCount;                            /**< Number of workers */
+    u64 commApiCount;                           /**< Number of comm APIs */
     u64 guidProviderCount;                      /**< Number of GUID providers */
     u64 taskFactoryCount;                       /**< Number of task factories */
     u64 taskTemplateFactoryCount;               /**< Number of task-template factories */
@@ -734,6 +775,7 @@ typedef struct _ocrPolicyDomain_t {
     ocrScheduler_t  ** schedulers;              /**< All the schedulers */
     ocrAllocator_t  ** allocators;              /**< All the allocators */
     ocrWorker_t     ** workers;                 /**< All the workers */
+    ocrCommApi_t    ** commApis;                /**< All the communication interfaces */
 
     ocrTaskFactory_t  **taskFactories;          /**< Factory to produce tasks
                                                  * (EDTs) */

@@ -8,8 +8,9 @@
 #ifdef SAL_LINUX
 
 #include "allocator/allocator-all.h"
-#include "comp-platform/comp-platform-all.h"
+#include "comm-api/comm-api-all.h"
 #include "comm-platform/comm-platform-all.h"
+#include "comp-platform/comp-platform-all.h"
 #include "comp-target/comp-target-all.h"
 #include "datablock/datablock-all.h"
 #include "debug.h"
@@ -185,6 +186,9 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
     case allocator_type:
         ALLOC_PARAM_LIST(*type_param, paramListAllocatorFact_t);
         break;
+    case commapi_type:
+        ALLOC_PARAM_LIST(*type_param, paramListCommApiFact_t);
+        break;
     case compplatform_type: {
             compPlatformType_t mytype = -1;
             TO_ENUM (mytype, typestr, compPlatformType_t, compplatform_types, compPlatformMax_id);
@@ -241,6 +245,19 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
     }
 
     return strdup(typestr);
+}
+
+ocrCommApiFactory_t *create_factory_commapi (char *name, ocrParamList_t *paramlist) {
+    commApiType_t mytype = commApiMax_id;
+    TO_ENUM (mytype, name, commApiType_t, commapi_types, commApiMax_id);
+
+    if (mytype == commApiMax_id) {
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        return NULL;
+    } else {
+        DPRINTF(DEBUG_LVL_INFO, "Creating a commapi factory of type %d\n", mytype);
+        return newCommApiFactory(mytype, paramlist);
+    }
 }
 
 ocrCommPlatformFactory_t *create_factory_commplatform (char *name, ocrParamList_t *paramlist) {
@@ -413,20 +430,6 @@ ocrEventFactory_t *create_factory_event(char *name, ocrParamList_t *paramlist) {
     }
 }
 
-/*
-ocrPolicyCtxFactory_t *create_factory_context(char *name, ocrParamList_t *paramlist) {
-    policyCtxType_t mytype = policyCtxMax_id;
-    TO_ENUM (mytype, name, policyCtxType_t, policyCtx_types, policyCtxMax_id);
-    if (mytype == policyCtxMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
-        return NULL;
-    } else {
-        DPRINTF(DEBUG_LVL_INFO, "Creating a policy ctx factory of type %d\n", mytype);
-        return (ocrPolicyCtxFactory_t *)newPolicyCtxFactory(mytype, paramlist);
-    }
-}
-*/
-
 ocrGuidProviderFactory_t *create_factory_guid(char *name, ocrParamList_t *paramlist) {
     guidType_t mytype = guidMax_id;
     TO_ENUM (mytype, name, guidType_t, guid_types, guidMax_id);
@@ -438,46 +441,6 @@ ocrGuidProviderFactory_t *create_factory_guid(char *name, ocrParamList_t *paraml
         return (ocrGuidProviderFactory_t *)newGuidProviderFactory(mytype, paramlist);
     }
 }
-
-/*
-ocrLockFactory_t *create_factory_lock(char *name, ocrParamList_t *paramlist) {
-    syncType_t mytype = syncMax_id;
-    TO_ENUM (mytype, name, syncType_t, sync_types, syncMax_id);
-    if (mytype == syncMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
-        return NULL;
-    } else {
-        DPRINTF(DEBUG_LVL_INFO, "Creating a lock factory of type %d\n", mytype);
-        return (ocrLockFactory_t *)newLockFactory(mytype, paramlist);
-    }
-}
-
-ocrAtomic64Factory_t *create_factory_atomic64(char *name, ocrParamList_t *paramlist) {
-    syncType_t mytype = syncMax_id;
-    TO_ENUM (mytype, name, syncType_t, sync_types, syncMax_id);
-    if (mytype == syncMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
-        return NULL;
-    } else {
-        DPRINTF(DEBUG_LVL_INFO, "Creating an atomic64 factory of type %d\n", mytype);
-        return (ocrAtomic64Factory_t *)newAtomic64Factory(mytype, paramlist);
-    }
-}
-
-ocrQueueFactory_t *create_factory_queue(char *name, ocrParamList_t *paramlist) {
-    syncType_t mytype = -1;
-    TO_ENUM (mytype, name, syncType_t, sync_types, syncMax_id);
-    if (mytype == -1) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
-        return NULL;
-    } else {
-        DPRINTF(DEBUG_LVL_INFO, "Creating a queue factory of type %d\n", mytype);
-        // HACK: FIXME: Passing static size
-        return (ocrQueueFactory_t *)newQueueFactory(mytype, 32, paramlist);
-    }
-}
-*/
-
 
 void *create_factory (type_enum index, char *factory_name, ocrParamList_t *paramlist) {
     void *new_factory = NULL;
@@ -494,6 +457,12 @@ void *create_factory (type_enum index, char *factory_name, ocrParamList_t *param
         break;
     case allocator_type:
         new_factory = (void *)create_factory_allocator(factory_name, paramlist);
+        break;
+    case commapi_type:
+        new_factory = (void *)create_factory_commapi(factory_name, paramlist);
+        break;
+    case commplatform_type:
+        new_factory = (void *)create_factory_commplatform(factory_name, paramlist);
         break;
     case compplatform_type:
         new_factory = (void *)create_factory_compplatform(factory_name, paramlist);
@@ -524,9 +493,6 @@ void *create_factory (type_enum index, char *factory_name, ocrParamList_t *param
         break;
     case eventfactory_type:
         new_factory = (void *)create_factory_event(factory_name, paramlist);
-        break;
-    case commplatform_type:
-        new_factory = (void *)create_factory_commplatform(factory_name, paramlist);
         break;
     default:
         DPRINTF(DEBUG_LVL_WARN, "Error: %d index unexpected\n", index);
@@ -618,6 +584,14 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             instance[j] = (void *)((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created allocator of type %s, index %d\n", inststr, j);
+        }
+        break;
+    case commapi_type:
+        for (j = low; j<=high; j++) {
+            ALLOC_PARAM_LIST(inst_param[j], paramListCommApiInst_t);
+            instance[j] = (void *)((ocrCommPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
+            if (instance[j])
+                DPRINTF(DEBUG_LVL_INFO, "Created commapi of type %s, index %d\n", inststr, j);
         }
         break;
     case commplatform_type:
@@ -843,64 +817,20 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
     return 0;
 }
 
-void free_instance (void *instance, type_enum mytype)
-{
-    switch (mytype) {
-    case memtarget_type: {
-        ocrMemTarget_t *t = (ocrMemTarget_t *)instance;
-        free(t->memories);
-        break;
-    }
-    case allocator_type: {
-        ocrAllocator_t *t = (ocrAllocator_t *)instance;
-        free(t->memories);
-        break;
-    }
-    case comptarget_type: {
-        ocrCompTarget_t *t = (ocrCompTarget_t *)instance;
-        free(t->platforms);
-        break;
-    }
-    case worker_type: {
-        ocrWorker_t *t = (ocrWorker_t *)instance;
-        free(t->computes);
-        break;
-    }
-    case scheduler_type: {
-        ocrScheduler_t *t = (ocrScheduler_t *)instance;
-        free(t->workpiles);
-        break;
-    }
-    case policydomain_type: {
-        ocrPolicyDomain_t *t = (ocrPolicyDomain_t *)instance;
-        free(t->workers);
-        free(t->allocators);
-        free(t->schedulers);
-        break;
-    }
-    case guid_type:
-    case memplatform_type:
-    case compplatform_type:
-    case commplatform_type:
-    case workpile_type:
-    default:
-        break;
-    }
-}
-
 void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, ocrParamList_t *fromparam, void *toinstance, ocrParamList_t *toparam, s32 dependence_index, s32 dependence_count) {
     switch(fromtype) {
     case guid_type:
     case memplatform_type:
     case commplatform_type:
+    case compplatform_type:
     case workpile_type:
-        DPRINTF(DEBUG_LVL_WARN, "Unexpected: this should have no dependences! (incorrect dependence: %d to %d)\n", fromtype, totype);
+        DPRINTF(DEBUG_LVL_WARN, "Unexpected: this type should have no dependences! (incorrect dependence: %d to %d)\n", fromtype, totype);
         break;
 
-    case compplatform_type: {
-        ocrCompPlatform_t *f = (ocrCompPlatform_t *)frominstance;
-        DPRINTF(DEBUG_LVL_INFO, "Compplatform %d to %d\n", fromtype, totype);
-        f->comm = (ocrCommPlatform_t *)toinstance;
+    case commapi_type: {
+        ocrCommApi_t *f = (ocrCommApi_t *)frominstance;
+        DPRINTF(DEBUG_LVL_INFO, "CommApi %d to %d\n", fromtype, totype);
+        f->commPlatform = (ocrCommPlatform_t *)toinstance;
         break;
     }
     case memtarget_type: {
@@ -982,6 +912,14 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
                 f->allocators = (ocrAllocator_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrAllocator_t *), NULL);
             }
             f->allocators[dependence_index] = (ocrAllocator_t *)toinstance;
+            break;
+        }
+        case commapi_type: {
+            if (f->commApis == NULL) {
+                f->commApiCount = dependence_count;
+                f->commApis = (ocrCommApi_t **)runtimeChunkAlloc(dependence_count * sizeof(ocrCommApi_t *), NULL);
+            }
+            f->commApis[dependence_index] = (ocrCommApi_t *)toinstance;
             break;
         }
         case worker_type: {

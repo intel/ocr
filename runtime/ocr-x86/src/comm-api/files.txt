@@ -1,0 +1,1 @@
+handleless - simple communication that only allows polling on ANY message and waiting on last message sent

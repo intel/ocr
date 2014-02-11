@@ -18,7 +18,7 @@
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
 #include "utils/deque.h"
-
+#include "../ce-pthread/ce-pthread-comm-platform.h"
 
 typedef struct {
     ocrCommPlatformFactory_t base;
@@ -26,13 +26,7 @@ typedef struct {
 
 typedef struct {
     ocrCommPlatform_t base;
-    volatile bool xeMessage;
-    volatile bool ceMessage;
-    volatile ocrPolicyMsg_t * xeMessagePtr;
-    volatile ocrPolicyMsg_t * ceMessagePtr;
-    u8 xeMessageBufferIndex;
-    ocrPolicyMsg_t xeMessageBuffer[2];
-    ocrPolicyMsg_t ceMessageBuffer;
+    ocrCommChannel_t * channel; // comm channels between this XE and CE
 } ocrCommPlatformXePthread_t;
 
 typedef struct {

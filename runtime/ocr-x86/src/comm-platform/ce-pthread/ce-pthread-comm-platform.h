@@ -25,15 +25,19 @@ typedef struct {
 } ocrCommPlatformFactoryCePthread_t;
 
 typedef struct {
+    volatile ocrPolicyMsg_t * message;
+    ocrPolicyMsg_t messageBuffer;
+    volatile u64 xeCounter; 
+    volatile u64 ceCounter; 
+    volatile bool xeCancel;
+    char padding[32];
+} ocrCommChannel_t;
+
+typedef struct {
     ocrCommPlatform_t base;
     u32 numXE;
     u32 startIdx; // start of next poll loop to avoid starvation
-    volatile bool ** xeMessage;
-    volatile bool ** ceMessage;
-    volatile ocrPolicyMsg_t *** xeMessagePtr;
-    volatile ocrPolicyMsg_t *** ceMessagePtr;
-    ocrPolicyMsg_t ** ceMessageBuffer;
-    bool * xeActiveFlag;
+    ocrCommChannel_t * channels; // array of comm channels; one per XE
 } ocrCommPlatformCePthread_t;
 
 typedef struct {

@@ -24,32 +24,22 @@ void cePthreadCommDestruct (ocrCommPlatform_t * base) {
     runtimeChunkFree((u64)base, NULL);
 }
 
-void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
-    u32 numXE;
+void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrCommApi_t *comm) {
+    u32 i, numXE;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*) commPlatform;
     commPlatform->pd = PD;
     numXE = PD->neighborCount;
     commPlatformCePthread->numXE = numXE;
-    commPlatformCePthread->xeMessage = (volatile bool **)runtimeChunkAlloc(numXE * sizeof(volatile bool *), NULL);
-    commPlatformCePthread->ceMessage = (volatile bool **)runtimeChunkAlloc(numXE * sizeof(volatile bool *), NULL);
-    commPlatformCePthread->xeMessagePtr = (volatile ocrPolicyMsg_t ***)runtimeChunkAlloc(numXE * sizeof(volatile ocrPolicyMsg_t **), NULL);
-    commPlatformCePthread->ceMessagePtr = (volatile ocrPolicyMsg_t ***)runtimeChunkAlloc(numXE * sizeof(volatile ocrPolicyMsg_t **), NULL);
-    commPlatformCePthread->ceMessageBuffer = (ocrPolicyMsg_t **)runtimeChunkAlloc(numXE * sizeof(ocrPolicyMsg_t *), NULL);
-    commPlatformCePthread->xeActiveFlag = (bool *)runtimeChunkAlloc(numXE * sizeof(bool), false);
+    commPlatformCePthread->channels = (ocrCommChannel_t*)runtimeChunkAlloc(numXE * sizeof(ocrCommChannel_t), NULL);
+    for (i = 0; i < numXE; i++) {
+        commPlatformCePthread->channels[i].message = NULL;
+        commPlatformCePthread->channels[i].xeCounter = 0;
+        commPlatformCePthread->channels[i].ceCounter = 0;
+    }
     return;
 }
 
-void cePthreadCommStart(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
-    u32 i;
-    ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*) commPlatform;
-    for (i = 0; i < commPlatformCePthread->numXE; i++) {
-        ASSERT(commPlatformCePthread->xeMessage[i]);
-        ASSERT(commPlatformCePthread->ceMessage[i]);
-        ASSERT(commPlatformCePthread->xeMessagePtr[i]);
-        ASSERT(commPlatformCePthread->ceMessagePtr[i]);
-        ASSERT(commPlatformCePthread->ceMessageBuffer[i]);
-        ASSERT(commPlatformCePthread->xeActiveFlag[i] == false);
-    }
+void cePthreadCommStart(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrCommApi_t *comm) {
     return;
 }
 
@@ -60,81 +50,69 @@ void cePthreadCommStop(ocrCommPlatform_t * commPlatform) {
 void cePthreadCommFinish(ocrCommPlatform_t *commPlatform) {
 }
 
-
-u8 cePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
-                       ocrPolicyMsg_t **message) {
+u8 cePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target, ocrPolicyMsg_t *msg, 
+                            u64 bufferSize, u64 *id, u32 properties, u32 mask) {
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
-    DPRINTF(DEBUG_LVL_INFO, "[CE]: Sending Message: %u Type: %u To: %lu\n", 
-            (*message)->type, ((*message)->type & PD_MSG_TYPE_ONLY), target);
-    ASSERT(*(commPlatformCePthread->ceMessage[target]) == false); 
-    ASSERT(*(commPlatformCePthread->ceMessagePtr[target]) == NULL); 
-    if ((*message)->type & PD_MSG_RESPONSE) {
-        ASSERT(!((*message)->type & PD_MSG_REQUEST));
-        *(commPlatformCePthread->ceMessagePtr[target]) = *message;
+    ocrCommChannel_t * channel = &(commPlatformCePthread->channels[target]);
+    ocrPolicyMsg_t * channelMessage = (ocrPolicyMsg_t *)__sync_val_compare_and_swap((&(channel->message)), NULL, msg);
+    if (channelMessage != NULL) {
+        DPRINTF(DEBUG_LVL_VERB, "[CE] cancelling CE msg @ 0x%lx of type 0x%x to %lu; channel msg @ 0x%lx of type 0x%x from %lu\n", 
+                msg, msg->type, msg->srcLocation, channelMessage, channelMessage->type,
+                channelMessage->srcLocation);
+        RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->message)), channelMessage, msg));
+        RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->xeCancel)), false, true));
         hal_fence();
-        *(commPlatformCePthread->ceMessage[target]) = true;
-        hal_fence();
-        while(*(commPlatformCePthread->ceMessage[target]) == true); // block until XE receives response
-    } else {
-        ASSERT((*message)->type & PD_MSG_REQUEST);
-        memcpy(commPlatformCePthread->ceMessageBuffer[target], (*message), sizeof(ocrPolicyMsg_t));
-        *(commPlatformCePthread->ceMessagePtr[target]) = commPlatformCePthread->ceMessageBuffer[target];
-        hal_fence();
-        *(commPlatformCePthread->ceMessage[target]) = true;
+        ++(channel->ceCounter);
     }
-    commPlatformCePthread->xeActiveFlag[target] = false;
+    DPRINTF(DEBUG_LVL_VERB, "[CE] sending message @ 0x%lx of type 0x%x to %lu\n", 
+            msg, msg->type, target);
+    hal_fence();
+    ++(channel->ceCounter);
+    do {
+        hal_fence();
+    } while(channel->ceCounter > channel->xeCounter);
+    
     return 0;
 }
 
-static bool ceReceivedMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message, u32 mask, u32 xeId, bool * doPrint) {
-    bool ret = false;
-    ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
-    if (commPlatformCePthread->xeActiveFlag[xeId] == true) {
-        ASSERT(*(commPlatformCePthread->xeMessage[xeId]) == false);
-        ASSERT(*(commPlatformCePthread->xeMessagePtr[xeId]));
-        *message = (ocrPolicyMsg_t *)(*(commPlatformCePthread->xeMessagePtr[xeId]));
-        ret = true;
-    } else if (*(commPlatformCePthread->xeMessage[xeId]) == true) {
-        ASSERT(*(commPlatformCePthread->xeMessagePtr[xeId]));
-        if ((*(commPlatformCePthread->ceMessage[xeId]) == false) ||                             // CE has no outstanding messages OR
-           (((*(commPlatformCePthread->xeMessagePtr[xeId]))->type & PD_MSG_REQ_RESPONSE) == 0)) // request does not require response
-        {
-            *message = (ocrPolicyMsg_t *)(*(commPlatformCePthread->xeMessagePtr[xeId]));
-            *doPrint = true;
-            ret = true;
-            if(((*(commPlatformCePthread->xeMessagePtr[xeId]))->type & PD_MSG_REQUEST) &&
-               ((*(commPlatformCePthread->xeMessagePtr[xeId]))->type & PD_MSG_REQ_RESPONSE))
-                commPlatformCePthread->xeActiveFlag[xeId] = true;
-        }
-        hal_fence();
-        *(commPlatformCePthread->xeMessage[xeId]) = false;
-    }
-    return ret;
-}
-
 //NOTE: sanjay: Currently polls for only XE messages.
-u8 cePthreadCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message, u32 mask) {
+u8 cePthreadCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg, u32 properties, u32 *mask) {
     u32 i, startIdx, numXE;
-    bool doPrint = false;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
     startIdx = commPlatformCePthread->startIdx;
     numXE = commPlatformCePthread->numXE;
-    for (i = 0; i < numXE; i++) { 
+    for (i = 0; i < numXE; i++) {
         u32 idx = (startIdx + i) % numXE;
-        if (ceReceivedMessage(self, message, mask, idx, &doPrint)) {
-            commPlatformCePthread->startIdx = (idx + 1) % numXE;
-            if(doPrint) {
-                DPRINTF(DEBUG_LVL_INFO, "[CE]: Received Message: %u Type: %u From: %lu\n", 
-                    (*message)->type, ((*message)->type & PD_MSG_TYPE_ONLY), (u64)((*message)->srcLocation));
+        ocrCommChannel_t * channel = &(commPlatformCePthread->channels[idx]);
+        ocrPolicyMsg_t * message = (ocrPolicyMsg_t *)channel->message;
+        hal_fence();
+        if (channel->ceCounter < channel->xeCounter) {
+            ASSERT(message);
+            if (channel->message->type & PD_MSG_REQ_RESPONSE) {
+                DPRINTF(DEBUG_LVL_VVERB, "[CE] message from %u needs a response... using buffer @ 0x%lx\n",
+                        idx, message);
+                *msg = message;
+            } else {
+                DPRINTF(DEBUG_LVL_VVERB, "[CE] message from %u one-way... copying from 0x%lx to 0x%lx\n",
+                        idx, message, &(channel->messageBuffer));
+                hal_memCopy(&(channel->messageBuffer), message, sizeof(ocrPolicyMsg_t), false);
+                *msg = &(channel->messageBuffer);
             }
+            RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->message)), message, NULL));
+            hal_fence();
+            ++(channel->ceCounter);
+            commPlatformCePthread->startIdx = (idx + 1) % numXE;
+            DPRINTF(DEBUG_LVL_VERB, "[CE] received message @ 0x%lx of type 0x%x from %lu\n", 
+                    (*msg), (*msg)->type, (u64)((*msg)->srcLocation));
             return 0;
         }
-    } 
+    }
     return OCR_EAGAIN;
 }
 
-u8 cePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message) {
-    while (cePthreadCommPollMessage(self, message, 0) != 0);
+u8 cePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg, u32 properties, u32 *mask) {
+    while (cePthreadCommPollMessage(self, msg, properties, mask) != 0)
+        ;
     return 0;
 }
 
@@ -143,13 +121,16 @@ ocrCommPlatform_t* newCommPlatformCePthread(ocrCommPlatformFactory_t *factory,
 
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)
         runtimeChunkAlloc(sizeof(ocrCommPlatformCePthread_t), NULL);
-    ocrCommPlatform_t * derived = (ocrCommPlatform_t *) commPlatformCePthread;
-    factory->initialize(factory, derived, perInstance);
-    return derived;
+    ocrCommPlatform_t * base = (ocrCommPlatform_t *) commPlatformCePthread;
+    factory->initialize(factory, base, perInstance);
+    return base;
 }
 
-void initializeCommPlatformCePthread(ocrCommPlatformFactory_t * factory, ocrCommPlatform_t * derived, ocrParamList_t * perInstance) {
-    initializeCommPlatformOcr(factory, derived, perInstance);
+void initializeCommPlatformCePthread(ocrCommPlatformFactory_t * factory, ocrCommPlatform_t * base, ocrParamList_t * perInstance) {
+    initializeCommPlatformOcr(factory, base, perInstance);
+
+    ocrCommPlatformCePthread_t *commPlatformCePthread = (ocrCommPlatformCePthread_t*)base;
+    commPlatformCePthread->channels = NULL;
 }
 
 /******************************************************/
@@ -164,26 +145,24 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryCePthread(ocrParamList_t *perTyp
     ocrCommPlatformFactory_t *base = (ocrCommPlatformFactory_t*)
         runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryCePthread_t), (void *)1);
 
-    
     base->instantiate = &newCommPlatformCePthread;
     base->initialize = &initializeCommPlatformCePthread;
     base->destruct = &destructCommPlatformFactoryCePthread;
-
+    
     base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCommPlatform_t*), cePthreadCommDestruct);
-    base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*,
-                                                  ocrWorkerType_t), cePthreadCommBegin);
-    base->platformFcts.start = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*,
-                                                  ocrWorkerType_t), cePthreadCommStart);
+    base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*, ocrCommApi_t *),
+                                                  cePthreadCommBegin);
+    base->platformFcts.start = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*, ocrCommApi_t *),
+                                                  cePthreadCommStart);
     base->platformFcts.stop = FUNC_ADDR(void (*)(ocrCommPlatform_t*), cePthreadCommStop);
     base->platformFcts.finish = FUNC_ADDR(void (*)(ocrCommPlatform_t*), cePthreadCommFinish);
-    base->platformFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrLocation_t,
-                                                      ocrPolicyMsg_t **), cePthreadCommSendMessage);
-    base->platformFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**, u32),
+    base->platformFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrLocation_t, ocrPolicyMsg_t *, u64, u64*, u32, u32), 
+                                               cePthreadCommSendMessage);
+    base->platformFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t **, u32, u32*),
                                                cePthreadCommPollMessage);
-    base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**),
+    base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t **, u32, u32*),
                                                cePthreadCommWaitMessage);
 
     return base;
 }
 #endif /* ENABLE_COMM_PLATFORM_CE_PTHREAD */
-

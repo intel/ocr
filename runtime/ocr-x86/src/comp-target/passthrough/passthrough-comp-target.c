@@ -34,7 +34,7 @@ void ptDestruct(ocrCompTarget_t *compTarget) {
 }
 
 void ptBegin(ocrCompTarget_t * compTarget, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
-    
+
     ASSERT(compTarget->platformCount == 1);
     compTarget->pd = PD;
     compTarget->platforms[0]->fcts.begin(compTarget->platforms[0], PD, workerType);
@@ -60,7 +60,7 @@ void ptStop(ocrCompTarget_t * compTarget) {
     // Destroy the GUID
     ocrPolicyMsg_t msg;
     getCurrentEnv(NULL, NULL, NULL, &msg);
-    
+
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
@@ -85,22 +85,6 @@ u8 ptGetThrottle(ocrCompTarget_t *compTarget, u64 *value) {
 u8 ptSetThrottle(ocrCompTarget_t *compTarget, u64 value) {
     ASSERT(compTarget->platformCount == 1);
     return compTarget->platforms[0]->fcts.setThrottle(compTarget->platforms[0], value);
-}
-
-u8 ptSendMessage(ocrCompTarget_t *compTarget, ocrLocation_t target,
-                 ocrPolicyMsg_t **message) {
-    ASSERT(compTarget->platformCount == 1);
-    return compTarget->platforms[0]->fcts.sendMessage(compTarget->platforms[0], target, message);
-}
-
-u8 ptPollMessage(ocrCompTarget_t *compTarget, ocrPolicyMsg_t **message, u32 mask) {
-    ASSERT(compTarget->platformCount == 1);
-    return compTarget->platforms[0]->fcts.pollMessage(compTarget->platforms[0], message, mask);
-}
-
-u8 ptWaitMessage(ocrCompTarget_t *compTarget, ocrPolicyMsg_t **message) {
-    ASSERT(compTarget->platformCount == 1);
-    return compTarget->platforms[0]->fcts.waitMessage(compTarget->platforms[0], message);
 }
 
 u8 ptSetCurrentEnv(ocrCompTarget_t *compTarget, ocrPolicyDomain_t *pd,
@@ -142,13 +126,9 @@ ocrCompTargetFactory_t *newCompTargetFactoryPt(ocrParamList_t *perType) {
     base->targetFcts.finish = FUNC_ADDR(void (*)(ocrCompTarget_t*), ptFinish);
     base->targetFcts.getThrottle = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, u64*), ptGetThrottle);
     base->targetFcts.setThrottle = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, u64), ptSetThrottle);
-    base->targetFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, ocrLocation_t, ocrPolicyMsg_t**), ptSendMessage);
-    base->targetFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, ocrPolicyMsg_t**, u32), ptPollMessage);
-    base->targetFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, ocrPolicyMsg_t**), ptWaitMessage);
     base->targetFcts.setCurrentEnv = FUNC_ADDR(u8 (*)(ocrCompTarget_t*, ocrPolicyDomain_t*, ocrWorker_t*), ptSetCurrentEnv);
 
     return base;
 }
 
 #endif /* ENABLE_COMP_TARGET_PT */
-

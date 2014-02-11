@@ -18,7 +18,7 @@ typedef enum _commPlatformType_t {
     commPlatformXe_id,
     commPlatformCePthread_id,
     commPlatformXePthread_id,
-    commPlatformMax_id,
+    commPlatformMax_id
 } commPlatformType_t;
 
 extern const char * commplatform_types[]; 

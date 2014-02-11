@@ -45,7 +45,6 @@ ocrCommPlatformFactory_t *newCommPlatformFactory(commPlatformType_t type, ocrPar
 }
 
 void initializeCommPlatformOcr(ocrCommPlatformFactory_t * factory, ocrCommPlatform_t * self, ocrParamList_t *perInstance) {
-    ocrCommPlatform_t * commPlatform = (ocrCommPlatform_t *) self;
-    commPlatform->location = ((paramListCommPlatformInst_t *)perInstance)->location;
-    commPlatform->fcts = factory->platformFcts;
+    self->location = ((paramListCommPlatformInst_t *)perInstance)->location;
+    self->fcts = factory->platformFcts;
 }

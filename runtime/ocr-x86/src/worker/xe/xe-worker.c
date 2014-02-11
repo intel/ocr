@@ -46,7 +46,7 @@ static void workerLoop(ocrWorker_t * worker) {
         u32 count = 1;
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_COMM_TAKE
-        msg.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE; 
+        msg.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guids) = &taskGuid;
         PD_MSG_FIELD(guidCount) = count;
         PD_MSG_FIELD(properties) = 0;
@@ -74,9 +74,11 @@ static void workerLoop(ocrWorker_t * worker) {
 #undef PD_MSG
 #undef PD_TYPE
 */
-            } else {
+            } else if (count > 1) {
                 // TODO: In the future, potentially take more than one)
                 ASSERT(0);
+            } else {
+                // count = 0; no work received; do something else if required.
             }
         }
     } /* End of while loop */
@@ -88,7 +90,7 @@ void destructWorkerXe(ocrWorker_t * base) {
         base->computes[i]->fcts.destruct(base->computes[i]);
         ++i;
     }
-    runtimeChunkFree((u64)(base->computes), NULL);    
+    runtimeChunkFree((u64)(base->computes), NULL);
     runtimeChunkFree((u64)base, NULL);
 }
 
@@ -111,11 +113,11 @@ void initializeWorkerXe(ocrWorkerFactory_t * factory, ocrWorker_t* base, ocrPara
 }
 
 void xeBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
-    
+
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
     u64 computeCount = base->computeCount;
-    ASSERT(computeCount == 1); 
+    ASSERT(computeCount == 1);
     u64 i = 0;
     for(i = 0; i < computeCount; ++i) {
         base->computes[i]->fcts.begin(base->computes[i], policy, base->type);
@@ -127,18 +129,18 @@ void xeBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 }
 
 void xeStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
-    
+
     // Get a GUID
     guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
     base->pd = policy;
-    
+
     ocrWorkerXe_t * xeWorker = (ocrWorkerXe_t *) base;
     xeWorker->running = true;
 
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
     u64 computeCount = base->computeCount;
-    ASSERT(computeCount == 1); 
+    ASSERT(computeCount == 1);
     u64 i = 0;
     for(i = 0; i < computeCount; i++) {
         base->computes[i]->fcts.start(base->computes[i], policy, base);
@@ -185,7 +187,7 @@ void* xeRunWorker(ocrWorker_t * worker) {
 
 void xeFinishWorker(ocrWorker_t * base) {
     DPRINTF(DEBUG_LVL_INFO, "Finishing worker routine %ld\n", getWorkerId(base));
-    ASSERT(base->computeCount == 1); 
+    ASSERT(base->computeCount == 1);
     u64 i = 0;
     for(i = 0; i < base->computeCount; i++) {
         base->computes[i]->fcts.finish(base->computes[i]);
@@ -195,7 +197,7 @@ void xeFinishWorker(ocrWorker_t * base) {
 void xeStopWorker(ocrWorker_t * base) {
     ocrWorkerXe_t * xeWorker = (ocrWorkerXe_t *) base;
     xeWorker->running = false;
-    
+
     u64 computeCount = base->computeCount;
     u64 i = 0;
     // This code should be called by the master thread to join others
@@ -212,7 +214,7 @@ void xeStopWorker(ocrWorker_t * base) {
     // Destroy the GUID
     ocrPolicyMsg_t msg;
     getCurrentEnv(NULL, NULL, NULL, &msg);
-    
+
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
@@ -227,21 +229,6 @@ void xeStopWorker(ocrWorker_t * base) {
 bool xeIsRunningWorker(ocrWorker_t * base) {
     ocrWorkerXe_t * xeWorker = (ocrWorkerXe_t *) base;
     return xeWorker->running;
-}
-
-u8 xeSendMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg) {
-    ASSERT(self->computeCount == 1);
-    return self->computes[0]->fcts.sendMessage(self->computes[0], location, msg);
-}
-
-u8 xePollMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg, u32 mask) {
-    ASSERT(self->computeCount == 1);
-    return self->computes[0]->fcts.pollMessage(self->computes[0], msg, 0);
-}
-
-u8 xeWaitMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg) {
-    ASSERT(self->computeCount == 1);
-    return self->computes[0]->fcts.waitMessage(self->computes[0], msg);
 }
 
 /******************************************************/
@@ -266,9 +253,6 @@ ocrWorkerFactory_t * newOcrWorkerFactoryXe(ocrParamList_t * perType) {
     base->workerFcts.stop = FUNC_ADDR(void (*)(ocrWorker_t*), xeStopWorker);
     base->workerFcts.finish = FUNC_ADDR(void (*)(ocrWorker_t*), xeFinishWorker);
     base->workerFcts.isRunning = FUNC_ADDR(bool (*)(ocrWorker_t*), xeIsRunningWorker);
-    base->workerFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrLocation_t, ocrPolicyMsg_t**), xeSendMessage);
-    base->workerFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**, u32), xePollMessage);
-    base->workerFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**), xeWaitMessage);
     return base;
 }
 

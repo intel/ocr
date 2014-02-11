@@ -47,4 +47,5 @@ void initializePolicyDomainOcr(ocrPolicyDomainFactory_t * factory, ocrPolicyDoma
     self->neighborCount = 0;
     self->schedulers = NULL;
     self->allocators = NULL;
+    self->commApis = NULL;
 }

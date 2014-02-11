@@ -1,4 +1,3 @@
-
 /*
  * This file is subject to the license agreement located in the file LICENSE
  * and cannot be distributed without it. This notice cannot be
@@ -29,10 +28,10 @@ void xePolicyDomainStart(ocrPolicyDomain_t * policy);
 
 void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     // The PD should have been brought up by now and everything instantiated
-    
+
     u64 i = 0;
     u64 maxCount = 0;
-        
+
     maxCount = policy->guidProviderCount;
     for(i = 0; i < maxCount; ++i) {
         policy->guidProviders[i]->fcts.begin(policy->guidProviders[i], policy);
@@ -42,13 +41,18 @@ void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; ++i) {
         policy->allocators[i]->fcts.begin(policy->allocators[i], policy);
     }
-    
+
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
         policy->schedulers[i]->fcts.begin(policy->schedulers[i], policy);
     }
 
-    // REC: Moved all workers to start here. 
+    maxCount = policy->commApiCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->commApis[i]->fcts.begin(policy->commApis[i], policy);
+    }
+
+    // REC: Moved all workers to start here.
     // Note: it's important to first logically start all workers.
     // Once they are all up, start the runtime.
     // Workers should start the underlying target and platforms
@@ -70,25 +74,30 @@ void xePolicyDomainStart(ocrPolicyDomain_t * policy) {
 
     u64 i = 0;
     u64 maxCount = 0;
-    
+
     maxCount = policy->guidProviderCount;
     for(i = 0; i < maxCount; ++i) {
         policy->guidProviders[i]->fcts.start(policy->guidProviders[i], policy);
     }
-    
+
     guidify(policy, (u64)policy, &(policy->fguid), OCR_GUID_POLICY);
-    
+
     /*maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
         policy->allocators[i]->fcts.start(policy->allocators[i], policy);
     }
-    
+
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
         policy->schedulers[i]->fcts.start(policy->schedulers[i], policy);
     }*/
 
-    // REC: Moved all workers to start here. 
+    maxCount = policy->commApiCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->commApis[i]->fcts.start(policy->commApis[i], policy);
+    }
+
+    // REC: Moved all workers to start here.
     // Note: it's important to first logically start all workers.
     // Once they are all up, start the runtime.
     // Workers should start the underlying target and platforms
@@ -102,7 +111,7 @@ void xePolicyDomainFinish(ocrPolicyDomain_t * policy) {
     // Finish everything in reverse order
     u64 i = 0;
     u64 maxCount = 0;
-    
+
     // Note: As soon as worker '0' is stopped; its thread is
     // free to fall-through and continue shutting down the
     // policy domain
@@ -110,12 +119,17 @@ void xePolicyDomainFinish(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; i++) {
         policy->workers[i]->fcts.finish(policy->workers[i]);
     }
-    
+
+    maxCount = policy->commApiCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->commApis[i]->fcts.finish(policy->commApis[i]);
+    }
+
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
         policy->schedulers[i]->fcts.finish(policy->schedulers[i]);
     }
-    
+
     maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
         policy->allocators[i]->fcts.finish(policy->allocators[i]);
@@ -136,7 +150,7 @@ void xePolicyDomainStop(ocrPolicyDomain_t * policy) {
     // be unlocked by ocrShutdown
     u64 i = 0;
     u64 maxCount = 0;
-    
+
     // Note: As soon as worker '0' is stopped; its thread is
     // free to fall-through and continue shutting down the
     // policy domain
@@ -150,12 +164,17 @@ void xePolicyDomainStop(ocrPolicyDomain_t * policy) {
     // code before joining the other threads.
 
     // Thread '0' joins the other (N-1) threads.
-    
+
+    maxCount = policy->commApiCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->commApis[i]->fcts.stop(policy->commApis[i]);
+    }
+
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
         policy->schedulers[i]->fcts.stop(policy->schedulers[i]);
     }
-    
+
     maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
         policy->allocators[i]->fcts.stop(policy->allocators[i]);
@@ -173,7 +192,7 @@ void xePolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     // Destroying instances
     u64 i = 0;
     u64 maxCount = 0;
-    
+
     // Note: As soon as worker '0' is stopped; its thread is
     // free to fall-through and continue shutting down the
     // policy domain
@@ -181,18 +200,23 @@ void xePolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; i++) {
         policy->workers[i]->fcts.destruct(policy->workers[i]);
     }
-    
+
+    maxCount = policy->commApiCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->commApis[i]->fcts.destruct(policy->commApis[i]);
+    }
+
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
         policy->schedulers[i]->fcts.destruct(policy->schedulers[i]);
     }
-    
+
     maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
         policy->allocators[i]->fcts.destruct(policy->allocators[i]);
     }
 
-    
+
     // Simple xe policies don't have neighbors
     ASSERT(policy->neighbors == NULL);
 
@@ -225,7 +249,7 @@ void xePolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; ++i) {
         policy->guidProviders[i]->fcts.destruct(policy->guidProviders[i]);
     }
-    
+
     // Destroy self
     runtimeChunkFree((u64)policy->workers, NULL);
     runtimeChunkFree((u64)policy->schedulers, NULL);
@@ -257,9 +281,9 @@ static u8 xeCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
                       u32 *depc, u32 properties, ocrFatGuid_t affinity,
                       ocrFatGuid_t * outputEvent) {
 
-    
+
     ocrTaskTemplate_t *taskTemplate = (ocrTaskTemplate_t*)edtTemplate.metaDataPtr;
-    
+
     ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && *paramc != EDT_PARAM_DEF) ||
            (taskTemplate->paramc != EDT_PARAM_UNK && (*paramc == EDT_PARAM_DEF ||
                                                       taskTemplate->paramc == *paramc)));
@@ -282,7 +306,7 @@ static u8 xeCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
     ocrTask_t * base = self->taskFactories[0]->instantiate(
         self->taskFactories[0], edtTemplate, *paramc, paramv,
         *depc, properties, affinity, outputEvent, NULL);
-    
+
     (*guid).guid = base->guid;
     (*guid).metaDataPtr = base;
     return 0;
@@ -331,21 +355,32 @@ static ocrStats_t* xeGetStats(ocrPolicyDomain_t *self) {
 }
 #endif
 
-static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg) {
+static ocrFatGuid_t * getTaskGuidBuffer(ocrPolicyDomain_t *self, u32 count) {
+    ocrPolicyDomainXe_t * derived = (ocrPolicyDomainXe_t *)self;
+    ASSERT(derived->taskCounter < MAX_XE_TASK);
+    ocrFatGuid_t * bufPtr = &(derived->fguidPool[derived->taskCounter]);
+    derived->taskCounter += count;
+    return bufPtr;
+}
+
+static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
     u8 returnCode = 0;
-    msg->srcLocation  = self->myLocation;
-    msg->destLocation = self->parentLocation;
-    u32 type = (msg->type & PD_MSG_TYPE_ONLY);
-    RESULT_ASSERT(self->workers[0]->fcts.sendMessage(self->workers[0], self->parentLocation, &msg), ==, 0);
-    if (msg->type & PD_MSG_REQ_RESPONSE) {
-        RESULT_ASSERT(self->workers[0]->fcts.waitMessage(self->workers[0], &msg), ==, 0);
-        if (msg->srcLocation == self->myLocation) {
-            ASSERT((msg->type & PD_MSG_TYPE_ONLY) == type);
-            ASSERT((!(msg->type & PD_MSG_REQUEST)) && (msg->type & PD_MSG_RESPONSE));
-        } else {
-            RESULT_ASSERT(self->fcts.processMessage(self, msg, false), ==, 0);
-            returnCode = OCR_EINTR;
+    (*msg)->srcLocation  = self->myLocation;
+    (*msg)->destLocation = self->parentLocation;
+    u32 type = ((*msg)->type & PD_MSG_TYPE_ONLY);
+    ASSERT((*msg)->type & PD_MSG_REQUEST);
+    if ((*msg)->type & PD_MSG_REQ_RESPONSE) {
+        ocrMsgHandle_t *handle = NULL;
+        returnCode = self->fcts.sendMessage(self, self->parentLocation, (*msg), &handle, (TWOWAY_MSG_PROP | PERSIST_MSG_PROP));
+        if (returnCode == 0) {
+            ASSERT(handle && handle->msg);
+            RESULT_ASSERT(self->fcts.waitMessage(self, &handle), ==, 0);
+            ASSERT(handle->response && ((handle->response->type & PD_MSG_TYPE_ONLY) == type));
+            //*msg = handle->response;
+            handle->destruct(handle);
         }
+    } else {
+        returnCode = self->fcts.sendMessage(self, self->parentLocation, (*msg), NULL, 0);
     }
     return returnCode;
 }
@@ -354,7 +389,7 @@ static u8 xeProcessCeResponse(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg) {
     ASSERT(msg->type & PD_MSG_REQ_RESPONSE);
     msg->type &= ~PD_MSG_REQUEST;
     msg->type |=  PD_MSG_RESPONSE;
-    RESULT_ASSERT(self->workers[0]->fcts.sendMessage(self->workers[0], msg->srcLocation, &msg), ==, 0);
+    RESULT_ASSERT(self->fcts.sendMessage(self, msg->srcLocation, msg, NULL, 0), ==, 0);
     return 0;
 }
 
@@ -372,12 +407,12 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // For now we deal with both USER and RT dbs the same way
         ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE || PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE);
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, msg);
+        returnCode = xeProcessCeRequest(self, &msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
     }
-    
+
     case PD_MSG_DB_DESTROY:
     {
         // Should never ever be called. The user calls free and internally
@@ -397,7 +432,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, msg);
+        returnCode = xeProcessCeRequest(self, &msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -413,7 +448,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, msg);
+        returnCode = xeProcessCeRequest(self, &msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -429,7 +464,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, msg);
+        returnCode = xeProcessCeRequest(self, &msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -440,7 +475,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_ALLOC
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, msg);
+        returnCode = xeProcessCeRequest(self, &msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -451,12 +486,12 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_UNALLOC
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, msg);
+        returnCode = xeProcessCeRequest(self, &msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
     }
-    
+
     case PD_MSG_WORK_CREATE:
     {
 #define PD_MSG msg
@@ -478,13 +513,13 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |=  PD_MSG_RESPONSE;
         break;
     }
-    
+
     case PD_MSG_WORK_EXECUTE:
     {
         ASSERT(0); // Not used for this PD
         break;
     }
-    
+
     case PD_MSG_WORK_DESTROY:
     {
         // TODO: FIXME: Could be called directly by user but
@@ -492,12 +527,12 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(0);
         break;
     }
-    
+
     case PD_MSG_EDTTEMP_CREATE:
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
-        
+
         returnCode = xeCreateEdtTemplate(self, &(PD_MSG_FIELD(guid)),
                                          PD_MSG_FIELD(funcPtr), PD_MSG_FIELD(paramc),
                                          PD_MSG_FIELD(depc), PD_MSG_FIELD(funcName));
@@ -508,7 +543,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |=  PD_MSG_RESPONSE;
         break;
     }
-    
+
     case PD_MSG_EDTTEMP_DESTROY:
     {
 #define PD_MSG msg
@@ -523,7 +558,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |=  PD_MSG_RESPONSE;
         break;
     }
-    
+
     case PD_MSG_EVT_CREATE:
     {
 #define PD_MSG msg
@@ -536,7 +571,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |=  PD_MSG_RESPONSE;
         break;
     }
-        
+
     case PD_MSG_EVT_DESTROY:
     {
 #define PD_MSG msg
@@ -566,7 +601,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |=  PD_MSG_RESPONSE;
         break;
     }
-    
+
     case PD_MSG_GUID_CREATE:
     {
 #define PD_MSG msg
@@ -609,7 +644,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |=  PD_MSG_RESPONSE;
         break;
     }
-    
+
     case PD_MSG_GUID_DESTROY:
     {
 #define PD_MSG msg
@@ -623,14 +658,17 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |=  PD_MSG_RESPONSE;
         break;
     }
-        
+
     case PD_MSG_COMM_TAKE:
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_TAKE
         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
-        returnCode = xeProcessCeRequest(self, msg);
-        if (returnCode == 0) {
+        returnCode = xeProcessCeRequest(self, &msg);
+        if (PD_MSG_FIELD(guidCount) > 0) {
+        DPRINTF(DEBUG_LVL_INFO, "[XE%lu] (%lu) Received Edt guid: %lx metadata: %p\n", 
+                (u64)self->myLocation, (u64)msg->srcLocation, (PD_MSG_FIELD(guids))->guid, 
+                (PD_MSG_FIELD(guids))->metaDataPtr);
             PD_MSG_FIELD(properties) = 0;
             localDeguidify(self, (PD_MSG_FIELD(guids)));
             // For now, we return the execute function for EDTs
@@ -640,13 +678,21 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         break;
     }
-        
+
     case PD_MSG_COMM_GIVE:
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_GIVE
         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
-        returnCode = xeProcessCeRequest(self, msg);
+        ocrFatGuid_t * guidBuf = getTaskGuidBuffer(self, PD_MSG_FIELD(guidCount));
+        u32 i;
+        for (i = 0; i < PD_MSG_FIELD(guidCount); i++)
+            guidBuf[i] = PD_MSG_FIELD(guids)[i];
+        PD_MSG_FIELD(guids) = guidBuf;
+        //DPRINTF(DEBUG_LVL_INFO, "[XE%lu] (%lu) Sending Edt guid: %lx metadata: %p\n", 
+        //        (u64)self->myLocation, (u64)msg->srcLocation, (PD_MSG_FIELD(guids))->guid, 
+        //        (PD_MSG_FIELD(guids))->metaDataPtr);
+        returnCode = xeProcessCeRequest(self, &msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -716,10 +762,10 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         self->guidProviders[0]->fcts.getVal(
             self->guidProviders[0], PD_MSG_FIELD(dest.guid),
             (u64*)(&(PD_MSG_FIELD(dest.metaDataPtr))), &dstKind);
-        
+
         ocrFatGuid_t signaler = PD_MSG_FIELD(signaler);
         ocrFatGuid_t dest = PD_MSG_FIELD(dest);
-        
+
         switch(dstKind) {
         case OCR_GUID_EVENT:
         {
@@ -754,7 +800,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     case PD_MSG_DEP_REGWAITER:
     {
 #define PD_MSG msg
-#define PD_TYPE PD_MSG_DEP_REGWAITER        
+#define PD_TYPE PD_MSG_DEP_REGWAITER
 // We first get information about the signaler and destination
         ocrGuidKind waiterKind, dstKind;
         self->guidProviders[0]->fcts.getVal(
@@ -763,7 +809,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         self->guidProviders[0]->fcts.getVal(
             self->guidProviders[0], PD_MSG_FIELD(dest.guid),
             (u64*)(&(PD_MSG_FIELD(dest.metaDataPtr))), &dstKind);
-        
+
         ocrFatGuid_t waiter = PD_MSG_FIELD(waiter);
         ocrFatGuid_t dest = PD_MSG_FIELD(dest);
 
@@ -884,7 +930,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |=  PD_MSG_RESPONSE;
         break;
     }
-        
+
     case PD_MSG_SAL_READ:
     {
         ASSERT(0);
@@ -892,7 +938,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |=  PD_MSG_RESPONSE;
         break;
     }
-    
+
     case PD_MSG_SAL_WRITE:
     {
         ASSERT(0);
@@ -900,18 +946,18 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |=  PD_MSG_RESPONSE;
         break;
     }
-        
+
     case PD_MSG_MGT_SHUTDOWN:
     {
         self->fcts.stop(self);
         if (msg->srcLocation == self->myLocation) {
-            returnCode = xeProcessCeRequest(self, msg);
+            returnCode = xeProcessCeRequest(self, &msg);
         } else {
             returnCode = xeProcessCeResponse(self, msg);
         }
         break;
     }
-        
+
     case PD_MSG_MGT_FINISH:
     {
         self->fcts.finish(self);
@@ -933,13 +979,45 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(0);
         break;
     }
-    
+
     default:
         // Not handled
         ASSERT(0);
     }
 
     return returnCode;
+}
+
+u8 xePdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t *message, 
+                   ocrMsgHandle_t **handle, u32 properties) {
+    u8 returnCode = self->commApis[0]->fcts.sendMessage(self->commApis[0], target, message, handle, properties);
+    if (returnCode == 0) return 0;
+    if (handle && *handle) (*handle)->destruct(*handle);
+    switch (returnCode) {
+    case OCR_EBUSY: 
+    case OCR_ECANCELED:
+        {
+        ocrMsgHandle_t *tempHandle = NULL;
+        RESULT_ASSERT(self->fcts.waitMessage(self, &tempHandle), ==, 0);
+        ASSERT(tempHandle && tempHandle->msg);
+        ocrPolicyMsg_t * newMsg = tempHandle->msg;
+        ASSERT(newMsg->srcLocation != self->myLocation);
+        tempHandle->destruct(tempHandle);
+        RESULT_ASSERT(self->fcts.processMessage(self, newMsg, false), ==, 0);
+        }
+        break;
+    default:
+        ASSERT(0);
+    }
+    return returnCode;
+}
+
+u8 xePdPollMessage(ocrPolicyDomain_t *self, ocrMsgHandle_t **handle) {
+    return self->commApis[0]->fcts.pollMessage(self->commApis[0], handle);
+}
+
+u8 xePdWaitMessage(ocrPolicyDomain_t *self,  ocrMsgHandle_t **handle) {
+    return self->commApis[0]->fcts.waitMessage(self->commApis[0], handle);
 }
 
 void* xePdMalloc(ocrPolicyDomain_t *self, u64 size) {
@@ -957,7 +1035,7 @@ void* xePdMalloc(ocrPolicyDomain_t *self, u64 size) {
     // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE. BRN
 //    ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  // TODO: On second thought, maybe it is still applicable.  Experiment.  BRN 29 Jan 2014
     ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-    u8 msgResult = xeProcessCeRequest(self, pmsg);
+    u8 msgResult = xeProcessCeRequest(self, &pmsg);
     ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
     ptr = PD_MSG_FIELD(ptr);
 #undef PD_TYPE
@@ -1024,9 +1102,17 @@ ocrPolicyDomainFactory_t * newPolicyDomainFactoryXe(ocrParamList_t *perType) {
     base->policyDomainFcts.stop = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), xePolicyDomainStop);
     base->policyDomainFcts.finish = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), xePolicyDomainFinish);
     base->policyDomainFcts.processMessage = FUNC_ADDR(u8(*)(ocrPolicyDomain_t*,ocrPolicyMsg_t*,u8), xePolicyDomainProcessMessage);
+    base->policyDomainFcts.sendMessage = FUNC_ADDR(u8(*)(ocrPolicyDomain_t*, ocrLocation_t, ocrPolicyMsg_t*, ocrMsgHandle_t**, u32),
+                                                   xePdSendMessage);
+    base->policyDomainFcts.pollMessage = FUNC_ADDR(u8(*)(ocrPolicyDomain_t*, ocrMsgHandle_t**), xePdPollMessage);
+    base->policyDomainFcts.waitMessage = FUNC_ADDR(u8(*)(ocrPolicyDomain_t*, ocrMsgHandle_t**), xePdWaitMessage);
+    
     base->policyDomainFcts.pdMalloc = FUNC_ADDR(void*(*)(ocrPolicyDomain_t*,u64), xePdMalloc);
     base->policyDomainFcts.pdFree = FUNC_ADDR(void(*)(ocrPolicyDomain_t*,void*), xePdFree);
     return base;
 }
 
 #endif /* ENABLE_POLICY_DOMAIN_XE */
+
+
+

@@ -140,11 +140,15 @@ ocrMemPlatform_t* newMemPlatformFsim(ocrMemPlatformFactory_t * factory,
         runtimeChunkAlloc(sizeof(ocrMemPlatformFsim_t), NULL);
     factory->initialize(factory, result, perInstance);
 
+    return result;
+}
+
 void initializeMemPlatformFsim(ocrMemPlatformFactory_t * factory,
                                ocrMemPlatform_t * result, ocrParamList_t * perInstance) {
 
     initializeMemPlatformOcr(factory, result, perInstance);
     ocrMemPlatformFsim_t *rself = (ocrMemPlatformFsim_t*)result;
+    // TODO: If this is the base, it should go in the base param list
     result->startAddr = ((paramListMemPlatformFsim_t *)perInstance)->start;
     INIT_LOCK(&(rself->lock));
 }

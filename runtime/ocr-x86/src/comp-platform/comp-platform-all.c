@@ -30,6 +30,5 @@ ocrCompPlatformFactory_t *newCompPlatformFactory(compPlatformType_t type, ocrPar
 }
 
 void initializeCompPlatformOcr(ocrCompPlatformFactory_t * factory, ocrCompPlatform_t * self, ocrParamList_t *perInstance) {
-    self->comm = NULL;
     self->fcts = factory->platformFcts;
 }

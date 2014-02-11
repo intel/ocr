@@ -43,6 +43,64 @@ typedef enum {
 } ocrComputeCapability_t;
 
 /**
+ * @brief Properties for the sendMessage calls
+ * indicating the usage model of the call by the caller
+ *
+ * These flags allow the backing comm-platform to make
+ * assumptions about the message being passed in. In
+ * particular, the comm-platform can make assumptions
+ * about whether the storage for a message is kept around
+ * after the call
+ */
+typedef enum {
+    TWOWAY_MSG_PROP          = 0x1, /**< A "response" is expected for
+                                     * this message */
+    PERSIST_MSG_PROP         = 0x2, /**< The input message is guaranteed to be
+                                     * valid until *after* a successful poll/wait */
+    PENDING_MSG_PROP         = 0x4,  /*message not processed yet*/
+    PRIO1_MSG_PROP           = 0x100, /**< Lowest priority message */
+    PRIO2_MSG_PROP           = 0x200, /**< Higher priority message */
+    PRIO3_MSG_PROP           = 0x400, /**< Highest priority message */
+} ocrMsgBehaviorProp_t;
+
+/**
+ * @brief Status of messages at the comm-platform level
+ *
+ * @note Not all implementations support all states. The mandatory
+ * supported ones are marked. Others are present mostly
+ * for optimization reasons
+ */
+typedef enum {
+    MSG_NORMAL   = 0x00100, /**< (MANDATORY) The message is normal (no further details) */
+    MSG_ERR      = 0x10100, /**< (MANDATORY) An error occured sending the message */
+    MSG_ACCEPTED = 0x00200, /**< The message has been accepted by the comm-platform */
+    MSG_SEND_ERR = 0x10400, /**< THe message had an error being sent */
+    MSG_SEND_OK  = 0x00400, /**< The message has been sent successfully */
+    MSG_RECV_OK  = 0x00800, /**< The message has been received by the target successfully */
+    MSG_RECV_ERR = 0x10800, /**< The message had an error being received by the target */
+} ocrMsgStatus_t;
+
+/**
+ * @brief Status of the message handle
+ *
+ * @note Not all implementations support all states. The
+ * mandatory supported ones are marked. Others are present
+ * mostly for optimization reasons
+ */
+typedef enum {
+    HDL_NORMAL        = 0x00100, /**< (MANDATORY) No error conditions */
+    HDL_ERR           = 0x10100, /**< (MANDATORY) Unspecified error */
+    HDL_SEND_ERR      = 0x10200, /**< Outgoing message could not be sent */
+    HDL_SEND_OK       = 0x00200, /**< Outgoing message was sent properly */
+    HDL_SEND_RECV_OK  = 0x00201, /**< Outgoing message was acknowledged as received
+                              * by the target */
+    HDL_SEND_RECV_ERR = 0x10201, /**< Outgoing message was sent but an error
+                              * occured on the receiving end */
+    HDL_RECV_ERR      = 0x10400, /**< An error occured on the incomming response */
+    HDL_RESPONSE_OK   = 0x00400  /**< (MANDATORY) Handle has a ready response */
+    
+} ocrMsgHandleStatus_t;
+/**
  * @brief Types of data-blocks allocated by the runtime
  *
  * OCR provides support for "runtime" data-blocks which
@@ -192,5 +250,3 @@ typedef u64 ocrLocation_t;
     } while(0);
 
 #endif /* __OCR_RUNTIME_TYPES_H__ */
-
-

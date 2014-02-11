@@ -1,6 +1,7 @@
 allocator            - to manage internal & external requests for memory allocation & management
 api                  - functions exposed for use by the application (OCR User API)
-comm-platform        - functions used by policy domains to communicate with each other
+comm-api             - high-level functions used by policy domains to communicate (two-way messages)
+comm-platform        - low-level communication primitives (one-way messages)
 comp-platform        - computation environment that OCR runs on
 comp-target          - computation environment that OCR is targeted to
 datablock            - datablock (DB) management functions
