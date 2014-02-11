@@ -26,11 +26,13 @@ typedef struct {
 
 typedef struct {
     ocrCommPlatform_t base;
-    deque_t * requestQueue;
-    deque_t * responseQueue;
-    volatile u64 * requestCount; // counter to increment after XE puts in a request
-    volatile u64 * responseCount; // counter that will be incremented by CE when a response arrives
-    u64 xeLocalResponseCount; // counter maintained locally be XE to monitor incomming response
+    volatile bool xeMessage;
+    volatile bool ceMessage;
+    volatile ocrPolicyMsg_t * xeMessagePtr;
+    volatile ocrPolicyMsg_t * ceMessagePtr;
+    u8 xeMessageBufferIndex;
+    ocrPolicyMsg_t xeMessageBuffer[2];
+    ocrPolicyMsg_t ceMessageBuffer;
 } ocrCommPlatformXePthread_t;
 
 typedef struct {

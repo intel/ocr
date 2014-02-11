@@ -163,10 +163,10 @@ void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
     // Now we have set the "I want to shut-down" bit so now we need
     // to wait for the users to drain
     // We do something really stupid and just loop for now
-    while(rself->state != 2) ;
+    while(rself->state != 18) ;
 
     // Here we can start stopping the PD
-    ASSERT(rself->state == 2); // We should have no users and have managed to set
+    ASSERT(rself->state == 18); // We should have no users and have managed to set
                                // the state to 0010b
     
     // Note: As soon as worker '0' is stopped; its thread is
@@ -201,8 +201,8 @@ void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
 
     // This does not need to be a cmpswap but keeping it
     // this way for now to make sure the logic is sound
-    oldState = hal_cmpswap32(&(rself->state), 2, 10);
-    ASSERT(oldState == 2);
+    oldState = hal_cmpswap32(&(rself->state), 18, 26);
+    ASSERT(oldState == 18);
 }
 
 void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {

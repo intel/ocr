@@ -23,6 +23,7 @@ typedef struct {
 
 typedef struct {
     ocrPolicyDomain_t base;
+    u64 shutdownCount;
 } ocrPolicyDomainCe_t;
 
 ocrPolicyDomainFactory_t *newPolicyDomainFactoryCe(ocrParamList_t *perType);

@@ -13,6 +13,7 @@
 #include "ocr-errors.h"
 #include "ocr-policy-domain.h"
 #include "ocr-sysboot.h"
+#include "ocr-runtime-types.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -339,10 +340,37 @@ static ocrStats_t* xeGetStats(ocrPolicyDomain_t *self) {
 }
 #endif
 
+static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg) {
+    u8 returnCode = 0;
+    msg->srcLocation  = self->myLocation;
+    msg->destLocation = self->parentLocation;
+    u32 type = (msg->type & PD_MSG_TYPE_ONLY);
+    RESULT_ASSERT(self->workers[0]->fcts.sendMessage(self->workers[0], self->parentLocation, &msg), ==, 0);
+    if (msg->type & PD_MSG_REQ_RESPONSE) {
+        RESULT_ASSERT(self->workers[0]->fcts.waitMessage(self->workers[0], &msg), ==, 0);
+        if (msg->srcLocation == self->myLocation) {
+            ASSERT((msg->type & PD_MSG_TYPE_ONLY) == type);
+            ASSERT((!(msg->type & PD_MSG_REQUEST)) && (msg->type & PD_MSG_RESPONSE));
+        } else {
+            RESULT_ASSERT(self->processMessage(self, msg, false), ==, 0);
+            returnCode = OCR_EINTR;
+        }
+    }
+    return returnCode;
+}
+
+static u8 xeProcessCeResponse(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg) {
+    ASSERT(msg->type & PD_MSG_REQ_RESPONSE);
+    msg->type &= ~PD_MSG_REQUEST;
+    msg->type |=  PD_MSG_RESPONSE;
+    RESULT_ASSERT(self->workers[0]->fcts.sendMessage(self->workers[0], msg->srcLocation, &msg), ==, 0);
+    return 0;
+}
+
 u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlocking) {
 
     u8 returnCode = 0;
-    ASSERT((msg->type & PD_MSG_REQUEST) && !(msg->type & PD_MSG_RESPONSE))
+    ASSERT((msg->type & PD_MSG_REQUEST) && (!(msg->type & PD_MSG_RESPONSE))); 
     switch(msg->type & PD_MSG_TYPE_ONLY) {
     case PD_MSG_DB_CREATE:
     {
@@ -353,20 +381,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // For now we deal with both USER and RT dbs the same way
         ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE || PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE);
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = self->myLocation;
-        msg->destLocation = self->parentLocation;
-        ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
-        u8 msgResult;
-        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
+        returnCode = xeProcessCeRequest(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -390,22 +405,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(edt)));
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
-        ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = self->myLocation;
-        msg->destLocation = self->parentLocation;
-        ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
-        u8 msgResult;
-        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
+        returnCode = xeProcessCeRequest(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -420,22 +421,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(edt)));
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
-        ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = self->myLocation;
-        msg->destLocation = self->parentLocation;
-        ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
-        u8 msgResult;
-        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
+        returnCode = xeProcessCeRequest(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -450,22 +437,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(edt)));
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
-        ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = self->myLocation;
-        msg->destLocation = self->parentLocation;
-        ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
-        u8 msgResult;
-        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
+        returnCode = xeProcessCeRequest(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -480,21 +453,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE. BRN
         ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  // TODO: On second thought, maybe it is still applicable.  Experiment.  BRN 29 Jan 2014
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = self->myLocation;
-ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
-        msg->destLocation = self->parentLocation;
-        ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
-        u8 msgResult;
-        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
+        ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
+        returnCode = xeProcessCeRequest(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -508,20 +468,7 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
         msg->type += PD_MSG_MEM_UNALLOC_FOR_CLIENT; // and those of its own making.
         // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE.
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        msg->srcLocation  = self->myLocation;
-        msg->destLocation = self->parentLocation;
-        ocrPolicyMsg_t *msgAddressSent = msg;      // Jot down address of message, for comparison.
-        u8 msgResult;
-        msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            self->parentLocation,        // Input: ocrLocation_t target; (location of parent ce)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
-            self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-            &msg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-        ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-        ASSERT (msg == msgAddressSent);  // If fails, must handle CE returning different message addr
+        returnCode = xeProcessCeRequest(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -542,10 +489,10 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
             self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(templateGuid),
             &PD_MSG_FIELD(paramc), PD_MSG_FIELD(paramv), &PD_MSG_FIELD(depc),
             PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity), outputEvent);
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
@@ -572,10 +519,10 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
                                          PD_MSG_FIELD(funcPtr), PD_MSG_FIELD(paramc),
                                          PD_MSG_FIELD(depc), PD_MSG_FIELD(funcName));
                                  
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
@@ -590,6 +537,7 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST);
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
@@ -617,6 +565,7 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST);
+        msg->type |=  PD_MSG_RESPONSE;
         break;            
     }
 
@@ -697,19 +646,15 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_TAKE
         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
-        // XE currently has no scheduler. So, it sends a message to CE asking for work.
-        localDeguidify(self, (PD_MSG_FIELD(guids)));
-        PD_MSG_FIELD(properties) = self->workers[0]->fcts.sendMessage(
-            self->workers[0], self->parentLocation, &msg); 
-        PD_MSG_FIELD(properties) = self->workers[0]->fcts.waitMessage(
-            self->workers[0], &msg); 
-        localDeguidify(self, (PD_MSG_FIELD(guids)));
-        // For now, we return the execute function for EDTs
-        PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
+        returnCode = xeProcessCeRequest(self, msg);
+        if (returnCode == 0) {
+            PD_MSG_FIELD(properties) = 0;
+            localDeguidify(self, (PD_MSG_FIELD(guids)));
+            // For now, we return the execute function for EDTs
+            PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
+        }
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
@@ -718,14 +663,9 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_GIVE
         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
-        PD_MSG_FIELD(properties) = self->workers[0]->fcts.sendMessage(
-            self->workers[0], self->parentLocation, &msg); 
-        PD_MSG_FIELD(properties) = self->workers[0]->fcts.waitMessage(
-            self->workers[0], &msg); 
+        returnCode = xeProcessCeRequest(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -824,7 +764,7 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -856,7 +796,7 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
+        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -892,7 +832,7 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
+        msg->type |=  PD_MSG_RESPONSE;
         break;            
     }
 
@@ -912,6 +852,7 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
         
     case PD_MSG_SAL_PRINT:
     {
+        ASSERT(0);
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |=  PD_MSG_RESPONSE;
         break;
@@ -919,6 +860,7 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
         
     case PD_MSG_SAL_READ:
     {
+        ASSERT(0);
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |=  PD_MSG_RESPONSE;
         break;
@@ -926,6 +868,7 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
     
     case PD_MSG_SAL_WRITE:
     {
+        ASSERT(0);
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |=  PD_MSG_RESPONSE;
         break;
@@ -934,8 +877,11 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
     case PD_MSG_MGT_SHUTDOWN:
     {
         self->stop(self);
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
+        if (msg->srcLocation == self->myLocation) {
+            returnCode = xeProcessCeRequest(self, msg);
+        } else {
+            returnCode = xeProcessCeResponse(self, msg);
+        }
         break;
     }
         
@@ -966,10 +912,6 @@ ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
         ASSERT(0);
     }
 
-    if(isBlocking && (msg->type & PD_MSG_REQ_RESPONSE)) {
-        ASSERT(msg->type & PD_MSG_RESPONSE); // If we were blocking and needed a response
-                                             // we need to make sure there is one
-    }
     return returnCode;
 }
 
@@ -979,23 +921,15 @@ void* xePdMalloc(ocrPolicyDomain_t *self, u64 size) {
     void *ptr;
     ocrPolicyMsg_t msg;
     ocrPolicyMsg_t* pmsg = &msg;
-#define PD_MSG msg
+#define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_ALLOC
+    PD_MSG_FIELD(type) = DB_MEMTYPE;
+    PD_MSG_FIELD(size) = size;
     msg.type = PD_MSG_MEM_ALLOC_FOR_CLIENT  | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE; // and those of its own making.
     // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE. BRN
 //    ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  // TODO: On second thought, maybe it is still applicable.  Experiment.  BRN 29 Jan 2014
     ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-    msg.srcLocation  = self->myLocation;
-    msg.destLocation = self->parentLocation;
-    u8 msgResult;
-    msgResult = self->workers[0]->fcts.sendMessage( // Pass msg to CE.
-        self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-        8,  // FIXME: currently assumes it's always to CE      // Input: ocrLocation_t target; (location of parent ce)
-        &pmsg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
-    ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-    msgResult = self->workers[0]->fcts.waitMessage( // Pass msg to CE.
-        self->workers[0],      // Input: ocrWorker_t * worker; (i.e. this xe's curr worker)
-        &pmsg);                 // In/Out: ocrPolicyMsg_t **msg; (msg to process, and its response)
+    u8 msgResult = xeProcessCeRequest(self, pmsg);
     ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
     ptr = pmsg->args.PD_MSG_STRUCT_NAME(PD_MSG_MEM_ALLOC).ptr;
 #undef PD_TYPE
@@ -1044,9 +978,9 @@ ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * policy,
 
     //TODO populated by ini file factories. Need setters or something ?
     base->schedulers = NULL;
-    base->allocators = NULL;
-    
+    base->allocators = NULL;    
 //    base->guid = UNINITIALIZED_GUID;
+
     return base;
 }
 

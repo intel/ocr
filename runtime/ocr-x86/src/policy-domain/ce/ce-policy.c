@@ -414,11 +414,24 @@ static ocrStats_t* ceGetStats(ocrPolicyDomain_t *self) {
 }
 #endif
 
+static u8 ceProcessResponse(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg) {
+    if (msg->srcLocation == self->myLocation) {
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |=  PD_MSG_RESPONSE;
+    } else {
+        if (msg->type & PD_MSG_REQ_RESPONSE) {
+            msg->type &= ~PD_MSG_REQUEST;
+            msg->type |=  PD_MSG_RESPONSE;
+            RESULT_ASSERT(self->workers[0]->fcts.sendMessage(self->workers[0], msg->srcLocation, &msg), ==, 0);
+        }
+    }
+    return 0;
+}
+
 u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlocking) {
 
     u8 returnCode = 0;
     u64 engineIndex = ocrLocation_getEngineIndex(self->myLocation); // Default to CE's engine index.
-    ASSERT((msg->type & PD_MSG_REQUEST) && !(msg->type & PD_MSG_RESPONSE))
     switch(msg->type & PD_MSG_TYPE_ONLY) {
     case PD_MSG_DB_CREATE:
     {
@@ -447,8 +460,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             PD_MSG_FIELD(ptr) = NULL;
             PD_MSG_FIELD(properties) = returnCode;
         }
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -472,13 +484,12 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(edt)));
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
-        ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
+        //ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
         PD_MSG_FIELD(ptr) =
             self->dbFactories[0]->fcts.acquire(db, PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -491,13 +502,12 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(edt)));
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
-        ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
+        //ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
         PD_MSG_FIELD(properties) = 
             self->dbFactories[0]->fcts.release(db, PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -513,10 +523,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
         PD_MSG_FIELD(properties) =
             self->dbFactories[0]->fcts.free(db, PD_MSG_FIELD(edt));
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -526,14 +535,12 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_ALLOC
-        PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
-        PD_MSG_FIELD(properties) =
-            ceMemAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
-                       engineIndex, PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)));
+        PD_MSG_FIELD(allocatingPD) = self->fguid;
+        PD_MSG_FIELD(properties) = ceMemAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
+                                              engineIndex, PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)));
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -543,14 +550,13 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_UNALLOC
-        ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);
+        //ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
             ceMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), PD_MSG_FIELD(type));
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
@@ -569,8 +575,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(templateGuid),
             &PD_MSG_FIELD(paramc), PD_MSG_FIELD(paramv), &PD_MSG_FIELD(depc),
             PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity), outputEvent);
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -598,9 +603,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         returnCode = ceCreateEdtTemplate(self, &(PD_MSG_FIELD(guid)),
                                          PD_MSG_FIELD(funcPtr), PD_MSG_FIELD(paramc),
                                          PD_MSG_FIELD(depc), PD_MSG_FIELD(funcName));
-                                 
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -614,9 +617,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrTaskTemplate_t *tTemplate = (ocrTaskTemplate_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(tTemplate->fctId == self->taskTemplateFactories[0]->factoryId);
         self->taskTemplateFactories[0]->fcts.destruct(tTemplate);
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST);
         break;
     }
     
@@ -626,10 +629,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_EVT_CREATE
         PD_MSG_FIELD(properties) = ceCreateEvent(self, &(PD_MSG_FIELD(guid)),
                                                  PD_MSG_FIELD(type), PD_MSG_FIELD(properties) & 1);
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
@@ -641,9 +643,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrEvent_t *evt = (ocrEvent_t*)PD_MSG_FIELD(guid.metaDataPtr);
         ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
         self->eventFactories[0]->fcts[evt->kind].destruct(evt);
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST);
         break;            
     }
 
@@ -655,10 +657,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrEvent_t *evt = (ocrEvent_t*)PD_MSG_FIELD(guid.metaDataPtr);
         ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
         PD_MSG_FIELD(data) = self->eventFactories[0]->fcts[evt->kind].get(evt);
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
@@ -679,10 +680,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                 PD_MSG_FIELD(kind));
             PD_MSG_FIELD(guid.guid) = temp;
         }
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -698,10 +698,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         } else {
             PD_MSG_FIELD(properties) = WMETA_GUIDPROP | RMETA_GUIDPROP;
         }
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
     
@@ -712,10 +711,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
         PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.releaseGuid(
             self->guidProviders[0], PD_MSG_FIELD(guid), PD_MSG_FIELD(properties) & 1);
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
@@ -727,16 +725,16 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(properties) = self->schedulers[0]->fcts.takeEdt(
             self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
             PD_MSG_FIELD(guids));
-        DPRINTF(DEBUG_LVL_INFO, "[CE] Sending Edt to XE%lu: guid: %lu metadata: %p\n", 
+        if (PD_MSG_FIELD(guidCount) > 0) {
+            DPRINTF(DEBUG_LVL_INFO, "[CE] Sending Edt to XE%lu: guid: %lu metadata: %p\n", 
                 (u64)msg->srcLocation, (PD_MSG_FIELD(guids))->guid, 
                 (PD_MSG_FIELD(guids))->metaDataPtr);
-        returnCode = self->workers[0]->fcts.sendMessage(
-            self->workers[0], msg->srcLocation, &msg); // respond to xe with task
-
+            returnCode = ceProcessResponse(self, msg);
+        } else {
+            returnCode = OCR_EAGAIN;
+        }
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
         
@@ -748,10 +746,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(properties) = self->schedulers[0]->fcts.giveEdt(
             self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
             PD_MSG_FIELD(guids));
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -801,10 +798,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // TODO: Fixme
         statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
 #endif
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
@@ -848,10 +844,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // TODO: Fixme
         statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
 #endif
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
@@ -880,10 +875,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // TODO: Fixme
         statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
 #endif
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
         break;
     }
 
@@ -916,10 +910,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // TODO: Fixme
         statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
 #endif
+        returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
         break;            
     }
 
@@ -939,38 +932,61 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         
     case PD_MSG_SAL_PRINT:
     {
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
+        returnCode = ceProcessResponse(self, msg);
         break;
     }
         
     case PD_MSG_SAL_READ:
     {
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
+        returnCode = ceProcessResponse(self, msg);
         break;
     }
     
     case PD_MSG_SAL_WRITE:
     {
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
+        returnCode = ceProcessResponse(self, msg);
         break;
     }
         
     case PD_MSG_MGT_SHUTDOWN:
     {
-        self->stop(self);
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
+        u32 i;
+        ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t *)self;
+        if (msg->type & PD_MSG_REQUEST) {
+            ASSERT(!(msg->type & PD_MSG_RESPONSE));
+            ASSERT(msg->srcLocation != self->myLocation && cePolicy->shutdownCount == 0);
+            //u64 neighborCount = self->neighborCount;
+            u64 neighborCount = 8; //FIXME: temporary hardcoding
+            cePolicy->shutdownCount = 1; //FIXME: Assumes block local shutdown message from XE
+            for (i = 0; i < neighborCount; i++) {
+                //ocrLocation_t target = self->neighbors[i];
+                ocrLocation_t target = (ocrLocation_t)(i);
+                if (target != msg->srcLocation) {
+                    ocrPolicyMsg_t mesg;
+                    ocrPolicyMsg_t * mesgPtr = &mesg;
+                    getCurrentEnv(NULL, NULL, NULL, mesgPtr);
+#define PD_MSG mesgPtr
+#define PD_TYPE PD_MSG_MGT_SHUTDOWN
+                    mesgPtr->type = PD_MSG_MGT_SHUTDOWN | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+                    RESULT_ASSERT(self->workers[0]->fcts.sendMessage(self->workers[0], target, &mesgPtr), ==, 0);
+#undef PD_MSG
+#undef PD_TYPE
+                }
+            }
+        } else {
+            ASSERT(msg->type & PD_MSG_RESPONSE);
+            //u64 neighborCount = self->neighborCount;
+            u64 neighborCount = 8; //FIXME: temporary hardcoding
+            if ((++(cePolicy->shutdownCount)) == neighborCount) 
+                self->stop(self);
+        }
         break;
     }
         
     case PD_MSG_MGT_FINISH:
     {
         self->finish(self);
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
+        returnCode = ceProcessResponse(self, msg);
         break;
     }
 
@@ -993,12 +1009,6 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(0);
     }
 
-    // This code is not needed but just shows how things would be handled (probably
-    // done by sub-functions)
-    if(isBlocking && (msg->type & PD_MSG_REQ_RESPONSE)) {
-        ASSERT(msg->type & PD_MSG_RESPONSE); // If we were blocking and needed a response
-                                             // we need to make sure there is one
-    }
     return returnCode;
 }
 
@@ -1050,6 +1060,7 @@ ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * policy,
     base->allocators = NULL;
     
 //    base->guid = UNINITIALIZED_GUID;
+    derived->shutdownCount = 0;
     return base;
 }
 

@@ -12,6 +12,7 @@
 #include "ocr-policy-domain.h"
 #include "ocr-runtime-types.h"
 #include "ocr-sysboot.h"
+#include "ocr-errors.h"
 #include "ocr-types.h"
 #include "ocr-worker.h"
 #include "worker/ce/ce-worker.h"
@@ -37,16 +38,23 @@ static inline u64 getWorkerId(ocrWorker_t * worker) {
  * The computation worker routine that asks for work to the scheduler
  */
 static void workerLoop(ocrWorker_t * worker) {
+    u8 returnCode = 0;
     ocrPolicyDomain_t *pd = worker->pd;
     ocrPolicyMsg_t *msgPtr;
     DPRINTF(DEBUG_LVL_VERB, "Starting scheduler routine of CE worker %ld\n", getWorkerId(worker));
     while(worker->fcts.isRunning(worker)) {
         msgPtr = NULL;
         worker->fcts.waitMessage(worker, &msgPtr);
-        if(pd->processMessage(pd, msgPtr, true) == 0) {
-            /*pd->pdFree(pd, msgPtr);*/ //FIXME: Message allocation is done at XE. CE should deallocate only if it own message allocation.
-        } else {
-            ASSERT(0); // we don't know (yet) what to do if something fails!
+        returnCode = pd->processMessage(pd, msgPtr, false);
+        if (returnCode) {
+            switch(returnCode) {
+            case OCR_EAGAIN: // try again
+                ASSERT(msgPtr->srcLocation != pd->myLocation); 
+                break;
+            default:
+                ASSERT(0);
+                break;
+            }
         }
     } /* End of while loop */
 }

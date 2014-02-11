@@ -26,13 +26,14 @@ typedef struct {
 
 typedef struct {
     ocrCommPlatform_t base;
-    deque_t ** requestQueues; // Q array (one per XE) for XE's to send a request message to the CE
-    deque_t ** responseQueues; // Q array (one per XE) for the CE to send a response message to a XE
-    volatile u64 * requestCounts; // padded array of request counters (one per XE)
-    volatile u64 * responseCounts; // padded array of response counters (one per XE)
-    u64 * ceLocalRequestCounts; // array of counters (one per XE) maintained locally be CE
     u32 numXE;
     u32 startIdx; // start of next poll loop to avoid starvation
+    volatile bool ** xeMessage;
+    volatile bool ** ceMessage;
+    volatile ocrPolicyMsg_t *** xeMessagePtr;
+    volatile ocrPolicyMsg_t *** ceMessagePtr;
+    ocrPolicyMsg_t ** ceMessageBuffer;
+    bool * xeActiveFlag;
 } ocrCommPlatformCePthread_t;
 
 typedef struct {

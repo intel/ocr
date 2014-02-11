@@ -60,9 +60,10 @@ static void workerLoop(ocrWorker_t * worker) {
                 u8 (*executeFunc)(ocrTask_t *) = (u8 (*)(ocrTask_t*))PD_MSG_FIELD(extra); // Execute is stored in extra
                 executeFunc(worker->curTask);
                 worker->curTask = NULL;
-                // Destroy the work
 #undef PD_MSG
 #undef PD_TYPE
+                // Destroy the work
+/* TODO:
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_WORK_DESTROY
                 msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
@@ -71,7 +72,8 @@ static void workerLoop(ocrWorker_t * worker) {
                 RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
-            } else if (count > 1) {
+*/
+            } else {
                 // TODO: In the future, potentially take more than one)
                 ASSERT(0);
             }

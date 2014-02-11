@@ -11,7 +11,9 @@
 
 #include "ocr-policy-domain.h"
 
+#include "ocr-errors.h"
 #include "ocr-sysboot.h"
+#include "ocr-hal.h"
 #include "utils/ocr-utils.h"
 
 #include "ce-pthread-comm-platform.h"
@@ -23,30 +25,32 @@ void cePthreadCommDestruct (ocrCommPlatform_t * base) {
 }
 
 void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
-    // We are a NULL communication so we don't do anything
-    u32 i, numXE;
+    u32 numXE;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*) commPlatform;
+    commPlatform->pd = PD;
     numXE = PD->neighborCount;
     numXE = 8;  // FIXME: Temporary hardcoding
     commPlatformCePthread->numXE = numXE;
-
-    commPlatformCePthread->requestQueues = (deque_t**) runtimeChunkAlloc(sizeof(deque_t*)*numXE, NULL);
-    commPlatformCePthread->responseQueues = (deque_t**) runtimeChunkAlloc(sizeof(deque_t*)*numXE, NULL);
-    commPlatformCePthread->requestCounts = (volatile u64 *)runtimeChunkAlloc(PAD_SIZE * numXE * sizeof(u64), NULL);
-    commPlatformCePthread->responseCounts = (volatile u64 *)runtimeChunkAlloc(PAD_SIZE * numXE * sizeof(u64), NULL);
-    commPlatformCePthread->ceLocalRequestCounts = (u64 *)runtimeChunkAlloc(numXE * sizeof(u64), NULL);
-
-    for (i = 0; i < numXE; i++) {
-        commPlatformCePthread->requestQueues[i] = newNonConcurrentQueue(PD, NULL); 
-        commPlatformCePthread->responseQueues[i] = newNonConcurrentQueue(PD, NULL); 
-        commPlatformCePthread->requestCounts[i * PAD_SIZE] = 0;
-        commPlatformCePthread->responseCounts[i * PAD_SIZE] = 0;
-        commPlatformCePthread->ceLocalRequestCounts[i] = 0;
-    }
+    commPlatformCePthread->xeMessage = (volatile bool **)runtimeChunkAlloc(numXE * sizeof(volatile bool *), NULL);
+    commPlatformCePthread->ceMessage = (volatile bool **)runtimeChunkAlloc(numXE * sizeof(volatile bool *), NULL);
+    commPlatformCePthread->xeMessagePtr = (volatile ocrPolicyMsg_t ***)runtimeChunkAlloc(numXE * sizeof(volatile ocrPolicyMsg_t **), NULL);
+    commPlatformCePthread->ceMessagePtr = (volatile ocrPolicyMsg_t ***)runtimeChunkAlloc(numXE * sizeof(volatile ocrPolicyMsg_t **), NULL);
+    commPlatformCePthread->ceMessageBuffer = (ocrPolicyMsg_t **)runtimeChunkAlloc(numXE * sizeof(ocrPolicyMsg_t *), NULL);
+    commPlatformCePthread->xeActiveFlag = (bool *)runtimeChunkAlloc(numXE * sizeof(bool), false);
     return;
 }
 
 void cePthreadCommStart(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
+    u32 i;
+    ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*) commPlatform;
+    for (i = 0; i < commPlatformCePthread->numXE; i++) {
+        ASSERT(commPlatformCePthread->xeMessage[i]);
+        ASSERT(commPlatformCePthread->ceMessage[i]);
+        ASSERT(commPlatformCePthread->xeMessagePtr[i]);
+        ASSERT(commPlatformCePthread->ceMessagePtr[i]);
+        ASSERT(commPlatformCePthread->ceMessageBuffer[i]);
+        ASSERT(commPlatformCePthread->xeActiveFlag[i] == false);
+    }
     return;
 }
 
@@ -61,36 +65,73 @@ void cePthreadCommFinish(ocrCommPlatform_t *commPlatform) {
 u8 cePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
                        ocrPolicyMsg_t **message) {
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
-    DPRINTF(DEBUG_LVL_INFO, "[CE] Sending Message: To %lu Src: %lu Count: %lu Type: %u\n", 
-            (u64)target, (u64)((*message)->srcLocation), 
-            commPlatformCePthread->responseCounts[target * PAD_SIZE], 
-            (*message)->type);
-    deque_t * q = commPlatformCePthread->responseQueues[target];
-    q->pushAtTail(q, (void*)(*message), 0);
-    commPlatformCePthread->responseCounts[target * PAD_SIZE]++;
+    DPRINTF(DEBUG_LVL_INFO, "[CE]: Sending Message: %u Type: %u To: %lu\n", 
+            (*message)->type, ((*message)->type & PD_MSG_TYPE_ONLY), target);
+    ASSERT(*(commPlatformCePthread->ceMessage[target]) == false); 
+    ASSERT(*(commPlatformCePthread->ceMessagePtr[target]) == NULL); 
+    if ((*message)->type & PD_MSG_RESPONSE) {
+        ASSERT(!((*message)->type & PD_MSG_REQUEST));
+        *(commPlatformCePthread->ceMessagePtr[target]) = *message;
+        hal_fence();
+        *(commPlatformCePthread->ceMessage[target]) = true;
+        hal_fence();
+        while(*(commPlatformCePthread->ceMessage[target]) == true); // block until XE receives response
+    } else {
+        ASSERT((*message)->type & PD_MSG_REQUEST);
+        memcpy(commPlatformCePthread->ceMessageBuffer[target], (*message), sizeof(ocrPolicyMsg_t));
+        *(commPlatformCePthread->ceMessagePtr[target]) = commPlatformCePthread->ceMessageBuffer[target];
+        hal_fence();
+        *(commPlatformCePthread->ceMessage[target]) = true;
+    }
+    commPlatformCePthread->xeActiveFlag[target] = false;
     return 0;
+}
+
+static bool ceReceivedMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message, u32 mask, u32 xeId, bool * doPrint) {
+    bool ret = false;
+    ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
+    if (commPlatformCePthread->xeActiveFlag[xeId] == true) {
+        ASSERT(*(commPlatformCePthread->xeMessage[xeId]) == false);
+        ASSERT(*(commPlatformCePthread->xeMessagePtr[xeId]));
+        *message = (ocrPolicyMsg_t *)(*(commPlatformCePthread->xeMessagePtr[xeId]));
+        ret = true;
+    } else if (*(commPlatformCePthread->xeMessage[xeId]) == true) {
+        ASSERT(*(commPlatformCePthread->xeMessagePtr[xeId]));
+        if ((*(commPlatformCePthread->ceMessage[xeId]) == false) ||                             // CE has no outstanding messages OR
+           (((*(commPlatformCePthread->xeMessagePtr[xeId]))->type & PD_MSG_REQ_RESPONSE) == 0)) // request does not require response
+        {
+            *message = (ocrPolicyMsg_t *)(*(commPlatformCePthread->xeMessagePtr[xeId]));
+            *doPrint = true;
+            ret = true;
+            if(((*(commPlatformCePthread->xeMessagePtr[xeId]))->type & PD_MSG_REQUEST) &&
+               ((*(commPlatformCePthread->xeMessagePtr[xeId]))->type & PD_MSG_REQ_RESPONSE))
+                commPlatformCePthread->xeActiveFlag[xeId] = true;
+        }
+        hal_fence();
+        *(commPlatformCePthread->xeMessage[xeId]) = false;
+    }
+    return ret;
 }
 
 //NOTE: sanjay: Currently polls for only XE messages.
 u8 cePthreadCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message, u32 mask) {
     u32 i, startIdx, numXE;
+    bool doPrint = false;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
     startIdx = commPlatformCePthread->startIdx;
     numXE = commPlatformCePthread->numXE;
     for (i = 0; i < numXE; i++) { 
         u32 idx = (startIdx + i) % numXE;
-        if (commPlatformCePthread->requestCounts[idx * PAD_SIZE] > commPlatformCePthread->ceLocalRequestCounts[idx]) {
-            deque_t * q = commPlatformCePthread->requestQueues[idx];
-            *message = (ocrPolicyMsg_t *) q->popFromHead(q, 0); 
-            commPlatformCePthread->ceLocalRequestCounts[idx]++;
-            DPRINTF(DEBUG_LVL_INFO, "[CE] Received Message: From %lu Idx: %u Count: %lu Type: %u\n", 
-                   (u64)((*message)->srcLocation), idx, 
-                   commPlatformCePthread->ceLocalRequestCounts[idx], (*message)->type);
+        if (ceReceivedMessage(self, message, mask, idx, &doPrint)) {
             commPlatformCePthread->startIdx = (idx + 1) % numXE;
+            if(doPrint) {
+                DPRINTF(DEBUG_LVL_INFO, "[CE]: Received Message: %u Type: %u From: %lu\n", 
+                    (*message)->type, ((*message)->type & PD_MSG_TYPE_ONLY), (u64)((*message)->srcLocation));
+            }
             return 0;
         }
     } 
-    return 1;
+    return OCR_EAGAIN;
 }
 
 u8 cePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **message) {
@@ -106,8 +147,12 @@ ocrCommPlatform_t* newCommPlatformCePthread(ocrCommPlatformFactory_t *factory,
 
     commPlatformCePthread->base.location = ((paramListCommPlatformInst_t *)perInstance)->location;
     commPlatformCePthread->base.fcts = factory->platformFcts;
-    commPlatformCePthread->requestQueues = NULL;
-    commPlatformCePthread->responseQueues = NULL;
+    commPlatformCePthread->xeMessage = NULL;
+    commPlatformCePthread->ceMessage = NULL;
+    commPlatformCePthread->xeMessagePtr = NULL;
+    commPlatformCePthread->ceMessagePtr = NULL;
+    commPlatformCePthread->ceMessageBuffer = NULL;
+    commPlatformCePthread->xeActiveFlag = NULL;
     
     return (ocrCommPlatform_t*)commPlatformCePthread;
 }

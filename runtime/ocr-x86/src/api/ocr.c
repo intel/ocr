@@ -12,8 +12,15 @@
 
 void ocrShutdown() {
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL, NULL);
-    pd->stop(pd);
+    ocrPolicyMsg_t msg;
+    ocrPolicyMsg_t * msgPtr = &msg;
+    getCurrentEnv(&pd, NULL, NULL, msgPtr);
+#define PD_MSG msgPtr
+#define PD_TYPE PD_MSG_MGT_SHUTDOWN
+    msgPtr->type = PD_MSG_MGT_SHUTDOWN | PD_MSG_REQUEST;
+    RESULT_ASSERT(pd->processMessage(pd, msgPtr, true), ==, 0);
+#undef PD_MSG
+#undef PD_TYPE
     // TODO: Re-enable teardown for other platforms
     //teardown(pd);
 }
