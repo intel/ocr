@@ -44,6 +44,7 @@
 
 // GUID provider
 #define ENABLE_GUID_PTR
+#define ENABLE_GUID_COUNTED_MAP
 
 // HAL layer to use
 #define HAL_X86_64

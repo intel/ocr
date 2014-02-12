@@ -230,6 +230,12 @@ libocr_la_LIBADD += libocr_guid_ptr.la
 libocr_guid_ptr_la_SOURCES = \
 ../../../src/guid/ptr/ptr-guid.c
 
+noinst_LTLIBRARIES += libocr_guid_counted_map.la
+libocr_la_LIBADD += libocr_guid_counted_map.la
+
+libocr_guid_counted_map_la_SOURCES = \
+../../../src/guid/counted/counted-map-guid.c
+
 #
 ## MACHINE-DESCRIPTION
 #
@@ -382,6 +388,7 @@ libocr_la_LIBADD += libocr_utils.la -lelf
 libocr_utils_la_SOURCES = \
 ../../../src/utils/deque.c \
 ../../../src/utils/elf-utils.c \
+../../../src/utils/hashtable.c \
 ../../../src/utils/ocr-utils.c \
 ../../../src/utils/rangeTracker.c
 
