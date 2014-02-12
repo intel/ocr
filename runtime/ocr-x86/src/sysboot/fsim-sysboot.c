@@ -45,6 +45,10 @@ void *myGetFuncAddr (const char * fname) {
 
 void* (*getFuncAddr)(const char*) = &myGetFuncAddr;
 
+void (*userArgsSet)(void *) = NULL;
+void * (*userArgsGet)() = NULL;
+void (*mainEdtSet)(ocrEdt_t) = NULL;
+ocrEdt_t (*mainEdtGet)() = NULL;
 u64 (*runtimeChunkAlloc)(u64, u64*) = &FsimRuntimeChunkAlloc;
 void (*runtimeChunkFree)(u64, u64*) = &FsimRuntimeChunkFree;
 void (*runtimeUpdateMemTarget)(ocrMemTarget_t *, u64) = &FsimRuntimeUpdateMemTarget;

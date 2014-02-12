@@ -273,8 +273,13 @@ function run () {
         get_name ${FILE}
 
         cd $FOLDER;
+        TEST_ARGS_FILE=${NAME}.args
+        if [ -f ${TEST_ARGS_FILE} ]; then
+                TEST_ARGS=`cat ${TEST_ARGS_FILE}`
+        fi
+
         echo "${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}"
-        ${RUN_WRAPPER} ${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}
+        ${RUN_WRAPPER} ${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS} ${TEST_ARGS}
         RES=$?
         cd -;
 

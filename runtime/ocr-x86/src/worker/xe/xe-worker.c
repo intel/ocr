@@ -14,6 +14,7 @@
 #include "ocr-sysboot.h"
 #include "ocr-types.h"
 #include "ocr-worker.h"
+#include "ocr-db.h"
 #include "worker/xe/xe-worker.h"
 
 #ifdef OCR_ENABLE_STATISTICS
@@ -157,6 +158,32 @@ void* xeRunWorker(ocrWorker_t * worker) {
     u32 i;
     for(i = 0; i < worker->computeCount; ++i) {
         worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
+    }
+
+    if (pd->myLocation == 0) { //Blessed worker
+        // This is all part of the mainEdt setup 
+        // and should be executed by the "blessed" worker.
+        void * packedUserArgv = userArgsGet();
+        ocrEdt_t mainEdt = mainEdtGet();
+
+        u64 totalLength = ((u64*) packedUserArgv)[0]; // already exclude this first arg
+        // strip off the 'totalLength first argument'
+        packedUserArgv = (void *) (((u64)packedUserArgv) + sizeof(u64)); // skip first totalLength argument
+        ocrGuid_t dbGuid;
+        void* dbPtr;
+        ocrDbCreate(&dbGuid, &dbPtr, totalLength,
+                    DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+        
+        // copy packed args to DB
+        hal_memCopy(dbPtr, packedUserArgv, totalLength, 0);
+
+        // Create the depv
+        ocrEdtDep_t depv;
+        depv.guid = dbGuid;
+        depv.ptr = dbPtr;
+
+        // Call into mainEdt
+        mainEdt(0, NULL, 1, &depv);
     }
     
     DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));

@@ -28,6 +28,41 @@
 struct _ocrMemTarget_t;
 struct _ocrPolicyDomain_t;
 
+
+/**
+ * @brief Registers a pointer to a packed version of user-arguments.
+ *
+ * This is used in the boot process to save user arguments to be passed
+ * to the mainEDT later on.
+ * Packed arguments must be a contiguous chunk of memory containing both
+ * arguments and meta-data to correctly interpret the chunk. 
+ *
+ * @param packedArgs[in]          Packed arguments to mainEdt
+ */
+extern void (*userArgsSet)(void * packedArgs);
+
+/**
+ * @brief Retrieves the pointer to a packed version of user-arguments.
+ *
+ * @return NULL or the pointer to packed argument.
+ */
+extern void * (*userArgsGet)();
+
+
+/**
+ * @brief Register the address of the mainEdt.
+ *
+ * @return NULL or the pointer to packed argument.
+ */
+extern void (*mainEdtSet)(ocrEdt_t mainEdt);
+
+/**
+ * @brief Retrieves the address to the mainEdt.
+ *
+ * @return NULL or the pointer to the mainEdt.
+ */
+extern ocrEdt_t (*mainEdtGet)();
+
 /**
  * @brief "Allocates" a chunk of memory for the runtime of size 'size'
  *

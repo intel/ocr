@@ -366,14 +366,32 @@ void freeUpRuntime (void)
 }
 
 /**
+ * @brief Packs user args in a contiguous chunk of memory.
+ *
+ * The packing contains some information at the beginning of the memory
+ * that is not seen by the mainEdt and are stripped out by the runtime
+ * before spawning the mainEdt.
+ *
+ * The encoding format is as follow:
+ *      |totalLengh|argc|offsets|argv strings|
+ * Size of each element:
+ *      |u64|u64|u64*argc|strlen(argv[0:argc-1])+1|
+ *          ^ -> '0' of the offset calculation
+ * Note 
+ * - totalLengh:   Total length of the packed arguments (everything minus this u64 part)
+ * - argc:         Number of arguments
+ * - offsets:      The offsets for each argument where the argv data is located in the chunk
+ *                 Warning: Offsets are computed starting from the second u64 !
+ * - argv strings: All argv strings one after the other separated by \0;
+ *
  * @param argc Number of user-level arguments to pack in a DB
  * @param argv The actual arguments
  */
-static ocrGuid_t packUserArgumentsInDb(int argc, char ** argv) {
-  // Now prepare arguments for the mainEdt
+static void * packUserArguments(int argc, char ** argv) {
+    // Prepare arguments for the mainEdt
     ASSERT(argc < 64); // For now
     u32 i;
-    u64* offsets = (u64*)malloc(argc*sizeof(u64));
+    u64* offsets = (u64*) runtimeChunkAlloc(sizeof(u64)*argc, NULL);
     u64 argsUsed = 0ULL;
     u64 totalLength = 0;
     u32 maxArg = 0;
@@ -385,42 +403,42 @@ static ocrGuid_t packUserArgumentsInDb(int argc, char ** argv) {
         argsUsed |= (1ULL<<(63-i));
     }
     //--maxArg;
-    // Create the datablock containing the parameters
-    ocrGuid_t dbGuid;
-    void* dbPtr;
+    // Create a memory chunk containing the parameters
+    u64 extraOffset = (maxArg + 1)*sizeof(u64);
+    void* ptr = (void *) runtimeChunkAlloc(totalLength + sizeof(u64) + extraOffset, NULL);
 
-    ocrDbCreate(&dbGuid, &dbPtr, totalLength + (maxArg + 1)*sizeof(u64),
-                DB_PROP_NONE, NULL_GUID, NO_ALLOC);
-
-    // Copy in the values to the data-block. The format is as follows:
-    // - First 4 bytes encode the number of arguments (u64) (called argc)
+    // Copy in the values to the ptr. The format is as follows:
+    // - First 4 bytes encode the size of the packed arguments 
+    //   (stripped out before passing the packed args to the mainEdt)
+    // - Next 4 bytes encode the number of arguments (u64) (called argc)
     // - After that, an array of argc u64 offsets is encoded.
     // - The strings are then placed after that at the offsets encoded
     //
     // The use case is therefore as follows:
+    // - (The first 4 bytes are stripped before being handed over to the mainEdt)
     // - Cast the DB to a u64* and read the number of arguments and
     //   offsets (or whatever offset you need)
     // - Cast the DB to a char* and access the char* at the offset
     //   read. This will be a null terminated string.
 
     // Copy the metadata
-    u64* dbAsU64 = (u64*)dbPtr;
-    dbAsU64[0] = (u64)maxArg;
-    u64 extraOffset = (maxArg + 1)*sizeof(u64);
-    for(i = 0; i < maxArg; ++i) {
-        dbAsU64[i+1] = offsets[i] + extraOffset;
+    u64* dbAsU64 = (u64*)ptr;
+    dbAsU64[0] = totalLength + extraOffset; // do not account for the first element
+    dbAsU64[1] = (u64)maxArg;
+    for(i = 2; i < maxArg+2; ++i) {
+        dbAsU64[i] = offsets[i-2] + extraOffset;
     }
 
-    // Copy the actual arguments
-    char* dbAsChar = (char*)dbPtr;
+    // Copy the actual arguments, skipping over the first totalLength element
+    char* dbAsChar = (char*) ((u64)ptr+sizeof(u64));
     while(argsUsed) {
         u32 pos = fls64(argsUsed);
         argsUsed &= ~(1ULL<<pos);
         strcpy(dbAsChar + extraOffset + offsets[63 - pos], argv[63 - pos]);
     }
 
-    free(offsets);
-    return dbGuid;
+    runtimeChunkFree((u64) offsets, NULL);
+    return ptr;
 }
 
 int __attribute__ ((weak)) main(int argc, const char* argv[]) {
@@ -429,20 +447,18 @@ int __attribute__ ((weak)) main(int argc, const char* argv[]) {
     ocrConfig_t ocrConfig;
     ocrParseArgs(argc, argv, &ocrConfig);
 
-    // Setup up the runtime
+    // Register pointer to the mainEdt
+    mainEdtSet(mainEdt);
+
+    // Pack and save user args for the mainEdt
+    void * packedUserArgv = packUserArguments(ocrConfig.userArgc, ocrConfig.userArgv);
+    userArgsSet(packedUserArgv);
+
+    // Set up the runtime
     ocrInit(&ocrConfig);
 
-    ocrGuid_t userArgsDbGuid = packUserArgumentsInDb(ocrConfig.userArgc, ocrConfig.userArgv);
-
-    // Here the runtime is fully functional
-
-    // Prepare the mainEdt for scheduling
-    // We now create the EDT and launch it
-    ocrGuid_t edtTemplateGuid, edtGuid;
-    ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 1);
-    ocrEdtCreate(&edtGuid, edtTemplateGuid, EDT_PARAM_DEF, /* paramv = */ NULL,
-                /* depc = */ EDT_PARAM_DEF, /* depv = */ &userArgsDbGuid,
-                EDT_PROP_NONE, NULL_GUID, NULL);
+    // Here the runtime is fully functional and
+    // the "blessed" worker will execute the mainEdt
 
     startMemStat = 1;
     ocrFinalize();
