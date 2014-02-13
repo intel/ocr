@@ -7,6 +7,8 @@ Build requirements:
     - autoconf 2.59
     - automake 1.9
     - pkg-config 0.21
+    - libtool
+    - libxml2
 
 
 ******************
