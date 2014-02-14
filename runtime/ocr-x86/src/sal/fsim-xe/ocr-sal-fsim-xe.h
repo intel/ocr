@@ -15,9 +15,6 @@
 
 #define sal_assert(x, f, l) if(x) hal_abort()
 
-#define sal_snprintf(buf, size, fmt, ...)
-
-#define sal_printf(fmt, ...)
-
+#define sal_print(msg)  /* FIXME: TBD */
 
 #endif /* __OCR_SAL_FSIM_XE_H__ */

@@ -13,6 +13,7 @@
 #ifdef ENABLE_MEM_PLATFORM_FSIM
 
 #include "ocr-hal.h"
+#include "ocr-sal.h"
 #include "debug.h"
 #include "utils/rangeTracker.h"
 #include "mem-platform/fsim/fsim-mem-platform.h"

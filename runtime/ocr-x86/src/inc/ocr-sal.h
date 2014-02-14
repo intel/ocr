@@ -21,6 +21,11 @@ struct _ocrPolicyMsg_t;
 void getCurrentEnv(struct _ocrPolicyDomain_t** pd, struct _ocrWorker_t** worker,
                    struct _ocrTask_t **task, struct _ocrPolicyMsg_t* msg);
 
+
+u32 SNPRINTF(char * buf, u32 size, char * fmt, ...);
+u32 PRINTF(char * fmt, ...);
+
+
 #if defined(SAL_FSIM_XE)
 #include "sal/fsim-xe/ocr-sal-fsim-xe.h"
 #elif defined(SAL_FSIM_CE)

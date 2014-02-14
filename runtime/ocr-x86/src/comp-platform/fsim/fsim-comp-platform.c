@@ -20,6 +20,27 @@
 
 #define DEBUG_TYPE COMP_PLATFORM
 
+
+#if defined(TOOL_CHAIN_XE)
+//
+// Apparently, the compiler needs memcpy() as a proper function and
+// cannot do without it for portable code... Hence, we need to define
+// it here for XE LLVM, else we get undefined references.
+//
+// It's a tool-chain thing, not really hardware, system, or platform,
+// but we have to stick it somewhere and the HAL and SAL are headers
+// only -- hence this placement.
+//
+int memcpy(void * dst, void * src, u64 len)
+{
+    __asm__ __volatile__("dma.copyregion %1, %0, %2\n\t"
+                         "fence 0xF\n\t"
+                         : : "r" (dst), "r" (src), "r" (len));
+    return len;
+}
+#endif
+
+
 // Ugly globals, but similar globals exist in pthread as well
 // FIXME: These globals need to be moved out into their own registers
 

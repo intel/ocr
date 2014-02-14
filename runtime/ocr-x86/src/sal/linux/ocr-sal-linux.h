@@ -18,8 +18,6 @@
 
 #define sal_assert(x, f, l)  assert(x)
 
-#define sal_printf(fmt, ...)   printf(fmt, __VA_ARGS__)
-
-#define sal_snprintf(buf, fmt, ...)   snprintf(buf, fmt, __VA_ARGS__)
+#define sal_print(msg)   printf("%s", msg)
 
 #endif /* __OCR_SAL_LINUX_H__ */

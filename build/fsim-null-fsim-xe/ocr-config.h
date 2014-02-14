@@ -56,8 +56,11 @@
 // SAL layer to use
 #define SAL_FSIM_XE
 
+// XE tool-chain used
+#define TOOL_CHAIN_XE
+
 // Sysboot layer to use
-//#define ENABLE_SYSBOOT_LINUX
+#define ENABLE_SYSBOOT_FSIM
 
 // Task
 #define ENABLE_TASK_XE

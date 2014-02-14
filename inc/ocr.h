@@ -18,6 +18,7 @@ extern "C" {
 #include "ocr-edt.h"
 #include "ocr-errors.h"
 #include "ocr-types.h"
+#include "ocr-std.h"
 #include "compat.h"
 
 /**

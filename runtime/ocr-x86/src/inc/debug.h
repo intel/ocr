@@ -16,9 +16,6 @@
 #include "ocr-sal.h"
 
 
-#define PRINTF(format, ...) do { sal_printf(format, ## __VA_ARGS__); } while(0);
-
-
 #ifdef OCR_DEBUG
 /**
  * @brief No debugging messages are printed
@@ -272,16 +269,16 @@
 
 
 // TODO: Re-add the worker thing once I figure out a way to not make it segfault
-#define DEBUG(format, ...) do { sal_printf("%s(%s) W 0x%lx: " format,   \
-                                           __type, __level, (u64)0/*pthread_self()*/, \
-                                           /*(u64)getCurrentWorkerContext()->sourceObj,*/ \
-                                           ## __VA_ARGS__); } while(0);
+#define DEBUG(format, ...)   do { PRINTF("%s(%s) W 0x%lx: " format,                     \
+                                         __type, __level, (u64)0/*pthread_self()*/,     \
+                                         /*(u64)getCurrentWorkerContext()->sourceObj,*/ \
+                                         ## __VA_ARGS__) } while(0)
 
-#define DPRINTF_TYPE(type, level, format, ...) do {                                              \
-        if(OCR_DEBUG_##type && level <= DEBUG_LVL_##type) {                                      \
-            sal_printf(OCR_DEBUG_##type##_STR "(" OCR_DEBUG_##level##_STR ") W 0x%lx: " format, \
-                       (u64)0/*pthread_self()*/,/*(u64)getCurrentWorkerContext()->sourceObj, */ ## __VA_ARGS__); \
-        }                                                                                        \
+#define DPRINTF_TYPE(type, level, format, ...) do {                     \
+        if(OCR_DEBUG_##type && level <= DEBUG_LVL_##type) {             \
+            PRINTF(OCR_DEBUG_##type##_STR "(" OCR_DEBUG_##level##_STR ") W 0x%lx: " format, \
+                   (u64)0/*pthread_self()*/,/*(u64)getCurrentWorkerContext()->sourceObj, */ ## __VA_ARGS__); \
+        }                                                               \
     } while(0);
 
 #else

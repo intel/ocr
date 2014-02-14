@@ -15,10 +15,6 @@
 
 #define sal_assert(x, f, l)   if(!x) hal_abort()
 
-extern int snprintf(char * buf, int size, const char * fmt, ...);
-#define sal_snprintf(buf, size, fmt, ...)   snprintf(buf, size, fmt, __VA_ARGS__)
-
-extern int printf(const char * fmt, ...);
-#define sal_printf(fmt, ...)   printf(fmt, __VA_ARGS__)
+#define sal_print(msg) __asm__ __volatile__("int $0xFF\n\t" : : "a" (msg));
 
 #endif /* __OCR_SAL_FSIM_CE_H__ */
