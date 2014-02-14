@@ -1,5 +1,5 @@
 /**
- * @brief Limited I/O API for OCR
+ * @brief Limited "standard" API for OCR
  **/
 
 /*
@@ -9,8 +9,8 @@
  */
 
 
-#ifndef __OCR_IO_H__
-#define __OCR_IO_H__
+#ifndef __OCR_STD_H__
+#define __OCR_STD_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -19,12 +19,12 @@ extern "C" {
 
 
 /**
- * @defgroup OCRInputOutput Limited I/O API for OCR
- * @brief Describes the limited I/O API for OCR
+ * @defgroup OCRStandrdAPI Limited "standrd" API for OCR
+ * @brief Describes the limited "standard" API for OCR
  *
- * I/O capabilities are very limited at this stage but may be extended
- * as needed and possible later. Currently, we only support console
- * output, but may provide some restricted form of 'file' I/O later.
+ * Standard APIs like PRINTF(), potentially limited file I/O,
+ * etc. Very limited at this stage but may be extended as needed and
+ * as possible later.
  *
  * @{
  **/
@@ -51,4 +51,4 @@ u32 PRINTF(char * fmt, ...);
 }
 #endif
 
-#endif /* __OCR_IO_H__ */
+#endif /* __OCR_STD_H__ */
