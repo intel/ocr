@@ -506,35 +506,51 @@ function select_tests {
         fi
 }
 
+# Variables to report the statistics for tests run
+error_count=0
+failure_count=0
+test_count=0
+total_time=0
+start_time=""
+
 function xunit_print_xml_header () {
-        echo "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"
+        # Called with hostname
+        local hostname=$1;
+        echo "<testsuite errors=\"${error_count}\" failures=\"${failure_count}\" hostname=\"${hostname}\" name=\"${JJOB_NAME}\" tests=\"${test_count}\" time=\"${total_time}\" timestamp=\"${start_time}\">"
 }
 
 
-function xunit_print_testsuite_header () {
+function xunit_print_testcase () {
         local status=$1;
-        local hostname=$2;
-        local id=$3;
-        local name=$4;
-        local package=$5
-        local tests=$6;
-        local time="$7";
-        local timestamp="$8";
-        local raw_output_file="$9";
+        local name=$2;
+        local time=$3;
+        local timestamp=$4;
+        local raw_stdout_file=$5;
+        local raw_stderr_file=$6;
+        local raw_output_file=$7;
 
         local errors=0;
         local failures=0;
-
+        
         if [[ $status -eq $ERR_STATUS ]]; then
                 errors=1
+                (( error_count = error_count + 1 ))
+                
         fi
 
         if [[ $status -eq $FAIL_STATUS ]]; then
                 failures=1
+                (( failure_count = failure_count + 1 ))
+        fi
+        
+        (( test_count = test_count + 1 ))
+        total_time=`echo "${total_time} + $3" | bc`
+
+        if [[ "x${start_time}" == "x" ]]; then
+            start_time=$timestamp
         fi
 
-        echo "<testsuite errors=\"${errors}\" failures=\"${failures}\" hostname=\"${hostname}\" id=\"${id}\" name=\"${name}\" package=\"${package}\" tests=\"${tests}\" time=\"${time}\" timestamp=\"${timestamp}\">"
-        echo "<testcase classname=\"${name}\" name=\"run\" time=\"${time}\">";
+        echo "<testcase classname=\"${JJOB_NAME}\" name=\"${name}\" time=\"${time}\">";
 
         if [[ $errors -eq 1 ]]; then
                 echo "<error message=\"Error!\">"
@@ -551,35 +567,33 @@ function xunit_print_testsuite_header () {
                 echo "]]>"
                 echo "</failure>"
         fi
+        
+        if [[ "x${raw_stdout_file}" != "x" ]]; then
+                echo "<system-out><![CDATA["
+                more "$raw_stdout_file"
+                echo "]]></system-out>"
+        fi
+        if [[ "x${raw_stderr_file}" != "x" ]]; then
+            echo "<system-err><![CDATA["
+            more "$raw_stderr_file"
+            echo "]]></system-err>"
+        fi
 
         echo "</testcase>"
 }
 
 
-#
-# Read data from file RAW_OUTPUT_FILE
-#
-function xunit_print_sysout_cdata () {
-  local RAW_OUTPUT_FILE="$1"
-  echo "<system-out><![CDATA["
-  more "$RAW_OUTPUT_FILE"
-  echo "]]></system-out>"
-  echo "<system-err />"
-}
-
-function xunit_print_testsuite_footer () {
+function xunit_print_xml_footer () {
         echo "</testsuite>"
 }
 
 function xunit_print_report () {
         local OUTPUT_DIR=$1
-        xunit_print_xml_header
-        echo "<testsuites>"
+        xunit_print_xml_header `hostname`
         for file in `ls $OUTPUT_DIR/*.xml`; do
                 grep -v "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" $file
         done
-
-        echo "</testsuites>"
+        xunit_print_xml_footer
 }
 function is_failing_test_known () {
         local file=$1;
@@ -1071,10 +1085,7 @@ function runTests () {
                                 # (i.e. to be able to distinguish several different execution of the same test but with
                                 # different options)
                                 XUNIT_OUTPUT=${OUTPUT}.xml
-                                xunit_print_xml_header >> ${XUNIT_OUTPUT}
-                                xunit_print_testsuite_header $TEST_STATUS ${HOSTNAME} $id $TEST_NAME_SWEEP "" 1 "${ACC_TEST_RUN_TIME}" "$START_DATE" "${OUTPUT}" >> ${XUNIT_OUTPUT}
-                                xunit_print_sysout_cdata ${OUTPUT} >> ${XUNIT_OUTPUT}
-                                xunit_print_testsuite_footer >> ${XUNIT_OUTPUT}
+                                xunit_print_testcase $TEST_STATUS $TEST_NAME_SWEEP "${ACC_TEST_RUN_TIME}" "${START_DATE}" "${OUTPUT}" "" "${OUTPUT}" >> ${XUNIT_OUTPUT}
                         done
                 else
                         echo "Skipping test $normalized_name"
