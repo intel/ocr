@@ -20,6 +20,9 @@
 // Allocator
 #define ENABLE_ALLOCATOR_TLSF
 
+// Comm-platform
+#define ENABLE_COMM_PLATFORM_XE
+
 // Comp-platform
 //#define ENABLE_COMP_PLATFORM_PTHREAD
 #define ENABLE_COMP_PLATFORM_FSIM
@@ -42,10 +45,10 @@
 #define HAL_FSIM_XE
 
 // Mem-platform
-//#define ENABLE_MEM_PLATFORM_MALLOC
+#define ENABLE_MEM_PLATFORM_FSIM
 
 // Mem-target
-//#define ENABLE_MEM_TARGET_SHARED
+#define ENABLE_MEM_TARGET_SHARED
 
 // Policy domain
 #define ENABLE_POLICY_DOMAIN_XE
@@ -63,16 +66,16 @@
 #define ENABLE_SYSBOOT_FSIM
 
 // Task
-#define ENABLE_TASK_XE
+#define ENABLE_TASK_HC
 
 // Task template
-#define ENABLE_TASKTEMPLATE_XE
+#define ENABLE_TASKTEMPLATE_HC
 
 // Worker
 #define ENABLE_WORKER_XE
 
 // Workpile
-//#define ENABLE_WORKPILE_HC
+#define ENABLE_WORKPILE_XE
 
 #endif /* __OCR_CONFIG_H__ */
 

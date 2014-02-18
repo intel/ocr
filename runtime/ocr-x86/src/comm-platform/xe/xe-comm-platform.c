@@ -19,7 +19,7 @@
 #define DEBUG_TYPE COMM_PLATFORM
 
 void xeCommDestruct (ocrCommPlatform_t * base) {
-    runtimeChunkFree((u64)base, XE);
+    runtimeChunkFree((u64)base, NULL);
 }
 
 void xeCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrWorkerType_t workerType) {
@@ -72,7 +72,7 @@ ocrCommPlatform_t* newCommPlatformXe(ocrCommPlatformFactory_t *factory,
 /******************************************************/
 
 void destructCommPlatformFactoryXe(ocrCommPlatformFactory_t *factory) {
-    runtimeChunkFree((u64)factory, XE);
+    runtimeChunkFree((u64)factory, NULL);
 }
 
 ocrCommPlatformFactory_t *newCommPlatformFactoryXe(ocrParamList_t *perType) {

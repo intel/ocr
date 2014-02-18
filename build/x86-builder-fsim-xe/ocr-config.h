@@ -26,7 +26,7 @@
 #define ENABLE_ALLOCATOR_TLSF
 
 // Comm-platform
-#define ENABLE_COMM_PLATFORM_NULL
+#define ENABLE_COMM_PLATFORM_XE
 
 // Comp-platform
 //#define ENABLE_COMP_PLATFORM_PTHREAD
@@ -52,13 +52,13 @@
 #define HAL_X86_64
 
 // Mem-platform
-#define ENABLE_MEM_PLATFORM_MALLOC
+#define ENABLE_MEM_PLATFORM_FSIM
 
 // Mem-target
 #define ENABLE_MEM_TARGET_SHARED
 
 // Policy domain
-#define ENABLE_POLICY_DOMAINXE_
+#define ENABLE_POLICY_DOMAIN_XE
 
 // Scheduler
 #define ENABLE_SCHEDULER_XE
