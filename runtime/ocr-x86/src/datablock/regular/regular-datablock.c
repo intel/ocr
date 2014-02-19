@@ -155,7 +155,7 @@ u8 regularDestruct(ocrDataBlock_t *self) {
     PD_MSG_FIELD(allocator.metaDataPtr) = NULL;
     PD_MSG_FIELD(type) = DB_MEMTYPE;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
+    RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
     
     
 #ifdef OCR_ENABLE_STATISTICS
@@ -172,7 +172,7 @@ u8 regularDestruct(ocrDataBlock_t *self) {
     PD_MSG_FIELD(guid.guid) = self->guid;
     PD_MSG_FIELD(guid.metaDataPtr) = self;
     PD_MSG_FIELD(properties) = 1; // Free metadata
-    RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
+    RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
 #undef PD_MSG
 #undef PD_TYPE
     return 0;
@@ -233,7 +233,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
     PD_MSG_FIELD(kind) = OCR_GUID_DB;
     PD_MSG_FIELD(properties) = 0;
     
-    RESULT_PROPAGATE2(pd->processMessage(pd, &msg, true), NULL);
+    RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), NULL);
 
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)PD_MSG_FIELD(guid.metaDataPtr);
     result->base.guid = PD_MSG_FIELD(guid.guid);

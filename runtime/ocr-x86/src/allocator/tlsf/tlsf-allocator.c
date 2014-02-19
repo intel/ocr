@@ -1116,7 +1116,7 @@ void tlsfStop(ocrAllocator_t *self) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = self->fguid;
     PD_MSG_FIELD(properties) = 0;
-    self->pd->processMessage(self->pd, &msg, false);
+    self->pd->fcts.processMessage(self->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
     self->fguid.guid = NULL_GUID;
@@ -1191,23 +1191,21 @@ ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_
 
     ocrAllocatorTlsf_t *result = (ocrAllocatorTlsf_t*)
         runtimeChunkAlloc(sizeof(ocrAllocatorTlsf_t), NULL);
+    ocrAllocator_t * derived = (ocrAllocator_t *) result;
+    factory->initialize(factory, derived, perInstance);
+    return (ocrAllocator_t *) result;
+}
     
-    result->base.fguid.guid = UNINITIALIZED_GUID;
-    result->base.fguid.metaDataPtr = result;
-    result->base.pd = NULL;
-    
-    result->base.fcts = factory->allocFcts;
-    result->base.memories = NULL;
-    result->base.memoryCount = 0;
+void initializeAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrAllocator_t * self, ocrParamList_t * perInstance) {
+    initializeAllocatorOcr(factory, self, perInstance);
 
+    ocrAllocatorTlsf_t *derived = (ocrAllocatorTlsf_t *)self;
     paramListAllocatorInst_t *perInstanceReal = (paramListAllocatorInst_t*)perInstance;
 
-    result->addr = result->poolAddr = 0ULL;
-    result->totalSize = result->poolSize = perInstanceReal->size;
+    derived->addr = derived->poolAddr = 0ULL;
+    derived->totalSize = derived->poolSize = perInstanceReal->size;
 
-    result->lock = 0;
-
-    return (ocrAllocator_t*)result;
+    derived->lock = 0;
 }
 
 /******************************************************/
@@ -1222,8 +1220,9 @@ ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
     ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*)
         runtimeChunkAlloc(sizeof(ocrAllocatorFactoryTlsf_t), (void *)1);
     ASSERT(base);
-    base->instantiate = newAllocatorTlsf;
-    base->destruct =  &destructAllocatorFactoryTlsf;
+    base->instantiate = &newAllocatorTlsf;
+    base->initialize = &initializeAllocatorTlsf;
+    base->destruct = &destructAllocatorFactoryTlsf;
     base->allocFcts.destruct = FUNC_ADDR(void (*)(ocrAllocator_t*), tlsfDestruct);
     base->allocFcts.begin = FUNC_ADDR(void (*)(ocrAllocator_t*, ocrPolicyDomain_t*), tlsfBegin);
     base->allocFcts.start = FUNC_ADDR(void (*)(ocrAllocator_t*, ocrPolicyDomain_t*), tlsfStart);

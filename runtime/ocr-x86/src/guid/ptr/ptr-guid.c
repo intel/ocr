@@ -55,7 +55,7 @@ u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind kin
     PD_MSG_FIELD(properties) = 0; // TODO:  What flags should be defined?  Where are symbolic constants for them defined?
     PD_MSG_FIELD(type) = GUID_MEMTYPE;
 
-    RESULT_PROPAGATE(policy->processMessage (policy, &msg, true));
+    RESULT_PROPAGATE(policy->fcts.processMessage (policy, &msg, true));
     
     ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *)PD_MSG_FIELD(ptr);
     guidInst->guid = (ocrGuid_t)val;
@@ -78,7 +78,7 @@ u8 ptrCreateGuid(ocrGuidProvider_t* self, ocrFatGuid_t *fguid, u64 size, ocrGuid
     PD_MSG_FIELD(properties) = 0; // TODO:  What flags should be defined?  Where are symbolic constants for them defined?
     PD_MSG_FIELD(type) = GUID_MEMTYPE;
 
-    RESULT_PROPAGATE(policy->processMessage (policy, &msg, true));
+    RESULT_PROPAGATE(policy->fcts.processMessage (policy, &msg, true));
     
     ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *)PD_MSG_FIELD(ptr);
     guidInst->guid = (ocrGuid_t)((u64)guidInst + sizeof(ocrGuidImpl_t));
@@ -118,7 +118,7 @@ u8 ptrReleaseGuid(ocrGuidProvider_t *self, ocrFatGuid_t guid, bool releaseVal) {
     msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(ptr) = ((void *) guid.guid);
     PD_MSG_FIELD(type) = GUID_MEMTYPE;
-    RESULT_PROPAGATE(policy->processMessage (policy, &msg, true));
+    RESULT_PROPAGATE(policy->fcts.processMessage (policy, &msg, true));
 #undef PD_MSG
 #undef PD_TYPE
     return 0;

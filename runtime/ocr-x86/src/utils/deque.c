@@ -22,13 +22,13 @@
  * Deque destroy
  */
 void dequeDestroy(ocrPolicyDomain_t *pd, deque_t* deq) {
-    pd->pdFree(pd, deq->data);
+    pd->fcts.pdFree(pd, deq->data);
 }
 
 static void baseDequeInit(deque_t* deq, ocrPolicyDomain_t *pd, void * initValue) {
     deq->head = 0;
     deq->tail = 0;
-    deq->data = (volatile void **)pd->pdMalloc(pd, sizeof(void*)*INIT_DEQUE_CAPACITY);
+    deq->data = (volatile void **)pd->fcts.pdMalloc(pd, sizeof(void*)*INIT_DEQUE_CAPACITY);
     u32 i=0;
     while(i < INIT_DEQUE_CAPACITY) {
         deq->data[i] = initValue;
@@ -56,15 +56,15 @@ deque_t* dequeInit(ocrPolicyDomain_t *pd, void * initValue, ocrDequeType_t type)
     deque_t* deq = NULL;
     switch(type) {
       case BASE_DEQUETYPE:
-        deq = (deque_t*)pd->pdMalloc(pd, sizeof(deque_t));
+        deq = (deque_t*)pd->fcts.pdMalloc(pd, sizeof(deque_t));
         baseDequeInit(deq, pd, initValue);
         break;
       case SINGLE_LOCKED_DEQUETYPE:
-        deq = (deque_t*)pd->pdMalloc(pd, sizeof(dequeSingleLocked_t));
+        deq = (deque_t*)pd->fcts.pdMalloc(pd, sizeof(dequeSingleLocked_t));
         singleLockedDequeInit((dequeSingleLocked_t*)deq, pd, initValue);
         break;
       case DUAL_LOCKED_DEQUETYPE:
-        deq = (deque_t*)pd->pdMalloc(pd, sizeof(dequeDualLocked_t));
+        deq = (deque_t*)pd->fcts.pdMalloc(pd, sizeof(dequeDualLocked_t));
         dualLockedDequeInit((dequeDualLocked_t*)deq, pd, initValue);
         break;
       default:

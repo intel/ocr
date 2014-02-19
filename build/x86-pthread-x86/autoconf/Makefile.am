@@ -196,7 +196,7 @@ libocr_driver_la_SOURCES = \
 libocr_driver_la_CFLAGS = $(AM_CFLAGS) $(INIPARSER_CFLAGS)
 
 #
-## SCHEDULER HC
+## EVENTS HC
 #
 
 noinst_LTLIBRARIES += libocr_event_hc.la
@@ -291,8 +291,18 @@ libocr_policy_domain_hc_la_SOURCES = \
 libocr_policy_domain_hc_la_CFLAGS = $(AM_CFLAGS)
 
 #
-## SCHEDULER HC
+## SCHEDULER
 #
+
+noinst_LTLIBRARIES += libocr_scheduler.la
+libocr_la_LIBADD += libocr_scheduler.la
+
+libocr_scheduler_la_SOURCES = \
+../../../src/scheduler/scheduler-all.c
+
+libocr_scheduler_la_CFLAGS = $(AM_CFLAGS)
+
+## SCHEDULER HC
 
 noinst_LTLIBRARIES += libocr_scheduler_hc.la
 libocr_la_LIBADD += libocr_scheduler_hc.la

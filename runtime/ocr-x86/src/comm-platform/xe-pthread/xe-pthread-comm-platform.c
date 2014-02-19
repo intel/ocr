@@ -122,16 +122,20 @@ ocrCommPlatform_t* newCommPlatformXePthread(ocrCommPlatformFactory_t *factory,
 
     ocrCommPlatformXePthread_t * commPlatformXePthread = (ocrCommPlatformXePthread_t*)
         runtimeChunkAlloc(sizeof(ocrCommPlatformXePthread_t), NULL);
+    ocrCommPlatform_t * derived = (ocrCommPlatform_t *) commPlatformXePthread;
+    factory->initialize(factory, derived, perInstance);
+    return derived;
+}
 
-    commPlatformXePthread->base.location = ((paramListCommPlatformInst_t *)perInstance)->location;
-    commPlatformXePthread->base.fcts = factory->platformFcts;
+void initializeCommPlatformXePthread(ocrCommPlatformFactory_t * factory, ocrCommPlatform_t * derived, ocrParamList_t * perInstance) {
+    initializeCommPlatformOcr(factory, derived, perInstance);
+    ocrCommPlatformXePthread_t * commPlatformXePthread = (ocrCommPlatformXePthread_t *) derived;
+
     commPlatformXePthread->xeMessage = false;
     commPlatformXePthread->ceMessage = false;
     commPlatformXePthread->xeMessagePtr = NULL;
     commPlatformXePthread->ceMessagePtr = NULL;
     commPlatformXePthread->xeMessageBufferIndex = 0;
-    
-    return (ocrCommPlatform_t*)commPlatformXePthread;
 }
 
 /******************************************************/
@@ -147,10 +151,10 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryXePthread(ocrParamList_t *perTyp
         runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryXePthread_t), (void *)1);
 
     
-    base->instantiate = FUNC_ADDR(ocrCommPlatform_t* (*)(
-                                      ocrCommPlatformFactory_t*, ocrParamList_t*),
-                                  newCommPlatformXePthread);
-    base->destruct = FUNC_ADDR(void (*)(ocrCommPlatformFactory_t*), destructCommPlatformFactoryXePthread);
+    base->instantiate = &newCommPlatformXePthread;
+    base->initialize = &initializeCommPlatformXePthread;
+    base->destruct = &destructCommPlatformFactoryXePthread;
+
     base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCommPlatform_t*), xePthreadCommDestruct);
     base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*,
                                                   ocrWorkerType_t), xePthreadCommBegin);

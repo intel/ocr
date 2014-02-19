@@ -23,49 +23,12 @@ typedef enum _policyDomainType_t {
     policyDomainMax_id
 } policyDomainType_t;
 
-const char * policyDomain_types [] = {
-    "HC",
-    "XE",
-    "CE",
-    "MasterCE",
-    "HCPlaced",
-    "HCLeafPlace",
-    "HCMasterLeafPlace",
-    NULL
-};
+extern const char * policyDomain_types []; 
 
 #include "policy-domain/hc/hc-policy.h"
 #include "policy-domain/ce/ce-policy.h"
 #include "policy-domain/xe/xe-policy.h"
 
-inline ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type, ocrParamList_t *perType) {
-    switch(type) {
-#ifdef ENABLE_POLICY_DOMAIN_HC
-    case policyDomainHc_id:
-        return newPolicyDomainFactoryHc(perType);
-#endif
-#ifdef ENABLE_POLICY_DOMAIN_XE
-    case policyDomainXe_id:
-        return newPolicyDomainFactoryXe(perType);
-#endif
-#ifdef ENABLE_POLICY_DOMAIN_CE
-    case policyDomainCe_id:
-        return newPolicyDomainFactoryCe(perType);
-#endif
-#if 0
-    case policyDomainFsimMasterCE_id:
-//        return newPolicyDomainFactoryFsimMasterCE(perType);
-    case policyDomainHcPlaced_id:
-//        return newPolicyDomainFactoryHcPlaced(perType);
-    case policyDomainHcLeafPlace_id:
-//        return newPolicyDomainFactoryHcLeafPlace(perType);
-    case policyDomainHcMasterLeafPlace_id:
-//        return newPolicyDomainFactoryHcMasterLeafPlace(perType);
-#endif
-    default:
-        ASSERT(0);
-    }
-    return NULL;
-}
+ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type, ocrParamList_t *perType); 
 
 #endif /* __POLICY_DOMAIN_ALL_H_ */

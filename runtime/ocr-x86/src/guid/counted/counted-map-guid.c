@@ -107,7 +107,7 @@ u8 countedMapCreateGuid(ocrGuidProvider_t* self, ocrFatGuid_t *fguid, u64 size, 
     PD_MSG_FIELD(properties) = 0; // TODO:  What flags should be defined?  Where are symbolic constants for them defined?
     PD_MSG_FIELD(type) = GUID_MEMTYPE;
 
-    RESULT_PROPAGATE(policy->processMessage (policy, &msg, true));
+    RESULT_PROPAGATE(policy->fcts.processMessage (policy, &msg, true));
 
     void * ptr = (void *)PD_MSG_FIELD(ptr);
     // Fill in the GUID value and in the fatGuid
@@ -151,7 +151,7 @@ u8 countedMapReleaseGuid(ocrGuidProvider_t *self, ocrFatGuid_t fatGuid, bool rel
         msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(ptr) = fatGuid.metaDataPtr;
         PD_MSG_FIELD(type) = GUID_MEMTYPE;
-        RESULT_PROPAGATE(policy->processMessage (policy, &msg, true));
+        RESULT_PROPAGATE(policy->fcts.processMessage (policy, &msg, true));
     #undef PD_MSG
     #undef PD_TYPE
     }

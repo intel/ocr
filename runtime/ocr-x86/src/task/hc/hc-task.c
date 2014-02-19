@@ -54,7 +54,7 @@ u8 destructTaskTemplateHc(ocrTaskTemplate_t *self) {
     PD_MSG_FIELD(guid.guid) = self->guid;
     PD_MSG_FIELD(guid.metaDataPtr) = self;
     PD_MSG_FIELD(properties) = 1;
-    RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
+    RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
 #undef PD_MSG
 #undef PD_TYPE
     return 0;
@@ -77,7 +77,7 @@ ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory, ocrEdt_
     PD_MSG_FIELD(kind) = OCR_GUID_EDT_TEMPLATE;
     PD_MSG_FIELD(properties) = 0;
 
-    RESULT_PROPAGATE2(pd->processMessage(pd, &msg, true), NULL);
+    RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), NULL);
 
     ocrTaskTemplate_t *base = (ocrTaskTemplate_t*)PD_MSG_FIELD(guid.metaDataPtr);
     ASSERT(base);
@@ -147,7 +147,7 @@ static u8 finishLatchCheckin(ocrPolicyDomain_t *pd, ocrPolicyMsg_t *msg,
     PD_MSG_FIELD(payload.metaDataPtr) = NULL;
     PD_MSG_FIELD(slot) = OCR_EVENT_LATCH_INCR_SLOT;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_PROPAGATE(pd->processMessage(pd, msg, false));
+    RESULT_PROPAGATE(pd->fcts.processMessage(pd, msg, false));
 #undef PD_TYPE
 #define PD_TYPE PD_MSG_DEP_ADD
     msg->type = PD_MSG_DEP_ADD | PD_MSG_REQUEST;
@@ -155,7 +155,7 @@ static u8 finishLatchCheckin(ocrPolicyDomain_t *pd, ocrPolicyMsg_t *msg,
     PD_MSG_FIELD(dest) = latchEvent;
     PD_MSG_FIELD(slot) = OCR_EVENT_LATCH_DECR_SLOT;
     PD_MSG_FIELD(properties) = 0; // TODO: do we want a mode for this?
-    RESULT_PROPAGATE(pd->processMessage(pd, msg, false));
+    RESULT_PROPAGATE(pd->fcts.processMessage(pd, msg, false));
 #undef PD_MSG
 #undef PD_TYPE
     return 0;
@@ -180,7 +180,7 @@ static u8 registerOnFrontier(ocrTaskHc_t *self, ocrPolicyDomain_t *pd,
     PD_MSG_FIELD(dest.metaDataPtr) = NULL;
     PD_MSG_FIELD(slot) = self->signalers[slot].slot;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_PROPAGATE(pd->processMessage(pd, msg, false));
+    RESULT_PROPAGATE(pd->fcts.processMessage(pd, msg, false));
 #undef PD_MSG
 #undef PD_TYPE
     return 0;
@@ -215,7 +215,7 @@ static u8 initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
         PD_MSG_FIELD(guid.metaDataPtr) = NULL;
         PD_MSG_FIELD(type) = OCR_EVENT_LATCH_T;
         PD_MSG_FIELD(properties) = 0;
-        RESULT_PROPAGATE(pd->processMessage(pd, &msg, true));
+        RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, true));
 
         ocrFatGuid_t latchFGuid = PD_MSG_FIELD(guid);
 #undef PD_MSG
@@ -267,7 +267,7 @@ static u8 taskSchedule(ocrTask_t *self) {
     PD_MSG_FIELD(guidCount) = 1;
     PD_MSG_FIELD(properties) = 0;
     PD_MSG_FIELD(type) = OCR_GUID_EDT;
-    RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
+    RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
 #undef PD_MSG
 #undef PD_TYPE
     return 0;
@@ -298,7 +298,7 @@ u8 destructTaskHc(ocrTask_t* base) {
     PD_MSG_FIELD(guid.guid) = base->guid;
     PD_MSG_FIELD(guid.metaDataPtr) = base;
     PD_MSG_FIELD(properties) = 1; // Free metadata
-    RESULT_PROPAGATE(pd->processMessage(pd, &msg, false));
+    RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
 #undef PD_MSG
 #undef PD_TYPE
     return 0;
@@ -335,7 +335,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
         PD_MSG_FIELD(properties) = 0;
         PD_MSG_FIELD(type) = OCR_EVENT_ONCE_T; // Output events of EDTs are non sticky
 
-        RESULT_PROPAGATE2(pd->processMessage(pd, &msg, true), NULL);
+        RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), NULL);
         outputEvent = PD_MSG_FIELD(guid);
         
 #undef PD_MSG
@@ -352,7 +352,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     PD_MSG_FIELD(size) = sizeof(ocrTaskHc_t) + paramc*sizeof(u64) + depc*sizeof(regNode_t);
     PD_MSG_FIELD(kind) = OCR_GUID_EDT;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_PROPAGATE2(pd->processMessage(pd, &msg, true), NULL);
+    RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), NULL);
     ocrTaskHc_t *edt = (ocrTaskHc_t*)PD_MSG_FIELD(guid.metaDataPtr);
     ocrTask_t *base = (ocrTask_t*)edt;
     ASSERT(edt);
@@ -568,16 +568,16 @@ u8 notifyDbAcquireTaskHc(ocrTask_t *base, ocrFatGuid_t db) {
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, NULL);
     if(derived->countUnkDbs == 0) {
-        derived->unkDbs = (ocrGuid_t*)pd->pdMalloc(pd, sizeof(ocrGuid_t)*8);
+        derived->unkDbs = (ocrGuid_t*)pd->fcts.pdMalloc(pd, sizeof(ocrGuid_t)*8);
         ASSERT(derived->unkDbs);
         derived->maxUnkDbs = 8;
     } else {
         if(derived->maxUnkDbs == derived->countUnkDbs) {
             ocrGuid_t *oldPtr = derived->unkDbs;
-            derived->unkDbs = (ocrGuid_t*)pd->pdMalloc(pd, sizeof(ocrGuid_t)*derived->maxUnkDbs*2);
+            derived->unkDbs = (ocrGuid_t*)pd->fcts.pdMalloc(pd, sizeof(ocrGuid_t)*derived->maxUnkDbs*2);
             ASSERT(derived->unkDbs);
             hal_memCopy(derived->unkDbs, oldPtr, sizeof(ocrGuid_t)*derived->maxUnkDbs, false);
-            pd->pdFree(pd, oldPtr);
+            pd->fcts.pdFree(pd, oldPtr);
             derived->maxUnkDbs *= 2;
         }
     }
@@ -633,7 +633,7 @@ u8 taskExecute(ocrTask_t* base) {
     
     if (depc != 0) {
         //TODO would be nice to resolve regNode into guids before
-        depv = pd->pdMalloc(pd, sizeof(ocrEdtDep_t)*depc);
+        depv = pd->fcts.pdMalloc(pd, sizeof(ocrEdtDep_t)*depc);
         // Double-check we're not rescheduling an already executed edt
         ASSERT(derived->signalers != END_OF_LIST);
         // Make sure the task was actually fully satisfied
@@ -654,7 +654,7 @@ u8 taskExecute(ocrTask_t* base) {
                 // This call may fail if the policy domain goes down
                 // while we are staring to execute
                 
-                if(pd->processMessage(pd, &msg, true)) {
+                if(pd->fcts.processMessage(pd, &msg, true)) {
                     // We are not going to launch the EDT
                     break;
                 }
@@ -707,7 +707,7 @@ u8 taskExecute(ocrTask_t* base) {
                 PD_MSG_FIELD(edt.metaDataPtr) = base;
                 PD_MSG_FIELD(properties) = 1; // Runtime release
                 // Ignore failures at this point
-                pd->processMessage(pd, &msg, false);
+                pd->fcts.processMessage(pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
             }
@@ -729,7 +729,7 @@ u8 taskExecute(ocrTask_t* base) {
             PD_MSG_FIELD(edt.guid) = base->guid;
             PD_MSG_FIELD(edt.metaDataPtr) = base;
             PD_MSG_FIELD(properties) = 0; // Not a runtime free since it was acquired using DB create
-            if(pd->processMessage(pd, &msg, false)) {
+            if(pd->fcts.processMessage(pd, &msg, false)) {
                 DPRINTF(DEBUG_LVL_WARN, "EDT (GUID: 0x%lx) could not release dynamically acquired DB (GUID: 0x%lx)\n",
                         base->guid, PD_MSG_FIELD(guid.guid));
                 break;
@@ -739,7 +739,7 @@ u8 taskExecute(ocrTask_t* base) {
             --count;
             ++extraToFree;
         }
-        pd->pdFree(pd, derived->unkDbs);
+        pd->fcts.pdFree(pd, derived->unkDbs);
     }
 
     // Now deal with the output event
@@ -756,7 +756,7 @@ u8 taskExecute(ocrTask_t* base) {
         PD_MSG_FIELD(properties) = 0;
         // Ignore failure for now
         // FIXME: Probably need to be a bit more selective
-        pd->processMessage(pd, &msg, false);
+        pd->fcts.processMessage(pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
     }

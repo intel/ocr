@@ -8,7 +8,6 @@
  * removed or modified.
  */
 
-
 #ifndef __MEM_PLATFORM_MALLOC_H__
 #define __MEM_PLATFORM_MALLOC_H__
 
@@ -31,7 +30,7 @@ typedef struct {
     u32 lock;
 } ocrMemPlatformMalloc_t;
 
-extern ocrMemPlatformFactory_t* newMemPlatformFactoryMalloc(ocrParamList_t *perType);
+ocrMemPlatformFactory_t* newMemPlatformFactoryMalloc(ocrParamList_t *perType);
 
 #endif /* ENABLE_MEM_PLATFORM_MALLOC */
 #endif /* __MEM_PLATFORM_MALLOC_H__ */

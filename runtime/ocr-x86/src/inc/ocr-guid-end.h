@@ -32,7 +32,7 @@ static inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t guid,
     msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid) = guid;
     PD_MSG_FIELD(properties) = KIND_GUIDPROP;
-    returnCode = pd->processMessage(pd, &msg, true);
+    returnCode = pd->fcts.processMessage(pd, &msg, true);
 
     if(returnCode == 0)
         *kindRes = PD_MSG_FIELD(kind);
@@ -59,7 +59,7 @@ static inline u8 guidify(struct _ocrPolicyDomain_t * pd, u64 val,
     PD_MSG_FIELD(guid.guid) = NULL_GUID;
     PD_MSG_FIELD(size) = 0;
     PD_MSG_FIELD(kind) = kind;
-    returnCode = pd->processMessage(pd, &msg, true);
+    returnCode = pd->fcts.processMessage(pd, &msg, true);
 
     if(returnCode == 0) {
         *guidRes = PD_MSG_FIELD(guid);
@@ -88,7 +88,7 @@ static inline u8 deguidify(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t *res,
         msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guid) = *res;
         PD_MSG_FIELD(properties) = properties;
-        returnCode = pd->processMessage(pd, &msg, true);
+        returnCode = pd->fcts.processMessage(pd, &msg, true);
 
         if(returnCode) {
             res->metaDataPtr = NULL;

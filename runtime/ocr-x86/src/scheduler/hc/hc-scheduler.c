@@ -106,7 +106,7 @@ void hcSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     
     // allocate steal iterator cache. Use pdMalloc since this is something
     // local to the policy domain and that will never be shared
-    hcWorkpileIterator_t * stealIteratorsCache = PD->pdMalloc(
+    hcWorkpileIterator_t * stealIteratorsCache = PD->fcts.pdMalloc(
         PD, sizeof(hcWorkpileIterator_t)*workpileCount);
     
     // Initialize steal iterator cache
@@ -134,7 +134,7 @@ void hcSchedulerStop(ocrScheduler_t * self) {
     // We need to destroy the stealIterators now because pdFree does not
     // exist after stop
     ocrSchedulerHc_t * derived = (ocrSchedulerHc_t *) self;
-    pd->pdFree(pd, derived->stealIterators);
+    pd->fcts.pdFree(pd, derived->stealIterators);
     
     // Destroy the GUID
     
@@ -145,7 +145,7 @@ void hcSchedulerStop(ocrScheduler_t * self) {
     PD_MSG_FIELD(guid.metaDataPtr) = self;
     PD_MSG_FIELD(properties) = 0;
     // Ignore failure, probably shutting down
-    pd->processMessage(pd, &msg, false);
+    pd->fcts.processMessage(pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
     self->fguid.guid = UNINITIALIZED_GUID;
@@ -261,21 +261,16 @@ u8 hcSchedulerGive (ocrScheduler_t* base, u32* count, ocrFatGuid_t* edts) {
 }
 
 ocrScheduler_t* newSchedulerHc(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
-    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) runtimeChunkAlloc(
-        sizeof(ocrSchedulerHc_t), NULL);
-    
-    ocrScheduler_t* base = (ocrScheduler_t*)derived;
-    base->fguid.guid = UNINITIALIZED_GUID;
-    base->fguid.metaDataPtr = base;
-    base->pd = NULL;
-    base->workpiles = NULL;
-    base->workpileCount = 0;
-    base->fcts = factory->schedulerFcts;
-    
+    ocrScheduler_t* base = (ocrScheduler_t*) runtimeChunkAlloc(sizeof(ocrSchedulerHc_t), NULL);
+    factory->initialize(factory, base, perInstance);
+    return base;
+}
+
+void initializeSchedulerHc(ocrSchedulerFactory_t * factory, ocrScheduler_t *self, ocrParamList_t *perInstance) {
+    initializeSchedulerOcr(factory, self, perInstance);
+    ocrSchedulerHc_t* derived = (ocrSchedulerHc_t*) self;
     paramListSchedulerHcInst_t *mapper = (paramListSchedulerHcInst_t*)perInstance;
     derived->workerIdFirst = mapper->workerIdFirst;
-    
-    return base;
 }
 
 void destructSchedulerFactoryHc(ocrSchedulerFactory_t * factory) {
@@ -283,20 +278,23 @@ void destructSchedulerFactoryHc(ocrSchedulerFactory_t * factory) {
 }
 
 ocrSchedulerFactory_t * newOcrSchedulerFactoryHc(ocrParamList_t *perType) {
-    ocrSchedulerFactoryHc_t* derived = (ocrSchedulerFactoryHc_t*) runtimeChunkAlloc(
+    ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) runtimeChunkAlloc(
         sizeof(ocrSchedulerFactoryHc_t), (void *)1);
     
-    ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = &newSchedulerHc;
+    base->initialize  = &initializeSchedulerHc;
     base->destruct = &destructSchedulerFactoryHc;
-    base->schedulerFcts.begin = &hcSchedulerBegin;
-    base->schedulerFcts.start = &hcSchedulerStart;
-    base->schedulerFcts.stop = &hcSchedulerStop;
-    base->schedulerFcts.finish = &hcSchedulerFinish;
-    base->schedulerFcts.destruct = &hcSchedulerDestruct;
-    base->schedulerFcts.takeEdt = &hcSchedulerTake;
-    base->schedulerFcts.giveEdt = &hcSchedulerGive;
+
+    base->schedulerFcts.begin = FUNC_ADDR(void (*)(ocrScheduler_t*, ocrPolicyDomain_t*), hcSchedulerBegin);
+    base->schedulerFcts.start = FUNC_ADDR(void (*)(ocrScheduler_t*, ocrPolicyDomain_t*), hcSchedulerStart);
+    base->schedulerFcts.stop = FUNC_ADDR(void (*)(ocrScheduler_t*), hcSchedulerStop);
+    base->schedulerFcts.finish = FUNC_ADDR(void (*)(ocrScheduler_t*), hcSchedulerFinish);
+    base->schedulerFcts.destruct = FUNC_ADDR(void (*)(ocrScheduler_t*), hcSchedulerDestruct);
+    base->schedulerFcts.takeEdt = FUNC_ADDR(u8 (*)(ocrScheduler_t*, u32*, ocrFatGuid_t*), hcSchedulerTake);
+    base->schedulerFcts.giveEdt = FUNC_ADDR(u8 (*)(ocrScheduler_t*, u32*, ocrFatGuid_t*), hcSchedulerGive);
+
     return base;
 }
+
 
 #endif /* ENABLE_SCHEDULER_HC */

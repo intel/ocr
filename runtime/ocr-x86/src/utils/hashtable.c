@@ -38,7 +38,7 @@ static ocr_hashtable_entry* hashtableFindEntry(hashtable_t * hashtable, void * k
  * @brief Initialize the hashtable.
  */
 static void hashtableInit(ocrPolicyDomain_t * pd, hashtable_t * hashtable, u32 nbBuckets, hashFct hashing) {
-  ocr_hashtable_entry ** table = pd->pdMalloc(pd, nbBuckets*sizeof(ocr_hashtable_entry*));
+  ocr_hashtable_entry ** table = pd->fcts.pdMalloc(pd, nbBuckets*sizeof(ocr_hashtable_entry*));
   u32 i;
   for (i=0; i < nbBuckets; i++) {
     table[i] = NULL;
@@ -79,7 +79,7 @@ void * hashtableTryPut(hashtable_t * hashtable, void * key, void * value) {
         // key is not there, try to CAS the head to insert it
         if (newHead == NULL) {
           getCurrentEnv(&pd, NULL, NULL, NULL);
-          newHead = pd->pdMalloc(pd, sizeof(ocr_hashtable_entry));
+          newHead = pd->fcts.pdMalloc(pd, sizeof(ocr_hashtable_entry));
           newHead->key = key;
           newHead->value = value;
         }
@@ -92,7 +92,7 @@ void * hashtableTryPut(hashtable_t * hashtable, void * key, void * value) {
         if (newHead != NULL) {
           ASSERT(pd != NULL);
           // insertion failed because the key had been inserted by a concurrent thread
-          pd->pdFree(pd, newHead);
+          pd->fcts.pdFree(pd, newHead);
         }
         // key already present, return the value
         return entry->value;
@@ -111,7 +111,7 @@ bool hashtablePut(hashtable_t * hashtable, void * key, void * value) {
     u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
     ocrPolicyDomain_t * pd;
     getCurrentEnv(&pd, NULL, NULL, NULL);
-    ocr_hashtable_entry * newHead = pd->pdMalloc(pd, sizeof(ocr_hashtable_entry));
+    ocr_hashtable_entry * newHead = pd->fcts.pdMalloc(pd, sizeof(ocr_hashtable_entry));
     newHead->key = key;
     newHead->value = value;
     bool success;
@@ -136,7 +136,7 @@ bool hashtableRemove(hashtable_t * hashtable, void * key) {
  * @brief Create a new hashtable instance that uses the specified hashing function.
  */
 hashtable_t * newHashtable(ocrPolicyDomain_t * pd, u32 nbBuckets, hashFct hashing) {
-    hashtable_t * hashtable = pd->pdMalloc(pd, sizeof(hashtable_t));
+    hashtable_t * hashtable = pd->fcts.pdMalloc(pd, sizeof(hashtable_t));
     hashtableInit(pd, hashtable, nbBuckets, hashing);
     return hashtable;
 }
@@ -153,12 +153,12 @@ void destructHashtable(hashtable_t * hashtable) {
     struct _ocr_hashtable_entry_struct * bucketHead = hashtable->table[i];
     while (bucketHead != NULL) {
       struct _ocr_hashtable_entry_struct * next = bucketHead->nxt;
-      pd->pdFree(pd, bucketHead);
+      pd->fcts.pdFree(pd, bucketHead);
       bucketHead = next;
     }
     i++;
   }
-  pd->pdFree(pd, hashtable);
+  pd->fcts.pdFree(pd, hashtable);
 }
 
 //

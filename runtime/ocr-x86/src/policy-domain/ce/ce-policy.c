@@ -404,7 +404,7 @@ static void convertDepAddToSatisfy(ocrPolicyDomain_t *self, ocrFatGuid_t dbGuid,
     PD_MSG_FIELD(payload) = dbGuid;
     PD_MSG_FIELD(slot) = slot;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_ASSERT(self->processMessage(self, &msg, false), ==, 0);
+    RESULT_ASSERT(self->fcts.processMessage(self, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
 }
@@ -989,14 +989,14 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         }
 
         if (cePolicy->shutdownCount == neighborCount) 
-            self->stop(self);
+            self->fcts.stop(self);
 
         break;
     }
         
     case PD_MSG_MGT_FINISH:
     {
-        self->finish(self);
+        self->fcts.finish(self);
         returnCode = ceProcessResponse(self, msg);
         break;
     }
@@ -1032,7 +1032,7 @@ void cePdFree(ocrPolicyDomain_t *self, void* addr) {
     return self->allocators[0]->fcts.free(self->allocators[0], addr);
 }
 
-ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * policy,
+ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * factory,
 #ifdef OCR_ENABLE_STATISTICS
                                       ocrStats_t *statsObject,
 #endif
@@ -1042,37 +1042,30 @@ ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * policy,
     ocrPolicyDomain_t * base = (ocrPolicyDomain_t *) derived;
 
     ASSERT(base);
-//    base->sysProvider = sysProvider;
-#ifdef OCR_ENABLE_STATISTICS
-    base->statsObject = statsObject;
-#endif
-    base->costFunction = costFunction;
 
-    base->destruct = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), cePolicyDomainDestruct);
-    base->begin = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), cePolicyDomainBegin);
-    base->start = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), cePolicyDomainStart);
-    base->stop = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), cePolicyDomainStop);
-    base->finish = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), cePolicyDomainFinish);
-    base->processMessage = FUNC_ADDR(u8 (*)(ocrPolicyDomain_t *, ocrPolicyMsg_t *msg, u8 isBlocking), cePolicyDomainProcessMessage);
-    base->pdMalloc = FUNC_ADDR(void* (*)(ocrPolicyDomain_t *, u64), cePdMalloc);
-    base->pdFree = FUNC_ADDR(void (*)(ocrPolicyDomain_t *, void*), cePdFree);
 #ifdef OCR_ENABLE_STATISTICS
-    base->getStats = ceGetStats;
+    factory->initialize(factory, base, statsObject, costFunction, perInstance);
+#else
+    factory->initialize(factory, base, costFunction, perInstance);
 #endif
 
-    base->myLocation = ((paramListPolicyDomainInst_t*)perInstance)->location;
-
-    // no inter-policy domain for simple CE
-    base->neighbors = NULL;
-    base->neighborCount = ((paramListPolicyDomainCeInst_t*)perInstance)->neighborCount;
-
-    //TODO populated by ini file factories. Need setters or something ?
-    base->schedulers = NULL;
-    base->allocators = NULL;
-    
-//    base->guid = UNINITIALIZED_GUID;
-    derived->shutdownCount = 0;
     return base;
+}
+
+void initializePolicyDomainCe(ocrPolicyDomainFactory_t * factory, ocrPolicyDomain_t* self, 
+#ifdef OCR_ENABLE_STATISTICS
+	ocrStats_t *statObject,
+#endif
+	ocrCost_t *costFunction, ocrParamList_t *perInstance) {
+#ifdef OCR_ENABLE_STATISTICS
+    self->statsObject = statsObject;
+#endif
+
+    initializePolicyDomainOcr(factory, self, perInstance);
+    self->neighborCount = ((paramListPolicyDomainCeInst_t*)perInstance)->neighborCount;
+    ocrPolicyDomainCe_t* derived = (ocrPolicyDomainCe_t*) self;
+
+    derived->shutdownCount = 0;
 }
 
 static void destructPolicyDomainFactoryCe(ocrPolicyDomainFactory_t * factory) {
@@ -1080,14 +1073,34 @@ static void destructPolicyDomainFactoryCe(ocrPolicyDomainFactory_t * factory) {
 }
 
 ocrPolicyDomainFactory_t * newPolicyDomainFactoryCe(ocrParamList_t *perType) {
-    ocrPolicyDomainFactoryCe_t* derived = (ocrPolicyDomainFactoryCe_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryCe_t), (void *)1);
-    ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) derived;
-    
+    ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryCe_t), (void *)1);
     ASSERT(base); // Check allocation
     
-    base->instantiate = newPolicyDomainCe;
-    base->destruct =  destructPolicyDomainFactoryCe;
-    return base;
+    // Set factory's methods
+#ifdef OCR_ENABLE_STATISTICS
+    base->instantiate = FUNC_ADDR(ocrPolicyDomain_t*(*)(ocrPolicyDomainFactory_t*,ocrStats_t*,
+                                          ocrCost_t *,ocrParamList_t*), newPolicyDomainCe);
+    base->initialize = FUNC_ADDR(void(*)(ocrPolicyDomainFactory_t*,ocrPolicyDomain_t*,
+                                          ocrStats_t*,ocrCost_t *,ocrParamList_t*), initializePolicyDomainCe);
+#endif
+    base->instantiate = &newPolicyDomainCe;
+    base->initialize = &initializePolicyDomainCe;
+    base->destruct = &destructPolicyDomainFactoryCe;
+
+    // Set future PDs' instance  methods
+    base->policyDomainFcts.destruct = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), cePolicyDomainDestruct);
+    base->policyDomainFcts.begin = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), cePolicyDomainBegin);
+    base->policyDomainFcts.start = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), cePolicyDomainStart);
+    base->policyDomainFcts.stop = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), cePolicyDomainStop);
+    base->policyDomainFcts.finish = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), cePolicyDomainFinish);
+    base->policyDomainFcts.processMessage = FUNC_ADDR(u8(*)(ocrPolicyDomain_t*,ocrPolicyMsg_t*,u8), cePolicyDomainProcessMessage);
+    base->policyDomainFcts.pdMalloc = FUNC_ADDR(void*(*)(ocrPolicyDomain_t*,u64), cePdMalloc);
+    base->policyDomainFcts.pdFree = FUNC_ADDR(void(*)(ocrPolicyDomain_t*,void*), cePdFree);
+#ifdef OCR_ENABLE_STATISTICS
+    base->policyDomainFcts.getStats = FUNC_ADDR(ocrStats_t*(*)(ocrPolicyDomain_t*),ceGetStats);
+#endif
+
+    return base;    
 }
 
 #endif /* ENABLE_POLICY_DOMAIN_CE */

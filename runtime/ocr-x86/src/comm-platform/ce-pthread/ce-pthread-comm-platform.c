@@ -143,17 +143,13 @@ ocrCommPlatform_t* newCommPlatformCePthread(ocrCommPlatformFactory_t *factory,
 
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)
         runtimeChunkAlloc(sizeof(ocrCommPlatformCePthread_t), NULL);
+    ocrCommPlatform_t * derived = (ocrCommPlatform_t *) commPlatformCePthread;
+    factory->initialize(factory, derived, perInstance);
+    return derived;
+}
 
-    commPlatformCePthread->base.location = ((paramListCommPlatformInst_t *)perInstance)->location;
-    commPlatformCePthread->base.fcts = factory->platformFcts;
-    commPlatformCePthread->xeMessage = NULL;
-    commPlatformCePthread->ceMessage = NULL;
-    commPlatformCePthread->xeMessagePtr = NULL;
-    commPlatformCePthread->ceMessagePtr = NULL;
-    commPlatformCePthread->ceMessageBuffer = NULL;
-    commPlatformCePthread->xeActiveFlag = NULL;
-    
-    return (ocrCommPlatform_t*)commPlatformCePthread;
+void initializeCommPlatformCePthread(ocrCommPlatformFactory_t * factory, ocrCommPlatform_t * derived, ocrParamList_t * perInstance) {
+    initializeCommPlatformOcr(factory, derived, perInstance);
 }
 
 /******************************************************/
@@ -169,10 +165,10 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryCePthread(ocrParamList_t *perTyp
         runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryCePthread_t), (void *)1);
 
     
-    base->instantiate = FUNC_ADDR(ocrCommPlatform_t* (*)(
-                                      ocrCommPlatformFactory_t*, ocrParamList_t*),
-                                  newCommPlatformCePthread);
-    base->destruct = FUNC_ADDR(void (*)(ocrCommPlatformFactory_t*), destructCommPlatformFactoryCePthread);
+    base->instantiate = &newCommPlatformCePthread;
+    base->initialize = &initializeCommPlatformCePthread;
+    base->destruct = &destructCommPlatformFactoryCePthread;
+
     base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCommPlatform_t*), cePthreadCommDestruct);
     base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*,
                                                   ocrWorkerType_t), cePthreadCommBegin);

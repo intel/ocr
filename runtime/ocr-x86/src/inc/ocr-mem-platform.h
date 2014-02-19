@@ -8,6 +8,7 @@
  * removed or modified.
  */
 
+
 #ifndef __OCR_MEM_PLATFORM_H__
 #define __OCR_MEM_PLATFORM_H__
 
@@ -33,6 +34,7 @@ typedef struct _paramListMemPlatformFact_t {
  */
 typedef struct _paramListMemPlatformInst_t {
     ocrParamList_t base;
+    u64 size;
 } paramListMemPlatformInst_t;
 
 
@@ -198,7 +200,11 @@ typedef struct _ocrMemPlatformFactory_t {
      * @param instanceArg[in] Arguments specific for this instance
      */
     ocrMemPlatform_t * (*instantiate) (struct _ocrMemPlatformFactory_t * factory,
-                                       u64 memSize, ocrParamList_t* instanceArg);
+                                       ocrParamList_t* instanceArg);
+    void (*initialize) (struct _ocrMemPlatformFactory_t * factory, 
+                                       struct _ocrMemPlatform_t *worker, 
+                                       ocrParamList_t *perInstance);
+
     /**
      * @brief mem-platform factory destructor
      * @param factory[in]     Pointer to the factory to destroy.
@@ -207,5 +213,8 @@ typedef struct _ocrMemPlatformFactory_t {
 
     ocrMemPlatformFcts_t platformFcts; /**< Function pointers created instances should use */
 } ocrMemPlatformFactory_t;
+
+void initializeMemPlatformOcr(ocrMemPlatformFactory_t * factory, ocrMemPlatform_t * self, 
+                                     ocrParamList_t *perInstance);
 
 #endif /* __OCR_MEM_PLATFORM_H__ */

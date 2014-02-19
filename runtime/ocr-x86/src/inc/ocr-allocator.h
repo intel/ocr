@@ -158,6 +158,8 @@ typedef struct _ocrAllocatorFactory_t {
      */
     struct _ocrAllocator_t * (*instantiate)(struct _ocrAllocatorFactory_t * factory,
                                             ocrParamList_t *instanceArg);
+    void (*initialize) (struct _ocrAllocatorFactory_t * factory, ocrAllocator_t * derived, ocrParamList_t * perInstance);
+
     /**
      * @brief Allocator factory destructor
      *
@@ -167,5 +169,7 @@ typedef struct _ocrAllocatorFactory_t {
 
     ocrAllocatorFcts_t allocFcts;
 } ocrAllocatorFactory_t;
+
+void initializeAllocatorOcr(ocrAllocatorFactory_t *factory, ocrAllocator_t *self, ocrParamList_t *perInstance);
 
 #endif /* __OCR_ALLOCATOR_H__ */

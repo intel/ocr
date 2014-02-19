@@ -52,7 +52,7 @@ static void workerLoop(ocrWorker_t * worker) {
         PD_MSG_FIELD(properties) = 0;
         PD_MSG_FIELD(type) = OCR_GUID_EDT;
         // TODO: In the future, potentially take more than one)
-        if(pd->processMessage(pd, &msg, true) == 0) {
+        if(pd->fcts.processMessage(pd, &msg, true) == 0) {
             // We got a response
             count = PD_MSG_FIELD(guidCount);
             if(count == 1) {
@@ -69,7 +69,7 @@ static void workerLoop(ocrWorker_t * worker) {
                 PD_MSG_FIELD(guid) = taskGuid;
                 PD_MSG_FIELD(properties) = 0;
                 // Ignore failures, we may be shutting down
-                pd->processMessage(pd, &msg, false);
+                pd->fcts.processMessage(pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
             }
@@ -85,33 +85,6 @@ void destructWorkerHc(ocrWorker_t * base) {
     }
     runtimeChunkFree((u64)(base->computes), NULL);    
     runtimeChunkFree((u64)base, NULL);
-}
-
-/**
- * Builds an instance of a HC worker
- */
-ocrWorker_t* newWorkerHc (ocrWorkerFactory_t * factory,
-                          ocrParamList_t * perInstance) {
-    ocrWorkerHc_t * worker = (ocrWorkerHc_t*)runtimeChunkAlloc(
-        sizeof(ocrWorkerHc_t), NULL);
-    ocrWorker_t * base = (ocrWorker_t *) worker;
-
-    base->fguid.guid = UNINITIALIZED_GUID;
-    base->fguid.metaDataPtr = base;
-    base->pd = NULL;
-    base->curTask = NULL;
-    base->fcts = factory->workerFcts;
-    
-    worker->id = ((paramListWorkerHcInst_t*)perInstance)->workerId;
-    worker->running = false;
-    worker->secondStart = false;
-
-    base->type = ((paramListWorkerHcInst_t*)perInstance)->workerType;
-    ASSERT((worker->id && base->type == SLAVE_WORKERTYPE) ||
-           (worker->id == 0 && base->type == MASTER_WORKERTYPE));
-    
-    base->fcts = factory->workerFcts;
-    return base;
 }
 
 void hcBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
@@ -243,7 +216,7 @@ void hcStopWorker(ocrWorker_t * base) {
     PD_MSG_FIELD(guid) = base->fguid;
     PD_MSG_FIELD(properties) = 0;
     // Ignore failure here, we are most likely shutting down
-    base->pd->processMessage(base->pd, &msg, false);
+    base->pd->fcts.processMessage(base->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
     base->fguid.guid = UNINITIALIZED_GUID;
@@ -264,9 +237,35 @@ u8 hcPollMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg, u32 mask) {
     return self->computes[0]->fcts.pollMessage(self->computes[0], msg, mask);
 }
 
-u8 hcWaitMessage(ocrWorker_t *self, ocrLocation_t location, ocrPolicyMsg_t **msg) {
+u8 hcWaitMessage(ocrWorker_t *self, ocrPolicyMsg_t **msg) {
     ASSERT(self->computeCount == 1);
     return self->computes[0]->fcts.waitMessage(self->computes[0], msg);
+}
+
+/**
+ * @brief Builds an instance of a HC worker
+ */
+ocrWorker_t* newWorkerHc(ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
+    ocrWorker_t * worker = (ocrWorker_t*) runtimeChunkAlloc( sizeof(ocrWorkerHc_t), NULL);
+    factory->initialize(factory, worker, perInstance);
+    return worker;
+}
+
+/**
+ * @brief Initialize an instance of a HC worker
+ */
+void initializeWorkerHc(ocrWorkerFactory_t * factory, ocrWorker_t* self, ocrParamList_t * perInstance) {
+    initializeWorkerOcr(factory, self, perInstance);
+
+    self->type = ((paramListWorkerHcInst_t*)perInstance)->workerType;
+    u64 workerId = ((paramListWorkerHcInst_t*)perInstance)->workerId;;
+    ASSERT((workerId && self->type == SLAVE_WORKERTYPE) ||
+           (workerId == 0 && self->type == MASTER_WORKERTYPE));
+
+    ocrWorkerHc_t * workerHc = (ocrWorkerHc_t*) self;
+    workerHc->id = workerId;
+    workerHc->running = false;
+    workerHc->secondStart = false;
 }
 
 /******************************************************/
@@ -278,21 +277,24 @@ void destructWorkerFactoryHc(ocrWorkerFactory_t * factory) {
 }
 
 ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
-    ocrWorkerFactoryHc_t* derived = (ocrWorkerFactoryHc_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryHc_t), (void *)1);
-    ocrWorkerFactory_t* base = (ocrWorkerFactory_t*) derived;
-    base->instantiate = newWorkerHc;
-    base->destruct =  destructWorkerFactoryHc;
-    base->workerFcts.destruct = destructWorkerHc;
-    base->workerFcts.begin = hcBeginWorker;
-    base->workerFcts.start = hcStartWorker;
-    base->workerFcts.run = hcRunWorker;
-    base->workerFcts.stop = hcStopWorker;
-    base->workerFcts.finish = hcFinishWorker;
-    base->workerFcts.isRunning = hcIsRunningWorker;
+    ocrWorkerFactory_t* base = (ocrWorkerFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryHc_t), (void *)1);
+    
+    base->instantiate = &newWorkerHc;
+    base->initialize = &initializeWorkerHc;
+    base->destruct = &destructWorkerFactoryHc;
+
+    base->workerFcts.destruct = FUNC_ADDR(void (*) (ocrWorker_t *), destructWorkerHc);
+    base->workerFcts.begin = FUNC_ADDR(void (*) (ocrWorker_t *, ocrPolicyDomain_t *), hcBeginWorker);
+    base->workerFcts.start = FUNC_ADDR(void (*) (ocrWorker_t *, ocrPolicyDomain_t *), hcStartWorker);
+    base->workerFcts.run = FUNC_ADDR(void* (*) (ocrWorker_t *), hcRunWorker);
+    base->workerFcts.stop = FUNC_ADDR(void (*) (ocrWorker_t *), hcStopWorker);
+    base->workerFcts.finish = FUNC_ADDR(void (*) (ocrWorker_t *), hcFinishWorker);
+    base->workerFcts.isRunning = FUNC_ADDR(bool (*) (ocrWorker_t *), hcIsRunningWorker);
     base->workerFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrLocation_t, ocrPolicyMsg_t**), hcSendMessage);
-    base->workerFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**, u32), hcPollMessage);
+    base->workerFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t **, u32), hcPollMessage);
     base->workerFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrWorker_t*, ocrPolicyMsg_t**), hcWaitMessage);
     return base;
 }
 
 #endif /* ENABLE_WORKER_HC */
+

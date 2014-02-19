@@ -180,6 +180,8 @@ typedef struct _ocrCommPlatformFactory_t {
      */
     ocrCommPlatform_t* (*instantiate)(struct _ocrCommPlatformFactory_t *factory,
                                       ocrParamList_t *instanceArg);
+    void (*initialize)(struct _ocrCommPlatformFactory_t *factory, ocrCommPlatform_t * self,
+                                      ocrParamList_t *instanceArg);
 
     /**
      * @brief comm-platform factory destructor
@@ -189,6 +191,8 @@ typedef struct _ocrCommPlatformFactory_t {
     
     ocrCommPlatformFcts_t platformFcts; /**< Function pointers created instances should use */
 } ocrCommPlatformFactory_t;
+
+void initializeCommPlatformOcr(ocrCommPlatformFactory_t * factory, ocrCommPlatform_t * self, ocrParamList_t *perInstance);
 
 #endif /* __OCR_COMM_PLATFORM_H__ */
 

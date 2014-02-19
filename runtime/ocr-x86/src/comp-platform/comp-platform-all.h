@@ -18,11 +18,7 @@ typedef enum _compPlatformType_t {
     compPlatformMax_id,
 } compPlatformType_t;
 
-const char * compplatform_types[] = {
-    "pthread",
-    "fsim",
-    NULL,
-};
+extern const char * compplatform_types[]; 
 
 // Pthread compute platform
 #include "comp-platform/pthread/pthread-comp-platform.h"
@@ -30,20 +26,6 @@ const char * compplatform_types[] = {
 
 // Add other compute platforms using the same pattern as above
 
-inline ocrCompPlatformFactory_t *newCompPlatformFactory(compPlatformType_t type, ocrParamList_t *typeArg) {
-    switch(type) {
-#ifdef ENABLE_COMP_PLATFORM_PTHREAD
-    case compPlatformPthread_id:
-        return newCompPlatformFactoryPthread(typeArg);
-#endif
-#ifdef ENABLE_COMP_PLATFORM_FSIM
-    case compPlatformFsim_id:
-        return newCompPlatformFactoryFsim(typeArg);
-#endif
-    default:
-        ASSERT(0);
-        return NULL;
-    };
-}
+ocrCompPlatformFactory_t *newCompPlatformFactory(compPlatformType_t type, ocrParamList_t *typeArg); 
 
 #endif /* __COMP_PLATFORM_ALL_H__ */

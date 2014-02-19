@@ -242,6 +242,8 @@ typedef struct _ocrCompTargetFactory_t {
      */
     ocrCompTarget_t * (*instantiate) ( struct _ocrCompTargetFactory_t * factory,
                                        ocrParamList_t *instanceArg);
+    void (*initialize) ( struct _ocrCompTargetFactory_t * factory,
+                                       ocrCompTarget_t * self, ocrParamList_t *instanceArg);
     /**
      * @brief comp-target factory destructor
      * @param factory       Pointer to the factory to destroy.
@@ -250,5 +252,7 @@ typedef struct _ocrCompTargetFactory_t {
 
     ocrCompTargetFcts_t targetFcts;  /**< Function pointers created instances should use */
 } ocrCompTargetFactory_t;
+
+void initializeCompTargetOcr(ocrCompTargetFactory_t * factory, ocrCompTarget_t * self, ocrParamList_t *perInstance);
 
 #endif /* __OCR_COMP_TARGET_H__ */

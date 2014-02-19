@@ -178,17 +178,21 @@ ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
     ocrCompPlatformPthread_t * compPlatformPthread = (ocrCompPlatformPthread_t*)
         runtimeChunkAlloc(sizeof(ocrCompPlatformPthread_t), NULL);
 
-    compPlatformPthread->base.comm = NULL;
-        
+    ocrCompPlatform_t * derived = (ocrCompPlatform_t *) compPlatformPthread;
+    factory->initialize(factory, derived, perInstance);
+    return derived;
+}
+
+void initializeCompPlatformPthread(ocrCompPlatformFactory_t * factory, ocrCompPlatform_t * derived, ocrParamList_t * perInstance){
+    initializeCompPlatformOcr(factory, derived, perInstance);
     paramListCompPlatformPthread_t * params =
         (paramListCompPlatformPthread_t *) perInstance;
-    
+
+    ocrCompPlatformPthread_t *compPlatformPthread = (ocrCompPlatformPthread_t *)derived;
     compPlatformPthread->base.fcts = factory->platformFcts;
     compPlatformPthread->binding = (params != NULL) ? params->binding : -1;
     compPlatformPthread->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
     compPlatformPthread->isMaster = false;
-
-    return (ocrCompPlatform_t*)compPlatformPthread;
 }
 
 /******************************************************/
@@ -221,18 +225,19 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     ocrCompPlatformFactoryPthread_t * derived = (ocrCompPlatformFactoryPthread_t *) base;
 
     base->instantiate = &newCompPlatformPthread;
+    base->initialize = &initializeCompPlatformPthread;
     base->destruct = &destructCompPlatformFactoryPthread;
-    base->platformFcts.destruct = &pthreadDestruct;
-    base->platformFcts.begin = &pthreadBegin;
-    base->platformFcts.start = &pthreadStart;
-    base->platformFcts.stop = &pthreadStop;
-    base->platformFcts.finish = &pthreadFinish;
-    base->platformFcts.getThrottle = &pthreadGetThrottle;
-    base->platformFcts.setThrottle = &pthreadSetThrottle;
-    base->platformFcts.sendMessage = &pthreadSendMessage;
-    base->platformFcts.pollMessage = &pthreadPollMessage;
-    base->platformFcts.waitMessage = &pthreadWaitMessage;
-    base->platformFcts.setCurrentEnv = &pthreadSetCurrentEnv;
+    base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCompPlatform_t*), pthreadDestruct);
+    base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCompPlatform_t*, ocrPolicyDomain_t*, ocrWorkerType_t), pthreadBegin);
+    base->platformFcts.start = FUNC_ADDR(void (*)(ocrCompPlatform_t*, ocrPolicyDomain_t*, ocrWorker_t*), pthreadStart);
+    base->platformFcts.stop = FUNC_ADDR(void (*)(ocrCompPlatform_t*), pthreadStop);
+    base->platformFcts.finish = FUNC_ADDR(void (*)(ocrCompPlatform_t*), pthreadFinish);
+    base->platformFcts.getThrottle = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, u64*), pthreadGetThrottle);
+    base->platformFcts.setThrottle = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, u64), pthreadSetThrottle);
+    base->platformFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, ocrLocation_t, ocrPolicyMsg_t**), pthreadSendMessage);
+    base->platformFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, ocrPolicyMsg_t**, u32), pthreadPollMessage);
+    base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, ocrPolicyMsg_t**), pthreadWaitMessage);
+    base->platformFcts.setCurrentEnv = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, ocrPolicyDomain_t*, ocrWorker_t*), pthreadSetCurrentEnv);
 
     paramListCompPlatformPthread_t * params =
       (paramListCompPlatformPthread_t *) perType;

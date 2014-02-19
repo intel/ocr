@@ -18,44 +18,16 @@ typedef enum _workerType_t {
     workerMax_id,
 } workerType_t;
 
-const char * worker_types[] = {
-    "HC",
-    "XE",
-    "CE",
-    NULL
-};
+extern const char * worker_types[];
 
 // The below is to look up ocrWorkerType_t in inc/ocr-runtime-types.h
-const char * ocrWorkerType_types[] = {
-    "single",   
-    "master",   
-    "slave",
-    NULL
-};
+extern const char * ocrWorkerType_types[]; 
 
 #include "worker/hc/hc-worker.h"
 #include "worker/ce/ce-worker.h"
 #include "worker/xe/xe-worker.h"
 
 
-inline ocrWorkerFactory_t * newWorkerFactory(workerType_t type, ocrParamList_t *perType) {
-    switch(type) {
-#ifdef ENABLE_WORKER_XE
-    case workerXe_id:
-      return newOcrWorkerFactoryXe(perType);
-#endif
-#ifdef ENABLE_WORKER_CE
-    case workerCe_id:
-      return newOcrWorkerFactoryCe(perType);
-#endif
-#ifdef ENABLE_WORKER_HC
-    case workerHc_id:
-      return newOcrWorkerFactoryHc(perType);
-#endif
-    default:
-      ASSERT(0);
-    }
-    return NULL;
-}
+ocrWorkerFactory_t * newWorkerFactory(workerType_t type, ocrParamList_t *perType);
 
 #endif /* __WORKER_ALL_H__ */

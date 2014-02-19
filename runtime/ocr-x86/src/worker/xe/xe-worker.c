@@ -51,7 +51,7 @@ static void workerLoop(ocrWorker_t * worker) {
         PD_MSG_FIELD(guidCount) = count;
         PD_MSG_FIELD(properties) = 0;
         PD_MSG_FIELD(type) = OCR_GUID_EDT;
-        if(pd->processMessage(pd, &msg, true) == 0) {
+        if(pd->fcts.processMessage(pd, &msg, true) == 0) {
             // We got a response
             count = PD_MSG_FIELD(guidCount);
             if(count == 1) {
@@ -96,21 +96,18 @@ void destructWorkerXe(ocrWorker_t * base) {
  * Builds an instance of a XE worker
  */
 ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
-    ocrWorkerXe_t * worker = (ocrWorkerXe_t*)runtimeChunkAlloc(
-        sizeof(ocrWorkerXe_t), NULL);
-    ocrWorker_t * base = (ocrWorker_t *) worker;
-
-    base->fguid.guid = UNINITIALIZED_GUID;
-    base->fguid.metaDataPtr = base;
-    base->pd = NULL;
-    base->curTask = NULL;
-    base->fcts = factory->workerFcts;
-    base->type = SLAVE_WORKERTYPE;
-    
-    worker->id = ((paramListWorkerXeInst_t*)perInstance)->workerId;
-    worker->running = false;
-
+    ocrWorker_t * base = (ocrWorker_t*)runtimeChunkAlloc(sizeof(ocrWorkerXe_t), NULL);
+    factory->initialize(factory, base, perInstance);
     return base;
+}
+
+void initializeWorkerXe(ocrWorkerFactory_t * factory, ocrWorker_t* base, ocrParamList_t * perInstance) {
+    initializeWorkerOcr(factory, base, perInstance);
+    base->type = SLAVE_WORKERTYPE;
+   
+    ocrWorkerXe_t* workerXe = (ocrWorkerXe_t*) base; 
+    workerXe->id = ((paramListWorkerXeInst_t*)perInstance)->workerId;
+    workerXe->running = false;
 }
 
 void xeBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
@@ -221,7 +218,7 @@ void xeStopWorker(ocrWorker_t * base) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = base->fguid;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_ASSERT(base->pd->processMessage(base->pd, &msg, false), ==, 0);
+    RESULT_ASSERT(base->pd->fcts.processMessage(base->pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
     base->fguid.guid = UNINITIALIZED_GUID;
@@ -256,10 +253,12 @@ void destructWorkerFactoryXe(ocrWorkerFactory_t * factory) {
 }
 
 ocrWorkerFactory_t * newOcrWorkerFactoryXe(ocrParamList_t * perType) {
-    ocrWorkerFactoryXe_t* derived = (ocrWorkerFactoryXe_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryXe_t), (void *)1);
-    ocrWorkerFactory_t* base = (ocrWorkerFactory_t*) derived;
-    base->instantiate = newWorkerXe;
-    base->destruct =  destructWorkerFactoryXe;
+    ocrWorkerFactory_t* base = (ocrWorkerFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryXe_t), (void *)1);
+
+    base->instantiate = &newWorkerXe;
+    base->initialize = &initializeWorkerXe;
+    base->destruct = &destructWorkerFactoryXe;
+
     base->workerFcts.destruct = FUNC_ADDR(void (*)(ocrWorker_t*), destructWorkerXe);
     base->workerFcts.begin = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), xeBeginWorker);
     base->workerFcts.start = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), xeStartWorker);

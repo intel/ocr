@@ -48,18 +48,14 @@ void* nullReallocate(ocrAllocator_t *self, void* address, u64 size) {
 // Method to create the NULL allocator
 ocrAllocator_t * newAllocatorNull(ocrAllocatorFactory_t * factory, ocrParamList_t *perInstance) {
 
-    ocrAllocatorNull_t *result = (ocrAllocatorNull_t*)
+    ocrAllocator_t *base = (ocrAllocator_t*)
         runtimeChunkAlloc(sizeof(ocrAllocatorNull_t), NULL);
+    factory->initialize(factory, base, perInstance);
+    return (ocrAllocator_t *) base;
+}
     
-    result->base.fguid.guid = UNINITIALIZED_GUID;
-    result->base.fguid.metaDataPtr = result;
-    result->base.pd = NULL;
-    
-    result->base.fcts = factory->allocFcts;
-    result->base.memories = NULL;
-    result->base.memoryCount = 0;
-
-    return (ocrAllocator_t*)result;
+void initializeAllocatorNull(ocrAllocatorFactory_t * factory, ocrAllocator_t * self, ocrParamList_t * perInstance){
+    initializeAllocatorOcr(factory, self, perInstance);
 }
 
 /******************************************************/
@@ -74,7 +70,8 @@ ocrAllocatorFactory_t * newAllocatorFactoryNull(ocrParamList_t *perType) {
     ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*)
         runtimeChunkAlloc(sizeof(ocrAllocatorFactoryNull_t), (void *)1);
     ASSERT(base);
-    base->instantiate = newAllocatorNull;
+    base->instantiate = &newAllocatorNull;
+    base->initialize = &initializeAllocatorNull;
     base->destruct =  &destructAllocatorFactoryNull;
     base->allocFcts.destruct = FUNC_ADDR(void (*)(ocrAllocator_t*), nullDestruct);
     base->allocFcts.begin = FUNC_ADDR(void (*)(ocrAllocator_t*, ocrPolicyDomain_t*), nullBegin);

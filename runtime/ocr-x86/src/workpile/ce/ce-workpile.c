@@ -21,7 +21,7 @@
 void ceWorkpileDestruct ( ocrWorkpile_t * base ) {
     ocrWorkpileCe_t* derived = (ocrWorkpileCe_t*) base;
     derived->deque->destruct(base->pd, derived->deque);
-    base->pd->pdFree(base->pd, derived->deque);
+    base->pd->fcts.pdFree(base->pd, derived->deque);
     runtimeChunkFree((u64)base, NULL);
 }
 
@@ -46,7 +46,7 @@ void ceWorkpileStop(ocrWorkpile_t *base) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = base->fguid;
     PD_MSG_FIELD(properties) = 0;
-    base->pd->processMessage(base->pd, &msg, false);
+    base->pd->fcts.processMessage(base->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
     base->fguid.guid = UNINITIALIZED_GUID;
@@ -79,15 +79,15 @@ void ceWorkpilePush(ocrWorkpile_t * base, ocrWorkPushType_t type,
 }
 
 ocrWorkpile_t * newWorkpileCe(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
-    ocrWorkpileCe_t* derived = (ocrWorkpileCe_t*) runtimeChunkAlloc(sizeof(ocrWorkpileCe_t), NULL);
-    ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
+    ocrWorkpile_t* derived = (ocrWorkpile_t*) runtimeChunkAlloc(sizeof(ocrWorkpile_t), NULL);
 
-    base->fguid.guid = UNINITIALIZED_GUID;
-    base->fguid.metaDataPtr = base;
-    base->pd = NULL;
-    base->fcts = factory->workpileFcts;
-    derived->deque = NULL;
-    return base;
+    factory->initialize(factory, derived, perInstance);
+    return derived;
+}
+
+void initializeWorkpileCe(ocrWorkpileFactory_t * factory, ocrWorkpile_t* self, ocrParamList_t * perInstance)
+{
+    initializeWorkpileOcr(factory, self, perInstance);
 }
 
 /******************************************************/
@@ -99,10 +99,12 @@ void destructWorkpileFactoryCe(ocrWorkpileFactory_t * factory) {
 }
 
 ocrWorkpileFactory_t * newOcrWorkpileFactoryCe(ocrParamList_t *perType) {
-    ocrWorkpileFactoryCe_t* derived = (ocrWorkpileFactoryCe_t*)runtimeChunkAlloc(sizeof(ocrWorkpileFactoryCe_t), NULL);
-    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
-    base->instantiate = newWorkpileCe;
-    base->destruct = destructWorkpileFactoryCe;
+    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkpileFactoryCe_t), NULL);
+
+    base->instantiate = &newWorkpileCe;
+    base->initialize = &initializeWorkpileCe;
+    base->destruct = &destructWorkpileFactoryCe;
+
     base->workpileFcts.destruct = FUNC_ADDR(void (*)(ocrWorkpile_t*), ceWorkpileDestruct);
     base->workpileFcts.begin = FUNC_ADDR(void (*)(ocrWorkpile_t*, ocrPolicyDomain_t*), ceWorkpileBegin);
     base->workpileFcts.start = FUNC_ADDR(void (*)(ocrWorkpile_t*, ocrPolicyDomain_t*), ceWorkpileStart);

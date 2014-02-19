@@ -104,7 +104,7 @@ void ceSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     
     // allocate steal iterator cache. Use pdMalloc since this is something
     // local to the policy domain and that will never be shared
-    ceWorkpileIterator_t * stealIteratorsCache = PD->pdMalloc(
+    ceWorkpileIterator_t * stealIteratorsCache = PD->fcts.pdMalloc(
         PD, sizeof(ceWorkpileIterator_t)*workpileCount);
     
     // Initialize steal iterator cache
@@ -132,7 +132,7 @@ void ceSchedulerStop(ocrScheduler_t * self) {
     // We need to destroy the stealIterators now because pdFree does not
     // exist after stop
     ocrSchedulerCe_t * derived = (ocrSchedulerCe_t *) self;
-    pd->pdFree(pd, derived->stealIterators);
+    pd->fcts.pdFree(pd, derived->stealIterators);
     
     // Destroy the GUID
     
@@ -142,7 +142,7 @@ void ceSchedulerStop(ocrScheduler_t * self) {
     PD_MSG_FIELD(guid) = self->fguid;
     PD_MSG_FIELD(guid.metaDataPtr) = self;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
+    RESULT_ASSERT(pd->fcts.processMessage(pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
     self->fguid.guid = UNINITIALIZED_GUID;
@@ -268,18 +268,14 @@ u8 ceSchedulerGiveComm(ocrScheduler_t *self, u32* count, ocrFatGuid_t* handlers,
 }
 
 ocrScheduler_t* newSchedulerCe(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
-    ocrSchedulerCe_t* derived = (ocrSchedulerCe_t*) runtimeChunkAlloc(
+    ocrScheduler_t* base = (ocrScheduler_t*) runtimeChunkAlloc(
         sizeof(ocrSchedulerCe_t), NULL);
-    
-    ocrScheduler_t* base = (ocrScheduler_t*)derived;
-    base->fguid.guid = UNINITIALIZED_GUID;
-    base->fguid.metaDataPtr = base;
-    base->pd = NULL;
-    base->workpiles = NULL;
-    base->workpileCount = 0;
-    base->fcts = factory->schedulerFcts;
-    
+    factory->initialize(factory, base, perInstance);
     return base;
+}
+
+void initializeSchedulerCe(ocrSchedulerFactory_t *factory, ocrScheduler_t *self, ocrParamList_t *perInstance) {
+    initializeSchedulerOcr(factory, self, perInstance);
 }
 
 void destructSchedulerFactoryCe(ocrSchedulerFactory_t * factory) {
@@ -292,6 +288,7 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryCe(ocrParamList_t *perType) {
     
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = &newSchedulerCe;
+    base->initialize  = &initializeSchedulerCe;
     base->destruct = &destructSchedulerFactoryCe;
     base->schedulerFcts.begin = FUNC_ADDR(void (*)(ocrScheduler_t*, ocrPolicyDomain_t*), ceSchedulerBegin);
     base->schedulerFcts.start = FUNC_ADDR(void (*)(ocrScheduler_t*, ocrPolicyDomain_t*), ceSchedulerStart);

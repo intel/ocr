@@ -45,7 +45,7 @@ static void workerLoop(ocrWorker_t * worker) {
     while(worker->fcts.isRunning(worker)) {
         msgPtr = NULL;
         worker->fcts.waitMessage(worker, &msgPtr);
-        returnCode = pd->processMessage(pd, msgPtr, false);
+        returnCode = pd->fcts.processMessage(pd, msgPtr, false);
         if (returnCode) {
             switch(returnCode) {
             case OCR_EAGAIN: // try again
@@ -72,26 +72,21 @@ void destructWorkerCe(ocrWorker_t * base) {
 /**
  * Builds an instance of a CE worker
  */
-ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory,
-                          ocrParamList_t * perInstance) {
-    ocrWorkerCe_t * worker = (ocrWorkerCe_t*)runtimeChunkAlloc(
-        sizeof(ocrWorkerCe_t), NULL);
-    ocrWorker_t * base = (ocrWorker_t *) worker;
+ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
+    ocrWorker_t * base = (ocrWorker_t*)runtimeChunkAlloc(sizeof(ocrWorkerCe_t), NULL);
+    factory->initialize(factory, base, perInstance);
+    return base;
+}
 
-    base->fguid.guid = UNINITIALIZED_GUID;
-    base->fguid.metaDataPtr = base;
-    base->pd = NULL;
-    base->curTask = NULL;
-    base->fcts = factory->workerFcts;
+void initializeWorkerCe(ocrWorkerFactory_t * factory, ocrWorker_t* base, ocrParamList_t * perInstance) {
+    initializeWorkerOcr(factory, base, perInstance);
     base->type = ((paramListWorkerCeInst_t*)perInstance)->workerType;
     ASSERT(base->type == MASTER_WORKERTYPE);
     
-    worker->id = ((paramListWorkerCeInst_t*)perInstance)->workerId;
-    worker->running = false;
-    worker->secondStart = false;
-
-    base->fcts = factory->workerFcts;
-    return base;
+    ocrWorkerCe_t * workerCe = (ocrWorkerCe_t *) base;
+    workerCe->id = ((paramListWorkerCeInst_t*)perInstance)->workerId;
+    workerCe->running = false;
+    workerCe->secondStart = false;
 }
 
 void ceBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
@@ -192,7 +187,7 @@ void ceStopWorker(ocrWorker_t * base) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = base->fguid;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_ASSERT(base->pd->processMessage(base->pd, &msg, false), ==, 0);
+    RESULT_ASSERT(base->pd->fcts.processMessage(base->pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
     base->fguid.guid = UNINITIALIZED_GUID;
@@ -227,10 +222,12 @@ void destructWorkerFactoryCe(ocrWorkerFactory_t * factory) {
 }
 
 ocrWorkerFactory_t * newOcrWorkerFactoryCe(ocrParamList_t * perType) {
-    ocrWorkerFactoryCe_t* derived = (ocrWorkerFactoryCe_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryCe_t), (void *)1);
-    ocrWorkerFactory_t* base = (ocrWorkerFactory_t*) derived;
-    base->instantiate = newWorkerCe;
-    base->destruct =  destructWorkerFactoryCe;
+    ocrWorkerFactory_t* base = (ocrWorkerFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryCe_t), (void *)1);
+
+    base->instantiate = &newWorkerCe;
+    base->initialize = &initializeWorkerCe;
+    base->destruct = &destructWorkerFactoryCe;
+
     base->workerFcts.destruct = FUNC_ADDR(void (*)(ocrWorker_t*), destructWorkerCe);
     base->workerFcts.begin = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), ceBeginWorker);
     base->workerFcts.start = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), ceStartWorker);

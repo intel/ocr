@@ -202,7 +202,7 @@ void ocrFinalize() {
     // stop (including this worker). The current worker
     // will then fall through here so that it can finish the PD
     worker->fcts.start(worker, pd);
-    pd->finish(pd);
+    pd->fcts.finish(pd);
     /*
     ocrPolicyDomain_t* masterPD = getMasterPD();
     stopAllPD(masterPD);
@@ -230,7 +230,7 @@ ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
     // The guid returned by eventGuid on completion
     ocrGuid_t returnGuid;
     // This call should return only when the event 'eventToYieldForGuid' is satisfied
-    pd->waitForEvent(pd, workerGuid, yieldingEdtGuid, eventToYieldForGuid, &returnGuid, ctx);
+    pd->fcts.waitForEvent(pd, workerGuid, yieldingEdtGuid, eventToYieldForGuid, &returnGuid, ctx);
     
     return returnGuid;
     */

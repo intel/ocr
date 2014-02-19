@@ -19,6 +19,7 @@
 
 struct _ocrPolicyDomain_t;
 struct _ocrPolicyMsg_t;
+struct _ocrMsgHandler_t;
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -118,7 +119,8 @@ typedef struct _ocrWorkerFcts_t {
      *                        a non-zero value
      * @return #POLL_MO_MESSAGE, #POLL_MORE_MESSAGE, #POLL_ERR_MASK
      */
-    u8 (*pollMessage)(struct _ocrWorker_t *self, struct _ocrPolicyMsg_t **message, u32 mask);
+    u8 (*pollMessage)(struct _ocrWorker_t *self,
+                      struct _ocrPolicyMsg_t **message, u32 mask);
     
     /**
      * @brief Waits for a response to the message 'message'
@@ -138,7 +140,8 @@ typedef struct _ocrWorkerFcts_t {
      *                        freed with pdFree.
      * @return 0 on success and a non-zero error code
      */
-    u8 (*waitMessage)(struct _ocrWorker_t *self, struct _ocrPolicyMsg_t **message);
+    u8 (*waitMessage)(struct _ocrWorker_t *self,
+                      struct _ocrPolicyMsg_t **message);
 } ocrWorkerFcts_t;
 
 typedef struct _ocrWorker_t {
@@ -164,11 +167,15 @@ typedef struct _ocrWorker_t {
 /****************************************************/
 
 typedef struct _ocrWorkerFactory_t {
-    ocrWorker_t * (*instantiate) (struct _ocrWorkerFactory_t * factory,
+    ocrWorker_t* (*instantiate) (struct _ocrWorkerFactory_t * factory,
                                   ocrParamList_t *perInstance);
+    void (*initialize) (struct _ocrWorkerFactory_t * factory, struct _ocrWorker_t * worker, ocrParamList_t *perInstance);
+
     void (*destruct)(struct _ocrWorkerFactory_t * factory);
     ocrWorkerFcts_t workerFcts;
 } ocrWorkerFactory_t;
+
+void initializeWorkerOcr(ocrWorkerFactory_t * factory, ocrWorker_t * self, ocrParamList_t *perInstance);
 
 #endif /* __OCR_WORKER_H__ */
 

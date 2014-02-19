@@ -70,7 +70,7 @@ void sharedStop(ocrMemTarget_t *self) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = self->fguid;
     PD_MSG_FIELD(properties) = 0;
-    self->pd->processMessage(self->pd, &msg, false); // Probably shutting down
+    self->pd->fcts.processMessage(self->pd, &msg, false); // Probably shutting down
 #undef PD_MSG
 #undef PD_TYPE
     self->fguid.guid = UNINITIALIZED_GUID;
@@ -117,22 +117,16 @@ u8 sharedQueryTag(ocrMemTarget_t *self, u64 *start, u64 *end,
 }
 
 ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
-                                   u64 size, ocrParamList_t *perInstance) {
+                                   ocrParamList_t *perInstance) {
 
     ocrMemTarget_t *result = (ocrMemTarget_t*)
         runtimeChunkAlloc(sizeof(ocrMemTargetShared_t), NULL);
-
-    result->fguid.guid = UNINITIALIZED_GUID;
-    result->fguid.metaDataPtr = result;
-    result->pd = NULL;
-
-    result->size = size;
-    result->startAddr = result->endAddr = 0ULL;
-    result->memories = NULL;
-    result->memoryCount = 0;
-    result->fcts = factory->targetFcts;
-
+    factory->initialize(factory, result, perInstance);
     return result;
+}
+
+void initializeMemTargetShared(ocrMemTargetFactory_t * factory, ocrMemTarget_t * result, ocrParamList_t * perInstance){
+    initializeMemTargetOcr(factory, result, perInstance);
 }
 
 /******************************************************/
@@ -147,6 +141,7 @@ ocrMemTargetFactory_t *newMemTargetFactoryShared(ocrParamList_t *perType) {
     ocrMemTargetFactory_t *base = (ocrMemTargetFactory_t*)
         runtimeChunkAlloc(sizeof(ocrMemTargetFactoryShared_t), (void *)1);
     base->instantiate = &newMemTargetShared;
+    base->initialize = &initializeMemTargetShared;
     base->destruct = &destructMemTargetFactoryShared;
     base->targetFcts.destruct = FUNC_ADDR(void (*)(ocrMemTarget_t*), sharedDestruct);
     base->targetFcts.begin = FUNC_ADDR(void (*)(ocrMemTarget_t*, ocrPolicyDomain_t*), sharedBegin);

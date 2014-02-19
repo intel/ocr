@@ -15,9 +15,10 @@
 #include "ocr-hal.h"
 #include "debug.h"
 #include "utils/rangeTracker.h"
-#include "mem-platform/malloc/malloc-mem-platform.h"
-#include "ocr-mem-platform.h"
 #include "ocr-sysboot.h"
+#include "ocr-types.h"
+#include "ocr-mem-platform.h"
+#include "mem-platform/malloc/malloc-mem-platform.h"
 
 #include <stdlib.h>
 
@@ -131,21 +132,22 @@ u8 mallocQueryTag(ocrMemPlatform_t *self, u64 *start, u64* end,
 }
 
 ocrMemPlatform_t* newMemPlatformMalloc(ocrMemPlatformFactory_t * factory,
-                                       u64 memSize, ocrParamList_t *perInstance) {
+                                       ocrParamList_t *perInstance) {
 
     // TODO: This will be replaced by the runtime/GUID meta-data allocator
     // For now, we cheat and use good-old malloc which is kind of counter productive with
     // all the trouble we are going through to *not* use malloc...
     ocrMemPlatform_t *result = (ocrMemPlatform_t*)
         runtimeChunkAlloc(sizeof(ocrMemPlatformMalloc_t), NULL);
+    factory->initialize(factory, result, perInstance);
+    return result;
+}
 
-    result->pd = NULL;
-    result->fcts = factory->platformFcts;
-    result->size = memSize;
-    result->startAddr = result->endAddr = 0ULL;
+void initializeMemPlatformMalloc(ocrMemPlatformFactory_t * factory, ocrMemPlatform_t * result, ocrParamList_t * perInstance)
+{
+    initializeMemPlatformOcr(factory, result, perInstance);
     ocrMemPlatformMalloc_t *rself = (ocrMemPlatformMalloc_t*)result;
     INIT_LOCK(&(rself->lock));
-    return result;
 }
 
 /******************************************************/
@@ -161,19 +163,19 @@ ocrMemPlatformFactory_t *newMemPlatformFactoryMalloc(ocrParamList_t *perType) {
         runtimeChunkAlloc(sizeof(ocrMemPlatformFactoryMalloc_t), (void *)1);
     
     base->instantiate = &newMemPlatformMalloc;
+    base->initialize = &initializeMemPlatformMalloc;
     base->destruct = &destructMemPlatformFactoryMalloc;
-    base->platformFcts.destruct = &mallocDestruct;
-    base->platformFcts.begin = &mallocBegin;
-    base->platformFcts.start = &mallocStart;
-    base->platformFcts.stop = &mallocStop;
-    base->platformFcts.finish = &mallocFinish;
-    base->platformFcts.getThrottle = &mallocGetThrottle;
-    base->platformFcts.setThrottle = &mallocSetThrottle;
-    base->platformFcts.getRange = &mallocGetRange;
-    base->platformFcts.chunkAndTag = &mallocChunkAndTag;
-    base->platformFcts.tag = &mallocTag;
-    base->platformFcts.queryTag = &mallocQueryTag;
-    
+    base->platformFcts.destruct = FUNC_ADDR(void (*) (ocrMemPlatform_t *), mallocDestruct);
+    base->platformFcts.begin = FUNC_ADDR(void (*) (ocrMemPlatform_t *, struct _ocrPolicyDomain_t *), mallocBegin);
+    base->platformFcts.start = FUNC_ADDR(void (*) (ocrMemPlatform_t *, struct _ocrPolicyDomain_t *), mallocStart);
+    base->platformFcts.stop = FUNC_ADDR(void (*) (ocrMemPlatform_t *), mallocStop);
+    base->platformFcts.finish = FUNC_ADDR(void (*) (ocrMemPlatform_t *), mallocFinish);
+    base->platformFcts.getThrottle = FUNC_ADDR(u8 (*) (ocrMemPlatform_t *, u64 *), mallocGetThrottle);
+    base->platformFcts.setThrottle = FUNC_ADDR(u8 (*) (ocrMemPlatform_t *, u64), mallocSetThrottle);
+    base->platformFcts.getRange = FUNC_ADDR(void (*) (ocrMemPlatform_t *, u64 *, u64 *), mallocGetRange);
+    base->platformFcts.chunkAndTag = FUNC_ADDR(u8 (*) (ocrMemPlatform_t *, u64 *, u64, ocrMemoryTag_t, ocrMemoryTag_t), mallocChunkAndTag);
+    base->platformFcts.tag = FUNC_ADDR(u8 (*) (ocrMemPlatform_t *, u64, u64, ocrMemoryTag_t), mallocTag);
+    base->platformFcts.queryTag = FUNC_ADDR(u8 (*) (ocrMemPlatform_t *, u64 *, u64 *, ocrMemoryTag_t *, u64), mallocQueryTag);
     return base;
 }
 

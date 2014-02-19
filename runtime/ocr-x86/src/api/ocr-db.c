@@ -55,7 +55,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     PD_MSG_FIELD(dbType) = USER_DBTYPE;
     PD_MSG_FIELD(allocator) = allocator;
 
-    returnCode = policy->processMessage(policy, &msg, true);
+    returnCode = policy->fcts.processMessage(policy, &msg, true);
     if(returnCode == 0) {
         *db = PD_MSG_FIELD(guid.guid);
         *addr = PD_MSG_FIELD(ptr);
@@ -79,7 +79,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
         PD_MSG_FIELD(db.guid) = *db;
         PD_MSG_FIELD(db.metaDataPtr) = NULL;
         PD_MSG_FIELD(properties) = 0;
-        policy->processMessage(policy, &msg, false);
+        policy->fcts.processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
     } else {
@@ -105,7 +105,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(properties) = 0;
     
-    u8 returnCode =  policy->processMessage(policy, &msg, false);
+    u8 returnCode =  policy->fcts.processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
 
@@ -122,7 +122,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
         PD_MSG_FIELD(db.guid) = db;
         PD_MSG_FIELD(db.metaDataPtr) = NULL;
         PD_MSG_FIELD(properties) = 0;
-        policy->processMessage(policy, &msg, false);
+        policy->fcts.processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
     } else {
@@ -148,7 +148,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(properties) = 0;
     
-    u8 returnCode = policy->processMessage(policy, &msg, false);
+    u8 returnCode = policy->fcts.processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
 
@@ -165,7 +165,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
         PD_MSG_FIELD(db.guid) = db;
         PD_MSG_FIELD(db.metaDataPtr) = NULL;
         PD_MSG_FIELD(properties) = 0;
-        policy->processMessage(policy, &msg, false);
+        policy->fcts.processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
     } else {

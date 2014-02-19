@@ -60,11 +60,13 @@ ocrCommPlatform_t* newCommPlatformCe(ocrCommPlatformFactory_t *factory,
 
     ocrCommPlatformCe_t * commPlatformCe = (ocrCommPlatformCe_t*)
         runtimeChunkAlloc(sizeof(ocrCommPlatformCe_t), NULL);
+    ocrCommPlatform_t * derived = (ocrCommPlatform_t *) commPlatformCe;
+    factory->initialize(factory, derived, perInstance);
+    return derived;
+}
 
-    commPlatformCe->base.location = ((paramListCommPlatformInst_t *)perInstance)->location;
-    commPlatformCe->base.fcts = factory->platformFcts;
-    
-    return (ocrCommPlatform_t*)commPlatformCe;
+void initializeCommPlatformCe(ocrCommPlatformFactory_t * factory, ocrCommPlatform_t * derived, ocrParamList_t * perInstance) {
+    initializeCommPlatformOcr(factory, derived, perInstance);
 }
 
 /******************************************************/
@@ -79,9 +81,10 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryCe(ocrParamList_t *perType) {
     ocrCommPlatformFactory_t *base = (ocrCommPlatformFactory_t*)
         runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryCe_t), (void *)1);
 
-    
-    base->instantiate = newCommPlatformCe;
-    base->destruct = destructCommPlatformFactoryCe;
+    base->instantiate = &newCommPlatformCe;
+    base->initialize = &initializeCommPlatformCe;
+    base->destruct = &destructCommPlatformFactoryCe;
+
     base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCommPlatform_t*), ceCommDestruct);
     base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*,
                                                   ocrWorkerType_t), ceCommBegin);

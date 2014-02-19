@@ -22,26 +22,13 @@ typedef enum _memTargetType_t {
     memTargetMax_id
 } memTargetType_t;
 
-const char * memtarget_types[] = {
-    "shared",
-    NULL
-};
+extern const char * memtarget_types[];
 
 // Shared memory target
 #include "mem-target/shared/shared-mem-target.h"
 
 // Add other memory targets using the same pattern as above
 
-inline ocrMemTargetFactory_t *newMemTargetFactory(memTargetType_t type, ocrParamList_t *typeArg) {
-    switch(type) {
-#ifdef ENABLE_MEM_TARGET_SHARED
-    case memTargetShared_id:
-        return newMemTargetFactoryShared(typeArg);
-#endif
-    default:
-        ASSERT(0);
-        return NULL;
-    };
-}
+ocrMemTargetFactory_t *newMemTargetFactory(memTargetType_t type, ocrParamList_t *typeArg); 
 
 #endif /* __MEM_TARGET_ALL_H__ */

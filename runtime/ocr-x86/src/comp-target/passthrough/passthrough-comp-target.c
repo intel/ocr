@@ -66,7 +66,7 @@ void ptStop(ocrCompTarget_t * compTarget) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = compTarget->fguid;
     PD_MSG_FIELD(properties) = 0;
-    compTarget->pd->processMessage(compTarget->pd, &msg, false); // Don't really care about result
+    compTarget->pd->fcts.processMessage(compTarget->pd, &msg, false); // Don't really care about result
 #undef PD_MSG
 #undef PD_TYPE
     compTarget->fguid.guid = UNINITIALIZED_GUID;
@@ -113,15 +113,13 @@ u8 ptSetCurrentEnv(ocrCompTarget_t *compTarget, ocrPolicyDomain_t *pd,
 ocrCompTarget_t * newCompTargetPt(ocrCompTargetFactory_t * factory,
                                   ocrParamList_t* perInstance) {
     ocrCompTargetPt_t * compTarget = (ocrCompTargetPt_t*)runtimeChunkAlloc(sizeof(ocrCompTargetPt_t), NULL);
+    ocrCompTarget_t *derived = (ocrCompTarget_t *)compTarget;
+    factory->initialize(factory, derived, perInstance);
+    return derived;
+}
 
-    compTarget->base.fguid.guid = UNINITIALIZED_GUID;
-    compTarget->base.fguid.metaDataPtr = compTarget;
-    
-    compTarget->base.platforms = NULL;
-    compTarget->base.platformCount = 0;
-    compTarget->base.fcts = factory->targetFcts;
-    
-    return (ocrCompTarget_t*)compTarget;
+void initializeCompTargetPt(ocrCompTargetFactory_t * factory, ocrCompTarget_t * derived, ocrParamList_t * perInstance){
+    initializeCompTargetOcr(factory, derived, perInstance);
 }
 
 /******************************************************/
@@ -135,6 +133,7 @@ ocrCompTargetFactory_t *newCompTargetFactoryPt(ocrParamList_t *perType) {
     ocrCompTargetFactory_t *base = (ocrCompTargetFactory_t*)
         runtimeChunkAlloc(sizeof(ocrCompTargetFactoryPt_t), (void *)1);
     base->instantiate = &newCompTargetPt;
+    base->initialize = &initializeCompTargetPt;
     base->destruct = &destructCompTargetFactoryPt;
     base->targetFcts.destruct = FUNC_ADDR(void (*)(ocrCompTarget_t*), ptDestruct);
     base->targetFcts.begin = FUNC_ADDR(void (*)(ocrCompTarget_t*, ocrPolicyDomain_t*, ocrWorkerType_t), ptBegin);

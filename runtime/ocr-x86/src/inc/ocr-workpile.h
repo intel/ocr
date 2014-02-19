@@ -88,11 +88,12 @@ typedef struct _ocrWorkpile_t {
 /****************************************************/
 
 typedef struct _ocrWorkpileFactory_t {
-    ocrWorkpile_t * (*instantiate)(struct _ocrWorkpileFactory_t * factory,
-                                   ocrParamList_t *perInstance);
-
+    ocrWorkpile_t * (*instantiate)(struct _ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance);
+    void (*initialize) (struct _ocrWorkpileFactory_t * factory, struct _ocrWorkpile_t * worker, ocrParamList_t *perInstance);
     void (*destruct)(struct _ocrWorkpileFactory_t * factory);
     ocrWorkpileFcts_t workpileFcts;
 } ocrWorkpileFactory_t;
+
+void initializeWorkpileOcr(ocrWorkpileFactory_t * factory, ocrWorkpile_t * self, ocrParamList_t *perInstance);
 
 #endif /* __OCR_WORKPILE_H_ */

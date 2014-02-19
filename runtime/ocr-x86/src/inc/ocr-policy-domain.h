@@ -564,80 +564,7 @@ typedef struct _ocrMsgHandler_t {
     void (*destruct)(struct _ocrMsgHandler_t * self);
 } ocrMsgHandler_t;
 
-/**
- * @brief A policy domain is OCR's way of dividing up the runtime in scalable
- * chunks
- *
- * A policy domain is considered a 'synchronous' section of the runtime. In
- * other words, if a given worker makes a call into its policy domain, that call
- * will be processed synchronously by that worker (and therefore by the
- * compute target and platform running the worker) as long as it stays within
- * the policy domain. When the call requires processing outside the policy
- * domain, an asynchronous one-way 'message' will be sent to the other policy
- * domain (this is similar to a remote procedure call). Implementation
- * would determine if the RPC call is actually executed asynchronously by
- * another worker or executed synchronously by the same worker but it will
- * always be treated as an asynchronous call. Since the user API is
- * synchronous, if no response is needed, the call into the policy domain
- * can then return to the caller. However, if a response is required, a
- * worker specific function is called informing it that it needs to
- * 'wait-for-network' (or something like that). The exact implementation
- * will determine whether the worker halts or does something else.
- *
- * Each policy domain contains the following:
- *     - 0 or more 'schedulers' which both schedule tasks and place data
- *     - 0 or more 'workers' on which EDTs are executed
- *     - 0 or more 'allocators' from which DBs are allocated/freed
- *
- * A policy domain will directly respond to requests emanating from user
- * code to:
- *     - create EDTs (using ocrEdtCreate())
- *     - create DBs (using ocrDbCreate())
- *     - create GUIDs
- *
- */
-typedef struct _ocrPolicyDomain_t {
-    ocrFatGuid_t fguid;                         /**< GUID for this policy */
-    
-    u64 schedulerCount;                         /**< Number of schedulers */
-    u64 allocatorCount;                         /**< Number of allocators */
-    u64 workerCount;                            /**< Number of workers */
-    u64 guidProviderCount;                      /**< Number of GUID providers */
-    u64 taskFactoryCount;                       /**< Number of task factories */
-    u64 taskTemplateFactoryCount;               /**< Number of task-template factories */
-    u64 dbFactoryCount;                         /**< Number of data-block factories */
-    u64 eventFactoryCount;                      /**< Number of event factories */
-
-    ocrScheduler_t  ** schedulers;              /**< All the schedulers */
-    ocrAllocator_t  ** allocators;              /**< All the allocators */
-    ocrWorker_t     ** workers;                 /**< All the workers */
-
-    ocrTaskFactory_t  **taskFactories;          /**< Factory to produce tasks
-                                                 * (EDTs) */
-    
-    ocrTaskTemplateFactory_t  ** taskTemplateFactories; /**< Factories to produce
-                                                         * task templates */
-    ocrDataBlockFactory_t ** dbFactories;       /**< Factories to produce
-                                                 * data-blocks */
-    ocrEventFactory_t ** eventFactories;        /**< Factories to produce events*/
-    ocrGuidProvider_t ** guidProviders;         /**< GUID generators */
-
-#ifdef OCR_ENABLE_STATISTICS
-    ocrStats_t *statsObject;                    /**< Statistics object */
-#endif
-
-    // TODO: What to do about this?
-    ocrCost_t *costFunction; /**< Cost function used to determine
-                              * what to schedule/steal/take/etc.
-                              * Currently a placeholder for future
-                              * objective driven scheduling */
-
-    ocrLocation_t myLocation;
-    ocrLocation_t parentLocation;
-    ocrLocation_t* neighbors;
-    u32 neighborCount;
-
-
+typedef struct _ocrPolicyDomainFcts_t {
     /**
      * @brief Destroys (and frees any associated memory) this
      * policy domain
@@ -758,6 +685,83 @@ typedef struct _ocrPolicyDomain_t {
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t* (*getStats)(struct _ocrPolicyDomain_t *self);
 #endif
+} ocrPolicyDomainFcts_t;
+
+/**
+ * @brief A policy domain is OCR's way of dividing up the runtime in scalable
+ * chunks
+ *
+ * A policy domain is considered a 'synchronous' section of the runtime. In
+ * other words, if a given worker makes a call into its policy domain, that call
+ * will be processed synchronously by that worker (and therefore by the
+ * compute target and platform running the worker) as long as it stays within
+ * the policy domain. When the call requires processing outside the policy
+ * domain, an asynchronous one-way 'message' will be sent to the other policy
+ * domain (this is similar to a remote procedure call). Implementation
+ * would determine if the RPC call is actually executed asynchronously by
+ * another worker or executed synchronously by the same worker but it will
+ * always be treated as an asynchronous call. Since the user API is
+ * synchronous, if no response is needed, the call into the policy domain
+ * can then return to the caller. However, if a response is required, a
+ * worker specific function is called informing it that it needs to
+ * 'wait-for-network' (or something like that). The exact implementation
+ * will determine whether the worker halts or does something else.
+ *
+ * Each policy domain contains the following:
+ *     - 0 or more 'schedulers' which both schedule tasks and place data
+ *     - 0 or more 'workers' on which EDTs are executed
+ *     - 0 or more 'allocators' from which DBs are allocated/freed
+ *
+ * A policy domain will directly respond to requests emanating from user
+ * code to:
+ *     - create EDTs (using ocrEdtCreate())
+ *     - create DBs (using ocrDbCreate())
+ *     - create GUIDs
+ *
+ */
+typedef struct _ocrPolicyDomain_t {
+    ocrFatGuid_t fguid;                         /**< GUID for this policy */
+    
+    u64 schedulerCount;                         /**< Number of schedulers */
+    u64 allocatorCount;                         /**< Number of allocators */
+    u64 workerCount;                            /**< Number of workers */
+    u64 guidProviderCount;                      /**< Number of GUID providers */
+    u64 taskFactoryCount;                       /**< Number of task factories */
+    u64 taskTemplateFactoryCount;               /**< Number of task-template factories */
+    u64 dbFactoryCount;                         /**< Number of data-block factories */
+    u64 eventFactoryCount;                      /**< Number of event factories */
+
+    ocrScheduler_t  ** schedulers;              /**< All the schedulers */
+    ocrAllocator_t  ** allocators;              /**< All the allocators */
+    ocrWorker_t     ** workers;                 /**< All the workers */
+
+    ocrTaskFactory_t  **taskFactories;          /**< Factory to produce tasks
+                                                 * (EDTs) */
+    
+    ocrTaskTemplateFactory_t  ** taskTemplateFactories; /**< Factories to produce
+                                                         * task templates */
+    ocrDataBlockFactory_t ** dbFactories;       /**< Factories to produce
+                                                 * data-blocks */
+    ocrEventFactory_t ** eventFactories;        /**< Factories to produce events*/
+    ocrGuidProvider_t ** guidProviders;         /**< GUID generators */
+
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStats_t *statsObject;                    /**< Statistics object */
+#endif
+
+    // TODO: What to do about this?
+    ocrCost_t *costFunction; /**< Cost function used to determine
+                              * what to schedule/steal/take/etc.
+                              * Currently a placeholder for future
+                              * objective driven scheduling */
+
+    ocrLocation_t myLocation;
+    ocrLocation_t parentLocation;
+    ocrLocation_t* neighbors;
+    u32 neighborCount;
+
+    ocrPolicyDomainFcts_t fcts;
+
 } ocrPolicyDomain_t;
 
 /****************************************************/
@@ -795,15 +799,21 @@ typedef struct _ocrPolicyDomainFactory_t {
 
     // TODO: Check with Bala on this. We may not need to pass anything
     // except the physical location of itself and its parent
-    ocrPolicyDomain_t * (*instantiate)
-        (struct _ocrPolicyDomainFactory_t *factory, 
+    ocrPolicyDomain_t * (*instantiate) (struct _ocrPolicyDomainFactory_t *factory, 
 #ifdef OCR_ENABLE_STATISTICS
          ocrStats_t *statsObject,
 #endif
          ocrCost_t *costFunction, ocrParamList_t *perInstance);
-
+    void (*initialize) (struct _ocrPolicyDomainFactory_t *factory, ocrPolicyDomain_t* self,
+#ifdef OCR_ENABLE_STATISTICS
+         ocrStats_t *statsObject,
+#endif
+         ocrCost_t *costFunction, ocrParamList_t *perInstance);
     void (*destruct)(struct _ocrPolicyDomainFactory_t * factory);
+    ocrPolicyDomainFcts_t policyDomainFcts;
 } ocrPolicyDomainFactory_t;
+
+void initializePolicyDomainOcr(ocrPolicyDomainFactory_t * factory, ocrPolicyDomain_t * self, ocrParamList_t *perInstance);
 
 #define __GUID_END_MARKER__
 #include "ocr-guid-end.h"

@@ -226,6 +226,7 @@ typedef struct _ocrCompPlatformFactory_t {
     ocrCompPlatform_t* (*instantiate)(struct _ocrCompPlatformFactory_t *factory,
                                       ocrParamList_t *instanceArg);
 
+    void (*initialize) (struct _ocrCompPlatformFactory_t * factory, ocrCompPlatform_t *self, ocrParamList_t * perInstance);
     /**
      * @brief comp-platform factory destructor
      * @param factory       Pointer to the factory to destroy.
@@ -241,5 +242,7 @@ typedef struct _ocrCompPlatformFactory_t {
 
     ocrCompPlatformFcts_t platformFcts; /**< Function pointers created instances should use */
 } ocrCompPlatformFactory_t;
+
+void initializeCompPlatformOcr(ocrCompPlatformFactory_t * factory, ocrCompPlatform_t * self, ocrParamList_t *perInstance);
 
 #endif /* __OCR_COMP_PLATFORM_H__ */

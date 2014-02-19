@@ -122,12 +122,12 @@ ocrCompPlatform_t* newCompPlatformFsim(ocrCompPlatformFactory_t *factory,
 
     ocrCompPlatformFsim_t * compPlatformFsim = (ocrCompPlatformFsim_t*)
         runtimeChunkAlloc(sizeof(ocrCompPlatformFsim_t), NULL);
+    factory->initialize(factory, compPlatformFsim, perInstance);
+    return compPlatformFsim;
+}
 
-    compPlatformFsim->base.comm = NULL;
-        
-    compPlatformFsim->base.fcts = factory->platformFcts;
-
-    return (ocrCompPlatform_t*)compPlatformFsim;
+void initializeCompPlatformFsim(ocrCompPlatformFactory_t * factory, ocrCompPlatformFsim_t *comPlatformFsim, ocrParamList_t *perInstance) {
+    initializeCompPlatformOcr(factory, compPlatformFsim, perInstance);
 }
 
 void destructCompPlatformFactoryFsim(ocrCompPlatformFactory_t *factory) {
@@ -153,6 +153,7 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryFsim(ocrParamList_t *perType) {
     ocrCompPlatformFactoryFsim_t * derived = (ocrCompPlatformFactoryFsim_t *) base;
 
     base->instantiate = &newCompPlatformFsim;
+    base->initialize = &initializeCompPlatformFsim;
     base->destruct = &destructCompPlatformFactoryFsim;
     base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCompPlatform_t*), fsimCompDestruct);
     base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCompPlatform_t*, ocrPolicyDomain_t*, ocrWorkerType_t), fsimCompBegin);

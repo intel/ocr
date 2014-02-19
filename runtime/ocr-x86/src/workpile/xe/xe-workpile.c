@@ -47,16 +47,18 @@ void xeWorkpilePush(ocrWorkpile_t * base, ocrWorkPushType_t type,
                     ocrFatGuid_t g ) {
 }
 
-ocrWorkpile_t * newWorkpileXe(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstanxe) {
-    ocrWorkpileXe_t* derived = (ocrWorkpileXe_t*) runtimeChunkAlloc(sizeof(ocrWorkpileXe_t), NULL);
-    ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
+ocrWorkpile_t * newWorkpileXe(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
+    ocrWorkpile_t* derived = (ocrWorkpile_t*) runtimeChunkAlloc(sizeof(ocrWorkpile_t), NULL);
 
-    base->fguid.guid = UNINITIALIZED_GUID;
-    base->fguid.metaDataPtr = base;
-    base->pd = NULL;
-    base->fcts = factory->workpileFcts;
-    return base;
+    factory->initialize(factory, derived, perInstance);
+    return derived;
 }
+
+void initializeWorkpileXe(ocrWorkpileFactory_t * factory, ocrWorkpile_t* self, ocrParamList_t * perInstance)
+{
+    initializeWorkpileOcr(factory, self, perInstance);
+}
+
 
 /******************************************************/
 /* OCR-XE WorkPile Factory                            */
@@ -67,10 +69,12 @@ void destructWorkpileFactoryXe(ocrWorkpileFactory_t * factory) {
 }
 
 ocrWorkpileFactory_t * newOcrWorkpileFactoryXe(ocrParamList_t *perType) {
-    ocrWorkpileFactoryXe_t* derived = (ocrWorkpileFactoryXe_t*)runtimeChunkAlloc(sizeof(ocrWorkpileFactoryXe_t), NULL);
-    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
-    base->instantiate = newWorkpileXe;
-    base->destruct = destructWorkpileFactoryXe;
+    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkpileFactoryXe_t), NULL);
+
+    base->instantiate = &newWorkpileXe;
+    base->initialize = &initializeWorkpileXe;
+    base->destruct = &destructWorkpileFactoryXe;
+
     base->workpileFcts.destruct = FUNC_ADDR(void (*)(ocrWorkpile_t*), xeWorkpileDestruct);
     base->workpileFcts.begin = FUNC_ADDR(void (*)(ocrWorkpile_t*, ocrPolicyDomain_t*), xeWorkpileBegin);
     base->workpileFcts.start = FUNC_ADDR(void (*)(ocrWorkpile_t*, ocrPolicyDomain_t*), xeWorkpileStart);

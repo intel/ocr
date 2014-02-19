@@ -21,7 +21,7 @@
 void hcWorkpileDestruct ( ocrWorkpile_t * base ) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
     derived->deque->destruct(base->pd, derived->deque);
-    base->pd->pdFree(base->pd, derived->deque);
+    base->pd->fcts.pdFree(base->pd, derived->deque);
     runtimeChunkFree((u64)base, NULL);
 }
 
@@ -47,7 +47,7 @@ void hcWorkpileStop(ocrWorkpile_t *base) {
     PD_MSG_FIELD(guid) = base->fguid;
     PD_MSG_FIELD(properties) = 0;
     // Shutting down so ignore error
-    base->pd->processMessage(base->pd, &msg, false);
+    base->pd->fcts.processMessage(base->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
     base->fguid.guid = UNINITIALIZED_GUID;
@@ -83,14 +83,13 @@ void hcWorkpilePush(ocrWorkpile_t * base, ocrWorkPushType_t type,
 }
 
 ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
-    ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) runtimeChunkAlloc(sizeof(ocrWorkpileHc_t), NULL);
-    ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
+    ocrWorkpile_t* derived = (ocrWorkpile_t*) runtimeChunkAlloc(sizeof(ocrWorkpile_t), NULL);
+    factory->initialize(factory, derived, perInstance);
+    return derived;
+}
 
-    base->fguid.guid = UNINITIALIZED_GUID;
-    base->fguid.metaDataPtr = base;
-    base->pd = NULL;
-    base->fcts = factory->workpileFcts;
-    return base;
+void initializeWorkpileHc(ocrWorkpileFactory_t * factory, ocrWorkpile_t* self, ocrParamList_t * perInstance) {
+   initializeWorkpileOcr(factory, self, perInstance);
 }
 
 /******************************************************/
@@ -102,17 +101,19 @@ void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
 }
 
 ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(ocrParamList_t *perType) {
-    ocrWorkpileFactoryHc_t* derived = (ocrWorkpileFactoryHc_t*)runtimeChunkAlloc(sizeof(ocrWorkpileFactoryHc_t), (void *)1);
-    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*) derived;
-    base->instantiate = newWorkpileHc;
-    base->destruct = destructWorkpileFactoryHc;
-    base->workpileFcts.destruct = hcWorkpileDestruct;
-    base->workpileFcts.begin = hcWorkpileBegin;
-    base->workpileFcts.start = hcWorkpileStart;
-    base->workpileFcts.stop = hcWorkpileStop;
-    base->workpileFcts.finish = hcWorkpileFinish;
-    base->workpileFcts.pop = hcWorkpilePop;
-    base->workpileFcts.push = hcWorkpilePush;
+    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkpileFactoryHc_t), (void *)1);
+
+    base->instantiate = &newWorkpileHc;
+    base->initialize = &initializeWorkpileHc;
+    base->destruct = &destructWorkpileFactoryHc;
+
+    base->workpileFcts.destruct = FUNC_ADDR(void (*) (ocrWorkpile_t *), hcWorkpileDestruct);
+    base->workpileFcts.begin = FUNC_ADDR(void (*) (ocrWorkpile_t *, ocrPolicyDomain_t *), hcWorkpileBegin);
+    base->workpileFcts.start = FUNC_ADDR(void (*) (ocrWorkpile_t *, ocrPolicyDomain_t *), hcWorkpileStart);
+    base->workpileFcts.stop = FUNC_ADDR(void (*) (ocrWorkpile_t *), hcWorkpileStop);
+    base->workpileFcts.finish = FUNC_ADDR(void (*) (ocrWorkpile_t *), hcWorkpileFinish);
+    base->workpileFcts.pop = FUNC_ADDR(ocrFatGuid_t (*)(ocrWorkpile_t*, ocrWorkPopType_t, ocrCost_t *), hcWorkpilePop);
+    base->workpileFcts.push = FUNC_ADDR(void (*)(ocrWorkpile_t*, ocrWorkPushType_t, ocrFatGuid_t), hcWorkpilePush);
     return base;
 }
 #endif /* ENABLE_WORKPILE_HC */

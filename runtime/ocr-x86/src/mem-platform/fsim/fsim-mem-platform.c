@@ -131,22 +131,22 @@ u8 fsimQueryTag(ocrMemPlatform_t *self, u64 *start, u64* end,
 }
 
 ocrMemPlatform_t* newMemPlatformFsim(ocrMemPlatformFactory_t * factory,
-                                       u64 memSize, ocrParamList_t *perInstance) {
+                                       ocrParamList_t *perInstance) {
 
     // TODO: This will be replaced by the runtime/GUID meta-data allocator
     // For now, we cheat and use good-old fsim which is kind of counter productive with
     // all the trouble we are going through to *not* use fsim...
     ocrMemPlatform_t *result = (ocrMemPlatform_t*)
         runtimeChunkAlloc(sizeof(ocrMemPlatformFsim_t), NULL);
+    factory->initialize(factory, result, perInstance);
 
-    result->pd = NULL;
-    result->fcts = factory->platformFcts;
-    result->size = memSize;
-    result->startAddr = result->endAddr = 0ULL;
-    result->startAddr = ((paramListMemPlatformFsim_t *)perInstance)->start;
+void initializeMemPlatformFsim(ocrMemPlatformFactory_t * factory,
+                               ocrMemPlatform_t * result, ocrParamList_t * perInstance) {
+
+    initializeMemPlatformOcr(factory, result, perInstance);
     ocrMemPlatformFsim_t *rself = (ocrMemPlatformFsim_t*)result;
+    result->startAddr = ((paramListMemPlatformFsim_t *)perInstance)->start;
     INIT_LOCK(&(rself->lock));
-    return result;
 }
 
 /******************************************************/
@@ -162,6 +162,7 @@ ocrMemPlatformFactory_t *newMemPlatformFactoryFsim(ocrParamList_t *perType) {
         runtimeChunkAlloc(sizeof(ocrMemPlatformFactoryFsim_t), (void *)1);
     
     base->instantiate = &newMemPlatformFsim;
+    base->initialize = &initializeMemPlatformFsim;
     base->destruct = &destructMemPlatformFactoryFsim;
     base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrMemPlatform_t*), fsimDestruct);
     base->platformFcts.begin = FUNC_ADDR(void (*)(ocrMemPlatform_t*, struct _ocrPolicyDomain_t*), fsimBegin);

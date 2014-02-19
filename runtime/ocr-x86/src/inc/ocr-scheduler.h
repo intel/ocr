@@ -8,9 +8,9 @@
 #ifndef __OCR_SCHEDULER_H__
 #define __OCR_SCHEDULER_H__
 
+#include "ocr-runtime-types.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
-
 
 struct _ocrPolicyDomain_t;
 
@@ -150,9 +150,12 @@ typedef struct _ocrScheduler_t {
 typedef struct _ocrSchedulerFactory_t {
     ocrScheduler_t* (*instantiate) (struct _ocrSchedulerFactory_t * factory,
                                     ocrParamList_t *perInstance);
+    void (*initialize) (struct _ocrSchedulerFactory_t * factory, ocrScheduler_t *self, ocrParamList_t *perInstance);
     void (*destruct)(struct _ocrSchedulerFactory_t * factory);
 
     ocrSchedulerFcts_t schedulerFcts;
 } ocrSchedulerFactory_t;
+
+void initializeSchedulerOcr(ocrSchedulerFactory_t * factory, ocrScheduler_t * self, ocrParamList_t *perInstance);
 
 #endif /* __OCR_SCHEDULER_H__ */

@@ -38,6 +38,7 @@ typedef struct _paramListMemTargetFact_t {
  */
 typedef struct _paramListMemTargetInst_t {
     ocrParamList_t base;
+    u64 size;
 } paramListMemTargetInst_t;
 
 
@@ -204,7 +205,10 @@ typedef struct _ocrMemTargetFactory_t {
      * @param instanceArg   Arguments specific for this instance
      */
     ocrMemTarget_t * (*instantiate) (struct _ocrMemTargetFactory_t * factory,
-                                     u64 memSize, ocrParamList_t* perInstance);
+                                     ocrParamList_t* perInstance);
+
+    void (*initialize) (struct _ocrMemTargetFactory_t * factory, ocrMemTarget_t * self, 
+                        ocrParamList_t * perInstance);
     /**
      * @brief mem-target factory destructor
      * @param factory       Pointer to the factory to destroy.
@@ -213,5 +217,7 @@ typedef struct _ocrMemTargetFactory_t {
 
     ocrMemTargetFcts_t targetFcts; /**< Function pointers created instances should use */
 } ocrMemTargetFactory_t;
+
+void initializeMemTargetOcr(ocrMemTargetFactory_t * factory, ocrMemTarget_t * self, ocrParamList_t *perInstance);
 
 #endif /* __OCR_MEM_TARGET_H__ */

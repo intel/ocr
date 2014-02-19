@@ -23,11 +23,7 @@ typedef enum _allocatorType_t {
     allocatorMax_id
 } allocatorType_t;
 
-const char * allocator_types[] = {
-    "tlsf",
-    "null",
-    NULL
-};
+extern const char * allocator_types[]; 
 
 // TLSF allocator
 #include "allocator/tlsf/tlsf-allocator.h"
@@ -35,21 +31,6 @@ const char * allocator_types[] = {
 
 // Add other allocators using the same pattern as above
 
-inline ocrAllocatorFactory_t *newAllocatorFactory(allocatorType_t type, ocrParamList_t *typeArg) {
-    switch(type) {
-#ifdef ENABLE_ALLOCATOR_TLSF
-    case allocatorTlsf_id:
-        return newAllocatorFactoryTlsf(typeArg);
-#endif
-#ifdef ENABLE_ALLOCATOR_NULL
-    case allocatorNull_id:
-        return newAllocatorFactoryNull(typeArg);
-#endif
-    case allocatorMax_id:
-    default:
-        ASSERT(0);
-        return NULL;
-    };
-}
+ocrAllocatorFactory_t *newAllocatorFactory(allocatorType_t type, ocrParamList_t *typeArg);
 
 #endif /* __ALLOCATOR_ALL_H__ */

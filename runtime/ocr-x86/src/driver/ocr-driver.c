@@ -318,16 +318,16 @@ void bringUpRuntime(const char *inifile) {
     }
 #else
     ocrPolicyDomain_t *otherPolicyDomains = NULL;
-    rootPolicy->begin(rootPolicy);
+    rootPolicy->fcts.begin(rootPolicy);
     for (i = 1; i < inst_counts[policydomain_type]; i++) {
         otherPolicyDomains = (ocrPolicyDomain_t*)all_instances[policydomain_type][i];
-        otherPolicyDomains->begin(otherPolicyDomains);
+        otherPolicyDomains->fcts.begin(otherPolicyDomains);
     }
 
-    rootPolicy->start(rootPolicy);
+    rootPolicy->fcts.start(rootPolicy);
     for (i = 1; i < inst_counts[policydomain_type]; i++) {
         otherPolicyDomains = (ocrPolicyDomain_t*)all_instances[policydomain_type][i];
-        otherPolicyDomains->start(otherPolicyDomains);
+        otherPolicyDomains->fcts.start(otherPolicyDomains);
     }
 #endif
     iniparser_freedict(dict);

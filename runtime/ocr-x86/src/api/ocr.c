@@ -18,7 +18,7 @@ void ocrShutdown() {
 #define PD_MSG msgPtr
 #define PD_TYPE PD_MSG_MGT_SHUTDOWN
     msgPtr->type = PD_MSG_MGT_SHUTDOWN | PD_MSG_REQUEST;
-    RESULT_ASSERT(pd->processMessage(pd, msgPtr, true), ==, 0);
+    RESULT_ASSERT(pd->fcts.processMessage(pd, msgPtr, true), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
     // TODO: Re-enable teardown for other platforms

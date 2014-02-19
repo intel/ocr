@@ -321,7 +321,7 @@ static void convertDepAddToSatisfy(ocrPolicyDomain_t *self, ocrFatGuid_t dbGuid,
     PD_MSG_FIELD(payload) = dbGuid;
     PD_MSG_FIELD(slot) = slot;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_ASSERT(self->processMessage(self, &msg, false), ==, 0);
+    RESULT_ASSERT(self->fcts.processMessage(self, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
 }
@@ -343,7 +343,7 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg) {
             ASSERT((msg->type & PD_MSG_TYPE_ONLY) == type);
             ASSERT((!(msg->type & PD_MSG_REQUEST)) && (msg->type & PD_MSG_RESPONSE));
         } else {
-            RESULT_ASSERT(self->processMessage(self, msg, false), ==, 0);
+            RESULT_ASSERT(self->fcts.processMessage(self, msg, false), ==, 0);
             returnCode = OCR_EINTR;
         }
     }
@@ -903,7 +903,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         
     case PD_MSG_MGT_SHUTDOWN:
     {
-        self->stop(self);
+        self->fcts.stop(self);
         if (msg->srcLocation == self->myLocation) {
             returnCode = xeProcessCeRequest(self, msg);
         } else {
@@ -914,7 +914,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         
     case PD_MSG_MGT_FINISH:
     {
-        self->finish(self);
+        self->fcts.finish(self);
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |=  PD_MSG_RESPONSE;
         break;
@@ -969,7 +969,7 @@ void xePdFree(ocrPolicyDomain_t *self, void* addr) {
     return self->allocators[0]->fcts.free(self->allocators[0], addr);
 }
 
-ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * policy,
+ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * factory,
 #ifdef OCR_ENABLE_STATISTICS
                                       ocrStats_t *statsObject,
 #endif
@@ -979,37 +979,25 @@ ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * policy,
     ocrPolicyDomain_t * base = (ocrPolicyDomain_t *) derived;
 
     ASSERT(base);
-//    base->sysProvider = sysProvider;
 #ifdef OCR_ENABLE_STATISTICS
-    base->statsObject = statsObject;
+    factory->initialize(factory, base, statsObject, costFunction, perInstance);
+#else
+    factory->initialize(factory, base, costFunction, perInstance);
 #endif
-    base->costFunction = costFunction;
-
-    base->destruct = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), xePolicyDomainDestruct);
-    base->begin = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), xePolicyDomainBegin);
-    base->start = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), xePolicyDomainStart);
-    base->stop = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), xePolicyDomainStop);
-    base->finish = FUNC_ADDR(void (*)(ocrPolicyDomain_t *), xePolicyDomainFinish);
-    base->processMessage = FUNC_ADDR(u8 (*)(ocrPolicyDomain_t *, ocrPolicyMsg_t *msg, u8 isBlocking), xePolicyDomainProcessMessage);
-    base->pdMalloc = FUNC_ADDR(void* (*)(ocrPolicyDomain_t *, u64), xePdMalloc);
-    base->pdFree = FUNC_ADDR(void (*)(ocrPolicyDomain_t *, void*), xePdFree);
-
-#ifdef OCR_ENABLE_STATISTICS
-    base->getStats = xeGetStats;
-#endif
-
-    base->myLocation = ((paramListPolicyDomainInst_t*)perInstance)->location;
-
-    // no inter-policy domain for simple XE
-    base->neighbors = NULL;
-    base->neighborCount = 0;
-
-    //TODO populated by ini file factories. Need setters or something ?
-    base->schedulers = NULL;
-    base->allocators = NULL;    
-//    base->guid = UNINITIALIZED_GUID;
 
     return base;
+}
+
+void initializePolicyDomainXe(ocrPolicyDomainFactory_t * factory, ocrPolicyDomain_t* self,
+#ifdef OCR_ENABLE_STATISTICS
+                              ocrStats_t *statsObject,
+#endif
+                              ocrCost_t *costFunction, ocrParamList_t *perInstance) {
+#ifdef OCR_ENABLE_STATISTICS
+    self->statsObject = statsObject;
+#endif
+
+    initializePolicyDomainOcr(factory, self, perInstance);
 }
 
 static void destructPolicyDomainFactoryXe(ocrPolicyDomainFactory_t * factory) {
@@ -1017,13 +1005,27 @@ static void destructPolicyDomainFactoryXe(ocrPolicyDomainFactory_t * factory) {
 }
 
 ocrPolicyDomainFactory_t * newPolicyDomainFactoryXe(ocrParamList_t *perType) {
-    ocrPolicyDomainFactoryXe_t* derived = (ocrPolicyDomainFactoryXe_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryXe_t), (void *)1);
-    ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) derived;
+    ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryXe_t), (void *)1);
     
     ASSERT(base); // Check allocation
     
-    base->instantiate = newPolicyDomainXe;
-    base->destruct =  destructPolicyDomainFactoryXe;
+#ifdef OCR_ENABLE_STATISTICS
+    base->instantiate = FUNC_ADDR(ocrPolicyDomain_t*(*)(ocrPolicyDomainFactory_t*,ocrCost_t*,
+                                          ocrParamList_t*), newPolicyDomainXe);
+#endif
+
+    base->instantiate = &newPolicyDomainXe;
+    base->initialize = &initializePolicyDomainXe;
+    base->destruct = &destructPolicyDomainFactoryXe;
+
+    base->policyDomainFcts.destruct = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), xePolicyDomainDestruct);
+    base->policyDomainFcts.begin = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), xePolicyDomainBegin);
+    base->policyDomainFcts.start = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), xePolicyDomainStart);
+    base->policyDomainFcts.stop = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), xePolicyDomainStop);
+    base->policyDomainFcts.finish = FUNC_ADDR(void(*)(ocrPolicyDomain_t*), xePolicyDomainFinish);
+    base->policyDomainFcts.processMessage = FUNC_ADDR(u8(*)(ocrPolicyDomain_t*,ocrPolicyMsg_t*,u8), xePolicyDomainProcessMessage);
+    base->policyDomainFcts.pdMalloc = FUNC_ADDR(void*(*)(ocrPolicyDomain_t*,u64), xePdMalloc);
+    base->policyDomainFcts.pdFree = FUNC_ADDR(void(*)(ocrPolicyDomain_t*,void*), xePdFree);
     return base;
 }
 
