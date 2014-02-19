@@ -742,7 +742,7 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     if(eventType == OCR_EVENT_LATCH_T) {
         sizeOfGuid = sizeof(ocrEventHcLatch_t);
     }
-    if(eventType == OCR_EVENT_IDEM_T || OCR_EVENT_STICKY_T) {
+    if((eventType == OCR_EVENT_IDEM_T) || (eventType == OCR_EVENT_STICKY_T)) {
         sizeOfGuid = sizeof(ocrEventHcPersist_t);
     }
     
