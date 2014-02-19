@@ -12,8 +12,7 @@ AUX_DIST = \
 library_includedir=$(includedir)
 library_include_HEADERS = $(rootdir)/inc/ocr-db.h $(rootdir)/inc/ocr-edt.h $(rootdir)/inc/ocr-errors.h \
 $(rootdir)/inc/ocr-tuning.h $(rootdir)/inc/ocr-types.h $(rootdir)/inc/ocr.h $(rootdir)/inc/compat.h \
-$(rootdir)/inc/ocr-stathooks.h
-
+$(rootdir)/inc/ocr-stathooks.h $(rootdir)/inc/ocr-std.h
 
 # Distribute runtime interface headers - set by configure
 if INCLUDE_RUNTIME_ITF_HEADERS
@@ -339,6 +338,17 @@ libocr_statistics_messages_la_SOURCES = \
 ../../../src/statistics/messages/message-trivial.c
 
 libocr_statistics_messages_la_CFLAGS = $(AM_CFLAGS)
+
+#
+## SAL
+#
+
+noinst_LTLIBRARIES += libocr_sal.la
+libocr_la_LIBADD += libocr_sal.la
+
+libocr_sal_la_SOURCES = ../../../src/sal/sal-common.c
+libocr_sal_la_CFLAGS = $(AM_CFLAGS)
+
 
 #
 ## SYSBOOT
