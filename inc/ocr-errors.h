@@ -11,6 +11,8 @@
 #ifndef __OCR_ERRORS_H__
 #define __OCR_ERRORS_H__
 
+// OCR error codes (loosely based on linux error.h)
+
 #define OCR_EPERM            1      /* Operation not permitted */
 #define OCR_ENOENT           2      /* No such file or directory */
 #define OCR_EINTR            4      /* Interrupted OCR runtime call */
@@ -30,5 +32,6 @@
 #define OCR_EROFS           30      /* Read-only file system */
 #define OCR_EDOM            33      /* Math argument out of domain of func */
 #define OCR_ERANGE          34      /* Math result not representable */
+#define OCR_ENOSYS          38      /* Function not implemented */
 
 #endif /* __OCR_ERRORS_H__ */

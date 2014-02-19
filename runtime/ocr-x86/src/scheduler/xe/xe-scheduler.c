@@ -8,6 +8,7 @@
 #ifdef ENABLE_SCHEDULER_XE
 
 #include "debug.h"
+#include "ocr-errors.h"
 #include "ocr-policy-domain.h"
 #include "ocr-runtime-types.h"
 #include "ocr-sysboot.h"
@@ -33,12 +34,20 @@ void xeSchedulerStop(ocrScheduler_t * self) {
 void xeSchedulerFinish(ocrScheduler_t *self) {
 }
 
-u8 xeSchedulerTake (ocrScheduler_t *self, u32 *count, ocrFatGuid_t *edts) {
+u8 xeSchedulerTake(ocrScheduler_t *self, u32 *count, ocrFatGuid_t *edts) {
     return 0;
 }
 
-u8 xeSchedulerGive (ocrScheduler_t* base, u32* count, ocrFatGuid_t* edts) {
+u8 xeSchedulerGive(ocrScheduler_t* base, u32* count, ocrFatGuid_t* edts) {
     return 0;
+}
+
+u8 xeSchedulerTakeComm(ocrScheduler_t *self, u32* count, ocrFatGuid_t* handlers, u32 properties) {
+    return OCR_ENOSYS;
+}
+
+u8 xeSchedulerGiveComm(ocrScheduler_t *self, u32* count, ocrFatGuid_t* handlers, u32 properties) {
+    return OCR_ENOSYS;
 }
 
 ocrScheduler_t* newSchedulerXe(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
@@ -74,6 +83,8 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryXe(ocrParamList_t *perType) {
     base->schedulerFcts.destruct = FUNC_ADDR(void (*)(ocrScheduler_t*), xeSchedulerDestruct);
     base->schedulerFcts.takeEdt = FUNC_ADDR(u8 (*)(ocrScheduler_t*, u32*, ocrFatGuid_t*), xeSchedulerTake);
     base->schedulerFcts.giveEdt = FUNC_ADDR(u8 (*)(ocrScheduler_t*, u32*, ocrFatGuid_t*), xeSchedulerGive);
+    base->schedulerFcts.takeComm = FUNC_ADDR(u8 (*)(ocrScheduler_t*, u32*, ocrFatGuid_t*, u32), xeSchedulerTakeComm);
+    base->schedulerFcts.giveComm = FUNC_ADDR(u8 (*)(ocrScheduler_t*, u32*, ocrFatGuid_t*, u32), xeSchedulerGiveComm);
     return base;
 }
 

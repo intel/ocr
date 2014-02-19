@@ -801,18 +801,23 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_TAKE
-        ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
-        PD_MSG_FIELD(properties) = returnCode = self->schedulers[0]->fcts.takeEdt(
-            self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
-            PD_MSG_FIELD(guids));
-        // For now, we return the execute function for EDTs
-        PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
-
-        // We also consider that the task to be executed is local so we
-        // return it's fully deguidified value (TODO: this may need revising)
-        u64 i = 0, maxCount = PD_MSG_FIELD(guidCount);
-        for( ; i < maxCount; ++i) {
-            localDeguidify(self, &(PD_MSG_FIELD(guids)[i]));
+        if (PD_MSG_FIELD(type) == OCR_GUID_EDT) {
+            PD_MSG_FIELD(properties) = returnCode = self->schedulers[0]->fcts.takeEdt(
+                self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
+                PD_MSG_FIELD(guids));
+            // For now, we return the execute function for EDTs
+            PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
+            // We also consider that the task to be executed is local so we
+            // return it's fully deguidified value (TODO: this may need revising)
+            u64 i = 0, maxCount = PD_MSG_FIELD(guidCount);
+            for( ; i < maxCount; ++i) {
+                localDeguidify(self, &(PD_MSG_FIELD(guids)[i]));
+            }
+        } else {
+            ASSERT(PD_MSG_FIELD(type) == OCR_GUID_COMM);
+            returnCode = self->schedulers[0]->fcts.takeComm(
+                self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
+                PD_MSG_FIELD(guids), PD_MSG_FIELD(properties));
         }
 #undef PD_MSG
 #undef PD_TYPE
@@ -825,10 +830,16 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_GIVE
-        ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
-        PD_MSG_FIELD(properties) = returnCode = self->schedulers[0]->fcts.giveEdt(
-            self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
-            PD_MSG_FIELD(guids));
+        if (PD_MSG_FIELD(type) == OCR_GUID_EDT) {
+            PD_MSG_FIELD(properties) = returnCode = self->schedulers[0]->fcts.giveEdt(
+                self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
+                PD_MSG_FIELD(guids));
+        } else {
+            ASSERT(PD_MSG_FIELD(type) == OCR_GUID_COMM);
+            returnCode = self->schedulers[0]->fcts.giveComm(
+                self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
+                PD_MSG_FIELD(guids), PD_MSG_FIELD(properties));
+        }
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
