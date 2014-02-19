@@ -8,6 +8,11 @@
 #ifndef OCR_POLICY_DOMAIN_H_
 #define OCR_POLICY_DOMAIN_H_
 
+//TODO this is a quick fix to fix header include issues when
+//getCurrentEnv is not declared and cause compilation errors
+//down in ocr-guid-end.h
+#include "ocr-sal.h"
+
 #include "ocr-allocator.h"
 #include "ocr-datablock.h"
 #include "ocr-event.h"
@@ -257,7 +262,7 @@ struct _ocrPolicyDomain_t;
 typedef struct _ocrPolicyMsg_t {
     u32 type;                 /**< Type of the message. Also includes if this
                                * is a request or a response */
-    u32 size;                 /**< Useful size of this message */
+    u32 size;                 /**< Useful size of this message in bytes */
     ocrLocation_t srcLocation;  /**< Source of the message
                                          * (location making the request */
     ocrLocation_t destLocation; /**< Destination of the message
@@ -536,6 +541,13 @@ typedef struct _ocrPolicyMsg_t {
     } args;
 } ocrPolicyMsg_t;
 
+
+typedef struct _ocrMsgHandler_t {
+    ocrPolicyMsg_t * msg;
+    struct _ocrMsgHandler_t * response;
+    bool done;
+    void (*destruct)(struct _ocrMsgHandler_t * self);
+} ocrMsgHandler_t;
 
 /**
  * @brief A policy domain is OCR's way of dividing up the runtime in scalable
