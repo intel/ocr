@@ -113,13 +113,16 @@ ocrParamList_t **inst_params[sizeof(inst_str)/sizeof(const char *)];
 #define APP_BINARY    "CrossPlatform:app_file"
 #define OUTPUT_BINARY "CrossPlatform:struct_file"
 #define START_ADDRESS "CrossPlatform:start_address"
+#define DRAM_OFFSET   "CrossPlatform:dram_offset"
 
 char *app_binary;
 char *output_binary;
+
 extern int extract_functions(const char *);
 extern void free_functions(void);
 extern char *persistent_chunk;
 extern u64 persistent_pointer;
+extern u64 dram_offset;
 
 /* Format of this file:
  *
@@ -186,6 +189,7 @@ void builderPreamble(dictionary *dict) {
 
     app_binary = iniparser_getstring(dict, APP_BINARY, NULL);
     output_binary = iniparser_getstring(dict, OUTPUT_BINARY, NULL);
+    dram_offset = (u64)iniparser_getlonglong(dict, DRAM_OFFSET, 0);
 
     if(app_binary==NULL || output_binary==NULL) {
         printf("Unable to read %s and %s; got %s and %s respectively\n", APP_BINARY, OUTPUT_BINARY, app_binary, output_binary);
@@ -307,6 +311,7 @@ void bringUpRuntime(const char *inifile) {
 #ifdef ENABLE_BUILDER_ONLY
     {
         u64 start_address = iniparser_getlonglong(dict, START_ADDRESS, 0);
+
         for(i = 0; i < inst_counts[policydomain_type]; i++)
             dumpStructs(all_instances[policydomain_type][i], output_binary, start_address);
         free_functions();

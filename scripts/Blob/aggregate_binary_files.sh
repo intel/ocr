@@ -10,9 +10,9 @@ XE_STRUCT=4096
 
 # This file aggregates multiple binary files resulting in the following layout:
 # 1. Total size of "struct binaries" in ascii
-# 2. CE Struct binary
-# 3. XE Struct binary
-# 4. Rest of binary
+# 2. CE Struct binary padded to 4K
+# 3. XE Struct binary padded to 4K
+# 4. Rest of original binary blob
 
 # Total size in ascii goes first: 8 characters
 let size=${LEAF_CE_STRUCT}+${XE_STRUCT}

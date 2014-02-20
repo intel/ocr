@@ -24,6 +24,7 @@ typedef struct _func_entry {
 // The below holds all functions in the app
 func_entry func_list[MAXFNS];
 int func_list_sz = 0;
+u64 dram_offset = 0;
 
 /* Below code adapted from libelf tutorial example */
 static int extract_functions_internal (const char *str, func_entry *func_list)
@@ -131,7 +132,7 @@ u64 find_function_address (char *fname, func_entry *func_lists, int func_list_si
 
 void *getAddress (char *fname)
 {
-    return (void *)find_function_address(fname, func_list, func_list_sz);
+    return (void *)(dram_offset + find_function_address(fname, func_list, func_list_sz));
 }
 
 #endif

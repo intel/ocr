@@ -208,6 +208,8 @@ char * iniparser_getstring(dictionary * d, const char * key, char * def);
 /*--------------------------------------------------------------------------*/
 int iniparser_getint(dictionary * d, const char * key, int notfound);
 
+long long iniparser_getlonglong(dictionary * d, const char * key, int notfound);
+
 /*-------------------------------------------------------------------------*/
 /**
   @brief    Get the string associated to a key, convert to a double
