@@ -6,4 +6,4 @@
 
 # Combine the two
 ./aggregate_binary_files.sh ce_blob.bin xe_blob.bin dummy blob
-mv blob ../../../ss/xe-sim/tests/mb-blob/
+mv blob ../../ocr-apps/printf/

@@ -22,26 +22,36 @@
 
 #define DEBUG_TYPE POLICY
 
+#ifdef ENABLE_BUILDER_ONLY
+#define MARKER(x) while(0)
+#else
+#define MARKER(x) __asm__ __volatile__("alarm 0xFD\n\t" : : "{r2}" (x), "{r3}" (2));
+#endif
+
 void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     // The PD should have been brought up by now and everything instantiated
     
     u64 i = 0;
     u64 maxCount = 0;
         
+MARKER("0\n");    
     maxCount = policy->guidProviderCount;
     for(i = 0; i < maxCount; ++i) {
         policy->guidProviders[i]->fcts.begin(policy->guidProviders[i], policy);
     }
-    
+
+MARKER("1\n");    
     maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
         policy->allocators[i]->fcts.begin(policy->allocators[i], policy);
     }
     
+MARKER("2\n");    
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
         policy->schedulers[i]->fcts.begin(policy->schedulers[i], policy);
     }
+MARKER("3\n");    
 
     // REC: Moved all workers to start here. 
     // Note: it's important to first logically start all workers.
@@ -51,6 +61,7 @@ void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; i++) {
         policy->workers[i]->fcts.begin(policy->workers[i], policy);
     }
+MARKER("4\n");    
 }
 
 void xePolicyDomainStart(ocrPolicyDomain_t * policy) {
