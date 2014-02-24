@@ -51,6 +51,13 @@ typedef struct _paramListPolicyDomainInst_t {
  *     - Bottom 12 bits encode whether the message is about computation,
  *       memory, etc (001, 002, 004, ...)
  *     - Next 4 bits indicate the operation ID (sequential number 1, 2, 3...)
+ *     - Next 2 bits indicate the number of ocrFatGuid_t in the in/out part
+ *       of the message
+ *     - Next 3 bits indicate the number of ocrFatGuid_t in the in part of the
+ *       message
+ *     - Next 3 bits indicate the number of ocrFatGuid_t in the out part of the
+ *       message
+ *     - Top 8 bits contain flags such as query/response, etc.
  *     - 0x100000 and 0x200000 indicate query/response
  */
 /**< AND with this and if result non-null, movable-memory operation.
@@ -60,68 +67,67 @@ typedef struct _paramListPolicyDomainInst_t {
  */
 #define PD_MSG_DB_OP            0x001
 /**< Create a memory area (allocate) */
-#define PD_MSG_DB_CREATE        0x1001
+#define PD_MSG_DB_CREATE        0x00091001
 /**< Destroy a DB (orginates from PD<->PD) */
-#define PD_MSG_DB_DESTROY       0x2001
+#define PD_MSG_DB_DESTROY       0x00082001
 /**< Acquires a DB */
-#define PD_MSG_DB_ACQUIRE       0x3001
+#define PD_MSG_DB_ACQUIRE       0x00023001
 /**< Releases a DB */
-#define PD_MSG_DB_RELEASE       0x4001
+#define PD_MSG_DB_RELEASE       0x00054001
 /**< Frees a DB (the last free may trigger a destroy) */
-#define PD_MSG_DB_FREE          0x5001
+#define PD_MSG_DB_FREE          0x00085001
 
 /**< AND with this and if the result non-null, memory chunks
  * related operation (goes directly to allocators) */
 #define PD_MSG_MEM_OP                 0x002
-#define PD_MSG_MEM_ALLOC              0x1002
+#define PD_MSG_MEM_ALLOC              0x00401002
 /**< De-allocates a chunk of memory (through an allocator).
  * This is called internally */
-#define PD_MSG_MEM_UNALLOC            0x2002
-
+#define PD_MSG_MEM_UNALLOC            0x00082002
 
 /**< AND with this and if result non-null, work/task related operation.
  * Generally, these will be EDTs but it could be something else too
  */
 #define PD_MSG_WORK_OP          0x004
 /**< Create an EDT */
-#define PD_MSG_WORK_CREATE      0x1004
+#define PD_MSG_WORK_CREATE      0x00121004
 /**< Execute this EDT (originates from PD<->PD) */
-#define PD_MSG_WORK_EXECUTE     0x2004
+#define PD_MSG_WORK_EXECUTE     0x00042004
 /**< Destroy an EDT (originates from PD<->PD) */
-#define PD_MSG_WORK_DESTROY     0x3004
+#define PD_MSG_WORK_DESTROY     0x00083004
 
 /**< AND with this and if result non-null, EDT-template related operation */
 #define PD_MSG_EDTTEMP_OP       0x008
 /**< Create an EDT template */
-#define PD_MSG_EDTTEMP_CREATE   0x1008
+#define PD_MSG_EDTTEMP_CREATE   0x00051008
 /**< Destroy an EDT template */
-#define PD_MSG_EDTTEMP_DESTROY  0x2008
+#define PD_MSG_EDTTEMP_DESTROY  0x00082008
 
 /**< AND with this and if result non-null, Event related operation */
 #define PD_MSG_EVT_OP           0x010
 /**< Create an event */
-#define PD_MSG_EVT_CREATE       0x1010
+#define PD_MSG_EVT_CREATE       0x00051010
 /**< Destroy an event */
-#define PD_MSG_EVT_DESTROY      0x2010
+#define PD_MSG_EVT_DESTROY      0x00082010
 /**< Get the entity that satisfied the event (originates from PD<->PD) */
-#define PD_MSG_EVT_GET          0x3010
+#define PD_MSG_EVT_GET          0x00243010
 
 /**< AND with this and if result non-null, GUID related operations */
 #define PD_MSG_GUID_OP          0x020
 /**< Either associate a known u64 value with a created GUID OR
  * create a GUID metadata and associate that address with a GUID */
-#define PD_MSG_GUID_CREATE      0x1020
+#define PD_MSG_GUID_CREATE      0x00011020
 
 /**< Gets information about the GUID */
-#define PD_MSG_GUID_INFO        0x2020
+#define PD_MSG_GUID_INFO        0x00012020
 
 /**< Request a copy of the GUID's metadata */
-#define PD_MSG_GUID_METADATA_CLONE  0x3020
+#define PD_MSG_GUID_METADATA_CLONE  0x00013020
 
 /**< Release the GUID (destroy the association between the u64
  * value and the GUID and optionally destroy the associated
  * metadata */
-#define PD_MSG_GUID_DESTROY     0x4020
+#define PD_MSG_GUID_DESTROY     0x00044020
 // TODO: Add stuff about GUID reservation
 
 /**< AND with this and if result non-null, GUID distribution related
@@ -130,10 +136,10 @@ typedef struct _paramListPolicyDomainInst_t {
 #define PD_MSG_COMM_OP          0x040
 /**< Request for a GUID (ie: the caller wants the callee
  * to give it the GUID(s) requested (pull model) */
-#define PD_MSG_COMM_TAKE        0x1040
+#define PD_MSG_COMM_TAKE        0x00001040
 /**< Request for a GUID to be put (ie: the caller wants the
  * callee to accept the GUID(s) given (push model) */
-#define PD_MSG_COMM_GIVE        0x2040
+#define PD_MSG_COMM_GIVE        0x00002040
 
 /**< AND with this and if result non-null, dependence related
  * operation
@@ -141,121 +147,161 @@ typedef struct _paramListPolicyDomainInst_t {
 #define PD_MSG_DEP_OP           0x080
 /**< Add a dependence. This will call registerSignaler and registerWaiter
  * on both sides of the dependence as appropriate*/
-#define PD_MSG_DEP_ADD          0x1080
+#define PD_MSG_DEP_ADD          0x000C1080
 
 /**< Register a signaler on a waiter. This is called internally by the PD
  * as a result of PD_MSG_DEP_ADD (potentially). DEP_ADD is effectively
  * a REGSIGNALER and a REGWAITER.
  */
-#define PD_MSG_DEP_REGSIGNALER  0x2080
+#define PD_MSG_DEP_REGSIGNALER  0x00082080
 
 /**< Register a waiter on a signaler. This is called internally by the PD
  * as a result of PD_MSG_DEP_ADD (potentially). DEP_ADD is effectively
  * a REGSIGNALER and a REGWAITER.
  */
-#define PD_MSG_DEP_REGWAITER    0x3080
+#define PD_MSG_DEP_REGWAITER    0x00083080
 
 /**< Satisfy a dependence. A user can satisfy an event but the general
  * case is that a signaler satisfies its waiter(s)
  */
-#define PD_MSG_DEP_SATISFY      0x4080
+#define PD_MSG_DEP_SATISFY      0x000C4080
 
 /**< Unregister a signaler on a waiter. This is called internally
  * when an event is destroyed for example */
-#define PD_MSG_DEP_UNREGSIGNALER 0x5080
+#define PD_MSG_DEP_UNREGSIGNALER 0x00085080
 
 /**< Unregister a signaler on a waiter */
-#define PD_MSG_DEP_UNREGWAITER  0x6080
+#define PD_MSG_DEP_UNREGWAITER  0x00086080
 
 /**< Adds a "dynamic" dependence (creation of a DB mostly) */
-#define PD_MSG_DEP_DYNADD       0x7080
+#define PD_MSG_DEP_DYNADD       0x00087080
 
 /**< Removes a potential dynamic dependence */
-#define PD_MSG_DEP_DYNREMOVE    0x8080
+#define PD_MSG_DEP_DYNREMOVE    0x00088080
 
 /**< AND with this and if result non-null, low-level OS operation */
 #define PD_MSG_SAL_OP           0x100
 /**< Print operation */
-#define PD_MSG_SAL_PRINT        0x1100
+#define PD_MSG_SAL_PRINT        0x00001100
 /**< Read operation */
-#define PD_MSG_SAL_READ         0x2100
+#define PD_MSG_SAL_READ         0x00002100
 /**< Write operation */
-#define PD_MSG_SAL_WRITE        0x3100
+#define PD_MSG_SAL_WRITE        0x00003100
 // TODO: Possibly add open, close, seek
 /**< Abort/exit the runtime */
-#define PD_MSG_SAL_TERMINATE    0x4100
+#define PD_MSG_SAL_TERMINATE    0x00004100
 
 /**< And with this and if the result is non-null, PD management operations */
 #define PD_MSG_MGT_OP           0x200
 /**< Shutdown operation (indicates the PD should
  * shut-down. Another call "finish" will actually
  * cause their destruction */
-#define PD_MSG_MGT_SHUTDOWN     0x1200
+#define PD_MSG_MGT_SHUTDOWN     0x00041200
 
 /**< Finish operation (indicates the PD should
  * destroy itself. The existence of other PDs can
  * no longer be assumed */
-#define PD_MSG_MGT_FINISH       0x2200
+#define PD_MSG_MGT_FINISH       0x00002200
 
 /**< Register a policy-domain with another
  * one. This registration is one way (ie: the
  * source of this call already knows of the destination
  * since it is sending it a message) */
-#define PD_MSG_MGT_REGISTER     0x3200
+#define PD_MSG_MGT_REGISTER     0x00003200
 
 /**< Opposite of register */
-#define PD_MSG_MGT_UNREGISTER   0x4200
+#define PD_MSG_MGT_UNREGISTER   0x00004200
 
 /**< For a worker to request the policy-domain to monitor an operation progress */
-#define PD_MSG_MGT_MONITOR_PROGRESS 0x5200
+#define PD_MSG_MGT_MONITOR_PROGRESS 0x00005200
 
 
-#ifdef OCR_ENABLE_STATISTICS
-// TODO: Add statistics messages
-// The entire statistics framework will have to
-// be reseen to deal with messages as opposed
-// to function calls
-// For later
-#endif
-
-/**< And this to just get the type of the message without
- * the upper flags
+/**< And this to just get the type of the message (note that the number
+ * of ocrFatGuid_t is part of the type as for a given type, this won't change)
  */
-#define PD_MSG_TYPE_ONLY        0xFFFFFULL
+#define PD_MSG_TYPE_ONLY        0x00FFFFFFULL
 
-#define PD_MSG_META_ONLY        0xFFF00000ULL
+/**< Get just the flags */
+#define PD_MSG_META_ONLY        0xFF000000ULL
+
+/**< Get just the number of ocrFatGuid_t in the in/out part */
+#define PD_MSG_FG_IO_COUNT_ONLY    0x00030000ULL
+
+/**< Get just the number of ocrFatGuid_t in the in part */
+#define PD_MSG_FG_I_COUNT_ONLY     0x001C0000ULL
+
+#define PD_MSG_FG_O_COUNT_ONLY     0x00E00000ULL
+
+#define PD_MSG_FG_IO_COUNT_ONLY_GET(__msgtype) ((u32) (__msgtype & PD_MSG_FG_IO_COUNT_ONLY) >> 16)
+#define PD_MSG_FG_I_COUNT_ONLY_GET(__msgtype) ((u32) (__msgtype & PD_MSG_FG_I_COUNT_ONLY) >> 18)
+#define PD_MSG_FG_O_COUNT_ONLY_GET(__msgtype) ((u32) (__msgtype & PD_MSG_FG_O_COUNT_ONLY) >> 21)
 
 /**< Defines that the message is a query (non-answered) */
-#define PD_MSG_REQUEST          0x100000ULL
+#define PD_MSG_REQUEST          0x01000000
 /**< Defines that the message is a response */
-#define PD_MSG_RESPONSE         0x200000ULL
+#define PD_MSG_RESPONSE         0x02000000
 /**< Defines if the message requires a return message */
-#define PD_MSG_REQ_RESPONSE     0x400000ULL
+#define PD_MSG_REQ_RESPONSE     0x04000000
 
 /**< Defines if the message is marked a CE-CE message */
-#define PD_CE_CE_MESSAGE        0x1000000ULL
+#define PD_CE_CE_MESSAGE        0x10000000
 
 
 #define PD_MSG_ARG_NAME_SUB(ID) _data_##ID
 #define PD_MSG_STRUCT_NAME(ID) PD_MSG_ARG_NAME_SUB(ID)
 
 
-#define PD_MSG_FIELD_FULL_SUB(ptr, type, field) ptr->args._data_##type.field
-#define PD_MSG_FIELD_FULL(ptr, type, field) PD_MSG_FIELD_FULL_SUB((ptr), type, field)
-#define PD_MSG_FIELD(field) PD_MSG_FIELD_FULL(PD_MSG, PD_TYPE, field)
+#define _PD_MSG_FIELD_FULL_SUB_QUAL(ptr, type, qual, field) ptr->args._data_##type.qual.field
+#define _PD_MSG_FIELD_FULL_SUB(ptr, type, field) ptr->args._data_##type.field
+#define _PD_MSG_INOUT_STRUCT_SUB(ptr, type) ptr->args._data_##type.inOrOut
+
+#define _PD_MSG_FIELD_FULL_QUAL(ptr, type, qual, field) _PD_MSG_FIELD_FULL_SUB_QUAL((ptr), type, qual, field)
+#define _PD_MSG_FIELD_FULL(ptr, type, field) _PD_MSG_FIELD_FULL_SUB((ptr), type, field)
+
+#define _PD_MSG_INOUT_STRUCT(ptr, type) _PD_MSG_INOUT_STRUCT_SUB(ptr, type)
+
+#define PD_MSG_FIELD_IO(field) _PD_MSG_FIELD_FULL(PD_MSG, PD_TYPE, field)
+#define PD_MSG_FIELD_I(field) _PD_MSG_FIELD_FULL_QUAL(PD_MSG, PD_TYPE, inOrOut.in, field)
+#define PD_MSG_FIELD_O(field) _PD_MSG_FIELD_FULL_QUAL(PD_MSG, PD_TYPE, inOrOut.out, field)
+#define PD_MSG_INOUT_STRUCT(ptr) _PD_MSG_INOUT_STRUCT(ptr, PD_TYPE)
 
 // TODO: Check if this works with packing and what not. In particular it assumes that
 // all union members start at the start of the union.
-#define PD_MSG_SIZE_FULL_SUB(type) \
-    ((u64)(&(((struct _ocrPolicyMsg_t*)0)->args)) + sizeof(((struct _ocrPolicyMsg_t*)0)->args._data_##type))
-#define PD_MSG_SIZE_FULL(type) PD_MSG_SIZE_FULL_SUB(type)
-#define PD_MSG_SIZE PD_MSG_SIZE_FULL(PD_TYPE)
+#define _PD_MSG_SIZE_ALL_SUB(type)                              \
+    ((u64)(&(((struct _ocrPolicyMsg_t*)0)->args)) +             \
+     sizeof(((struct _ocrPolicyMsg_t*)0)->args._data_##type))
+#define _PD_MSG_SIZE_ALL(type) _PD_MSG_SIZE_ALL_SUB(type)
+#define PD_MSG_SIZE_ALL _PD_MSG_SIZE_ALL(PD_TYPE)
 
-#define PD_MSG_RESET_FULL_SUB(ptr) do { ptr->destLocation = UNDEF_LOCATION; ptr->msgId = 0; } while(0)
+#define _PD_MSG_SIZE_IN_SUB(type)                                       \
+    ((u64)(&(((struct _ocrPolicyMsg_t*)0)->args._data_##type.inOrOut)) + \
+     sizeof(((struct _ocrPolicyMsg_t*)0)->args._data_##type.inOrOut.in))
+#define _PD_MSG_SIZE_IN(type) _PD_MSG_SIZE_IN_SUB(type)
+#define PD_MSG_SIZE_IN _PD_MSG_SIZE_IN(PD_TYPE)
+
+#define _PD_MSG_SIZE_OUT_SUB(type)                                      \
+    ((u64)(&(((struct _ocrPolicyMsg_t*)0)->args._data_##type.inOrOut)) + \
+     sizeof(((struct _ocrPolicyMsg_t*)0)->args._data_##type.inOrOut.out))
+#define _PD_MSG_SIZE_OUT(type) _PD_MSG_SIZE_OUT_SUB(type)
+#define PD_MSG_SIZE_OUT _PD_MSG_SIZE_OUT(PD_TYPE)
+
+#define PD_MSG_RESET_FULL_SUB(ptr) \
+    do { ptr->destLocation = UNDEF_LOCATION; ptr->msgId = 0; } while(0)
 #define PD_MSG_RESET_FULL(ptr) PD_MSG_RESET_FULL_SUB((ptr))
 #define PD_MSG_RESET PD_MSG_RESET_FULL(PD_MSG)
 
 struct _ocrPolicyDomain_t;
+
+// Defines a stack ocrPolicyMsg_t and sets the two size fields correctly
+// The size fields are defined extremely conservatively. They will be udpated
+// in the PD's processMessage (well, usefulSize will)
+/**
+ * @brief Defines an ocrPolicyMsg_t on the stack and sets usefulSize and bufferSize
+ *
+ * Use this macro to allocate a ocrPolicyMsg_t on the stack and properly set-up
+ * its buffer size
+ */
+#define PD_MSG_STACK(name) ocrPolicyMsg_t name; name.usefulSize = 0; name.bufferSize = sizeof(ocrPolicyMsg_t);
 
 /**
  * @brief Structure describing a "message" that is used to communicate between
@@ -270,20 +316,24 @@ struct _ocrPolicyDomain_t;
  * This class defines the "message" that will be sent between policy
  * domains. All messages to/from policy domains are encapsulated
  * in this format (even if synchronous)
+ *
+ * @warning If modifying this structure, make sure to update
+ * the marshalling and unmarshalling functions in policy-domain-all.c
  */
 typedef struct _ocrPolicyMsg_t {
-    u32 type;                   /**< Type of the message. Also includes if this
-                                 * is a request or a response */
-    u32 size;                   /**< Useful size of this message in bytes. This is the number
-                                 * of bytes in this message buffer that are useful to
-                                 * transmit. This can be reset by ocrPolicyMsgGetMsgSize to
-                                 * just the size of the main content of the message. */
+    u64 msgId;                  /**< Implementation specific ID identifying
+                                 * this message (if required) */
+    u64 bufferSize;             /**< Total size of the buffer containing this message */
+    u64 usefulSize;             /**< Size to transfer (useful payload). This size may be
+                                 * modified by the marshalling code (for example, it will
+                                 * be updated if elements are marshalled inside this buffer).
+                                 * Always less than or equal to bufferSize */
     ocrLocation_t srcLocation;  /**< Source of the message
                                  * (location making the request) */
     ocrLocation_t destLocation; /**< Destination of the message
                                  * (location processing the request) */
-    u64 msgId;                  /**< Implementation specific ID identifying
-                                 * this message (if required) */
+    u32 type;                   /**< Type of the message. Also includes if this
+                                 * is a request or a response */
 
     /* The following rules apply to all fields in the message:
      *     - All ocrFatGuid_t are in/out parameters in the sense
@@ -303,159 +353,260 @@ typedef struct _ocrPolicyMsg_t {
     union {
         struct {
             ocrFatGuid_t guid;            /**< In/Out: GUID of the created
-                                          * memory segment (usually a DB) */
-            ocrFatGuid_t edt;             /** In: EDT doing the creation */
-            void* ptr;                    /**< Out: Address of created DB */
-            u64 size;                     /**< In: Size of the created DB */
-            ocrFatGuid_t affinity;        /**< In: Affinity group for the DB */
+                                           * memory segment (usually a DB) */
+            // TODO: Bug #273. See if this needs to stay In/Out or if it can move back to in
             u32 properties;               /**< In: Properties for creation */
-            u32 returnDetail;             /**< Out: Success or error code */
-            ocrDataBlockType_t dbType;    /**< In: Type of memory requested */
-            ocrInDbAllocator_t allocator; /**< In: In-DB allocator */
+            union {
+                struct {
+                    ocrFatGuid_t edt;             /** In: EDT doing the creation */
+                    ocrFatGuid_t affinity;        /**< In: Affinity group for the DB */
+                    u64 size;                     /**< In: Size of the created DB */
+                    ocrDataBlockType_t dbType;    /**< In: Type of memory requested */
+                    ocrInDbAllocator_t allocator; /**< In: In-DB allocator */
+                } in;
+                struct {
+                    void* ptr;                    /**< Out: Address of created DB */
+                    u32 returnDetail;             /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_CREATE);
 
         struct {
-            ocrFatGuid_t guid;         /**< In: GUID of the DB to destroy */
-            ocrFatGuid_t edt;          /**< In: EDT doing the destruction */
-            u32 properties;            /**< In: properties for the destruction */
-            u32 returnDetail;          /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t guid;         /**< In: GUID of the DB to destroy */
+                    ocrFatGuid_t edt;          /**< In: EDT doing the destruction */
+                    u32 properties;            /**< In: properties for the destruction */
+                } in;
+                struct {
+                    u32 returnDetail;          /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_DESTROY);
 
         struct {
+            // These four parameters should move to IN but they are here
+            // due to the implementation of the lockable DB
+            // This is reported in bug #273
             ocrFatGuid_t guid;         /**< In: GUID of the DB to acquire */
             ocrFatGuid_t edt;          /**< In: EDT doing the acquire */
             u32 edtSlot;               /**< In: EDT's slot if applicable */
-            void* ptr;                 /**< Out: Pointer to the acquired memory */
-            u64 size;                  /**< Out: Size of the acquired memory */
             u32 properties;            /**< In: Properties for acquire. Bit 0: 1 if runtime acquire */
-            u32 returnDetail;          /**< Out: Success or error code */
+            union {
+                struct {
+                } in;
+                struct {
+                    void* ptr;                 /**< Out: Pointer to the acquired memory */
+                    u64 size;                  /**< Out: Size of the acquired memory */
+                    u32 returnDetail;          /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_ACQUIRE);
 
         struct {
+            // This field should also be just IN. See bug #273
             ocrFatGuid_t guid;         /**< In: GUID of the DB to release */
-            ocrFatGuid_t edt;          /**< In: GUID of the EDT doing the release */
-            void* ptr;                 /**< In: Optionally provide pointer to the released memory */
-            u64 size;                  /**< In: Optionally provide size to the released memory */
-            u32 properties;            /**< In: Properties of the release: Bit 0: 1 if runtime release */
-            u32 returnDetail;          /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t edt;          /**< In: GUID of the EDT doing the release */
+                    void* ptr;                 /**< In: Optionally provide pointer to the released memory */
+                    u64 size;                  /**< In: Optionally provide size to the released memory */
+                    u32 properties;            /**< In: Properties of the release: Bit 0: 1 if runtime release */
+                } in;
+                struct {
+                    u32 returnDetail;          /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_RELEASE);
 
         struct {
-            ocrFatGuid_t guid;         /**< In: GUID of the DB to free */
-            ocrFatGuid_t edt;          /**< In: GUID of the EDT doing the free */
-            u32 properties;            /**< In: Properties of the free */
-            u32 returnDetail;          /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t guid;         /**< In: GUID of the DB to free */
+                    ocrFatGuid_t edt;          /**< In: GUID of the EDT doing the free */
+                    u32 properties;            /**< In: Properties of the free */
+                } in;
+                struct {
+                    u32 returnDetail;          /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_FREE);
 
         struct {
-            u64 size;                  /**< In: Size of memory chunk to allocate */
-            void* ptr;                 /**< Out: Pointer of the allocated chunk */
-            ocrFatGuid_t allocatingPD; /**< Out: GUID of the PD that owns the allocator */
-            ocrFatGuid_t allocator;    /**< Out: GUID of the allocator that provided this memory */
-            ocrMemType_t type;         /**< In: Type of memory requested */
-            u32 properties;            /**< In: Properties for the allocation */
-            u32 returnDetail;          /**< Out: Success or error code */
+            union {
+                struct {
+                    u64 size;                  /**< In: Size of memory chunk to allocate */
+                    ocrMemType_t type;         /**< In: Type of memory requested */
+                    u32 properties;            /**< In: Properties for the allocation */
+                } in;
+                struct {
+                    ocrFatGuid_t allocatingPD; /**< Out: GUID of the PD that owns the allocator */
+                    ocrFatGuid_t allocator;    /**< Out: GUID of the allocator that provided this memory */
+                    void* ptr;                 /**< Out: Pointer of the allocated chunk */
+                    u32 returnDetail;          /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_MEM_ALLOC);
 
         struct {
-            void* ptr;                 /**< In: Pointer to the memory to free */
-            ocrFatGuid_t allocatingPD; /**< In: GUID of the PD that owns the allocator; not necessarily
-                                        * required for all ocrMemType_t (in particular GUID_MEMTYPE) */
-            ocrFatGuid_t allocator;    /**< In: GUID of the allocator that gave the memory; same comment
-                                        * as above */
-            ocrMemType_t type;
-            u32 properties;            /**< In: Properties for the free */
-            u32 returnDetail;          /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t allocatingPD; /**< In: GUID of the PD that owns the allocator; not necessarily
+                                                * required for all ocrMemType_t (in particular GUID_MEMTYPE) */
+                    ocrFatGuid_t allocator;    /**< In: GUID of the allocator that gave the memory; same comment
+                                                * as above */
+                    void* ptr;                 /**< In: Pointer to the memory to free */
+                    ocrMemType_t type;         /**< In: Type of memory to free */
+                    u32 properties;            /**< In: Properties for the free */
+                } in;
+                struct {
+                    u32 returnDetail;          /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_MEM_UNALLOC);
 
         struct {
             ocrFatGuid_t guid;         /**< In/Out: GUID of the EDT/Work
                                         * to create */
-            ocrFatGuid_t templateGuid; /**< In: GUID of the template to use */
-            ocrFatGuid_t affinity;     /**< In: Affinity for this EDT */
             ocrFatGuid_t outputEvent;  /**< In/Out: If UNINITIALIZED_GUID on input,
-                                       * will contain the output event to wait for for this
-                                       * EDT. If NULL_GUID, no event will be created
-                                       * and returned. */
-            u64 *paramv;               /**< In: Parameters for this EDT */
+                                        * will contain the output event to wait for for this
+                                        * EDT. If NULL_GUID, no event will be created
+                                        * and returned. */
             u32 paramc;                /**< In/out: Number of parameters; on out returns real number
                                         * in case of EDT_PARAM_DEF as input for example */
             u32 depc;                  /**< In/out: Number of dependence slots; same comment as above */
-            ocrFatGuid_t * depv;       /**< In: Dependences for this EDT */
-            u32 properties;            /**< In: properties for the creation */
-            u32 returnDetail;          /**< Out: Success or error code */
-            ocrWorkType_t workType;    /**< In: Type of work to create */
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is creating work */
-            ocrFatGuid_t parentLatch;  /**< In: Parent latch for EDT */
+            union {
+                struct {
+                    ocrFatGuid_t templateGuid; /**< In: GUID of the template to use */
+                    ocrFatGuid_t affinity;     /**< In: Affinity for this EDT */
+                    ocrFatGuid_t parentLatch;  /**< In: Parent latch for EDT */
+                    ocrFatGuid_t currentEdt;   /**< In: EDT that is creating work */
+                    u64 *paramv;               /**< In: Parameters for this EDT */
+                    ocrFatGuid_t * depv;       /**< In: Dependences for this EDT */
+                    ocrWorkType_t workType;    /**< In: Type of work to create */
+                    u32 properties;            /**< In: properties for the creation */
+                } in;
+                struct {
+                    u32 returnDetail;          /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_CREATE);
 
         struct {
-            ocrFatGuid_t guid; /**< In: GUID of the EDT to execute */
-            u32 properties;    /**< In: Properties for the execution */
-            u32 returnDetail;  /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t guid; /**< In: GUID of the EDT to execute */
+                    u32 properties;    /**< In: Properties for the execution */
+                } in;
+                struct {
+                    u32 returnDetail;  /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_EXECUTE);
 
         struct {
-            ocrFatGuid_t guid; /**< In: GUID of the EDT to destroy */
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying work */
-            u32 properties;    /**< In: properties for the destruction */
-            u32 returnDetail;  /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t guid; /**< In: GUID of the EDT to destroy */
+                    ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying work */
+                    u32 properties;    /**< In: properties for the destruction */
+                } in;
+                struct {
+                    u32 returnDetail;  /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_DESTROY);
 
         struct {
             ocrFatGuid_t guid;     /**< In/Out: GUID of the EDT template */
-            ocrEdt_t funcPtr;      /**< In: Function to execute for this EDT */
-            u32 paramc;            /**< In: Number of parameters for EDT */
-            u32 depc;              /**< In: Number of dependences for EDT */
-            u32 properties;        /**< In: Properties */
-            u32 returnDetail;      /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t currentEdt;   /**< In: EDT that is creating template */
+                    ocrEdt_t funcPtr;      /**< In: Function to execute for this EDT */
+                    u32 paramc;            /**< In: Number of parameters for EDT */
+                    u32 depc;              /**< In: Number of dependences for EDT */
+                    u32 properties;        /**< In: Properties */
 #ifdef OCR_ENABLE_EDT_NAMING
-            const char * funcName; /**< In: Debug help: user identifier */
-            u64 funcNameLen;       /**< In: Number of characters (excluding '\0') in funcName */
+                    const char * funcName; /**< In: Debug help: user identifier */
+                    u64 funcNameLen;       /**< In: Number of characters (excluding '\0') in funcName */
 #endif
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is creating template */
+                } in;
+                struct {
+                    u32 returnDetail;      /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_EDTTEMP_CREATE);
 
         struct {
-            ocrFatGuid_t guid; /**< In: GUID of the EDT template to destroy */
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying the template */
-            u32 properties;    /**< In: properties for the destruction */
-            u32 returnDetail;  /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t guid; /**< In: GUID of the EDT template to destroy */
+                    ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying the template */
+                    u32 properties;    /**< In: properties for the destruction */
+                } in;
+                struct {
+                    u32 returnDetail;  /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_EDTTEMP_DESTROY);
 
         struct {
             ocrFatGuid_t guid;    /**< In/Out: GUID of the event to create */
-            u32 properties;       /**< In: Properties for this creation */
-            u32 returnDetail;     /**< Out: Success or error code */
-            ocrEventTypes_t type; /**< Type of the event created: Bit 0: 1 if event takes an argument */
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is creating event */
+            union {
+                struct {
+                    ocrFatGuid_t currentEdt;   /**< In: EDT that is creating event */
+                    u32 properties;       /**< In: Properties for this creation */
+                    ocrEventTypes_t type; /**< In: Type of the event created: Bit 0: 1 if event takes an argument */
+                } in;
+                struct {
+                    u32 returnDetail;     /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_EVT_CREATE);
 
         struct {
-            ocrFatGuid_t guid; /**< In: GUID of the event to destroy */
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying event */
-            u32 properties;    /**< In: properties for the destruction */
-            u32 returnDetail;  /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t guid; /**< In: GUID of the event to destroy */
+                    ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying event */
+                    u32 properties;    /**< In: properties for the destruction */
+                } in;
+                struct {
+                    u32 returnDetail;  /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_EVT_DESTROY);
 
         struct {
-            ocrFatGuid_t guid; /**< In: GUID of the event to get the data from */
-            ocrFatGuid_t data; /**< Out: GUID of the DB used to satisfy the event */
-            u32 properties;    /**< In: Properties for the get */
-            u32 returnDetail;  /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t guid; /**< In: GUID of the event to get the data from */
+                    u32 properties;    /**< In: Properties for the get */
+                } in;
+                struct {
+                    ocrFatGuid_t data; /**< Out: GUID of the DB used to satisfy the event */
+                    u32 returnDetail;  /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_EVT_GET);
 
         struct {
             ocrFatGuid_t guid; /**< In/Out:
-                               *  In: The metaDataPtr field contains the value
-                               *  to associate with the GUID or NULL if the metadata
-                               *  memory needs to be created
-                               *  Out: The guid field contains created GUID */
-            u64 size;          /**< In: If metaDataPtr is NULL on input, contains the
-                                *   size needed to contain the metadata. Otherwise ignored */
-            ocrGuidKind kind;  /**< In: Kind of the GUID to create */
-            u32 properties;    /**< In: Properties for the creation. */
-            u32 returnDetail;  /**< Out: Success or error code */
+                                *  In: The metaDataPtr field contains the value
+                                *  to associate with the GUID or NULL if the metadata
+                                *  memory needs to be created
+                                *  Out: The guid field contains created GUID */
+            union {
+                struct {
+                    u64 size;          /**< In: If metaDataPtr is NULL on input, contains the
+                                        *   size needed to contain the metadata. Otherwise ignored */
+                    ocrGuidKind kind;  /**< In: Kind of the GUID to create */
+                    u32 properties;    /**< In: Properties for the creation. */
+                } in;
+                struct {
+                    u32 returnDetail;  /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_CREATE);
 
         struct {
@@ -463,183 +614,336 @@ typedef struct _ocrPolicyMsg_t {
                                 * In: The GUID field should be set to the GUID
                                 * whose information is needed
                                 * Out: Fully resolved information */
-            ocrGuidKind kind;  /**< Out: Contains the type of the GUID */
-            ocrLocation_t location; /**< Out: Contains the location of the GUID */
-            u32 properties;    /**< In: Properties for the info. See ocrGuidInfoProp_t */
-            u32 returnDetail;  /**< Out: Success or error code */
+            union {
+                struct {
+                    u32 properties;    /**< In: Properties for the info. See ocrGuidInfoProp_t */
+                } in;
+                struct {
+                    ocrGuidKind kind;  /**< Out: Contains the type of the GUID */
+                    ocrLocation_t location; /**< Out: Contains the location of the GUID */
+                    u32 returnDetail;  /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_INFO);
 
         struct {
             ocrFatGuid_t guid; /**< In/Out:
                                 * In: The GUID we request a metadata copy
                                 * Out: The GUID and pointer to the cloned metadata */
-            u64 size;          /**< Out: Size of the metadata that was cloned */
+            union {
+                struct {
+                } in;
+                struct {
+                    u64 size;          /**< Out: Size of the metadata that was cloned */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_METADATA_CLONE);
 
         struct {
-            ocrFatGuid_t guid; /**< In: GUID to destroy */
-            u32 properties;    /**< In: Properties for the destruction:
-                                * Bit 0: If 1, metadata area is "freed" */
-            u32 returnDetail;  /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t guid; /**< In: GUID to destroy */
+                    u32 properties;    /**< In: Properties for the destruction:
+                                        * Bit 0: If 1, metadata area is "freed" */
+                } in;
+                struct {
+                    u32 returnDetail;  /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_DESTROY);
 
         struct {
             ocrFatGuid_t *guids; /**< In/Out: GUID(s) of the work/DB/etc taken:
-                                 * Input (optional): GUID(s) requested
-                                 * Output: GUID(s) given to the caller
+                                 * In (optional): GUID(s) requested. If no GUID
+                                 * is specifically requested, guids[0].guid needs to be
+                                 * NULL_GUID
+                                 * Out: GUID(s) given to the caller
                                  * by the callee */
-            u64 extra;           /**< Additional information on the take (for eg: function
-                                  * pointer to use to execute the returned EDTs */
-            u32 guidCount;       /**< In/Out: Number of GUID(s) in guids. As input,
-                                  * number of GUIDs if guids has requested GUIDs or
-                                  * maximum number of GUIDs requested. */
-            u32 properties;      /**< In: properties for the take; TODO: define some for extra */
-            u32 returnDetail;    /**< Out: Success or error code */
-            ocrGuidKind type;    /**< In: Kind of GUIDs requested */
+            u64 extra;           /**< In/Out: Additional information on the take (for eg: function
+                                  * pointer to use to execute the returned EDTs
+                                  * TODO: Could this be moved to OUT ? */
+            ocrGuidKind type;    /**< In/Out Kind of GUIDs requested */
+            u32 guidCount;       /**< In/Out: Number of GUID(s) in guids.
+                                  * In: If guids[0].guid, number of GUIDs requested in
+                                  *     guids. If guids[0].guid is NULL_GUID, maximum
+                                  *     number of guids requested
+                                  * Out: Number of guids returned
+                                  */
+            union {
+                struct {
+                    u32 properties;      /**< In: properties for the take; TODO: define some for extra */
+                } in;
+                struct {
+                    u32 returnDetail;    /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
             // TODO: Add something about cost/choice heuristic
         } PD_MSG_STRUCT_NAME(PD_MSG_COMM_TAKE);
 
         struct {
             ocrFatGuid_t *guids; /**< In/Out: GUID(s) of the work/DB/etc given:
-                                 * Input: GUID(s) the caller wants to hand-off
+                                 * In: GUID(s) the caller wants to hand-off
                                  * to the callee
-                                 * Output (optional): GUID(s) NOT accepted
+                                 * Out (optional): GUID(s) NOT accepted
                                  * by callee */
-            u32 guidCount;       /**< Number of GUID(s) in guids */
-            u32 properties;      /**< In: properties for the give */
-            u32 returnDetail;    /**< Out: Success or error code */
-            ocrGuidKind type;    /**< In: Kind of GUIDs given */
+            u32 guidCount;       /**< In/Out: Number of GUID(s) in guids
+                                  * In: Number of GUIDs the caller wants to hand-off
+                                  * Out: Number of GUIDs rejected (in guids) */
+            union {
+                struct {
+                    ocrGuidKind type;    /**< In: Kind of GUIDs given */
+                    u32 properties;      /**< In: properties for the give */
+                } in;
+                struct {
+                    u32 returnDetail;    /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
             // TODO: Do we need something about cost/choice heuristic here
         } PD_MSG_STRUCT_NAME(PD_MSG_COMM_GIVE);
 
         struct {
-            ocrFatGuid_t source; /**< In: Source of the dependence */
-            ocrFatGuid_t dest;   /**< In: Destination of the dependence */
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is adding dep */
-            u32 slot;            /**< In: Slot of dest to connect the dep to */
+            // TODO: Bug #273. THis is also being used at In/Out
             u32 properties;      /**< In: Properties. Lower 3 bits are access modes */
-            u32 returnDetail;    /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t source; /**< In: Source of the dependence */
+                    ocrFatGuid_t dest;   /**< In: Destination of the dependence */
+                    ocrFatGuid_t currentEdt;   /**< In: EDT that is adding dep */
+                    u32 slot;            /**< In: Slot of dest to connect the dep to */
+                } in;
+                struct {
+                    u32 returnDetail;    /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_ADD);
 
         struct {
-            ocrFatGuid_t signaler;  /**< In: Signaler to register */
-            ocrFatGuid_t dest;      /**< In: Object to register the signaler on */
-            u32 slot;               /**< In: Slot on dest to register the signaler on */
-            ocrDbAccessMode_t mode; /**< In: Access mode for the dependence's datablock */
-            u32 properties;         /**< In: Properties */
-            u32 returnDetail;      /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t signaler;  /**< In: Signaler to register */
+                    ocrFatGuid_t dest;      /**< In: Object to register the signaler on */
+                    u32 slot;               /**< In: Slot on dest to register the signaler on */
+                    ocrDbAccessMode_t mode; /**< In: Access mode for the dependence's datablock */
+                    u32 properties;         /**< In: Properties */
+                } in;
+                struct {
+                    u32 returnDetail;      /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_REGSIGNALER);
 
         struct {
-            ocrFatGuid_t waiter;   /**< In: Waiter to register */
-            ocrFatGuid_t dest;     /**< In: Object to register the waiter on */
-            u32 slot;              /**< In: The slot on waiter that will be notified */
-            u32 properties;        /**< In: Properties */
-            u32 returnDetail;      /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t waiter;   /**< In: Waiter to register */
+                    ocrFatGuid_t dest;     /**< In: Object to register the waiter on */
+                    u32 slot;              /**< In: The slot on waiter that will be notified */
+                    u32 properties;        /**< In: Properties */
+                } in;
+                struct {
+                    u32 returnDetail;      /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_REGWAITER);
 
         struct {
-            ocrFatGuid_t guid;    /**< In: GUID of the event/task to satisfy */
-            ocrFatGuid_t payload; /**< In: GUID of the "payload" to satisfy the
-                                   * event/task with (a DB usually). */
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is satisfying dep */
-            u32 slot;             /**< In: Slot to satisfy the event/task on */
-            u32 properties;       /**< In: Properties for the satisfaction */
-            u32 returnDetail;     /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t guid;    /**< In: GUID of the event/task to satisfy */
+                    ocrFatGuid_t payload; /**< In: GUID of the "payload" to satisfy the
+                                           * event/task with (a DB usually). */
+                    ocrFatGuid_t currentEdt;   /**< In: EDT that is satisfying dep */
+                    u32 slot;             /**< In: Slot to satisfy the event/task on */
+                    u32 properties;       /**< In: Properties for the satisfaction */
+                } in;
+                struct {
+                    u32 returnDetail;     /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_SATISFY);
 
         struct {
-            ocrFatGuid_t signaler; /**< In: Signaler to unregister */
-            ocrFatGuid_t dest;     /**< In: Object to unregister the signaler on */
-            u32 slot;              /**< In: Slot on dest to unregister the signaler on */
-            u32 properties;        /**< In: Properties */
-            u32 returnDetail;      /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t signaler; /**< In: Signaler to unregister */
+                    ocrFatGuid_t dest;     /**< In: Object to unregister the signaler on */
+                    u32 slot;              /**< In: Slot on dest to unregister the signaler on */
+                    u32 properties;        /**< In: Properties */
+                } in;
+                struct {
+                    u32 returnDetail;      /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_UNREGSIGNALER);
 
         struct {
-            ocrFatGuid_t edt;      /**< In: EDT adding the dynamic dependence (to itself only) */
-            ocrFatGuid_t db;       /**< In: DB dynamically acquired */
-            u32 properties;        /**< In: Properties */
-            u32 returnDetail;      /**< Out: Success or error code */
-        } PD_MSG_STRUCT_NAME(PD_MSG_DEP_DYNADD);
-
-        struct {
-            ocrFatGuid_t edt;      /**< In: EDT removing the dynamic dependence (to itself only) */
-            ocrFatGuid_t db;       /**< In: DB dynamically being removed */
-            u32 properties;        /**< In: Properties */
-            u32 returnDetail;      /**< Out: Success or error code */
-        } PD_MSG_STRUCT_NAME(PD_MSG_DEP_DYNREMOVE);
-
-        struct {
-            ocrFatGuid_t waiter;   /**< In: Waiter to unregister */
-            ocrFatGuid_t dest;     /**< In: Object to unregister the waiter on */
-            u32 slot;              /**< In: The slot on waiter that will be notified */
-            u32 properties;        /**< In: Properties */
-            u32 returnDetail;      /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t waiter;   /**< In: Waiter to unregister */
+                    ocrFatGuid_t dest;     /**< In: Object to unregister the waiter on */
+                    u32 slot;              /**< In: The slot on waiter that will be notified */
+                    u32 properties;        /**< In: Properties */
+                } in;
+                struct {
+                    u32 returnDetail;      /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_UNREGWAITER);
 
         struct {
-            const char* buffer;  /**< In: Character string to print (including NULL terminator) */
-            u64 length;          /**< In: Length to print (including NULL terminator) */
-            u32 properties;      /**< In: Properties for the print */
-            u32 returnDetail;    /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t edt;      /**< In: EDT adding the dynamic dependence (to itself only) */
+                    ocrFatGuid_t db;       /**< In: DB dynamically acquired */
+                    u32 properties;        /**< In: Properties */
+                } in;
+                struct {
+                    u32 returnDetail;      /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
+        } PD_MSG_STRUCT_NAME(PD_MSG_DEP_DYNADD);
+
+        struct {
+            union {
+                struct {
+                    ocrFatGuid_t edt;      /**< In: EDT removing the dynamic dependence (to itself only) */
+                    ocrFatGuid_t db;       /**< In: DB dynamically being removed */
+                    u32 properties;        /**< In: Properties */
+                } in;
+                struct {
+                    u32 returnDetail;      /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
+        } PD_MSG_STRUCT_NAME(PD_MSG_DEP_DYNREMOVE);
+
+        struct {
+            union {
+                struct {
+                    const char* buffer;  /**< In: Character string to print (including NULL terminator) */
+                    u64 length;          /**< In: Length to print (including NULL terminator) */
+                    u32 properties;      /**< In: Properties for the print */
+                } in;
+                struct {
+                    u32 returnDetail;    /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_PRINT);
 
         struct {
-            char* buffer;       /**< In/Out: Buffer to read into */
             u64 length;         /**< In/Out: On input contains maximum length
                                  * of buffer, on output, contains length read */
-            u64 inputId;        /**< In: Identifier for where to read from */
-            u32 properties;     /**< In: Properties for the read */
-            u32 returnDetail;   /**< Out: Success or error code */
+            union {
+                struct {
+                    u64 inputId;        /**< In: Identifier for where to read from */
+                    u32 properties;     /**< In: Properties for the read */
+                } in;
+                struct {
+                    char* buffer;       /**< Out: Buffer to read into */
+                    u32 returnDetail;   /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_READ);
 
         struct {
-            const char* buffer; /**< In: Buffer to write */
             u64 length;         /**< In/Out: Number of bytes to write. On return contains
                                  * bytes NOT written */
-            u64 outputId;       /**< In: Identifier for where to write to */
-            u32 properties;     /**< In: Properties for the write */
-            u32 returnDetail;   /**< Out: Success or error code */
+            union {
+                struct {
+                    const char* buffer; /**< In: Buffer to write */
+                    u64 outputId;       /**< In: Identifier for where to write to */
+                    u32 properties;     /**< In: Properties for the write */
+                } in;
+                struct {
+                    u32 returnDetail;   /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_WRITE);
 
         struct {
-            u64 errorCode;     /**< In: Error code if applicable */
-            u32 properties;    /**< For now: 0 if normal exit, 1 if abort, 2 if assert*/
-            u32 returnDetail;  /**< Out: Success or error code */
+            union {
+                struct {
+                    u64 errorCode;     /**< In: Error code if applicable */
+                    u32 properties;    /**< In: For now: 0 if normal exit, 1 if abort, 2 if assert*/
+                } in;
+                struct {
+                    u32 returnDetail;  /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_TERMINATE);
+
         struct {
-            u8 errorCode;     /**< In: User provided error code */
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is calling shutdown */
-            u32 properties;
-            u32 returnDetail;          /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrFatGuid_t currentEdt;   /**< In: EDT that is calling shutdown */
+                    u32 properties;            /**< In: Properties */
+                    u8 errorCode;              /**< In: User provided error code */
+                } in;
+                struct {
+                    u32 returnDetail;          /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_SHUTDOWN);
 
         struct {
-            u32 properties;
-            u32 returnDetail;  /**< Out: Success or error code */
+            union {
+                struct {
+                    u32 properties;    /**< In */
+                } in;
+                struct {
+                    u32 returnDetail;  /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_FINISH);
 
         struct {
-            ocrLocation_t neighbor; /**< In: Neighbor registering */
-            // TODO: Add things having to do with cost and relationship
-            u32 properties;
-            u32 returnDetail;       /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrLocation_t neighbor; /**< In: Neighbor registering */
+                    // TODO: Add things having to do with cost and relationship
+                    u32 properties;         /**< In */
+                } in;
+                struct {
+                    u32 returnDetail;       /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_REGISTER);
 
         struct {
-            ocrLocation_t neighbor; /**< In: Neighbor unregistering */
-            u32 properties;
-            u32 returnDetail;       /**< Out: Success or error code */
+            union {
+                struct {
+                    ocrLocation_t neighbor; /**< In: Neighbor unregistering */
+                    u32 properties;         /**< In */
+                } in;
+                struct {
+                    u32 returnDetail;       /**< Out: Success or error code */
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_UNREGISTER);
 
         struct {
-            void * monitoree;
+            // TODO: Bug #273
             u32 properties; /**< In: first eight bits is type of monitoree */
+            union {
+                struct {
+                    void * monitoree; /**< In */
+                } in;
+                struct {
+                } out;
+            } inOrOut __attribute__ (( aligned(8) ));
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_MONITOR_PROGRESS);
     } args;
     char _padding[64]; // REC: HACK to be able to fit everything in messages!!
 } ocrPolicyMsg_t;
+
+/**
+ * @brief Initializes the size fields of ocrPolicyMsg_t
+ *
+ * Use this call to initialize a heap allocated policy message
+ *
+ * @param[in] msg         Message to initialize
+ * @param[in] bufferSize  Buffer this message is allocated in (bytes)
+ */
+void initializePolicyMessage(ocrPolicyMsg_t* msg, u64 bufferSize);
 
 /**
  * @brief Structure describing a message "handle" that is
@@ -949,8 +1253,8 @@ typedef struct _ocrPolicyDomainFactory_t {
     ocrPolicyDomainFcts_t policyDomainFcts;
 } ocrPolicyDomainFactory_t;
 
-void initializePolicyDomainOcr(ocrPolicyDomainFactory_t * factory, ocrPolicyDomain_t * self, ocrParamList_t *perInstance);
 
+void initializePolicyDomainOcr(ocrPolicyDomainFactory_t * factory, ocrPolicyDomain_t * self, ocrParamList_t *perInstance);
 
 /****************************************************/
 /* UTILITY FUNCTIONS                                */
@@ -968,46 +1272,44 @@ typedef enum {
 } ocrMarshallMode_t;
 
 /**
- * @brief Gets the effective size of the msg that
- * needs to be sent
+ * @brief Gets the base size and the marshalled size of a message
+ * that needs to be sent
  *
- * This size includes the actual payload + whatever
- * additional space is needed to store variable-size
- * arguments such as GUIDs, funcName etc.
+ *
+ *
+ * This call can be used on both a ocrPolicyMsg_t or a buffer
+ * containing a marshalled ocrPolicyMsg_t.
+ *
+ * baseSize is the number of bytes in msg that are useful to transfer
+ * for that particular message (looking at the type of message and
+ * its direction)
+ *
+ * marshalledSize is the additional size that needs to be marshalled
+ * and transferred for this message to be complete (for example paramv)
+ *
+ * @note This function uses msg->type to determine if the message is
+ * leaving this PD (PD_MSG_REQUEST) in which case IN fields will be used
+ * or is a response (PD_MSG_RESPONSE) in which case OUT fields will be used
+ *
+ * This call modifies msg->usefulSize *only* if msg->usefulSize is 0. In this
+ * case, it will set it to 'baseSize'. No other modification of the message
+ * happens.
  *
  * @param[in] msg               Message to analyze
- * @param[out] fullSize         Full size of the message (bytes)
+ * @param[out] baseSize         Number of bytes at the head of msg that are useful
  * @param[out] marshalledSize   Additional data that needs to be
- *                              fetched/marshalled (included in fullSize) (bytes)
+ *                              fetched/marshalled  (bytes)
  * @param[in] mode              The "flag" part of the marshalling mode
  *                              (MARSHALL_DBPTR and MARSHALL_NSADDR). Non flag bits
  *                              are ignored
- *
- * This call can be used on both a ocrPolicyMsg_t or a buffer
- * containing a marshalled ocrPolicyMsg_t. This will set the 'size'
- * field in the ocrPolicyMsg_t to fullSize - marshalledSize.
- *
- * @warning The setting of the size field may not be what you want;
- * for example, if the buffer contains the message AND the
- * marshalled content (for example if it was a MARSHALL_APPEND), this
- * will set the size to something SMALLER than what needs to be transmitted.
- *
  * @return 0 on success and a non-zero error code
  */
-u8 ocrPolicyMsgGetMsgSize(struct _ocrPolicyMsg_t* msg, u64 *fullSize,
+u8 ocrPolicyMsgGetMsgSize(struct _ocrPolicyMsg_t* msg, u64 *baseSize,
                           u64* marshalledSize, u32 mode);
 
-/**
- * @brief Gets the header size of a message depending on its type.
- *
- * @param[in] msg               Message to analyze
- * @param[out] headerSize       Message's header size
- *
- * This call does not modify the message size
- *
- * @return 0 on success and a non-zero error code
- */
-u8 ocrPolicyMsgGetMsgHeaderSize(ocrPolicyMsg_t *msg, u32 *headerSize);
+
+// To get the in or out base size
+u64 ocrPolicyMsgGetMsgBaseSize(ocrPolicyMsg_t *msg, bool isIn);
 
 /**
  * @brief Marshall everything needed to send the message over to a PD that
@@ -1019,25 +1321,31 @@ u8 ocrPolicyMsgGetMsgHeaderSize(ocrPolicyMsg_t *msg, u32 *headerSize);
  *   - MARSHALL_FULL_COPY: Fully copy and marshall msg into buffer. In
  *                         this case buffer and msg do not overlap. The
  *                         caller also ensures that buffer is at least
- *                         big enough to contain fullSize bytes as
- *                         returned by ocrPolicyMsgGetMsgSize. Assumes
- *                         that msg->size is properly set to (fullSize - marshalledSize)
- *   - MARSHALL_DUPLICATE: This is exactly like MARSHALL_FULL_COPY except
- *                         that the pointers are not encoded as offsets from the
- *                         start of the message. In other words, this mode
+ *                         big enough to contain baseSize + marshalledSize bytes as
+ *                         returned by ocrPolicyMsgGetMsgSize. buffer->usefulSize will be
+ *                         set to baseSize + marshalledSize. Note that the message
+ *                         in buffer is not directly usable before an unmarshall
+ *                         occurs as the pointers are encoded values.
+ *   - MARSHALL_DUPLICATE: This is exactly like MARSHALL_FULL_COPY in the sense
+ *                         that msg is fully marshalled into buffer; however,
+ *                         buffer is directly usable as the pointers are not
+ *                         encoded. In other words, this mode
  *                         allows you to duplicate an ocrPolicyMsg_t fully
  *                         including the first level of pointers. This mode
- *                         is usually not used with an un-marshall.
+ *                         should not be used with an associated unmarshall
+ *                         buffer->usefulSize will be set to baseSize + marshalledSize
  *   - MARSHALL_APPEND:    In this case (u64)buffer == (u64)msg and
  *                         marshalled values will be appended to the
  *                         end of the useful portion of msg. The caller
  *                         ensures that buffer is at least big enough to
- *                         contain fullSize bytes as returned by
- *                         ocrPolicyMsgGetMsgSize
- *   - MARSHALL_ADDL:      Marshall only neede portions (not already in msg)
+ *                         contain baseSize + marshalledSize bytes as returned by
+ *                         ocrPolicyMsgGetMsgSize. msg->usefulSize will be set to
+ *                         baseSize + marshalledSize
+ *   - MARSHALL_ADDL:      Marshall only needed portions (not already in msg)
  *                         into buffer. The caller ensures that buffer is
  *                         at least big enough to contain marshalledSize
- *                         as returned by ocrPolicyMsgGetMsgSize
+ *                         as returned by ocrPolicyMsgGetMsgSize. msg->usefulSize
+ *                         will be set to baseSize
  * and optionally OR it with any of the following:
  *   - MARSHALL_NSADDR:    Marshalling to send to a location that does not share
  *                         the same address space (across MPI ranks for example)
@@ -1050,16 +1358,14 @@ u8 ocrPolicyMsgGetMsgHeaderSize(ocrPolicyMsg_t *msg, u32 *headerSize);
  * msg itself is modified to encode offsets and positions for the marshalled
  * values so that it can be unmarshalled by ocrPolicyMsgUnMarshallMsg. In
  * all cases, size is set to what actually needs to be sent over:
- *   - For FULL_COPY, DUPLICATE or APPEND to fullSize
- *   - For ADDL to (fullSize - marshalledSize) since the additional information
- *     to transmit is in buffer and not in msg
  *
  * @param[in/out] msg      Message to marshall from
+ * @param[in] baseSize     "Base" size of msg ("baseSize" returned from ocrPolicyMsgGetMsgSize)
  * @param[in/out] buffer   Buffer to marshall to
  * @param[in] mode         One of MARSHALL_FULL_COPY, MARSHALL_APPEND, MARSHALL_ADDL
  * @return 0 on success and a non-zero error code
  */
-u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u8* buffer, u32 mode);
+u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u64 baseSize, u8* buffer, u32 mode);
 
 /**
  * @brief Performs the opposite operation to ocrPolicyMsgMarshallMsg
@@ -1074,7 +1380,9 @@ u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u8* buffer, u32 mode);
  *                         of the message and any additional structure
  *                         will be put in msg. The caller ensures that
  *                         the actual allocated size of msg is at least
- *                         fullSize bytes (as returned by ocrPolicyMsgGetMsgSize)
+ *                         baseSize + marshalledSize bytes (as returned
+ *                         by ocrPolicyMsgGetMsgSize).
+ *                         msg->usefulSize will be set to marshalledSize + baseSize
  *   - MARSHALL_APPEND:    In this case, (u64)msg == (u64)mainBuffer. In
  *                         most cases, this will only fix-up pointers but
  *                         may copy from addlBuffer into mainBuffer. For
@@ -1082,13 +1390,15 @@ u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u8* buffer, u32 mode);
  *                         done using MARSHALL_ADDL and unmarshalling is
  *                         done with MARSHALL_APPEND.
  *                         The caller ensures that the actual allocated
- *                         size of msg is at least fullSize bytes (as
+ *                         size of msg is at least baseSize + marshalledSize bytes (as
  *                         returned by ocrPolicyMsgGetMsgSize).
- *                         This call updates the msg's size to header+payload.
+ *                         msg->usefulSize will be set to baseSize + marshalledSize
  *   - MARSHALL_ADDL:      Marshall the common part of the message into msg
  *                         and use pdMalloc for marshalledSize bytes (one
  *                         or more chunks totalling marshalledSize bytes as
- *                         returned by ocrPolicyMsgGetMsgSize)
+ *                         returned by ocrPolicyMsgGetMsgSize). msg->usefulSize will
+ *                         be set to baseSize. In this case, msg may or may not be the
+ *                         same as mainBuffer
  *
  * @param[in] mainBuffer   Buffer containing the common part of the message
  * @param[in] addlBuffer   Optional addtional buffer (if message was marshalled
@@ -1103,9 +1413,9 @@ u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u8* buffer, u32 mode);
 u8 ocrPolicyMsgUnMarshallMsg(u8* mainBuffer, u8* addlBuffer,
                              struct _ocrPolicyMsg_t* msg, u32 mode);
 
-
 #define __GUID_END_MARKER__
 #include "ocr-guid-end.h"
 #undef __GUID_END_MARKER__
 
 #endif /* OCR_POLICY_DOMAIN_H_ */
+

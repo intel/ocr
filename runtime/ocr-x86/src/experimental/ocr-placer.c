@@ -44,30 +44,29 @@ static u8 resolveRemoteMetaData(ocrPolicyDomain_t * self, ocrFatGuid_t * fGuid, 
     if (val == 0) {
         DPRINTF(DEBUG_LVL_VVERB,"resolveRemoteMetaData: Query remote GUID metadata\n");
         // GUID is unknown, request a copy of the metadata
-        ocrPolicyMsg_t msgClone;
+        PD_MSG_STACK(msgClone);
         getCurrentEnv(NULL, NULL, NULL, &msgClone);
-        #define PD_MSG (&msgClone)
-        #define PD_TYPE PD_MSG_GUID_METADATA_CLONE
-            msgClone.type = PD_MSG_GUID_METADATA_CLONE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-            PD_MSG_FIELD(guid.guid) = remoteGuid;
-            PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-            PD_MSG_FIELD(size) = 0ULL;
-            u8 returnCode = self->fcts.processMessage(self, &msgClone, true);
-            ASSERT(returnCode == 0);
-            // On return, Need some more post-processing to make a copy of the metadata
-            // and set the fatGuid's metadata ptr to point to the copy
-            void * metaDataPtr = self->fcts.pdMalloc(self, metaDataSize);
-            ASSERT(PD_MSG_FIELD(guid.metaDataPtr) != NULL);
-            ASSERT(PD_MSG_FIELD(guid.guid) == remoteGuid);
-            ASSERT(PD_MSG_FIELD(size) == metaDataSize);
-            hal_memCopy(metaDataPtr, PD_MSG_FIELD(guid.metaDataPtr), metaDataSize, false);
-            //DIST-TODO Potentially multiple concurrent registerGuid on the same template
-            self->guidProviders[0]->fcts.registerGuid(self->guidProviders[0], remoteGuid, (u64) metaDataPtr);
-            val = (u64) metaDataPtr;
-            DPRINTF(DEBUG_LVL_VVERB,"Data @ 0x%lx registered for GUID 0x%lx for %ld\n",
-                    metaDataPtr, remoteGuid, (u32)self->myLocation);
-        #undef PD_MSG
-        #undef PD_TYPE
+#define PD_MSG (&msgClone)
+#define PD_TYPE PD_MSG_GUID_METADATA_CLONE
+        msgClone.type = PD_MSG_GUID_METADATA_CLONE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+        PD_MSG_FIELD_IO(guid.guid) = remoteGuid;
+        PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+        u8 returnCode = self->fcts.processMessage(self, &msgClone, true);
+        ASSERT(returnCode == 0);
+        // On return, Need some more post-processing to make a copy of the metadata
+        // and set the fatGuid's metadata ptr to point to the copy
+        void * metaDataPtr = self->fcts.pdMalloc(self, metaDataSize);
+        ASSERT(PD_MSG_FIELD_IO(guid.metaDataPtr) != NULL);
+        ASSERT(PD_MSG_FIELD_IO(guid.guid) == remoteGuid);
+        ASSERT(PD_MSG_FIELD_O(size) == metaDataSize);
+        hal_memCopy(metaDataPtr, PD_MSG_FIELD_IO(guid.metaDataPtr), metaDataSize, false);
+        //DIST-TODO Potentially multiple concurrent registerGuid on the same template
+        self->guidProviders[0]->fcts.registerGuid(self->guidProviders[0], remoteGuid, (u64) metaDataPtr);
+        val = (u64) metaDataPtr;
+        DPRINTF(DEBUG_LVL_VVERB,"Data @ 0x%lx registered for GUID 0x%lx for %ld\n",
+                metaDataPtr, remoteGuid, (u32)self->myLocation);
+#undef PD_MSG
+#undef PD_TYPE
         DPRINTF(DEBUG_LVL_VVERB,"resolveRemoteMetaData: Retrieved remote EDT template\n");
     }
     fGuid->metaDataPtr = (void *) val;
@@ -128,32 +127,32 @@ u8 suggestLocationPlacement(ocrPolicyDomain_t *pd, ocrLocation_t curLoc, ocrLoca
         switch(msgType) {
             case PD_MSG_WORK_CREATE:
             {
-            #define PD_MSG msg
-            #define PD_TYPE PD_MSG_WORK_CREATE
-                doAutoPlace = (PD_MSG_FIELD(workType) == EDT_USER_WORKTYPE) &&
-                          (PD_MSG_FIELD(affinity.guid) == NULL_GUID);
-                if (PD_MSG_FIELD(affinity.guid) != NULL_GUID) {
-                    msg->destLocation = affinityToLocation(PD_MSG_FIELD(affinity.guid));
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_WORK_CREATE
+                doAutoPlace = (PD_MSG_FIELD_I(workType) == EDT_USER_WORKTYPE) &&
+                    (PD_MSG_FIELD_I(affinity.guid) == NULL_GUID);
+                if (PD_MSG_FIELD_I(affinity.guid) != NULL_GUID) {
+                    msg->destLocation = affinityToLocation(PD_MSG_FIELD_I(affinity.guid));
                 }
-            #undef PD_MSG
-            #undef PD_TYPE
+#undef PD_MSG
+#undef PD_TYPE
             break;
             }
             case PD_MSG_DB_CREATE:
             {
-            #define PD_MSG msg
-            #define PD_TYPE PD_MSG_DB_CREATE
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_DB_CREATE
                 doAutoPlace = false;
                 // For now a DB is always created where the current EDT executes unless
                 // it has an affinity specified (i.e. no auto-placement)
-                if (PD_MSG_FIELD(affinity.guid) != NULL_GUID) {
-                    msg->destLocation = affinityToLocation(PD_MSG_FIELD(affinity.guid));
+                if (PD_MSG_FIELD_I(affinity.guid) != NULL_GUID) {
+                    msg->destLocation = affinityToLocation(PD_MSG_FIELD_I(affinity.guid));
                 }
                 //TODO when we do place DBs make sure we only place USER DBs
-                // doPlace = ((PD_MSG_FIELD(dbType) == USER_DBTYPE) &&
-                //             (PD_MSG_FIELD(affinity.guid) == NULL_GUID));
-            #undef PD_MSG
-            #undef PD_TYPE
+                // doPlace = ((PD_MSG_FIELD_I(dbType) == USER_DBTYPE) &&
+                //             (PD_MSG_FIELD_I(affinity.guid) == NULL_GUID));
+#undef PD_MSG
+#undef PD_TYPE
             break;
             }
             default:

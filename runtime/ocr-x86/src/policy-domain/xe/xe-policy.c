@@ -327,11 +327,11 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
                 // TODO: FIXME when issue #68 is fully implemented by checking
                 // sizes
                 // We use the marshalling function to "copy" this message
-                u64 fullSize = 0, marshalledSize = 0;
-                ocrPolicyMsgGetMsgSize(handle->response, &fullSize, &marshalledSize, 0);
+                u64 baseSize = 0, marshalledSize = 0;
+                ocrPolicyMsgGetMsgSize(handle->response, &baseSize, &marshalledSize, 0);
                 // For now, it must fit in a single message
-                ASSERT(fullSize <= sizeof(ocrPolicyMsg_t));
-                ocrPolicyMsgMarshallMsg(handle->response, (u8*)*msg, MARSHALL_DUPLICATE);
+                ASSERT(baseSize + marshalledSize <= sizeof(ocrPolicyMsg_t));
+                ocrPolicyMsgMarshallMsg(handle->response, baseSize, (u8*)*msg, MARSHALL_DUPLICATE);
             }
             handle->destruct(handle);
         }
@@ -344,6 +344,7 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
 u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlocking) {
 
     u8 returnCode = 0;
+
     ASSERT((msg->type & PD_MSG_REQUEST) && (!(msg->type & PD_MSG_RESPONSE)));
 
     DPRINTF(DEBUG_LVL_VVERB, "Going to process message of type 0x%lx\n",
@@ -365,10 +366,10 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             START_PROFILE(pd_xe_resolveTemp);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_WORK_CREATE
-            if((s32)(PD_MSG_FIELD(paramc)) < 0) {
-                localDeguidify(self, &(PD_MSG_FIELD(templateGuid)));
-                ocrTaskTemplate_t *template = PD_MSG_FIELD(templateGuid).metaDataPtr;
-                PD_MSG_FIELD(paramc) = template->paramc;
+            if((s32)(PD_MSG_FIELD_IO(paramc)) < 0) {
+                localDeguidify(self, &(PD_MSG_FIELD_I(templateGuid)));
+                ocrTaskTemplate_t *template = PD_MSG_FIELD_I(templateGuid).metaDataPtr;
+                PD_MSG_FIELD_IO(paramc) = template->paramc;
             }
 #undef PD_MSG
 #undef PD_TYPE
@@ -383,15 +384,15 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             START_PROFILE(pd_xe_Take);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_TAKE
-            if (PD_MSG_FIELD(guidCount) > 0) {
+            if (PD_MSG_FIELD_IO(guidCount) > 0) {
                 DPRINTF(DEBUG_LVL_VVERB, "Received EDT with GUID 0x%lx (@ 0x%lx)\n",
-                        PD_MSG_FIELD(guids[0].guid), &(PD_MSG_FIELD(guids[0].guid)));
-                localDeguidify(self, (PD_MSG_FIELD(guids)));
+                        PD_MSG_FIELD_IO(guids[0].guid), &(PD_MSG_FIELD_IO(guids[0].guid)));
+                localDeguidify(self, (PD_MSG_FIELD_IO(guids)));
                 DPRINTF(DEBUG_LVL_VVERB, "Received EDT (0x%lx; 0x%lx)\n",
-                        (u64)self->myLocation, (PD_MSG_FIELD(guids))->guid,
-                        (PD_MSG_FIELD(guids))->metaDataPtr);
+                        (u64)self->myLocation, (PD_MSG_FIELD_IO(guids))->guid,
+                        (PD_MSG_FIELD_IO(guids))->metaDataPtr);
                 // For now, we return the execute function for EDTs
-                PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
+                PD_MSG_FIELD_IO(extra) = (u64)(self->taskFactories[0]->fcts.execute);
             }
 #undef PD_MSG
 #undef PD_TYPE
@@ -428,12 +429,12 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // itself
         // Also, this should only happen when there is an actual EDT
         ASSERT(curTask &&
-               curTask->guid == PD_MSG_FIELD(edt.guid));
+               curTask->guid == PD_MSG_FIELD_I(edt.guid));
 
         DPRINTF(DEBUG_LVL_VVERB, "DEP_DYNADD req/resp for GUID 0x%lx\n",
-                PD_MSG_FIELD(db.guid));
+                PD_MSG_FIELD_I(db.guid));
         ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
-        PD_MSG_FIELD(returnDetail) = self->taskFactories[0]->fcts.notifyDbAcquire(curTask, PD_MSG_FIELD(db));
+        PD_MSG_FIELD_O(returnDetail) = self->taskFactories[0]->fcts.notifyDbAcquire(curTask, PD_MSG_FIELD_I(db));
 #undef PD_MSG
 #undef PD_TYPE
         EXIT_PROFILE;
@@ -450,11 +451,11 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // itself
         // Also, this should only happen when there is an actual EDT
         ASSERT(curTask &&
-            curTask->guid == PD_MSG_FIELD(edt.guid));
+            curTask->guid == PD_MSG_FIELD_I(edt.guid));
         DPRINTF(DEBUG_LVL_VVERB, "DEP_DYNREMOVE req/resp for GUID 0x%lx\n",
-                PD_MSG_FIELD(db.guid));
+                PD_MSG_FIELD_I(db.guid));
         ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
-        PD_MSG_FIELD(returnDetail) = self->taskFactories[0]->fcts.notifyDbRelease(curTask, PD_MSG_FIELD(db));
+        PD_MSG_FIELD_O(returnDetail) = self->taskFactories[0]->fcts.notifyDbRelease(curTask, PD_MSG_FIELD_I(db));
 #undef PD_MSG
 #undef PD_TYPE
         break;
@@ -560,18 +561,18 @@ u8 xePdWaitMessage(ocrPolicyDomain_t *self,  ocrMsgHandle_t **handle) {
 void* xePdMalloc(ocrPolicyDomain_t *self, u64 size) {
     START_PROFILE(pd_xe_pdMalloc);
     void *ptr;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     ocrPolicyMsg_t* pmsg = &msg;
     getCurrentEnv(NULL, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_ALLOC
     msg.type = PD_MSG_MEM_ALLOC  | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(type) = DB_MEMTYPE;
-    PD_MSG_FIELD(size) = size;
+    PD_MSG_FIELD_I(type) = DB_MEMTYPE;
+    PD_MSG_FIELD_I(size) = size;
     ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
     u8 msgResult = xeProcessCeRequest(self, &pmsg);
     ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-    ptr = PD_MSG_FIELD(ptr);
+    ptr = PD_MSG_FIELD_O(ptr);
 #undef PD_TYPE
 #undef PD_MSG
     RETURN_PROFILE(ptr);
@@ -579,16 +580,16 @@ void* xePdMalloc(ocrPolicyDomain_t *self, u64 size) {
 
 void xePdFree(ocrPolicyDomain_t *self, void* addr) {
     START_PROFILE(pd_xe_pdFree);
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     ocrPolicyMsg_t *pmsg = &msg;
     getCurrentEnv(NULL, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_UNALLOC
     msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST;
-    PD_MSG_FIELD(ptr) = addr;
-    PD_MSG_FIELD(type) = DB_MEMTYPE;
+    PD_MSG_FIELD_I(ptr) = addr;
+    PD_MSG_FIELD_I(type) = DB_MEMTYPE;
     // TODO: Things are missing. Brian's new way to free things should fix this!
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(properties) = 0;
     u8 msgResult = xeProcessCeRequest(self, &pmsg);
     ASSERT(msgResult == 0);
 #undef PD_MSG

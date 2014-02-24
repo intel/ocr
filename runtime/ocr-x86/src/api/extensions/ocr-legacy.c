@@ -18,7 +18,7 @@
 // WARNING: The event MUST be sticky. DO NOT WAIT ON A LATCH EVENT!!!
 ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
     ocrPolicyDomain_t *pd = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     ocrEvent_t *eventToYieldFor = NULL;
     ocrFatGuid_t result;
 
@@ -27,11 +27,11 @@ ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_INFO
     msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.guid) = eventToYieldForGuid;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(properties) = KIND_GUIDPROP | RMETA_GUIDPROP;
+    PD_MSG_FIELD_IO(guid.guid) = eventToYieldForGuid;
+    PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(properties) = KIND_GUIDPROP | RMETA_GUIDPROP;
     RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), ERROR_GUID);
-    eventToYieldFor = (ocrEvent_t *)PD_MSG_FIELD(guid.metaDataPtr);
+    eventToYieldFor = (ocrEvent_t *)PD_MSG_FIELD_IO(guid.metaDataPtr);
 #undef PD_MSG
 #undef PD_TYPE
 

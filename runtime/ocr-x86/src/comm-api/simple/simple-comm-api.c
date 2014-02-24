@@ -47,6 +47,7 @@ static ocrMsgHandle_t * createMsgHandler(ocrCommApi_t * self, ocrPolicyMsg_t * m
 static ocrPolicyMsg_t * allocateNewMessage(ocrCommApi_t * self, u32 size) {
     ocrPolicyDomain_t * pd = self->pd;
     ocrPolicyMsg_t * message = pd->fcts.pdMalloc(pd, size);
+    initializePolicyMessage(message, size);
     return message;
 }
 
@@ -55,20 +56,21 @@ u8 sendMessageSimpleCommApi(ocrCommApi_t *self, ocrLocation_t target, ocrPolicyM
     ocrCommApiSimple_t * commApiSimple = (ocrCommApiSimple_t *) self;
 
     if (!(properties & PERSIST_MSG_PROP)) {
-        ocrPolicyMsg_t * msgCpy = allocateNewMessage(self, message->size);
-        hal_memCopy(msgCpy, message, message->size, false);
+        u64 baseSize = 0, marshalledSize = 0;
+        ocrPolicyMsgGetMsgSize(message, &baseSize, &marshalledSize, 0);
+        u64 fullSize = baseSize + marshalledSize;
+        ocrPolicyMsg_t * msgCpy = allocateNewMessage(self, fullSize);
+        ocrPolicyMsgMarshallMsg(message, baseSize, (u8*)msgCpy, MARSHALL_DUPLICATE);
         message = msgCpy;
         properties |= PERSIST_MSG_PROP;
+        ASSERT(false && "debug tmp");
     }
 
     // This is weird but otherwise the compiler complains...
-    u64 bufferSize = message->size;
-    bufferSize <<= 32;
-    bufferSize |= (u32)message->size;
     u64 id = 0;
 
     u8 ret = self->commPlatform->fcts.sendMessage(self->commPlatform, target, message,
-                                                  bufferSize, &id, properties, SIMPLE_COMM_NO_MASK);
+                                                  &id, properties, SIMPLE_COMM_NO_MASK);
     if (ret == 0) {
         if (handle != NULL) {
             if (*handle == NULL) {
@@ -110,7 +112,7 @@ u8 pollMessageSimpleCommApi(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
     ocrPolicyMsg_t * msg = NULL;
     //IMPL: by contract commPlatform only poll and return recvs.
     //They can be incoming request or response. (but not outgoing req/resp ack)
-    u8 ret = self->commPlatform->fcts.pollMessage(self->commPlatform, &msg, NULL, SIMPLE_COMM_NO_PROP, SIMPLE_COMM_NO_MASK);
+    u8 ret = self->commPlatform->fcts.pollMessage(self->commPlatform, &msg, SIMPLE_COMM_NO_PROP, SIMPLE_COMM_NO_MASK);
     if (ret == POLL_MORE_MESSAGE) {
         ASSERT((handle != NULL) && (*handle == NULL));
         if (msg->type & PD_MSG_REQUEST) {

@@ -51,8 +51,6 @@ void handlelessCommFinish(ocrCommApi_t *commApi) {
 u8 handlelessCommSendMessage(ocrCommApi_t *self, ocrLocation_t target, ocrPolicyMsg_t *message,
                              ocrMsgHandle_t **handle, u32 properties) {
     u64 id;
-    u64 bufSz = sizeof(ocrPolicyMsg_t);
-    u64 bufferSize = bufSz | (bufSz << 32);
     if (message->type & PD_MSG_REQUEST) {
         ASSERT(!(message->type & PD_MSG_RESPONSE));
         if(handle) {
@@ -74,15 +72,13 @@ u8 handlelessCommSendMessage(ocrCommApi_t *self, ocrLocation_t target, ocrPolicy
         ASSERT(message->type & PD_MSG_RESPONSE);
         ASSERT(!handle);
     }
-    return self->commPlatform->fcts.sendMessage(self->commPlatform, target, message, bufferSize, &id, properties, 0);
+    return self->commPlatform->fcts.sendMessage(self->commPlatform, target, message, &id, properties, 0);
 }
 
 u8 handlelessCommPollMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
     u8 retval;
     ASSERT(handle);
     ocrCommApiHandleless_t * commApiHandleless = (ocrCommApiHandleless_t*)self;
-    u64 bufferSize = (u32)(sizeof(ocrPolicyMsg_t)) | (sizeof(ocrPolicyMsg_t) << 32);
-
     if (!(*handle)) {
         *handle = &(commApiHandleless->handle);
         (*handle)->status = HDL_NORMAL;
@@ -92,7 +88,7 @@ u8 handlelessCommPollMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
     // Pass a "hint" saying that the the buffer is available
     (*handle)->response = (*handle)->msg;
     retval = self->commPlatform->fcts.pollMessage(
-                      self->commPlatform, &((*handle)->response), &bufferSize, PD_CE_CE_MESSAGE,
+                      self->commPlatform, &((*handle)->response), PD_CE_CE_MESSAGE,
                       NULL);
     if((*handle)->response == (*handle)->msg) {
         // This means that the comm platform did *not* allocate the buffer itself
@@ -107,7 +103,6 @@ u8 handlelessCommPollMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
 u8 handlelessCommWaitMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
     ASSERT(handle);
     ocrCommApiHandleless_t * commApiHandleless = (ocrCommApiHandleless_t*)self;
-    u64 bufferSize = (u32)(sizeof(ocrPolicyMsg_t)) | (sizeof(ocrPolicyMsg_t) << 32);
     if (!(*handle)) {
         *handle = &(commApiHandleless->handle);
         ASSERT((*handle)->status == 0);
@@ -120,7 +115,7 @@ u8 handlelessCommWaitMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
     // Pass a "hint" saying that the the buffer is available
     (*handle)->response = (*handle)->msg;
     RESULT_ASSERT(self->commPlatform->fcts.waitMessage(
-                      self->commPlatform, &((*handle)->response), &bufferSize, 0,
+                      self->commPlatform, &((*handle)->response), 0,
                       NULL), ==, 0);
     if((*handle)->response == (*handle)->msg) {
         // This means that the comm platform did *not* allocate the buffer itself

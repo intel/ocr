@@ -121,19 +121,19 @@ static u8 countedMapGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, o
  * fatGuid's metaDataPtr will point to.
  */
 u8 countedMapCreateGuid(ocrGuidProvider_t* self, ocrFatGuid_t *fguid, u64 size, ocrGuidKind kind) {
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     ocrPolicyDomain_t *policy = NULL;
     getCurrentEnv(&policy, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_ALLOC
     msg.type = PD_MSG_MEM_ALLOC | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(size) = size; // allocate 'size' payload as metadata
-    PD_MSG_FIELD(properties) = 0; // TODO:  What flags should be defined?  Where are symbolic constants for them defined?
-    PD_MSG_FIELD(type) = GUID_MEMTYPE;
+    PD_MSG_FIELD_I(size) = size; // allocate 'size' payload as metadata
+    PD_MSG_FIELD_I(properties) = 0; // TODO:  What flags should be defined?  Where are symbolic constants for them defined?
+    PD_MSG_FIELD_I(type) = GUID_MEMTYPE;
 
     RESULT_PROPAGATE(policy->fcts.processMessage (policy, &msg, true));
 
-    void * ptr = (void *)PD_MSG_FIELD(ptr);
+    void * ptr = (void *)PD_MSG_FIELD_O(ptr);
     // Fill in the GUID value and in the fatGuid
     // and registers its associated metadata ptr
     countedMapGetGuid(self, &(fguid->guid), (u64) ptr, kind);
@@ -186,14 +186,18 @@ u8 countedMapReleaseGuid(ocrGuidProvider_t *self, ocrFatGuid_t fatGuid, bool rel
     ocrGuid_t guid = fatGuid.guid;
     // If there's metaData associated with guid we need to deallocate memory
     if(releaseVal && (fatGuid.metaDataPtr != NULL)) {
-        ocrPolicyMsg_t msg;
+        PD_MSG_STACK(msg);
         ocrPolicyDomain_t *policy = NULL;
         getCurrentEnv(&policy, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_UNALLOC
         msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-        PD_MSG_FIELD(ptr) = fatGuid.metaDataPtr;
-        PD_MSG_FIELD(type) = GUID_MEMTYPE;
+        PD_MSG_FIELD_I(allocatingPD.guid) = NULL_GUID;
+        PD_MSG_FIELD_I(allocatingPD.metaDataPtr) = NULL;
+        PD_MSG_FIELD_I(allocator.guid) = NULL_GUID;
+        PD_MSG_FIELD_I(allocator.metaDataPtr) = NULL;
+        PD_MSG_FIELD_I(ptr) = fatGuid.metaDataPtr;
+        PD_MSG_FIELD_I(type) = GUID_MEMTYPE;
         RESULT_PROPAGATE(policy->fcts.processMessage (policy, &msg, true));
 #undef PD_MSG
 #undef PD_TYPE

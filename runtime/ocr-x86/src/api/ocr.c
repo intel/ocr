@@ -15,16 +15,16 @@
 static void ocrShutdownInternal(u8 errorCode) {
     DPRINTF(DEBUG_LVL_INFO, "ENTER ocrShutdown()\n");
     ocrPolicyDomain_t *pd = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     ocrPolicyMsg_t * msgPtr = &msg;
     ocrTask_t * curEdt = NULL;
     getCurrentEnv(&pd, NULL, &curEdt, msgPtr);
 #define PD_MSG msgPtr
 #define PD_TYPE PD_MSG_MGT_SHUTDOWN
     msgPtr->type = PD_MSG_MGT_SHUTDOWN | PD_MSG_REQUEST;
-    PD_MSG_FIELD(errorCode) = errorCode;
-    PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
-    PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
+    PD_MSG_FIELD_I(errorCode) = errorCode;
+    PD_MSG_FIELD_I(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
+    PD_MSG_FIELD_I(currentEdt.metaDataPtr) = curEdt;
     RESULT_ASSERT(pd->fcts.processMessage(pd, msgPtr, true), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE

@@ -54,14 +54,14 @@ u8 destructTaskTemplateHc(ocrTaskTemplate_t *self) {
     }
 #endif /* OCR_ENABLE_STATISTICS */
     ocrPolicyDomain_t *pd = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid.guid) = self->guid;
-    PD_MSG_FIELD(guid.metaDataPtr) = self;
-    PD_MSG_FIELD(properties) = 1;
+    PD_MSG_FIELD_I(guid.guid) = self->guid;
+    PD_MSG_FIELD_I(guid.metaDataPtr) = self;
+    PD_MSG_FIELD_I(properties) = 1;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
 #undef PD_MSG
 #undef PD_TYPE
@@ -73,23 +73,23 @@ ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory, ocrEdt_
                                       ocrParamList_t *perInstance) {
 
     ocrPolicyDomain_t *pd = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
 
     getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_CREATE
     msg.type = PD_MSG_GUID_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.guid) = NULL_GUID;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(size) = sizeof(ocrTaskTemplateHc_t);
-    PD_MSG_FIELD(kind) = OCR_GUID_EDT_TEMPLATE;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_IO(guid.guid) = NULL_GUID;
+    PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(size) = sizeof(ocrTaskTemplateHc_t);
+    PD_MSG_FIELD_I(kind) = OCR_GUID_EDT_TEMPLATE;
+    PD_MSG_FIELD_I(properties) = 0;
 
     RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), NULL);
 
-    ocrTaskTemplate_t *base = (ocrTaskTemplate_t*)PD_MSG_FIELD(guid.metaDataPtr);
+    ocrTaskTemplate_t *base = (ocrTaskTemplate_t*)PD_MSG_FIELD_IO(guid.metaDataPtr);
     ASSERT(base);
-    base->guid = PD_MSG_FIELD(guid.guid);
+    base->guid = PD_MSG_FIELD_IO(guid.guid);
 #undef PD_MSG
 #undef PD_TYPE
 
@@ -165,19 +165,21 @@ static u8 finishLatchCheckin(ocrPolicyDomain_t *pd, ocrPolicyMsg_t *msg,
 #define PD_MSG (msg)
 #define PD_TYPE PD_MSG_DEP_SATISFY
     msg->type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid) = latchEvent;
-    PD_MSG_FIELD(payload.guid) = NULL_GUID;
-    PD_MSG_FIELD(payload.metaDataPtr) = NULL;
-    PD_MSG_FIELD(slot) = OCR_EVENT_LATCH_INCR_SLOT;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(guid) = latchEvent;
+    PD_MSG_FIELD_I(payload.guid) = NULL_GUID;
+    PD_MSG_FIELD_I(payload.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(currentEdt.guid) = NULL_GUID;
+    PD_MSG_FIELD_I(currentEdt.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(slot) = OCR_EVENT_LATCH_INCR_SLOT;
+    PD_MSG_FIELD_I(properties) = 0;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, msg, false));
 #undef PD_TYPE
 #define PD_TYPE PD_MSG_DEP_ADD
     msg->type = PD_MSG_DEP_ADD | PD_MSG_REQUEST;
-    PD_MSG_FIELD(source) = sourceEvent;
-    PD_MSG_FIELD(dest) = latchEvent;
-    PD_MSG_FIELD(slot) = OCR_EVENT_LATCH_DECR_SLOT;
-    PD_MSG_FIELD(properties) = DB_MODE_RO;
+    PD_MSG_FIELD_I(source) = sourceEvent;
+    PD_MSG_FIELD_I(dest) = latchEvent;
+    PD_MSG_FIELD_I(slot) = OCR_EVENT_LATCH_DECR_SLOT;
+    PD_MSG_FIELD_IO(properties) = DB_MODE_RO; // not called from add-dependence
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, msg, false));
 #undef PD_MSG
 #undef PD_TYPE
@@ -197,12 +199,12 @@ static u8 registerOnFrontier(ocrTaskHc_t *self, ocrPolicyDomain_t *pd,
 #define PD_MSG (msg)
 #define PD_TYPE PD_MSG_DEP_REGWAITER
     msg->type = PD_MSG_DEP_REGWAITER | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(waiter.guid) = self->base.guid;
-    PD_MSG_FIELD(waiter.metaDataPtr) = self;
-    PD_MSG_FIELD(dest.guid) = self->signalers[slot].guid;
-    PD_MSG_FIELD(dest.metaDataPtr) = NULL;
-    PD_MSG_FIELD(slot) = self->signalers[slot].slot;
-    PD_MSG_FIELD(properties) = false; // not called from add-dependence
+    PD_MSG_FIELD_I(waiter.guid) = self->base.guid;
+    PD_MSG_FIELD_I(waiter.metaDataPtr) = self;
+    PD_MSG_FIELD_I(dest.guid) = self->signalers[slot].guid;
+    PD_MSG_FIELD_I(dest.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(slot) = self->signalers[slot].slot;
+    PD_MSG_FIELD_I(properties) = false; // not called from add-dependence
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, msg, true));
 #undef PD_MSG
 #undef PD_TYPE
@@ -235,18 +237,18 @@ static u8 initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
     }
     // If we are creating a finish-edt
     if (hasProperty(properties, EDT_PROP_FINISH)) {
-        ocrPolicyMsg_t msg;
+        PD_MSG_STACK(msg);
         getCurrentEnv(NULL, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_CREATE
         msg.type = PD_MSG_EVT_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-        PD_MSG_FIELD(guid.guid) = NULL_GUID;
-        PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-        PD_MSG_FIELD(type) = OCR_EVENT_LATCH_T;
-        PD_MSG_FIELD(properties) = 0;
+        PD_MSG_FIELD_IO(guid.guid) = NULL_GUID;
+        PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+        PD_MSG_FIELD_I(type) = OCR_EVENT_LATCH_T;
+        PD_MSG_FIELD_I(properties) = 0;
         RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, true));
 
-        ocrFatGuid_t latchFGuid = PD_MSG_FIELD(guid);
+        ocrFatGuid_t latchFGuid = PD_MSG_FIELD_IO(guid);
 #undef PD_MSG
 #undef PD_TYPE
         ASSERT(latchFGuid.guid != NULL_GUID && latchFGuid.metaDataPtr != NULL);
@@ -271,7 +273,7 @@ static u8 initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
         if(parentLatch.guid != NULL_GUID) {
             DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on current flatch 0x%lx\n", task->base.guid, parentLatch.guid);
             // Check in current finish latch
-            ocrPolicyMsg_t msg;
+            PD_MSG_STACK(msg);
             getCurrentEnv(NULL, NULL, NULL, &msg);
             RESULT_PROPAGATE(finishLatchCheckin(pd, &msg, outputEvent, parentLatch));
         }
@@ -326,30 +328,28 @@ static u8 iterateDbFrontier(ocrTask_t *self) {
             } else {
                 // Issue registration request
                 ocrPolicyDomain_t * pd = NULL;
-                ocrPolicyMsg_t msg;
+                PD_MSG_STACK(msg);
                 getCurrentEnv(&pd, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_ACQUIRE
                 msg.type = PD_MSG_DB_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-                PD_MSG_FIELD(guid.guid) = depv[i].guid; // DB guid
-                PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-                PD_MSG_FIELD(edt.guid) = self->guid; // EDT guid
-                PD_MSG_FIELD(edt.metaDataPtr) = self;
-                PD_MSG_FIELD(ptr) = NULL;
-                PD_MSG_FIELD(size) = 0; // avoids auto-serialization on outgoing
-                PD_MSG_FIELD(edtSlot) = self->depc + 1; // RT slot
-                PD_MSG_FIELD(properties) = depv[i].mode | DB_PROP_RT_ACQUIRE;
+                PD_MSG_FIELD_IO(guid.guid) = depv[i].guid; // DB guid
+                PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+                PD_MSG_FIELD_IO(edt.guid) = self->guid; // EDT guid
+                PD_MSG_FIELD_IO(edt.metaDataPtr) = self;
+                PD_MSG_FIELD_IO(edtSlot) = self->depc + 1; // RT slot
+                PD_MSG_FIELD_IO(properties) = depv[i].mode | DB_PROP_RT_ACQUIRE;
                 u8 returnCode = pd->fcts.processMessage(pd, &msg, false);
                 // DB_ACQUIRE is potentially asynchronous, check completion.
                 // In shmem and dist HC PD, ACQUIRE is two-way, processed asynchronously
                 // (the false in 'processMessage'). For now the CE/XE PD do not support this
                 // mode so we need to check for the returnDetail of the acquire message instead.
-                if ((returnCode == OCR_EPEND) || (PD_MSG_FIELD(returnDetail) == OCR_EBUSY)) {
+                if ((returnCode == OCR_EPEND) || (PD_MSG_FIELD_O(returnDetail) == OCR_EBUSY)) {
                     return true;
                 }
                 // else, acquire took place and was successful, continue iterating
                 ASSERT(msg.type & PD_MSG_RESPONSE); // 2x check
-                rself->resolvedDeps[depv[i].slot].ptr = PD_MSG_FIELD(ptr);
+                rself->resolvedDeps[depv[i].slot].ptr = PD_MSG_FIELD_O(ptr);
 #undef PD_MSG
 #undef PD_TYPE
             }
@@ -367,17 +367,17 @@ static u8 scheduleTask(ocrTask_t *self) {
     DPRINTF(DEBUG_LVL_INFO, "Schedule 0x%lx\n", self->guid);
     self->state = ALLACQ_EDTSTATE;
     ocrPolicyDomain_t *pd = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(&pd, NULL, NULL, &msg);
 
     ocrFatGuid_t toGive = {.guid = self->guid, .metaDataPtr = self};
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_COMM_GIVE
     msg.type = PD_MSG_COMM_GIVE | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guids) = &toGive;
-    PD_MSG_FIELD(guidCount) = 1;
-    PD_MSG_FIELD(properties) = 0;
-    PD_MSG_FIELD(type) = OCR_GUID_EDT;
+    PD_MSG_FIELD_IO(guids) = &toGive;
+    PD_MSG_FIELD_IO(guidCount) = 1;
+    PD_MSG_FIELD_I(properties) = 0;
+    PD_MSG_FIELD_I(type) = OCR_GUID_EDT;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
 #undef PD_MSG
 #undef PD_TYPE
@@ -447,7 +447,7 @@ u8 destructTaskHc(ocrTask_t* base) {
     // FIXME: The above hack was added because the below causes a coredump. [Trac #219]
     //DPRINTF(DEBUG_LVL_INFO, "Destroy 0x%lx\n", base->guid);
     ocrPolicyDomain_t *pd = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(&pd, NULL, NULL, &msg);
 #ifdef OCR_ENABLE_STATISTICS
     {
@@ -461,9 +461,9 @@ u8 destructTaskHc(ocrTask_t* base) {
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     // These next two statements may be not required. Just to be safe
-    PD_MSG_FIELD(guid.guid) = base->guid;
-    PD_MSG_FIELD(guid.metaDataPtr) = base;
-    PD_MSG_FIELD(properties) = 1; // Free metadata
+    PD_MSG_FIELD_I(guid.guid) = base->guid;
+    PD_MSG_FIELD_I(guid.metaDataPtr) = base;
+    PD_MSG_FIELD_I(properties) = 1; // Free metadata
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
 #undef PD_MSG
 #undef PD_TYPE
@@ -490,42 +490,42 @@ u8 newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t * edtGuid, ocrFatGuid_t edt
     //    that latch event)
     if (outputEventPtr != NULL || hasProperty(properties, EDT_PROP_FINISH) ||
             parentLatch.guid != NULL_GUID) {
-        ocrPolicyMsg_t msg;
+        PD_MSG_STACK(msg);
         getCurrentEnv(NULL, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_CREATE
         msg.type = PD_MSG_EVT_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-        PD_MSG_FIELD(guid.guid) = NULL_GUID;
-        PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-        PD_MSG_FIELD(properties) = 0;
-        PD_MSG_FIELD(type) = OCR_EVENT_ONCE_T; // Output events of EDTs are non sticky
+        PD_MSG_FIELD_IO(guid.guid) = NULL_GUID;
+        PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+        PD_MSG_FIELD_I(properties) = 0;
+        PD_MSG_FIELD_I(type) = OCR_EVENT_ONCE_T; // Output events of EDTs are non sticky
 
         RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), 1);
-        outputEvent = PD_MSG_FIELD(guid);
+        outputEvent = PD_MSG_FIELD_IO(guid);
 
 #undef PD_MSG
 #undef PD_TYPE
     }
 
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     // Create the task itself by getting a GUID
     getCurrentEnv(NULL, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_CREATE
     msg.type = PD_MSG_GUID_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.guid) = NULL_GUID;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD_IO(guid.guid) = NULL_GUID;
+    PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
     // We allocate everything in the meta-data to keep things simple
-    PD_MSG_FIELD(size) = sizeof(ocrTaskHc_t) + paramc*sizeof(u64) + depc*sizeof(regNode_t);
-    PD_MSG_FIELD(kind) = OCR_GUID_EDT;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(size) = sizeof(ocrTaskHc_t) + paramc*sizeof(u64) + depc*sizeof(regNode_t);
+    PD_MSG_FIELD_I(kind) = OCR_GUID_EDT;
+    PD_MSG_FIELD_I(properties) = 0;
     RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), 1);
-    ocrTaskHc_t *edt = (ocrTaskHc_t*)PD_MSG_FIELD(guid.metaDataPtr);
+    ocrTaskHc_t *edt = (ocrTaskHc_t*)PD_MSG_FIELD_IO(guid.metaDataPtr);
     ocrTask_t *base = (ocrTask_t*)edt;
     ASSERT(edt);
 
     // Set-up base structures
-    base->guid = PD_MSG_FIELD(guid.guid);
+    base->guid = PD_MSG_FIELD_IO(guid.guid);
     base->templateGuid = edtTemplate.guid;
     ASSERT(edtTemplate.metaDataPtr); // For now we just assume it is passed whole
     base->funcPtr = ((ocrTaskTemplate_t*)(edtTemplate.metaDataPtr))->executePtr;
@@ -695,7 +695,7 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
                     signalerGuid.metaDataPtr = NULL; // should be ok because guid encodes the kind in distributed
                     ocrGuidKind signalerKind = OCR_GUID_NONE;
                     ocrPolicyDomain_t *pd = NULL;
-                    ocrPolicyMsg_t msg;
+                    PD_MSG_STACK(msg);
                     getCurrentEnv(&pd, NULL, NULL, &msg);
                     deguidify(pd, &signalerGuid, &signalerKind);
                     ASSERT((signalerKind == OCR_GUID_EVENT_STICKY) || (signalerKind == OCR_GUID_EVENT_IDEM));
@@ -736,7 +736,7 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
 
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
     ocrPolicyDomain_t *pd = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(&pd, NULL, NULL, &msg);
     ocrGuidKind signalerKind = OCR_GUID_NONE;
     deguidify(pd, &signalerGuid, &signalerKind);
@@ -763,7 +763,7 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
             if(doRegister) {
                 // The EDT registers itself as a waiter here
                 ocrPolicyDomain_t *pd = NULL;
-                ocrPolicyMsg_t msg;
+                PD_MSG_STACK(msg);
                 getCurrentEnv(&pd, NULL, NULL, &msg);
                 RESULT_PROPAGATE(registerOnFrontier(self, pd, &msg, slot));
             }
@@ -782,17 +782,22 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
         //NOTE: Could improve implementation by figuring out how
         //to properly iterate the frontier when adding the DB
         //potentially concurrently with satifies.
-        ocrPolicyMsg_t registerMsg;
-        getCurrentEnv(NULL, NULL, NULL, &registerMsg);
+        PD_MSG_STACK(registerMsg);
+        ocrTask_t *curTask = NULL;
+        getCurrentEnv(NULL, NULL, &curTask, &registerMsg);
+        ocrFatGuid_t currentEdt;
+        currentEdt.guid = (curTask == NULL) ? NULL_GUID : curTask->guid;
+        currentEdt.metaDataPtr = curTask;
     #define PD_MSG (&registerMsg)
     #define PD_TYPE PD_MSG_DEP_SATISFY
         registerMsg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
-        PD_MSG_FIELD(guid.guid) = base->guid;
-        PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-        PD_MSG_FIELD(payload.guid) = signalerGuid.guid;
-        PD_MSG_FIELD(payload.metaDataPtr) = NULL;
-        PD_MSG_FIELD(slot) = slot;
-        PD_MSG_FIELD(properties) = 0;
+        PD_MSG_FIELD_I(guid.guid) = base->guid;
+        PD_MSG_FIELD_I(guid.metaDataPtr) = NULL;
+        PD_MSG_FIELD_I(payload.guid) = signalerGuid.guid;
+        PD_MSG_FIELD_I(payload.metaDataPtr) = NULL;
+        PD_MSG_FIELD_I(currentEdt) = currentEdt;
+        PD_MSG_FIELD_I(slot) = slot;
+        PD_MSG_FIELD_I(properties) = 0;
         RESULT_PROPAGATE(pd->fcts.processMessage(pd, &registerMsg, true));
     #undef PD_MSG
     #undef PD_TYPE
@@ -888,7 +893,7 @@ u8 taskExecute(ocrTask_t* base) {
     u32 depc = base->depc;
     ocrPolicyDomain_t *pd = NULL;
     ocrEdtDep_t * depv = derived->resolvedDeps;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     ASSERT(derived->unkDbs == NULL); // Should be no dynamically acquired DBs before running
     getCurrentEnv(&pd, NULL, NULL, NULL);
 
@@ -943,13 +948,13 @@ u8 taskExecute(ocrTask_t* base) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_RELEASE
                 msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-                PD_MSG_FIELD(guid.guid) = depv[i].guid;
-                PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-                PD_MSG_FIELD(edt.guid) = base->guid;
-                PD_MSG_FIELD(edt.metaDataPtr) = base;
-                PD_MSG_FIELD(ptr) = NULL;
-                PD_MSG_FIELD(size) = 0; // TODO check that's set properly for release by hc-dist-policy.c
-                PD_MSG_FIELD(properties) = DB_PROP_RT_ACQUIRE; // Runtime release
+                PD_MSG_FIELD_IO(guid.guid) = depv[i].guid;
+                PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+                PD_MSG_FIELD_I(edt.guid) = base->guid;
+                PD_MSG_FIELD_I(edt.metaDataPtr) = base;
+                PD_MSG_FIELD_I(ptr) = NULL;
+                PD_MSG_FIELD_I(size) = 0; // TODO check that's set properly for release by hc-dist-policy.c
+                PD_MSG_FIELD_I(properties) = DB_PROP_RT_ACQUIRE; // Runtime release
                 // Ignore failures at this point
                 pd->fcts.processMessage(pd, &msg, true);
 #undef PD_MSG
@@ -970,16 +975,16 @@ u8 taskExecute(ocrTask_t* base) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_RELEASE
             msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-            PD_MSG_FIELD(guid.guid) = extraToFree[0];
-            PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-            PD_MSG_FIELD(edt.guid) = base->guid;
-            PD_MSG_FIELD(edt.metaDataPtr) = base;
-            PD_MSG_FIELD(ptr) = NULL;
-            PD_MSG_FIELD(size) = 0;
-            PD_MSG_FIELD(properties) = 0; // Not a runtime free since it was acquired using DB create
+            PD_MSG_FIELD_IO(guid.guid) = extraToFree[0];
+            PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+            PD_MSG_FIELD_I(edt.guid) = base->guid;
+            PD_MSG_FIELD_I(edt.metaDataPtr) = base;
+            PD_MSG_FIELD_I(ptr) = NULL;
+            PD_MSG_FIELD_I(size) = 0;
+            PD_MSG_FIELD_I(properties) = 0; // Not a runtime free since it was acquired using DB create
             if(pd->fcts.processMessage(pd, &msg, true)) {
                 DPRINTF(DEBUG_LVL_WARN, "EDT (GUID: 0x%lx) could not release dynamically acquired DB (GUID: 0x%lx)\n",
-                        base->guid, PD_MSG_FIELD(guid.guid));
+                        base->guid, extraToFree[0]);
                 break;
             }
 #undef PD_MSG
@@ -997,11 +1002,11 @@ u8 taskExecute(ocrTask_t* base) {
     #define PD_MSG (&msg)
     #define PD_TYPE PD_MSG_DEP_ADD
             msg.type = PD_MSG_DEP_ADD | PD_MSG_REQUEST;
-            PD_MSG_FIELD(source.guid) = retGuid;
-            PD_MSG_FIELD(dest.guid) = base->outputEvent;
-            PD_MSG_FIELD(slot) = 0; // Always satisfy on slot 0. This will trickle to
+            PD_MSG_FIELD_I(source.guid) = retGuid;
+            PD_MSG_FIELD_I(dest.guid) = base->outputEvent;
+            PD_MSG_FIELD_I(slot) = 0; // Always satisfy on slot 0. This will trickle to
             // the finish latch if needed
-            PD_MSG_FIELD(properties) = DB_MODE_RO;
+            PD_MSG_FIELD_IO(properties) = DB_MODE_RO;
             // Ignore failure for now
             // FIXME: Probably need to be a bit more selective
             pd->fcts.processMessage(pd, &msg, false);
@@ -1012,13 +1017,15 @@ u8 taskExecute(ocrTask_t* base) {
     #define PD_MSG (&msg)
     #define PD_TYPE PD_MSG_DEP_SATISFY
             msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
-            PD_MSG_FIELD(guid.guid) = base->outputEvent;
-            PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-            PD_MSG_FIELD(payload.guid) = retGuid;
-            PD_MSG_FIELD(payload.metaDataPtr) = NULL;
-            PD_MSG_FIELD(slot) = 0; // Always satisfy on slot 0. This will trickle to
+            PD_MSG_FIELD_I(guid.guid) = base->outputEvent;
+            PD_MSG_FIELD_I(guid.metaDataPtr) = NULL;
+            PD_MSG_FIELD_I(payload.guid) = retGuid;
+            PD_MSG_FIELD_I(payload.metaDataPtr) = NULL;
+            PD_MSG_FIELD_I(currentEdt.guid) = base->guid;
+            PD_MSG_FIELD_I(currentEdt.metaDataPtr) = base;
+            PD_MSG_FIELD_I(slot) = 0; // Always satisfy on slot 0. This will trickle to
             // the finish latch if needed
-            PD_MSG_FIELD(properties) = 0;
+            PD_MSG_FIELD_I(properties) = 0;
             // Ignore failure for now
             // FIXME: Probably need to be a bit more selective
             pd->fcts.processMessage(pd, &msg, false);

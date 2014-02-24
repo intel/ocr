@@ -64,7 +64,7 @@ static u8 takeFromSchedulerAndSend(ocrPolicyDomain_t * pd) {
     // executed. Otherwise it is executed until the scheduler's 'take' do not
     // return any more work.
     ocrMsgHandle_t * outgoingHandle = NULL;
-    ocrPolicyMsg_t msgCommTake;
+    PD_MSG_STACK(msgCommTake);
     u8 ret = 0;
     getCurrentEnv(NULL, NULL, NULL, &msgCommTake);
     ocrFatGuid_t handlerGuid = {.guid = NULL_GUID, .metaDataPtr = NULL};
@@ -75,15 +75,15 @@ static u8 takeFromSchedulerAndSend(ocrPolicyDomain_t * pd) {
     #define PD_MSG (&msgCommTake)
     #define PD_TYPE PD_MSG_COMM_TAKE
     msgCommTake.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guids) = &handlerGuid;
-    PD_MSG_FIELD(extra) = 0; /*unused*/
-    PD_MSG_FIELD(guidCount) = 1;
-    PD_MSG_FIELD(properties) = 0;
-    PD_MSG_FIELD(type) = OCR_GUID_COMM;
+    PD_MSG_FIELD_IO(guids) = &handlerGuid;
+    PD_MSG_FIELD_IO(extra) = 0; /*unused*/
+    PD_MSG_FIELD_IO(guidCount) = 1;
+    PD_MSG_FIELD_I(properties) = 0;
+    PD_MSG_FIELD_IO(type) = OCR_GUID_COMM;
     ret = pd->fcts.processMessage(pd, &msgCommTake, true);
-    if (!ret && (PD_MSG_FIELD(guidCount) != 0)) {
-        ASSERT(PD_MSG_FIELD(guidCount) == 1); //LIMITATION: single guid returned by comm take
-        ocrFatGuid_t handlerGuid = PD_MSG_FIELD(guids[0]);
+    if (!ret && (PD_MSG_FIELD_IO(guidCount) != 0)) {
+        ASSERT(PD_MSG_FIELD_IO(guidCount) == 1); //LIMITATION: single guid returned by comm take
+        ocrFatGuid_t handlerGuid = PD_MSG_FIELD_IO(guids[0]);
         ASSERT(handlerGuid.metaDataPtr != NULL);
         outgoingHandle = (ocrMsgHandle_t *) handlerGuid.metaDataPtr;
     #undef PD_MSG
@@ -152,7 +152,7 @@ static u8 createProcessRequestEdt(ocrPolicyDomain_t * pd, ocrGuid_t templateGuid
     ocrWorkType_t workType = EDT_RT_WORKTYPE;
 
     START_PROFILE(api_EdtCreate);
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     u8 returnCode = 0;
     ocrTask_t *curEdt = NULL;
     getCurrentEnv(NULL, NULL, &curEdt, &msg);
@@ -160,28 +160,28 @@ static u8 createProcessRequestEdt(ocrPolicyDomain_t * pd, ocrGuid_t templateGuid
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_WORK_CREATE
     msg.type = PD_MSG_WORK_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.guid) = NULL_GUID;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(templateGuid.guid) = templateGuid;
-    PD_MSG_FIELD(templateGuid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(affinity.guid) = NULL_GUID;
-    PD_MSG_FIELD(affinity.metaDataPtr) = NULL;
-    PD_MSG_FIELD(outputEvent.guid) = NULL_GUID;
-    PD_MSG_FIELD(outputEvent.metaDataPtr) = NULL;
-    PD_MSG_FIELD(paramv) = paramv;
-    PD_MSG_FIELD(paramc) = paramc;
-    PD_MSG_FIELD(depc) = depc;
-    PD_MSG_FIELD(depv) = NULL;
-    PD_MSG_FIELD(properties) = properties;
-    PD_MSG_FIELD(workType) = workType;
+    PD_MSG_FIELD_IO(guid.guid) = NULL_GUID;
+    PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(templateGuid.guid) = templateGuid;
+    PD_MSG_FIELD_I(templateGuid.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(affinity.guid) = NULL_GUID;
+    PD_MSG_FIELD_I(affinity.metaDataPtr) = NULL;
+    PD_MSG_FIELD_IO(outputEvent.guid) = NULL_GUID;
+    PD_MSG_FIELD_IO(outputEvent.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(paramv) = paramv;
+    PD_MSG_FIELD_IO(paramc) = paramc;
+    PD_MSG_FIELD_IO(depc) = depc;
+    PD_MSG_FIELD_I(depv) = NULL;
+    PD_MSG_FIELD_I(properties) = properties;
+    PD_MSG_FIELD_I(workType) = workType;
     // This is a "fake" EDT so it has no "parent"
-    PD_MSG_FIELD(currentEdt.guid) = NULL_GUID;
-    PD_MSG_FIELD(currentEdt.metaDataPtr) = NULL;
-    PD_MSG_FIELD(parentLatch.guid) = NULL_GUID;
-    PD_MSG_FIELD(parentLatch.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(currentEdt.guid) = NULL_GUID;
+    PD_MSG_FIELD_I(currentEdt.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(parentLatch.guid) = NULL_GUID;
+    PD_MSG_FIELD_I(parentLatch.metaDataPtr) = NULL;
     returnCode = pd->fcts.processMessage(pd, &msg, true);
     if(returnCode) {
-        edtGuid = PD_MSG_FIELD(guid.guid);
+        edtGuid = PD_MSG_FIELD_IO(guid.guid);
         DPRINTF(DEBUG_LVL_VVERB,"hc-comm-worker: Created processRequest EDT GUID 0x%lx\n", edtGuid);
         RETURN_PROFILE(returnCode);
     }
@@ -195,7 +195,7 @@ static void workerLoopHcComm_RL3(ocrWorker_t * worker) {
     ocrWorkerHcComm_t * self = (ocrWorkerHcComm_t *) worker;
     ocrPolicyDomain_t *pd = worker->pd;
 
-    ocrGuid_t processRequestTemplate;
+    ocrGuid_t processRequestTemplate = NULL_GUID;
     ocrEdtTemplateCreate(&processRequestTemplate, &processRequestEdt, 1, 0);
 
     // This loop exits on the first call to stop.
@@ -218,15 +218,15 @@ static void workerLoopHcComm_RL3(ocrWorker_t * worker) {
                 // Someone is expecting this response, give it back to the PD
                 ocrFatGuid_t fatGuid;
                 fatGuid.metaDataPtr = handle;
-                ocrPolicyMsg_t giveMsg;
+                PD_MSG_STACK(giveMsg);
                 getCurrentEnv(NULL, NULL, NULL, &giveMsg);
             #define PD_MSG (&giveMsg)
             #define PD_TYPE PD_MSG_COMM_GIVE
                 giveMsg.type = PD_MSG_COMM_GIVE | PD_MSG_REQUEST;
-                PD_MSG_FIELD(guids) = &fatGuid;
-                PD_MSG_FIELD(guidCount) = 1;
-                PD_MSG_FIELD(properties) = 0;
-                PD_MSG_FIELD(type) = OCR_GUID_COMM;
+                PD_MSG_FIELD_IO(guids) = &fatGuid;
+                PD_MSG_FIELD_IO(guidCount) = 1;
+                PD_MSG_FIELD_I(properties) = 0;
+                PD_MSG_FIELD_I(type) = OCR_GUID_COMM;
                 ret = pd->fcts.processMessage(pd, &giveMsg, false);
                 ASSERT(ret == 0);
             #undef PD_MSG
@@ -320,7 +320,7 @@ void* runWorkerHcComm(ocrWorker_t * worker) {
         hal_memCopy(dbPtr, packedUserArgv, totalLength, 0);
 
         // Prepare the mainEdt for scheduling
-        ocrGuid_t edtTemplateGuid, edtGuid;
+        ocrGuid_t edtTemplateGuid = NULL_GUID, edtGuid = NULL_GUID;
         ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 1);
         ocrEdtCreate(&edtGuid, edtTemplateGuid, EDT_PARAM_DEF, /* paramv = */ NULL,
                     /* depc = */ EDT_PARAM_DEF, /* depv = */ &dbGuid,

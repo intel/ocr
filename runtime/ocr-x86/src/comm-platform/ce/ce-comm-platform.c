@@ -99,6 +99,10 @@ void ceCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrCo
     ocrCommPlatformCe_t * cp = (ocrCommPlatformCe_t *)commPlatform;
     commPlatform->pd = PD;
 
+    // Initialize the bufferSize properly for recvBuf and sendBuf
+    initializePolicyMessage(&recvBuf, sizeof(ocrPolicyMsg_t));
+    initializePolicyMessage(&sendBuf, sizeof(ocrPolicyMsg_t));
+
     // FIXME: HACK!!! HACK!!! HACK!!!
     // Because currently PD->Start() never returns, the CE cannot
     // Start() before booting its XEs. So, it boots the XEs and
@@ -188,7 +192,7 @@ u8 ceCommSetMaxExpectedMessageSize(ocrCommPlatform_t *self, u64 size, u32 mask) 
 }
 
 u8 ceCommSendMessageToCE(ocrCommPlatform_t *self, ocrLocation_t target,
-                     ocrPolicyMsg_t *message, u64 bufferSize, u64 *id,
+                     ocrPolicyMsg_t *message, u64 *id,
                      u32 properties, u32 mask) {
 
     u32 i;
@@ -204,25 +208,26 @@ u8 ceCommSendMessageToCE(ocrCommPlatform_t *self, ocrLocation_t target,
         return 1;
     }
 
-    u64 fullMsgSize = 0, marshalledSize = 0;
-    ocrPolicyMsgGetMsgSize(message, &fullMsgSize, &marshalledSize, 0);
-    if(fullMsgSize > (bufferSize >> 32)) {
-        DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %ld\n",
-                bufferSize >> 32);
+    u64 baseSize = 0, marshalledSize = 0;
+    ocrPolicyMsgGetMsgSize(message, &baseSize, &marshalledSize, 0);
+    if(baseSize + marshalledSize > sendBuf.bufferSize) {
+
+        DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %lu (0x%lx)\n",
+                sendBuf.bufferSize, &sendBuf);
         ASSERT(0);
     }
 
     message->msgId = msgId++;
     message->type |= PD_CE_CE_MESSAGE;
-    ocrPolicyMsgMarshallMsg(message, (u8 *)&sendBuf, MARSHALL_FULL_COPY);
+    ocrPolicyMsgMarshallMsg(message, baseSize, (u8 *)&sendBuf, MARSHALL_FULL_COPY);
 
     msgAbsAddr = DR_CE_BASE(CHIP_FROM_ID(self->location),
                             UNIT_FROM_ID(self->location), BLOCK_FROM_ID(self->location))
-                            + (u64)(&sendBuf);
+        + (u64)(&sendBuf);
 
     u64 *rmbox = (u64 *) (DR_CE_BASE(CHIP_FROM_ID(target),
-                                   UNIT_FROM_ID(target), BLOCK_FROM_ID(target))
-                                   + (u64)(msgAddresses));
+                                     UNIT_FROM_ID(target), BLOCK_FROM_ID(target))
+                          + (u64)(msgAddresses));
     u32 k = 0;
     do {
         for(i = 0; i<OUTSTANDING_CE_MSGS; i++, k++) {
@@ -248,27 +253,23 @@ u8 ceCommSendMessageToCE(ocrCommPlatform_t *self, ocrLocation_t target,
 }
 
 u8 ceCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
-                     ocrPolicyMsg_t *message, u64 bufferSize, u64 *id,
+                     ocrPolicyMsg_t *message, u64 *id,
                      u32 properties, u32 mask) {
 
     ASSERT(self != NULL);
     ASSERT(message != NULL);
-    ASSERT(bufferSize != 0);
     ASSERT(target != self->location);
 
     ocrCommPlatformCe_t * cp = (ocrCommPlatformCe_t *)self;
-
     // If target is not in the same block, use a different function
     // FIXME: do the same for chip/unit/board as well, or better yet, a new macro
     if((self->location & ~ID_AGENT_MASK) != (target & ~ID_AGENT_MASK)) {
-        return ceCommSendMessageToCE(self, target, message, bufferSize, id, properties, mask);
+        return ceCommSendMessageToCE(self, target, message, id, properties, mask);
     } else {
 
         // TODO: compute all-but-agent & compare between us & target
         // Target XE's stage (note this is in remote XE memory!)
         u64 * rq = cp->rq[((u64)target) & ID_AGENT_MASK];
-
-        // bufferSize: Top u32 is buffer size, bottom u32 is message size
 
         // - Check remote stage Empty/Busy/Full is Empty.
         {
@@ -280,19 +281,20 @@ u8 ceCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
 #ifndef ENABLE_BUILDER_ONLY
         // - DMA to remote stage
         // We marshall things properly
-        u64 fullMsgSize = 0, marshalledSize = 0;
-        ocrPolicyMsgGetMsgSize(message, &fullMsgSize, &marshalledSize, 0);
+        u64 baseSize = 0, marshalledSize = 0;
+        ocrPolicyMsgGetMsgSize(message, &baseSize, &marshalledSize, 0);
         // We can only deal with the case where everything fits in the message
-        if(fullMsgSize > (bufferSize >> 32)) {
+        if(baseSize + marshalledSize > message->bufferSize) {
             DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %ld\n",
-                bufferSize >> 32);
+                    message->bufferSize);
             ASSERT(0);
         }
-        ocrPolicyMsgMarshallMsg(message, (u8*)message, MARSHALL_APPEND);
+        ocrPolicyMsgMarshallMsg(message, baseSize, (u8*)message, MARSHALL_APPEND);
+        ASSERT(message->usefulSize <= MSG_QUEUE_SIZE - sizeof(u64));
         // - DMA to remote stage, with fence
         DPRINTF(DEBUG_LVL_VVERB, "DMA-ing out message to 0x%lx of size %d\n",
-            (u64)&rq[1], message->size);
-        rmd_mmio_dma_copyregion_async((u64)message, (u64)&rq[1], message->size);
+                (u64)&rq[1], message->usefulSize);
+        rmd_mmio_dma_copyregion_async((u64)message, (u64)&rq[1], message->usefulSize);
 
         // - Fence DMA
         rmd_fence_fbm();
@@ -308,7 +310,7 @@ u8 ceCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
 }
 
 u8 ceCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
-                     u64* bufferSize, u32 properties, u32 *mask) {
+                     u32 properties, u32 *mask) {
 
     ASSERT(self != NULL);
     ASSERT(msg != NULL);
@@ -341,15 +343,15 @@ u8 ceCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
         // We have a message
         // Provide a ptr to the local stage's contents
         *msg = (ocrPolicyMsg_t *)&((cp->lq[i])[1]);
+        ASSERT((*msg)->bufferSize <= MSG_QUEUE_SIZE - sizeof(u64));
         // We fixup pointers
-        u64 fullMsgSize = 0, marshalledSize = 0;
-        ocrPolicyMsgGetMsgSize(*msg, &fullMsgSize, &marshalledSize, 0);
-        if(fullMsgSize > sizeof(ocrPolicyMsg_t)) {
+        u64 baseSize = 0, marshalledSize = 0;
+        ocrPolicyMsgGetMsgSize(*msg, &baseSize, &marshalledSize, 0);
+        if(baseSize + marshalledSize > (*msg)->bufferSize) {
             DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %ld\n",
-                    sizeof(ocrPolicyMsg_t));
+                    (*msg)->bufferSize);
             ASSERT(0);
         }
-        (*msg)->size = fullMsgSize; // Reset it properly
         ocrPolicyMsgUnMarshallMsg((u8*)*msg, NULL, *msg, MARSHALL_APPEND);
 
         // Advance queue for next check
@@ -377,16 +379,15 @@ u8 ceCommCheckCEMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg) {
         ASSERT(msgAddresses[j]);
         *msg = (ocrPolicyMsg_t *)(msgAddresses[j]);
         // We fixup pointers
-        u64 fullMsgSize = 0, marshalledSize = 0;
+        u64 baseSize = 0, marshalledSize = 0;
 
-        ocrPolicyMsgGetMsgSize(*msg, &fullMsgSize, &marshalledSize, 0);
-        if(fullMsgSize > sizeof(ocrPolicyMsg_t)) {
+        ocrPolicyMsgGetMsgSize(*msg, &baseSize, &marshalledSize, 0);
+        if(baseSize + marshalledSize > recvBuf.bufferSize) {
             DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %ld\n",
-                    sizeof(ocrPolicyMsg_t));
+                    recvBuf.bufferSize);
             ASSERT(0);
         }
         DPRINTF(DEBUG_LVL_VVERB, "Got message %lx from CE of type %x\n", (*msg)->msgId, (*msg)->type);
-        (*msg)->size = fullMsgSize; // Reset it properly
         ocrPolicyMsgUnMarshallMsg((u8*)*msg, NULL, &recvBuf, MARSHALL_FULL_COPY);
         ceCommDestructCEMessage(self, *msg);
         *msg = &recvBuf;
@@ -396,7 +397,7 @@ u8 ceCommCheckCEMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg) {
 }
 
 u8 ceCommWaitMessage(ocrCommPlatform_t *self,  ocrPolicyMsg_t **msg,
-                     u64* bufferSize, u32 properties, u32 *mask) {
+                     u32 properties, u32 *mask) {
 
     ASSERT(self != NULL);
     ASSERT(msg != NULL);
@@ -432,14 +433,13 @@ u8 ceCommWaitMessage(ocrCommPlatform_t *self,  ocrPolicyMsg_t **msg,
             i, &((cp->lq[i])[1]));
     *msg = (ocrPolicyMsg_t *)&((cp->lq[i])[1]);
     // We fixup pointers
-    u64 fullMsgSize = 0, marshalledSize = 0;
-    ocrPolicyMsgGetMsgSize(*msg, &fullMsgSize, &marshalledSize, 0);
-    if(fullMsgSize > sizeof(ocrPolicyMsg_t)) {
+    u64 baseSize = 0, marshalledSize = 0;
+    ocrPolicyMsgGetMsgSize(*msg, &baseSize, &marshalledSize, 0);
+    if(baseSize + marshalledSize > (*msg)->bufferSize) {
         DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %ld\n",
-                sizeof(ocrPolicyMsg_t));
+                (*msg)->bufferSize);
         ASSERT(0);
     }
-    (*msg)->size = fullMsgSize; // Reset it properly
     ocrPolicyMsgUnMarshallMsg((u8*)*msg, NULL, *msg, MARSHALL_APPEND);
 #else
     // We have a message
@@ -552,10 +552,10 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryCe(ocrParamList_t *perType) {
     base->platformFcts.setMaxExpectedMessageSize = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, u64, u32),
             ceCommSetMaxExpectedMessageSize);
     base->platformFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrLocation_t,
-                                     ocrPolicyMsg_t *, u64, u64*, u32, u32), ceCommSendMessage);
-    base->platformFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**, u64*, u32, u32*),
+                                     ocrPolicyMsg_t *, u64*, u32, u32), ceCommSendMessage);
+    base->platformFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**, u32, u32*),
                                      ceCommPollMessage);
-    base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**, u64*, u32, u32*),
+    base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**, u32, u32*),
                                      ceCommWaitMessage);
     base->platformFcts.destructMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t*),
                                          ceCommDestructMessage);
@@ -563,3 +563,4 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryCe(ocrParamList_t *perType) {
     return base;
 }
 #endif /* ENABLE_COMM_PLATFORM_CE */
+

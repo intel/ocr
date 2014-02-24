@@ -62,14 +62,14 @@ void sharedStop(ocrMemTarget_t *self) {
     self->memories[0]->fcts.stop(self->memories[0]);
 
     // Destroy the GUID
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(NULL, NULL, NULL, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid) = self->fguid;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(guid) = self->fguid;
+    PD_MSG_FIELD_I(properties) = 0;
     self->pd->fcts.processMessage(self->pd, &msg, false); // Probably shutting down
 #undef PD_MSG
 #undef PD_TYPE

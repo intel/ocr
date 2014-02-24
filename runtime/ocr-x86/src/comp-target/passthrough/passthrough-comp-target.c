@@ -58,14 +58,15 @@ void ptStop(ocrCompTarget_t * compTarget) {
     compTarget->platforms[0]->fcts.stop(compTarget->platforms[0]);
 
     // Destroy the GUID
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
+
     getCurrentEnv(NULL, NULL, NULL, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid) = compTarget->fguid;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(guid) = compTarget->fguid;
+    PD_MSG_FIELD_I(properties) = 0;
     compTarget->pd->fcts.processMessage(compTarget->pd, &msg, false); // Don't really care about result
 #undef PD_MSG
 #undef PD_TYPE

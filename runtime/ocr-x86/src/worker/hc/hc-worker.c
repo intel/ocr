@@ -43,26 +43,26 @@ static inline u64 getWorkerId(ocrWorker_t * worker) {
 
 static void hcWorkShift(ocrWorker_t * worker) {
     ocrPolicyDomain_t * pd;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(&pd, NULL, NULL, &msg);
     ocrFatGuid_t taskGuid = {.guid = NULL_GUID, .metaDataPtr = NULL};
     u32 count = 1;
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_COMM_TAKE
     msg.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guids) = &taskGuid;
-    PD_MSG_FIELD(guidCount) = count;
-    PD_MSG_FIELD(properties) = 0;
-    PD_MSG_FIELD(type) = OCR_GUID_EDT;
+    PD_MSG_FIELD_IO(guids) = &taskGuid;
+    PD_MSG_FIELD_IO(guidCount) = count;
+    PD_MSG_FIELD_I(properties) = 0;
+    PD_MSG_FIELD_IO(type) = OCR_GUID_EDT;
     // TODO: In the future, potentially take more than one)
     if(pd->fcts.processMessage(pd, &msg, true) == 0) {
         // We got a response
-        count = PD_MSG_FIELD(guidCount);
+        count = PD_MSG_FIELD_IO(guidCount);
         if(count == 1) {
             ASSERT(taskGuid.guid != NULL_GUID && taskGuid.metaDataPtr != NULL);
             worker->curTask = (ocrTask_t*)taskGuid.metaDataPtr;
             DPRINTF(DEBUG_LVL_VERB, "Worker shifting to execute EDT GUID 0x%lx\n", taskGuid.guid);
-            u8 (*executeFunc)(ocrTask_t *) = (u8 (*)(ocrTask_t*))PD_MSG_FIELD(extra); // Execute is stored in extra
+            u8 (*executeFunc)(ocrTask_t *) = (u8 (*)(ocrTask_t*))PD_MSG_FIELD_IO(extra); // Execute is stored in extra
             executeFunc(worker->curTask);
             // Mark the task. Allows the PD to check the state of workers
             // and detect quiescence, without weird behavior because curTask
@@ -76,8 +76,9 @@ static void hcWorkShift(ocrWorker_t * worker) {
 #define PD_TYPE PD_MSG_WORK_DESTROY
             getCurrentEnv(NULL, NULL, NULL, &msg);
             msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
-            PD_MSG_FIELD(guid) = taskGuid;
-            PD_MSG_FIELD(properties) = 0;
+            PD_MSG_FIELD_I(guid) = taskGuid;
+            PD_MSG_FIELD_I(currentEdt) = taskGuid;
+            PD_MSG_FIELD_I(properties) = 0;
             // Ignore failures, we may be shutting down
             pd->fcts.processMessage(pd, &msg, false);
 #undef PD_MSG
@@ -202,7 +203,7 @@ void* hcRunWorker(ocrWorker_t * worker) {
         hal_memCopy(dbPtr, packedUserArgv, totalLength, 0);
 
         // Prepare the mainEdt for scheduling
-        ocrGuid_t edtTemplateGuid, edtGuid;
+        ocrGuid_t edtTemplateGuid = NULL_GUID, edtGuid = NULL_GUID;
         ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 1);
         ocrEdtCreate(&edtGuid, edtTemplateGuid, EDT_PARAM_DEF, /* paramv = */ NULL,
                      /* depc = */ EDT_PARAM_DEF, /* depv = */ &dbGuid,
@@ -248,14 +249,14 @@ void hcStopWorker(ocrWorker_t * base) {
     DPRINTF(DEBUG_LVL_INFO, "Stopping worker %ld\n", getWorkerId(base));
 
     // Destroy the GUID
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(NULL, NULL, NULL, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid) = base->fguid;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(guid) = base->fguid;
+    PD_MSG_FIELD_I(properties) = 0;
     ASSERT(base->pd != NULL);
     // Ignore failure here, we are most likely shutting down
     base->pd->fcts.processMessage(base->pd, &msg, false);

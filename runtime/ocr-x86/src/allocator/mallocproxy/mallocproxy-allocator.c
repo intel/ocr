@@ -299,8 +299,8 @@ void mallocProxyStop(ocrAllocator_t *self) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid) = self->fguid;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(guid) = self->fguid;
+    PD_MSG_FIELD_I(properties) = 0;
     self->pd->fcts.processMessage(self->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE

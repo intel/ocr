@@ -175,14 +175,14 @@ void ceStopWorker(ocrWorker_t * base) {
     DPRINTF(DEBUG_LVL_INFO, "Stopping worker %ld\n", getWorkerId(base));
 
     // Destroy the GUID
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(NULL, NULL, NULL, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid) = base->fguid;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(guid) = base->fguid;
+    PD_MSG_FIELD_I(properties) = 0;
     RESULT_ASSERT(base->pd->fcts.processMessage(base->pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE

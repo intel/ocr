@@ -123,7 +123,7 @@ void hcSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
 
 void hcSchedulerStop(ocrScheduler_t * self) {
     ocrPolicyDomain_t *pd = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(&pd, NULL, NULL, &msg);
 
     // Stop the workpiles
@@ -142,9 +142,9 @@ void hcSchedulerStop(ocrScheduler_t * self) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid) = self->fguid;
-    PD_MSG_FIELD(guid.metaDataPtr) = self;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(guid) = self->fguid;
+    PD_MSG_FIELD_I(guid.metaDataPtr) = self;
+    PD_MSG_FIELD_I(properties) = 0;
     // Ignore failure, probably shutting down
     pd->fcts.processMessage(pd, &msg, false);
 #undef PD_MSG

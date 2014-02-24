@@ -227,23 +227,24 @@ static u8 lockableAcquireInternal(ocrDataBlock_t *self, void** ptr, ocrFatGuid_t
  **/
 static void processAcquireCallback(ocrDataBlock_t *self, dbWaiter_t * waiter, ocrDbAccessMode_t waiterMode, u32 properties, ocrPolicyMsg_t * msg) {
     getCurrentEnv(NULL, NULL, NULL, msg);
+    // The In/Out nature of certain parameters (bug #273) is exposed here
 #define PD_MSG (msg)
 #define PD_TYPE PD_MSG_DB_ACQUIRE
     msg->type = PD_MSG_DB_ACQUIRE | PD_MSG_RESPONSE;
-    PD_MSG_FIELD(guid.guid) = self->guid;
-    PD_MSG_FIELD(guid.metaDataPtr) = self;
-    PD_MSG_FIELD(edt.guid) = waiter->guid;
-    PD_MSG_FIELD(edt.metaDataPtr) = NULL;
-    PD_MSG_FIELD(edtSlot) = waiter->slot;
-    PD_MSG_FIELD(size) = self->size;
+    PD_MSG_FIELD_IO(guid.guid) = self->guid;
+    PD_MSG_FIELD_IO(guid.metaDataPtr) = self;
+    PD_MSG_FIELD_IO(edt.guid) = waiter->guid;
+    PD_MSG_FIELD_IO(edt.metaDataPtr) = NULL;
+    PD_MSG_FIELD_IO(edtSlot) = waiter->slot;
+    PD_MSG_FIELD_O(size) = self->size;
     // In this implementation properties encodes the MODE + isInternal +
     // any additional flags set by the PD (such as the FETCH flag)
-    PD_MSG_FIELD(properties) = properties;
-    PD_MSG_FIELD(returnDetail) = 0;
+    PD_MSG_FIELD_IO(properties) = properties;
+    PD_MSG_FIELD_O(returnDetail) = 0;
     //NOTE: we still have the lock, calling the internal version
-    u8 res = lockableAcquireInternal(self, &PD_MSG_FIELD(ptr), PD_MSG_FIELD(edt),
-                                  PD_MSG_FIELD(edtSlot), waiterMode, waiter->isInternal,
-                                  PD_MSG_FIELD(properties));
+    u8 res = lockableAcquireInternal(self, &PD_MSG_FIELD_O(ptr), PD_MSG_FIELD_IO(edt),
+                                  PD_MSG_FIELD_IO(edtSlot), waiterMode, waiter->isInternal,
+                                  PD_MSG_FIELD_IO(properties));
     // Not much we would be able to recover here
     ASSERT(!res);
 #undef PD_MSG
@@ -320,7 +321,7 @@ u8 lockableRelease(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
             // Switching to ITW mode, now we can release all waiters that belong
             // to the same location the elected waiter is.
             ocrPolicyDomain_t * pd = NULL;
-            ocrPolicyMsg_t msg;
+            PD_MSG_STACK(msg);
             getCurrentEnv(&pd, NULL, NULL, NULL);
             // Setup: Have ITW lock + its right location for acquire
             ocrLocation_t itwLocation = guidToLocation(pd, waiter->guid);
@@ -358,7 +359,7 @@ u8 lockableRelease(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
             // EW: by design there should be a waiter otherwise we would have exit the modeLock
             ASSERT(waiter != NULL);
             ocrPolicyDomain_t * pd = NULL;
-            ocrPolicyMsg_t msg;
+            PD_MSG_STACK(msg);
             getCurrentEnv(&pd, NULL, NULL, &msg);
             rself->attributes.modeLock = DB_LOCKED_NONE; // technicality so that acquire sees the DB is not acquired
             // Acquire the DB on behalf of the next waiter (i.e. numUser++)
@@ -379,7 +380,7 @@ u8 lockableRelease(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
             if (waiter != NULL) {
                 // transition EW -> RO, release all RO waiters
                 ocrPolicyDomain_t * pd = NULL;
-                ocrPolicyMsg_t msg;
+                PD_MSG_STACK(msg);
                 getCurrentEnv(&pd, NULL, NULL, NULL);
                 rself->roWaiterList = NULL;
                 do {
@@ -439,19 +440,19 @@ u8 lockableDestruct(ocrDataBlock_t *self) {
     DPRINTF(DEBUG_LVL_VERB, "Freeing DB (GUID: 0x%lx)\n", self->guid);
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *task = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(&pd, NULL, &task, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_UNALLOC
     msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST;
-    PD_MSG_FIELD(ptr) = self->ptr;
-    PD_MSG_FIELD(allocatingPD.guid) = self->allocatingPD;
-    PD_MSG_FIELD(allocatingPD.metaDataPtr) = NULL;
-    PD_MSG_FIELD(allocator.guid) = self->allocator;
-    PD_MSG_FIELD(allocator.metaDataPtr) = NULL;
-    PD_MSG_FIELD(type) = DB_MEMTYPE;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(ptr) = self->ptr;
+    PD_MSG_FIELD_I(allocatingPD.guid) = self->allocatingPD;
+    PD_MSG_FIELD_I(allocatingPD.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(allocator.guid) = self->allocator;
+    PD_MSG_FIELD_I(allocator.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(type) = DB_MEMTYPE;
+    PD_MSG_FIELD_I(properties) = 0;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
 
 
@@ -466,9 +467,9 @@ u8 lockableDestruct(ocrDataBlock_t *self) {
     getCurrentEnv(NULL, NULL, NULL, &msg);
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     // These next two statements may be not required. Just to be safe
-    PD_MSG_FIELD(guid.guid) = self->guid;
-    PD_MSG_FIELD(guid.metaDataPtr) = self;
-    PD_MSG_FIELD(properties) = 1; // Free metadata
+    PD_MSG_FIELD_I(guid.guid) = self->guid;
+    PD_MSG_FIELD_I(guid.metaDataPtr) = self;
+    PD_MSG_FIELD_I(properties) = 1; // Free metadata
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
 #undef PD_MSG
 #undef PD_TYPE
@@ -510,23 +511,23 @@ ocrDataBlock_t* newDataBlockLockable(ocrDataBlockFactory_t *factory, ocrFatGuid_
                                     u32 flags, ocrParamList_t *perInstance) {
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *task = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
 
     getCurrentEnv(&pd, NULL, &task, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_CREATE
     msg.type = PD_MSG_GUID_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.guid) = NULL_GUID;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(size) = sizeof(ocrDataBlockLockable_t);
-    PD_MSG_FIELD(kind) = OCR_GUID_DB;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_IO(guid.guid) = NULL_GUID;
+    PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(size) = sizeof(ocrDataBlockLockable_t);
+    PD_MSG_FIELD_I(kind) = OCR_GUID_DB;
+    PD_MSG_FIELD_I(properties) = 0;
 
     RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), NULL);
 
-    ocrDataBlockLockable_t *result = (ocrDataBlockLockable_t*)PD_MSG_FIELD(guid.metaDataPtr);
-    result->base.guid = PD_MSG_FIELD(guid.guid);
+    ocrDataBlockLockable_t *result = (ocrDataBlockLockable_t*)PD_MSG_FIELD_IO(guid.metaDataPtr);
+    result->base.guid = PD_MSG_FIELD_IO(guid.guid);
 #undef PD_MSG
 #undef PD_TYPE
 

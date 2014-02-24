@@ -42,7 +42,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     // TODO: I need to get the current policy to figure out my allocator.
     // Replace with allocator that is gotten from policy
     //
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
     u8 returnCode = 0;
@@ -51,22 +51,21 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_CREATE
     msg.type = PD_MSG_DB_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.guid) = *db;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(edt.guid) = task?task->guid:NULL_GUID; // Can happen when non EDT creates the DB
-    PD_MSG_FIELD(edt.metaDataPtr) = task;
-    PD_MSG_FIELD(size) = len;
-    PD_MSG_FIELD(affinity.guid) = affinity;
-    PD_MSG_FIELD(affinity.metaDataPtr) = NULL;
-    PD_MSG_FIELD(properties) = (u32) flags;
-    PD_MSG_FIELD(returnDetail) = 0;
-    PD_MSG_FIELD(dbType) = USER_DBTYPE;
-    PD_MSG_FIELD(allocator) = allocator;
+    PD_MSG_FIELD_IO(guid.guid) = *db;
+    PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(edt.guid) = task?task->guid:NULL_GUID; // Can happen when non EDT creates the DB
+    PD_MSG_FIELD_I(edt.metaDataPtr) = task;
+    PD_MSG_FIELD_I(size) = len;
+    PD_MSG_FIELD_I(affinity.guid) = affinity;
+    PD_MSG_FIELD_I(affinity.metaDataPtr) = NULL;
+    PD_MSG_FIELD_IO(properties) = (u32) flags;
+    PD_MSG_FIELD_I(dbType) = USER_DBTYPE;
+    PD_MSG_FIELD_I(allocator) = allocator;
 
     returnCode = policy->fcts.processMessage(policy, &msg, true);
     if(returnCode == 0) {
-        *db = PD_MSG_FIELD(guid.guid);
-        *addr = PD_MSG_FIELD(ptr);
+        *db = PD_MSG_FIELD_IO(guid.guid);
+        *addr = PD_MSG_FIELD_O(ptr);
     } else {
         *addr = NULL;
     }
@@ -86,11 +85,11 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 #define PD_TYPE PD_MSG_DEP_DYNADD
         getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DEP_DYNADD | PD_MSG_REQUEST;
-        PD_MSG_FIELD(edt.guid) = task->guid;
-        PD_MSG_FIELD(edt.metaDataPtr) = task;
-        PD_MSG_FIELD(db.guid) = *db;
-        PD_MSG_FIELD(db.metaDataPtr) = NULL;
-        PD_MSG_FIELD(properties) = 0;
+        PD_MSG_FIELD_I(edt.guid) = task->guid;
+        PD_MSG_FIELD_I(edt.metaDataPtr) = task;
+        PD_MSG_FIELD_I(db.guid) = *db;
+        PD_MSG_FIELD_I(db.metaDataPtr) = NULL;
+        PD_MSG_FIELD_I(properties) = 0;
         policy->fcts.processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
@@ -108,7 +107,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
 
     START_PROFILE(api_DbDestroy);
     DPRINTF(DEBUG_LVL_INFO, "ENTER ocrDbDestroy(guid=0x%lx)\n", db);
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
     getCurrentEnv(&policy, NULL, &task, &msg);
@@ -116,10 +115,10 @@ u8 ocrDbDestroy(ocrGuid_t db) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_FREE
     msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid.guid) = db;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(edt.guid) = task?task->guid:NULL_GUID;
-    PD_MSG_FIELD(edt.metaDataPtr) = task;
+    PD_MSG_FIELD_I(guid.guid) = db;
+    PD_MSG_FIELD_I(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(edt.guid) = task?task->guid:NULL_GUID;
+    PD_MSG_FIELD_I(edt.metaDataPtr) = task;
 #undef PD_MSG
 #undef PD_TYPE
     u8 returnCode = policy->fcts.processMessage(policy, &msg, false);
@@ -133,11 +132,11 @@ u8 ocrDbDestroy(ocrGuid_t db) {
 #define PD_TYPE PD_MSG_DEP_DYNREMOVE
         getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DEP_DYNREMOVE | PD_MSG_REQUEST;
-        PD_MSG_FIELD(edt.guid) = task->guid;
-        PD_MSG_FIELD(edt.metaDataPtr) = task;
-        PD_MSG_FIELD(db.guid) = db;
-        PD_MSG_FIELD(db.metaDataPtr) = NULL;
-        PD_MSG_FIELD(properties) = 0;
+        PD_MSG_FIELD_I(edt.guid) = task->guid;
+        PD_MSG_FIELD_I(edt.metaDataPtr) = task;
+        PD_MSG_FIELD_I(db.guid) = db;
+        PD_MSG_FIELD_I(db.metaDataPtr) = NULL;
+        PD_MSG_FIELD_I(properties) = 0;
         policy->fcts.processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
@@ -154,7 +153,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
 
     START_PROFILE(api_DbRelease);
     DPRINTF(DEBUG_LVL_INFO, "ENTER ocrDbRelease(guid=0x%lx)\n", db);
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
     getCurrentEnv(&policy, NULL, &task, &msg);
@@ -162,15 +161,13 @@ u8 ocrDbRelease(ocrGuid_t db) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_RELEASE
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.guid) = db;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(edt.guid) = task?task->guid:NULL_GUID;
-    PD_MSG_FIELD(edt.metaDataPtr) = task;
-    PD_MSG_FIELD(ptr) = NULL;
-    PD_MSG_FIELD(size) = 0;
-    PD_MSG_FIELD(properties) = 0;
-    PD_MSG_FIELD(returnDetail) = 0;
-
+    PD_MSG_FIELD_IO(guid.guid) = db;
+    PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(edt.guid) = task?task->guid:NULL_GUID;
+    PD_MSG_FIELD_I(edt.metaDataPtr) = task;
+    PD_MSG_FIELD_I(ptr) = NULL;
+    PD_MSG_FIELD_I(size) = 0;
+    PD_MSG_FIELD_I(properties) = 0;
     u8 returnCode = policy->fcts.processMessage(policy, &msg, true);
 #undef PD_MSG
 #undef PD_TYPE
@@ -184,11 +181,11 @@ u8 ocrDbRelease(ocrGuid_t db) {
 #define PD_TYPE PD_MSG_DEP_DYNREMOVE
         getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DEP_DYNREMOVE | PD_MSG_REQUEST;
-        PD_MSG_FIELD(edt.guid) = task->guid;
-        PD_MSG_FIELD(edt.metaDataPtr) = task;
-        PD_MSG_FIELD(db.guid) = db;
-        PD_MSG_FIELD(db.metaDataPtr) = NULL;
-        PD_MSG_FIELD(properties) = 0;
+        PD_MSG_FIELD_I(edt.guid) = task->guid;
+        PD_MSG_FIELD_I(edt.metaDataPtr) = task;
+        PD_MSG_FIELD_I(db.guid) = db;
+        PD_MSG_FIELD_I(db.metaDataPtr) = NULL;
+        PD_MSG_FIELD_I(properties) = 0;
         policy->fcts.processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE

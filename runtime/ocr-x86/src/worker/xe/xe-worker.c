@@ -41,7 +41,7 @@ static inline u64 getWorkerId(ocrWorker_t * worker) {
  */
 static void workerLoop(ocrWorker_t * worker) {
     ocrPolicyDomain_t *pd = worker->pd;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(NULL, NULL, NULL, &msg);
     while(worker->fcts.isRunning(worker)) {
         ocrFatGuid_t taskGuid = {.guid = NULL_GUID, .metaDataPtr = NULL};
@@ -49,19 +49,19 @@ static void workerLoop(ocrWorker_t * worker) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_COMM_TAKE
         msg.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-        PD_MSG_FIELD(guids) = &taskGuid;
-        PD_MSG_FIELD(guidCount) = count;
-        PD_MSG_FIELD(properties) = 0;
-        PD_MSG_FIELD(type) = OCR_GUID_EDT;
+        PD_MSG_FIELD_IO(guids) = &taskGuid;
+        PD_MSG_FIELD_IO(guidCount) = count;
+        PD_MSG_FIELD_I(properties) = 0;
+        PD_MSG_FIELD_IO(type) = OCR_GUID_EDT;
         if(pd->fcts.processMessage(pd, &msg, true) == 0) {
             // We got a response
-            count = PD_MSG_FIELD(guidCount);
+            count = PD_MSG_FIELD_IO(guidCount);
             if(count == 1) {
                 // REC: TODO: Do we need a message to execute this
-                taskGuid = PD_MSG_FIELD(guids[0]);
+                taskGuid = PD_MSG_FIELD_IO(guids[0]);
                 ASSERT(taskGuid.guid != NULL_GUID && taskGuid.metaDataPtr != NULL);
                 worker->curTask = (ocrTask_t*)taskGuid.metaDataPtr;
-                u8 (*executeFunc)(ocrTask_t *) = (u8 (*)(ocrTask_t*))PD_MSG_FIELD(extra); // Execute is stored in extra
+                u8 (*executeFunc)(ocrTask_t *) = (u8 (*)(ocrTask_t*))PD_MSG_FIELD_IO(extra); // Execute is stored in extra
                 executeFunc(worker->curTask);
                 worker->curTask = NULL;
 #undef PD_TYPE
@@ -69,8 +69,9 @@ static void workerLoop(ocrWorker_t * worker) {
 #define PD_TYPE PD_MSG_WORK_DESTROY
                 getCurrentEnv(NULL, NULL, NULL, &msg);
                 msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
-                PD_MSG_FIELD(guid) = taskGuid;
-                PD_MSG_FIELD(properties) = 0;
+                PD_MSG_FIELD_I(guid) = taskGuid;
+                PD_MSG_FIELD_I(currentEdt) = taskGuid;
+                PD_MSG_FIELD_I(properties) = 0;
                 // Ignore failures, we may be shutting down
                 pd->fcts.processMessage(pd, &msg, false);
 #undef PD_MSG
@@ -181,24 +182,23 @@ void* xeRunWorker(ocrWorker_t * worker) {
         hal_memCopy(dbPtr, packedUserArgv, totalLength, 0);
         // Release the DB so that mainEdt can acquire it.
         // Do not invoke ocrDbRelease to avoid the warning there.
-        ocrPolicyMsg_t msg;
+        PD_MSG_STACK(msg);
         getCurrentEnv(NULL, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_RELEASE
         msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-        PD_MSG_FIELD(guid.guid) = dbGuid;
-        PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-        PD_MSG_FIELD(edt.guid) = NULL_GUID;
-        PD_MSG_FIELD(edt.metaDataPtr) = NULL;
-        PD_MSG_FIELD(properties) = 0;
-        PD_MSG_FIELD(returnDetail) = 0;
+        PD_MSG_FIELD_IO(guid.guid) = dbGuid;
+        PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+        PD_MSG_FIELD_I(edt.guid) = NULL_GUID;
+        PD_MSG_FIELD_I(edt.metaDataPtr) = NULL;
+        PD_MSG_FIELD_I(properties) = 0;
         RESULT_ASSERT(pd->fcts.processMessage(pd, &msg, true), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
 
         // Create mainEDT and then allow it to be scheduled
         // This gives mainEDT a GUID which is useful for some book-keeping business
-        ocrGuid_t edtTemplateGuid, edtGuid;
+        ocrGuid_t edtTemplateGuid = NULL_GUID, edtGuid = NULL_GUID;
         ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 1);
         ocrEdtCreate(&edtGuid, edtTemplateGuid, EDT_PARAM_DEF, /* paramv=*/ NULL,
                      EDT_PARAM_DEF, /* depv=*/&dbGuid, EDT_PROP_NONE, NULL_GUID, NULL);
@@ -241,14 +241,14 @@ void xeStopWorker(ocrWorker_t * base) {
     DPRINTF(DEBUG_LVL_INFO, "Stopping worker %ld\n", getWorkerId(base));
 
     // Destroy the GUID
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(NULL, NULL, NULL, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid) = base->fguid;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(guid) = base->fguid;
+    PD_MSG_FIELD_I(properties) = 0;
     RESULT_ASSERT(base->pd->fcts.processMessage(base->pd, &msg, false), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE

@@ -130,11 +130,6 @@ typedef struct _ocrCommPlatformFcts_t {
      * the receiving end's poll/wait to prioritize messages with higher priority
      * if multiple messages are available.
      *
-     * The 'bufferSize' parameter indicates to the underlying implementation:
-     *   - how big the message to send effectively is
-     *   - how big the actual allocation of message really is
-     *   - usually, the message to send is much smaller than sizeof(ocrPolicyMsg_t)
-     *     due to the use of a union in that structure.
      *
      * The mask parameter allows the underlying implementation to differentiate
      * messages if it wants to (see setMaxExpectedMessageSize())
@@ -142,10 +137,6 @@ typedef struct _ocrCommPlatformFcts_t {
      * @param[in] self        Pointer to this
      * @param[in] target      Target to communicate with
      * @param[in] message     Message to send
-     * @param[in] bufferSize  Bottom 32 bits: actual size of the message to send
-     *                        (starting at 'message').
-     *                        Top 32 bits: real size of the buffer starting at
-     *                        buffer.
      * @param[out] id         If non-NULL, an ID is returned which can be used
      *                        in getMessageStatus. Note that getMessageStatus
      *                        may always return MSG_NORMAL.
@@ -154,7 +145,7 @@ typedef struct _ocrCommPlatformFcts_t {
      * @return 0 on success and a non-zero error code
      */
     u8 (*sendMessage)(struct _ocrCommPlatform_t* self, ocrLocation_t target,
-                      struct _ocrPolicyMsg_t *message, u64 bufferSize, u64 *id,
+                      struct _ocrPolicyMsg_t *message, u64 *id,
                       u32 properties, u32 mask);
 
     /**
@@ -167,10 +158,8 @@ typedef struct _ocrCommPlatformFcts_t {
      *                        comm-platform that it can use the provided buffer
      *                        for the response message. There is, however
      *                        no obligation. If *msg is non NULL on input,
-     *                        bufferSize contains the size of the "hint" buffer
-     *                        specified in the same way as for sendMessage (in
-     *                        this case though, the actual size of the message
-     *                        is irrelevant).
+     *                        (*msg)->bufferSize contains the size of the buffer
+     *                        for this message (max size to use)
      *                        The comm-platform will *NEVER* free the input
      *                        buffer passed in. It is up to the caller to
      *                        determine if the comm-platform used the buffer
@@ -184,10 +173,6 @@ typedef struct _ocrCommPlatformFcts_t {
      *                        If *msg is NULL on return, check return code
      *                        to see if there was an error or if no messages
      *                        were available
-     * @param[in/out] bufferSize On input, contains the size of the hint
-     *                        buffer if applicable. On output, contains the
-     *                        size of the message returned (same format as
-     *                        for sendMessage).
      * @param[in] properties  Unused for now
      * @param[out] mask       Mask of the returned message (may always be 0)
      * @return
@@ -197,7 +182,7 @@ typedef struct _ocrCommPlatformFcts_t {
      *     - <val> & #POLL_ERR_MASK: error code or 0 if all went well
      */
     u8 (*pollMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t **msg,
-                      u64* bufferSize, u32 properties, u32 *mask);
+                      u32 properties, u32 *mask);
 
     /**
      * @brief Blocking check for incoming messages
@@ -206,13 +191,12 @@ typedef struct _ocrCommPlatformFcts_t {
      * See pollMessage() for a detailed explanation of the parameters
      * @param[in] self        Pointer to this comm-platform
      * @param[in/out] msg     Pointer to the message returned
-     * @param[in/out] bufferSize Size of the message returned
      * @param[in] properties  Unused for now
      * @param[out] mask       Mask of the returned message (may always be 0)
      * @return 0 on success and a non-zero error code
      */
     u8 (*waitMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t **msg,
-                      u64 *bufferSize, u32 properties, u32 *mask);
+                      u32 properties, u32 *mask);
 
     /**
      * @brief Releases/frees a message returned by pollMessage/waitMessage

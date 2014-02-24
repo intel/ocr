@@ -145,19 +145,19 @@ u8 regularDestruct(ocrDataBlock_t *self) {
     DPRINTF(DEBUG_LVL_VERB, "Really freeing DB (GUID: 0x%lx)\n", self->guid);
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *task = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(&pd, NULL, &task, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_UNALLOC
     msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST;
-    PD_MSG_FIELD(ptr) = self->ptr;
-    PD_MSG_FIELD(allocatingPD.guid) = self->allocatingPD;
-    PD_MSG_FIELD(allocatingPD.metaDataPtr) = NULL;
-    PD_MSG_FIELD(allocator.guid) = self->allocator;
-    PD_MSG_FIELD(allocator.metaDataPtr) = NULL;
-    PD_MSG_FIELD(type) = DB_MEMTYPE;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_I(ptr) = self->ptr;
+    PD_MSG_FIELD_I(allocatingPD.guid) = self->allocatingPD;
+    PD_MSG_FIELD_I(allocatingPD.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(allocator.guid) = self->allocator;
+    PD_MSG_FIELD_I(allocator.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(type) = DB_MEMTYPE;
+    PD_MSG_FIELD_I(properties) = 0;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
 
 
@@ -173,9 +173,9 @@ u8 regularDestruct(ocrDataBlock_t *self) {
     getCurrentEnv(NULL, NULL, NULL, &msg);
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     // These next two statements may be not required. Just to be safe
-    PD_MSG_FIELD(guid.guid) = self->guid;
-    PD_MSG_FIELD(guid.metaDataPtr) = self;
-    PD_MSG_FIELD(properties) = 1; // Free metadata
+    PD_MSG_FIELD_I(guid.guid) = self->guid;
+    PD_MSG_FIELD_I(guid.metaDataPtr) = self;
+    PD_MSG_FIELD_I(properties) = 1; // Free metadata
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
 #undef PD_MSG
 #undef PD_TYPE
@@ -236,23 +236,23 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
                                     u32 flags, ocrParamList_t *perInstance) {
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *task = NULL;
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
 
     getCurrentEnv(&pd, NULL, &task, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_CREATE
     msg.type = PD_MSG_GUID_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.guid) = NULL_GUID;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(size) = sizeof(ocrDataBlockRegular_t);
-    PD_MSG_FIELD(kind) = OCR_GUID_DB;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD_IO(guid.guid) = NULL_GUID;
+    PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD_I(size) = sizeof(ocrDataBlockRegular_t);
+    PD_MSG_FIELD_I(kind) = OCR_GUID_DB;
+    PD_MSG_FIELD_I(properties) = 0;
 
     RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), NULL);
 
-    ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)PD_MSG_FIELD(guid.metaDataPtr);
-    result->base.guid = PD_MSG_FIELD(guid.guid);
+    ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)PD_MSG_FIELD_IO(guid.metaDataPtr);
+    result->base.guid = PD_MSG_FIELD_IO(guid.guid);
 #undef PD_MSG
 #undef PD_TYPE
 

@@ -115,8 +115,10 @@ void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
         *worker = myWorker;
     if(myWorker && task)
         *task = myWorker->curTask;
-    if(msg)
+    if(msg) {
         msg->srcLocation = myPD->myLocation;
+        msg->usefulSize = 0;
+    }
 }
 
 ocrCompPlatformFactory_t *newCompPlatformFactoryFsim(ocrParamList_t *perType) {

@@ -1557,7 +1557,7 @@ void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
 
 void tlsfStop(ocrAllocator_t *self) {
     DPRINTF(DEBUG_LVL_INFO, "Entered tlsfStop on allocator 0x%lx\n", (u64) self);
-    ocrPolicyMsg_t msg;
+    PD_MSG_STACK(msg);
     getCurrentEnv(&(self->pd), NULL, NULL, &msg);
     ocrAllocator_t * anchorCE = getAnchorCE(self);
     ocrAllocatorTlsf_t * rAnchorCE = (ocrAllocatorTlsf_t *) anchorCE;
@@ -1588,8 +1588,8 @@ void tlsfStop(ocrAllocator_t *self) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
             msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
-            PD_MSG_FIELD(guid) = self->fguid;
-            PD_MSG_FIELD(properties) = 0;
+            PD_MSG_FIELD_I(guid) = self->fguid;
+            PD_MSG_FIELD_I(properties) = 0;
             self->pd->fcts.processMessage(self->pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE

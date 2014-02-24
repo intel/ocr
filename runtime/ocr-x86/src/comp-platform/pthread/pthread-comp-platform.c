@@ -228,7 +228,7 @@ void destructCompPlatformFactoryPthread(ocrCompPlatformFactory_t *factory) {
 void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
                    ocrTask_t **task, ocrPolicyMsg_t* msg) {
     START_PROFILE(cp_getCurrentEnv);
-    if (keyInit) {
+    if(keyInit) {
         perThreadStorage_t *vals = pthread_getspecific(selfKey);
         if(vals == NULL)
             return;
@@ -243,9 +243,7 @@ void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
             //By default set src and dest location to current location.
             msg->srcLocation = vals->pd->myLocation;
             msg->destLocation = msg->srcLocation;
-            // Sentinel value to be updated by the caller or
-            // subsequent callee with message as a PARAMETER
-            msg->size = 0;
+            msg->usefulSize = 0; // Convention to say that the size is not yet set
         }
     }
     RETURN_PROFILE();

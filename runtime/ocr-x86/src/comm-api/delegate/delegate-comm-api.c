@@ -45,6 +45,7 @@ void delegateCommFinish(ocrCommApi_t *self) {
 static ocrPolicyMsg_t * allocateNewMessage(ocrCommApi_t * self, u32 size) {
     ocrPolicyDomain_t * pd = self->pd;
     ocrPolicyMsg_t * message = pd->fcts.pdMalloc(pd, size);
+    initializePolicyMessage(message, size);
     return message;
 }
 
@@ -83,11 +84,13 @@ u8 delegateCommSendMessage(ocrCommApi_t *self, ocrLocation_t target,
     ASSERT(pd->myLocation != target); //DIST-TODO not tested sending a message to self
 
     if (!(properties & PERSIST_MSG_PROP)) {
-        // Need to make a copy of the message now.
-        // Recall send is returning as soon as the
-        // handle is handed over to the scheduler.
-        ocrPolicyMsg_t * msgCpy = allocateNewMessage(self, message->size);
-        hal_memCopy(msgCpy, message, message->size, false);
+        // Need to make a copy of the message. Recall send is returning as soon as
+        // the handle is handed over to the scheduler.
+        u64 baseSize = 0, marshalledSize = 0;
+        ocrPolicyMsgGetMsgSize(message, &baseSize, &marshalledSize, 0);
+        u64 fullSize = baseSize + marshalledSize;
+        ocrPolicyMsg_t * msgCpy = allocateNewMessage(self, fullSize);
+        ocrPolicyMsgMarshallMsg(message, baseSize, (u8*)msgCpy, MARSHALL_DUPLICATE);
         message = msgCpy;
         // Indicates to entities down the line the message is now persistent
         // The rationale is that one-way calls are always deallocated by the
@@ -95,21 +98,22 @@ u8 delegateCommSendMessage(ocrCommApi_t *self, ocrLocation_t target,
         // by a caller that must free the message.
         properties |= PERSIST_MSG_PROP;
     }
+
     ocrMsgHandle_t * handlerDelegate = createMsgHandlerDelegate(self, message, properties);
     DPRINTF(DEBUG_LVL_VVERB,"Delegate API: end message handle=%p, msg=%p, type=0x%x\n",
             handlerDelegate, message, message->type);
     // Give comm handle to policy-domain
     ocrFatGuid_t fatGuid;
     fatGuid.metaDataPtr = handlerDelegate;
-    ocrPolicyMsg_t giveMsg;
+    PD_MSG_STACK(giveMsg);
     getCurrentEnv(NULL, NULL, NULL, &giveMsg);
 #define PD_MSG (&giveMsg)
 #define PD_TYPE PD_MSG_COMM_GIVE
     giveMsg.type = PD_MSG_COMM_GIVE | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guids) = &fatGuid;
-    PD_MSG_FIELD(guidCount) = 1;
-    PD_MSG_FIELD(properties) = 0;
-    PD_MSG_FIELD(type) = OCR_GUID_COMM;
+    PD_MSG_FIELD_IO(guids) = &fatGuid;
+    PD_MSG_FIELD_IO(guidCount) = 1;
+    PD_MSG_FIELD_I(properties) = 0;
+    PD_MSG_FIELD_I(type) = OCR_GUID_COMM;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &giveMsg, false));
 #undef PD_MSG
 #undef PD_TYPE
@@ -132,15 +136,15 @@ u8 delegateCommPollMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
     // Try to take a message from the scheduler and pass the handle as a hint.
     ocrFatGuid_t fatGuid;
     fatGuid.metaDataPtr = handle;
-    ocrPolicyMsg_t takeMsg;
+    PD_MSG_STACK(takeMsg);
     getCurrentEnv(NULL, NULL, NULL, &takeMsg);
 #define PD_MSG (&takeMsg)
 #define PD_TYPE PD_MSG_COMM_TAKE
     takeMsg.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guids) = &fatGuid;
-    PD_MSG_FIELD(guidCount) = 1;
-    PD_MSG_FIELD(properties) = 0;
-    PD_MSG_FIELD(type) = OCR_GUID_COMM;
+    PD_MSG_FIELD_IO(guids) = &fatGuid;
+    PD_MSG_FIELD_IO(guidCount) = 1;
+    PD_MSG_FIELD_I(properties) = 0;
+    PD_MSG_FIELD_IO(type) = OCR_GUID_COMM;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &takeMsg, true));
 #undef PD_MSG
 #undef PD_TYPE
@@ -181,15 +185,15 @@ u8 delegateCommWaitMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
         if (ret == POLL_NO_MESSAGE) {
             // If nothing shows up, transfer control to the scheduler for monitoring progress
             ocrPolicyDomain_t * pd;
-            ocrPolicyMsg_t msg;
+            PD_MSG_STACK(msg);
             getCurrentEnv(&pd, NULL, NULL, &msg);
         #define PD_MSG (&msg)
         #define PD_TYPE PD_MSG_MGT_MONITOR_PROGRESS
             msg.type = PD_MSG_MGT_MONITOR_PROGRESS | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
             //TODO not sure if the caller should register a progress function or if the
             //scheduler should know what to do for each type of monitor progress
-            PD_MSG_FIELD(monitoree) = &handle;
-            PD_MSG_FIELD(properties) = (0 | MONITOR_PROGRESS_COMM);
+            PD_MSG_FIELD_I(monitoree) = &handle;
+            PD_MSG_FIELD_IO(properties) = (0 | MONITOR_PROGRESS_COMM);
             RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, true));
         #undef PD_MSG
         #undef PD_TYPE
