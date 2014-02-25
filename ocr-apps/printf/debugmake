@@ -1,0 +1,29 @@
+all: ocr bin blob
+
+ocr:
+	# Build all flavours of OCR
+	bash -c "cd ../../build/fsim-null-fsim-ce; make install"
+	bash -c "cd ../../build/fsim-null-fsim-xe; make install"
+	bash -c "cd ../../build/x86-builder-fsim-ce; make all"
+	bash -c "cd ../../build/x86-builder-fsim-xe; make all"
+
+bin:
+	# Build binaries - rmdkrnl & this application
+	bash -c "cd ../../../ss/rmdkrnl; make"
+	bash -c "ARCH=fsim-null-fsim-xe make"
+	bash -c "../../../ss/bin/bin/rmd-linux-elf-objdump -d printf.dbg > printf.dis"
+
+blob:
+	# Build blob
+	bash -c "../../build/x86-builder-fsim-ce/builder.exe -ocr:cfg fsim_ce.cfg"
+	bash -c "../../build/x86-builder-fsim-xe/builder.exe -ocr:cfg fsim_xe.cfg"
+	bash -c "../../scripts/Blob/aggregate_binary_files.sh ce_blob.bin xe_blob.bin dummy blob"
+
+clean:
+	bash -c "cd ../../build/fsim-null-fsim-ce; make uninstall clean"
+	bash -c "cd ../../build/fsim-null-fsim-xe; make uninstall clean"
+	bash -c "cd ../../build/x86-builder-fsim-ce; make clean"
+	bash -c "cd ../../build/x86-builder-fsim-xe; make clean"
+	bash -c "cd ../../../ss/rmdkrnl; make clean"
+	bash -c "ARCH=fsim-null-fsim-xe make clean"
+	bash -c "rm -rf *.bin blob *.dis"

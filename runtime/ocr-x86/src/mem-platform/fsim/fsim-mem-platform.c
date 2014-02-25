@@ -41,7 +41,6 @@ struct _ocrPolicyDomain_t;
 void fsimBegin(ocrMemPlatform_t *self, struct _ocrPolicyDomain_t * PD ) {
     // This is where we need to update the memory
     // using the sysboot functions
-    self->startAddr = (u64)0x20000; // TODO: Bala to update this based on cfg file
     ASSERT(self->startAddr);
     self->endAddr = self->startAddr + self->size;
 
@@ -144,6 +143,7 @@ ocrMemPlatform_t* newMemPlatformFsim(ocrMemPlatformFactory_t * factory,
     result->fcts = factory->platformFcts;
     result->size = memSize;
     result->startAddr = result->endAddr = 0ULL;
+    result->startAddr = ((paramListMemPlatformFsim_t *)perInstance)->start;
     ocrMemPlatformFsim_t *rself = (ocrMemPlatformFsim_t*)result;
     INIT_LOCK(&(rself->lock));
     return result;

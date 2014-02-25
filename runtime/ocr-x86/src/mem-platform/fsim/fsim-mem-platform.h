@@ -27,6 +27,11 @@ typedef struct {
     u32 lock;
 } ocrMemPlatformFsim_t;
 
+typedef struct {
+    paramListMemPlatformInst_t base; 
+    u64 start; 
+} paramListMemPlatformFsim_t;
+
 extern ocrMemPlatformFactory_t* newMemPlatformFactoryFsim(ocrParamList_t *perType);
 
 #endif /* ENABLE_MEM_PLATFORM_FSIM */

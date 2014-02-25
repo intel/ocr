@@ -571,7 +571,24 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
         break;
     case memplatform_type:
         for (j = low; j<=high; j++) {
-            ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformInst_t);
+            memPlatformType_t mytype = -1;
+                        
+            TO_ENUM (mytype, inststr, memPlatformType_t, memplatform_types, memPlatformMax_id);
+            switch (mytype) {
+#ifdef ENABLE_MEM_PLATFORM_FSIM 
+                case memPlatformFsim_id: {
+                    ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformFsim_t);
+                    snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "start");
+                    INI_GET_INT (key, value, -1);
+                    ((paramListMemPlatformFsim_t *)inst_param[j])->start = (value==-1)?0:value;
+                }
+                break;
+#endif
+                default:
+                    ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformInst_t);
+                break;
+            }
+
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
             INI_GET_INT(key, value, -1);
             instance[j] = (void *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, value, inst_param[j]);
@@ -579,6 +596,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
                 DPRINTF(DEBUG_LVL_INFO, "Created memplatform of type %s, index %d\n", inststr, j);
         }
         break;
+
     case memtarget_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);

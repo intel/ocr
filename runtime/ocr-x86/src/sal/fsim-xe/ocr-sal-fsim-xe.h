@@ -13,8 +13,8 @@
 
 #define sal_exit(x) hal_exit(x)
 
-#define sal_assert(x, f, l) if(x) hal_abort()
+#define sal_assert(x, f, l) while(0) /*if(x) hal_abort() */
 
-#define sal_print(msg)  /* FIXME: TBD */
+#define sal_print(msg) while(0) /* FIXME: TBD */
 
 #endif /* __OCR_SAL_FSIM_XE_H__ */
