@@ -18,6 +18,6 @@
 
 #define sal_assert(x, f, l)  assert(x)
 
-#define sal_print(msg)   printf("%s", msg)
+#define sal_print(msg, len)   printf("%s", msg)
 
 #endif /* __OCR_SAL_LINUX_H__ */

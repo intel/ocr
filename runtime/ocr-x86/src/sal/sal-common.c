@@ -338,7 +338,7 @@ u32 PRINTF(char * fmt, ...)
 
     __builtin_va_end(ap);
 
-    sal_print(printf_buf);
+    sal_print(printf_buf, tmp+1);
 
     return tmp;
 }

@@ -13,8 +13,8 @@
 
 #define sal_exit(x)   hal_exit(x)
 
-#define sal_assert(x, f, l)   if(!x) hal_abort()
+#define sal_assert(x, f, l)   if(!(x)) hal_abort()
 
-#define sal_print(msg) __asm__ __volatile__("int $0xFF\n\t" : : "a" (msg));
+#define sal_print(msg, len) __asm__ __volatile__("int $0xFF\n\t" : : "a" (msg))
 
 #endif /* __OCR_SAL_FSIM_CE_H__ */

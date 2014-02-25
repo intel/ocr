@@ -13,8 +13,8 @@
 
 #define sal_exit(x) hal_exit(x)
 
-#define sal_assert(x, f, l) while(0) /*if(x) hal_abort() */
+#define sal_assert(x, f, l) if(!(x)) hal_abort()
 
-#define sal_print(msg) while(0) /* FIXME: TBD */
+#define sal_print(msg, len) __asm__ __volatile__("alarm 0xFD\n\t" : : "{r2}" (msg), "{r3}" (len))
 
 #endif /* __OCR_SAL_FSIM_XE_H__ */

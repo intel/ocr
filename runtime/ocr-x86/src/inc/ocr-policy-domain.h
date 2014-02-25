@@ -495,8 +495,8 @@ typedef struct _ocrPolicyMsg_t {
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_UNREGWAITER);
         
         struct {
-            const char* buffer;  /**< In: Character string to print */
-            u64 length;          /**< In: Length to print */
+            const char* buffer;  /**< In: ASCIIZ character string to print */
+            u64 length;          /**< In: Length to print, including NULL termination */
             u32 properties;      /**< In: Properties for the print */
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_PRINT);
 
