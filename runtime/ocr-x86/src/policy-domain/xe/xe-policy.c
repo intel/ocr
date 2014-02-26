@@ -23,15 +23,9 @@
 
 #define DEBUG_TYPE POLICY
 
-#ifdef ENABLE_BUILDER_ONLY
-#define MARKER(x) while(0)
-#else
-#define S(x) #x
-#define S_(x) S(x)
-#define MARKER(x) __asm__ __volatile__("alarm 0xFD\n\t" : : "{r2}" (S_(x)), "{r3}" (sizeof(S_(x))))
-#endif
-
+#ifdef TOOL_CHAIN_XE
 void xePolicyDomainStart(ocrPolicyDomain_t * policy);
+#endif
 
 void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     // The PD should have been brought up by now and everything instantiated
@@ -62,8 +56,10 @@ void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; i++) {
         policy->workers[i]->fcts.begin(policy->workers[i], policy);
     }
-MARKER(__LINE__);
+
+#ifdef TOOL_CHAIN_XE 
     xePolicyDomainStart(policy);
+#endif
 }
 
 void xePolicyDomainStart(ocrPolicyDomain_t * policy) {
@@ -75,16 +71,13 @@ void xePolicyDomainStart(ocrPolicyDomain_t * policy) {
     u64 i = 0;
     u64 maxCount = 0;
     
-MARKER(__LINE__);
     maxCount = policy->guidProviderCount;
     for(i = 0; i < maxCount; ++i) {
         policy->guidProviders[i]->fcts.start(policy->guidProviders[i], policy);
     }
-MARKER(__LINE__);
     
     guidify(policy, (u64)policy, &(policy->fguid), OCR_GUID_POLICY);
     
-MARKER(__LINE__);
     /*maxCount = policy->allocatorCount;
     for(i = 0; i < maxCount; ++i) {
         policy->allocators[i]->fcts.start(policy->allocators[i], policy);
@@ -99,12 +92,10 @@ MARKER(__LINE__);
     // Note: it's important to first logically start all workers.
     // Once they are all up, start the runtime.
     // Workers should start the underlying target and platforms
-MARKER(__LINE__);
     maxCount = policy->workerCount;
     for(i = 0; i < maxCount; i++) {
         policy->workers[i]->fcts.start(policy->workers[i], policy);
     }
-MARKER(__LINE__);
 }
 
 void xePolicyDomainFinish(ocrPolicyDomain_t * policy) {
