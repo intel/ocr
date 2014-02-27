@@ -441,10 +441,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_MEM_ALLOC
         msg->type -= PD_MSG_MEM_ALLOC;            // Help CE differentiate between XE-sent messages
         msg->type += PD_MSG_MEM_ALLOC_FOR_CLIENT; // and those of its own making.
-        // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE. BRN
-        ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  // TODO: On second thought, maybe it is still applicable.  Experiment.  BRN 29 Jan 2014
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        ASSERT (ocrLocation_getEngineIndex(self->myLocation) >= 1);
         returnCode = xeProcessCeRequest(self, msg);
 #undef PD_MSG
 #undef PD_TYPE
@@ -457,7 +454,6 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_MEM_UNALLOC
         msg->type -= PD_MSG_MEM_UNALLOC;            // Help CE differentiate between XE-sent messages
         msg->type += PD_MSG_MEM_UNALLOC_FOR_CLIENT; // and those of its own making.
-        // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE.
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
         returnCode = xeProcessCeRequest(self, msg);
 #undef PD_MSG
