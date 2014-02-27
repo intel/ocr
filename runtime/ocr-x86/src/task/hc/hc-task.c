@@ -431,33 +431,32 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     // incrementally as signals arrive AND on non-persistent
     // events (latch or ONCE)
     // Assumption: signal frontier is initialized at slot zero
-    // Whenever we receive a signal, it can only be from the
-    // current signal frontier, since it is the only signaler
-    // the edt is registered with at that time.
+    // Whenever we receive a signal:
+    //  - it can be from the frontier (we registered on it)
+    //  - it can be a ONCE event
+    //  - it can be a data-block being added (causing an immediate
+    //    satisfy
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
 
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
     getCurrentEnv(&pd, NULL, NULL, &msg);
     
-    // Replace the signaler's guid by the data guid, this to avoid
-    // further references to the event's guid, which is good in general
-    // and crucial for once-event since they are being destroyed on satisfy.
-    
     // Could be moved a little later if the ASSERT was not here
     // Should not make a huge difference
     hal_lock32(&(self->lock));
+    ASSERT(slot < base->depc); // Check to make sure non crazy value is passed in
     ASSERT(self->signalers[slot].slot != (u32)-1); // Check to see if not already satisfied
-    ASSERT((data.guid == NULL_GUID) || (self->signalers[slot].slot == slot &&
-                                        (self->signalers[slot].slot == self->frontierSlot)) ||
-           self->signalers[slot].slot == (u32)-2); // Check to see if we are getting satisfied on the correct slot
+    ASSERT((self->signalers[slot].slot == slot && (self->signalers[slot].slot == self->frontierSlot)) ||
+           (self->signalers[slot].slot == (u32)-2) || /* Checks if ONCE/LATCH event satisfaction */
+           (slot > self->frontierSlot)); /* A DB or NULL_GUID being added as ocrAddDependence */
                                                    
     self->signalers[slot].guid = data.guid;
     self->signalers[slot].slot = (u32)-1; // Say that it is satisfied
     if(++self->slotSatisfiedCount == base->depc) {
         ++(self->slotSatisfiedCount); // So others don't catch the satisfaction
         hal_unlock32(&(self->lock));
-        // All dependencies have been satisfied, schedule the edt
+        // All dependences have been satisfied, schedule the edt
         DPRINTF(DEBUG_LVL_VERB, "Scheduling task 0x%lx due to last satisfied dependence\n",
                 self->base.guid);
         RESULT_PROPAGATE(taskSchedule(base));
