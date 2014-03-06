@@ -78,7 +78,7 @@
                              : "=r" (__tmp)                             \
                              : "r" (atomic),                            \
                                "r" (cmpValue),                          \
-                               "1" (newValue));                         \
+                               "0" (newValue));                         \
         __tmp;                                                          \
     })
 
