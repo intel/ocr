@@ -26,6 +26,11 @@ typedef struct {
     u64 shutdownCount;
 } ocrPolicyDomainCe_t;
 
+typedef struct {
+    paramListPolicyDomainInst_t base;
+    u32 neighborCount;
+} paramListPolicyDomainCeInst_t;
+
 ocrPolicyDomainFactory_t *newPolicyDomainFactoryCe(ocrParamList_t *perType);
 
 #endif /* ENABLE_POLICY_DOMAIN_CE */

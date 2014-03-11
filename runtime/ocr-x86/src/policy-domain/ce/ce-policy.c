@@ -1053,7 +1053,7 @@ ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * policy,
 
     // no inter-policy domain for simple CE
     base->neighbors = NULL;
-    base->neighborCount = 0;
+    base->neighborCount = ((paramListPolicyDomainCeInst_t*)perInstance)->neighborCount;
 
     //TODO populated by ini file factories. Need setters or something ?
     base->schedulers = NULL;

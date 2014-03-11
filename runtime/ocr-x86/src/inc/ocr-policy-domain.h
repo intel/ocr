@@ -620,7 +620,7 @@ typedef struct _ocrPolicyDomain_t {
     ocrLocation_t myLocation;
     ocrLocation_t parentLocation;
     ocrLocation_t* neighbors;
-    u64 neighborCount;
+    u32 neighborCount;
 
 
     /**
