@@ -28,6 +28,9 @@ u64 FsimRuntimeChunkAlloc(u64 size, u64 *extra) {
         returnValue = &(nonpersistent_chunk[nonpersistent_pointer]);
         nonpersistent_pointer += size;
     } else {
+        // Align the offset if unaligned
+        u64 offset = (u64)&(persistent_chunk[persistent_pointer]);
+        if(offset % 8) persistent_pointer += (8 - (offset%8));
         returnValue = &(persistent_chunk[persistent_pointer]);
         persistent_pointer += size;
     }
@@ -62,6 +65,19 @@ extern void *getAddress(const char *fname);
 void *myGetFuncAddr (const char * fname) {
     return getAddress(fname);
 }
+
+void *fsimMainEdtSet(ocrEdt_t edt) {
+    return NULL;
+}
+
+void *fsimUserArgsSet(void *ptr) {
+    return NULL;
+}
+
+void (*userArgsSet)(void *) = &fsimUserArgsSet;
+void * (*userArgsGet)() = NULL;
+void (*mainEdtSet)(ocrEdt_t) = &fsimMainEdtSet;
+ocrEdt_t (*mainEdtGet)() = NULL;
 
 void* (*getFuncAddr)(const char*) = &myGetFuncAddr;
 

@@ -57,6 +57,8 @@ static void * pthreadRoutineWrapper(void * arg) {
     // Wrapper routine to allow initialization of local storage
     // before entering the worker routine.
     perThreadStorage_t *data = (perThreadStorage_t*)malloc(sizeof(perThreadStorage_t));
+    data->pd = pthreadCompPlatform->base.pd;
+    data->worker = pthreadCompPlatform->base.worker;
     RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
     return pthreadRoutineExecute(pthreadCompPlatform->base.worker);
 }
@@ -160,9 +162,12 @@ u8 pthreadSetCurrentEnv(ocrCompPlatform_t *self, ocrPolicyDomain_t *pd,
                         ocrWorker_t *worker) {
 
     ASSERT(pd->fguid.guid == self->pd->fguid.guid);
-    perThreadStorage_t *vals = pthread_getspecific(selfKey);
-    vals->pd = pd;
-    vals->worker = worker;
+    ocrCompPlatformPthread_t *pthreadCompPlatform = (ocrCompPlatformPthread_t*)self;
+    if(pthreadCompPlatform->isMaster) {
+        perThreadStorage_t *vals = pthread_getspecific(selfKey);
+        vals->pd = pd;
+        vals->worker = worker;
+    }
     return 0;
 }
 

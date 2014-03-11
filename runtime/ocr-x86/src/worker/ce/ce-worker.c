@@ -106,14 +106,7 @@ void ceBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 #ifdef OCR_ENABLE_STATISTICS
         statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
 #endif
-    }
-
-    if(base->type == MASTER_WORKERTYPE) {
-        // For the master thread, we need to set the PD and worker
-        // The other threads will set this when they start
-        for(i = 0; i < computeCount; ++i) {
-            base->computes[i]->fcts.setCurrentEnv(base->computes[i], policy, base);
-        }
+        base->computes[i]->fcts.setCurrentEnv(base->computes[i], policy, base);
     }
 }
 

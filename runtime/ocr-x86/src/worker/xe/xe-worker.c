@@ -125,6 +125,7 @@ void xeBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 #ifdef OCR_ENABLE_STATISTICS
         statsWORKER_START(policy, base->guid, base, base->computes[i]->guid, base->computes[i]);
 #endif
+        base->computes[i]->fcts.setCurrentEnv(base->computes[i], policy, base);
     }
 }
 
@@ -154,12 +155,6 @@ void* xeRunWorker(ocrWorker_t * worker) {
     // Need to pass down a data-structure
     ocrPolicyDomain_t *pd = worker->pd;
     
-    // Set who we are
-    u32 i;
-    for(i = 0; i < worker->computeCount; ++i) {
-        worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
-    }
-
     if (pd->myLocation == 0) { //Blessed worker
         // This is all part of the mainEdt setup 
         // and should be executed by the "blessed" worker.
