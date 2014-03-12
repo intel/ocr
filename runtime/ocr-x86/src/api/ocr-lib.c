@@ -219,6 +219,7 @@ void ocrFinalize() {
 }
 
 ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
+    ASSERT(false && "ocrWait disabled");
     // TODO: Re-enable this
     /*
     ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
