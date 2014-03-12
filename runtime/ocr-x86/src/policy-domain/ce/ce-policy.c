@@ -951,12 +951,11 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     case PD_MSG_MGT_SHUTDOWN:
     {
         u32 i;
+        u32 neighborCount = self->neighborCount;
         ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t *)self;
         if (msg->type & PD_MSG_REQUEST) {
             ASSERT(!(msg->type & PD_MSG_RESPONSE));
             ASSERT(msg->srcLocation != self->myLocation && cePolicy->shutdownCount == 0);
-            //u64 neighborCount = self->neighborCount;
-            u64 neighborCount = 8; //FIXME: temporary hardcoding
             cePolicy->shutdownCount = 1; //FIXME: Assumes block local shutdown message from XE
             for (i = 0; i < neighborCount; i++) {
                 //ocrLocation_t target = self->neighbors[i];
@@ -975,11 +974,12 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             }
         } else {
             ASSERT(msg->type & PD_MSG_RESPONSE);
-            //u64 neighborCount = self->neighborCount;
-            u64 neighborCount = 8; //FIXME: temporary hardcoding
-            if ((++(cePolicy->shutdownCount)) == neighborCount) 
-                self->stop(self);
+            ++(cePolicy->shutdownCount);
         }
+
+        if (cePolicy->shutdownCount == neighborCount) 
+            self->stop(self);
+
         break;
     }
         

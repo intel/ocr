@@ -29,7 +29,6 @@ void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*) commPlatform;
     commPlatform->pd = PD;
     numXE = PD->neighborCount;
-    numXE = 8;  // FIXME: Temporary hardcoding
     commPlatformCePthread->numXE = numXE;
     commPlatformCePthread->xeMessage = (volatile bool **)runtimeChunkAlloc(numXE * sizeof(volatile bool *), NULL);
     commPlatformCePthread->ceMessage = (volatile bool **)runtimeChunkAlloc(numXE * sizeof(volatile bool *), NULL);

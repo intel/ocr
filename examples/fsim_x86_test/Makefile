@@ -6,8 +6,14 @@ ifndef OCR_INSTALL
 $(error OCR_INSTALL not set)
 endif
 
+MYCONFIG=fsim_x86.cfg
+
 ifndef OCR_CONFIG
+ifeq ($(wildcard ${MYCONFIG}),)
 OCR_CONFIG=${OCR_INSTALL}/config/default.cfg
+else
+OCR_CONFIG=${MYCONFIG}
+endif
 $(warning OCR_CONFIG not set, defaulting to ${OCR_CONFIG})
 endif
 
@@ -20,7 +26,7 @@ compile:
 	gcc -g -o $(PROG).exe $(PROG).o $(OCR_FLAGS)
 
 run:
-	./$(PROG).exe -ocr:cfg fsim_x86.cfg
+	./$(PROG).exe -ocr:cfg $(OCR_CONFIG)
 
 clean:
 	-rm -Rf *.o $(PROG).exe core*
