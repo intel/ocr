@@ -308,7 +308,7 @@ static u8 ceMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
     return OCR_ENOMEM;
 }
 
-static u8 ceMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
+static u8 ceMemUnalloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
                        void* ptr, ocrMemType_t memType) {
     // Look for the allocator that has a guid that matches the one provided in the unalloc
     // request message.  (This pre-supposes that the caller properly conveys this information
@@ -431,7 +431,6 @@ static u8 ceProcessResponse(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg) {
 u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlocking) {
 
     u8 returnCode = 0;
-    u64 engineIndex = ocrLocation_getEngineIndex(self->myLocation); // Default to CE's engine index.
     switch(msg->type & PD_MSG_TYPE_ONLY) {
     case PD_MSG_DB_CREATE:
     {
@@ -529,10 +528,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         break;
     }
 
-    case PD_MSG_MEM_ALLOC_FOR_CLIENT:
-        engineIndex = ocrLocation_getEngineIndex(msg->srcLocation); // ...then the messasge provided the XE's engine index.
     case PD_MSG_MEM_ALLOC:
     {
+        u64 engineIndex = ocrLocation_getEngineIndex(msg->srcLocation);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_ALLOC
         PD_MSG_FIELD(allocatingPD) = self->fguid;
@@ -544,16 +542,13 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         break;
     }
 
-    case PD_MSG_MEM_UNALLOC_FOR_CLIENT:
-        engineIndex = ocrLocation_getEngineIndex(msg->srcLocation); // ...then the messasge provided the XE's engine index.
     case PD_MSG_MEM_UNALLOC:
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_UNALLOC
-        //ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) =
-            ceMemUnAlloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), PD_MSG_FIELD(type));
+            ceMemUnalloc(self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), PD_MSG_FIELD(type));
         returnCode = ceProcessResponse(self, msg);
 #undef PD_MSG
 #undef PD_TYPE

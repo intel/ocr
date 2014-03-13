@@ -439,8 +439,6 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_ALLOC
-        msg->type -= PD_MSG_MEM_ALLOC;            // Help CE differentiate between XE-sent messages
-        msg->type += PD_MSG_MEM_ALLOC_FOR_CLIENT; // and those of its own making.
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
         returnCode = xeProcessCeRequest(self, msg);
 #undef PD_MSG
@@ -452,8 +450,6 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     {
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_UNALLOC
-        msg->type -= PD_MSG_MEM_UNALLOC;            // Help CE differentiate between XE-sent messages
-        msg->type += PD_MSG_MEM_UNALLOC_FOR_CLIENT; // and those of its own making.
         ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
         returnCode = xeProcessCeRequest(self, msg);
 #undef PD_MSG
@@ -952,17 +948,18 @@ void* xePdMalloc(ocrPolicyDomain_t *self, u64 size) {
     void *ptr;
     ocrPolicyMsg_t msg;
     ocrPolicyMsg_t* pmsg = &msg;
+    getCurrentEnv(NULL, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_ALLOC
     PD_MSG_FIELD(type) = DB_MEMTYPE;
     PD_MSG_FIELD(size) = size;
-    msg.type = PD_MSG_MEM_ALLOC_FOR_CLIENT  | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE; // and those of its own making.
+    msg.type = PD_MSG_MEM_ALLOC  | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE; // and those of its own making.
     // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE. BRN
 //    ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  // TODO: On second thought, maybe it is still applicable.  Experiment.  BRN 29 Jan 2014
     ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
     u8 msgResult = xeProcessCeRequest(self, pmsg);
     ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
-    ptr = pmsg->args.PD_MSG_STRUCT_NAME(PD_MSG_MEM_ALLOC).ptr;
+    ptr = PD_MSG_FIELD(ptr);
 #undef PD_TYPE
 #undef PD_MSG
     return ptr;

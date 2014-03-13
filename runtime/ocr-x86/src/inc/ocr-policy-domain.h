@@ -76,11 +76,9 @@ typedef struct _paramListPolicyDomainInst_t {
  * related operation (goes directly to allocators) */
 #define PD_MSG_MEM_OP                 0x002
 #define PD_MSG_MEM_ALLOC              0x1002
-#define PD_MSG_MEM_ALLOC_FOR_CLIENT   0x2002
 /**< De-allocates a chunk of memory (through an allocator).
  * This is called internally */
-#define PD_MSG_MEM_UNALLOC            0x3002
-#define PD_MSG_MEM_UNALLOC_FOR_CLIENT 0x4002
+#define PD_MSG_MEM_UNALLOC            0x2002
 
 
 /**< AND with this and if result non-null, work/task related operation.
