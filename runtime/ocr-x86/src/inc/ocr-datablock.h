@@ -65,6 +65,7 @@ typedef struct _ocrDataBlockFcts_t {
      *
      * @param self          Pointer for this data-block
      * @param edt           EDT seeking registration
+     *                      Must be fully resolved
      * @param isInternal    True if this is an acquire implicitly
      *                      done by the runtime at EDT launch
      * @return Address of the data-block
@@ -78,6 +79,7 @@ typedef struct _ocrDataBlockFcts_t {
      *
      * @param self          Pointer for this data-block
      * @param edt           EDT seeking to de-register from the data-block.
+     *                      Must be fully resolved 
      * @param isInternal    True if matching an internal acquire
      * @return 0 on success and an error code on failure (see ocr-db.h)
      *
@@ -96,6 +98,7 @@ typedef struct _ocrDataBlockFcts_t {
      *
      * @param self          Pointer to this data-block
      * @param edt           EDT seeking to free the data-block
+     *                      Must be fully resolved
      * @return 0 on success and an error code on failure (see ocr-db.h)
      */
     u8 (*free)(struct _ocrDataBlock_t *self, ocrFatGuid_t edt);

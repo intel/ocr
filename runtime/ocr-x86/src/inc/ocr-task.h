@@ -143,7 +143,7 @@ typedef struct _ocrTaskFcts_t {
      */
     u8 (*registerSignaler)(struct _ocrTask_t* self, ocrFatGuid_t src, u32 slot,
                            bool isDepAdd);
-
+    
     /**
      * @brief Informs the task that the event/db 'src' is no longer linked
      * to it on 'slot'
@@ -160,6 +160,38 @@ typedef struct _ocrTaskFcts_t {
      */
     u8 (*unregisterSignaler)(struct _ocrTask_t* self, ocrFatGuid_t src, u32 slot,
                              bool isDepRem);
+
+    /**
+     * @brief Informs the task that it has acquired a DB that it didn't know
+     * about upon entry
+     *
+     * This happens when the user creates a data-block within an EDT. This
+     * call is special in the sense that it will ALWAYS be called within
+     * the context/execution of self.
+     *
+     * @note This call is only called when the data-block acquire
+     * is user-triggered from isnide the EDT
+     *
+     * @param[in] self          Pointer to this task
+     * @param[in] db            GUID of the DB
+     * @return 0 on success and a non-zero value on failure
+     */
+    u8 (*notifyDbAcquire)(struct _ocrTask_t* self, ocrFatGuid_t db);
+
+    /**
+     * @brief Symmetric call to notifyDbAcquire(): this is called when
+     * the user performs a release (could be as part of a free) on
+     * ANY data-block while inside the EDT
+     *
+     * @warning This call may be called with DBs that have not been
+     * acquired using notifyDbAcquire (ie: DBs that are dependences.
+     * This should not be an error
+     *
+     * @param[in] self          Pointer to this task
+     * @param[in] db            GUID of the DB
+     * @return 0 on success and a non-zero value on failure
+     */
+    u8 (*notifyDbRelease)(struct _ocrTask_t* self, ocrFatGuid_t db);
     
     /**
      * @brief Executes this EDT

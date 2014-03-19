@@ -1019,7 +1019,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
-        break;            
+        break;
     }
 
     case PD_MSG_DEP_UNREGSIGNALER:
@@ -1035,7 +1035,51 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(0);
         break;
     }
+
+    case PD_MSG_DEP_DYNADD:
+    {
+        ocrTask_t *curTask = NULL;
+        getCurrentEnv(NULL, NULL, &curTask, NULL);
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_DEP_DYNADD
+        // Check to make sure that the EDT is only doing this to
+        // itself
+        // Also, this should only happen when there is an actual EDT
+        ASSERT(curTask &&
+            curTask->guid == PD_MSG_FIELD(edt.guid));
         
+        ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
+        PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.notifyDbAcquire(curTask, PD_MSG_FIELD(db));
+        PD_MSG_FIELD(properties) = returnCode;
+#undef PD_MSG
+#undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
+        break;
+    }
+
+    case PD_MSG_DEP_DYNREMOVE:
+    {
+        ocrTask_t *curTask = NULL;
+        getCurrentEnv(NULL, NULL, &curTask, NULL);
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_DEP_DYNADD
+        // Check to make sure that the EDT is only doing this to
+        // itself
+        // Also, this should only happen when there is an actual EDT
+        ASSERT(curTask &&
+            curTask->guid == PD_MSG_FIELD(edt.guid));
+        
+        ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
+        PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.notifyDbRelease(curTask, PD_MSG_FIELD(db));
+        PD_MSG_FIELD(properties) = returnCode;
+#undef PD_MSG
+#undef PD_TYPE
+        msg->type &= ~PD_MSG_REQUEST;
+        msg->type |= PD_MSG_RESPONSE;
+        break;
+    }
+    
     case PD_MSG_SAL_PRINT:
     {
         ASSERT(0);

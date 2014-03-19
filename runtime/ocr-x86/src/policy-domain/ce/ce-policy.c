@@ -929,7 +929,23 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(0);
         break;
     }
-        
+
+    case PD_MSG_DEP_DYNADD:
+    {
+        // This is only called from user code and should
+        // never reach the CE
+        ASSERT(0);
+        break;
+    }
+    
+    case PD_MSG_DEP_DYNREMOVE:
+    {
+        // This is only called from user code and should
+        // never reach the CE
+        ASSERT(0);
+        break;
+    }
+    
     case PD_MSG_SAL_PRINT:
     {
         returnCode = ceProcessResponse(self, msg);

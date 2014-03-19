@@ -76,6 +76,16 @@
 #define DEBUG_LVL_ALLOCATOR OCR_DEBUG_LVL
 #endif
 
+#ifdef OCR_DEBUG_API
+#define OCR_DEBUG_API 1
+#else
+#define OCR_DEBUG_API 0
+#endif
+#define OCR_DEBUG_API_STR "API"
+#ifndef DEBUG_LVL_API
+#define DEBUG_LVL_API OCR_DEBUG_LVL
+#endif
+
 #ifdef OCR_DEBUG_COMP_PLATFORM
 #define OCR_DEBUG_COMP_PLATFORM 1
 #else

@@ -167,6 +167,11 @@ typedef struct _paramListPolicyDomainInst_t {
 /**< Unregister a signaler on a waiter */
 #define PD_MSG_DEP_UNREGWAITER  0x6080
 
+/**< Adds a "dynamic" dependence (creation of a DB mostly) */
+#define PD_MSG_DEP_DYNADD       0x7080
+
+/**< Removes a potential dynamic dependence */
+#define PD_MSG_DEP_DYNREMOVE    0x8080
 
 /**< AND with this and if result non-null, low-level OS operation */
 #define PD_MSG_SAL_OP           0x100
@@ -487,6 +492,18 @@ typedef struct _ocrPolicyMsg_t {
             u32 properties;        /**< In: Properties */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_UNREGSIGNALER);
 
+        struct {
+            ocrFatGuid_t edt;      /**< In: EDT adding the dynamic dependence (to itself only) */
+            ocrFatGuid_t db;       /**< In: DB dynamically acquired */
+            u32 properties;        /**< In: Properties */
+        } PD_MSG_STRUCT_NAME(PD_MSG_DEP_DYNADD);
+
+        struct {
+            ocrFatGuid_t edt;      /**< In: EDT removing the dynamic dependence (to itself only) */
+            ocrFatGuid_t db;       /**< In: DB dynamically being removed */
+            u32 properties;        /**< In: Properties */
+        } PD_MSG_STRUCT_NAME(PD_MSG_DEP_DYNREMOVE);
+                                      
         struct {
             ocrFatGuid_t waiter;   /**< In: Waiter to unregister */
             ocrFatGuid_t dest;     /**< In: Object to unregister the waiter on */

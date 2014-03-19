@@ -36,7 +36,7 @@ void* regularAcquire(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
     
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
-    DPRINTF(DEBUG_LVL_VERB, "Acquiring DB @ 0x%lx (GUID: 0x%lx) from EDT 0x%lx (isInternal %d)\n",
+    DPRINTF(DEBUG_LVL_VERB, "Acquiring DB @ 0x%lx (GUID: 0x%lx) from EDT (GUID: 0x%lx) (runtime acquire: %d)\n",
                 (u64)self->ptr, rself->base.guid, edt.guid, (u32)isInternal);
 
     // Critical section
@@ -64,8 +64,8 @@ void* regularAcquire(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
 
     hal_unlock32(&(rself->lock));
     // End critical section
-    DPRINTF(DEBUG_LVL_VERB, "Added EDT GUID 0x%lx at position %d. Have %d users and %d internal\n",
-            (u64)edt.guid, idForEdt, rself->attributes.numUsers, rself->attributes.internalUsers);
+    DPRINTF(DEBUG_LVL_VERB, "DB (GUID: 0x%lx) added EDT (GUID: 0x%lx) at position %d. Have %d users (of which %d runtime)\n",
+            self->guid, (u64)edt.guid, idForEdt, rself->attributes.numUsers, rself->attributes.internalUsers);
 
 #ifdef OCR_ENABLE_STATISTICS
     {
@@ -82,7 +82,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrFatGuid_t edt,
     u32 edtId = ocrGuidTrackerFind(&(rself->usersTracker), edt.guid);
     bool isTracked = true;
 
-    DPRINTF(DEBUG_LVL_VERB, "Releasing DB @ 0x%lx (GUID 0x%lx) from EDT 0x%lx (%d) (internal: %d)\n",
+    DPRINTF(DEBUG_LVL_VERB, "Releasing DB @ 0x%lx (GUID 0x%lx) from EDT 0x%lx (%d) (runtime release: %d)\n",
                 (u64)self->ptr, rself->base.guid, edt.guid, edtId, (u32)isInternal);
     // Start critical section
     hal_lock32(&(rself->lock));
@@ -107,8 +107,8 @@ u8 regularRelease(ocrDataBlock_t *self, ocrFatGuid_t edt,
             rself->attributes.internalUsers -= 1;
         }
     }
-    DPRINTF(DEBUG_LVL_VVERB, "DB attributes: numUsers %d; internalUsers %d; freeRequested %d\n",
-            rself->attributes.numUsers, rself->attributes.internalUsers, rself->attributes.freeRequested);
+    DPRINTF(DEBUG_LVL_VVERB, "DB (GUID: 0x%lx) attributes: numUsers %d (including %d runtime users); freeRequested %d\n",
+            self->guid, rself->attributes.numUsers, rself->attributes.internalUsers, rself->attributes.freeRequested);
     // Check if we need to free the block
 #ifdef OCR_ENABLE_STATISTICS
     {
@@ -134,10 +134,12 @@ u8 regularDestruct(ocrDataBlock_t *self) {
 #ifdef OCR_ASSERT
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
     ASSERT(rself->attributes.numUsers == 0);
+    ASSERT(rself->attributes.internalUsers == 0);
     ASSERT(rself->attributes.freeRequested == 1);
     ASSERT(rself->lock == 0);
 #endif
-    
+
+    DPRINTF(DEBUG_LVL_VERB, "Really freeing DB (GUID: 0x%lx)\n", self->guid);
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *task = NULL;
     ocrPolicyMsg_t msg;
@@ -180,7 +182,7 @@ u8 regularFree(ocrDataBlock_t *self, ocrFatGuid_t edt) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
     
     u32 id = ocrGuidTrackerFind(&(rself->usersTracker), edt.guid);
-    DPRINTF(DEBUG_LVL_VERB, "Requesting a free for DB @ 0x%lx (GUID 0x%lx)\n",
+    DPRINTF(DEBUG_LVL_VERB, "Requesting a free for DB @ 0x%lx (GUID: 0x%lx)\n",
             (u64)self->ptr, rself->base.guid);
     // Begin critical section
     hal_lock32(&(rself->lock));

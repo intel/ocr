@@ -11,6 +11,8 @@
 #include "event/hc/hc-event.h"
 #include "ocr-datablock.h"
 #include "ocr-event.h"
+#include "ocr-errors.h"
+#include "ocr-hal.h"
 #include "ocr-policy-domain.h"
 #include "ocr-sysboot.h"
 #include "ocr-task.h"
@@ -197,6 +199,9 @@ static u8 initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
     task->frontierSlot = 0;
     task->slotSatisfiedCount = 0;
     task->lock = 0;
+    task->unkDbs = NULL;
+    task->countUnkDbs = 0;
+    task->maxUnkDbs = 0;
     
     if(task->base.depc == 0) {
         task->signalers = END_OF_LIST;
@@ -557,6 +562,55 @@ u8 unregisterSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slo
     return 0;
 }
 
+u8 notifyDbAcquireTaskHc(ocrTask_t *base, ocrFatGuid_t db) {
+    // This implementation does NOT support EDTs moving while they are executing
+    ocrTaskHc_t *derived = (ocrTaskHc_t*)base;
+    ocrPolicyDomain_t *pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL, NULL);
+    if(derived->countUnkDbs == 0) {
+        derived->unkDbs = (ocrGuid_t*)pd->pdMalloc(pd, sizeof(ocrGuid_t)*8);
+        ASSERT(derived->unkDbs);
+        derived->maxUnkDbs = 8;
+    } else {
+        if(derived->maxUnkDbs == derived->countUnkDbs) {
+            ocrGuid_t *oldPtr = derived->unkDbs;
+            derived->unkDbs = (ocrGuid_t*)pd->pdMalloc(pd, sizeof(ocrGuid_t)*derived->maxUnkDbs*2);
+            ASSERT(derived->unkDbs);
+            hal_memCopy(derived->unkDbs, oldPtr, sizeof(ocrGuid_t)*derived->maxUnkDbs, false);
+            pd->pdFree(pd, oldPtr);
+            derived->maxUnkDbs *= 2;
+        }
+    }
+    // Tack on this DB
+    derived->unkDbs[derived->countUnkDbs] = db.guid;
+    ++derived->countUnkDbs;
+    DPRINTF(DEBUG_LVL_VERB, "EDT (GUID: 0x%lx) added DB (GUID: 0x%lx) to its list of dyn. acquired DBs (have %d)\n",
+            base->guid, db.guid, derived->countUnkDbs);
+    return 0;
+}
+
+u8 notifyDbReleaseTaskHc(ocrTask_t *base, ocrFatGuid_t db) {
+    ocrTaskHc_t *derived = (ocrTaskHc_t*)base;
+    if(derived->unkDbs == NULL)
+        return 0; // May be a release we don't care about
+    u64 maxCount = derived->countUnkDbs;
+    u64 count = 0;
+    DPRINTF(DEBUG_LVL_VERB, "Notifying EDT (GUID: 0x%lx) that it acquired db (GUID: 0x%lx)\n",
+            base->guid, db.guid);
+    while(count < maxCount) {
+        // We bound our search (in case there is an error)
+        if(db.guid == derived->unkDbs[count]) {
+            DPRINTF(DEBUG_LVL_VVERB, "Found a match for count %lu\n", count);
+            derived->unkDbs[count] = derived->unkDbs[maxCount - 1];
+            --(derived->countUnkDbs);
+            return 0;
+        }
+    }
+    // We did not find it but it may be that we never acquired it
+    // Should not be an error code
+    return 0;
+}
+
 u8 taskExecute(ocrTask_t* base) {
     DPRINTF(DEBUG_LVL_INFO, "Execute 0x%lx\n", base->guid);
     ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
@@ -573,6 +627,9 @@ u8 taskExecute(ocrTask_t* base) {
     ocrEdtDep_t * depv = NULL;
     // If any dependencies, acquire their data-blocks
     u32 maxAcquiredDb = 0;
+    
+    ASSERT(derived->unkDbs == NULL); // Should be no dynamically acquired DBs before running
+    
     if (depc != 0) {
         //TODO would be nice to resolve regNode into guids before
         depv = pd->pdMalloc(pd, sizeof(ocrEdtDep_t)*depc);
@@ -655,6 +712,36 @@ u8 taskExecute(ocrTask_t* base) {
             }
         }
     }
+
+    // We now release all other data-blocks that we may potentially
+    // have acquired along the way
+    if(derived->unkDbs != NULL) {
+        // We acquire this DB
+        ocrGuid_t *extraToFree = derived->unkDbs;
+        u64 count = derived->countUnkDbs;
+        while(count) {
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_DB_RELEASE
+            msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
+            PD_MSG_FIELD(guid.guid) = extraToFree[0];
+            PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+            PD_MSG_FIELD(edt.guid) = base->guid;
+            PD_MSG_FIELD(edt.metaDataPtr) = base;
+            PD_MSG_FIELD(properties) = 0; // Not a runtime free since it was acquired using DB create
+            if(pd->processMessage(pd, &msg, false)) {
+                DPRINTF(DEBUG_LVL_WARN, "EDT (GUID: 0x%lx) could not release dynamically acquired DB (GUID: 0x%lx)\n",
+                        base->guid, PD_MSG_FIELD(guid.guid));
+                break;
+            }
+#undef PD_MSG
+#undef PD_TYPE
+            --count;
+            ++extraToFree;
+        }
+        pd->pdFree(pd, derived->unkDbs);
+    }
+
+    // Now deal with the output event
     if(base->outputEvent != NULL_GUID) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_SATISFY
@@ -690,6 +777,8 @@ ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance, u32 factoryId) 
     base->fcts.satisfy = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t, u32), satisfyTaskHc);
     base->fcts.registerSignaler = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t, u32, bool), registerSignalerTaskHc);
     base->fcts.unregisterSignaler = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t, u32, bool), unregisterSignalerTaskHc);
+    base->fcts.notifyDbAcquire = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t), notifyDbAcquireTaskHc);
+    base->fcts.notifyDbRelease = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t), notifyDbReleaseTaskHc);
     base->fcts.execute = FUNC_ADDR(u8 (*)(ocrTask_t*), taskExecute);
     
     return base;

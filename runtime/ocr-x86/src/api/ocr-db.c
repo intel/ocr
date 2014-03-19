@@ -25,6 +25,7 @@
 #include "ocr-statistics.h"
 #endif
 
+#define DEBUG_TYPE API
 
 u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
                ocrGuid_t affinity, ocrInDbAllocator_t allocator) {
@@ -64,6 +65,27 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     if(*addr == NULL) return OCR_ENOMEM;
 #undef PD_MSG
 #undef PD_TYPE
+
+    if(task) {
+        // Here we inform the task that we created a DB
+        // This is most likely ALWAYS a local message but let's leave the
+        // API as it is for now. It is possible that the EDTs move at some point so
+        // just to be safe
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_DEP_DYNADD
+        msg.type = PD_MSG_DEP_DYNADD | PD_MSG_REQUEST;
+        PD_MSG_FIELD(edt.guid) = task->guid;
+        PD_MSG_FIELD(edt.metaDataPtr) = task;
+        PD_MSG_FIELD(db.guid) = *db;
+        PD_MSG_FIELD(db.metaDataPtr) = NULL;
+        PD_MSG_FIELD(properties) = 0;
+        policy->processMessage(policy, &msg, false);
+#undef PD_MSG
+#undef PD_TYPE
+    } else {
+        DPRINTF(DEBUG_LVL_WARN, "Acquiring DB (GUID: 0x%lx) from outside an EDT ... auto-release will fail\n",
+                *db);
+    }
     return 0;
 }
 
@@ -83,9 +105,31 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(properties) = 0;
     
-    return policy->processMessage(policy, &msg, false);
+    u8 returnCode =  policy->processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
+
+    if(task) {
+        // Here we inform the task that we destroyed (and therefore released) a DB
+        // This is most likely ALWAYS a local message but let's leave the
+        // API as it is for now. It is possible that the EDTs move at some point so
+        // just to be safe
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_DEP_DYNREMOVE
+        msg.type = PD_MSG_DEP_DYNREMOVE | PD_MSG_REQUEST;
+        PD_MSG_FIELD(edt.guid) = task->guid;
+        PD_MSG_FIELD(edt.metaDataPtr) = task;
+        PD_MSG_FIELD(db.guid) = db;
+        PD_MSG_FIELD(db.metaDataPtr) = NULL;
+        PD_MSG_FIELD(properties) = 0;
+        policy->processMessage(policy, &msg, false);
+#undef PD_MSG
+#undef PD_TYPE
+    } else {
+        DPRINTF(DEBUG_LVL_WARN, "Destroying DB (GUID: 0x%lx) from outside an EDT ... auto-release will fail\n",
+                db);
+    }
+    return returnCode;
 }
 
 u8 ocrDbRelease(ocrGuid_t db) {
@@ -104,9 +148,31 @@ u8 ocrDbRelease(ocrGuid_t db) {
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(properties) = 0;
     
-    return policy->processMessage(policy, &msg, false);
+    u8 returnCode = policy->processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
+
+    if(task) {
+        // Here we inform the task that we released a DB
+        // This is most likely ALWAYS a local message but let's leave the
+        // API as it is for now. It is possible that the EDTs move at some point so
+        // just to be safe
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_DEP_DYNREMOVE
+        msg.type = PD_MSG_DEP_DYNREMOVE | PD_MSG_REQUEST;
+        PD_MSG_FIELD(edt.guid) = task->guid;
+        PD_MSG_FIELD(edt.metaDataPtr) = task;
+        PD_MSG_FIELD(db.guid) = db;
+        PD_MSG_FIELD(db.metaDataPtr) = NULL;
+        PD_MSG_FIELD(properties) = 0;
+        policy->processMessage(policy, &msg, false);
+#undef PD_MSG
+#undef PD_TYPE
+    } else {
+        DPRINTF(DEBUG_LVL_WARN, "Releasing DB (GUID: 0x%lx) from outside an EDT ... auto-release will fail\n",
+                db);
+    }
+    return returnCode;
 }
 
 u8 ocrDbMalloc(ocrGuid_t guid, u64 size, void** addr) {
