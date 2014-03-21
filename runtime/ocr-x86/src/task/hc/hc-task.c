@@ -605,6 +605,7 @@ u8 notifyDbReleaseTaskHc(ocrTask_t *base, ocrFatGuid_t db) {
             --(derived->countUnkDbs);
             return 0;
         }
+        ++count;
     }
     // We did not find it but it may be that we never acquired it
     // Should not be an error code
