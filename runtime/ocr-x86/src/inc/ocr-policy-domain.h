@@ -164,7 +164,7 @@ typedef struct _paramListPolicyDomainInst_t {
 /**< Satisfy a dependence. A user can satisfy an event but the general
  * case is that a signaler satisfies its waiter(s)
  */
-#define PD_MSG_DEP_SATISFY      0x000C4080
+#define PD_MSG_DEP_SATISFY      0x00104080
 
 /**< Unregister a signaler on a waiter. This is called internally
  * when an event is destroyed for example */
@@ -749,6 +749,7 @@ typedef struct _ocrPolicyMsg_t {
         struct {
             union {
                 struct {
+                    ocrFatGuid_t satisfierGuid; /**< In: GUID of the "satisfier" (usually an EDT or event) */
                     ocrFatGuid_t guid;    /**< In: GUID of the event/task to satisfy */
                     ocrFatGuid_t payload; /**< In: GUID of the "payload" to satisfy the
                                            * event/task with (a DB usually). */

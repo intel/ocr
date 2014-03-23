@@ -165,6 +165,7 @@ static u8 finishLatchCheckin(ocrPolicyDomain_t *pd, ocrPolicyMsg_t *msg,
 #define PD_MSG (msg)
 #define PD_TYPE PD_MSG_DEP_SATISFY
     msg->type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
+    PD_MSG_FIELD_I(satisfierGuid) = sourceEvent;
     PD_MSG_FIELD_I(guid) = latchEvent;
     PD_MSG_FIELD_I(payload.guid) = NULL_GUID;
     PD_MSG_FIELD_I(payload.metaDataPtr) = NULL;
@@ -1017,6 +1018,8 @@ u8 taskExecute(ocrTask_t* base) {
     #define PD_MSG (&msg)
     #define PD_TYPE PD_MSG_DEP_SATISFY
             msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
+            PD_MSG_FIELD_I(satisfierGuid.guid) = base->guid;
+            PD_MSG_FIELD_I(satisfierGuid.metaDataPtr) = base;
             PD_MSG_FIELD_I(guid.guid) = base->outputEvent;
             PD_MSG_FIELD_I(guid.metaDataPtr) = NULL;
             PD_MSG_FIELD_I(payload.guid) = retGuid;

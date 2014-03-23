@@ -574,10 +574,13 @@ static u8 convertDepAddToSatisfy(ocrPolicyDomain_t *self, ocrFatGuid_t dbGuid,
                                    ocrFatGuid_t destGuid, u32 slot) {
 
     PD_MSG_STACK(msg);
-    getCurrentEnv(NULL, NULL, NULL, &msg);
+    ocrTask_t *curTask = NULL;
+    getCurrentEnv(NULL, NULL, &curTask, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_SATISFY
     msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
+    PD_MSG_FIELD_I(satisfierGuid.guid) = curTask?curTask->guid:NULL_GUID;
+    PD_MSG_FIELD_I(satisfierGuid.metaDataPtr) = curTask;
     PD_MSG_FIELD_I(guid) = destGuid;
     PD_MSG_FIELD_I(payload) = dbGuid;
     PD_MSG_FIELD_I(slot) = slot;

@@ -274,6 +274,8 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #define PD_TYPE PD_MSG_DEP_SATISFY
         PD_MSG_FIELD_I(payload) = db; // Do this once as it may get resolved the first time
         PD_MSG_FIELD_I(properties) = 0;
+        PD_MSG_FIELD_I(satisfierGuid.guid) = base->guid;
+        PD_MSG_FIELD_I(satisfierGuid.metaDataPtr) = base;
         for(i = 0; i < waitersCount; ++i) {
 #ifdef OCR_ENABLE_STATISTICS
             // We do this *before* calling signalWaiter because otherwise
@@ -366,6 +368,8 @@ u8 satisfyEventHcLatch(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
         PD_MSG_FIELD_I(payload) = db; // Do this once as it may get resolved the first time
         PD_MSG_FIELD_I(currentEdt) = currentEdt;
         PD_MSG_FIELD_I(properties) = 0;
+        PD_MSG_FIELD_I(satisfierGuid.guid) = base->guid;
+        PD_MSG_FIELD_I(satisfierGuid.metaDataPtr) = base;
         for(i = 0; i < event->base.waitersCount; ++i) {
 #ifdef OCR_ENABLE_STATISTICS
             // We do this *before* calling signalWaiter because otherwise
@@ -567,6 +571,8 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
         PD_MSG_FIELD_I(payload.guid) = event->data;
         PD_MSG_FIELD_I(payload.metaDataPtr) = NULL;
         PD_MSG_FIELD_I(currentEdt) = currentEdt;
+        PD_MSG_FIELD_I(satisfierGuid.guid) = base->guid;
+        PD_MSG_FIELD_I(satisfierGuid.metaDataPtr) = base;
         PD_MSG_FIELD_I(slot) = slot;
         PD_MSG_FIELD_I(properties) = 0;
         if((toReturn = pd->fcts.processMessage(pd, &msg, false))) {

@@ -493,6 +493,8 @@ static u8 convertDepAddToSatisfy(ocrPolicyDomain_t *self, ocrFatGuid_t dbGuid,
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_SATISFY
     msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
+    PD_MSG_FIELD_I(satisfierGuid.guid) = curTask?curTask->guid:NULL_GUID;
+    PD_MSG_FIELD_I(satisfierGuid.metaDataPtr) = curTask;
     PD_MSG_FIELD_I(guid) = destGuid;
     PD_MSG_FIELD_I(payload) = dbGuid;
     PD_MSG_FIELD_I(currentEdt) = currentEdt;
