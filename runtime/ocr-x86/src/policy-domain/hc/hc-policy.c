@@ -1064,7 +1064,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrTask_t *curTask = NULL;
         getCurrentEnv(NULL, NULL, &curTask, NULL);
 #define PD_MSG msg
-#define PD_TYPE PD_MSG_DEP_DYNADD
+#define PD_TYPE PD_MSG_DEP_DYNREMOVE
         // Check to make sure that the EDT is only doing this to
         // itself
         // Also, this should only happen when there is an actual EDT

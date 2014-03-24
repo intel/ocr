@@ -833,7 +833,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         break;
     }
 
-        case PD_MSG_DEP_DYNADD:
+    case PD_MSG_DEP_DYNADD:
     {
         ocrTask_t *curTask = NULL;
         getCurrentEnv(NULL, NULL, &curTask, NULL);
@@ -843,7 +843,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // itself
         // Also, this should only happen when there is an actual EDT
         ASSERT(curTask &&
-            curTask->guid == PD_MSG_FIELD(edt.guid));
+               curTask->guid == PD_MSG_FIELD(edt.guid));
         
         ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
         PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.notifyDbAcquire(curTask, PD_MSG_FIELD(db));
@@ -860,12 +860,12 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrTask_t *curTask = NULL;
         getCurrentEnv(NULL, NULL, &curTask, NULL);
 #define PD_MSG msg
-#define PD_TYPE PD_MSG_DEP_DYNADD
+#define PD_TYPE PD_MSG_DEP_DYNREMOVE
         // Check to make sure that the EDT is only doing this to
         // itself
         // Also, this should only happen when there is an actual EDT
         ASSERT(curTask &&
-            curTask->guid == PD_MSG_FIELD(edt.guid));
+               curTask->guid == PD_MSG_FIELD(edt.guid));
         
         ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
         PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.notifyDbRelease(curTask, PD_MSG_FIELD(db));
