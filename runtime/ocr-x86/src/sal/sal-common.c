@@ -315,9 +315,6 @@ u32 SNPRINTF(char * buf, u32 size, char * fmt, ...)
 }
 
 
-#define PRINTF_MAX (1024)
-static char printf_buf[PRINTF_MAX] __attribute__((aligned(sizeof(u64))));
-
 //
 // Currently supports the following formatting:
 //   strings:         %s
@@ -327,10 +324,16 @@ static char printf_buf[PRINTF_MAX] __attribute__((aligned(sizeof(u64))));
 //
 // In addition, the # flag is supported for %x, %lx, %llx
 //
+
+#define PRINTF_MAX (1024)
+
 u32 PRINTF(char * fmt, ...)
 {
     u32 tmp;
     __builtin_va_list ap;
+
+    char printf_buf[PRINTF_MAX] __attribute__((aligned(sizeof(u64))));
+
 
     __builtin_va_start(ap, fmt); 
 
