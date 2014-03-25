@@ -14,9 +14,6 @@
 
 // Constants used in the runtime
 
-// Maximum number of characters in a single printf
-#define PRINTF_MAX 1024
-
 // Define this if building the PD builder program
 // If this is defined, this will exclude everything
 // that does not contribute to building the policy domain
@@ -24,6 +21,10 @@
 
 // Allocator
 #define ENABLE_ALLOCATOR_TLSF
+
+
+// CommApi
+#define ENABLE_COMM_API_HANDLELESS
 
 // Comm-platform
 #define ENABLE_COMM_PLATFORM_XE

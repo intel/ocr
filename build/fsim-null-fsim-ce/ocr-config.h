@@ -20,6 +20,9 @@
 // Allocator
 #define ENABLE_ALLOCATOR_TLSF
 
+// CommApi
+#define ENABLE_COMM_API_HANDLELESS
+
 // Comm-platform
  #define ENABLE_COMM_PLATFORM_CE
 

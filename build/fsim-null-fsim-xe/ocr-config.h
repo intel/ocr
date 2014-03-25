@@ -20,11 +20,14 @@
 // Allocator
 #define ENABLE_ALLOCATOR_TLSF
 
+
+// CommApi
+#define ENABLE_COMM_API_HANDLELESS
+
 // Comm-platform
 #define ENABLE_COMM_PLATFORM_XE
 
 // Comp-platform
-//#define ENABLE_COMP_PLATFORM_PTHREAD
 #define ENABLE_COMP_PLATFORM_FSIM
 
 // Comp-target

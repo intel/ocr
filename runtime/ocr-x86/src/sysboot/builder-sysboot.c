@@ -66,12 +66,12 @@ void *myGetFuncAddr (const char * fname) {
     return getAddress(fname);
 }
 
-void *fsimMainEdtSet(ocrEdt_t edt) {
-    return NULL;
+void fsimMainEdtSet(ocrEdt_t edt) {
+    return;
 }
 
-void *fsimUserArgsSet(void *ptr) {
-    return NULL;
+void fsimUserArgsSet(void *ptr) {
+    return;
 }
 
 void (*userArgsSet)(void *) = &fsimUserArgsSet;
