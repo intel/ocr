@@ -61,7 +61,7 @@ u8 xePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target, ocrPo
     if (!__sync_bool_compare_and_swap ((&(channel->message)), NULL, msg))
         return OCR_EBUSY;
     
-    DPRINTF(DEBUG_LVL_INFO, "[XE%lu] sending message @ 0x%lx of type 0x%x\n", 
+    DPRINTF(DEBUG_LVL_INFO, "[XE%lu] sending message @ %p of type 0x%x\n", 
             (u64)commPlatformXePthread->base.pd->myLocation, msg, msg->type);
     hal_fence();
     ++(channel->xeCounter);
@@ -70,7 +70,7 @@ u8 xePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target, ocrPo
     } while(channel->xeCounter > channel->ceCounter);
     
     if (channel->xeCancel) {
-        DPRINTF(DEBUG_LVL_INFO, "[XE%lu] message @ 0x%lx canceled (type 0x%x)\n", 
+        DPRINTF(DEBUG_LVL_INFO, "[XE%lu] message @ %p canceled (type 0x%x)\n", 
                 (u64)commPlatformXePthread->base.pd->myLocation, msg, msg->type);
         RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->xeCancel)), true, false));
         return OCR_ECANCELED;
@@ -95,7 +95,7 @@ u8 xePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg, u32 p
     RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->message)), (*msg), NULL));
     hal_fence();
     ++(channel->xeCounter);
-    DPRINTF(DEBUG_LVL_INFO, "[XE%lu] received message @ 0x%lx of type 0x%x\n", 
+    DPRINTF(DEBUG_LVL_INFO, "[XE%lu] received message @ %p of type 0x%x\n", 
             (u64)commPlatformXePthread->base.pd->myLocation, (*msg), (*msg)->type);
     return 0;
 }

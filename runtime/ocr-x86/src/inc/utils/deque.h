@@ -13,7 +13,7 @@
 
 #ifndef INIT_DEQUE_CAPACITY
 // Set by configure
-#define INIT_DEQUE_CAPACITY 128
+#define INIT_DEQUE_CAPACITY 32768
 #endif
 
 /****************************************************/

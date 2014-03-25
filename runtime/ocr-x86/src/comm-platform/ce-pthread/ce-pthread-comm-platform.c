@@ -56,7 +56,7 @@ u8 cePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target, ocrPo
     ocrCommChannel_t * channel = &(commPlatformCePthread->channels[target]);
     ocrPolicyMsg_t * channelMessage = (ocrPolicyMsg_t *)__sync_val_compare_and_swap((&(channel->message)), NULL, msg);
     if (channelMessage != NULL) {
-        DPRINTF(DEBUG_LVL_VERB, "[CE] cancelling CE msg @ 0x%lx of type 0x%x to %lu; channel msg @ 0x%lx of type 0x%x from %lu\n", 
+        DPRINTF(DEBUG_LVL_VERB, "[CE] cancelling CE msg @ %p of type 0x%x to %lu; channel msg @ %p of type 0x%x from %lu\n", 
                 msg, msg->type, msg->srcLocation, channelMessage, channelMessage->type,
                 channelMessage->srcLocation);
         RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->message)), channelMessage, msg));
@@ -64,7 +64,7 @@ u8 cePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target, ocrPo
         hal_fence();
         ++(channel->ceCounter);
     }
-    DPRINTF(DEBUG_LVL_VERB, "[CE] sending message @ 0x%lx of type 0x%x to %lu\n", 
+    DPRINTF(DEBUG_LVL_VERB, "[CE] sending message @ %p of type 0x%x to %lu\n", 
             msg, msg->type, target);
     hal_fence();
     ++(channel->ceCounter);
@@ -84,16 +84,15 @@ u8 cePthreadCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg, u32 p
     for (i = 0; i < numXE; i++) {
         u32 idx = (startIdx + i) % numXE;
         ocrCommChannel_t * channel = &(commPlatformCePthread->channels[idx]);
-        ocrPolicyMsg_t * message = (ocrPolicyMsg_t *)channel->message;
-        hal_fence();
         if (channel->ceCounter < channel->xeCounter) {
+            ocrPolicyMsg_t * message = (ocrPolicyMsg_t *)channel->message;
             ASSERT(message);
             if (channel->message->type & PD_MSG_REQ_RESPONSE) {
-                DPRINTF(DEBUG_LVL_VVERB, "[CE] message from %u needs a response... using buffer @ 0x%lx\n",
+                DPRINTF(DEBUG_LVL_VVERB, "[CE] message from %u needs a response... using buffer @ %p\n",
                         idx, message);
                 *msg = message;
             } else {
-                DPRINTF(DEBUG_LVL_VVERB, "[CE] message from %u one-way... copying from 0x%lx to 0x%lx\n",
+                DPRINTF(DEBUG_LVL_VVERB, "[CE] message from %u one-way... copying from %p to %p\n",
                         idx, message, &(channel->messageBuffer));
                 hal_memCopy(&(channel->messageBuffer), message, sizeof(ocrPolicyMsg_t), false);
                 *msg = &(channel->messageBuffer);
@@ -102,7 +101,7 @@ u8 cePthreadCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg, u32 p
             hal_fence();
             ++(channel->ceCounter);
             commPlatformCePthread->startIdx = (idx + 1) % numXE;
-            DPRINTF(DEBUG_LVL_VERB, "[CE] received message @ 0x%lx of type 0x%x from %lu\n", 
+            DPRINTF(DEBUG_LVL_VERB, "[CE] received message @ %p of type 0x%x from %lu\n", 
                     (*msg), (*msg)->type, (u64)((*msg)->srcLocation));
             return 0;
         }
