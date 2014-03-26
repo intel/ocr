@@ -20,10 +20,10 @@ MEMORY
 
 SECTIONS
 {
-    .xe_irqtbl : {
-        _fxeirqtbl      = ABSOLUTE(.);
-        . = . + 4*8;
-        _exeirqtbl      = ABSOLUTE(.);
+    .xe_comms : {
+        _fxe_comms      = ABSOLUTE(.);
+        . = . + 0x200;
+        _exe_comms      = ABSOLUTE(.);
     } > LOCAL_RAM
 
     .rodata_local : {
