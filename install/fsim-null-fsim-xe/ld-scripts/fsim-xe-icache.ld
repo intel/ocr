@@ -22,7 +22,7 @@ SECTIONS
 {
     .xe_comms : {
         _fxe_comms      = ABSOLUTE(.);
-        . = . + 0x200;
+        . = . + 0x100;
         _exe_comms      = ABSOLUTE(.);
     } > LOCAL_RAM
 
