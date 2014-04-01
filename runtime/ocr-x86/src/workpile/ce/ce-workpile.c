@@ -79,7 +79,7 @@ void ceWorkpilePush(ocrWorkpile_t * base, ocrWorkPushType_t type,
 }
 
 ocrWorkpile_t * newWorkpileCe(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
-    ocrWorkpile_t* derived = (ocrWorkpile_t*) runtimeChunkAlloc(sizeof(ocrWorkpile_t), NULL);
+    ocrWorkpile_t* derived = (ocrWorkpile_t*) runtimeChunkAlloc(sizeof(ocrWorkpileCe_t), NULL);
 
     factory->initialize(factory, derived, perInstance);
     return derived;
