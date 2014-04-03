@@ -417,6 +417,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(size) = sizeof(regNode_t)*event->waitersMax*2;
         PD_MSG_FIELD(affinity.guid) = NULL_GUID;
+	PD_MSG_FIELD(affinity.metaDataPtr) = NULL;
         PD_MSG_FIELD(properties) = 0;
         PD_MSG_FIELD(dbType) = RUNTIME_DBTYPE;
         PD_MSG_FIELD(allocator) = NO_ALLOC;
@@ -542,6 +543,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(size) = sizeof(regNode_t)*event->base.waitersMax*2;
         PD_MSG_FIELD(affinity.guid) = NULL_GUID;
+	PD_MSG_FIELD(affinity.metaDataPtr) = NULL;
         PD_MSG_FIELD(properties) = 0;
         PD_MSG_FIELD(dbType) = RUNTIME_DBTYPE;
         PD_MSG_FIELD(allocator) = NO_ALLOC;
@@ -797,6 +799,7 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(size) = sizeof(regNode_t)*INIT_WAITER_COUNT;
     PD_MSG_FIELD(affinity.guid) = NULL_GUID;
+    PD_MSG_FIELD(affinity.metaDataPtr) = NULL_GUID;
     PD_MSG_FIELD(properties) = 0;
     PD_MSG_FIELD(dbType) = RUNTIME_DBTYPE;
     PD_MSG_FIELD(allocator) = NO_ALLOC;

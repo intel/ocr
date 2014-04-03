@@ -42,6 +42,7 @@ u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     msg.type = PD_MSG_EVT_DESTROY | PD_MSG_REQUEST;
     
     PD_MSG_FIELD(guid.guid) = eventGuid;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(properties) = 0;
     return pd->fcts.processMessage(pd, &msg, false);
     
@@ -59,7 +60,9 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*
     msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
     
     PD_MSG_FIELD(guid.guid) = eventGuid;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(payload.guid) = dataGuid;
+    PD_MSG_FIELD(payload.metaDataPtr) = NULL;
     PD_MSG_FIELD(slot) = slot;
     PD_MSG_FIELD(properties) = 0;
     return pd->fcts.processMessage(pd, &msg, false);
@@ -83,6 +86,7 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
     msg.type = PD_MSG_EDTTEMP_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid.guid) = *guid;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(funcPtr) = funcPtr;
     PD_MSG_FIELD(paramc) = paramc;
     PD_MSG_FIELD(depc) = depc;
@@ -106,6 +110,7 @@ u8 ocrEdtTemplateDestroy(ocrGuid_t guid) {
 #define PD_TYPE PD_MSG_EDTTEMP_DESTROY
     msg.type = PD_MSG_EDTTEMP_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid.guid) = guid;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     return pd->fcts.processMessage(pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
@@ -124,9 +129,12 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
 #define PD_TYPE PD_MSG_WORK_CREATE
     msg.type = PD_MSG_WORK_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid.guid) = *edtGuid;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(templateGuid.guid) = templateGuid;
     PD_MSG_FIELD(templateGuid.metaDataPtr) = NULL;
     PD_MSG_FIELD(affinity.guid) = affinity;
+    PD_MSG_FIELD(affinity.metaDataPtr) = NULL;
+    PD_MSG_FIELD(outputEvent.metaDataPtr) = NULL;
     if(outputEvent) {
         PD_MSG_FIELD(outputEvent.guid) = UNINITIALIZED_GUID;
     } else {
@@ -175,6 +183,7 @@ u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
 #define PD_TYPE PD_MSG_WORK_DESTROY
     msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid.guid) = edtGuid;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     return pd->fcts.processMessage(pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
@@ -190,7 +199,9 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
 #define PD_TYPE PD_MSG_DEP_ADD
         msg.type = PD_MSG_DEP_ADD | PD_MSG_REQUEST;
         PD_MSG_FIELD(source.guid) = source;
+	PD_MSG_FIELD(source.metaDataPtr) = NULL;
         PD_MSG_FIELD(dest.guid) = destination;
+	PD_MSG_FIELD(dest.metaDataPtr) = NULL;
         PD_MSG_FIELD(slot) = slot;
         PD_MSG_FIELD(properties) = mode;
 #undef PD_MSG
@@ -200,8 +211,9 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
 #define PD_TYPE PD_MSG_DEP_SATISFY
         msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid.guid) = destination;
+	PD_MSG_FIELD(guid.metaDataPtr) = NULL;
         PD_MSG_FIELD(payload.guid) = NULL_GUID;
-        PD_MSG_FIELD(payload.metaDataPtr) = 0ULL;
+        PD_MSG_FIELD(payload.metaDataPtr) = NULL;
         PD_MSG_FIELD(slot) = slot;
         PD_MSG_FIELD(properties) = 0;
 #undef PD_MSG
