@@ -17,6 +17,9 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#define __USE_GNU
+#include <pthread.h>
+
 enum {
     OPT_NONE, OPT_CONFIG, OPT_VERSION, OPT_HELP
 };
@@ -218,23 +221,38 @@ void ocrFinalize() {
 
 }
 
-ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
-    ASSERT(false && "ocrWait disabled");
-    // TODO: Re-enable this
-    /*
-    ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
-    ocrPolicyDomain_t * pd = ctx->PD;
 
-    ocrGuid_t workerGuid = ctx->sourceObj;
-    ocrGuid_t yieldingEdtGuid = getCurrentEDT();
-    // The guid returned by eventGuid on completion
-    ocrGuid_t returnGuid;
-    // This call should return only when the event 'eventToYieldForGuid' is satisfied
-    pd->fcts.waitForEvent(pd, workerGuid, yieldingEdtGuid, eventToYieldForGuid, &returnGuid, ctx);
+// TODO: Relying on pthread_yield() below is a hack and needs to go away
+// WARNING: The event MUST be sticky. DO NOT WAIT ON A LATCH EVENT!!!
+ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
+    ocrPolicyDomain_t *pd = NULL;
+    ocrPolicyMsg_t msg;
+    ocrEvent_t *eventToYieldFor = NULL;
+    ocrFatGuid_t result;
+
+    getCurrentEnv(&pd, NULL, NULL, NULL);
     
-    return returnGuid;
-    */
-    return NULL_GUID;
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_GUID_INFO
+    msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+    PD_MSG_FIELD(guid.guid) = eventToYieldForGuid;
+    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD(properties) = KIND_GUIDPROP | RMETA_GUIDPROP;
+    RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, false), ERROR_GUID);
+    eventToYieldFor = (ocrEvent_t *)PD_MSG_FIELD(guid.metaDataPtr);
+#undef PD_MSG
+#undef PD_TYPE
+
+    ASSERT(eventToYieldFor->kind == OCR_EVENT_STICKY_T ||
+	   eventToYieldFor->kind == OCR_EVENT_IDEM_T);
+
+    do {
+        pthread_yield();
+	result.guid = ERROR_GUID;
+	result = pd->eventFactories[0]->fcts[eventToYieldFor->kind].get(eventToYieldFor);
+    } while(result.guid == ERROR_GUID);
+
+    return result.guid;
 }
 
 #endif /* ENABLE_OCR_LIB */
