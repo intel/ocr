@@ -67,6 +67,16 @@ CFLAGS := -g -Wall -DELS_USER_SIZE=0 $(CFLAGS)
 # Generate a list of all source files and the respective objects
 #
 SRCS   := $(shell find -L $(OCRDIR)/src -name '*.[csS]' -print)
+
+
+ifneq (,$(findstring OCR_RUNTIME_PROFILER,$(CFLAGS)))
+SRCSORIG = $(SRCS)
+SRCS += $(OCRDIR)/src/profilerAutoGen.c
+PROFILER_FILE=$(OCRDIR)/src/profilerAutoGen.c
+else
+PROFILER_FILE=
+endif
+
 OBJS_STATIC   := $(addprefix $(OBJDIR)/static/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
 OBJS_SHARED   := $(addprefix $(OBJDIR)/shared/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
 OBJS_EXEC     := $(addprefix $(OBJDIR)/exec/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
@@ -195,11 +205,17 @@ $(OCREXEC): $(OBJS_EXEC)
 #
 # Objects build rules
 #
-$(OBJDIR)/static/%.o: %.c Makefile ../common.mk | $(OBJDIR)/static
+
+$(PROFILER_FILE): $(SRCSORIG)
+	@echo "Generating profile file..."
+	@$(OCRDIR)/scripts/Profiler/generateProfilerFile.py $(OCRDIR)/src $(OCRDIR)/src/profilerAutoGen h,c .git profiler
+	@echo "\tDone."
+
+$(OBJDIR)/static/%.o: %.c Makefile ../common.mk $(PROFILER_FILE) | $(OBJDIR)/static
 	@echo "Compiling $<"
 	@$(CC) $(CFLAGS_STATIC) -MMD -c $< -o $@
 
-$(OBJDIR)/shared/%.o: %.c Makefile ../common.mk | $(OBJDIR)/shared
+$(OBJDIR)/shared/%.o: %.c Makefile ../common.mk $(PROFILER_FILE) | $(OBJDIR)/shared
 	@echo "Compiling $<"
 	@$(CC) $(CFLAGS_SHARED) -MMD -c $< -o $@
 

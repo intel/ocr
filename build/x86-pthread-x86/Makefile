@@ -50,6 +50,9 @@ SUPPORTS_STATIC=yes
 # For Valgrind, uncomment this line
 #CFLAGS += -I/usr/include -DENABLE_VALGRIND #-DELS_USER_SIZE=2
 
+# For runtime-overhead profiling
+#CFLAGS += -DOCR_RUNTIME_PROFILER -DPROFILE_KHZ=3400000
+
 .PHONY: all
 all: static shared
 

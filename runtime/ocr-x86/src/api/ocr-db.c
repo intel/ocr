@@ -25,11 +25,14 @@
 #include "ocr-statistics.h"
 #endif
 
+#include "utils/profiler/profiler.h"
+
 #define DEBUG_TYPE API
 
 u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
                ocrGuid_t affinity, ocrInDbAllocator_t allocator) {
 
+    START_PROFILE(api_DbCreate);
     // TODO: Currently location and allocator are ignored
     // ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_DEFAULT);
     // ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_PLACED);
@@ -64,7 +67,9 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     } else {
         *addr = NULL;
     }
-    if(*addr == NULL) return OCR_ENOMEM;
+    if(*addr == NULL) {
+        RETURN_PROFILE(OCR_ENOMEM);
+    }
 #undef PD_MSG
 #undef PD_TYPE
 
@@ -88,11 +93,12 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
         DPRINTF(DEBUG_LVL_WARN, "Acquiring DB (GUID: 0x%lx) from outside an EDT ... auto-release will fail\n",
                 *db);
     }
-    return 0;
+    RETURN_PROFILE(0);
 }
 
 u8 ocrDbDestroy(ocrGuid_t db) {
 
+    START_PROFILE(api_DbDestroy);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
@@ -131,11 +137,12 @@ u8 ocrDbDestroy(ocrGuid_t db) {
         DPRINTF(DEBUG_LVL_WARN, "Destroying DB (GUID: 0x%lx) from outside an EDT ... auto-release will fail\n",
                 db);
     }
-    return returnCode;
+    RETURN_PROFILE(returnCode);
 }
 
 u8 ocrDbRelease(ocrGuid_t db) {
 
+    START_PROFILE(api_DbRelease);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
@@ -174,7 +181,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
         DPRINTF(DEBUG_LVL_WARN, "Releasing DB (GUID: 0x%lx) from outside an EDT ... auto-release will fail\n",
                 db);
     }
-    return returnCode;
+    RETURN_PROFILE(returnCode);
 }
 
 u8 ocrDbMalloc(ocrGuid_t guid, u64 size, void** addr) {

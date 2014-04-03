@@ -13,6 +13,8 @@
 
 #include "ocr-types.h"
 
+#include "utils/profiler/profiler.h"
+
 /**
  * @brief Memory region "tags"
  *
@@ -240,7 +242,7 @@ typedef u64 ocrLocation_t;
 #define RESULT_PROPAGATE(expression)            \
     do {                                        \
         u8 __result = (expression);             \
-        if(__result) return __result;           \
+        if(__result) return (__result);         \
     } while(0);
 
 #define RESULT_PROPAGATE2(expression, returnValue)  \
@@ -249,4 +251,17 @@ typedef u64 ocrLocation_t;
         if(__result) return (returnValue);          \
     } while(0);
 
+#define RESULT_PROPAGATE_PROF(expression)       \
+    do {                                        \
+        u8 __result = (expression);             \
+        if(__result) RETURN_PROFILE(__result);  \
+    } while(0);
+
+#define RESULT_PROPAGATE2_PROF(expression, returnValue) \
+    do {                                                \
+        u8 __result = (expression);                     \
+        if(__result) RETURN_PROFILE(returnValue);       \
+    } while(0);
+
 #endif /* __OCR_RUNTIME_TYPES_H__ */
+

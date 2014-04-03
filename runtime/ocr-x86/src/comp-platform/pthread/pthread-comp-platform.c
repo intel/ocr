@@ -19,6 +19,7 @@
 
 #include <stdlib.h> // For malloc for TLS
 
+#include "utils/profiler/profiler.h"
 
 #define DEBUG_TYPE COMP_PLATFORM
 
@@ -39,6 +40,10 @@ typedef struct {
  * The key we use to be able to find which compPlatform we are on
  */
 pthread_key_t selfKey;
+#ifdef OCR_RUNTIME_PROFILER
+pthread_key_t _profilerThreadData;
+#endif
+
 pthread_once_t selfKeyInitialized = PTHREAD_ONCE_INIT;
 
 static void * pthreadRoutineExecute(ocrWorker_t * worker) {
@@ -59,6 +64,16 @@ static void * pthreadRoutineWrapper(void * arg) {
     data->pd = pthreadCompPlatform->base.pd;
     data->worker = pthreadCompPlatform->base.worker;
     RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
+
+#ifdef OCR_RUNTIME_PROFILER
+    _profilerData *d = (_profilerData*)malloc(sizeof(_profilerData));
+    char buffer[30];
+    snprintf(buffer, 30, "profiler_%lx", (u64)arg);
+    d->output = fopen(buffer, "w");
+    ASSERT(d->output);
+    RESULT_ASSERT(pthread_setspecific(_profilerThreadData, d), ==, 0);
+#endif
+
     return pthreadRoutineExecute(pthreadCompPlatform->base.worker);
 }
 
@@ -71,6 +86,15 @@ static void initializeKey() {
     // We are going to set our own key (we are the master thread)
     perThreadStorage_t *data = (perThreadStorage_t*)malloc(sizeof(perThreadStorage_t));
     RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
+#ifdef OCR_RUNTIME_PROFILER
+    RESULT_ASSERT(pthread_key_create(&_profilerThreadData, &_profilerDataDestroy), ==, 0);
+    _profilerData *d = (_profilerData*)malloc(sizeof(_profilerData));
+    char buffer[30];
+    snprintf(buffer, 30, "profiler_%lx", 0UL);
+    d->output = fopen(buffer, "w");
+    ASSERT(d->output);
+    RESULT_ASSERT(pthread_setspecific(_profilerThreadData, d), ==, 0);
+#endif
 }
 
 void pthreadDestruct (ocrCompPlatform_t * base) {
@@ -121,6 +145,12 @@ void pthreadFinish(ocrCompPlatform_t *compPlatform) {
     ocrCompPlatformPthread_t *pthreadCompPlatform = (ocrCompPlatformPthread_t*)compPlatform;
     if(!pthreadCompPlatform->isMaster) {
         RESULT_ASSERT(pthread_join(pthreadCompPlatform->osThread, NULL), ==, 0);
+    } else {
+        // For some reason the key is not being destroyed for the master thread
+#ifdef OCR_RUNTIME_PROFILER
+        void* _t = pthread_getspecific(_profilerThreadData);
+        _profilerDataDestroy(_t);
+#endif
     }
 }
 
@@ -180,6 +210,7 @@ void destructCompPlatformFactoryPthread(ocrCompPlatformFactory_t *factory) {
 void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
                    ocrTask_t **task, ocrPolicyMsg_t* msg) {
 
+    START_PROFILE(cp_getCurrentEnv);
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
     if(pd)
         *pd = vals->pd;
@@ -190,6 +221,7 @@ void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
     if(msg) {
         msg->srcLocation = vals->pd->myLocation;
     }
+    RETURN_PROFILE();
 }
 
 ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType) {

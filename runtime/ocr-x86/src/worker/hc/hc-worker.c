@@ -22,6 +22,10 @@
 #include "ocr-statistics-callbacks.h"
 #endif
 
+#ifdef OCR_RUNTIME_PROFILER
+#include "utils/profiler/profiler.h"
+#endif
+
 #define DEBUG_TYPE WORKER
 
 /******************************************************/
@@ -38,6 +42,7 @@ static inline u64 getWorkerId(ocrWorker_t * worker) {
  * The computation worker routine that asks work to the scheduler
  */
 static void workerLoop(ocrWorker_t * worker) {
+    START_PROFILE(wo_hc_workerLoop);
     ocrPolicyDomain_t *pd = worker->pd;
     ocrPolicyMsg_t msg;
     getCurrentEnv(NULL, NULL, NULL, &msg);
@@ -75,6 +80,7 @@ static void workerLoop(ocrWorker_t * worker) {
             }
         }
     } /* End of while loop */
+    RETURN_PROFILE();
 }
 
 void destructWorkerHc(ocrWorker_t * base) {

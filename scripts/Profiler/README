@@ -1,0 +1,115 @@
+##
+# License
+##
+
+The code in this directory as well as in src/utils/profiler was adapted
+from previously written code also released under the BSD license (see
+LICENSE_Profiler).
+
+##
+# Instrumenting the code
+##
+
+The profiler provides the following macros:
+    - START_PROFILE(name): causes 'name' to be associated
+      with the block of code defined as the inner-most scope
+      encompassing the macro. Note that 'name' should not contain
+      quotes nor should it be named exactly like another symbol.
+      For example, use 'START_PROFILE(main)' to associate
+      the name 'main' with the code being profiled
+    - PAUSE_PROFILE: causes timing measurements to be paused
+    - RESUME_PROFILE: resumes timing measurements paused by 'PAUSE_PROFILE'.
+      Should appear in pair with 'PAUSE_PROFILE'
+    - RETURN_PROFILE(val): Must be paired with a START_PROFILE to indicate
+      a function return. 'val' will be returned from the function. Note that
+      to ensure accuracy, 'val' should not need to be "evaluated" (ie: no
+      tail recursion)
+    - EXIT_PROFILE: Use as an alternative to RETURN_PROFILE if profiling
+      just a scope and not a function
+
+##
+# Analyzing the profile
+##
+
+Run the script 'analyzeProfile.py'. This script takes two parameters:
+    - the name of the basename of the output files (set as 'profiler_' by default)
+    - the number of threads to look at. One file is produced per thread and the
+      analyzer will analyze each thread separately and also generate a summary
+      over all threads. You can specify '*' to look for all files in the current
+      directory starting with the basename
+Run the script with the '-h' option for more information.
+
+The analyzer will output its analysis for each thread as well as for all
+threads combined. Each analysis is very similar to the output produced by
+gprof.
+
+It will first output a flat profile of all the blocks of code
+profiled. For each block of code it will output (in this order):
+    - the percentage of total overhead time spent in this block of code (not
+      including its children). The flat profile is ordered by this
+      percentage.
+    - the total time spent in this block of code and children
+    - the total time spent in this block of code (not including its children).
+      This is the time used to compute the percentage in the first column.
+    - The number of calls to this block of code
+    - The average time spent per call (including children)
+    - The standard deviation on this average
+    - The name of the block of code (set by 'START_PROFILER').
+    - An index in [] used in the call-graph profile
+
+It will also output a call-graph profile which gives more detail about
+how each block of code is called. This profile is ordered by the
+percentage of total overhead time spent in the block of code (INCLUDING
+its children).
+
+To clarify the notations, we will use the following example output:
+                      62.128203        0.001531      32870326/54696727      shared_Crefwiththread [1]
+                      41.737103        0.003633      21826400/54696727      shared_refwiththread [2]
+[  3]     13.63      103.865350        0.005532        54696727             th_getthreadandway [3]
+                       0.005532        0.000000            31/31            th_getthreadandwayPRIV [25]
+
+This is the third entry as indicated by the '[3]' in the first column.
+There are three parts:
+    - the lines *above* the '[3]' line describe the parents
+    - the '[3]' line describes the current entry
+    - the lines *below* the '[3]' line describe the descendants
+
+For the lines describing the parents:
+    - the first column is the amount of time spent in '[3]' (excluding
+        its children) that comes from '[3]' being called by this parent
+    - the second column is the amount of time spent in the children
+        of '[3]' that comes from '[3]' being called by this parent
+    - the third column is the number of times '[3]' was called from
+        this parent
+    - the fourth column is the name of the parent and its index
+
+For the line describing the entry:
+    - the first column is its index
+    - the second column is the percentage of total overhead time spent in
+        this entry (including its children)
+    - the third column is the total time spent inside this entry (excluding
+        its children)
+    - the fourth column is the total time spent inside its
+        children
+    - the fifth column is the total number of calls
+    - the sixth colum is the entry's name and index
+
+For the lines describing the children:
+    - the first column is the total time spent in this child when
+        it is called from '[3]'
+    - the second column is the total time spent in this child's children
+        when it is called from '[3]'
+    - the third column is the number of times this child is called
+        from '[3]'
+    - the fourth colum is the name of the child and its index
+
+
+##
+# Note on recursive functions
+##
+
+To solve the issue of resursive functions, all profiling instances of the same
+scope (ie: if START_PROFILE(foobar) is called after a START_PROFILE(foobar) without
+any intervening EXIT/RETURN_PROFILE) are collapsed into one. This has the effect
+of lengthening the effective time of the profiled function but produces more accurate
+results.

@@ -10,7 +10,10 @@
 #include "ocr-policy-domain.h"
 #include "ocr-runtime.h"
 
+#include "utils/profiler/profiler.h"
+
 u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
+    START_PROFILE(api_EventCreate);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t * pd = NULL;
     u8 returnCode = 0;
@@ -30,10 +33,11 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
         *guid = NULL_GUID;
 #undef PD_MSG
 #undef PD_TYPE
-    return returnCode;
+    RETURN_PROFILE(returnCode);
 }
 
 u8 ocrEventDestroy(ocrGuid_t eventGuid) {
+    START_PROFILE(api_EventDestroy);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, &msg);
@@ -44,14 +48,16 @@ u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     PD_MSG_FIELD(guid.guid) = eventGuid;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(properties) = 0;
-    return pd->fcts.processMessage(pd, &msg, false);
 
+    u8 toReturn = pd->fcts.processMessage(pd, &msg, false);
+    RETURN_PROFILE(toReturn);
 #undef PD_MSG
 #undef PD_TYPE
 }
 
 u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/, u32 slot) {
 
+    START_PROFILE(api_EventSatisfySlot);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, &msg);
@@ -65,7 +71,8 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*
     PD_MSG_FIELD(payload.metaDataPtr) = NULL;
     PD_MSG_FIELD(slot) = slot;
     PD_MSG_FIELD(properties) = 0;
-    return pd->fcts.processMessage(pd, &msg, false);
+    u8 toReturn = pd->fcts.processMessage(pd, &msg, false);
+    RETURN_PROFILE(toReturn);
 #undef PD_MSG
 #undef PD_TYPE
 }
@@ -75,6 +82,7 @@ u8 ocrEventSatisfy(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*/) {
 }
 
 u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, u32 depc, const char* funcName) {
+    START_PROFILE(api_EdtTemplateCreate);
 #ifdef OCR_ENABLE_EDT_NAMING
     ASSERT(funcName);
 #endif
@@ -99,10 +107,11 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
         *guid = NULL_GUID;
 #undef PD_MSG
 #undef PD_TYPE
-    return returnCode;
+    RETURN_PROFILE(returnCode);
 }
 
 u8 ocrEdtTemplateDestroy(ocrGuid_t guid) {
+    START_PROFILE(api_EdtTemplateDestroy);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, &msg);
@@ -111,7 +120,8 @@ u8 ocrEdtTemplateDestroy(ocrGuid_t guid) {
     msg.type = PD_MSG_EDTTEMP_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid.guid) = guid;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    return pd->fcts.processMessage(pd, &msg, false);
+    u8 toReturn = pd->fcts.processMessage(pd, &msg, false);
+    RETURN_PROFILE(toReturn);
 #undef PD_MSG
 #undef PD_TYPE
 }
@@ -120,6 +130,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
                 u32 paramc, u64* paramv, u32 depc, ocrGuid_t *depv,
                 u16 properties, ocrGuid_t affinity, ocrGuid_t *outputEvent) {
 
+    START_PROFILE(api_EdtCreate);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t * pd = NULL;
     u8 returnCode = 0;
@@ -147,8 +158,9 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     PD_MSG_FIELD(workType) = EDT_WORKTYPE;
 
     returnCode = pd->fcts.processMessage(pd, &msg, true);
-    if(returnCode)
-        return returnCode;
+    if(returnCode) {
+        RETURN_PROFILE(returnCode);
+    }
 
     *edtGuid = PD_MSG_FIELD(guid.guid);
     paramc = PD_MSG_FIELD(paramc);
@@ -166,16 +178,18 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
             // FIXME: Not really good. We would need to undo maybe
             returnCode = ocrAddDependence(depv[i], *edtGuid, i, DB_DEFAULT_MODE);
             ++i;
-            if(returnCode)
-                return returnCode;
+            if(returnCode) {
+                RETURN_PROFILE(returnCode);
+            }
         }
     }
-    return 0;
+    RETURN_PROFILE(0);
 #undef PD_MSG
 #undef PD_TYPE
 }
 
 u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
+    START_PROFILE(api_EdtDestroy);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, &msg);
@@ -184,13 +198,15 @@ u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid.guid) = edtGuid;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    return pd->fcts.processMessage(pd, &msg, false);
+    u8 toReturn = pd->fcts.processMessage(pd, &msg, false);
+    RETURN_PROFILE(toReturn);
 #undef PD_MSG
 #undef PD_TYPE
 }
 
 u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
                     ocrDbAccessMode_t mode) {
+    START_PROFILE(api_AddDependence);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, &msg);
@@ -219,7 +235,6 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
 #undef PD_MSG
 #undef PD_TYPE
     }
-    return pd->fcts.processMessage(pd, &msg, false);
+    u8 toReturn = pd->fcts.processMessage(pd, &msg, false);
+    RETURN_PROFILE(toReturn);
 }
-
-

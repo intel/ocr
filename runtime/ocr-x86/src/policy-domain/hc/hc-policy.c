@@ -18,6 +18,8 @@
 #include "ocr-statistics.h"
 #endif
 
+#include "utils/profiler/profiler.h"
+
 #include "policy-domain/hc/hc-policy.h"
 
 #define DEBUG_TYPE POLICY
@@ -278,6 +280,7 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
 }
 
 static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
+    START_PROFILE(pd_hc_localDeguidify);
     ASSERT(self->guidProviderCount == 1);
     if(guid->guid != NULL_GUID && guid->guid != UNINITIALIZED_GUID) {
         if(guid->metaDataPtr == NULL) {
@@ -285,6 +288,7 @@ static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
                                                 (u64*)(&(guid->metaDataPtr)), NULL);
         }
     }
+    RETURN_PROFILE();
 }
 
 // In all these functions, we consider only a single PD. In other words, in HC, we
@@ -440,6 +444,7 @@ static ocrStats_t* hcGetStats(ocrPolicyDomain_t *self) {
 #endif
 
 static u8 hcGrabPd(ocrPolicyDomainHc_t *rself) {
+    START_PROFILE(pd_hc_GrabPd);
     u32 newState = rself->state;
     u32 oldState;
     if((newState & 0xF) == 1) {
@@ -449,11 +454,11 @@ static u8 hcGrabPd(ocrPolicyDomainHc_t *rself) {
             newState += 16; // Increment the user count by 1, skips the bottom 4 bits
             newState = hal_cmpswap32(&(rself->state), oldState, newState);
             if(newState == oldState) {
-                return 0;
+                RETURN_PROFILE(0);
             } else {
                 if(newState & 0x2) {
                     // The PD is shutting down
-                    return OCR_EAGAIN;
+                    RETURN_PROFILE(OCR_EAGAIN);
                 }
                 // Some other thread incremented the reader count so
                 // we try again
@@ -461,11 +466,12 @@ static u8 hcGrabPd(ocrPolicyDomainHc_t *rself) {
             }
         } while(true);
     } else {
-        return OCR_EAGAIN;
+        RETURN_PROFILE(OCR_EAGAIN);
     }
 }
 
 static void hcReleasePd(ocrPolicyDomainHc_t *rself) {
+    START_PROFILE(pd_hc_ReleasePd);
     u32 oldState = 0;
     u32 newState = rself->state;
     do {
@@ -474,14 +480,18 @@ static void hcReleasePd(ocrPolicyDomainHc_t *rself) {
         newState -= 16;
         newState = hal_cmpswap32(&(rself->state), oldState, newState);
     } while(newState != oldState);
+    RETURN_PROFILE();
 }
 
 u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlocking) {
 
+    START_PROFILE(pd_hc_ProcessMessage);
     u8 returnCode = 0;
 
     returnCode = hcGrabPd((ocrPolicyDomainHc_t*)self);
-    if(returnCode) return returnCode;
+    if(returnCode) {
+        RETURN_PROFILE(returnCode);
+    }
 
     ASSERT((msg->type & PD_MSG_REQUEST) && !(msg->type & PD_MSG_RESPONSE))
     switch(msg->type & PD_MSG_TYPE_ONLY) {
@@ -1118,7 +1128,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     // Now "release" the policy domain
     hcReleasePd((ocrPolicyDomainHc_t*)self);
 
-    return returnCode;
+    RETURN_PROFILE(returnCode);
 }
 
 u8 hcPdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t *message,
@@ -1135,26 +1145,29 @@ u8 hcPdWaitMessage(ocrPolicyDomain_t *self,  ocrMsgHandle_t **handle) {
 }
 
 void* hcPdMalloc(ocrPolicyDomain_t *self, u64 size) {
+    START_PROFILE(pd_hc_PdMalloc);
     if(hcGrabPd((ocrPolicyDomainHc_t*)self))
-        return NULL;
+        RETURN_PROFILE(NULL);
 
     // Just try in the first allocator
     void* toReturn = NULL;
     toReturn = self->allocators[0]->fcts.allocate(self->allocators[0], size);
 
     hcReleasePd((ocrPolicyDomainHc_t*)self);
-    return toReturn;
+    RETURN_PROFILE(toReturn);
 }
 
 void hcPdFree(ocrPolicyDomain_t *self, void* addr) {
+    START_PROFILE(pd_hc_PdFree);
     // May result in leaks but better than the alternative...
     if(hcGrabPd((ocrPolicyDomainHc_t*)self))
-        return;
+        RETURN_PROFILE();
 
     // Just try in the first allocator
     self->allocators[0]->fcts.free(self->allocators[0], addr);
 
     hcReleasePd((ocrPolicyDomainHc_t*)self);
+    RETURN_PROFILE();
 }
 
 ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * factory,
