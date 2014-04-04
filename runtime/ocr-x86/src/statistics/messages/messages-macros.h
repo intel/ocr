@@ -45,7 +45,7 @@
  * @see START_MESSAGE
  */
 #define END_MESSAGE                                     \
-    } MESS_TYPE(MESSAGE_NAME);                      
+    } MESS_TYPE(MESSAGE_NAME);
 
 #define MESSAGE_CAST(result, origin)                    \
     MESS_TYPE(MESSAGE_NAME) *result = (MESS_TYPE(MESSAGE_NAME) *)origin
@@ -70,8 +70,8 @@
     }                                                                   \
     result->base.type = type;                                           \
     result->base.state = 0;
-        
-    
+
+
 
 
 #define MESSAGE_DESTRUCT static void COMBI(_destruct_, MESSAGE_NAME) (ocrStatsMessage_t *self)
@@ -81,6 +81,6 @@
                                                                                 ocrGuid_t src, \
                                                                                 ocrGuid_t dest, \
                                                                                 ocrStatsParam_t *instanceArg)
-                                                                                
+
 #endif /* __MESSAGES_MACROS_H__ */
 #endif /* OCR_ENABLE_STATISTICS */

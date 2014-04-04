@@ -33,7 +33,7 @@ ocrGuid_t sequential_cholesky_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDe
     ocrGuid_t out_lkji_kkkp1_db_affinity = NULL_GUID;
 
     DBCREATE(&out_lkji_kkkp1_db_guid, &lBlock_db,
-        sizeof(double)*tileSize*tileSize, FLAGS, out_lkji_kkkp1_db_affinity, NO_ALLOC);
+             sizeof(double)*tileSize*tileSize, FLAGS, out_lkji_kkkp1_db_affinity, NO_ALLOC);
 
     double* lBlock = (double*) lBlock_db;
 
@@ -83,7 +83,7 @@ ocrGuid_t trisolve_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
     PTR_T loBlock_db;
 
     DBCREATE(&out_lkji_jkkp1_db_guid, &loBlock_db,
-        sizeof(double)*tileSize*tileSize, FLAGS, out_lkji_jkkp1_db_affinity, NO_ALLOC);
+             sizeof(double)*tileSize*tileSize, FLAGS, out_lkji_jkkp1_db_affinity, NO_ALLOC);
 
     double * loBlock = (double*) loBlock_db;
 
@@ -196,12 +196,12 @@ ocrGuid_t wrap_up_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) 
 
     gettimeofday(&b,0);
     PRINTF("The computation took %f seconds\r\n",
-        ((b.tv_sec - a.tv_sec)*1000000+(b.tv_usec - a.tv_usec))*1.0/1000000);
+           ((b.tv_sec - a.tv_sec)*1000000+(b.tv_usec - a.tv_usec))*1.0/1000000);
     return NULL_GUID;
 }
 
 inline static void sequential_cholesky_task_prescriber (ocrGuid_t edtTemp, int k,
-                                                        int tileSize, ocrGuid_t*** lkji_event_guids) {
+        int tileSize, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t seq_cholesky_task_guid;
 
     u64 func_args[3];
@@ -216,7 +216,7 @@ inline static void sequential_cholesky_task_prescriber (ocrGuid_t edtTemp, int k
 }
 
 inline static void trisolve_task_prescriber ( ocrGuid_t edtTemp, int k, int j, int tileSize,
-                                              ocrGuid_t*** lkji_event_guids) {
+        ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t trisolve_task_guid;
 
     u64 func_args[4];
@@ -234,7 +234,7 @@ inline static void trisolve_task_prescriber ( ocrGuid_t edtTemp, int k, int j, i
 }
 
 inline static void update_nondiagonal_task_prescriber ( ocrGuid_t edtTemp, int k, int j, int i,
-                                                        int tileSize, ocrGuid_t*** lkji_event_guids) {
+        int tileSize, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t update_nondiagonal_task_guid;
 
     u64 func_args[5];
@@ -254,7 +254,7 @@ inline static void update_nondiagonal_task_prescriber ( ocrGuid_t edtTemp, int k
 
 
 inline static void update_diagonal_task_prescriber ( ocrGuid_t edtTemp, int k, int j, int i,
-                                                     int tileSize, ocrGuid_t*** lkji_event_guids) {
+        int tileSize, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t update_diagonal_task_guid;
 
     u64 func_args[5];
@@ -272,7 +272,7 @@ inline static void update_diagonal_task_prescriber ( ocrGuid_t edtTemp, int k, i
 }
 
 inline static void wrap_up_task_prescriber ( ocrGuid_t edtTemp, int numTiles, int tileSize,
-                                             ocrGuid_t*** lkji_event_guids ) {
+        ocrGuid_t*** lkji_event_guids ) {
     int i,j,k;
     ocrGuid_t wrap_up_task_guid;
 
@@ -312,7 +312,7 @@ inline static ocrGuid_t*** allocateCreateEvents ( int numTiles ) {
 
 
 inline static void satisfyInitialTiles(int numTiles, int tileSize, double** matrix,
-                                        ocrGuid_t*** lkji_event_guids) {
+                                       ocrGuid_t*** lkji_event_guids) {
     int i,j,index;
     int A_i, A_j, T_i, T_j;
 
@@ -364,8 +364,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     }
 
     u64* offsets = (u64*)MALLOC(argc*sizeof(u64));
-    for (i=0; i< argc; i++)
-    {
+    for (i=0; i< argc; i++) {
         offsets[i] = dbAsU64[i+1];
     }
     char *dbAsChar = (char*)programArg;
@@ -391,7 +390,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t*** lkji_event_guids = allocateCreateEvents(numTiles);
 
     ocrGuid_t templateSeq, templateTrisolve,
-        templateUpdateNonDiag, templateUpdate, templateWrap;
+              templateUpdateNonDiag, templateUpdate, templateWrap;
 
     ocrEdtTemplateCreate(&templateSeq, sequential_cholesky_task, 3, 1);
     ocrEdtTemplateCreate(&templateTrisolve, trisolve_task, 4, 2);

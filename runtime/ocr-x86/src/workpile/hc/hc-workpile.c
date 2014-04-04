@@ -40,7 +40,7 @@ void hcWorkpileStop(ocrWorkpile_t *base) {
     // Destroy the GUID
     ocrPolicyMsg_t msg;
     getCurrentEnv(NULL, NULL, NULL, &msg);
-    
+
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
@@ -59,12 +59,12 @@ void hcWorkpileFinish(ocrWorkpile_t *base) {
 
 ocrFatGuid_t hcWorkpilePop(ocrWorkpile_t * base, ocrWorkPopType_t type,
                            ocrCost_t *cost) {
-    
+
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
     ocrFatGuid_t fguid;
     switch(type) {
     case POP_WORKPOPTYPE:
-        fguid.guid = (ocrGuid_t)derived->deque->popFromTail(derived->deque, 0); 
+        fguid.guid = (ocrGuid_t)derived->deque->popFromTail(derived->deque, 0);
         break;
     case STEAL_WORKPOPTYPE:
         fguid.guid = (ocrGuid_t)derived->deque->popFromHead(derived->deque, 1);
@@ -89,7 +89,7 @@ ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *pe
 }
 
 void initializeWorkpileHc(ocrWorkpileFactory_t * factory, ocrWorkpile_t* self, ocrParamList_t * perInstance) {
-   initializeWorkpileOcr(factory, self, perInstance);
+    initializeWorkpileOcr(factory, self, perInstance);
 }
 
 /******************************************************/

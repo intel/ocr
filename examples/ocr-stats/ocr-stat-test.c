@@ -25,7 +25,7 @@ ocrGuid_t mainEdt (u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t mem_guid, mem_affinity;
 
     DBCREATE(&memGuid, &memDb, sizeof(u64)*10, FLAGS, NULL_GUID, NO_ALLOC);
-    
+
     int i;
     u64* buf = (u64*)malloc(10*sizeof(u64));
     for(i = 0; i < 10; i++)

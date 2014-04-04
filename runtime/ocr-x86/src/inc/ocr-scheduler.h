@@ -40,7 +40,7 @@ typedef struct _ocrSchedulerFcts_t {
     void (*destruct)(struct _ocrScheduler_t *self);
 
     void (*begin)(struct _ocrScheduler_t *self, struct _ocrPolicyDomain_t * PD);
-    
+
     void (*start)(struct _ocrScheduler_t *self, struct _ocrPolicyDomain_t * PD);
 
     void (*stop)(struct _ocrScheduler_t *self);
@@ -91,15 +91,15 @@ typedef struct _ocrSchedulerFcts_t {
     /**
      * @brief Requests communication handler from this scheduler.
      *
-     * This call requests communication handler from the scheduler. 
+     * This call requests communication handler from the scheduler.
      * The pointers are returned in the handlers array.
      *
      * @param self[in]          Pointer to this scheduler
      * @param count[in/out]     Number of handlers. As input, contains the maximum number
      *                          of handlers to be returned. As output contains the number
      *                          of handlers returned.
-     * @param handlers[in/out]  As output, handlers given to the caller by the callee where 
-     *                          the fatGuid's metaDataPtr contains a pointer to a handler. 
+     * @param handlers[in/out]  As output, handlers given to the caller by the callee where
+     *                          the fatGuid's metaDataPtr contains a pointer to a handler.
      *                          The fatGuid's guid is set to NULL_GUID.
      *                          (array needs to be allocated by the caller and of sufficient size).
      * @param properties[in]    Properties for the take
@@ -135,7 +135,7 @@ struct _ocrWorkpile_t;
 typedef struct _ocrScheduler_t {
     ocrFatGuid_t fguid;
     struct _ocrPolicyDomain_t *pd;
-    
+
     struct _ocrWorkpile_t **workpiles;
     u64 workpileCount;
 

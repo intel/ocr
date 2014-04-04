@@ -38,14 +38,14 @@ static void defaultSetPD(ocrPolicyDomain_t *pd) {
 }
 
 static ocrStatsMessage_t* defaultCreateMessage(ocrStats_t *self,
-                                               ocrStatsEvt_t type,
-                                               ocrGuid_t src, ocrGuid_t dest,
-                                               ocrStatsParam_t *instanceArg) {
+        ocrStatsEvt_t type,
+        ocrGuid_t src, ocrGuid_t dest,
+        ocrStatsParam_t *instanceArg) {
 
     // In this case, we always create a trivial message
     // In the general case, you can switch on 'type' and pick an ocrStatsEvtInt_t
     // that is appropriate
-    return newStatsMessage(STATS_MESSAGE_TRIVIAL, type, src, dest, instanceArg); 
+    return newStatsMessage(STATS_MESSAGE_TRIVIAL, type, src, dest, instanceArg);
 }
 
 static void defaultDestructMessage(ocrStats_t *self, ocrStatsMessage_t* message) {
@@ -62,7 +62,7 @@ static ocrStatsProcess_t* defaultCreateStatsProcess(ocrStats_t *self, ocrGuid_t 
     // brought up at that point
     if(!rself->aggregatingFilter) {
         rself->aggregatingFilter = newStatsFilter(STATS_FILTER_FILE_DUMP,
-                                                  /*parent */NULL, /*param*/NULL);
+                                   /*parent */NULL, /*param*/NULL);
     }
 
     ocrStatsFilter_t *t = newStatsFilter(STATS_FILTER_TRIVIAL, rself->aggregatingFilter, NULL);
@@ -71,7 +71,7 @@ static ocrStatsProcess_t* defaultCreateStatsProcess(ocrStats_t *self, ocrGuid_t 
     // Will print out everything that goes in or out of the object
     intStatsProcessRegisterFilter(result, STATS_ALL, t, 0);
     intStatsProcessRegisterFilter(result, STATS_ALL, t2, 1);
-        
+
     DPRINTF(DEBUG_LVL_INFO, "Stats 0x%lx: Created a StatsProcess 0x%lx for parent object GUID 0x%lx\n",
             (u64)self, (u64)result, processGuid);
 
@@ -87,7 +87,7 @@ static void defaultDestructStatsProcess(ocrStats_t *self, ocrStatsProcess_t *pro
 }
 
 static ocrStatsFilter_t* defaultGetFilter(ocrStats_t *self, ocrStats_t *requester,
-                                          ocrStatsFilterType_t type) {
+        ocrStatsFilterType_t type) {
 
     // Unsupported at this point. This is to support linking filters across policy
     // domains. For now we have one policy domain
@@ -106,12 +106,12 @@ static ocrStats_t * newStatsDefault(ocrStatsFactory_t * factory,
                                     ocrParamList_t *perInstance) {
 
     ocrStatsDefault_t *result = (ocrStatsDefault_t*)
-        checkedMalloc(result, sizeof(ocrStatsDefault_t));
+                                checkedMalloc(result, sizeof(ocrStatsDefault_t));
 
     result->aggregatingFilter = NULL;
-    
+
     result->base.fctPtrs = &(factory->statsFcts);
-        
+
     return (ocrStats_t*)result;
 }
 
@@ -125,7 +125,7 @@ static void destructStatsFactoryDefault(ocrStatsFactory_t * factory) {
 
 ocrStatsFactory_t * newStatsFactoryDefault(ocrParamList_t *perType) {
     ocrStatsFactory_t* base = (ocrStatsFactory_t*)
-        checkedMalloc(base, sizeof(ocrStatsFactoryDefault_t));
+                              checkedMalloc(base, sizeof(ocrStatsFactoryDefault_t));
     base->instantiate = newStatsDefault;
     base->destruct =  &destructStatsFactoryDefault;
     base->statsFcts.destruct = &defaultDestruct;

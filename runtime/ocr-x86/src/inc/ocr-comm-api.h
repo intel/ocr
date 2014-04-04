@@ -74,7 +74,7 @@ typedef struct _ocrCommApiFcts_t {
     void (*stop)(struct _ocrCommApi_t *self);
 
     void (*finish)(struct _ocrCommApi_t *self);
-    
+
     /**
      * @brief Send a message to another target
      *
@@ -185,7 +185,7 @@ typedef struct _ocrCommApiFcts_t {
      *
      * @return 0 on success and a non-zero error code
      */
-    u8 (*sendMessage)(struct _ocrCommApi_t* self, ocrLocation_t target, 
+    u8 (*sendMessage)(struct _ocrCommApi_t* self, ocrLocation_t target,
                       struct _ocrPolicyMsg_t *message,
                       struct _ocrMsgHandle_t **handle, u32 properties);
 

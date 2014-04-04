@@ -37,7 +37,7 @@ ocrGuid_t currentEdtUserGet() {
     getCurrentEnv(NULL, NULL, &task, NULL);
     if(task) {
         return task->guid;
-    }   
+    }
     return NULL_GUID;
 }
 

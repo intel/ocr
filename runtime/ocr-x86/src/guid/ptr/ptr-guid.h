@@ -33,7 +33,7 @@ typedef struct {
 } ocrGuidProviderFactoryPtr_t;
 
 ocrGuidProviderFactory_t* newGuidProviderFactoryPtr(ocrParamList_t *typeArg,
-                                                    u32 factoryId);
+        u32 factoryId);
 
 #define __GUID_END_MARKER__
 #include "ocr-guid-end.h"

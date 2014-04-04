@@ -37,10 +37,10 @@ typedef enum {
 
 /**
  * @brief Deques are double ended queues. They have a head and a tail.
- * In a typical queue, new elements are pushed at the 
+ * In a typical queue, new elements are pushed at the
  * tail, while being popped from the head of the queue.
- * Many variations exist, one being the workstealing deque. The 
- * workstealing deque is a concurrent deque that supports push 
+ * Many variations exist, one being the workstealing deque. The
+ * workstealing deque is a concurrent deque that supports push
  * at the tail, and pop from either tail or head. Popping from the
  * head is usually called a steal.
  *

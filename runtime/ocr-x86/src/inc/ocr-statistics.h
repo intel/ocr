@@ -122,12 +122,12 @@ typedef struct _paramListStatsInst_t {
  */
 typedef enum {
     STATS_EVT_INVAL = 0x0,   /**< An invalid event */
-    
+
     /* EDT related events */
     STATS_TEMP_CREATE = 0x1, /**< The EDT template is first created */
     STATS_TEMP_USE = 0x2,    /**< An EDT was created using a template */
     STATS_TEMP_DESTROY = 0x4,/**< The EDT template is destroyed */
-    
+
     STATS_EDT_CREATE = 0x8,  /**< The EDT was first created */
     STATS_EDT_DESTROY = 0x10, /**< The EDT was destroyed (rare) */
     STATS_EDT_READY = 0x20,   /**< The EDT became ready to run (last dep satisfied) TODO: SEE IF USEFUL. NOT IMPLEMENTED*/
@@ -261,7 +261,7 @@ typedef struct _ocrStatsFilterFcts_t {
      * of the output
      */
     u64 (*dump)(struct _ocrStatsFilter_t *self, char** out, u64 chunk,
-               ocrParamList_t* instanceArg);
+                ocrParamList_t* instanceArg);
 
     /**
      * @brief "Notify" the filter of a particular message.
@@ -351,7 +351,7 @@ typedef struct _ocrStatsFcts_t {
     void (*destruct)(struct _ocrStats_t* self);
 
     void (*setContainingPD)(struct _ocrPolicyDomain_t* pd);
-    
+
     ocrStatsMessage_t* (*createMessage)(struct _ocrStats_t* self, ocrStatsEvt_t type,
                                         ocrGuid_t src, ocrGuid_t dest,
                                         ocrStatsParam_t* instanceArg);
@@ -404,7 +404,7 @@ typedef struct _ocrStatsFactory_t {
  *       We call this resulting clock 'tMess'
  *     - Set the message's clock to 'tMess' and pass the message to relevant
  *       filters
- *       
+ *
  * @param src       ocrStatsProcess_t sending the message
  * @param dst       ocrStatsProcess_t reciving the message
  * @param msg       ocrStatsMessage_t sent

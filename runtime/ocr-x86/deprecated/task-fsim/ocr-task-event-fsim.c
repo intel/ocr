@@ -19,7 +19,7 @@
 // This is doing pretty much what the hc implementation would do
 // There's no inheritance setup so it's a vague copy paste
 static void newTaskFsimInternal (ocrPolicyDomain_t * pd, ocrTaskHc_t* derived,
-        ocrTaskTemplate_t * taskTemplate, u64 * params, void** paramv, ocrGuid_t outputEvent) {
+                                 ocrTaskTemplate_t * taskTemplate, u64 * params, void** paramv, ocrGuid_t outputEvent) {
     u32 nbDeps = taskTemplate->depc;
     if (nbDeps == 0) {
         derived->signalers = END_OF_LIST;
@@ -191,7 +191,7 @@ void * xe_worker_computation_routine (void * arg) {
             ocrTaskFactory_t* message_task_factory = policy_domain->taskMessageFactory;
             // the message to the CE says 'give me work' and notes who is asking for it
             ocrTaskFsimMessage_t * derived = (ocrTaskFsimMessage_t *)
-                message_task_factory->instantiate(message_task_factory, NULL, NULL, NULL, 0, NULL);
+            message_task_factory->instantiate(message_task_factory, NULL, NULL, NULL, 0, NULL);
             derived -> type = GIVE_ME_WORK;
             derived -> from_worker_guid = workerGuid;
 
@@ -250,8 +250,7 @@ void * ce_worker_computation_routine(void * arg) {
             ocrScheduler_t* targetScheduler = get_worker_scheduler(targetWorker);
 
             switch (currMessageTask->type) {
-            case GIVE_ME_WORK:
-            {
+            case GIVE_ME_WORK: {
                 // if the XE is asking for work
                 // change the scheduler 'state' to 'executable task' popping
                 derivedCeScheduler -> in_message_popping_mode = 0;
@@ -275,8 +274,7 @@ void * ce_worker_computation_routine(void * arg) {
                 }
             }
             break;
-            case PICK_MY_WORK_UP:
-            {
+            case PICK_MY_WORK_UP: {
                 ocrGuid_t taskFromXe = targetScheduler->take( targetScheduler, ceWorkerGuid );
                 if ( NULL_GUID != taskFromXe ) {
                     ceScheduler->give(ceScheduler, ceWorkerGuid, taskFromXe);

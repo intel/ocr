@@ -54,8 +54,7 @@ ocrWorkpile_t * newWorkpileXe(ocrWorkpileFactory_t * factory, ocrParamList_t *pe
     return derived;
 }
 
-void initializeWorkpileXe(ocrWorkpileFactory_t * factory, ocrWorkpile_t* self, ocrParamList_t * perInstance)
-{
+void initializeWorkpileXe(ocrWorkpileFactory_t * factory, ocrWorkpile_t* self, ocrParamList_t * perInstance) {
     initializeWorkpileOcr(factory, self, perInstance);
 }
 

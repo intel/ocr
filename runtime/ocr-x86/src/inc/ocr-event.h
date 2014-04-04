@@ -99,7 +99,7 @@ typedef struct _ocrEventFcts_t {
      */
     u8 (*unregisterSignaler)(struct _ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot,
                              bool isDepRem);
-    
+
     /**
      * @brief Register a "waiter" (aka a dependence) on the event
      *
@@ -141,7 +141,7 @@ typedef struct _ocrEventFcts_t {
 /**
  * @brief Abstract class to represent OCR events.
  *
- * Events can be satisfied with a GUID, polled for 
+ * Events can be satisfied with a GUID, polled for
  * what GUID satisfied the event and registered to
  * other events or edts.
  */

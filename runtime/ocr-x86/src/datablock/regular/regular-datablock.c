@@ -33,11 +33,11 @@
 u8 regularDestruct(ocrDataBlock_t *self);
 
 void* regularAcquire(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
-    
+
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
 
     DPRINTF(DEBUG_LVL_VERB, "Acquiring DB @ 0x%lx (GUID: 0x%lx) from EDT (GUID: 0x%lx) (runtime acquire: %d)\n",
-                (u64)self->ptr, rself->base.guid, edt.guid, (u32)isInternal);
+            (u64)self->ptr, rself->base.guid, edt.guid, (u32)isInternal);
 
     // Critical section
     hal_lock32(&(rself->lock));
@@ -77,13 +77,13 @@ void* regularAcquire(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
 
 u8 regularRelease(ocrDataBlock_t *self, ocrFatGuid_t edt,
                   bool isInternal) {
-    
+
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
     u32 edtId = ocrGuidTrackerFind(&(rself->usersTracker), edt.guid);
     bool isTracked = true;
 
     DPRINTF(DEBUG_LVL_VERB, "Releasing DB @ 0x%lx (GUID 0x%lx) from EDT 0x%lx (%d) (runtime release: %d)\n",
-                (u64)self->ptr, rself->base.guid, edt.guid, edtId, (u32)isInternal);
+            (u64)self->ptr, rself->base.guid, edt.guid, edtId, (u32)isInternal);
     // Start critical section
     hal_lock32(&(rself->lock));
     if(edtId > 63 || rself->usersTracker.slots[edtId] != edt.guid) {
@@ -116,8 +116,8 @@ u8 regularRelease(ocrDataBlock_t *self, ocrFatGuid_t edt,
     }
 #endif /* OCR_ENABLE_STATISTICS */
     if(rself->attributes.numUsers == 0  &&
-       rself->attributes.internalUsers == 0 &&
-       rself->attributes.freeRequested == 1) {
+            rself->attributes.internalUsers == 0 &&
+            rself->attributes.freeRequested == 1) {
         // We need to actually free the data-block
         hal_unlock32(&(rself->lock));
         return regularDestruct(self);
@@ -156,8 +156,8 @@ u8 regularDestruct(ocrDataBlock_t *self) {
     PD_MSG_FIELD(type) = DB_MEMTYPE;
     PD_MSG_FIELD(properties) = 0;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, false));
-    
-    
+
+
 #ifdef OCR_ENABLE_STATISTICS
     // This needs to be done before GUID is freed.
     {
@@ -180,7 +180,7 @@ u8 regularDestruct(ocrDataBlock_t *self) {
 
 u8 regularFree(ocrDataBlock_t *self, ocrFatGuid_t edt) {
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
-    
+
     u32 id = ocrGuidTrackerFind(&(rself->usersTracker), edt.guid);
     DPRINTF(DEBUG_LVL_VERB, "Requesting a free for DB @ 0x%lx (GUID: 0x%lx)\n",
             (u64)self->ptr, rself->base.guid);
@@ -223,7 +223,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
     ocrPolicyMsg_t msg;
 
     getCurrentEnv(&pd, NULL, &task, &msg);
-    
+
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_CREATE
     msg.type = PD_MSG_GUID_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -232,7 +232,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
     PD_MSG_FIELD(size) = sizeof(ocrDataBlockRegular_t);
     PD_MSG_FIELD(kind) = OCR_GUID_DB;
     PD_MSG_FIELD(properties) = 0;
-    
+
     RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), NULL);
 
     ocrDataBlockRegular_t *result = (ocrDataBlockRegular_t*)PD_MSG_FIELD(guid.metaDataPtr);
@@ -247,7 +247,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
     result->base.ptr = ptr;
     result->base.properties = properties;
     result->base.fctId = factory->factoryId;
-    
+
     result->lock =0;
     result->attributes.flags = result->base.properties;
     result->attributes.numUsers = 0;
@@ -260,7 +260,7 @@ ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t
                    (ocrAllocator_t*)allocator.metaDataPtr, result->base.guid,
                    &(result->base));
 #endif /* OCR_ENABLE_STATISTICS */
-    
+
     DPRINTF(DEBUG_LVL_VERB, "Creating a datablock of size %lu @ 0x%lx (GUID: 0x%lx)\n",
             size, (u64)result->base.ptr, result->base.guid);
 
@@ -276,11 +276,11 @@ void destructRegularFactory(ocrDataBlockFactory_t *factory) {
 
 ocrDataBlockFactory_t *newDataBlockFactoryRegular(ocrParamList_t *perType, u32 factoryId) {
     ocrDataBlockFactory_t *base = (ocrDataBlockFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrDataBlockFactoryRegular_t), NULL);
+                                  runtimeChunkAlloc(sizeof(ocrDataBlockFactoryRegular_t), NULL);
 
     base->instantiate = FUNC_ADDR(ocrDataBlock_t* (*)
-                                     (ocrDataBlockFactory_t*, ocrFatGuid_t, ocrFatGuid_t, 
-                                      u64, void*, u32, ocrParamList_t*), newDataBlockRegular);
+                                  (ocrDataBlockFactory_t*, ocrFatGuid_t, ocrFatGuid_t,
+                                   u64, void*, u32, ocrParamList_t*), newDataBlockRegular);
     base->destruct = FUNC_ADDR(void (*)(ocrDataBlockFactory_t*), destructRegularFactory);
     base->fcts.destruct = FUNC_ADDR(u8 (*)(ocrDataBlock_t*), regularDestruct);
     base->fcts.acquire = FUNC_ADDR(void* (*)(ocrDataBlock_t*, ocrFatGuid_t, bool), regularAcquire);

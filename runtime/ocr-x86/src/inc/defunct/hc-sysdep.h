@@ -19,8 +19,8 @@
 #define HC_CACHE_LINE 32
 
 static __inline__ void hc_mfence(void) {
-        int x = 0, y;
-        __asm__ volatile ("xchgl %0,%1" : "=r" (x) : "m" (y), "0" (x) : "memory");
+    int x = 0, y;
+    __asm__ volatile ("xchgl %0,%1" : "=r" (x) : "m" (y), "0" (x) : "memory");
 }
 
 /*
@@ -28,16 +28,16 @@ static __inline__ void hc_mfence(void) {
  * else return 0;
  */
 static __inline__ int hc_cas(volatile int *ptr, int ag, int x) {
-        int tmp;
-        __asm__ __volatile__("lock;\n"
-                             "cmpxchg %1,%3"
-                             : "=a" (tmp) /* %0 EAX, return value */
-                             : "r"(x), /* %1 reg, new value */
-                               "0" (ag), /* %2 EAX, compare value */
-                               "m" (*(ptr)) /* %3 mem, destination operand */
-                             : "memory", "cc" /* content changed, memory and cond register */
-                );
-        return tmp == ag;
+    int tmp;
+    __asm__ __volatile__("lock;\n"
+                         "cmpxchg %1,%3"
+                         : "=a" (tmp) /* %0 EAX, return value */
+                         : "r"(x), /* %1 reg, new value */
+                         "0" (ag), /* %2 EAX, compare value */
+                         "m" (*(ptr)) /* %3 mem, destination operand */
+                         : "memory", "cc" /* content changed, memory and cond register */
+                        );
+    return tmp == ag;
 }
 
 #endif /* __i386__ */
@@ -51,7 +51,7 @@ static __inline__ int hc_cas(volatile int *ptr, int ag, int x) {
 #define HC_CACHE_LINE 64
 
 static __inline__ void hc_mfence() {
-        __asm__ __volatile__("mfence":: : "memory");
+    __asm__ __volatile__("mfence":: : "memory");
 }
 
 /*
@@ -59,16 +59,16 @@ static __inline__ void hc_mfence() {
  * else return 0;
  */
 static __inline__ int hc_cas(volatile int *ptr, int ag, int x) {
-        int tmp;
-        __asm__ __volatile__("lock;\n"
-                             "cmpxchgl %1,%3"
-                             : "=a" (tmp) /* %0 EAX, return value */
-                             : "r"(x), /* %1 reg, new value */
-                               "0" (ag), /* %2 EAX, compare value */
-                               "m" (*(ptr)) /* %3 mem, destination operand */
-                             : "memory" /*, "cc" content changed, memory and cond register */
-                );
-        return tmp == ag;
+    int tmp;
+    __asm__ __volatile__("lock;\n"
+                         "cmpxchgl %1,%3"
+                         : "=a" (tmp) /* %0 EAX, return value */
+                         : "r"(x), /* %1 reg, new value */
+                         "0" (ag), /* %2 EAX, compare value */
+                         "m" (*(ptr)) /* %3 mem, destination operand */
+                         : "memory" /*, "cc" content changed, memory and cond register */
+                        );
+    return tmp == ag;
 }
 
 #endif /* __x86_64 */
@@ -82,12 +82,12 @@ static __inline__ int hc_cas(volatile int *ptr, int ag, int x) {
 #include <atomic.h>
 
 static __inline__ void hc_mfence() {
-        membar_consumer();
+    membar_consumer();
 }
 
 static __inline__ int hc_cas(volatile unsigned int *ptr, int ag, int x) {
-        int old = atomic_cas_uint(ptr, ag, x);
-        return old == ag;
+    int old = atomic_cas_uint(ptr, ag, x);
+    return old == ag;
 }
 
 #endif /* sparc */
@@ -101,26 +101,26 @@ static __inline__ int hc_cas(volatile unsigned int *ptr, int ag, int x) {
 #define HC_CACHE_LINE 128
 
 static __inline__ void hc_mfence(void) {
-        __asm__ __volatile__ ("sync"
-                              : : : "memory");
+    __asm__ __volatile__ ("sync"
+                          : : : "memory");
 }
 
 static __inline__ int hc_cas(volatile int *ptr, int ag, int x) {
-        int prev;
+    int prev;
 
-        __asm__ __volatile__ (
-                "lwsync \n\
+    __asm__ __volatile__ (
+        "lwsync \n\
 1:      lwarx   %0,0,%2         # __cmpxchg_u32\n\
         cmpw    0,%0,%3\n\
         bne-    2f\n\
         stwcx.  %4,0,%2\n\
         bne-    1b \n\
-2:	isync"
-                : "=&r" (prev), "+m" (*ptr)
-                : "r" (ptr), "r" (ag), "r" (x)
-                : "cc", "memory");
+2:    isync"
+        : "=&r" (prev), "+m" (*ptr)
+        : "r" (ptr), "r" (ag), "r" (x)
+        : "cc", "memory");
 
-        return prev==ag;
+    return prev==ag;
 }
 
 #endif /* __powerpc64__ */

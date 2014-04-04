@@ -68,12 +68,12 @@ static char * eventTypeToString(ocrEvent_t * base) {
 u8 destructEventHc(ocrEvent_t *base) {
 
     ocrEventHc_t *event = (ocrEventHc_t*)base;
-    
+
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
     ocrTask_t *curTask = NULL;
     getCurrentEnv(&pd, NULL, &curTask, &msg);
-    
+
     DPRINTF(DEBUG_LVL_INFO, "Destroy %s: 0x%lx\n", eventTypeToString(base), base->guid);
 
 #ifdef OCR_ENABLE_STATISTICS
@@ -82,7 +82,7 @@ u8 destructEventHc(ocrEvent_t *base) {
 
     // Destroy both of the datablocks linked
     // with this event
-    
+
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_FREE
     msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
@@ -116,10 +116,11 @@ u8 destructEventHc(ocrEvent_t *base) {
 ocrFatGuid_t getEventHc(ocrEvent_t *base) {
     ocrFatGuid_t res = {.guid = NULL_GUID, .metaDataPtr = NULL};
     switch(base->kind) {
-    case OCR_EVENT_ONCE_T: case OCR_EVENT_LATCH_T:
+    case OCR_EVENT_ONCE_T:
+    case OCR_EVENT_LATCH_T:
         break;
-    case OCR_EVENT_STICKY_T: case OCR_EVENT_IDEM_T:
-    {
+    case OCR_EVENT_STICKY_T:
+    case OCR_EVENT_IDEM_T: {
         ocrEventHcPersist_t *event = (ocrEventHcPersist_t*)base;
         res.guid = (event->data == UNINITIALIZED_GUID)?ERROR_GUID:event->data;
         break;
@@ -135,7 +136,7 @@ ocrFatGuid_t getEventHc(ocrEvent_t *base) {
 u8 satisfyEventHcOnce(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
     ocrEventHc_t *event = (ocrEventHc_t*)base;
     ASSERT(slot == 0); // For non-latch events, only one slot
-    
+
     DPRINTF(DEBUG_LVL_INFO, "Satisfy %s: 0x%lx with 0x%lx\n", eventTypeToString(base),
             base->guid, db.guid);
 
@@ -144,7 +145,7 @@ u8 satisfyEventHcOnce(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
     ocrGuid_t edt = getCurrentEDT();
     statsDEP_SATISFYToEvt(pd, edt, NULL, base->guid, base, data, slotEvent);
 #endif
-    
+
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *curTask = NULL;
     ocrPolicyMsg_t msg;
@@ -161,7 +162,7 @@ u8 satisfyEventHcOnce(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(properties) = 1;
         RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, true));
-        
+
         waiters = (regNode_t*)PD_MSG_FIELD(ptr);
         event->waitersDb = PD_MSG_FIELD(guid); //Get updated deguidifcation if needed
         ASSERT(waiters);
@@ -221,7 +222,7 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
         statsDEP_SATISFYToEvt(pd, edt, NULL, base->guid, base, data, slotEvent);
 #endif
     }
-        
+
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *curTask = NULL;
     ocrPolicyMsg_t msg;
@@ -229,14 +230,14 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
     regNode_t *waiters = NULL;
     u32 waitersCount = 0;
     getCurrentEnv(&pd, NULL, &curTask, &msg);
-    
+
     // Try to get all the waiters
     hal_lock32(&(event->waitersLock));
     event->data = db.guid;
     waitersCount = event->base.waitersCount;
     event->base.waitersCount = (u32)-1; // Indicate that the event is satisfied
     hal_unlock32(&(event->waitersLock));
-    
+
     // Acquire the DB that contains the waiters
     if(waitersCount) {
 #define PD_MSG (&msg)
@@ -247,7 +248,7 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(properties) = 1;
         RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, true));
-        
+
         waiters = (regNode_t*)PD_MSG_FIELD(ptr);
         event->base.waitersDb = PD_MSG_FIELD(guid);
         ASSERT(waiters);
@@ -285,7 +286,7 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
     // The event sticks around until the user destroys it
     return 0;
 }
-            
+
 // This is for latch events
 u8 satisfyEventHcLatch(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
     ocrEventHcLatch_t *event = (ocrEventHcLatch_t*)base;
@@ -317,7 +318,7 @@ u8 satisfyEventHcLatch(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
     u32 i;
     regNode_t *waiters = NULL;
     getCurrentEnv(&pd, NULL, &curTask, &msg);
-    
+
     // Acquire the DB that contains the waiters
     if(event->base.waitersCount) {
 #define PD_MSG (&msg)
@@ -328,7 +329,7 @@ u8 satisfyEventHcLatch(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(properties) = 1;
         RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, true));
-        
+
         waiters = (regNode_t*)PD_MSG_FIELD(ptr);
         event->base.waitersDb = PD_MSG_FIELD(guid);
         ASSERT(waiters);
@@ -379,11 +380,11 @@ u8 unregisterSignalerHc(ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot, bool 
 u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool isDepAdd) {
     // Here we always add the waiter to our list so we ignore isDepAdd
     ocrEventHc_t *event = (ocrEventHc_t*)base;
-    
-    
+
+
     DPRINTF(DEBUG_LVL_INFO, "Register waiter %s: 0x%lx with waiter 0x%lx on slot %d\n",
             eventTypeToString(base), base->guid, waiter.guid, slot);
-    
+
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *curTask = NULL;
     ocrPolicyMsg_t msg;
@@ -391,7 +392,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
     ocrFatGuid_t newGuid = {.guid = NULL_GUID, .metaDataPtr = NULL};
     regNode_t *waitersNew = NULL;
     u32 i;
-    
+
     getCurrentEnv(&pd, NULL, &curTask, &msg);
 
     // Acquire the DB that contains the waiters
@@ -403,7 +404,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = 1;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, true));
-        
+
     waiters = (regNode_t*)PD_MSG_FIELD(ptr);
     event->waitersDb = PD_MSG_FIELD(guid);
     ASSERT(waiters);
@@ -417,15 +418,15 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(size) = sizeof(regNode_t)*event->waitersMax*2;
         PD_MSG_FIELD(affinity.guid) = NULL_GUID;
-	PD_MSG_FIELD(affinity.metaDataPtr) = NULL;
+        PD_MSG_FIELD(affinity.metaDataPtr) = NULL;
         PD_MSG_FIELD(properties) = 0;
         PD_MSG_FIELD(dbType) = RUNTIME_DBTYPE;
         PD_MSG_FIELD(allocator) = NO_ALLOC;
         RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, true));
-        
+
         waitersNew = (regNode_t*)PD_MSG_FIELD(ptr);
         newGuid = PD_MSG_FIELD(guid);
-#undef PD_TYPE   
+#undef PD_TYPE
         hal_memCopy(waitersNew, waiters, sizeof(regNode_t)*event->waitersCount, false);
         event->waitersMax *= 2;
         for(i = event->waitersCount; i < event->waitersMax; ++i) {
@@ -434,11 +435,11 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
         }
         waiters = waitersNew;
     }
-    
+
     waiters[event->waitersCount].guid = waiter.guid;
     waiters[event->waitersCount].slot = slot;
     ++event->waitersCount;
-    
+
     // Now release the DB(s)
     if(waitersNew) {
         // We need to destroy the old DB and release the new one
@@ -470,7 +471,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
 // In this call, we do have to contend with concurrent satisfies (persistent events)
 u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool isDepAdd) {
     ocrEventHcPersist_t *event = (ocrEventHcPersist_t*)base;
-    
+
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *curTask = NULL;
     ocrPolicyMsg_t msg;
@@ -479,7 +480,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
     regNode_t *waitersNew = NULL;
     u32 i;
     u8 toReturn = 0;
-    
+
     getCurrentEnv(&pd, NULL, &curTask, &msg);
 
     // EDTs will register on persistent events when they are really
@@ -487,7 +488,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
     // is added
     ocrGuidKind waiterKind = OCR_GUID_NONE;
     RESULT_ASSERT(guidKind(pd, waiter, &waiterKind), ==, 0);
-    
+
     if(isDepAdd && waiterKind == OCR_GUID_EDT) {
         return 0;
     }
@@ -529,7 +530,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
         hal_unlock32(&(event->waitersLock));
         return toReturn;
     }
-        
+
     waiters = (regNode_t*)PD_MSG_FIELD(ptr);
     event->base.waitersDb = PD_MSG_FIELD(guid);
     ASSERT(waiters);
@@ -543,7 +544,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
         PD_MSG_FIELD(edt.metaDataPtr) = curTask;
         PD_MSG_FIELD(size) = sizeof(regNode_t)*event->base.waitersMax*2;
         PD_MSG_FIELD(affinity.guid) = NULL_GUID;
-	PD_MSG_FIELD(affinity.metaDataPtr) = NULL;
+        PD_MSG_FIELD(affinity.metaDataPtr) = NULL;
         PD_MSG_FIELD(properties) = 0;
         PD_MSG_FIELD(dbType) = RUNTIME_DBTYPE;
         PD_MSG_FIELD(allocator) = NO_ALLOC;
@@ -551,10 +552,10 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
             hal_unlock32(&(event->waitersLock));
             return toReturn;
         }
-        
+
         waitersNew = (regNode_t*)PD_MSG_FIELD(ptr);
         newGuid = PD_MSG_FIELD(guid);
-#undef PD_TYPE   
+#undef PD_TYPE
         hal_memCopy(waitersNew, waiters, sizeof(regNode_t)*event->base.waitersCount, false);
         event->base.waitersMax *= 2;
         for(i = event->base.waitersCount; i < event->base.waitersMax; ++i) {
@@ -603,17 +604,17 @@ u8 unregisterWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool
     // Always search for the waiter because we don't know if it registered or not so
     // ignore isDepRem
     ocrEventHc_t *event = (ocrEventHc_t*)base;
-    
-    
+
+
     DPRINTF(DEBUG_LVL_INFO, "UnRegister waiter %s: 0x%lx with waiter 0x%lx on slot %d\n",
             eventTypeToString(base), base->guid, waiter.guid, slot);
-    
+
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *curTask = NULL;
     ocrPolicyMsg_t msg;
     regNode_t *waiters = NULL;
     u32 i;
-    
+
     getCurrentEnv(&pd, NULL, &curTask, &msg);
 
     // Acquire the DB that contains the waiters
@@ -625,7 +626,7 @@ u8 unregisterWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool
     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
     PD_MSG_FIELD(properties) = 1;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, true));
-        
+
     waiters = (regNode_t*)PD_MSG_FIELD(ptr);
     event->waitersDb = PD_MSG_FIELD(guid);
     ASSERT(waiters);
@@ -640,7 +641,7 @@ u8 unregisterWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool
             break;
         }
     }
-    
+
     // We always release waitersDb
 #define PD_TYPE PD_MSG_DB_RELEASE
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
@@ -658,18 +659,18 @@ u8 unregisterWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool
 // In this call, we can have concurrent satisfy
 u8 unregisterWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot) {
     ocrEventHcPersist_t *event = (ocrEventHcPersist_t*)base;
-    
-    
+
+
     DPRINTF(DEBUG_LVL_INFO, "Unregister waiter %s: 0x%lx with waiter 0x%lx on slot %d\n",
             eventTypeToString(base), base->guid, waiter.guid, slot);
-    
+
     ocrPolicyDomain_t *pd = NULL;
     ocrTask_t *curTask = NULL;
     ocrPolicyMsg_t msg;
     regNode_t *waiters = NULL;
     u32 i;
     u8 toReturn = 0;
-    
+
     getCurrentEnv(&pd, NULL, &curTask, &msg);
     hal_lock32(&(event->waitersLock));
     if(event->data != UNINITIALIZED_GUID) {
@@ -691,7 +692,7 @@ u8 unregisterWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slo
         hal_unlock32(&(event->waitersLock));
         return toReturn;
     }
-        
+
     waiters = (regNode_t*)PD_MSG_FIELD(ptr);
     event->base.waitersDb = PD_MSG_FIELD(guid);
     ASSERT(waiters);
@@ -706,7 +707,7 @@ u8 unregisterWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slo
             break;
         }
     }
-    
+
     // We can release the lock now
     hal_unlock32(&(event->waitersLock));
 
@@ -738,7 +739,7 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     u32 i;
 
     getCurrentEnv(&pd, NULL, &curTask, &msg);
-    
+
     // Create the event itself by getting a GUID
     u64 sizeOfGuid = sizeof(ocrEventHc_t);
     if(eventType == OCR_EVENT_LATCH_T) {
@@ -747,7 +748,7 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     if((eventType == OCR_EVENT_IDEM_T) || (eventType == OCR_EVENT_STICKY_T)) {
         sizeOfGuid = sizeof(ocrEventHcPersist_t);
     }
-    
+
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_CREATE
     msg.type = PD_MSG_GUID_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -761,7 +762,7 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     ocrEventHc_t *event = (ocrEventHc_t*)PD_MSG_FIELD(guid.metaDataPtr);
     ocrEvent_t *base = (ocrEvent_t*)event;
     ASSERT(event);
-    
+
     // Set-up base structures
     base->guid = PD_MSG_FIELD(guid.guid);
     base->kind = eventType;
@@ -786,10 +787,10 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     // signalers data-blocks
     event->waitersDb.guid = UNINITIALIZED_GUID;
     event->waitersDb.metaDataPtr = NULL;
-    
+
     event->signalersDb.guid = UNINITIALIZED_GUID;
     event->signalersDb.metaDataPtr = NULL;
-    
+
     regNode_t *temp = NULL;
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_CREATE
@@ -836,7 +837,7 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, false), NULL);
 #undef PD_MSG
 #undef PD_TYPE
-    
+
     DPRINTF(DEBUG_LVL_INFO, "Create %s: 0x%lx\n", eventTypeToString(base), base->guid);
 #ifdef OCR_ENABLE_STATISTICS
     statsEVT_CREATE(getCurrentPD(), getCurrentEDT(), NULL, base->guid, base);
@@ -850,10 +851,10 @@ void destructEventFactoryHc(ocrEventFactory_t * base) {
 
 ocrEventFactory_t * newEventFactoryHc(ocrParamList_t *perType, u32 factoryId) {
     ocrEventFactory_t* base = (ocrEventFactory_t*) runtimeChunkAlloc(
-        sizeof(ocrEventFactoryHc_t), NULL);
-    
-    base->instantiate = FUNC_ADDR(ocrEvent_t* (*)(ocrEventFactory_t*, 
-                                     ocrEventTypes_t, bool, ocrParamList_t*), newEventHc);
+                                  sizeof(ocrEventFactoryHc_t), NULL);
+
+    base->instantiate = FUNC_ADDR(ocrEvent_t* (*)(ocrEventFactory_t*,
+                                  ocrEventTypes_t, bool, ocrParamList_t*), newEventHc);
     base->destruct =  FUNC_ADDR(void (*)(ocrEventFactory_t*), destructEventFactoryHc);
     // Initialize the function pointers
     u32 i;
@@ -864,23 +865,23 @@ ocrEventFactory_t * newEventFactoryHc(ocrParamList_t *perType, u32 factoryId) {
         base->fcts[i].registerSignaler = FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), registerSignalerHc);
         base->fcts[i].unregisterSignaler = FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), unregisterSignalerHc);
     }
-    base->fcts[OCR_EVENT_ONCE_T].satisfy = 
+    base->fcts[OCR_EVENT_ONCE_T].satisfy =
         FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcOnce);
     base->fcts[OCR_EVENT_IDEM_T].satisfy = base->fcts[OCR_EVENT_STICKY_T].satisfy =
-        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcPersist);
-    base->fcts[OCR_EVENT_LATCH_T].satisfy = 
+            FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcPersist);
+    base->fcts[OCR_EVENT_LATCH_T].satisfy =
         FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcLatch);
 
     base->fcts[OCR_EVENT_ONCE_T].registerWaiter = base->fcts[OCR_EVENT_LATCH_T].registerWaiter =
-        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), registerWaiterEventHc);
+                FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), registerWaiterEventHc);
     base->fcts[OCR_EVENT_IDEM_T].registerWaiter = base->fcts[OCR_EVENT_STICKY_T].registerWaiter =
-        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), registerWaiterEventHcPersist);
+                FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), registerWaiterEventHcPersist);
 
     base->fcts[OCR_EVENT_ONCE_T].unregisterWaiter = base->fcts[OCR_EVENT_LATCH_T].unregisterWaiter =
-        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), unregisterWaiterEventHc);
+                FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), unregisterWaiterEventHc);
     base->fcts[OCR_EVENT_IDEM_T].unregisterWaiter = base->fcts[OCR_EVENT_STICKY_T].unregisterWaiter =
-        FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), unregisterWaiterEventHcPersist);
-    
+                FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), unregisterWaiterEventHcPersist);
+
     base->factoryId = factoryId;
 
     return base;

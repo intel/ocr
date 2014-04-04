@@ -18,7 +18,7 @@ typedef enum _compPlatformType_t {
     compPlatformMax_id,
 } compPlatformType_t;
 
-extern const char * compplatform_types[]; 
+extern const char * compplatform_types[];
 
 // Pthread compute platform
 #include "comp-platform/pthread/pthread-comp-platform.h"
@@ -26,6 +26,6 @@ extern const char * compplatform_types[];
 
 // Add other compute platforms using the same pattern as above
 
-ocrCompPlatformFactory_t *newCompPlatformFactory(compPlatformType_t type, ocrParamList_t *typeArg); 
+ocrCompPlatformFactory_t *newCompPlatformFactory(compPlatformType_t type, ocrParamList_t *typeArg);
 
 #endif /* __COMP_PLATFORM_ALL_H__ */

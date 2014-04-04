@@ -55,8 +55,8 @@
                                 "r" ((void *)(source)),                 \
                                 "r" (size));                            \
     } while(0)
-    
-    
+
+
 /**
  * @brief Compare and swap (64 bit)
  *
@@ -182,7 +182,7 @@
                          : "=r" (__tmp)                                 \
                          : "r" (atomic),                                \
                            "0" (addValue));
-    
+
 /**
  * @brief Convenience function that basically implements a simple
  * lock

@@ -43,7 +43,7 @@ void handlelessCommFinish(ocrCommApi_t *commApi) {
     return;
 }
 
-u8 handlelessCommSendMessage(ocrCommApi_t *self, ocrLocation_t target, ocrPolicyMsg_t *message, 
+u8 handlelessCommSendMessage(ocrCommApi_t *self, ocrLocation_t target, ocrPolicyMsg_t *message,
                              ocrMsgHandle_t **handle, u32 properties) {
     u64 id;
     u64 bufSz = sizeof(ocrPolicyMsg_t);
@@ -96,9 +96,9 @@ ocrCommApi_t* newCommApiHandleless(ocrCommApiFactory_t *factory,
                                    ocrParamList_t *perInstance) {
 
     ocrCommApiHandleless_t * commApiHandleless = (ocrCommApiHandleless_t*)
-        runtimeChunkAlloc(sizeof(ocrCommApiHandleless_t), NULL);
+            runtimeChunkAlloc(sizeof(ocrCommApiHandleless_t), NULL);
 
-    
+
     commApiHandleless->base.fcts = factory->apiFcts;
     commApiHandleless->handle.msg = NULL;
     commApiHandleless->handle.response = NULL;
@@ -118,7 +118,7 @@ void destructCommApiFactoryHandleless(ocrCommApiFactory_t *factory) {
 
 ocrCommApiFactory_t *newCommApiFactoryHandleless(ocrParamList_t *perType) {
     ocrCommApiFactory_t *base = (ocrCommApiFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrCommApiFactoryHandleless_t), (void *)1);
+                                runtimeChunkAlloc(sizeof(ocrCommApiFactoryHandleless_t), (void *)1);
 
 
     base->instantiate = newCommApiHandleless;
@@ -130,7 +130,7 @@ ocrCommApiFactory_t *newCommApiFactoryHandleless(ocrParamList_t *perType) {
                                     handlelessCommStart);
     base->apiFcts.stop = FUNC_ADDR(void (*)(ocrCommApi_t*), handlelessCommStop);
     base->apiFcts.finish = FUNC_ADDR(void (*)(ocrCommApi_t*), handlelessCommFinish);
-    base->apiFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCommApi_t*, ocrLocation_t, ocrPolicyMsg_t *, ocrMsgHandle_t**, u32), 
+    base->apiFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCommApi_t*, ocrLocation_t, ocrPolicyMsg_t *, ocrMsgHandle_t**, u32),
                                           handlelessCommSendMessage);
     base->apiFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCommApi_t*, ocrMsgHandle_t**),
                                           handlelessCommPollMessage);

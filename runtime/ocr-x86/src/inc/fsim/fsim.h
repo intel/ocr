@@ -21,8 +21,8 @@
 /******************************************************/
 
 typedef struct _ocrPolicyDomainFsim_t {
-  ocrPolicyDomain_t base;
-  ocrTaskFactory_t * taskMessageFactory;
+    ocrPolicyDomain_t base;
+    ocrTaskFactory_t * taskMessageFactory;
 } ocrPolicyDomainFsim_t;
 
 typedef struct {
@@ -72,8 +72,8 @@ typedef struct  {
 } ocrWorkerFactoryFsimCE_t;
 
 typedef struct _paramListWorkerFsimInst_t {
-  paramListWorkerInst_t base;
-  int workerId;
+    paramListWorkerInst_t base;
+    int workerId;
 } paramListWorkerFsimInst_t;
 
 
@@ -83,7 +83,7 @@ typedef struct _paramListWorkerFsimInst_t {
 /******************************************************/
 
 typedef struct {
-  ocrWorkpileFactory_t base;
+    ocrWorkpileFactory_t base;
 } ocrWorkpileFactoryFsimMessage_t;
 
 

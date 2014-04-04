@@ -23,7 +23,7 @@ typedef enum _allocatorType_t {
     allocatorMax_id
 } allocatorType_t;
 
-extern const char * allocator_types[]; 
+extern const char * allocator_types[];
 
 // TLSF allocator
 #include "allocator/tlsf/tlsf-allocator.h"

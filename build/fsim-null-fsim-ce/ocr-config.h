@@ -24,7 +24,7 @@
 #define ENABLE_COMM_API_HANDLELESS
 
 // Comm-platform
- #define ENABLE_COMM_PLATFORM_CE
+#define ENABLE_COMM_PLATFORM_CE
 
 // Comp-platform
 //#define ENABLE_COMP_PLATFORM_PTHREAD

@@ -42,7 +42,7 @@ ocrDataBlockFactory_t* newDataBlockFactory(dataBlockType_t type, ocrParamList_t 
         return newDataBlockFactoryRegular(typeArg, (u32)type);
         break;
 #endif
-#ifdef ENABLE_DATABLOCK_PLACED        
+#ifdef ENABLE_DATABLOCK_PLACED
     case dataBlockPlaced_id:
 //        return newDataBlockFactoryPlaced(typeArg, (u32)type);
 //        break;

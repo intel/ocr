@@ -79,7 +79,7 @@ typedef struct _ocrDataBlockFcts_t {
      *
      * @param self          Pointer for this data-block
      * @param edt           EDT seeking to de-register from the data-block.
-     *                      Must be fully resolved 
+     *                      Must be fully resolved
      * @param isInternal    True if matching an internal acquire
      * @return 0 on success and an error code on failure (see ocr-db.h)
      *

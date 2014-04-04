@@ -52,8 +52,8 @@
  */
 #define hal_memCopy(destination, source, size, isBackground) \
     do { __builtin_memcpy((void*)(destination), (const void*)(source), (size)); } while(0)
-    
-    
+
+
 /**
  * @brief Compare and swap (64 bit)
  *
@@ -194,7 +194,7 @@
         u32 __tmp = __sync_lock_test_and_set(lock, 1);                  \
         __tmp;                                                          \
     })
-    
+
 /**
  * @brief Abort the runtime
  *

@@ -90,7 +90,7 @@ extern const char *inst_str[];
 
 bool key_exists(dictionary *dict, char *sec, char *field) {
     char key[MAX_KEY_SZ];
-    
+
     snprintf(key, MAX_KEY_SZ, "%s:%s", sec, field);
     if(iniparser_getstring(dict, key, NULL) != NULL)
         return true;
@@ -115,7 +115,8 @@ s32 read_range(dictionary *dict, char *sec, char *field, s32 *low, s32 *high) {
         count = 1;
         lo = hi = value;
     }
-    *low = lo; *high = hi;
+    *low = lo;
+    *high = hi;
     return count;
 }
 
@@ -133,7 +134,7 @@ s32 read_next_csv_value(dictionary *dict, char *key) {
     }
 
     if (parsestr == NULL) return -1;
-    else return atoi(parsestr); 
+    else return atoi(parsestr);
 }
 
 s32 get_key_value(dictionary *dict, char *sec, char *field, s32 offset) {
@@ -155,11 +156,11 @@ s32 get_key_value(dictionary *dict, char *sec, char *field, s32 offset) {
 
     if (key_value_type == TYPE_CSV) {
         retval = read_next_csv_value(dict, key);
-        if (retval == -1) key_value_type = TYPE_UNKNOWN;        
+        if (retval == -1) key_value_type = TYPE_UNKNOWN;
     } else {
         read_range(dict, sec, field, &lo, &hi);
         retval = lo+offset;
-        key_value_type = TYPE_UNKNOWN;        
+        key_value_type = TYPE_UNKNOWN;
     }
 
     return retval;
@@ -190,25 +191,25 @@ char* populate_type(ocrParamList_t **type_param, type_enum index, dictionary *di
         ALLOC_PARAM_LIST(*type_param, paramListCommApiFact_t);
         break;
     case compplatform_type: {
-            compPlatformType_t mytype = -1;
-            TO_ENUM (mytype, typestr, compPlatformType_t, compplatform_types, compPlatformMax_id);
-            switch (mytype) {
-#ifdef ENABLE_COMP_PLATFORM_PTHREAD 
-                case compPlatformPthread_id: {
-                    int value = 0;
-                    ALLOC_PARAM_LIST(*type_param, paramListCompPlatformPthread_t);
-                    snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
-                    INI_GET_INT (key, value, -1);
-                    ((paramListCompPlatformPthread_t *)(*type_param))->stackSize = (value==-1)?0:value;
-                }
-                break;
-#endif
-                default:
-                    ALLOC_PARAM_LIST(*type_param, paramListCompPlatformFact_t);
-                break;
-            }
+        compPlatformType_t mytype = -1;
+        TO_ENUM (mytype, typestr, compPlatformType_t, compplatform_types, compPlatformMax_id);
+        switch (mytype) {
+#ifdef ENABLE_COMP_PLATFORM_PTHREAD
+        case compPlatformPthread_id: {
+            int value = 0;
+            ALLOC_PARAM_LIST(*type_param, paramListCompPlatformPthread_t);
+            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
+            INI_GET_INT (key, value, -1);
+            ((paramListCompPlatformPthread_t *)(*type_param))->stackSize = (value==-1)?0:value;
         }
         break;
+#endif
+        default:
+            ALLOC_PARAM_LIST(*type_param, paramListCompPlatformFact_t);
+            break;
+        }
+    }
+    break;
     case comptarget_type:
         ALLOC_PARAM_LIST(*type_param, paramListCompTargetFact_t);
         break;
@@ -538,20 +539,20 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
     case memplatform_type:
         for (j = low; j<=high; j++) {
             memPlatformType_t mytype = -1;
-                        
+
             TO_ENUM (mytype, inststr, memPlatformType_t, memplatform_types, memPlatformMax_id);
             switch (mytype) {
-#ifdef ENABLE_MEM_PLATFORM_FSIM 
-                case memPlatformFsim_id: {
-                    ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformFsim_t);
-                    snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "start");
-                    INI_GET_INT (key, value, -1);
-                    ((paramListMemPlatformFsim_t *)inst_param[j])->start = (value==-1)?0:value;
-                }
-                break;
+#ifdef ENABLE_MEM_PLATFORM_FSIM
+            case memPlatformFsim_id: {
+                ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformFsim_t);
+                snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "start");
+                INI_GET_INT (key, value, -1);
+                ((paramListMemPlatformFsim_t *)inst_param[j])->start = (value==-1)?0:value;
+            }
+            break;
 #endif
-                default:
-                    ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformInst_t);
+            default:
+                ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformInst_t);
                 break;
             }
 
@@ -610,30 +611,30 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
         for (j = low; j<=high; j++) {
 
             compPlatformType_t mytype = -1;
-                        
+
             TO_ENUM (mytype, inststr, compPlatformType_t, compplatform_types, compPlatformMax_id);
             switch (mytype) {
-#ifdef ENABLE_COMP_PLATFORM_PTHREAD 
-                case compPlatformPthread_id: {
-                    ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformPthread_t);
-                    
-                    snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
-                    INI_GET_INT (key, value, -1);
-                    ((paramListCompPlatformPthread_t *)inst_param[j])->stackSize = (value==-1)?0:value;
-                    if (key_exists(dict, secname, "binding")) {
-                        value = get_key_value(dict, secname, "binding", j-low);
-                        ((paramListCompPlatformPthread_t *)inst_param[j])->binding = value;
-                    } else {
-                        ((paramListCompPlatformPthread_t *)inst_param[j])->binding = -1;
-                    }
+#ifdef ENABLE_COMP_PLATFORM_PTHREAD
+            case compPlatformPthread_id: {
+                ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformPthread_t);
+
+                snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "stacksize");
+                INI_GET_INT (key, value, -1);
+                ((paramListCompPlatformPthread_t *)inst_param[j])->stackSize = (value==-1)?0:value;
+                if (key_exists(dict, secname, "binding")) {
+                    value = get_key_value(dict, secname, "binding", j-low);
+                    ((paramListCompPlatformPthread_t *)inst_param[j])->binding = value;
+                } else {
+                    ((paramListCompPlatformPthread_t *)inst_param[j])->binding = -1;
                 }
-                break;
+            }
+            break;
 #endif
-                default:
-                    ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
+            default:
+                ALLOC_PARAM_LIST(inst_param[j], paramListCompPlatformInst_t);
                 break;
             }
-            
+
             instance[j] = (void *)((ocrCompPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created compplatform of type %s, index %d\n", inststr, j);
@@ -662,59 +663,59 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             TO_ENUM (mytype, inststr, workerType_t, worker_types, workerMax_id);
             switch (mytype) {
 #ifdef ENABLE_WORKER_HC
-                case workerHc_id: {
-                    char *workerstr;
-                    char workertypekey[MAX_KEY_SZ];
-                    ocrWorkerType_t workertype = MAX_WORKERTYPE;
+            case workerHc_id: {
+                char *workerstr;
+                char workertypekey[MAX_KEY_SZ];
+                ocrWorkerType_t workertype = MAX_WORKERTYPE;
 
-                    snprintf(workertypekey, MAX_KEY_SZ, "%s:%s", secname, "workertype");
-                    INI_GET_STR (workertypekey, workerstr, "");
-                    TO_ENUM (workertype, workerstr, ocrWorkerType_t, ocrWorkerType_types, MAX_WORKERTYPE-1);
-                    workertype += 1;  // because workertype is 1-indexed, not 0-indexed
-                    if (workertype == MAX_WORKERTYPE) workertype = SLAVE_WORKERTYPE; // TODO: is this a reasonable default?
-                    ALLOC_PARAM_LIST(inst_param[j], paramListWorkerHcInst_t);
-                    ((paramListWorkerHcInst_t *)inst_param[j])->workerType = workertype;
-                    ((paramListWorkerHcInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
-                }
-                break;
+                snprintf(workertypekey, MAX_KEY_SZ, "%s:%s", secname, "workertype");
+                INI_GET_STR (workertypekey, workerstr, "");
+                TO_ENUM (workertype, workerstr, ocrWorkerType_t, ocrWorkerType_types, MAX_WORKERTYPE-1);
+                workertype += 1;  // because workertype is 1-indexed, not 0-indexed
+                if (workertype == MAX_WORKERTYPE) workertype = SLAVE_WORKERTYPE; // TODO: is this a reasonable default?
+                ALLOC_PARAM_LIST(inst_param[j], paramListWorkerHcInst_t);
+                ((paramListWorkerHcInst_t *)inst_param[j])->workerType = workertype;
+                ((paramListWorkerHcInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
+            }
+            break;
 #endif
 #ifdef ENABLE_WORKER_CE
-                case workerCe_id: {
-                    char *workerstr;
-                    char workertypekey[MAX_KEY_SZ];
-                    ocrWorkerType_t workertype = MAX_WORKERTYPE;
+            case workerCe_id: {
+                char *workerstr;
+                char workertypekey[MAX_KEY_SZ];
+                ocrWorkerType_t workertype = MAX_WORKERTYPE;
 
-                    snprintf(workertypekey, MAX_KEY_SZ, "%s:%s", secname, "workertype");
-                    INI_GET_STR (workertypekey, workerstr, "");
-                    TO_ENUM (workertype, workerstr, ocrWorkerType_t, ocrWorkerType_types, MAX_WORKERTYPE-1);
-                    workertype += 1;  // because workertype is 1-indexed, not 0-indexed
-                    if (workertype == MAX_WORKERTYPE) workertype = SLAVE_WORKERTYPE; // TODO: is this a reasonable default?
-                    ALLOC_PARAM_LIST(inst_param[j], paramListWorkerCeInst_t);
-                    ((paramListWorkerCeInst_t *)inst_param[j])->workerType = workertype;
-                    ((paramListWorkerCeInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
-                }
-                break;
+                snprintf(workertypekey, MAX_KEY_SZ, "%s:%s", secname, "workertype");
+                INI_GET_STR (workertypekey, workerstr, "");
+                TO_ENUM (workertype, workerstr, ocrWorkerType_t, ocrWorkerType_types, MAX_WORKERTYPE-1);
+                workertype += 1;  // because workertype is 1-indexed, not 0-indexed
+                if (workertype == MAX_WORKERTYPE) workertype = SLAVE_WORKERTYPE; // TODO: is this a reasonable default?
+                ALLOC_PARAM_LIST(inst_param[j], paramListWorkerCeInst_t);
+                ((paramListWorkerCeInst_t *)inst_param[j])->workerType = workertype;
+                ((paramListWorkerCeInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
+            }
+            break;
 #endif
 #ifdef ENABLE_WORKER_XE
-                case workerXe_id: {
-                    char *workerstr;
-                    char workertypekey[MAX_KEY_SZ];
-                    ocrWorkerType_t workertype = MAX_WORKERTYPE;
+            case workerXe_id: {
+                char *workerstr;
+                char workertypekey[MAX_KEY_SZ];
+                ocrWorkerType_t workertype = MAX_WORKERTYPE;
 
-                    snprintf(workertypekey, MAX_KEY_SZ, "%s:%s", secname, "workertype");
-                    INI_GET_STR (workertypekey, workerstr, "");
-                    TO_ENUM (workertype, workerstr, ocrWorkerType_t, ocrWorkerType_types, MAX_WORKERTYPE-1);
-                    workertype += 1;  // because workertype is 1-indexed, not 0-indexed
-                    if (workertype == MAX_WORKERTYPE) workertype = SLAVE_WORKERTYPE; // TODO: is this a reasonable default?
-                    ALLOC_PARAM_LIST(inst_param[j], paramListWorkerXeInst_t);
-                    // ((paramListWorkerXeInst_t *)inst_param[j])->workerType = workertype;  TODO: This field doesn't exist for XE's.  Should it?  BRN
-                    ((paramListWorkerXeInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
-                }
-                break;
+                snprintf(workertypekey, MAX_KEY_SZ, "%s:%s", secname, "workertype");
+                INI_GET_STR (workertypekey, workerstr, "");
+                TO_ENUM (workertype, workerstr, ocrWorkerType_t, ocrWorkerType_types, MAX_WORKERTYPE-1);
+                workertype += 1;  // because workertype is 1-indexed, not 0-indexed
+                if (workertype == MAX_WORKERTYPE) workertype = SLAVE_WORKERTYPE; // TODO: is this a reasonable default?
+                ALLOC_PARAM_LIST(inst_param[j], paramListWorkerXeInst_t);
+                // ((paramListWorkerXeInst_t *)inst_param[j])->workerType = workertype;  TODO: This field doesn't exist for XE's.  Should it?  BRN
+                ((paramListWorkerXeInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
+            }
+            break;
 #endif
-                default:
-                    ASSERT (0); // Unimplemented worker type.
-                    //ALLOC_PARAM_LIST(inst_param[j], paramListWorkerInst_t);
+            default:
+                ASSERT (0); // Unimplemented worker type.
+                //ALLOC_PARAM_LIST(inst_param[j], paramListWorkerInst_t);
                 break;
             }
 
@@ -729,22 +730,22 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             TO_ENUM (mytype, inststr, schedulerType_t, scheduler_types, schedulerMax_id);
             switch (mytype) {
 #ifdef ENABLE_SCHEDULER_HC
-                case schedulerHc_id: {
-                    ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerHcInst_t);
-                    snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "workeridfirst");
-                    INI_GET_INT (key, value, -1);
-                    ((paramListSchedulerHcInst_t *)inst_param[j])->workerIdFirst = value;
-                }
-                break;
+            case schedulerHc_id: {
+                ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerHcInst_t);
+                snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "workeridfirst");
+                INI_GET_INT (key, value, -1);
+                ((paramListSchedulerHcInst_t *)inst_param[j])->workerIdFirst = value;
+            }
+            break;
 #endif
 #ifdef ENABLE_SCHEDULER_CE
-                case schedulerCe_id: {
-                    ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerCeInst_t);
-                }
-                break;
+            case schedulerCe_id: {
+                ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerCeInst_t);
+            }
+            break;
 #endif
-                default:
-                    ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerInst_t);
+            default:
+                ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerInst_t);
                 break;
             }
 
@@ -790,7 +791,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
 #endif
             default:
                 ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainInst_t);
-            break;
+                break;
             }
 
             // TODO: Redo the below to mirror rank config changes
@@ -803,7 +804,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             }
 
             instance[j] = (void *)((ocrPolicyDomainFactory_t *)factory)->instantiate(
-                factory, NULL, inst_param[j]);
+                              factory, NULL, inst_param[j]);
 
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created policy domain of index %d\n", j);
@@ -1019,7 +1020,7 @@ s32 build_deps_types (s32 B, void **pdinst, int pdcount, void ***all_factories, 
     for (i = 0; i < pdcount; i++) {
         add_dependence(policydomain_type, B, pdinst[i], NULL, all_factories[B][0], NULL, 0, 1);
     }
-    
+
     // FIXME: The above is highly simplified, needs review/change
 
     return 0;

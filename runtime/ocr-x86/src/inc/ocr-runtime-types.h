@@ -98,7 +98,7 @@ typedef enum {
                               * occured on the receiving end */
     HDL_RECV_ERR      = 0x10400, /**< An error occured on the incomming response */
     HDL_RESPONSE_OK   = 0x00400  /**< (MANDATORY) Handle has a ready response */
-    
+
 } ocrMsgHandleStatus_t;
 /**
  * @brief Types of data-blocks allocated by the runtime

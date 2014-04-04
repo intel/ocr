@@ -128,7 +128,7 @@ typedef struct _ocrTaskFcts_t {
      *
      * registerSignaler where src is a data-block is equivalent to calling
      * satisfy with that same data-block
-     * 
+     *
      * When a dependence is established between an event and
      * a task, registerWaiter will be called on the event
      * and registerSignaler will be called on the task
@@ -143,7 +143,7 @@ typedef struct _ocrTaskFcts_t {
      */
     u8 (*registerSignaler)(struct _ocrTask_t* self, ocrFatGuid_t src, u32 slot,
                            bool isDepAdd);
-    
+
     /**
      * @brief Informs the task that the event/db 'src' is no longer linked
      * to it on 'slot'
@@ -192,7 +192,7 @@ typedef struct _ocrTaskFcts_t {
      * @return 0 on success and a non-zero value on failure
      */
     u8 (*notifyDbRelease)(struct _ocrTask_t* self, ocrFatGuid_t db);
-    
+
     /**
      * @brief Executes this EDT
      *

@@ -62,8 +62,7 @@
 
 /* Doubles the allocated size associated to a pointer */
 /* 'size' is the current allocated size. */
-static void * mem_double(void * ptr, int size)
-{
+static void * mem_double(void * ptr, int size) {
     void * newptr ;
 
     newptr = calloc(2*size, 1);
@@ -85,8 +84,7 @@ static void * mem_double(void * ptr, int size)
   for systems that do not have it.
  */
 /*--------------------------------------------------------------------------*/
-static char * xstrdup(const char * s)
-{
+static char * xstrdup(const char * s) {
     char * t ;
     if (!s)
         return NULL ;
@@ -112,8 +110,7 @@ static char * xstrdup(const char * s)
   by comparing the key itself in last resort.
  */
 /*--------------------------------------------------------------------------*/
-unsigned dictionary_hash(const char * key)
-{
+unsigned dictionary_hash(const char * key) {
     int         len ;
     unsigned    hash ;
     int         i ;
@@ -141,8 +138,7 @@ unsigned dictionary_hash(const char * key)
   dictionary, give size=0.
  */
 /*--------------------------------------------------------------------------*/
-dictionary * dictionary_new(int size)
-{
+dictionary * dictionary_new(int size) {
     dictionary  *   d ;
 
     /* If no size was specified, allocate space for DICTMINSZ */
@@ -167,8 +163,7 @@ dictionary * dictionary_new(int size)
   Deallocate a dictionary object and all memory associated to it.
  */
 /*--------------------------------------------------------------------------*/
-void dictionary_del(dictionary * d)
-{
+void dictionary_del(dictionary * d) {
     int     i ;
 
     if (d==NULL) return ;
@@ -199,8 +194,7 @@ void dictionary_del(dictionary * d)
   dictionary object, you should not try to free it or modify it.
  */
 /*--------------------------------------------------------------------------*/
-char * dictionary_get(dictionary * d, const char * key, char * def)
-{
+char * dictionary_get(dictionary * d, const char * key, char * def) {
     unsigned    hash ;
     int         i ;
 
@@ -245,8 +239,7 @@ char * dictionary_get(dictionary * d, const char * key, char * def)
   This function returns non-zero in case of failure.
  */
 /*--------------------------------------------------------------------------*/
-int dictionary_set(dictionary * d, const char * key, const char * val)
-{
+int dictionary_set(dictionary * d, const char * key, const char * val) {
     int         i ;
     unsigned    hash ;
 
@@ -312,8 +305,7 @@ int dictionary_set(dictionary * d, const char * key, const char * val)
   key cannot be found.
  */
 /*--------------------------------------------------------------------------*/
-void dictionary_unset(dictionary * d, const char * key)
-{
+void dictionary_unset(dictionary * d, const char * key) {
     unsigned    hash ;
     int         i ;
 
@@ -361,8 +353,7 @@ void dictionary_unset(dictionary * d, const char * key)
   output file pointers.
  */
 /*--------------------------------------------------------------------------*/
-void dictionary_dump(dictionary * d, FILE * out)
-{
+void dictionary_dump(dictionary * d, FILE * out) {
     int     i ;
 
     if (d==NULL || out==NULL) return ;
@@ -384,8 +375,7 @@ void dictionary_dump(dictionary * d, FILE * out)
 /* Test code */
 #ifdef TESTDIC
 #define NVALS 20000
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     dictionary  *   d ;
     char    *   val ;
     int         i ;

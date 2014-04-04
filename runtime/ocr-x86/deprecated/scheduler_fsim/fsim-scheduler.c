@@ -62,10 +62,10 @@ static u8 xeSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *c
     // allocated memory for us since we can return at most one
     // guid (most likely store using the address of a local)
     if ( NULL_GUID != popped ) {
-      *count = 1;
-      *edts = popped;
+        *count = 1;
+        *edts = popped;
     } else {
-      *count = 0;
+        *count = 0;
     }
     return 0;
 }
@@ -156,15 +156,15 @@ static void xeSchedulerStartAssert (ocrScheduler_t * self, ocrPolicyDomain_t * P
 }
 
 static u8 xeSchedulerYieldAssert (ocrScheduler_t* self, ocrGuid_t workerGuid,
-                            ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
-                            ocrGuid_t * returnGuid,
-                            ocrPolicyCtx_t *context) {
+                                  ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
+                                  ocrGuid_t * returnGuid,
+                                  ocrPolicyCtx_t *context) {
     assert ( 0 && "xeSchedulerYieldAssert should not have been called");
     return 0;
 }
 
 static void xeSchedulerStop(ocrScheduler_t * self) {
-  // nothing to do here
+    // nothing to do here
     assert ( 0 && "xe scheduler stop should not have been called");
 }
 
@@ -183,7 +183,7 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryXE (ocrParamList_t *perType) {
 }
 
 static u8 ceSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *count,
-                  ocrGuid_t *edts, struct _ocrPolicyCtx_t *context) {
+                           ocrGuid_t *edts, struct _ocrPolicyCtx_t *context) {
 
 
     ocrGuid_t workerId = context->sourceObj;
@@ -206,7 +206,7 @@ static u8 ceSchedulerTake (ocrScheduler_t *self, struct _ocrCost_t *cost, u32 *c
 
         assert(PD_MSG_EDT_TAKE == context->type && "The else condition should be for CE to picking work for XE");
         assert(context->sourcePD == getCurrentPD()->guid && "source for this ceSchedulerTake part should originate from within");
-        
+
         wpToPop = self->workpiles[ 2 * (workerId % ceDerived->nWorkers) ];
     }
 
@@ -256,7 +256,7 @@ u8 ceSchedulerGive (ocrScheduler_t* self, u32 count, ocrGuid_t* edts, struct _oc
             workpileToPush = ceSchedulerPushMappingToMessages(self, workerId);
         } else {
             assert(PD_MSG_EDT_GIVE == context->type && "The else condition should be for master CE pushing initial work");
-            // either master CE worker picking initial work 
+            // either master CE worker picking initial work
             ocrSchedulerCE_t* ceDerived = (ocrSchedulerCE_t*) self;
             assert(workerId >= ceDerived->workerIdFirst && workerId <= ceDerived->workerIdLast && " ce worker does not seem of this domain");
 
@@ -300,15 +300,15 @@ static void ceSchedulerStartAssert (ocrScheduler_t * self, ocrPolicyDomain_t * P
 }
 
 static u8 ceSchedulerYieldAssert (ocrScheduler_t* self, ocrGuid_t workerGuid,
-                            ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
-                            ocrGuid_t * returnGuid,
-                            ocrPolicyCtx_t *context) {
+                                  ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
+                                  ocrGuid_t * returnGuid,
+                                  ocrPolicyCtx_t *context) {
     assert ( 0 && "ceSchedulerYieldAssert should not have been called");
     return 0;
 }
 
 static void ceSchedulerStop(ocrScheduler_t * self) {
-  // nothing to do here
+    // nothing to do here
     assert ( 0 && "ce scheduler stop should not have been called");
 }
 
@@ -325,4 +325,4 @@ ocrSchedulerFactory_t * newOcrSchedulerFactoryCE (ocrParamList_t *perType) {
     baseFactory->schedulerFcts.giveEdt = ceSchedulerGive;
     return baseFactory;
 }
-#endif 
+#endif

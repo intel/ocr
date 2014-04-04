@@ -37,7 +37,7 @@ typedef struct _avlBinaryNode_t {
     u64 key; /**< Key used for comparison for the AVL */
     u64 value; /**< Value associated with the key */
     struct _avlBinaryNode_t *left, *right; /**< Left, right subtrees */
-                                                     
+
     u32 height; /**< Height of this node, for rebalancing purposes */
 } avlBinaryNode_t;
 
@@ -65,7 +65,7 @@ typedef struct _rangeTracker_t {
                                    */
     tagNode_t *tags; /**< Tags in this range */
     tagHead_t heads[MAX_TAG]; /**< Heads to the linked-lists stored in tags */
-    
+
     // TODO: For the lock, would be better to move to a reader-writer lock
     volatile u32 lock; /**< Lock protecting range */
 } rangeTracker_t;

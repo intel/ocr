@@ -40,7 +40,7 @@ typedef struct _ocrWorkpileFcts_t {
     void (*destruct)(struct _ocrWorkpile_t *self);
 
     void (*begin)(struct _ocrWorkpile_t *self, struct _ocrPolicyDomain_t *PD);
-    
+
     void (*start)(struct _ocrWorkpile_t *self, struct _ocrPolicyDomain_t *PD);
 
     void (*stop)(struct _ocrWorkpile_t *self);

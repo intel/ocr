@@ -14,11 +14,11 @@
 extern "C" {
 #endif
 
-    extern __thread uint64_t _threadInstructionCount;
-    extern __thread uint8_t  _threadInstrumentOn;
+extern __thread uint64_t _threadInstructionCount;
+extern __thread uint8_t  _threadInstrumentOn;
 
-    extern void PROFILER_ocrStatsLoadCallback(void* addr, u64 size, u64 instrCount);
-    extern void PROFILER_ocrStatsStoreCallback(void* addr, u64 size, u64 instrCount);
+extern void PROFILER_ocrStatsLoadCallback(void* addr, u64 size, u64 instrCount);
+extern void PROFILER_ocrStatsStoreCallback(void* addr, u64 size, u64 instrCount);
 
 #ifdef __cplusplus
 }

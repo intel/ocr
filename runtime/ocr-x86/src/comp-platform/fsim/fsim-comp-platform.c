@@ -30,8 +30,7 @@
 // but we have to stick it somewhere and the HAL and SAL are headers
 // only -- hence this placement.
 //
-int memcpy(void * dst, void * src, u64 len)
-{
+int memcpy(void * dst, void * src, u64 len) {
     __asm__ __volatile__("dma.copyregion %1, %0, %2\n\t"
                          "fence 0xF\n\t"
                          : : "r" (dst), "r" (src), "r" (len));
@@ -79,7 +78,7 @@ u8 fsimCompSetThrottle(ocrCompPlatform_t *self, u64 value) {
 }
 
 u8 fsimCompSetCurrentEnv(ocrCompPlatform_t *self, ocrPolicyDomain_t *pd,
-                        ocrWorker_t *worker) {
+                         ocrWorker_t *worker) {
 
     myPD = pd;
     myWorker = worker;
@@ -94,7 +93,7 @@ ocrCompPlatform_t* newCompPlatformFsim(ocrCompPlatformFactory_t *factory,
                                        ocrParamList_t *perInstance) {
 
     ocrCompPlatformFsim_t * compPlatformFsim = (ocrCompPlatformFsim_t*)
-        runtimeChunkAlloc(sizeof(ocrCompPlatformFsim_t), NULL);
+            runtimeChunkAlloc(sizeof(ocrCompPlatformFsim_t), NULL);
     ocrCompPlatform_t *base = (ocrCompPlatform_t*)compPlatformFsim;
     factory->initialize(factory, base, perInstance);
     return base;
@@ -122,7 +121,7 @@ void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
 
 ocrCompPlatformFactory_t *newCompPlatformFactoryFsim(ocrParamList_t *perType) {
     ocrCompPlatformFactory_t *base = (ocrCompPlatformFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrCompPlatformFactoryFsim_t), (void *)1);
+                                     runtimeChunkAlloc(sizeof(ocrCompPlatformFactoryFsim_t), (void *)1);
 
     base->instantiate = &newCompPlatformFsim;
     base->initialize = &initializeCompPlatformFsim;

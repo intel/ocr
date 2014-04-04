@@ -13,11 +13,21 @@ enum Nucleotide {GAP=0, ADENINE, CYTOSINE, GUANINE, THYMINE};
 signed char char_mapping ( char c ) {
     signed char to_be_returned = -1;
     switch(c) {
-        case '_': to_be_returned = GAP; break;
-        case 'A': to_be_returned = ADENINE; break;
-        case 'C': to_be_returned = CYTOSINE; break;
-        case 'G': to_be_returned = GUANINE; break;
-        case 'T': to_be_returned = THYMINE; break;
+    case '_':
+        to_be_returned = GAP;
+        break;
+    case 'A':
+        to_be_returned = ADENINE;
+        break;
+    case 'C':
+        to_be_returned = CYTOSINE;
+        break;
+    case 'G':
+        to_be_returned = GUANINE;
+        break;
+    case 'T':
+        to_be_returned = THYMINE;
+        break;
     }
     return to_be_returned;
 }
@@ -33,8 +43,7 @@ void print_matrix ( int** matrix, int n_rows, int n_columns ) {
     fprintf(stdout,"--------------------------------\n");
 }
 
-static char alignment_score_matrix[5][5] =
-{
+static char alignment_score_matrix[5][5] = {
     {GAP_PENALTY,GAP_PENALTY,GAP_PENALTY,GAP_PENALTY,GAP_PENALTY},
     {GAP_PENALTY,MATCH,TRANSVERSION_PENALTY,TRANSITION_PENALTY,TRANSVERSION_PENALTY},
     {GAP_PENALTY,TRANSVERSION_PENALTY, MATCH,TRANSVERSION_PENALTY,TRANSITION_PENALTY},
@@ -48,10 +57,13 @@ size_t clear_whitespaces_do_mapping ( signed char* buffer, long size ) {
     while ( traverse_index < size ) {
         char curr_char = buffer[traverse_index];
         switch ( curr_char ) {
-            case 'A': case 'C': case 'G': case 'T':
-                /*this used to be a copy not also does mapping*/
-                buffer[non_ws_index++] = char_mapping(curr_char);
-                break;
+        case 'A':
+        case 'C':
+        case 'G':
+        case 'T':
+            /*this used to be a copy not also does mapping*/
+            buffer[non_ws_index++] = char_mapping(curr_char);
+            break;
         }
         ++traverse_index;
     }
@@ -102,13 +114,19 @@ int main ( int argc, char* argv[] ) {
     char* file_name_2 = argv[2];
 
     FILE* file_1 = fopen(file_name_1, "r");
-    if (!file_1) { fprintf(stderr, "could not open file %s\n",file_name_1); exit(1); }
+    if (!file_1) {
+        fprintf(stderr, "could not open file %s\n",file_name_1);
+        exit(1);
+    }
     size_t n_char_in_file_1 = 0;
     string_1 = read_file(file_1, &n_char_in_file_1);
     fprintf(stdout, "Size of input string 1 is %zu\n", n_char_in_file_1 );
 
     FILE* file_2 = fopen(file_name_2, "r");
-    if (!file_2) { fprintf(stderr, "could not open file %s\n",file_name_2); exit(1); }
+    if (!file_2) {
+        fprintf(stderr, "could not open file %s\n",file_name_2);
+        exit(1);
+    }
     size_t n_char_in_file_2 = 0;
     string_2 = read_file(file_2, &n_char_in_file_2);
     fprintf(stdout, "Size of input string 2 is %zu\n", n_char_in_file_2 );
@@ -122,7 +140,7 @@ int main ( int argc, char* argv[] ) {
     fprintf(stdout, "Imported %d x %d tiles.\n", n_tiles_width, n_tiles_height);
     fprintf(stdout, "Allocating tile matrix\n");
 
-    Tile_t** tile_matrix = (Tile_t **) malloc(sizeof(Tile_t*)*(n_tiles_height+1)); 
+    Tile_t** tile_matrix = (Tile_t **) malloc(sizeof(Tile_t*)*(n_tiles_height+1));
     for ( i = 0; i < n_tiles_height+1; ++i ) {
         tile_matrix[i] = (Tile_t *) malloc(sizeof(Tile_t)*(n_tiles_width+1));
     }
@@ -162,11 +180,11 @@ int main ( int argc, char* argv[] ) {
     gettimeofday(&begin,0);
 
     for ( j = 0; j < n_tiles_width+n_tiles_height; ++j ) {
-#pragma omp parallel for private(i) shared(j, string_1,string_2,n_tiles_width,n_tiles_height,tile_matrix,alignment_score_matrix) schedule(dynamic)
+        #pragma omp parallel for private(i) shared(j, string_1,string_2,n_tiles_width,n_tiles_height,tile_matrix,alignment_score_matrix) schedule(dynamic)
         for ( i = ((0 > j-n_tiles_width) ? 0 : j-n_tiles_width+1); i < ((j < n_tiles_width) ? j+1 : n_tiles_height); ++i ) {
             int index, ii, jj;
             int* above_tile_bottom_row = (int *) tile_matrix[i+1-1][j-i+1  ].bottom_row;
-            int* left_tile_right_column = (int *) tile_matrix[  i+1][j-i+1-1].right_column; 
+            int* left_tile_right_column = (int *) tile_matrix[  i+1][j-i+1-1].right_column;
             int* diagonal_tile_bottom_right = (int *) tile_matrix[i+1-1][j-i+1-1].bottom_right;
 
             int  * curr_tile_tmp = (int*)malloc(sizeof(int)*(1+tile_width)*(1+tile_height));

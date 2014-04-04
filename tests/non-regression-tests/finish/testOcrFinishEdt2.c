@@ -67,7 +67,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t computeEdtTemplateGuid;
     ocrEdtTemplateCreate(&computeEdtTemplateGuid, computeEdt, 0 /*paramc*/, 1 /*depc*/);
     ocrEdtCreate(&computeEdtGuid, computeEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
-                    /*properties=*/ EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/&finishEdtOutputEventGuid);
+                 /*properties=*/ EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/&finishEdtOutputEventGuid);
 
     // Build a data-block to be shared with sub-edts
     u64 * array;
@@ -78,7 +78,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t terminateEdtTemplateGuid;
     ocrEdtTemplateCreate(&terminateEdtTemplateGuid, terminateEdt, 0 /*paramc*/, 2 /*depc*/);
     ocrEdtCreate(&terminateEdtGuid, terminateEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
-                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
+                 /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
     ocrAddDependence(dbGuid, terminateEdtGuid, 0, DB_MODE_RO);
     ocrAddDependence(finishEdtOutputEventGuid, terminateEdtGuid, 1, DB_MODE_RO);
 

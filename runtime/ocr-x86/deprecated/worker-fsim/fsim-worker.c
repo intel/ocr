@@ -280,71 +280,68 @@ void ceWorkerLoop(ocrPolicyDomain_t * pd, ocrWorker_t * worker) {
         ASSERT(count <= 1);
         if (count != 0) {
 
-            ocrMessageTaskFSIM_t* messageTask = NULL; 
+            ocrMessageTaskFSIM_t* messageTask = NULL;
             deguidify(pd, messageTaskGuid, (u64*)&(messageTask), NULL);
 
             ocrPolicyCtx_t* messageContext = messageTask->message;
 
             switch (messageContext->type) {
 
-                case PD_MSG_GIVE_ME_WORK:
-                    {
-                        ocrPolicyCtx_t * edtExtractContext = orgCtx->clone(orgCtx);
-                        edtExtractContext->type = PD_MSG_EDT_TAKE;
+            case PD_MSG_GIVE_ME_WORK: {
+                ocrPolicyCtx_t * edtExtractContext = orgCtx->clone(orgCtx);
+                edtExtractContext->type = PD_MSG_EDT_TAKE;
 
-                        u32 otherCount;
-                        pd->takeEdt(pd, NULL, &otherCount, &taskGuid, edtExtractContext);
+                u32 otherCount;
+                pd->takeEdt(pd, NULL, &otherCount, &taskGuid, edtExtractContext);
 
-                        if ( NULL_GUID != taskGuid) {
-                            ocrPolicyDomain_t* targetDomain = messageContext->PD;
-                            ocrPolicyCtx_t * edtInjectContext = orgCtx->clone(orgCtx);
-                            edtInjectContext->type = PD_MSG_INJECT_EDT;
+                if ( NULL_GUID != taskGuid) {
+                    ocrPolicyDomain_t* targetDomain = messageContext->PD;
+                    ocrPolicyCtx_t * edtInjectContext = orgCtx->clone(orgCtx);
+                    edtInjectContext->type = PD_MSG_INJECT_EDT;
 
-                            targetDomain->giveEdt(targetDomain, 1, &taskGuid,edtInjectContext);
-                            
-                            // now that the XE has work, it may be restarted
-                            // targetWorker->start(targetWorker);
-                            //
-                            ocrWorkerXE_t* xeWorkerToWakeUp = NULL;
-                            deguidify(pd, messageContext->sourceObj, (u64*)&(xeWorkerToWakeUp), NULL);
-                            pthread_mutex_lock(&xeWorkerToWakeUp->isRunningMutex);
-                            pthread_cond_signal(&xeWorkerToWakeUp->isRunningCond);
-                            pthread_mutex_unlock(&xeWorkerToWakeUp->isRunningMutex);
-                        } else {
-                            ocrPolicyCtx_t * msgBufferContext = orgCtx->clone(orgCtx);
-                            msgBufferContext->type = PD_MSG_MSG_GIVE;
-                            
-                            // if there was no successful task handing to XE, do not lose the message
-                            pd->giveEdt(pd, 1, &messageTaskGuid, msgBufferContext);
-                        }
-                    }
-                    break;
-                case PD_MSG_TAKE_MY_WORK:
-                    {
-                        ocrPolicyCtx_t * edtPickupContext = orgCtx->clone(orgCtx);
-                        edtPickupContext->type = PD_MSG_PICKUP_EDT;
+                    targetDomain->giveEdt(targetDomain, 1, &taskGuid,edtInjectContext);
 
-                        ocrPolicyDomain_t* targetDomain = messageContext->PD;
-                        u32 otherCount;
-                        targetDomain->takeEdt( targetDomain, NULL, &otherCount, &taskGuid, edtPickupContext);
-                        if ( NULL_GUID != taskGuid ) {
-                            ocrPolicyCtx_t * edtStoreContext = orgCtx->clone(orgCtx);
-                            edtStoreContext->type = PD_MSG_EDT_GIVE;
+                    // now that the XE has work, it may be restarted
+                    // targetWorker->start(targetWorker);
+                    //
+                    ocrWorkerXE_t* xeWorkerToWakeUp = NULL;
+                    deguidify(pd, messageContext->sourceObj, (u64*)&(xeWorkerToWakeUp), NULL);
+                    pthread_mutex_lock(&xeWorkerToWakeUp->isRunningMutex);
+                    pthread_cond_signal(&xeWorkerToWakeUp->isRunningCond);
+                    pthread_mutex_unlock(&xeWorkerToWakeUp->isRunningMutex);
+                } else {
+                    ocrPolicyCtx_t * msgBufferContext = orgCtx->clone(orgCtx);
+                    msgBufferContext->type = PD_MSG_MSG_GIVE;
 
-                            pd->giveEdt(pd, 1, &taskGuid, edtStoreContext);
-                        } else {
-                            ocrPolicyCtx_t * msgBufferContext = orgCtx->clone(orgCtx);
-                            msgBufferContext->type = PD_MSG_MSG_GIVE;
-                            
-                            // if there was no successful task handing to XE, do not lose the message
-                            pd->giveEdt(pd, 1, &messageTaskGuid, msgBufferContext);
-                        }
-                    }
-                    break;
-                default: 
-                    {
-                        assert(0 && "should not see anything besides PD_MSG_GIVE_ME_WORK or PD_MSG_TAKE_MY_WORK");
-                    }
+                    // if there was no successful task handing to XE, do not lose the message
+                    pd->giveEdt(pd, 1, &messageTaskGuid, msgBufferContext);
+                }
+            }
+            break;
+            case PD_MSG_TAKE_MY_WORK: {
+                ocrPolicyCtx_t * edtPickupContext = orgCtx->clone(orgCtx);
+                edtPickupContext->type = PD_MSG_PICKUP_EDT;
+
+                ocrPolicyDomain_t* targetDomain = messageContext->PD;
+                u32 otherCount;
+                targetDomain->takeEdt( targetDomain, NULL, &otherCount, &taskGuid, edtPickupContext);
+                if ( NULL_GUID != taskGuid ) {
+                    ocrPolicyCtx_t * edtStoreContext = orgCtx->clone(orgCtx);
+                    edtStoreContext->type = PD_MSG_EDT_GIVE;
+
+                    pd->giveEdt(pd, 1, &taskGuid, edtStoreContext);
+                } else {
+                    ocrPolicyCtx_t * msgBufferContext = orgCtx->clone(orgCtx);
+                    msgBufferContext->type = PD_MSG_MSG_GIVE;
+
+                    // if there was no successful task handing to XE, do not lose the message
+                    pd->giveEdt(pd, 1, &messageTaskGuid, msgBufferContext);
+                }
+            }
+            break;
+            default: {
+                assert(0 && "should not see anything besides PD_MSG_GIVE_ME_WORK or PD_MSG_TAKE_MY_WORK");
+            }
             };
 
             // ceWorker->setCurrentEDT(ceWorker,messageTaskGuid);
@@ -547,4 +544,4 @@ ocrWorker_t* newWorkerFsimCE (ocrWorkerFactory_t * factory, ocrParamList_t * per
 }
 #endif
 
-#endif 
+#endif

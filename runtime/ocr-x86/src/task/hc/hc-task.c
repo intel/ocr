@@ -24,7 +24,7 @@
 #include "ocr-statistics.h"
 #include "ocr-statistics-callbacks.h"
 #ifdef OCR_ENABLE_PROFILING_STATISTICS
-#endif 
+#endif
 #endif /* OCR_ENABLE_STATISTICS */
 
 #define DEBUG_TYPE TASK
@@ -41,7 +41,7 @@ u8 destructTaskTemplateHc(ocrTaskTemplate_t *self) {
         // TODO: FIXME
         ocrPolicyDomain_t *pd = getCurrentPD();
         ocrGuid_t edtGuid = getCurrentEDT();
-                
+
         statsTEMP_DESTROY(pd, edtGuid, NULL, self->guid, self);
     }
 #endif /* OCR_ENABLE_STATISTICS */
@@ -84,7 +84,7 @@ ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory, ocrEdt_
     base->guid = PD_MSG_FIELD(guid.guid);
 #undef PD_MSG
 #undef PD_TYPE
-    
+
     base->paramc = paramc;
     base->depc = depc;
     base->executePtr = executePtr;
@@ -92,7 +92,7 @@ ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory, ocrEdt_
     base->name = fctName;
 #endif
     base->fctId = factory->factoryId;
-    
+
 #ifdef OCR_ENABLE_STATISTICS
     {
         // TODO: FIXME
@@ -109,7 +109,7 @@ void destructTaskTemplateFactoryHc(ocrTaskTemplateFactory_t* base) {
 
 ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType, u32 factoryId) {
     ocrTaskTemplateFactory_t* base = (ocrTaskTemplateFactory_t*)runtimeChunkAlloc(sizeof(ocrTaskTemplateFactoryHc_t), NULL);
-    
+
     base->instantiate = FUNC_ADDR(ocrTaskTemplate_t* (*)(ocrTaskTemplateFactory_t*, ocrEdt_t, u32, u32, const char*, ocrParamList_t*), newTaskTemplateHc);
     base->destruct =  FUNC_ADDR(void (*)(ocrTaskTemplateFactory_t*), destructTaskTemplateFactoryHc);
     base->factoryId = factoryId;
@@ -138,7 +138,7 @@ static ocrFatGuid_t getFinishLatch(ocrTask_t * edt) {
 
 // satisfies the incr slot of a finish latch event
 static u8 finishLatchCheckin(ocrPolicyDomain_t *pd, ocrPolicyMsg_t *msg,
-                               ocrFatGuid_t sourceEvent, ocrFatGuid_t latchEvent) {
+                             ocrFatGuid_t sourceEvent, ocrFatGuid_t latchEvent) {
 #define PD_MSG (msg)
 #define PD_TYPE PD_MSG_DEP_SATISFY
     msg->type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
@@ -170,7 +170,7 @@ static inline bool hasProperty(u32 properties, u32 property) {
 }
 
 static u8 registerOnFrontier(ocrTaskHc_t *self, ocrPolicyDomain_t *pd,
-                               ocrPolicyMsg_t *msg, u32 slot) {
+                             ocrPolicyMsg_t *msg, u32 slot) {
 #define PD_MSG (msg)
 #define PD_TYPE PD_MSG_DEP_REGWAITER
     msg->type = PD_MSG_DEP_REGWAITER | PD_MSG_REQUEST;
@@ -190,8 +190,8 @@ static u8 registerOnFrontier(ocrTaskHc_t *self, ocrPolicyDomain_t *pd,
 /******************************************************/
 
 static u8 initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
-                               ocrTask_t *curTask, ocrFatGuid_t outputEvent,
-                               ocrFatGuid_t parentLatch, u32 properties) {
+                             ocrTask_t *curTask, ocrFatGuid_t outputEvent,
+                             ocrFatGuid_t parentLatch, u32 properties) {
 
     ocrPolicyMsg_t msg;
     getCurrentEnv(NULL, NULL, NULL, &msg);
@@ -202,7 +202,7 @@ static u8 initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
     task->unkDbs = NULL;
     task->countUnkDbs = 0;
     task->maxUnkDbs = 0;
-    
+
     if(task->base.depc == 0) {
         task->signalers = END_OF_LIST;
     }
@@ -221,13 +221,13 @@ static u8 initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
 #undef PD_MSG
 #undef PD_TYPE
         ASSERT(latchFGuid.guid != NULL_GUID && latchFGuid.metaDataPtr != NULL);
-        
+
         if (parentLatch.guid != NULL_GUID) {
             DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on parent flatch 0x%lx\n", task->base.guid, parentLatch.guid);
             // Check in current finish latch
             RESULT_PROPAGATE(finishLatchCheckin(pd, &msg, latchFGuid, parentLatch));
         }
-        
+
         DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on self flatch 0x%lx\n", task->base.guid, latchFGuid.guid);
         // Check in the new finish scope
         // This will also link outputEvent to latchFGuid
@@ -326,7 +326,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     //  - the EDT is within a finish scope (and we need to link to
     //    that latch event)
     if (outputEventPtr != NULL || hasProperty(properties, EDT_PROP_FINISH) ||
-        parentLatch.guid != NULL_GUID) {
+            parentLatch.guid != NULL_GUID) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_CREATE
         msg.type = PD_MSG_EVT_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -337,7 +337,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
 
         RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), NULL);
         outputEvent = PD_MSG_FIELD(guid);
-        
+
 #undef PD_MSG
 #undef PD_TYPE
     }
@@ -379,14 +379,14 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     for(i = 0; i < paramc; ++i) {
         base->paramv[i] = paramv[i];
     }
-    
+
     edt->signalers = (regNode_t*)((u64)edt + sizeof(ocrTaskHc_t) + paramc*sizeof(u64));
     // Initialize the signalers properly
     for(i = 0; i < depc; ++i) {
         edt->signalers[i].guid = UNINITIALIZED_GUID;
         edt->signalers[i].slot = i;
     }
-    
+
     // Set up HC specific stuff
     RESULT_PROPAGATE2(initTaskHcInternal(edt, pd, curEdt, outputEvent, parentLatch, properties), NULL);
 
@@ -402,7 +402,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     }
 #undef PD_MSG
 #undef PD_TYPE
-    
+
 #ifdef OCR_ENABLE_STATISTICS
     // TODO FIXME
     {
@@ -446,7 +446,7 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
     getCurrentEnv(&pd, NULL, NULL, &msg);
-    
+
     // Could be moved a little later if the ASSERT was not here
     // Should not make a huge difference
     hal_lock32(&(self->lock));
@@ -455,7 +455,7 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     ASSERT((self->signalers[slot].slot == slot && (self->signalers[slot].slot == self->frontierSlot)) ||
            (self->signalers[slot].slot == (u32)-2) || /* Checks if ONCE/LATCH event satisfaction */
            (slot > self->frontierSlot)); /* A DB or NULL_GUID being added as ocrAddDependence */
-                                                   
+
     self->signalers[slot].guid = data.guid;
     self->signalers[slot].slot = (u32)-1; // Say that it is satisfied
     if(++self->slotSatisfiedCount == base->depc) {
@@ -468,10 +468,10 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     } else if(self->frontierSlot == slot) {
         // We need to go register to the next non-once dependence
         while(++self->frontierSlot < base->depc &&
-              self->signalers[self->frontierSlot].slot != ++slot) ;
+                self->signalers[self->frontierSlot].slot != ++slot) ;
         // We found a slot that is == to slot (so unsatisfied and not once)
         if(self->frontierSlot < base->depc &&
-           self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
+                self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
             u32 tslot = self->frontierSlot;
             hal_unlock32(&(self->lock));
             RESULT_PROPAGATE(registerOnFrontier(self, pd, &msg, tslot));
@@ -488,43 +488,43 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
 
 u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot, bool isDepAdd) {
     ASSERT(isDepAdd); // This should only be called when adding a dependence
-    
+
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
     regNode_t * node = &(self->signalers[slot]);
-    
+
     node->guid = signalerGuid.guid;
 
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
     getCurrentEnv(&pd, NULL, NULL, &msg);
-    
+
     ocrGuidKind signalerKind = OCR_GUID_NONE;
     deguidify(pd, &signalerGuid, &signalerKind);
     if(signalerKind == OCR_GUID_EVENT) {
         node->slot = slot;
         ocrEventTypes_t evtKind = eventType(pd, signalerGuid);
         if(evtKind == OCR_EVENT_ONCE_T ||
-           evtKind == OCR_EVENT_LATCH_T) {
+                evtKind == OCR_EVENT_LATCH_T) {
 
             node->slot = (u32)-2; // To signal that this is a once event
-            
+
             // We need to move the frontier slot over
             hal_lock32(&(self->lock));
             while(++self->frontierSlot < base->depc &&
-                  self->signalers[self->frontierSlot].slot != ++slot) ;
-            
+                    self->signalers[self->frontierSlot].slot != ++slot) ;
+
             // We found a slot that is == to slot (so unsatisfied and not once)
             if(self->frontierSlot < base->depc &&
-               self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
+                    self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
                 u32 tslot = self->frontierSlot;
                 hal_unlock32(&(self->lock));
-                
+
                 RESULT_PROPAGATE(registerOnFrontier(self, pd, &msg, tslot));
                 // If we are UNITIALIZED_GUID, we will do the REGWAITER
                 // when we add the dependence (just below)
             } else {
                 hal_unlock32(&(self->lock));
-            }   
+            }
         } else {
             if(slot == self->frontierSlot) {
                 // We actually need to register ourself as a waiter here
@@ -552,7 +552,7 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
             ASSERT(0);
         }
     }
-    
+
     DPRINTF(DEBUG_LVL_INFO, "AddDependence from 0x%lx to 0x%lx slot %d\n", signalerGuid.guid, base->guid, slot);
     return 0;
 }
@@ -628,9 +628,9 @@ u8 taskExecute(ocrTask_t* base) {
     ocrEdtDep_t * depv = NULL;
     // If any dependencies, acquire their data-blocks
     u32 maxAcquiredDb = 0;
-    
+
     ASSERT(derived->unkDbs == NULL); // Should be no dynamically acquired DBs before running
-    
+
     if (depc != 0) {
         //TODO would be nice to resolve regNode into guids before
         depv = pd->fcts.pdMalloc(pd, sizeof(ocrEdtDep_t)*depc);
@@ -653,7 +653,7 @@ u8 taskExecute(ocrTask_t* base) {
                 PD_MSG_FIELD(properties) = 1; // Runtime acquire
                 // This call may fail if the policy domain goes down
                 // while we are staring to execute
-                
+
                 if(pd->fcts.processMessage(pd, &msg, true)) {
                     // We are not going to launch the EDT
                     break;
@@ -668,20 +668,20 @@ u8 taskExecute(ocrTask_t* base) {
         }
         derived->signalers = END_OF_LIST;
     }
-    
+
 #ifdef OCR_ENABLE_STATISTICS
     // TODO: FIXME
     ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
     ocrWorker_t *curWorker = NULL;
-    
+
     deguidify(pd, ctx->sourceObj, (u64*)&curWorker, NULL);
-    
+
     // We first have the message of using the EDT Template
     statsTEMP_USE(pd, base->guid, base, taskTemplate->guid, taskTemplate);
-    
+
     // We now say that the worker is starting the EDT
     statsEDT_START(pd, ctx->sourceObj, curWorker, base->guid, base, depc != 0);
-    
+
 #endif /* OCR_ENABLE_STATISTICS */
 
     ocrGuid_t retGuid = NULL_GUID;
@@ -752,7 +752,7 @@ u8 taskExecute(ocrTask_t* base) {
         PD_MSG_FIELD(payload.guid) = retGuid;
         PD_MSG_FIELD(payload.metaDataPtr) = NULL;
         PD_MSG_FIELD(slot) = 0; // Always satisfy on slot 0. This will trickle to
-                                // the finish latch if needed
+        // the finish latch if needed
         PD_MSG_FIELD(properties) = 0;
         // Ignore failure for now
         // FIXME: Probably need to be a bit more selective
@@ -769,11 +769,11 @@ void destructTaskFactoryHc(ocrTaskFactory_t* base) {
 
 ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance, u32 factoryId) {
     ocrTaskFactory_t* base = (ocrTaskFactory_t*)runtimeChunkAlloc(sizeof(ocrTaskFactoryHc_t), NULL);
-    
+
     base->instantiate = FUNC_ADDR(ocrTask_t* (*) (ocrTaskFactory_t*, ocrFatGuid_t, u32, u64*, u32, u32, ocrFatGuid_t, ocrFatGuid_t*, ocrParamList_t*), newTaskHc);
     base->destruct =  FUNC_ADDR(void (*) (ocrTaskFactory_t*), destructTaskFactoryHc);
     base->factoryId = factoryId;
-    
+
     base->fcts.destruct = FUNC_ADDR(u8 (*)(ocrTask_t*), destructTaskHc);
     base->fcts.satisfy = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t, u32), satisfyTaskHc);
     base->fcts.registerSignaler = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t, u32, bool), registerSignalerTaskHc);
@@ -781,7 +781,7 @@ ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance, u32 factoryId) 
     base->fcts.notifyDbAcquire = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t), notifyDbAcquireTaskHc);
     base->fcts.notifyDbRelease = FUNC_ADDR(u8 (*)(ocrTask_t*, ocrFatGuid_t), notifyDbReleaseTaskHc);
     base->fcts.execute = FUNC_ADDR(u8 (*)(ocrTask_t*), taskExecute);
-    
+
     return base;
 }
 

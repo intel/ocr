@@ -8,7 +8,7 @@
  * removed or modified.
  */
 
-#ifdef OCR_ENABLE_STATISTICS 
+#ifdef OCR_ENABLE_STATISTICS
 
 #ifndef __DEFAULT_STATISTICS_H__
 #define __DEFAULT_STATISTICS_H__

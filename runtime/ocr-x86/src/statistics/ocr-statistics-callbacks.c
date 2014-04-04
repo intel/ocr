@@ -28,41 +28,41 @@ extern void ocrStatsAccessRemoveEDT(ocrTask_t *task);
 #define DEBUG_TYPE STATS
 
 void statsTEMP_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
-                          ocrGuid_t templateGuid, ocrTaskTemplate_t *ttemplate) {
+                      ocrGuid_t templateGuid, ocrTaskTemplate_t *ttemplate) {
 
     ocrStats_t *stats = pd->getStats(pd);
     if(!ttemplate) {
         deguidify(pd, templateGuid, (u64*)&ttemplate, NULL);
     }
-    ttemplate->statProcess = stats->fctPtrs->createStatsProcess(stats, templateGuid);    
+    ttemplate->statProcess = stats->fctPtrs->createStatsProcess(stats, templateGuid);
     if(edtGuid == NULL_GUID) {
         // This is the first creation. No parent EDT
         return;
     }
-    
+
     if(!task) {
         deguidify(pd, edtGuid, (u64*)&task, NULL);
     }
 
     ASSERT(task->guid == edtGuid);
     ASSERT(ttemplate->guid == templateGuid);
-    
+
     ocrStatsProcess_t *srcProcess = task->statProcess;
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
-        stats, STATS_TEMP_CREATE, edtGuid, templateGuid,
-        NULL);
-        
-    ocrStatsAsyncMessage(srcProcess, ttemplate->statProcess, mess);    
+                                  stats, STATS_TEMP_CREATE, edtGuid, templateGuid,
+                                  NULL);
+
+    ocrStatsAsyncMessage(srcProcess, ttemplate->statProcess, mess);
 }
 
 void statsTEMP_USE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
                    ocrGuid_t templateGuid, ocrTaskTemplate_t *ttemplate) {
-    
+
     ocrStats_t *stats = pd->getStats(pd);
 
     if(edtGuid == NULL_GUID)
         return;
-    
+
     if(!task) {
         deguidify(pd, edtGuid, (u64*)&task, NULL);
     }
@@ -74,9 +74,9 @@ void statsTEMP_USE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     ASSERT(ttemplate->guid == templateGuid);
 
     ocrStatsProcess_t *srcProcess = task->statProcess;
-    
+
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
-        stats, STATS_TEMP_USE, edtGuid, templateGuid, NULL);
+                                  stats, STATS_TEMP_USE, edtGuid, templateGuid, NULL);
     ocrStatsSyncMessage(srcProcess, ttemplate->statProcess, mess);
 }
 
@@ -84,29 +84,29 @@ void statsTEMP_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task
                        ocrGuid_t templateGuid, ocrTaskTemplate_t *ttemplate) {
 
     ocrStats_t *stats = pd->getStats(pd);
-    
+
     if(!ttemplate) {
         deguidify(pd, templateGuid, (u64*)&ttemplate, NULL);
     }
-    
+
     if(edtGuid == NULL_GUID) {
         stats->fctPtrs->destructStatsProcess(stats, ttemplate->statProcess);
         return;
     }
-    
+
     if(!task) {
         deguidify(pd, edtGuid, (u64*)&task, NULL);
     }
 
     ASSERT(task->guid == edtGuid);
     ASSERT(ttemplate->guid == templateGuid);
-    
+
     ocrStatsProcess_t *srcProcess = task->statProcess;
-                    
+
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
-        stats, STATS_TEMP_DESTROY, edtGuid, templateGuid,
-        NULL);
-        
+                                  stats, STATS_TEMP_DESTROY, edtGuid, templateGuid,
+                                  NULL);
+
     ocrStatsAsyncMessage(srcProcess, ttemplate->statProcess, mess);
     stats->fctPtrs->destructStatsProcess(stats, ttemplate->statProcess);
 }
@@ -120,11 +120,11 @@ void statsEDT_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
         deguidify(pd, createGuid, (u64*)&createTask, NULL);
     }
     createTask->statProcess = stats->fctPtrs->createStatsProcess(stats, createGuid);
-    
+
     if(edtGuid == NULL_GUID) {
         return;
     }
-    
+
     if(!task) {
         deguidify(pd, edtGuid, (u64*)&task, NULL);
     }
@@ -136,7 +136,7 @@ void statsEDT_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     ocrStatsProcess_t *srcProcess = task->statProcess;
 
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
-        stats, STATS_EDT_CREATE, edtGuid, createGuid, NULL);
+                                  stats, STATS_EDT_CREATE, edtGuid, createGuid, NULL);
     ocrStatsAsyncMessage(srcProcess, createTask->statProcess, mess);
     ocrStatsAccessInsertDB(createTask, NULL);
 }
@@ -148,23 +148,23 @@ void statsEDT_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     if(!destroyTask) {
         deguidify(pd, destroyGuid, (u64*)&destroyTask, NULL);
     }
-    
+
     if(edtGuid == NULL_GUID) {
         stats->fctPtrs->destructStatsProcess(stats, destroyTask->statProcess);
         return;
     }
-    
+
     if(!task) {
         deguidify(pd, edtGuid, (u64*)&task, NULL);
     }
 
     ASSERT(task->guid == edtGuid);
     ASSERT(destroyTask->guid == destroyGuid);
-    
+
     ocrStatsProcess_t *srcProcess = task->statProcess;
 
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
-        stats, STATS_EDT_DESTROY, edtGuid, destroyGuid, NULL);
+                                  stats, STATS_EDT_DESTROY, edtGuid, destroyGuid, NULL);
     ocrStatsAsyncMessage(srcProcess, destroyTask->statProcess, mess);
     stats->fctPtrs->destructStatsProcess(stats, destroyTask->statProcess);
     ocrStatsAccessRemoveEDT(destroyTask);
@@ -185,14 +185,14 @@ void statsEDT_START(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t *wo
     ASSERT(task->guid == edtGuid);
 
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
-        stats, STATS_EDT_START, workerGuid, edtGuid, NULL);
+                                  stats, STATS_EDT_START, workerGuid, edtGuid, NULL);
     ocrStatsSyncMessage(worker->statProcess, task->statProcess, mess);
 #ifdef OCR_ENABLE_PROFILING_STATISTICS
     if(usesDb)
         _threadInstrumentOn = 1;
     else
         ASSERT(_threadInstrumentOn == 0);
-    
+
     _threadInstructionCount = 0ULL;
     _threadFPInstructionCount = 0ULL;
 #endif /* OCR_ENABLE_PROFILING_STATISTICS */
@@ -216,7 +216,7 @@ void statsEDT_END(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t *work
     ASSERT(task->guid == edtGuid);
 
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(
-        stats, STATS_EDT_END, workerGuid, edtGuid, NULL);
+                                  stats, STATS_EDT_END, workerGuid, edtGuid, NULL);
     ocrStatsSyncMessage(worker->statProcess, task->statProcess, mess);
 }
 
@@ -229,11 +229,11 @@ void statsDB_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
         deguidify(pd, dbGuid, (u64*)&db, NULL);
     }
     db->statProcess = stats->fctPtrs->createStatsProcess(stats, dbGuid);
-    
+
     if(edtGuid == NULL_GUID) {
         return;
     }
-    
+
     if(!task) {
         deguidify(pd, edtGuid, (u64*)&task, NULL);
     }
@@ -250,7 +250,7 @@ void statsDB_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
 
     // TODO: Check if this is the most useful way to message things...
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_DB_CREATE, edtGuid, allocatorGuid,
-                                                            (ocrStatsParam_t*)&params);
+                              (ocrStatsParam_t*)&params);
     ocrStatsSyncMessage(task->statProcess, allocator->statProcess, mess);
     ocrStatsMessage_t *mess2 = stats->fctPtrs->createMessage(stats, STATS_DB_CREATE, allocatorGuid, dbGuid, (ocrStatsParam_t*)&params);
     ocrStatsSyncMessage(allocator->statProcess, db->statProcess, mess2);
@@ -264,12 +264,12 @@ void statsDB_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     if(!db) {
         deguidify(pd, dbGuid, (u64*)&db, NULL);
     }
-    
+
     if(edtGuid == NULL_GUID) {
         stats->fctPtrs->destructStatsProcess(stats, db->statProcess);
         return;
     }
-    
+
     if(!task) {
         deguidify(pd, edtGuid, (u64*)&task, NULL);
     }
@@ -285,11 +285,11 @@ void statsDB_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     statsParamDb_t params = { .offset = 0, .size = db->size, .isWrite = 1 };
     // TODO: Check if this is the most useful way to message things...
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_DB_DESTROY, edtGuid, allocatorGuid,
-                                                            (ocrStatsParam_t*)&params);
+                              (ocrStatsParam_t*)&params);
     ocrStatsSyncMessage(task->statProcess, allocator->statProcess, mess);
     ocrStatsMessage_t *mess2 = stats->fctPtrs->createMessage(stats, STATS_DB_DESTROY, allocatorGuid, dbGuid, (ocrStatsParam_t*)&params);
     ocrStatsSyncMessage(allocator->statProcess, db->statProcess, mess2);
-    
+
     stats->fctPtrs->destructStatsProcess(stats, db->statProcess);
 }
 
@@ -299,7 +299,7 @@ void statsDB_ACQ(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     if(!db) {
         deguidify(pd, dbGuid, (u64*)&db, NULL);
     }
-    
+
     if(edtGuid == NULL_GUID) {
         return;
     }
@@ -312,9 +312,9 @@ void statsDB_ACQ(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
 
     statsParamDb_t params = { .offset = 0, .size = db->size, .isWrite = 1 };
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_DB_ACQ, edtGuid, dbGuid,
-                                                            (ocrStatsParam_t*)&params);
+                              (ocrStatsParam_t*)&params);
     ocrStatsSyncMessage(task->statProcess, db->statProcess, mess);
-    
+
     ocrStatsAccessInsertDB(task, db);
 }
 
@@ -324,7 +324,7 @@ void statsDB_REL(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     if(!db) {
         deguidify(pd, dbGuid, (u64*)&db, NULL);
     }
-    
+
     if(edtGuid == NULL_GUID) {
         return;
     }
@@ -337,7 +337,7 @@ void statsDB_REL(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
 
     statsParamDb_t params = { .offset = 0, .size = db->size, .isWrite = 1 };
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_DB_REL, edtGuid, dbGuid,
-                                                            (ocrStatsParam_t*)&params);
+                              (ocrStatsParam_t*)&params);
     ocrStatsAsyncMessage(task->statProcess, db->statProcess, mess);
 }
 
@@ -359,7 +359,7 @@ void statsDB_ACCESS(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
 
     statsParamDb_t params = { .offset = offset, .size = size, .isWrite = isWrite };
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_DB_ACCESS, edtGuid, dbGuid,
-                                                            (ocrStatsParam_t*)&params);
+                              (ocrStatsParam_t*)&params);
     if(isWrite)
         ocrStatsAsyncMessage(task->statProcess, db->statProcess, mess);
     else
@@ -378,12 +378,12 @@ void statsEVT_CREATE(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     if(edtGuid == NULL_GUID) {
         return;
     }
-    
+
     if(!task) {
         deguidify(pd, edtGuid, (u64*)&task, NULL);
     }
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_EVT_CREATE, edtGuid,
-                                                            evtGuid, NULL);
+                              evtGuid, NULL);
     ocrStatsSyncMessage(task->statProcess, evt->statProcess, mess);
 }
 
@@ -394,17 +394,17 @@ void statsEVT_DESTROY(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task,
     if(!evt) {
         deguidify(pd, evtGuid, (u64*)&evt, NULL);
     }
-    
+
     if(edtGuid == NULL_GUID) {
         stats->fctPtrs->destructStatsProcess(stats, evt->statProcess);
         return;
     }
-    
+
     if(!task) {
         deguidify(pd, edtGuid, (u64*)&task, NULL);
     }
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_EVT_DESTROY, edtGuid,
-                                                            evtGuid, NULL);
+                              evtGuid, NULL);
     ocrStatsAsyncMessage(task->statProcess, evt->statProcess, mess);
     stats->fctPtrs->destructStatsProcess(stats, evt->statProcess);
 }
@@ -450,7 +450,7 @@ void statsDEP_SATISFYFromEvt(ocrPolicyDomain_t *pd, ocrGuid_t evtGuid, ocrEvent_
     } else {
         ASSERT(0);
     }
-        
+
     statsParamEvt_t params = { .dbPayload = dbGuid, .slot = slot };
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_DEP_SATISFY, evtGuid, destGuid, (ocrStatsParam_t*)&params);
     ocrStatsAsyncMessage(evt->statProcess, dstProcess, mess);
@@ -462,7 +462,7 @@ void statsDEP_ADD(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task, ocr
 
     ocrStats_t *stats = pd->getStats(pd);
     ocrStatsProcess_t *midProcess = NULL;
-    
+
     if(edtGuid == NULL_GUID)
         return;
     if(!task) {
@@ -488,7 +488,7 @@ void statsDEP_ADD(ocrPolicyDomain_t *pd, ocrGuid_t edtGuid, ocrTask_t *task, ocr
         ASSERT(0);
     }
     statsParamEvt_t params = { .dbPayload = NULL_GUID, .slot = slot };
-    
+
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_DEP_ADD, edtGuid, depSrcGuid, (ocrStatsParam_t*)&params);
     ocrStatsAsyncMessage(task->statProcess, midProcess, mess);
     ocrStatsMessage_t *mess2 = stats->fctPtrs->createMessage(stats, STATS_DEP_ADD, depSrcGuid, depDestGuid, (ocrStatsParam_t*)&params);
@@ -507,7 +507,7 @@ void statsWORKER_START(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t 
     }
 
     worker->statProcess = stats->fctPtrs->createStatsProcess(stats, workerGuid);
-    
+
     ASSERT(workerGuid == worker->guid);
     ASSERT(compTargetGuid == compTarget->guid);
 
@@ -517,7 +517,7 @@ void statsWORKER_START(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t 
 
 void statsWORKER_STOP(ocrPolicyDomain_t *pd, ocrGuid_t workerGuid, ocrWorker_t *worker,
                       ocrGuid_t compTargetGuid, ocrCompTarget_t *compTarget) {
-    
+
     ocrStats_t *stats = pd->getStats(pd);
     if(!worker) {
         deguidify(pd, workerGuid, (u64*)&worker, NULL);
@@ -545,7 +545,7 @@ void statsALLOCATOR_START(ocrPolicyDomain_t *pd, ocrGuid_t allocatorGuid, ocrAll
     if(!memTarget) {
         deguidify(pd, memTargetGuid, (u64*)&memTarget, NULL);
     }
-    
+
     allocator->statProcess = stats->fctPtrs->createStatsProcess(stats, allocatorGuid);
 
     ASSERT(allocatorGuid == allocator->guid);
@@ -565,13 +565,13 @@ void statsALLOCATOR_STOP(ocrPolicyDomain_t *pd, ocrGuid_t allocatorGuid, ocrAllo
     if(!memTarget) {
         deguidify(pd, memTargetGuid, (u64*)&memTarget, NULL);
     }
-    
+
     ASSERT(allocatorGuid == allocator->guid);
     ASSERT(memTargetGuid == memTarget->guid);
 
     ocrStatsMessage_t *mess = stats->fctPtrs->createMessage(stats, STATS_ALLOCATOR_STOP, allocatorGuid, memTargetGuid, NULL);
     ocrStatsSyncMessage(allocator->statProcess, memTarget->statProcess, mess);
-    
+
     stats->fctPtrs->destructStatsProcess(stats, allocator->statProcess);
 
 }
@@ -590,7 +590,7 @@ void statsCOMPTARGET_START(ocrPolicyDomain_t *pd, ocrGuid_t compTargetGuid, ocrC
 }
 
 void statsCOMPTARGET_STOP(ocrPolicyDomain_t *pd, ocrGuid_t compTargetGuid, ocrCompTarget_t *compTarget) {
-    
+
     ocrStats_t *stats = pd->getStats(pd);
 
     if(!compTarget) {
@@ -603,7 +603,7 @@ void statsCOMPTARGET_STOP(ocrPolicyDomain_t *pd, ocrGuid_t compTargetGuid, ocrCo
 }
 
 void statsMEMTARGET_START(ocrPolicyDomain_t *pd, ocrGuid_t memTargetGuid, ocrMemTarget_t *memTarget) {
-    
+
     ocrStats_t *stats = pd->getStats(pd);
 
     if(!memTarget) {

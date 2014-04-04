@@ -151,7 +151,7 @@ void* hcRunWorker(ocrWorker_t * worker) {
             worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
         }
     } else {
-        // This is all part of the mainEdt setup 
+        // This is all part of the mainEdt setup
         // and should be executed by the "blessed" worker.
         void * packedUserArgv = userArgsGet();
         ocrEdt_t mainEdt = mainEdtGet();
@@ -163,7 +163,7 @@ void* hcRunWorker(ocrWorker_t * worker) {
         void* dbPtr;
         ocrDbCreate(&dbGuid, &dbPtr, totalLength,
                     DB_PROP_NONE, NULL_GUID, NO_ALLOC);
-        
+
         // copy packed args to DB
         hal_memCopy(dbPtr, packedUserArgv, totalLength, 0);
 
@@ -171,8 +171,8 @@ void* hcRunWorker(ocrWorker_t * worker) {
         ocrGuid_t edtTemplateGuid, edtGuid;
         ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 1);
         ocrEdtCreate(&edtGuid, edtTemplateGuid, EDT_PARAM_DEF, /* paramv = */ NULL,
-                    /* depc = */ EDT_PARAM_DEF, /* depv = */ &dbGuid,
-                    EDT_PROP_NONE, NULL_GUID, NULL);
+                     /* depc = */ EDT_PARAM_DEF, /* depv = */ &dbGuid,
+                     EDT_PROP_NONE, NULL_GUID, NULL);
     }
 
     DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
@@ -263,7 +263,7 @@ void destructWorkerFactoryHc(ocrWorkerFactory_t * factory) {
 
 ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
     ocrWorkerFactory_t* base = (ocrWorkerFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryHc_t), (void *)1);
-    
+
     base->instantiate = &newWorkerHc;
     base->initialize = &initializeWorkerHc;
     base->destruct = &destructWorkerFactoryHc;

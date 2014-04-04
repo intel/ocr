@@ -30,36 +30,36 @@ FILE *outFile;
 END_FILTER
 
 FILTER_DESTRUCT {
-FILTER_CAST(rself, self);
-DPRINTF(DEBUG_LVL_VERB, "Destroying file-dump filter @ 0x%lx\n", (u64)self);
+    FILTER_CAST(rself, self);
+    DPRINTF(DEBUG_LVL_VERB, "Destroying file-dump filter @ 0x%lx\n", (u64)self);
 // We close out the output file
-if(rself->outFile) {
-    fclose(rself->outFile);
-}
+    if(rself->outFile) {
+        fclose(rself->outFile);
+    }
 // Also destroy the lock
-rself->lock->fctPtrs->destruct(rself->lock);
+    rself->lock->fctPtrs->destruct(rself->lock);
 
 // Destroy ourself as well
-free(self);
+    free(self);
 }
 
 FILTER_DUMP {
-ASSERT(0); // Should never be called
-return 0;
+    ASSERT(0); // Should never be called
+    return 0;
 }
 
 FILTER_NOTIFY {
-ASSERT(0); // Should never be called
+    ASSERT(0); // Should never be called
 }
 
 FILTER_MERGE {
-FILTER_CAST(rself, self);
-DPRINTF(DEBUG_LVL_VERB, "Filter @ 0x%lx received merging from filter 0x%lx\n", (u64)self, (u64)other);
+    FILTER_CAST(rself, self);
+    DPRINTF(DEBUG_LVL_VERB, "Filter @ 0x%lx received merging from filter 0x%lx\n", (u64)self, (u64)other);
 
-if(rself->outFile) {
-    char* outString = NULL;
-    u64 nextChunk = 0;
-    rself->lock->fctPtrs->lock(rself->lock);
+    if(rself->outFile) {
+        char* outString = NULL;
+        u64 nextChunk = 0;
+        rself->lock->fctPtrs->lock(rself->lock);
         do {
             nextChunk = other->fcts.dump(other, &outString, nextChunk, NULL);
             if(outString) {
@@ -93,9 +93,9 @@ FILTER_CREATE {
     else
         rself->outFile = fopen("ocrStats.log", "w");
     DPRINTF(DEBUG_LVL_VERB, "Created a file-dump filter @ 0x%lx with file 0x%lx\n",
-            (u64)rself, (u64)rself->outFile);
+    (u64)rself, (u64)rself->outFile);
     ASSERT(rself->outFile);
-    
+
     return (ocrStatsFilter_t*)rself;
 }
 

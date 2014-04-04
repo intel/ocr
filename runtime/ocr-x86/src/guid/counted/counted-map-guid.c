@@ -18,7 +18,7 @@
 // Guid is composed of : (LOCID KIND COUNTER)
 #define GUID_BIT_SIZE 64
 #define GUID_LOCID_SIZE 6 // Warning! 2^6 locId max, bump that up for more.
-#define GUID_KIND_SIZE 4 // Warning! check ocrGuidKind struct definition for correct size 
+#define GUID_KIND_SIZE 4 // Warning! check ocrGuidKind struct definition for correct size
 #define GUID_COUNTER_SIZE (GUID_BIT_SIZE-(GUID_KIND_SIZE+GUID_LOCID_SIZE))
 
 #define GUID_LOCID_MASK (((((u64)1)<<GUID_LOCID_SIZE)-1)<<(GUID_COUNTER_SIZE+GUID_KIND_SIZE))
@@ -65,7 +65,7 @@ static ocrGuidKind getKindFromGuid(ocrGuid_t guid) {
 }
 
 static u64 locationToLocId(ocrLocation_t location) {
-    // No support for location yet 
+    // No support for location yet
     return (u64) 0;
 }
 
@@ -146,14 +146,14 @@ u8 countedMapReleaseGuid(ocrGuidProvider_t *self, ocrFatGuid_t fatGuid, bool rel
         ocrPolicyMsg_t msg;
         ocrPolicyDomain_t *policy = NULL;
         getCurrentEnv(&policy, NULL, NULL, &msg);
-    #define PD_MSG (&msg)
-    #define PD_TYPE PD_MSG_MEM_UNALLOC
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_MEM_UNALLOC
         msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(ptr) = fatGuid.metaDataPtr;
         PD_MSG_FIELD(type) = GUID_MEMTYPE;
         RESULT_PROPAGATE(policy->fcts.processMessage (policy, &msg, true));
-    #undef PD_MSG
-    #undef PD_TYPE
+#undef PD_MSG
+#undef PD_TYPE
     }
     // In any case, we need to recycle the guid
     ocrGuidProviderCountedMap_t * derived = (ocrGuidProviderCountedMap_t *) self;
@@ -162,7 +162,7 @@ u8 countedMapReleaseGuid(ocrGuidProvider_t *self, ocrFatGuid_t fatGuid, bool rel
 }
 
 static ocrGuidProvider_t* newGuidProviderCountedMap(ocrGuidProviderFactory_t *factory,
-                                             ocrParamList_t *perInstance) {
+        ocrParamList_t *perInstance) {
     ocrGuidProvider_t *base = (ocrGuidProvider_t*) runtimeChunkAlloc(sizeof(ocrGuidProviderCountedMap_t), NULL);
     base->fcts = factory->providerFcts;
     base->pd = NULL;
@@ -179,8 +179,8 @@ static void destructGuidProviderFactoryCountedMap(ocrGuidProviderFactory_t *fact
 }
 
 ocrGuidProviderFactory_t *newGuidProviderFactoryCountedMap(ocrParamList_t *typeArg, u32 factoryId) {
-    ocrGuidProviderFactory_t *base = (ocrGuidProviderFactory_t*) 
-        runtimeChunkAlloc(sizeof(ocrGuidProviderFactoryCountedMap_t), (void *)1);
+    ocrGuidProviderFactory_t *base = (ocrGuidProviderFactory_t*)
+                                     runtimeChunkAlloc(sizeof(ocrGuidProviderFactoryCountedMap_t), (void *)1);
 
     base->instantiate = &newGuidProviderCountedMap;
     base->destruct = &destructGuidProviderFactoryCountedMap;

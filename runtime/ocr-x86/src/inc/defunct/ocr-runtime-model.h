@@ -44,9 +44,9 @@ typedef struct {
 } ocr_model_policy_t;
 
 typedef enum ocr_policy_model_kind_enum {
-  OCR_POLICY_MODEL_FLAT = 1,
-  OCR_POLICY_MODEL_FSIM = 2,
-  OCR_POLICY_MODEL_THOR = 3,
+    OCR_POLICY_MODEL_FLAT = 1,
+    OCR_POLICY_MODEL_FSIM = 2,
+    OCR_POLICY_MODEL_THOR = 3,
 } ocr_policy_model_kind;
 
 ocr_model_policy_t * ocrInitPolicyModel(ocr_policy_model_kind policyModelKind, char * mdFile);

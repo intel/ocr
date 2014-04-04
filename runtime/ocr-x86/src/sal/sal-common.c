@@ -8,8 +8,7 @@
 
 #define HASH_FLAG  (1 << (sizeof(int) * 8 - 1))
 
-static void itona (char ** buf, u32 * chars, u32 size, u32 base, void * pd)
-{
+static void itona (char ** buf, u32 * chars, u32 size, u32 base, void * pd) {
     char * p = *buf;
     char * p1, * p2;
 
@@ -46,7 +45,7 @@ static void itona (char ** buf, u32 * chars, u32 size, u32 base, void * pd)
         d = *(long long *)pd;
         // Fall-through
 
-    decimal:
+decimal:
 
         radix = 10;
         upper = 0;
@@ -57,11 +56,11 @@ static void itona (char ** buf, u32 * chars, u32 size, u32 base, void * pd)
                 *buf = p;
                 return;
             }
-            
+
             *p++ = '-';
             (*buf)++;
             (*chars)++;
-            
+
             ud = -d;
         } else {
             ud = d;
@@ -80,7 +79,7 @@ static void itona (char ** buf, u32 * chars, u32 size, u32 base, void * pd)
         ud = *(unsigned long long *)pd;
         // Fall-through
 
-    usigned:
+usigned:
 
         radix = 10;
         upper = 0;
@@ -98,7 +97,7 @@ static void itona (char ** buf, u32 * chars, u32 size, u32 base, void * pd)
         ud = *(unsigned long long *)pd;
         // Fall-through
 
-    lohex:
+lohex:
 
         radix = 16;
         upper = 0;
@@ -116,7 +115,7 @@ static void itona (char ** buf, u32 * chars, u32 size, u32 base, void * pd)
         ud = *(unsigned long long *)pd;
         // Fall-through
 
-    hihex:
+hihex:
 
         radix = 16;
         upper = 1;
@@ -168,12 +167,11 @@ static void itona (char ** buf, u32 * chars, u32 size, u32 base, void * pd)
 static char msg_null[]   = "(null)";
 static char msg_badfmt[] = "(bad fmt)";
 
-static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va_list ap)
-{
+static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va_list ap) {
     char c;
 
     u32 chars = 0;
-    
+
     u32 hash;
 
     unsigned int       arg_d   = 0; // 32-bit
@@ -185,7 +183,7 @@ static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va
 
         // Check limit
         if(chars == (size - 1)) break;
-        
+
         if (c != '%') {
 
             // Plain character case
@@ -197,11 +195,11 @@ static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va
             // Format specifier case
             char * p;
             char done;
-            
+
             do {
-                
+
                 done = 1;
-                
+
                 c = *fmt++;
                 switch (c) {
                 case '%':
@@ -214,7 +212,7 @@ static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va
                     if(hash) {
                         goto badfmt;
                     } else {
-                        hash = HASH_FLAG; 
+                        hash = HASH_FLAG;
 
                         // Loop one more time for more formatting
                         done = 0;
@@ -225,7 +223,7 @@ static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va
                     arg_lld = (unsigned long long)__builtin_va_arg(ap, void *);
                     itona(&buf, &chars, size, hash | c, (void *)&arg_lld);
                     break;
-                    
+
                 case 'l':
 
                     c = *fmt++;
@@ -244,7 +242,7 @@ static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va
                         arg_lld = (unsigned long long)__builtin_va_arg(ap, long long);
                         itona(&buf, &chars, size, hash | ('l' << 8) | c, (void *)&arg_lld);
                         break;
-                        
+
                     default:
                         goto badfmt;
                     }
@@ -270,7 +268,7 @@ static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va
                     // Copy into output buffer
                     while(*p) {
                         if(chars == (size-1)) break;
-                        
+
                         *buf++ = *p++;
                         chars++;
                     }
@@ -278,13 +276,13 @@ static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va
 
                 default:
 
-                badfmt:
+badfmt:
                     p = msg_badfmt;
 
                     // Copy into output buffer
                     while(*p) {
                         if(chars == (size-1)) break;
-                        
+
                         *buf++ = *p++;
                         chars++;
                     }
@@ -300,12 +298,11 @@ static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va
     return chars;
 }
 
-u32 SNPRINTF(char * buf, u32 size, char * fmt, ...)
-{
+u32 SNPRINTF(char * buf, u32 size, char * fmt, ...) {
     u32 tmp;
     __builtin_va_list ap;
 
-    __builtin_va_start(ap, fmt); 
+    __builtin_va_start(ap, fmt);
 
     tmp = internal_vsnprintf(buf, size, fmt, ap);
 
@@ -327,15 +324,14 @@ u32 SNPRINTF(char * buf, u32 size, char * fmt, ...)
 
 #define PRINTF_MAX (1024)
 
-u32 PRINTF(char * fmt, ...)
-{
+u32 PRINTF(char * fmt, ...) {
     u32 tmp;
     __builtin_va_list ap;
 
     char printf_buf[PRINTF_MAX] __attribute__((aligned(sizeof(u64))));
 
 
-    __builtin_va_start(ap, fmt); 
+    __builtin_va_start(ap, fmt);
 
     tmp = internal_vsnprintf(printf_buf, PRINTF_MAX, fmt, ap);
 

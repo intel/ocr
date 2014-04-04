@@ -80,14 +80,14 @@ int main(int argc, const char * argv[]) {
     ocrGuid_t terminateEdtTemplateGuid;
     ocrEdtTemplateCreate(&terminateEdtTemplateGuid, terminateEdt, 0 /*paramc*/, 1 /*depc*/);
     ocrEdtCreate(&terminateEdtGuid, terminateEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
-                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
+                 /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
     ocrGuid_t outputEventGuid;
     ocrGuid_t rootEdtGuid;
     ocrGuid_t rootEdtTemplateGuid;
     ocrEdtTemplateCreate(&rootEdtTemplateGuid, rootEdt, 0 /*paramc*/, 0 /*depc*/);
     ocrEdtCreate(&rootEdtGuid, rootEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
-                    /*properties=*/EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/&outputEventGuid);
+                 /*properties=*/EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/&outputEventGuid);
     ocrAddDependence(outputEventGuid, terminateEdtGuid, 0, DB_MODE_RO);
 
     // Wait for the output-event to be satisfied before proceeding

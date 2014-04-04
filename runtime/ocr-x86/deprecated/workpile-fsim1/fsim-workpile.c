@@ -33,7 +33,7 @@ static void ceMessageWorkpilePush (ocrWorkpile_t * base, ocrGuid_t g ) {
 ocrWorkpile_t * newWorkpileFsimMessage(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
     ocrWorkpileFsimMessage_t* derived = (ocrWorkpileFsimMessage_t*) malloc(sizeof(ocrWorkpileFsimMessage_t));
     ocrWorkpile_t * base = (ocrWorkpile_t *) derived;
-        
+
     base->fctPtrs = &(factory->workpileFcts);
     derived->deque = (semiConcDeque_t *) malloc(sizeof(semiConcDeque_t));
     semiConcDequeInit(derived->deque, (void *) NULL_GUID);
@@ -61,4 +61,4 @@ ocrWorkpileFactory_t * newOcrWorkpileFactoryFsimMessage(ocrParamList_t *perType)
     return base;
 }
 
-#endif 
+#endif

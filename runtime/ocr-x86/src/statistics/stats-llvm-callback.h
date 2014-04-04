@@ -29,8 +29,8 @@ typedef struct _edtTable_t {
 void ocrStatsAccessInsertDB(ocrTask_t *task, ocrDataBlock_t *db);
 void ocrStatsAccessRemoveEDT(ocrTask_t *task);
 
-extern void PROFILER_ocrStatsLoadCallback(void* address, u64 size, u64 instrCount, u64 fpInstrCount); 
-extern void PROFILER_ocrStatsStoreCallback(void* address, u64 size, u64 instrCount, u64 fpInstrCount); 
+extern void PROFILER_ocrStatsLoadCallback(void* address, u64 size, u64 instrCount, u64 fpInstrCount);
+extern void PROFILER_ocrStatsStoreCallback(void* address, u64 size, u64 instrCount, u64 fpInstrCount);
 
 #endif /* __STATS_LLVM_CALLBACK_H__ */
 #endif /* OCR_ENABLE_PROFILING_STATISTICS */

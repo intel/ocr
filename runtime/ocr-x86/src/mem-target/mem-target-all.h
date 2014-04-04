@@ -29,6 +29,6 @@ extern const char * memtarget_types[];
 
 // Add other memory targets using the same pattern as above
 
-ocrMemTargetFactory_t *newMemTargetFactory(memTargetType_t type, ocrParamList_t *typeArg); 
+ocrMemTargetFactory_t *newMemTargetFactory(memTargetType_t type, ocrParamList_t *typeArg);
 
 #endif /* __MEM_TARGET_ALL_H__ */

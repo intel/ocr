@@ -29,10 +29,22 @@ void ocr_exit() {
 u32 fls16(u16 val) {
     u32 bit = 15;
 
-    if(!(val & 0xff00)) { val <<= 8; bit -= 8; }
-    if(!(val & 0xf000)) { val <<= 4; bit -= 4; }
-    if(!(val & 0xc000)) { val <<= 2; bit -= 2; }
-    if(!(val & 0x8000)) { val <<= 1; bit -= 1; }
+    if(!(val & 0xff00)) {
+        val <<= 8;
+        bit -= 8;
+    }
+    if(!(val & 0xf000)) {
+        val <<= 4;
+        bit -= 4;
+    }
+    if(!(val & 0xc000)) {
+        val <<= 2;
+        bit -= 2;
+    }
+    if(!(val & 0x8000)) {
+        val <<= 1;
+        bit -= 1;
+    }
 
     return bit;
 }
@@ -40,11 +52,26 @@ u32 fls16(u16 val) {
 u32 fls32(u32 val) {
     u32 bit = 31;
 
-    if(!(val & 0xffff0000)) { val <<= 16; bit -= 16; }
-    if(!(val & 0xff000000)) { val <<= 8; bit -= 8; }
-    if(!(val & 0xf0000000)) { val <<= 4; bit -= 4; }
-    if(!(val & 0xc0000000)) { val <<= 2; bit -= 2; }
-    if(!(val & 0x80000000)) { val <<= 1; bit -= 1; }
+    if(!(val & 0xffff0000)) {
+        val <<= 16;
+        bit -= 16;
+    }
+    if(!(val & 0xff000000)) {
+        val <<= 8;
+        bit -= 8;
+    }
+    if(!(val & 0xf0000000)) {
+        val <<= 4;
+        bit -= 4;
+    }
+    if(!(val & 0xc0000000)) {
+        val <<= 2;
+        bit -= 2;
+    }
+    if(!(val & 0x80000000)) {
+        val <<= 1;
+        bit -= 1;
+    }
 
     return bit;
 }
@@ -52,12 +79,30 @@ u32 fls32(u32 val) {
 u32 fls64(u64 val) {
     u32 bit = 63;
 
-    if(!(val & 0xffffffff00000000)) { val <<= 32; bit -= 32; }
-    if(!(val & 0xffff000000000000)) { val <<= 16; bit -= 16; }
-    if(!(val & 0xff00000000000000)) { val <<= 8; bit -= 8; }
-    if(!(val & 0xf000000000000000)) { val <<= 4; bit -= 4; }
-    if(!(val & 0xc000000000000000)) { val <<= 2; bit -= 2; }
-    if(!(val & 0x8000000000000000)) { val <<= 1; bit -= 1; }
+    if(!(val & 0xffffffff00000000)) {
+        val <<= 32;
+        bit -= 32;
+    }
+    if(!(val & 0xffff000000000000)) {
+        val <<= 16;
+        bit -= 16;
+    }
+    if(!(val & 0xff00000000000000)) {
+        val <<= 8;
+        bit -= 8;
+    }
+    if(!(val & 0xf000000000000000)) {
+        val <<= 4;
+        bit -= 4;
+    }
+    if(!(val & 0xc000000000000000)) {
+        val <<= 2;
+        bit -= 2;
+    }
+    if(!(val & 0x8000000000000000)) {
+        val <<= 1;
+        bit -= 1;
+    }
 
     return bit;
 }

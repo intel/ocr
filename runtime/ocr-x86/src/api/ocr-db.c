@@ -1,6 +1,6 @@
- /**
- * @brief Data-block implementation for OCR
- */
+/**
+* @brief Data-block implementation for OCR
+*/
 
 /*
  * This file is subject to the license agreement located in the file LICENSE
@@ -106,7 +106,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     PD_MSG_FIELD(edt.guid) = task?task->guid:NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(properties) = 0;
-    
+
     u8 returnCode =  policy->fcts.processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
@@ -149,7 +149,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
     PD_MSG_FIELD(edt.guid) = task?task->guid:NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(properties) = 0;
-    
+
     u8 returnCode = policy->fcts.processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE

@@ -215,7 +215,7 @@ static void fsimPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     for ( i = 0; i < policy->memoryCount; ++i ) {
         memories[i]->fctPtrs->destruct(memories[i]);
     }
-    
+
     // Destruct factories after instances as the instances
     // rely on a structure in the factory (the function pointers)
     policy->taskFactory->destruct(policy->taskFactory);
@@ -237,34 +237,34 @@ static void fsimPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
 }
 
 static u8 fsimAllocateDb(ocrPolicyDomain_t *self, ocrGuid_t *guid, void** ptr, u64 size,
-                       u16 properties, ocrGuid_t affinity, ocrInDbAllocator_t allocator,
-                       ocrPolicyCtx_t *context) {
+                         u16 properties, ocrGuid_t affinity, ocrInDbAllocator_t allocator,
+                         ocrPolicyCtx_t *context) {
 
     // Currently a very simple model of just going through all allocators
     u64 i;
     void* result = NULL;
     for(i=0; i < self->allocatorCount; ++i) {
         result = self->allocators[i]->fctPtrs->allocate(self->allocators[i],
-                                                        size);
+                 size);
         if(result) break;
     }
     // TODO: return error code. Requires our own errno to be clean
     ocrDataBlock_t *block = self->dbFactory->instantiate(self->dbFactory,
-                                                         self->allocators[i]->guid, self->guid,
-                                                         size, result, properties, NULL);
+                            self->allocators[i]->guid, self->guid,
+                            size, result, properties, NULL);
     *ptr = result;
     *guid = block->guid;
     return 0;
 }
 
 static u8 fsimCreateEdt(ocrPolicyDomain_t *self, ocrGuid_t *guid,
-                      ocrTaskTemplate_t * edtTemplate, u32 paramc, u64* paramv,
-                      u32 depc, u16 properties, ocrGuid_t affinity,
-                      ocrGuid_t * outputEvent, ocrPolicyCtx_t *context) {
+                        ocrTaskTemplate_t * edtTemplate, u32 paramc, u64* paramv,
+                        u32 depc, u16 properties, ocrGuid_t affinity,
+                        ocrGuid_t * outputEvent, ocrPolicyCtx_t *context) {
 
     ocrTask_t * base = self->taskFactory->instantiate(self->taskFactory, edtTemplate, paramc,
-                                                      paramv, depc, properties, affinity,
-                                                      outputEvent, NULL);
+                       paramv, depc, properties, affinity,
+                       outputEvent, NULL);
     // Check if the edt is ready to be scheduled
     if (base->depc == 0) {
         base->fctPtrs->schedule(base);
@@ -279,24 +279,24 @@ static u8 fsimCreateEdtTemplate(ocrPolicyDomain_t *self, ocrGuid_t *guid,
 
 
     ocrTaskTemplate_t *base = self->taskTemplateFactory->instantiate(self->taskTemplateFactory,
-                                                                     func, paramc, depc, funcName, NULL);
+                              func, paramc, depc, funcName, NULL);
     *guid = base->guid;
     return 0;
 }
 
 static u8 fsimCreateEvent(ocrPolicyDomain_t *self, ocrGuid_t *guid,
-                        ocrEventTypes_t type, bool takesArg, ocrPolicyCtx_t *context) {
+                          ocrEventTypes_t type, bool takesArg, ocrPolicyCtx_t *context) {
 
 
     ocrEvent_t *base = self->eventFactory->instantiate(self->eventFactory,
-                                                              type, takesArg, NULL);
+                       type, takesArg, NULL);
     *guid = base->guid;
     return 0;
 }
 
 static u8 fsimWaitForEvent(ocrPolicyDomain_t *self, ocrGuid_t workerGuid,
-                       ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
-                       ocrGuid_t * returnGuid, ocrPolicyCtx_t *context) {
+                           ocrGuid_t yieldingEdtGuid, ocrGuid_t eventToYieldForGuid,
+                           ocrGuid_t * returnGuid, ocrPolicyCtx_t *context) {
     return self->schedulers[0]->fctPtrs->yield(self->schedulers[0], workerGuid, yieldingEdtGuid, eventToYieldForGuid, returnGuid, context);
 }
 
@@ -322,19 +322,19 @@ static void fsimInform(ocrPolicyDomain_t *self, ocrGuid_t obj, const ocrPolicyCt
 }
 
 static u8 fsimGetGuid(ocrPolicyDomain_t *self, ocrGuid_t *guid, u64 val, ocrGuidKind type,
-                    ocrPolicyCtx_t *ctx) {
+                      ocrPolicyCtx_t *ctx) {
     self->guidProvider->fctPtrs->getGuid(self->guidProvider, guid, val, type);
     return 0;
 }
 
 static u8 fsimGetInfoForGuid(ocrPolicyDomain_t *self, ocrGuid_t guid, u64* val,
-                           ocrGuidKind* type, ocrPolicyCtx_t *ctx) {
+                             ocrGuidKind* type, ocrPolicyCtx_t *ctx) {
     self->guidProvider->fctPtrs->getVal(self->guidProvider, guid, val, type);
     return 0;
 }
 
 static u8 fsimTakeEdt(ocrPolicyDomain_t *self, ocrCost_t *cost, u32 *count,
-                ocrGuid_t *edts, ocrPolicyCtx_t *context) {
+                      ocrGuid_t *edts, ocrPolicyCtx_t *context) {
     self->schedulers[0]->fctPtrs->takeEdt(self->schedulers[0], cost, count, edts, context);
     // When takeEdt is successful, it means there either was
     // work in the current worker's workpile, or that the scheduler
@@ -503,17 +503,17 @@ ocrPolicyDomain_t * newPolicyDomainCE(ocrPolicyDomainFactory_t * policy,
 }
 
 ocrPolicyDomain_t * newPolicyDomainMasteredCE(ocrPolicyDomainFactory_t * policy,
-                                              u64 schedulerCount, u64 workerCount, u64 computeCount,
-                                              u64 workpileCount, u64 allocatorCount, u64 memoryCount,
-                                              ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory,
-                                              ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
-                                              ocrPolicyCtxFactory_t *contextFactory, ocrGuidProvider_t *guidProvider,
-                                              ocrLockFactory_t* lockFactory, ocrAtomic64Factory_t* atomicFactory,
-                                              ocrQueueFactory_t* queueFactory,
+        u64 schedulerCount, u64 workerCount, u64 computeCount,
+        u64 workpileCount, u64 allocatorCount, u64 memoryCount,
+        ocrTaskFactory_t *taskFactory, ocrTaskTemplateFactory_t *taskTemplateFactory,
+        ocrDataBlockFactory_t *dbFactory, ocrEventFactory_t *eventFactory,
+        ocrPolicyCtxFactory_t *contextFactory, ocrGuidProvider_t *guidProvider,
+        ocrLockFactory_t* lockFactory, ocrAtomic64Factory_t* atomicFactory,
+        ocrQueueFactory_t* queueFactory,
 #ifdef OCR_ENABLE_STATISTICS
-                                              ocrStats_t* statsObject,
+        ocrStats_t* statsObject,
 #endif
-                                              ocrCost_t *costFunction, ocrParamList_t *perInstance) {
+        ocrCost_t *costFunction, ocrParamList_t *perInstance) {
 
     ocrPolicyDomainMasteredCE_t * derived = (ocrPolicyDomainMasteredCE_t *) checkedMalloc(policy, sizeof(ocrPolicyDomainMasteredCE_t));
     ocrPolicyDomain_t * base = (ocrPolicyDomain_t *) derived;

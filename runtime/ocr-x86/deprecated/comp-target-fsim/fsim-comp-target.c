@@ -15,8 +15,8 @@
 static void fsimTargetDestruct(ocrCompTarget_t *compTarget) {
     int i = 0;
     while(i < compTarget->platformCount) {
-      compTarget->platforms[i]->fctPtrs->destruct(compTarget->platforms[i]);
-      i++;
+        compTarget->platforms[i]->fctPtrs->destruct(compTarget->platforms[i]);
+        i++;
     }
     free(compTarget->platforms);
     free(compTarget);
@@ -54,7 +54,7 @@ static void destructCompTargetFactoryFSIM(ocrCompTargetFactory_t *factory) {
 
 ocrCompTargetFactory_t *newCompTargetFactoryFSIM(ocrParamList_t *perType) {
     ocrCompTargetFactory_t *base = (ocrCompTargetFactory_t*)
-        checkedMalloc(base, sizeof(ocrCompTargetFactoryFSIM_t));
+                                   checkedMalloc(base, sizeof(ocrCompTargetFactoryFSIM_t));
     base->instantiate = &newCompTargetFSIM;
     base->destruct = &destructCompTargetFactoryFSIM;
     base->targetFcts.destruct = &fsimTargetDestruct;

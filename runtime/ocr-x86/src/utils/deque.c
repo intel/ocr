@@ -55,19 +55,19 @@ static void dualLockedDequeInit(dequeDualLocked_t* deq, ocrPolicyDomain_t *pd, v
 deque_t* dequeInit(ocrPolicyDomain_t *pd, void * initValue, ocrDequeType_t type) {
     deque_t* deq = NULL;
     switch(type) {
-      case BASE_DEQUETYPE:
+    case BASE_DEQUETYPE:
         deq = (deque_t*)pd->fcts.pdMalloc(pd, sizeof(deque_t));
         baseDequeInit(deq, pd, initValue);
         break;
-      case SINGLE_LOCKED_DEQUETYPE:
+    case SINGLE_LOCKED_DEQUETYPE:
         deq = (deque_t*)pd->fcts.pdMalloc(pd, sizeof(dequeSingleLocked_t));
         singleLockedDequeInit((dequeSingleLocked_t*)deq, pd, initValue);
         break;
-      case DUAL_LOCKED_DEQUETYPE:
+    case DUAL_LOCKED_DEQUETYPE:
         deq = (deque_t*)pd->fcts.pdMalloc(pd, sizeof(dequeDualLocked_t));
         dualLockedDequeInit((dequeDualLocked_t*)deq, pd, initValue);
         break;
-      default:
+    default:
         ASSERT(0);
     }
     deq->type = type;
@@ -149,7 +149,7 @@ void * concDequePopTail(deque_t * deq, u8 doTry) {
     deq->tail = tail;
     hal_fence();
     s32 head = deq->head;
-    
+
     if (tail < head) {
         deq->tail = deq->head;
         return NULL;
@@ -189,7 +189,7 @@ void * concDequePopHead(deque_t * deq, u8 doTry) {
         void * rt = (void *) deq->data[head % INIT_DEQUE_CAPACITY];
 
         /* compete with other thieves and possibly the owner (if the size == 1) */
-    
+
         if (hal_cmpswap32(&deq->head, head, head + 1) == head) { /* competing */
             DPRINTF(DEBUG_LVL_VERB, "Popping (head) 0x%lx from conc deque @ 0x%lx\n",
                     (u64)rt, (u64)deq);

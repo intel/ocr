@@ -40,7 +40,7 @@ FILTER_DESTRUCT {
     DPRINTF(DEBUG_LVL_VERB, "Destroying trivial filter @ 0x%lx\n", (u64)self);
     if(self->parent) {
         DPRINTF(DEBUG_LVL_VERB, "Filter @ 0x%lx merging with parent @ 0x%lx\n",
-                (u64)self, (u64)(self->parent));
+        (u64)self, (u64)(self->parent));
         return self->parent->fcts.merge(self->parent, self, 1);
     } else {
         free(rself->messages);
@@ -50,7 +50,7 @@ FILTER_DESTRUCT {
 
 FILTER_DUMP {
     FILTER_CAST(rself, self);
-    
+
     if(rself->count == 0)
         return 0;
 
@@ -60,9 +60,9 @@ FILTER_DUMP {
 
     intSimpleMessageNode_t *tmess = &(rself->messages[chunk]);
 
-    
+
     snprintf(*out, sizeof(char)*82, "%ld : T 0x%x 0x%lx (%d) -> 0x%lx (%d) ", tmess->tick,
-             tmess->type, tmess->src, tmess->srcK, tmess->dest, tmess->destK);
+    tmess->type, tmess->src, tmess->srcK, tmess->dest, tmess->destK);
 
     if(chunk < rself->count - 1)
         return chunk+1;
@@ -71,7 +71,7 @@ FILTER_DUMP {
 
 FILTER_NOTIFY {
     FILTER_CAST(rself, self);
-    
+
     if(rself->count + 1 == rself->maxCount) {
         // Allocate more space
         rself->maxCount *= 2;
@@ -80,10 +80,10 @@ FILTER_NOTIFY {
         memcpy(t, rself->messages, rself->count*sizeof(intSimpleMessageNode_t));
         rself->messages = t;
     }
-        
+
     DPRINTF(DEBUG_LVL_VVERB, "Filter @ 0x%lx received message 0x%lx src:0x%lx (%d) dest:0x%lx (%d) type:0x%x, now have %ld messages.\n",
-            (u64)self, (u64)mess, mess->src, mess->srcK, mess->dest, mess->destK, (u32)mess->type, rself->count);
-    
+    (u64)self, (u64)mess, mess->src, mess->srcK, mess->dest, mess->destK, (u32)mess->type, rself->count);
+
     intSimpleMessageNode_t* tmess = &(rself->messages[rself->count++]);
     tmess->tick = mess->tick;
     tmess->src = mess->src;
@@ -100,11 +100,11 @@ FILTER_MERGE {
 FILTER_CREATE {
     FILTER_MALLOC(rself);
     FILTER_SETUP(rself, parent);
-    
+
     rself->count = 0;
     rself->maxCount = 8; // Make a configurable number
     DPRINTF(DEBUG_LVL_VERB, "Created a trivial filter @ 0x%lx with parent 0x%lx\n",
-            (u64)rself, (u64)parent);
+    (u64)rself, (u64)parent);
     rself->messages = (intSimpleMessageNode_t*)malloc(sizeof(intSimpleMessageNode_t)*rself->maxCount);
 
     return (ocrStatsFilter_t*)rself;

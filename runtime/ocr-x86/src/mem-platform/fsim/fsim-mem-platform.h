@@ -28,8 +28,8 @@ typedef struct {
 } ocrMemPlatformFsim_t;
 
 typedef struct {
-    paramListMemPlatformInst_t base; 
-    u64 start; 
+    paramListMemPlatformInst_t base;
+    u64 start;
 } paramListMemPlatformFsim_t;
 
 extern ocrMemPlatformFactory_t* newMemPlatformFactoryFsim(ocrParamList_t *perType);

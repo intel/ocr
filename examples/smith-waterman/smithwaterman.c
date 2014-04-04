@@ -25,17 +25,26 @@ enum Nucleotide {GAP=0, ADENINE, CYTOSINE, GUANINE, THYMINE};
 signed char char_mapping ( char c ) {
     signed char to_be_returned = -1;
     switch(c) {
-        case '_': to_be_returned = GAP; break;
-        case 'A': to_be_returned = ADENINE; break;
-        case 'C': to_be_returned = CYTOSINE; break;
-        case 'G': to_be_returned = GUANINE; break;
-        case 'T': to_be_returned = THYMINE; break;
+    case '_':
+        to_be_returned = GAP;
+        break;
+    case 'A':
+        to_be_returned = ADENINE;
+        break;
+    case 'C':
+        to_be_returned = CYTOSINE;
+        break;
+    case 'G':
+        to_be_returned = GUANINE;
+        break;
+    case 'T':
+        to_be_returned = THYMINE;
+        break;
     }
     return to_be_returned;
 }
 
-static char alignment_score_matrix[5][5] =
-{
+static char alignment_score_matrix[5][5] = {
     {GAP_PENALTY,GAP_PENALTY,GAP_PENALTY,GAP_PENALTY,GAP_PENALTY},
     {GAP_PENALTY,MATCH,TRANSVERSION_PENALTY,TRANSITION_PENALTY,TRANSVERSION_PENALTY},
     {GAP_PENALTY,TRANSVERSION_PENALTY, MATCH,TRANSVERSION_PENALTY,TRANSITION_PENALTY},
@@ -49,10 +58,13 @@ size_t clear_whitespaces_do_mapping ( signed char* buffer, long size ) {
     while ( traverse_index < (size_t)size ) {
         char curr_char = buffer[traverse_index];
         switch ( curr_char ) {
-            case 'A': case 'C': case 'G': case 'T':
-                /*this used to be a copy not also does mapping*/
-                buffer[non_ws_index++] = char_mapping(curr_char);
-                break;
+        case 'A':
+        case 'C':
+        case 'G':
+        case 'T':
+            /*this used to be a copy not also does mapping*/
+            buffer[non_ws_index++] = char_mapping(curr_char);
+            break;
         }
         ++traverse_index;
     }
@@ -271,13 +283,19 @@ static void ioHandling ( void* marshalled, int* p_n_tiles_height, int* p_n_tiles
     char* file_name_2 = ((char*)(marshalled+((u64*) marshalled)[3])); //argv[2], offset in bytes
 
     FILE* file_1 = fopen(file_name_1, "r");
-    if (!file_1) { fprintf(stderr, "could not open file %s\n",file_name_1); exit(1); }
+    if (!file_1) {
+        fprintf(stderr, "could not open file %s\n",file_name_1);
+        exit(1);
+    }
     size_t n_char_in_file_1 = 0;
     *p_string_1 = read_file(file_1, &n_char_in_file_1);
     fprintf(stdout, "Size of input string 1 is %zu\n", n_char_in_file_1 );
 
     FILE* file_2 = fopen(file_name_2, "r");
-    if (!file_2) { fprintf(stderr, "could not open file %s\n",file_name_2); exit(1); }
+    if (!file_2) {
+        fprintf(stderr, "could not open file %s\n",file_name_2);
+        exit(1);
+    }
     size_t n_char_in_file_2 = 0;
     *p_string_2 = read_file(file_2, &n_char_in_file_2);
     fprintf(stdout, "Size of input string 2 is %zu\n", n_char_in_file_2 );
@@ -346,9 +364,9 @@ ocrGuid_t mainEdt ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
             /* Create an event-driven tasks of smith_waterman tasks */
             ocrGuid_t task_guid;
             ocrEdtCreate(&task_guid, smith_waterman_task_template_guid,
-                9 /*paramc, sagnak but does not the template know of this already?*/, paramv,
-                3 /*depc, sagnak but does not the template know of this already?*/, NULL /*depv*/,
-                PROPERTIES, NULL_GUID /*affinity*/, NULL /*outputEvent*/);
+                         9 /*paramc, sagnak but does not the template know of this already?*/, paramv,
+                         3 /*depc, sagnak but does not the template know of this already?*/, NULL /*depv*/,
+                         PROPERTIES, NULL_GUID /*affinity*/, NULL /*outputEvent*/);
 
             /* add dependency to the EDT from the west tile's right column ready event */
             ocrAddDependence(tile_matrix[i][j-1].right_column_event_guid, task_guid, 0, DB_MODE_RO);

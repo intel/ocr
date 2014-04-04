@@ -39,7 +39,7 @@ static inline ocrWorkpile_t * workpileIteratorNext(ceWorkpileIterator_t * base) 
 
 static inline void initWorkpileIterator(ceWorkpileIterator_t *base, u64 id,
                                         u64 workpileCount, ocrWorkpile_t ** workpiles ) {
-    
+
     base->workpiles = workpiles;
     base->id = id;
     base->mod = workpileCount;
@@ -74,7 +74,7 @@ void ceSchedulerDestruct(ocrScheduler_t * self) {
         self->workpiles[i]->fcts.destruct(self->workpiles[i]);
     }
     runtimeChunkFree((u64)(self->workpiles), NULL);
-    
+
     runtimeChunkFree((u64)self, NULL);
 }
 
@@ -88,25 +88,25 @@ void ceSchedulerBegin(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
 }
 
 void ceSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
-    
+
     // Get a GUID
     guidify(PD, (u64)self, &(self->fguid), OCR_GUID_SCHEDULER);
     self->pd = PD;
     ocrSchedulerCe_t * derived = (ocrSchedulerCe_t *) self;
-    
+
     u64 workpileCount = self->workpileCount;
     u64 i;
     for(i = 0; i < workpileCount; ++i) {
         self->workpiles[i]->fcts.start(self->workpiles[i], PD);
     }
-    
+
     ocrWorkpile_t ** workpiles = self->workpiles;
-    
+
     // allocate steal iterator cache. Use pdMalloc since this is something
     // local to the policy domain and that will never be shared
     ceWorkpileIterator_t * stealIteratorsCache = PD->fcts.pdMalloc(
-        PD, sizeof(ceWorkpileIterator_t)*workpileCount);
-    
+                PD, sizeof(ceWorkpileIterator_t)*workpileCount);
+
     // Initialize steal iterator cache
     i = 0;
     while(i < workpileCount) {
@@ -121,7 +121,7 @@ void ceSchedulerStop(ocrScheduler_t * self) {
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
     getCurrentEnv(&pd, NULL, NULL, &msg);
-    
+
     // Stop the workpiles
     u64 i = 0;
     u64 count = self->workpileCount;
@@ -133,9 +133,9 @@ void ceSchedulerStop(ocrScheduler_t * self) {
     // exist after stop
     ocrSchedulerCe_t * derived = (ocrSchedulerCe_t *) self;
     pd->fcts.pdFree(pd, derived->stealIterators);
-    
+
     // Destroy the GUID
-    
+
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
@@ -207,7 +207,7 @@ u8 ceSchedulerTake (ocrScheduler_t *self, u32 *count, ocrFatGuid_t *edts) {
     if(*count == 0) return 1; // No room to put anything
 
     ASSERT(edts != NULL); // Array should be allocated at least
-    
+
     u64 workerId = ceWorker->id;
     // First try to pop
     ocrWorkpile_t * wpToPop = popMappingOneToOne(self, workerId);
@@ -246,7 +246,7 @@ u8 ceSchedulerGive (ocrScheduler_t* base, u32* count, ocrFatGuid_t* edts) {
     ocrWorkerCe_t *ceWorker = NULL;
     getCurrentEnv(NULL, &worker, NULL, NULL);
     ceWorker = (ocrWorkerCe_t*)worker;
-    
+
     // Source must be a worker guid
     u64 workerId = ceWorker->id;
     ocrWorkpile_t * wpToPush = pushMappingOneToOne(base, workerId);
@@ -269,7 +269,7 @@ u8 ceSchedulerGiveComm(ocrScheduler_t *self, u32* count, ocrFatGuid_t* handlers,
 
 ocrScheduler_t* newSchedulerCe(ocrSchedulerFactory_t * factory, ocrParamList_t *perInstance) {
     ocrScheduler_t* base = (ocrScheduler_t*) runtimeChunkAlloc(
-        sizeof(ocrSchedulerCe_t), NULL);
+                               sizeof(ocrSchedulerCe_t), NULL);
     factory->initialize(factory, base, perInstance);
     return base;
 }
@@ -284,8 +284,8 @@ void destructSchedulerFactoryCe(ocrSchedulerFactory_t * factory) {
 
 ocrSchedulerFactory_t * newOcrSchedulerFactoryCe(ocrParamList_t *perType) {
     ocrSchedulerFactoryCe_t* derived = (ocrSchedulerFactoryCe_t*) runtimeChunkAlloc(
-        sizeof(ocrSchedulerFactoryCe_t), NULL);
-    
+                                           sizeof(ocrSchedulerFactoryCe_t), NULL);
+
     ocrSchedulerFactory_t* base = (ocrSchedulerFactory_t*) derived;
     base->instantiate = &newSchedulerCe;
     base->initialize  = &initializeSchedulerCe;

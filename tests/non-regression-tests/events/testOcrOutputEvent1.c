@@ -41,14 +41,14 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t taskForEdtTemplateGuid;
     ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, 0 /*paramc*/, 1 /*depc*/);
     ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
-                    /*properties=*/0, NULL_GUID, /*outEvent=*/&outputEvent);
+                 /*properties=*/0, NULL_GUID, /*outEvent=*/&outputEvent);
 
     // Create the chained EDT and add input and output events as dependences.
     ocrGuid_t chainedEdtGuid;
     ocrGuid_t chainedEdtTemplateGuid;
     ocrEdtTemplateCreate(&chainedEdtTemplateGuid, chainedEdt, 0 /*paramc*/, 1 /*depc*/);
     ocrEdtCreate(&chainedEdtGuid, chainedEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
-                    /*properties=*/ 0, NULL_GUID, /*outEvent=*/NULL_GUID);
+                 /*properties=*/ 0, NULL_GUID, /*outEvent=*/NULL_GUID);
     ocrAddDependence(outputEvent, chainedEdtGuid, 0, DB_MODE_RO);
 
     // Start the first EDT

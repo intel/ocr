@@ -146,18 +146,18 @@ u8 pthreadSetCurrentEnv(ocrCompPlatform_t *self, ocrPolicyDomain_t *pd,
 }
 
 ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
-                                          ocrParamList_t *perInstance) {
+        ocrParamList_t *perInstance) {
 
     pthread_once(&selfKeyInitialized,  initializeKey);
     ocrCompPlatformPthread_t * compPlatformPthread = (ocrCompPlatformPthread_t*)
-        runtimeChunkAlloc(sizeof(ocrCompPlatformPthread_t), NULL);
+            runtimeChunkAlloc(sizeof(ocrCompPlatformPthread_t), NULL);
 
     ocrCompPlatform_t * derived = (ocrCompPlatform_t *) compPlatformPthread;
     factory->initialize(factory, derived, perInstance);
     return derived;
 }
 
-void initializeCompPlatformPthread(ocrCompPlatformFactory_t * factory, ocrCompPlatform_t * derived, ocrParamList_t * perInstance){
+void initializeCompPlatformPthread(ocrCompPlatformFactory_t * factory, ocrCompPlatform_t * derived, ocrParamList_t * perInstance) {
     initializeCompPlatformOcr(factory, derived, perInstance);
     paramListCompPlatformPthread_t * params =
         (paramListCompPlatformPthread_t *) perInstance;
@@ -194,7 +194,7 @@ void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
 
 ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType) {
     ocrCompPlatformFactory_t *base = (ocrCompPlatformFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrCompPlatformFactoryPthread_t), (void *)1);
+                                     runtimeChunkAlloc(sizeof(ocrCompPlatformFactoryPthread_t), (void *)1);
 
     ocrCompPlatformFactoryPthread_t * derived = (ocrCompPlatformFactoryPthread_t *) base;
 
@@ -211,7 +211,7 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     base->platformFcts.setCurrentEnv = FUNC_ADDR(u8 (*)(ocrCompPlatform_t*, ocrPolicyDomain_t*, ocrWorker_t*), pthreadSetCurrentEnv);
 
     paramListCompPlatformPthread_t * params =
-      (paramListCompPlatformPthread_t *) perType;
+        (paramListCompPlatformPthread_t *) perType;
     derived->stackSize = ((params != NULL) && (params->stackSize > 0)) ? params->stackSize : 8388608;
 
     return base;

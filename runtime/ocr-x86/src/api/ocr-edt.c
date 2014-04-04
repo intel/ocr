@@ -40,12 +40,12 @@ u8 ocrEventDestroy(ocrGuid_t eventGuid) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_DESTROY
     msg.type = PD_MSG_EVT_DESTROY | PD_MSG_REQUEST;
-    
+
     PD_MSG_FIELD(guid.guid) = eventGuid;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(properties) = 0;
     return pd->fcts.processMessage(pd, &msg, false);
-    
+
 #undef PD_MSG
 #undef PD_TYPE
 }
@@ -58,7 +58,7 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_SATISFY
     msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
-    
+
     PD_MSG_FIELD(guid.guid) = eventGuid;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(payload.guid) = dataGuid;
@@ -124,7 +124,7 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     ocrPolicyDomain_t * pd = NULL;
     u8 returnCode = 0;
     getCurrentEnv(&pd, NULL, NULL, &msg);
-    
+
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_WORK_CREATE
     msg.type = PD_MSG_WORK_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -149,13 +149,13 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     returnCode = pd->fcts.processMessage(pd, &msg, true);
     if(returnCode)
         return returnCode;
-    
+
     *edtGuid = PD_MSG_FIELD(guid.guid);
     paramc = PD_MSG_FIELD(paramc);
     depc = PD_MSG_FIELD(depc);
     if(outputEvent)
         *outputEvent = PD_MSG_FIELD(outputEvent.guid);
-    
+
     // If guids dependences were provided, add them now
     // TODO: This should probably just send the messages
     // to the PD
@@ -199,9 +199,9 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
 #define PD_TYPE PD_MSG_DEP_ADD
         msg.type = PD_MSG_DEP_ADD | PD_MSG_REQUEST;
         PD_MSG_FIELD(source.guid) = source;
-	PD_MSG_FIELD(source.metaDataPtr) = NULL;
+        PD_MSG_FIELD(source.metaDataPtr) = NULL;
         PD_MSG_FIELD(dest.guid) = destination;
-	PD_MSG_FIELD(dest.metaDataPtr) = NULL;
+        PD_MSG_FIELD(dest.metaDataPtr) = NULL;
         PD_MSG_FIELD(slot) = slot;
         PD_MSG_FIELD(properties) = mode;
 #undef PD_MSG
@@ -211,7 +211,7 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
 #define PD_TYPE PD_MSG_DEP_SATISFY
         msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid.guid) = destination;
-	PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+        PD_MSG_FIELD(guid.metaDataPtr) = NULL;
         PD_MSG_FIELD(payload.guid) = NULL_GUID;
         PD_MSG_FIELD(payload.metaDataPtr) = NULL;
         PD_MSG_FIELD(slot) = slot;

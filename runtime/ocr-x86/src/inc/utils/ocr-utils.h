@@ -162,7 +162,7 @@ u32 ocrGuidTrackerIterateAndClear(ocrGuidTracker_t *self);
  */
 u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind);
 
-/* Not currently used 
+/* Not currently used
 typedef struct ocrPlaceTrackerStruct_t {
     u64 existInPlaces;
 } ocrPlaceTracker_t;

@@ -23,12 +23,12 @@ typedef enum _policyDomainType_t {
     policyDomainMax_id
 } policyDomainType_t;
 
-extern const char * policyDomain_types []; 
+extern const char * policyDomain_types [];
 
 #include "policy-domain/hc/hc-policy.h"
 #include "policy-domain/ce/ce-policy.h"
 #include "policy-domain/xe/xe-policy.h"
 
-ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type, ocrParamList_t *perType); 
+ocrPolicyDomainFactory_t * newPolicyDomainFactory(policyDomainType_t type, ocrParamList_t *perType);
 
 #endif /* __POLICY_DOMAIN_ALL_H_ */

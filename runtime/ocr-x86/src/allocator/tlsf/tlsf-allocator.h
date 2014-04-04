@@ -22,7 +22,7 @@ typedef struct {
     ocrAllocatorFactory_t base;
 } ocrAllocatorFactoryTlsf_t;
 
-typedef struct _ocrAllocatorTlsf_t{
+typedef struct _ocrAllocatorTlsf_t {
     ocrAllocator_t base;
     u64 addr, totalSize, poolAddr, poolSize;
     u32 lock; /**< Currently needs a lock. The idea is to have multiple allocators but currently only one */

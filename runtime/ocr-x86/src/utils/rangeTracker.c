@@ -104,7 +104,7 @@ void chunkFree(u64 startChunk, void* addr) {
  * key already exists, it will not be re-inserted but the
  * value will be updated
  *
- * @param startChunk[in]        Start of area (for free/malloc) 
+ * @param startChunk[in]        Start of area (for free/malloc)
  * @param root[in]              Root of the tree to insert into (or NULL)
  * @param key[in]               Key to insert
  * @param value[in]             Value to insert
@@ -193,12 +193,12 @@ static avlBinaryNode_t *newTree(u64 startChunk) {
 // Returns the new root
 static avlBinaryNode_t* rotateWithLeft(avlBinaryNode_t *root) {
     avlBinaryNode_t *leftChild = root->left;
-    
+
     root->left = leftChild->right;
     // Update height
     root->height = (height(root->left) > height(root->right)?height(root->left):
                     height(root->right)) + 1;
-    
+
     leftChild->right = root;
     leftChild->height = (root->height > height(leftChild->left)?root->height:
                          height(leftChild->left)) + 1;
@@ -268,23 +268,25 @@ static avlBinaryNode_t* avlSearchSub(avlBinaryNode_t *root, avlBinaryNode_t *upp
         DPRINTF(DEBUG_LVL_VVERB, "Found node for %ld @ 0x%lx\n",
                 key, (u64)root);
         switch(mode) {
-            case 0: case -1: case 1:
-                return root;
-            case -2:
-                // We need to find the lower-bound so, the biggest element in the left sub-tree
-                if(root->left)
-                    return avlFindMax(root->left);
-                return NULL;
-            case 2:
-                // We need to find the upper-bound so we return the upper-bound parent
-                if(root->right)
-                    return avlFindMin(root->right);
-                // If there is no right child, we see if we have a parent
-                // that is bigger 
-                return upperBoundParent;
-            default:
-                ASSERT(0);
-            }
+        case 0:
+        case -1:
+        case 1:
+            return root;
+        case -2:
+            // We need to find the lower-bound so, the biggest element in the left sub-tree
+            if(root->left)
+                return avlFindMax(root->left);
+            return NULL;
+        case 2:
+            // We need to find the upper-bound so we return the upper-bound parent
+            if(root->right)
+                return avlFindMin(root->right);
+            // If there is no right child, we see if we have a parent
+            // that is bigger
+            return upperBoundParent;
+        default:
+            ASSERT(0);
+        }
         ASSERT(0); // Unreachable
     }
     if(key < root->key) {
@@ -303,13 +305,16 @@ static avlBinaryNode_t* avlSearchSub(avlBinaryNode_t *root, avlBinaryNode_t *upp
         DPRINTF(DEBUG_LVL_VVERB, "Cannot search further for %ld (going left)\n", key);
         // Here, there is no left
         switch(mode) {
-            case 0: case -1: case -2:
-                return NULL; // Did not find an exact match or a lower-bound
-            case 1: case 2:
-                return upperBoundParent;
-            default:
-                ASSERT(0);
-            }
+        case 0:
+        case -1:
+        case -2:
+            return NULL; // Did not find an exact match or a lower-bound
+        case 1:
+        case 2:
+            return upperBoundParent;
+        default:
+            ASSERT(0);
+        }
         ASSERT(0); // Unreachable
     }
     if(key > root->key) {
@@ -322,15 +327,17 @@ static avlBinaryNode_t* avlSearchSub(avlBinaryNode_t *root, avlBinaryNode_t *upp
         DPRINTF(DEBUG_LVL_VVERB, "Cannot search further for %ld (going right)\n", key);
         // Here there is no right
         switch(mode) {
-            case 0:
-                return NULL; // Did not find an exact match
-            case -1: case -2:
-                return root; // This is the lower bound
-            case 1: case 2:
-                return upperBoundParent;
-            default:
-                ASSERT(0);
-            }
+        case 0:
+            return NULL; // Did not find an exact match
+        case -1:
+        case -2:
+            return root; // This is the lower bound
+        case 1:
+        case 2:
+            return upperBoundParent;
+        default:
+            ASSERT(0);
+        }
         ASSERT(0); // unreachable
     }
     ASSERT(0); // Unreachable
@@ -349,7 +356,7 @@ static void unlinkTag(rangeTracker_t *range, u64 idx) {
     u64 keyToRemove = tag->node->key;
     DPRINTF(DEBUG_LVL_VERB, "Range 0x%lx: unlinking node IDX %ld for tag %d and key 0x%lx\n",
             (u64)range, idx, (u32)tag->tag, keyToRemove);
-    
+
     // Relink the "linked-list"
     if(tag->nextTag) {
         range->tags[tag->nextTag-1].prevTag = tag->prevTag;
@@ -391,7 +398,7 @@ static void unlinkTag(rangeTracker_t *range, u64 idx) {
 // Remove the tag referred to by idx
 // Assumes the lock is held (for the range)
 static void linkTag(rangeTracker_t *range, u64 addr, ocrMemoryTag_t tag) {
-    
+
     ASSERT(tag < MAX_TAG);
     u32 tagIdxToUse = range->nextTag++;
     ASSERT(tagIdxToUse < range->maxSplits);
@@ -433,7 +440,7 @@ static avlBinaryNode_t* avlInsert(u64 startChunk, avlBinaryNode_t *root,
         if(node) *node = root;
         return root;
     }
-    
+
     if(key < root->key) {
         // Go insert to the left
         DPRINTF(DEBUG_LVL_VVERB, "Inserting to the left (from 0x%lx to 0x%lx)\n",
@@ -441,7 +448,7 @@ static avlBinaryNode_t* avlInsert(u64 startChunk, avlBinaryNode_t *root,
         root->left = avlInsert(startChunk, root->left, key, value, node);
         DPRINTF(DEBUG_LVL_VVERB, "New left sub-tree is 0x%lx (root 0x%lx)\n",
                 (u64)root->left, (u64)root);
-        
+
         // Check if we need to rebalance, only rebalance if we are not in -1:+1 range
         // We only test for 2 because the height will only increase in root->left
         if(height(root->left) - height(root->right) == 2) {
@@ -462,7 +469,7 @@ static avlBinaryNode_t* avlInsert(u64 startChunk, avlBinaryNode_t *root,
         root->right = avlInsert(startChunk, root->right, key, value, node);
         DPRINTF(DEBUG_LVL_VVERB, "New right sub-tree is 0x%lx (root 0x%lx)\n",
                 (u64)root->right, (u64)root);
-                        
+
         // Again, check for rebalance
         if(height(root->right) - height(root->left) == 2) {
             // If inserted to the left of the right node, double rebalance
@@ -475,8 +482,8 @@ static avlBinaryNode_t* avlInsert(u64 startChunk, avlBinaryNode_t *root,
     }
     // Update height
     root->height = (height(root->right) > height(root->left)?height(root->right):height(root->left)) + 1;
-    
-    return root;       
+
+    return root;
 }
 
 static avlBinaryNode_t* avlSearch(avlBinaryNode_t *root, u64 key, s8 mode) {
@@ -522,7 +529,7 @@ static avlBinaryNode_t* avlDelete(avlBinaryNode_t *root, u64 key,
         if(height(root->left) > height(root->right) + 1) {
             // Left child is too large, we need to rebalance
             // Same logic as for insert
-            
+
             if(removedKey > root->left->key) {
                 root->left = rotateWithRight(root->left);
             }
@@ -555,7 +562,7 @@ void initializeRange(rangeTracker_t *dest, u32 maxSplits,
     ASSERT(initTag < MAX_TAG);
     ASSERT(maxSplits > 0);
     u32 i;
-    
+
     dest->minimum = minRange;
     dest->startBKHeap = minRange + sizeof(tagNode_t)*maxSplits; // Start of our book-keeping heap
     dest->maximum = maxRange;
@@ -567,13 +574,13 @@ void initializeRange(rangeTracker_t *dest, u32 maxSplits,
     dest->tags = (tagNode_t *)dest->minimum;
     INIT_MALLOC(dest->startBKHeap, sizeof(u64) +
                 dest->maxSplits*sizeof(avlBinaryNode_t)); // We allocate at most the number of maxsplits
-    
+
     DPRINTF(DEBUG_LVL_INFO, "Initializing a range @ 0x%lx from 0x%lx to 0x%lx with tag %d\n",
             (u64)dest, minRange, maxRange, initTag);
-    
+
     dest->rangeSplits = NULL;
 
-    
+
     for(i = 0; i < MAX_TAG; ++i) {
         dest->heads[i].headIdx = 0;
         //    INIT_LOCK(&(dest->heads[i].lock));
@@ -582,15 +589,15 @@ void initializeRange(rangeTracker_t *dest, u32 maxSplits,
     INIT_LOCK(&(dest->lock));
 
     // Set up one point with initTag
-    
+
     dest->rangeSplits = avlInsert(dest->startBKHeap, dest->rangeSplits, minRange, 0, NULL);
     ASSERT(dest->rangeSplits);
-    
+
     dest->tags[0].tag = initTag;
     dest->tags[0].node = dest->rangeSplits;
     dest->tags[0].nextTag = 0;
     dest->tags[0].prevTag = 0;
-    
+
     dest->heads[initTag].headIdx = 1; // Offset by 1
 
     // Now say that the first part is reserved for OS stuff (basically our book-keeping space)
@@ -599,7 +606,7 @@ void initializeRange(rangeTracker_t *dest, u32 maxSplits,
 }
 
 void destroyRange(rangeTracker_t *self) {
-    
+
     DPRINTF(DEBUG_LVL_INFO, "Destroying range @ 0x%lx", (u64)self);
     avlDestroy(self->startBKHeap, self->rangeSplits);
 }
@@ -651,7 +658,7 @@ u8 splitRange(rangeTracker_t *range, u64 startAddr, u64 size, ocrMemoryTag_t tag
         }
     } while(range->rangeSplits); // We may remove everything
     ASSERT(oldLastTag < MAX_TAG);
-    
+
     // Add start and end points
     linkTag(range, startAddr, tag);
     linkTag(range, startAddr + size + 1, oldLastTag);
@@ -707,7 +714,7 @@ u8 getRegionWithTag(rangeTracker_t *range, ocrMemoryTag_t tag, u64 *startRange, 
         UNLOCK(&(range->lock));
         return 0;
     }
-    
+
     UNLOCK(&(range->lock));
     return 2;
 }

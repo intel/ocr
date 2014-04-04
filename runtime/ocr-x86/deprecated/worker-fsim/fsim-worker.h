@@ -58,4 +58,4 @@ ocrWorkerFactory_t* newOcrWorkerFactoryXE(ocrParamList_t *perType);
 
 #endif /* __FSIM_WORKER_H__ */
 
-#endif 
+#endif

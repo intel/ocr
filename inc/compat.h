@@ -74,10 +74,10 @@
 static double sqrt(double value) {
     double result;
     __asm__ (
-            "rcpsqrtF64 %0, %1"
-            : "=r" (result)
-            : "r" (value)
-            );
+        "rcpsqrtF64 %0, %1"
+        : "=r" (result)
+        : "r" (value)
+    );
     return 1/result;
 }
 #endif /* __FSIM__ */

@@ -154,31 +154,36 @@ void dumpStructs(void *pd, const char* output_binary, u64 start_address) {
 
     if(fp == NULL) printf("Unable to open file %s for writing\n", output_binary);
     else {
-        
+
         // Write the header
         // Header size
         value = 5*sizeof(u64);
-        fwrite(&value, sizeof(u64), 1, fp); totu64++;
+        fwrite(&value, sizeof(u64), 1, fp);
+        totu64++;
 
         // Absolute location - currently read from config file
-        fwrite(&start_address, sizeof(u64), 1, fp); totu64++;
+        fwrite(&start_address, sizeof(u64), 1, fp);
+        totu64++;
 
-        // PD address        
+        // PD address
         offset = (u64)pd - (u64)&persistent_chunk + (u64)start_address;
-        fwrite(&offset, sizeof(u64), 1, fp); totu64++;
+        fwrite(&offset, sizeof(u64), 1, fp);
+        totu64++;
 
         // Size of all structs
-        fwrite(&persistent_pointer, sizeof(u64), 1, fp); totu64++;
+        fwrite(&persistent_pointer, sizeof(u64), 1, fp);
+        totu64++;
 
         // myLocation
         offset = (u64)(&((ocrPolicyDomain_t *)pd)->myLocation) - (u64)&persistent_chunk + (u64)start_address;
-        fwrite(&offset, sizeof(u64), 1, fp); totu64++;
+        fwrite(&offset, sizeof(u64), 1, fp);
+        totu64++;
 
-        // Fix up all the pointers 
+        // Fix up all the pointers
         // (FIXME: potential low-likelihood bug due to address collision; need to be improved upon)
         for(i = 0; i<(persistent_pointer/sizeof(u64)); i++) {
             if((ptrs[i] > (u64)ptrs) && (ptrs[i] < (u64)(ptrs+persistent_pointer))) {
-                ptrs[i] -= (u64)ptrs; 
+                ptrs[i] -= (u64)ptrs;
                 ptrs[i] += start_address;
             }
         }
@@ -213,9 +218,13 @@ void bringUpRuntime(const char *inifile) {
 
     // INIT
     for (j = 0; j < total_types; j++) {
-        type_params[j] = NULL; type_counts[j] = 0; factory_names[j] = NULL;
-        inst_params[j] = NULL; inst_counts[j] = 0;
-        all_factories[j] = NULL; all_instances[j] = NULL;
+        type_params[j] = NULL;
+        type_counts[j] = 0;
+        factory_names[j] = NULL;
+        inst_params[j] = NULL;
+        inst_counts[j] = 0;
+        all_factories[j] = NULL;
+        all_instances[j] = NULL;
     }
 
     // POPULATE TYPES
@@ -306,7 +315,7 @@ void bringUpRuntime(const char *inifile) {
     DPRINTF(DEBUG_LVL_INFO, "========= Start execution ==========\n");
     ocrPolicyDomain_t *rootPolicy;
     rootPolicy = (ocrPolicyDomain_t *) all_instances[policydomain_type][0];
-   
+
 #ifdef OCR_ENABLE_STATISTICS
     setCurrentPD(rootPolicy); // Statistics needs to know the current PD so we set it for this main thread
 #endif
@@ -340,8 +349,7 @@ void bringUpRuntime(const char *inifile) {
 #endif
 }
 
-void freeUpRuntime (void)
-{
+void freeUpRuntime (void) {
     u32 i, j;
 
     for (i = 0; i < total_types; i++) {
@@ -376,7 +384,7 @@ void freeUpRuntime (void)
  * Size of each element:
  *      |u64|u64|u64*argc|strlen(argv[0:argc-1])+1|
  *          ^ -> '0' of the offset calculation
- * Note 
+ * Note
  * - totalLengh:   Total length of the packed arguments (everything minus this u64 part)
  * - argc:         Number of arguments
  * - offsets:      The offsets for each argument where the argv data is located in the chunk
@@ -407,7 +415,7 @@ static void * packUserArguments(int argc, char ** argv) {
     void* ptr = (void *) runtimeChunkAlloc(totalLength + sizeof(u64) + extraOffset, NULL);
 
     // Copy in the values to the ptr. The format is as follows:
-    // - First 4 bytes encode the size of the packed arguments 
+    // - First 4 bytes encode the size of the packed arguments
     //   (stripped out before passing the packed args to the mainEdt)
     // - Next 4 bytes encode the number of arguments (u64) (called argc)
     // - After that, an array of argc u64 offsets is encoded.

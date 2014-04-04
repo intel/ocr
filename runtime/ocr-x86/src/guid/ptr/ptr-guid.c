@@ -56,7 +56,7 @@ u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind kin
     PD_MSG_FIELD(type) = GUID_MEMTYPE;
 
     RESULT_PROPAGATE(policy->fcts.processMessage (policy, &msg, true));
-    
+
     ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *)PD_MSG_FIELD(ptr);
     guidInst->guid = (ocrGuid_t)val;
     guidInst->kind = kind;
@@ -79,7 +79,7 @@ u8 ptrCreateGuid(ocrGuidProvider_t* self, ocrFatGuid_t *fguid, u64 size, ocrGuid
     PD_MSG_FIELD(type) = GUID_MEMTYPE;
 
     RESULT_PROPAGATE(policy->fcts.processMessage (policy, &msg, true));
-    
+
     ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *)PD_MSG_FIELD(ptr);
     guidInst->guid = (ocrGuid_t)((u64)guidInst + sizeof(ocrGuidImpl_t));
     guidInst->kind = kind;
@@ -127,7 +127,7 @@ u8 ptrReleaseGuid(ocrGuidProvider_t *self, ocrFatGuid_t guid, bool releaseVal) {
 ocrGuidProvider_t* newGuidProviderPtr(ocrGuidProviderFactory_t *factory,
                                       ocrParamList_t *perInstance) {
     ocrGuidProvider_t *base = (ocrGuidProvider_t*)runtimeChunkAlloc(
-        sizeof(ocrGuidProviderPtr_t), NULL);
+                                  sizeof(ocrGuidProviderPtr_t), NULL);
     base->fcts = factory->providerFcts;
     base->pd = NULL;
     base->id = factory->factoryId;
@@ -144,8 +144,8 @@ void destructGuidProviderFactoryPtr(ocrGuidProviderFactory_t *factory) {
 
 ocrGuidProviderFactory_t *newGuidProviderFactoryPtr(ocrParamList_t *typeArg, u32 factoryId) {
     ocrGuidProviderFactory_t *base = (ocrGuidProviderFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrGuidProviderFactoryPtr_t), (void *)1);
-    
+                                     runtimeChunkAlloc(sizeof(ocrGuidProviderFactoryPtr_t), (void *)1);
+
     base->instantiate = &newGuidProviderPtr;
     base->destruct = &destructGuidProviderFactoryPtr;
     base->factoryId = factoryId;

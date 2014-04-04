@@ -39,7 +39,7 @@ extern u8 intProcessMessage(ocrStatsProcess_t *dst);
             PROCESS->filterCounts[i] = 0ULL;            \
         DPRINTF(DEBUG_LVL_INFO, "Created a StatsProcess (0x%lx) for GUID 0x%lx\n", (u64)PROCESS, GUID); \
     } while(0);
-    
+
 #define STATS_DESTRUCT(PROCESS)                         \
     do {                                                \
         u64 i, j;                                       \

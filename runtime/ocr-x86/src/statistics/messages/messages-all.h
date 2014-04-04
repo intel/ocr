@@ -32,10 +32,10 @@ STATS_MESSAGE_DECLARE(TRIVIAL);
 
 // Finally, add your message in this switch statement
 static inline ocrStatsMessage_t* newStatsMessage(ocrStatsEvtInt_t implType, ocrStatsEvt_t type,
-                                                 ocrGuid_t src, ocrGuid_t dest,
-                                                 ocrStatsParam_t *instanceArg) {
+        ocrGuid_t src, ocrGuid_t dest,
+        ocrStatsParam_t *instanceArg) {
     switch(implType) {
-    STATS_MESSAGE_CASE(TRIVIAL, type, src, dest, instanceArg);
+        STATS_MESSAGE_CASE(TRIVIAL, type, src, dest, instanceArg);
     default:
         ASSERT(0);
         return NULL;

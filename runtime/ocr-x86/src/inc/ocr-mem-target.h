@@ -62,7 +62,7 @@ typedef struct _ocrMemTargetFcts_t {
     void (*destruct)(struct _ocrMemTarget_t* self);
 
     void (*begin)(struct _ocrMemTarget_t* self, struct _ocrPolicyDomain_t * PD);
-    
+
     /** @brief Starts the mem-target
      *  @param[in] self          Pointer to this mem-target
      *  @param[in] PD            Current policy domain
@@ -143,7 +143,7 @@ typedef struct _ocrMemTargetFcts_t {
      * @param endAddr      End address to tag (included)
      * @param newTag       Tag to set for these addresses
      *
-     * @return 0 on success and a non-zero code on error 
+     * @return 0 on success and a non-zero code on error
      * @note There is no forced check as to whether the entire region
      * being tagged is of the same old tag (ie: a uniform region); that
      * is up to the implementation
@@ -193,7 +193,7 @@ typedef struct _ocrMemTarget_t {
 /****************************************************/
 /* OCR MEMORY TARGET FACTORY                        */
 /****************************************************/
-    
+
 /**
  * @brief mem-target factory
  */
@@ -207,7 +207,7 @@ typedef struct _ocrMemTargetFactory_t {
     ocrMemTarget_t * (*instantiate) (struct _ocrMemTargetFactory_t * factory,
                                      ocrParamList_t* perInstance);
 
-    void (*initialize) (struct _ocrMemTargetFactory_t * factory, ocrMemTarget_t * self, 
+    void (*initialize) (struct _ocrMemTargetFactory_t * factory, ocrMemTarget_t * self,
                         ocrParamList_t * perInstance);
     /**
      * @brief mem-target factory destructor

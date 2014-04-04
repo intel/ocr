@@ -231,7 +231,7 @@ ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
     ocrFatGuid_t result;
 
     getCurrentEnv(&pd, NULL, NULL, NULL);
-    
+
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_INFO
     msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -244,12 +244,12 @@ ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
 #undef PD_TYPE
 
     ASSERT(eventToYieldFor->kind == OCR_EVENT_STICKY_T ||
-	   eventToYieldFor->kind == OCR_EVENT_IDEM_T);
+           eventToYieldFor->kind == OCR_EVENT_IDEM_T);
 
     do {
         pthread_yield();
-	result.guid = ERROR_GUID;
-	result = pd->eventFactories[0]->fcts[eventToYieldFor->kind].get(eventToYieldFor);
+        result.guid = ERROR_GUID;
+        result = pd->eventFactories[0]->fcts[eventToYieldFor->kind].get(eventToYieldFor);
     } while(result.guid == ERROR_GUID);
 
     return result.guid;

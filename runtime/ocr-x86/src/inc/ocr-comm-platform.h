@@ -97,7 +97,7 @@ typedef struct _ocrCommPlatformFcts_t {
      * @return 0 on success and a non-zero error code
      */
     u8 (*setMaxExpectedMessageSize)(struct _ocrCommPlatform_t *self, u64 size, u32 mask);
-    
+
     /**
      * @brief Send a message to another target
      *
@@ -145,7 +145,7 @@ typedef struct _ocrCommPlatformFcts_t {
      * @param[in] bufferSize  Bottom 32 bits: actual size of the message to send
      *                        (starting at 'message').
      *                        Top 32 bits: real size of the buffer starting at
-     *                        buffer. 
+     *                        buffer.
      * @param[out] id         If non-NULL, an ID is returned which can be used
      *                        in getMessageStatus. Note that getMessageStatus
      *                        may always return MSG_NORMAL.
@@ -170,7 +170,7 @@ typedef struct _ocrCommPlatformFcts_t {
      *                        were available
      * @param[in] properties  Unused for now
      * @param[out] mask       Mask of the returned message (may always be 0)
-     * @return 
+     * @return
      * #POLL_NO_MESSAGE: 0 messages found
      * 0 : Only 1 message found
      * #POLL_MORE_MESSAGE: 1 message found but more available
@@ -250,7 +250,7 @@ typedef struct _ocrCommPlatformFactory_t {
     ocrCommPlatform_t* (*instantiate)(struct _ocrCommPlatformFactory_t *factory,
                                       ocrParamList_t *instanceArg);
     void (*initialize)(struct _ocrCommPlatformFactory_t *factory, ocrCommPlatform_t * self,
-                                      ocrParamList_t *instanceArg);
+                       ocrParamList_t *instanceArg);
 
     /**
      * @brief comm-platform factory destructor

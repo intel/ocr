@@ -39,7 +39,7 @@ typedef struct _ocrEventHcPersist_t {
     ocrGuid_t data;
     volatile u32 waitersLock;
 } ocrEventHcPersist_t;
-    
+
 
 typedef struct ocrEventHcLatch_t {
     ocrEventHc_t base;

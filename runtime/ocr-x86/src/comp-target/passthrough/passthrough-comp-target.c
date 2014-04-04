@@ -102,7 +102,7 @@ ocrCompTarget_t * newCompTargetPt(ocrCompTargetFactory_t * factory,
     return derived;
 }
 
-void initializeCompTargetPt(ocrCompTargetFactory_t * factory, ocrCompTarget_t * derived, ocrParamList_t * perInstance){
+void initializeCompTargetPt(ocrCompTargetFactory_t * factory, ocrCompTarget_t * derived, ocrParamList_t * perInstance) {
     initializeCompTargetOcr(factory, derived, perInstance);
 }
 
@@ -115,7 +115,7 @@ static void destructCompTargetFactoryPt(ocrCompTargetFactory_t *factory) {
 
 ocrCompTargetFactory_t *newCompTargetFactoryPt(ocrParamList_t *perType) {
     ocrCompTargetFactory_t *base = (ocrCompTargetFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrCompTargetFactoryPt_t), (void *)1);
+                                   runtimeChunkAlloc(sizeof(ocrCompTargetFactoryPt_t), (void *)1);
     base->instantiate = &newCompTargetPt;
     base->initialize = &initializeCompTargetPt;
     base->destruct = &destructCompTargetFactoryPt;

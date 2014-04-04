@@ -21,7 +21,7 @@ typedef enum _commPlatformType_t {
     commPlatformMax_id
 } commPlatformType_t;
 
-extern const char * commplatform_types[]; 
+extern const char * commplatform_types[];
 
 // NULL communication platform
 #include "comm-platform/null/null-comm-platform.h"

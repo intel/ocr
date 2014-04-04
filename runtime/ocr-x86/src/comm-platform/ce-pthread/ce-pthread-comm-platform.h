@@ -27,8 +27,8 @@ typedef struct {
 typedef struct {
     volatile ocrPolicyMsg_t * message;
     ocrPolicyMsg_t messageBuffer;
-    volatile u64 xeCounter; 
-    volatile u64 ceCounter; 
+    volatile u64 xeCounter;
+    volatile u64 ceCounter;
     volatile bool xeCancel;
     char padding[32];
 } ocrCommChannel_t;

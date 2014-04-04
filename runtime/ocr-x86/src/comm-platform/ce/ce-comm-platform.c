@@ -66,10 +66,10 @@ u8 ceCommDestructMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t *msg) {
 }
 
 ocrCommPlatform_t* newCommPlatformCe(ocrCommPlatformFactory_t *factory,
-                                       ocrParamList_t *perInstance) {
+                                     ocrParamList_t *perInstance) {
 
     ocrCommPlatformCe_t * commPlatformCe = (ocrCommPlatformCe_t*)
-        runtimeChunkAlloc(sizeof(ocrCommPlatformCe_t), NULL);
+                                           runtimeChunkAlloc(sizeof(ocrCommPlatformCe_t), NULL);
     ocrCommPlatform_t * derived = (ocrCommPlatform_t *) commPlatformCe;
     factory->initialize(factory, derived, perInstance);
     return derived;
@@ -89,7 +89,7 @@ void destructCommPlatformFactoryCe(ocrCommPlatformFactory_t *factory) {
 
 ocrCommPlatformFactory_t *newCommPlatformFactoryCe(ocrParamList_t *perType) {
     ocrCommPlatformFactory_t *base = (ocrCommPlatformFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryCe_t), (void *)1);
+                                     runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryCe_t), (void *)1);
 
     base->instantiate = &newCommPlatformCe;
     base->initialize = &initializeCommPlatformCe;
@@ -97,21 +97,21 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryCe(ocrParamList_t *perType) {
 
     base->platformFcts.destruct = FUNC_ADDR(void (*)(ocrCommPlatform_t*), ceCommDestruct);
     base->platformFcts.begin = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*, ocrCommApi_t *),
-                                                  ceCommBegin);
+                                         ceCommBegin);
     base->platformFcts.start = FUNC_ADDR(void (*)(ocrCommPlatform_t*, ocrPolicyDomain_t*, ocrCommApi_t *),
-                                                  ceCommStart);
+                                         ceCommStart);
     base->platformFcts.stop = FUNC_ADDR(void (*)(ocrCommPlatform_t*), ceCommStop);
     base->platformFcts.finish = FUNC_ADDR(void (*)(ocrCommPlatform_t*), ceCommFinish);
     base->platformFcts.setMaxExpectedMessageSize = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, u64, u32),
-                                                             ceCommSetMaxExpectedMessageSize);
+            ceCommSetMaxExpectedMessageSize);
     base->platformFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrLocation_t,
-                                                      ocrPolicyMsg_t *, u64, u64*, u32, u32), ceCommSendMessage);
+                                     ocrPolicyMsg_t *, u64, u64*, u32, u32), ceCommSendMessage);
     base->platformFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**, u32, u32*),
-                                               ceCommPollMessage);
+                                     ceCommPollMessage);
     base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**, u32, u32*),
-                                               ceCommWaitMessage);
+                                     ceCommWaitMessage);
     base->platformFcts.destructMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t*),
-                                                   ceCommDestructMessage);
+                                         ceCommDestructMessage);
 
     return base;
 }

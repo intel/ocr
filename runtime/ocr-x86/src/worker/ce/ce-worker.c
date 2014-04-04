@@ -74,7 +74,7 @@ void initializeWorkerCe(ocrWorkerFactory_t * factory, ocrWorker_t* base, ocrPara
     initializeWorkerOcr(factory, base, perInstance);
     base->type = ((paramListWorkerCeInst_t*)perInstance)->workerType;
     ASSERT(base->type == MASTER_WORKERTYPE);
-    
+
     ocrWorkerCe_t * workerCe = (ocrWorkerCe_t *) base;
     workerCe->id = ((paramListWorkerCeInst_t*)perInstance)->workerId;
     workerCe->running = false;
@@ -102,7 +102,7 @@ void ceStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     ocrWorkerCe_t * ceWorker = (ocrWorkerCe_t *) base;
 
 #ifdef ENABLE_COMP_PLATFORM_PTHREAD  // Sanjay, the below should go away
-                                     // since it's not applicable to FSim
+    // since it's not applicable to FSim
     if(!ceWorker->secondStart) {
         ceWorker->secondStart = true;
         return; // Don't start right away

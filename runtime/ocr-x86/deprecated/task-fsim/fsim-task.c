@@ -16,8 +16,8 @@ void destructTaskTemplateFactoryFSIM(ocrTaskTemplateFactory_t* base) {
 }
 
 ocrTaskTemplate_t * newTaskTemplateFSIM (ocrTaskTemplateFactory_t* factory,
-                                         ocrEdt_t executePtr, u32 paramc, u32 depc,
-                                         const char* name, ocrParamList_t *perInstance) {
+        ocrEdt_t executePtr, u32 paramc, u32 depc,
+        const char* name, ocrParamList_t *perInstance) {
     ocrTaskTemplateFSIM_t* template = (ocrTaskTemplateFSIM_t*) checkedMalloc(template, sizeof(ocrTaskTemplateFSIM_t));
     ocrTaskTemplate_t * base = (ocrTaskTemplate_t *) template;
     base->paramc = paramc;
@@ -46,8 +46,8 @@ void destructMessageTaskTemplateFactoryFSIM(ocrTaskTemplateFactory_t* base) {
 }
 
 ocrTaskTemplate_t * newMessageTaskTemplateFSIM (ocrTaskTemplateFactory_t* factory,
-                                                ocrEdt_t executePtr, u32 paramc, u32 depc,
-                                                const char* name, ocrParamList_t *perInstance) {
+        ocrEdt_t executePtr, u32 paramc, u32 depc,
+        const char* name, ocrParamList_t *perInstance) {
     ocrMessageTaskTemplateFSIM_t* template = (ocrMessageTaskTemplateFSIM_t*) checkedMalloc(template, sizeof(ocrMessageTaskTemplateFSIM_t));
     ocrTaskTemplate_t * base = (ocrTaskTemplate_t *) template;
     base->paramc = paramc;
@@ -69,4 +69,4 @@ ocrTaskTemplateFactory_t * newMessageTaskTemplateFactoryFSIM(ocrParamList_t* per
     //TODO What taskTemplateFcts is supposed to do ?
     return base;
 }
-#endif 
+#endif

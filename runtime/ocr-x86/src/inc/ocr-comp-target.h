@@ -60,8 +60,8 @@ struct _ocrPolicyMsg_t;
  * the sharing of function pointers for comp-target from the same factory
  */
 typedef struct _ocrCompTargetFcts_t {
-        /*! \brief Destroys a comp-target
-     */
+    /*! \brief Destroys a comp-target
+    */
     void (*destruct)(struct _ocrCompTarget_t *self);
 
     void (*begin)(struct _ocrCompTarget_t *self, struct _ocrPolicyDomain_t *PD,
@@ -156,18 +156,18 @@ typedef struct _ocrCompTarget_t {
  * @brief comp-target factory
  */
 typedef struct _ocrCompTargetFactory_t {
-   /**
-     * @brief comp-target factory
-     *
-     * Initiates a new comp-target and returns a pointer to it.
-     *
-     * @param factory       Pointer to this factory
-     * @param instanceArg   Arguments specific for this instance
-     */
+    /**
+      * @brief comp-target factory
+      *
+      * Initiates a new comp-target and returns a pointer to it.
+      *
+      * @param factory       Pointer to this factory
+      * @param instanceArg   Arguments specific for this instance
+      */
     ocrCompTarget_t * (*instantiate) ( struct _ocrCompTargetFactory_t * factory,
                                        ocrParamList_t *instanceArg);
     void (*initialize) ( struct _ocrCompTargetFactory_t * factory,
-                                       ocrCompTarget_t * self, ocrParamList_t *instanceArg);
+                         ocrCompTarget_t * self, ocrParamList_t *instanceArg);
     /**
      * @brief comp-target factory destructor
      * @param factory       Pointer to the factory to destroy.

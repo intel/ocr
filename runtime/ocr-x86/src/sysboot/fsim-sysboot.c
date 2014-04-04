@@ -32,11 +32,11 @@ void FsimRuntimeUpdateMemTarget(ocrMemTarget_t *me, u64 extra) {
 }
 
 void FsimBootUpAbort() {
- // TODO: Crash & burn
+// TODO: Crash & burn
 }
 
 void FsimBootUpPrint(const char* str, u64 length) {
- // TODO
+// TODO
 }
 
 void *myGetFuncAddr (const char * fname) {

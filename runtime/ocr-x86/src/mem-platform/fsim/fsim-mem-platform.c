@@ -44,7 +44,7 @@ void fsimBegin(ocrMemPlatform_t *self, struct _ocrPolicyDomain_t * PD ) {
     ASSERT(self->startAddr);
     self->endAddr = self->startAddr + self->size;
 
-DPRINTF(DEBUG_LVL_VERB, "Initializing memory range %lx to %lx\n", self->startAddr, self->endAddr);
+    DPRINTF(DEBUG_LVL_VERB, "Initializing memory range %lx to %lx\n", self->startAddr, self->endAddr);
     ocrMemPlatformFsim_t *rself = (ocrMemPlatformFsim_t*)self;
     initializeRange(&(rself->rangeTracker), 16, self->startAddr,
                     self->endAddr, USER_FREE_TAG);
@@ -73,26 +73,26 @@ u8 fsimSetThrottle(ocrMemPlatform_t *self, u64 value) {
 }
 
 void fsimGetRange(ocrMemPlatform_t *self, u64* startAddr,
-                    u64 *endAddr) {
+                  u64 *endAddr) {
     if(startAddr) *startAddr = self->startAddr;
     if(endAddr) *endAddr = self->endAddr;
 }
 
 u8 fsimChunkAndTag(ocrMemPlatform_t *self, u64 *startAddr, u64 size,
-                     ocrMemoryTag_t oldTag, ocrMemoryTag_t newTag) {
+                   ocrMemoryTag_t oldTag, ocrMemoryTag_t newTag) {
 
     if(oldTag >= MAX_TAG || newTag >= MAX_TAG)
         return 3;
-    
+
     ocrMemPlatformFsim_t *rself = (ocrMemPlatformFsim_t *)self;
-    
+
     u64 iterate = 0;
     u64 startRange, endRange;
     u8 result;
     LOCK(&(rself->lock));
     do {
         result = getRegionWithTag(&(rself->rangeTracker), oldTag, &startRange,
-                         &endRange, &iterate);
+                                  &endRange, &iterate);
         if(endRange - startRange >= size) {
             // This is a fit, we do not look for "best" fit for now
             *startAddr = startRange;
@@ -107,11 +107,11 @@ u8 fsimChunkAndTag(ocrMemPlatform_t *self, u64 *startAddr, u64 size,
 }
 
 u8 fsimTag(ocrMemPlatform_t *self, u64 startAddr, u64 endAddr,
-             ocrMemoryTag_t newTag) {
+           ocrMemoryTag_t newTag) {
 
     if(newTag >= MAX_TAG)
         return 3;
-    
+
     ocrMemPlatformFsim_t *rself = (ocrMemPlatformFsim_t *)self;
 
     LOCK(&(rself->lock));
@@ -122,7 +122,7 @@ u8 fsimTag(ocrMemPlatform_t *self, u64 startAddr, u64 endAddr,
 }
 
 u8 fsimQueryTag(ocrMemPlatform_t *self, u64 *start, u64* end,
-                  ocrMemoryTag_t *resultTag, u64 addr) {
+                ocrMemoryTag_t *resultTag, u64 addr) {
     ocrMemPlatformFsim_t *rself = (ocrMemPlatformFsim_t *)self;
 
     RESULT_ASSERT(getTag(&(rself->rangeTracker), addr, start, end, resultTag),
@@ -131,13 +131,13 @@ u8 fsimQueryTag(ocrMemPlatform_t *self, u64 *start, u64* end,
 }
 
 ocrMemPlatform_t* newMemPlatformFsim(ocrMemPlatformFactory_t * factory,
-                                       ocrParamList_t *perInstance) {
+                                     ocrParamList_t *perInstance) {
 
     // TODO: This will be replaced by the runtime/GUID meta-data allocator
     // For now, we cheat and use good-old fsim which is kind of counter productive with
     // all the trouble we are going through to *not* use fsim...
     ocrMemPlatform_t *result = (ocrMemPlatform_t*)
-        runtimeChunkAlloc(sizeof(ocrMemPlatformFsim_t), NULL);
+                               runtimeChunkAlloc(sizeof(ocrMemPlatformFsim_t), NULL);
     factory->initialize(factory, result, perInstance);
 
     return result;
@@ -163,8 +163,8 @@ void destructMemPlatformFactoryFsim(ocrMemPlatformFactory_t *factory) {
 
 ocrMemPlatformFactory_t *newMemPlatformFactoryFsim(ocrParamList_t *perType) {
     ocrMemPlatformFactory_t *base = (ocrMemPlatformFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrMemPlatformFactoryFsim_t), (void *)1);
-    
+                                    runtimeChunkAlloc(sizeof(ocrMemPlatformFactoryFsim_t), (void *)1);
+
     base->instantiate = &newMemPlatformFsim;
     base->initialize = &initializeMemPlatformFsim;
     base->destruct = &destructMemPlatformFactoryFsim;
@@ -179,7 +179,7 @@ ocrMemPlatformFactory_t *newMemPlatformFactoryFsim(ocrParamList_t *perType) {
     base->platformFcts.chunkAndTag = FUNC_ADDR(u8 (*)(ocrMemPlatform_t*, u64*, u64, ocrMemoryTag_t, ocrMemoryTag_t), fsimChunkAndTag);
     base->platformFcts.tag = FUNC_ADDR(u8 (*)(ocrMemPlatform_t*, u64, u64, ocrMemoryTag_t), fsimTag);
     base->platformFcts.queryTag = FUNC_ADDR(u8 (*)(ocrMemPlatform_t*, u64*, u64*, ocrMemoryTag_t*, u64), fsimQueryTag);
-    
+
     return base;
 }
 

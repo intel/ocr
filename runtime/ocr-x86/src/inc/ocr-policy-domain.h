@@ -502,7 +502,7 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t db;       /**< In: DB dynamically being removed */
             u32 properties;        /**< In: Properties */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_DYNREMOVE);
-                                      
+
         struct {
             ocrFatGuid_t waiter;   /**< In: Waiter to unregister */
             ocrFatGuid_t dest;     /**< In: Object to unregister the waiter on */
@@ -565,7 +565,7 @@ typedef struct _ocrPolicyMsg_t {
  * and destroyed by the user (caller of sendMessage, waitMessage...) using
  * the provided 'destruct' function.
  *
- * 
+ *
  *
  * The response message will always be contained in handle->response.
  * To check whether a message has:
@@ -584,7 +584,7 @@ typedef struct _ocrMsgHandle_t {
     ocrPolicyMsg_t * msg;           /**< The message associated with the communication
                                        the handle represents. */
     ocrPolicyMsg_t * response;      /**< The response (if applicable) */
-    
+
     ocrMsgHandleStatus_t status;   /**< Status of this handle. See ocrMsgHandleState */
     void (*destruct)(struct _ocrMsgHandle_t * self); /**< Destructor for this
                                                        * instance of the message
@@ -661,8 +661,8 @@ typedef struct _ocrPolicyDomainFcts_t {
 
     /**
      * @brief Send a message outside of the policy domain.
-     * This API can be used by any client of the policy domain and 
-     * will call into the correct comm-api sendMessage to actually 
+     * This API can be used by any client of the policy domain and
+     * will call into the correct comm-api sendMessage to actually
      * send the message.
      *
      * See ocr-comm-api.h for a detailed description
@@ -677,8 +677,8 @@ typedef struct _ocrPolicyDomainFcts_t {
 
     /**
      * @brief Non-blocking check for incomming messages
-     * This API can be used by any client of the policy domain and 
-     * will call into the correct comm-api pollMessage to actually 
+     * This API can be used by any client of the policy domain and
+     * will call into the correct comm-api pollMessage to actually
      * poll for a message.
      *
      * See ocr-comm-api.h for a detailed description
@@ -690,8 +690,8 @@ typedef struct _ocrPolicyDomainFcts_t {
 
     /**
      * @brief Blocking check for incomming messages
-     * This API can be used by any client of the policy domain and 
-     * will call into the correct comm-api waitMessage to actually 
+     * This API can be used by any client of the policy domain and
+     * will call into the correct comm-api waitMessage to actually
      * wait for a message.
      *
      * See ocr-comm-api.h for a detailed description
@@ -700,7 +700,7 @@ typedef struct _ocrPolicyDomainFcts_t {
      * @return 0 on success and a non-zero error code
      */
     u8 (*waitMessage)(struct _ocrPolicyDomain_t *self, ocrMsgHandle_t **handle);
-    
+
     /**
      * @brief Policy-domain only allocation.
      *
@@ -761,7 +761,7 @@ typedef struct _ocrPolicyDomainFcts_t {
  */
 typedef struct _ocrPolicyDomain_t {
     ocrFatGuid_t fguid;                         /**< GUID for this policy */
-    
+
     u64 schedulerCount;                         /**< Number of schedulers */
     u64 allocatorCount;                         /**< Number of allocators */
     u64 workerCount;                            /**< Number of workers */
@@ -779,7 +779,7 @@ typedef struct _ocrPolicyDomain_t {
 
     ocrTaskFactory_t  **taskFactories;          /**< Factory to produce tasks
                                                  * (EDTs) */
-    
+
     ocrTaskTemplateFactory_t  ** taskTemplateFactories; /**< Factories to produce
                                                          * task templates */
     ocrDataBlockFactory_t ** dbFactories;       /**< Factories to produce
@@ -841,16 +841,16 @@ typedef struct _ocrPolicyDomainFactory_t {
 
     // TODO: Check with Bala on this. We may not need to pass anything
     // except the physical location of itself and its parent
-    ocrPolicyDomain_t * (*instantiate) (struct _ocrPolicyDomainFactory_t *factory, 
+    ocrPolicyDomain_t * (*instantiate) (struct _ocrPolicyDomainFactory_t *factory,
 #ifdef OCR_ENABLE_STATISTICS
-         ocrStats_t *statsObject,
+                                        ocrStats_t *statsObject,
 #endif
-         ocrCost_t *costFunction, ocrParamList_t *perInstance);
+                                        ocrCost_t *costFunction, ocrParamList_t *perInstance);
     void (*initialize) (struct _ocrPolicyDomainFactory_t *factory, ocrPolicyDomain_t* self,
 #ifdef OCR_ENABLE_STATISTICS
-         ocrStats_t *statsObject,
+                        ocrStats_t *statsObject,
 #endif
-         ocrCost_t *costFunction, ocrParamList_t *perInstance);
+                        ocrCost_t *costFunction, ocrParamList_t *perInstance);
     void (*destruct)(struct _ocrPolicyDomainFactory_t * factory);
     ocrPolicyDomainFcts_t policyDomainFcts;
 } ocrPolicyDomainFactory_t;

@@ -26,6 +26,6 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t endEdtTemplateGuid;
     ocrEdtTemplateCreate(&endEdtTemplateGuid, endEdt, 0 /*paramc*/, 0 /*depc*/);
     ocrEdtCreate(&endEdtGuid, endEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
-                    /*properties=*/ EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/NULL);
+                 /*properties=*/ EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/NULL);
     return NULL_GUID;
 }

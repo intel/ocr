@@ -64,16 +64,16 @@ static void workerLoop(ocrWorker_t * worker) {
 #undef PD_MSG
 #undef PD_TYPE
                 // Destroy the work
-/* TODO:
-#define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_WORK_DESTROY
-                msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
-                PD_MSG_FIELD(guid) = taskGuid;
-                PD_MSG_FIELD(properties) = 0;
-                RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
-#undef PD_MSG
-#undef PD_TYPE
-*/
+                /* TODO:
+                #define PD_MSG (&msg)
+                #define PD_TYPE PD_MSG_WORK_DESTROY
+                                msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
+                                PD_MSG_FIELD(guid) = taskGuid;
+                                PD_MSG_FIELD(properties) = 0;
+                                RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
+                #undef PD_MSG
+                #undef PD_TYPE
+                */
             } else if (count > 1) {
                 // TODO: In the future, potentially take more than one)
                 ASSERT(0);
@@ -106,8 +106,8 @@ ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory, ocrParamList_t * perInst
 void initializeWorkerXe(ocrWorkerFactory_t * factory, ocrWorker_t* base, ocrParamList_t * perInstance) {
     initializeWorkerOcr(factory, base, perInstance);
     base->type = SLAVE_WORKERTYPE;
-   
-    ocrWorkerXe_t* workerXe = (ocrWorkerXe_t*) base; 
+
+    ocrWorkerXe_t* workerXe = (ocrWorkerXe_t*) base;
     workerXe->id = ((paramListWorkerXeInst_t*)perInstance)->workerId;
     workerXe->running = false;
 }
@@ -153,9 +153,9 @@ void xeStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 void* xeRunWorker(ocrWorker_t * worker) {
     // Need to pass down a data-structure
     ocrPolicyDomain_t *pd = worker->pd;
-    
+
     if (pd->myLocation == 0) { //Blessed worker
-        // This is all part of the mainEdt setup 
+        // This is all part of the mainEdt setup
         // and should be executed by the "blessed" worker.
         void * packedUserArgv = userArgsGet();
         ocrEdt_t mainEdt = mainEdtGet();
@@ -167,7 +167,7 @@ void* xeRunWorker(ocrWorker_t * worker) {
         void* dbPtr;
         ocrDbCreate(&dbGuid, &dbPtr, totalLength,
                     DB_PROP_NONE, NULL_GUID, NO_ALLOC);
-        
+
         // copy packed args to DB
         hal_memCopy(dbPtr, packedUserArgv, totalLength, 0);
 
@@ -179,7 +179,7 @@ void* xeRunWorker(ocrWorker_t * worker) {
         // Call into mainEdt
         mainEdt(0, NULL, 1, &depv);
     }
-    
+
     DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
     workerLoop(worker);
     return NULL;

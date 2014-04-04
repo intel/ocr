@@ -29,7 +29,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t taskForEdtTemplateGuid;
     ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, 0 /*paramc*/, 0 /*depc*/);
     ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, 0, /*paramv=*/NULL, 0, /*depv=*/NULL,
-                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
+                 /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
     // No need to satisfy as addDependence is equivalent to a satisfy
     // when the source is a datablock

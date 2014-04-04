@@ -44,7 +44,7 @@
  * @see START_FILTER
  */
 #define END_FILTER                                      \
-    } FILTER_TYPE(FILTER_NAME);                      
+    } FILTER_TYPE(FILTER_NAME);
 
 #define FILTER_CAST(result, origin)                     \
     FILTER_TYPE(FILTER_NAME) *result = (FILTER_TYPE(FILTER_NAME) *)origin
@@ -61,7 +61,7 @@
     result->base.fcts.dump = COMBI(&_dump_, FILTER_NAME);               \
     result->base.fcts.notify = COMBI(&_notify_, FILTER_NAME);           \
     result->base.fcts.merge = COMBI(&_merge_, FILTER_NAME);             \
-    result->base.parent = parent                     
+    result->base.parent = parent
 
 #define FILTER_DESTRUCT static void COMBI(_destruct_, FILTER_NAME) (ocrStatsFilter_t *self)
 #define FILTER_DUMP static u64 COMBI(_dump_, FILTER_NAME) (ocrStatsFilter_t *self, char** out, u64 chunk, \

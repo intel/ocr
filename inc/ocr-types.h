@@ -65,7 +65,7 @@ typedef intptr_t ocrGuid_t; /**< GUID type */
  */
 typedef enum {
     NO_ALLOC = 0 /**< No allocation inside data-blocks */
-    /* Add others */
+               /* Add others */
 } ocrInDbAllocator_t;
 
 /**

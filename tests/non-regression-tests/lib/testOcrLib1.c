@@ -32,7 +32,7 @@ int main(int argc, const char * argv[]) {
     ocrGuid_t rootEdtTemplateGuid;
     ocrEdtTemplateCreate(&rootEdtTemplateGuid, rootEdt, 0 /*paramc*/, 0 /*depc*/);
     ocrEdtCreate(&rootEdtGuid, rootEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
-                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
+                 /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
     ocrFinalize();
     return 0;
 }

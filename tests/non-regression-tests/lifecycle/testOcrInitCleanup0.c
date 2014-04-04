@@ -40,9 +40,9 @@ void test () {
     int *k;
     ocrGuid_t db_guid;
     ocrDbCreate(&db_guid,(void **) &k,
-            sizeof(int), /*flags=*/FLAGS,
-            /*location=*/NULL_GUID,
-            NO_ALLOC);
+                sizeof(int), /*flags=*/FLAGS,
+                /*location=*/NULL_GUID,
+                NO_ALLOC);
     *k = 42;
 
     ocrEventSatisfy(eventGuid, db_guid);

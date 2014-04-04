@@ -58,7 +58,7 @@ typedef struct _ocrMemPlatformFcts_t {
     void (*destruct)(struct _ocrMemPlatform_t* self);
 
     void (*begin)(struct _ocrMemPlatform_t* self, struct _ocrPolicyDomain_t * PD);
-    
+
     /** @brief Starts the mem-platform
      *
      *  @param[in] self       Pointer to this mem-platform
@@ -140,7 +140,7 @@ typedef struct _ocrMemPlatformFcts_t {
      * @param endAddr      End address to tag (included)
      * @param newTag       Tag to set for these addresses
      *
-     * @return 0 on success and a non-zero code on error 
+     * @return 0 on success and a non-zero code on error
      * @note There is no forced check as to whether the entire region
      * being tagged is of the same old tag (ie: a uniform region); that
      * is up to the implementation
@@ -201,9 +201,9 @@ typedef struct _ocrMemPlatformFactory_t {
      */
     ocrMemPlatform_t * (*instantiate) (struct _ocrMemPlatformFactory_t * factory,
                                        ocrParamList_t* instanceArg);
-    void (*initialize) (struct _ocrMemPlatformFactory_t * factory, 
-                                       struct _ocrMemPlatform_t *worker, 
-                                       ocrParamList_t *perInstance);
+    void (*initialize) (struct _ocrMemPlatformFactory_t * factory,
+                        struct _ocrMemPlatform_t *worker,
+                        ocrParamList_t *perInstance);
 
     /**
      * @brief mem-platform factory destructor
@@ -214,7 +214,7 @@ typedef struct _ocrMemPlatformFactory_t {
     ocrMemPlatformFcts_t platformFcts; /**< Function pointers created instances should use */
 } ocrMemPlatformFactory_t;
 
-void initializeMemPlatformOcr(ocrMemPlatformFactory_t * factory, ocrMemPlatform_t * self, 
-                                     ocrParamList_t *perInstance);
+void initializeMemPlatformOcr(ocrMemPlatformFactory_t * factory, ocrMemPlatform_t * self,
+                              ocrParamList_t *perInstance);
 
 #endif /* __OCR_MEM_PLATFORM_H__ */

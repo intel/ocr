@@ -57,7 +57,7 @@ static void destructLockFactoryX86(ocrLockFactory_t *self) {
 
 ocrLockFactory_t* newLockFactoryX86(ocrParamList_t* perType) {
     ocrLockFactory_t *result = (ocrLockFactory_t*)checkedMalloc(
-        result, sizeof(ocrLockFactoryX86_t));
+                                   result, sizeof(ocrLockFactoryX86_t));
     result->destruct = &destructLockFactoryX86;
     result->instantiate = &newLockX86;
     result->lockFcts.destruct = &destructLockX86;
@@ -91,7 +91,7 @@ static u64 val64X86(ocrAtomic64_t *self) {
 /* x86 atomic factory */
 static ocrAtomic64_t* newAtomic64X86(ocrAtomic64Factory_t *factory, ocrParamList_t* perInstance) {
     ocrAtomic64X86_t *result = (ocrAtomic64X86_t*)checkedMalloc(
-        result, sizeof(ocrAtomic64X86_t));
+                                   result, sizeof(ocrAtomic64X86_t));
 
     result->base.fctPtrs = &(factory->atomicFcts);
     result->val = 0ULL;
@@ -105,7 +105,7 @@ static void destructAtomic64FactoryX86(ocrAtomic64Factory_t *self) {
 
 ocrAtomic64Factory_t* newAtomic64FactoryX86(ocrParamList_t *perType) {
     ocrAtomic64Factory_t *result = (ocrAtomic64Factory_t*)checkedMalloc(
-        result, sizeof(ocrAtomic64FactoryX86_t));
+                                       result, sizeof(ocrAtomic64FactoryX86_t));
     result->destruct = &destructAtomic64FactoryX86;
     result->instantiate = &newAtomic64X86;
     result->atomicFcts.destruct = &destructAtomic64X86;
@@ -183,7 +183,7 @@ static void destructQueueFactoryX86(ocrQueueFactory_t *self) {
 
 ocrQueueFactory_t* newQueueFactoryX86(u64 maxQueueSize, ocrParamList_t *perType) {
     ocrQueueFactory_t *result = (ocrQueueFactory_t*)checkedMalloc(
-        result, sizeof(ocrQueueFactoryX86_t));
+                                    result, sizeof(ocrQueueFactoryX86_t));
     result->destruct = &destructQueueFactoryX86;
     result->instantiate = &newQueueX86;
 

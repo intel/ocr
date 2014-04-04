@@ -51,9 +51,9 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     int *k;
     ocrGuid_t dbGuid;
     ocrDbCreate(&dbGuid,(void **) &k,
-            sizeof(int), /*flags=*/FLAGS,
-            /*location=*/NULL_GUID,
-            NO_ALLOC);
+                sizeof(int), /*flags=*/FLAGS,
+                /*location=*/NULL_GUID,
+                NO_ALLOC);
     *k = 42;
 
     ocrEventSatisfy(eventGuid, dbGuid);

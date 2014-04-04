@@ -106,7 +106,7 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*=NULL_GUID*/, u
  **/
 
 u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, u32 depc, const char* funcName);
-    
+
 /**
  * @brief Creates an EDT template
  *
@@ -196,7 +196,7 @@ u8 ocrEdtDestroy(ocrGuid_t guid);
 
    @{
 **/
-    
+
 /**
  * @brief Adds a dependence between entities in OCR:
  *

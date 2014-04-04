@@ -63,7 +63,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t terminateEdtTemplateGuid;
     ocrEdtTemplateCreate(&terminateEdtTemplateGuid, terminateEDT, 0 /*paramc*/, 2 /*depc*/);
     ocrEdtCreate(&terminateEDTGuid, terminateEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
-                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
+                 /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
     ocrAddDependence(latchGuid, terminateEDTGuid, 0, DB_MODE_RO);
     ocrAddDependence(arrayGuid, terminateEDTGuid, 1, DB_MODE_RO);
 
@@ -85,7 +85,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
         ocrGuid_t childEdtTemplateGuid;
         ocrEdtTemplateCreate(&childEdtTemplateGuid, childEDT, 0 /*paramc*/, 3 /*depc*/);
         ocrEdtCreate(&childEdtGuid, childEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
-                    /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
+                     /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
         ocrAddDependence(dbLatchGuid, childEdtGuid, 0, DB_MODE_RO);
         ocrAddDependence(idxGuid, childEdtGuid, 1, DB_MODE_RO);

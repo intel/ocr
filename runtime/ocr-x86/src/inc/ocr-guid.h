@@ -59,7 +59,7 @@ struct _ocrPolicyDomain_t;
 /**
  * @brief GUID provider function pointers
  *
- * The function pointers are separate from the GUID provider instance to allow 
+ * The function pointers are separate from the GUID provider instance to allow
  * for the sharing of function pointers for GUID provider from the same factory
  */
 typedef struct _ocrGuidProviderFcts_t {
@@ -74,7 +74,7 @@ typedef struct _ocrGuidProviderFcts_t {
     void (*destruct)(struct _ocrGuidProvider_t* self);
 
     void (*begin)(struct _ocrGuidProvider_t *self, struct _ocrPolicyDomain_t *pd);
-    
+
     /**
      * @brief "Starts" the GUID provider
      *
@@ -82,7 +82,7 @@ typedef struct _ocrGuidProviderFcts_t {
      * @param[in] pd        Policy domain this provider belongs to
      */
     void (*start)(struct _ocrGuidProvider_t* self, struct _ocrPolicyDomain_t* pd);
-    
+
     void (*stop)(struct _ocrGuidProvider_t* self);
     void (*finish)(struct _ocrGuidProvider_t* self);
 
@@ -219,7 +219,7 @@ static inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t guid,
  *
  *  This does not allocate space for the metadata associated with the GUID
  *  but rather associates a GUID with the value passed in.
- *  
+ *
  *  @param[in] pd          Policy domain
  *  @param[in] ptr         The pointer for which we want a guid
  *  @param[out] guidRes    Parameter-result to contain the guid

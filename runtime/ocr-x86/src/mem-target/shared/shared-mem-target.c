@@ -35,7 +35,7 @@ void sharedDestruct(ocrMemTarget_t *self) {
 #ifdef OCR_ENABLE_STATISTICS
     statsMEMTARGET_STOP(self->pd, self->fguid.guid, self->fguid.metaDataPtr);
 #endif
-    runtimeChunkFree((u64)self, NULL);    
+    runtimeChunkFree((u64)self, NULL);
 }
 
 void sharedBegin(ocrMemTarget_t *self, ocrPolicyDomain_t * PD ) {
@@ -49,7 +49,7 @@ void sharedStart(ocrMemTarget_t *self, ocrPolicyDomain_t * PD ) {
     // Get a GUID
     guidify(PD, (u64)self, &(self->fguid), OCR_GUID_MEMTARGET);
     self->pd = PD;
-    
+
 #ifdef OCR_ENABLE_STATISTICS
     statsMEMTARGET_START(PD, self->fguid.guid, self->fguid.metaDataPtr);
 #endif
@@ -60,11 +60,11 @@ void sharedStart(ocrMemTarget_t *self, ocrPolicyDomain_t * PD ) {
 void sharedStop(ocrMemTarget_t *self) {
     ASSERT(self->memoryCount == 1);
     self->memories[0]->fcts.stop(self->memories[0]);
-    
+
     // Destroy the GUID
     ocrPolicyMsg_t msg;
     getCurrentEnv(NULL, NULL, NULL, &msg);
-    
+
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
@@ -92,40 +92,40 @@ u8 sharedSetThrottle(ocrMemTarget_t *self, u64 value) {
 void sharedGetRange(ocrMemTarget_t *self, u64* startAddr,
                     u64* endAddr) {
     return self->memories[0]->fcts.getRange(
-        self->memories[0], startAddr, endAddr);
+               self->memories[0], startAddr, endAddr);
 }
 
 u8 sharedChunkAndTag(ocrMemTarget_t *self, u64 *startAddr,
                      u64 size, ocrMemoryTag_t oldTag, ocrMemoryTag_t newTag) {
 
     return self->memories[0]->fcts.chunkAndTag(
-        self->memories[0], startAddr, size, oldTag, newTag);
+               self->memories[0], startAddr, size, oldTag, newTag);
 }
 
 u8 sharedTag(ocrMemTarget_t *self, u64 startAddr, u64 endAddr,
              ocrMemoryTag_t newTag) {
 
     return self->memories[0]->fcts.tag(self->memories[0], startAddr,
-                                           endAddr, newTag);
+                                       endAddr, newTag);
 }
 
 u8 sharedQueryTag(ocrMemTarget_t *self, u64 *start, u64 *end,
                   ocrMemoryTag_t *resultTag, u64 addr) {
 
     return self->memories[0]->fcts.queryTag(self->memories[0], start,
-                                                end, resultTag, addr);
+                                            end, resultTag, addr);
 }
 
 ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
                                    ocrParamList_t *perInstance) {
 
     ocrMemTarget_t *result = (ocrMemTarget_t*)
-        runtimeChunkAlloc(sizeof(ocrMemTargetShared_t), NULL);
+                             runtimeChunkAlloc(sizeof(ocrMemTargetShared_t), NULL);
     factory->initialize(factory, result, perInstance);
     return result;
 }
 
-void initializeMemTargetShared(ocrMemTargetFactory_t * factory, ocrMemTarget_t * result, ocrParamList_t * perInstance){
+void initializeMemTargetShared(ocrMemTargetFactory_t * factory, ocrMemTarget_t * result, ocrParamList_t * perInstance) {
     initializeMemTargetOcr(factory, result, perInstance);
 }
 
@@ -139,7 +139,7 @@ static void destructMemTargetFactoryShared(ocrMemTargetFactory_t *factory) {
 
 ocrMemTargetFactory_t *newMemTargetFactoryShared(ocrParamList_t *perType) {
     ocrMemTargetFactory_t *base = (ocrMemTargetFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrMemTargetFactoryShared_t), (void *)1);
+                                  runtimeChunkAlloc(sizeof(ocrMemTargetFactoryShared_t), (void *)1);
     base->instantiate = &newMemTargetShared;
     base->initialize = &initializeMemTargetShared;
     base->destruct = &destructMemTargetFactoryShared;
@@ -154,7 +154,7 @@ ocrMemTargetFactory_t *newMemTargetFactoryShared(ocrParamList_t *perType) {
     base->targetFcts.chunkAndTag = FUNC_ADDR(u8 (*)(ocrMemTarget_t*, u64*, u64, ocrMemoryTag_t, ocrMemoryTag_t), sharedChunkAndTag);
     base->targetFcts.tag = FUNC_ADDR(u8 (*)(ocrMemTarget_t*, u64, u64, ocrMemoryTag_t), sharedTag);
     base->targetFcts.queryTag = FUNC_ADDR(u8 (*)(ocrMemTarget_t*, u64*, u64*, ocrMemoryTag_t*, u64), sharedQueryTag);
-    
+
     return base;
 }
 

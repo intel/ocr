@@ -46,10 +46,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocr-runtime-itf.h"
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-	ocrGuid_t edtGuid = *((ocrGuid_t*)depv[0].ptr);
-	ocrGuid_t currentEdt = currentEdtUserGet();
-	// Compare edtGuid passed down and what's returned by the runtime
-	assert(currentEdt == edtGuid);
+    ocrGuid_t edtGuid = *((ocrGuid_t*)depv[0].ptr);
+    ocrGuid_t currentEdt = currentEdtUserGet();
+    // Compare edtGuid passed down and what's returned by the runtime
+    assert(currentEdt == edtGuid);
     ocrShutdown();
     return NULL_GUID;
 }
@@ -69,9 +69,9 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t *k;
     ocrGuid_t dbGuid;
     ocrDbCreate(&dbGuid,(void **) &k,
-            sizeof(ocrGuid_t), /*flags=*/0,
-            /*location=*/NULL_GUID,
-            NO_ALLOC);
+                sizeof(ocrGuid_t), /*flags=*/0,
+                /*location=*/NULL_GUID,
+                NO_ALLOC);
     *k = edtGuid;
 
     // Pass down the db to the edt

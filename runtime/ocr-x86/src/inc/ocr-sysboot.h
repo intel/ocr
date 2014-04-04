@@ -35,7 +35,7 @@ struct _ocrPolicyDomain_t;
  * This is used in the boot process to save user arguments to be passed
  * to the mainEDT later on.
  * Packed arguments must be a contiguous chunk of memory containing both
- * arguments and meta-data to correctly interpret the chunk. 
+ * arguments and meta-data to correctly interpret the chunk.
  *
  * @param packedArgs[in]          Packed arguments to mainEdt
  */

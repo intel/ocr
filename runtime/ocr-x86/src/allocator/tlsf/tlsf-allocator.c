@@ -310,7 +310,7 @@ static const tlsfSize_t GusedBlockOverhead  = (offsetof(header_t, nextFreeBlock)
 
 // This computation just rounds it up to the closest multiple of ELEMENT_SIZE_BYTES
 static const tlsfSize_t GminBlockRealSize   = (sizeof(header_t) + sizeof(tlsfSize_t) + ELEMENT_SIZE_BYTES - 1)
-    >> ELEMENT_SIZE_LOG2;
+        >> ELEMENT_SIZE_LOG2;
 static const tlsfSize_t GmaxBlockRealSize   = (tlsfSize_t)((1<<FL_MAX_LOG2) - 1);
 
 static int myffs(tlsfSize_t val) {
@@ -456,7 +456,7 @@ static void markBlockFree(u64 pgStart, u64 me /* header_t* */) {
     LD_SIZE(temp, ADDR_OF(header_t, me, sizeBlock));
     FENCE_LOAD;
     u64 locationToWrite = me +
-        ((temp + GusedBlockOverhead) << ELEMENT_SIZE_LOG2) - sizeof(tlsfSize_t);
+                          ((temp + GusedBlockOverhead) << ELEMENT_SIZE_LOG2) - sizeof(tlsfSize_t);
 #ifdef ENABLE_VALGRIND
     // Weird case so I'll just hack it for now
     VALGRIND_MAKE_MEM_DEFINED(locationToWrite, sizeof(tlsfSize_t));
@@ -469,14 +469,14 @@ static void markBlockFree(u64 pgStart, u64 me /* header_t* */) {
     ST_SIZE(ADDR_OF(header_t, me, prevFreeBlock), 0xBEEF);  // Some value that is not 0 or 1 for now
     // will be updated when this
     // free block is actually inserted
-    
+
     u64 nextBlockPtr = GET_ADDRESS(getNextBlock(pgStart, me));
     VALGRIND_DEFINED(nextBlockPtr);
     FENCE_STORE;
 
     if(!isBlockFree(nextBlockPtr))  // Usually, no two free blocks follow each other but it may happen temporarily
         markPrevBlockFree(nextBlockPtr);
-    
+
     VALGRIND_NOACCESS(nextBlockPtr);
 }
 
@@ -496,7 +496,7 @@ static tlsfSize_t getRealSizeOfRequest(u64 size) {
     // since the header may be smaller than ALIGN_BYTES, we do this weird computation
     // to take it into account
     size = ((size + ALIGN_BYTES - GoffsetToStart - 1) & ~(ALIGN_BYTES - 1))
-        + GoffsetToStart;
+           + GoffsetToStart;
 
     ASSERT(size % ELEMENT_SIZE_BYTES == 0);
 
@@ -546,7 +546,7 @@ static void mappingSearch(tlsfSize_t realSize, int* flIndex, int* slIndex) {
  *  that block was taken from.
  */
 static headerAddr_t findFreeBlockForRealSize(u64 pgStart, tlsfSize_t realSize,
-                                              int* flIndex, int* slIndex) {
+        int* flIndex, int* slIndex) {
 
     int tf, ts;
     headerAddr_t res = { .address = 0ULL };
@@ -600,7 +600,7 @@ static headerAddr_t findFreeBlockForRealSize(u64 pgStart, tlsfSize_t realSize,
 static void removeFreeBlock(u64 pgStart, headerAddr_t freeBlock) {
     /* header_t* */ u64 freeBlockPtr = GET_ADDRESS(freeBlock);
     tlsfSize_t tempSz;
-    
+
     ASSERT(isBlockFree(freeBlockPtr));
 
     int flIndex, slIndex;
@@ -614,7 +614,7 @@ static void removeFreeBlock(u64 pgStart, headerAddr_t freeBlock) {
 
     VALGRIND_DEFINED1(GET_ADDRESS(prevFreeBlock));
     VALGRIND_DEFINED(GET_ADDRESS(nextFreeBlock));
-    
+
     ASSERT(prevFreeBlock.value !=0 && isBlockFree(GET_ADDRESS(prevFreeBlock)));
     ASSERT(nextFreeBlock.value !=0 && isBlockFree(GET_ADDRESS(nextFreeBlock)));
 
@@ -646,7 +646,7 @@ static void removeFreeBlock(u64 pgStart, headerAddr_t freeBlock) {
         }
         FENCE_STORE;
     }
-    
+
     VALGRIND_NOACCESS1(GET_ADDRESS(prevFreeBlock));
     VALGRIND_NOACCESS(GET_ADDRESS(nextFreeBlock));
 }
@@ -656,7 +656,7 @@ void addFreeBlock(u64 pgStart, headerAddr_t freeBlock) {
     /* header_t* */ u64 freeBlockPtr = GET_ADDRESS(freeBlock);
     int flIndex, slIndex;
     tlsfSize_t tempSz;
-    
+
     LD_SIZE(tempSz, ADDR_OF(header_t, freeBlockPtr, sizeBlock));
     FENCE_LOAD;
     mappingInsert(tempSz, &flIndex, &slIndex);
@@ -706,7 +706,7 @@ void addFreeBlock(u64 pgStart, headerAddr_t freeBlock) {
             ST_SIZE(ADDR_OF(pool_t, pgStart, flAvailOrNot), tempSz);
         }
     }
-    
+
     VALGRIND_NOACCESS(GET_ADDRESS(currentHead));
     FENCE_STORE;
 }
@@ -738,7 +738,7 @@ static headerAddr_t splitBlock(u64 pgStart, headerAddr_t origBlock, tlsfSize_t r
     // Set the size of the original block properly
     ST_SIZE(ADDR_OF(header_t, origBlockPtr, sizeBlock), realSize);
     FENCE_STORE;
-    
+
     VALGRIND_NOACCESS(GET_ADDRESS(remainingBlock));
     return remainingBlock;
 }
@@ -753,7 +753,7 @@ static void absorbNext(u64 pgStart, headerAddr_t freeBlock, headerAddr_t nextBlo
     /* header_t * */ u64 nextBlockPtr = GET_ADDRESS(nextBlock);
     tlsfSize_t tempSz, tempSz2;
 
-    
+
     ASSERT(isBlockFree(freeBlockPtr));
     ASSERT(isBlockFree(nextBlockPtr));
     ASSERT(getNextBlock(pgStart, freeBlockPtr).value == nextBlock.value);
@@ -775,7 +775,7 @@ static void absorbNext(u64 pgStart, headerAddr_t freeBlock, headerAddr_t nextBlo
 // Assume toBeFreedBlock OK for valgrind
 static headerAddr_t mergePrevious(u64 pgStart, headerAddr_t toBeFreedBlock) {
     /* header_t * */ u64 toBeFreedBlockPtr = GET_ADDRESS(toBeFreedBlock);
-    
+
     ASSERT(!isBlockFree(toBeFreedBlockPtr));
     if(isPrevBlockFree(toBeFreedBlockPtr)) {
         // Get the previous block
@@ -792,7 +792,7 @@ static headerAddr_t mergePrevious(u64 pgStart, headerAddr_t toBeFreedBlock) {
     } else {
         markBlockFree(pgStart, toBeFreedBlockPtr);
     }
-    
+
     ASSERT(isBlockFree(toBeFreedBlockPtr));
     return toBeFreedBlock;
 }
@@ -846,7 +846,7 @@ static void initializePool(u64 pgStart, tlsfSize_t poolRealSize) {
     // which bother valgrind
     {
         u64 locationToWrite = ADDR_OF(pool_t, pgStart, mainBlock) +
-            ((poolRealSize - GusedBlockOverhead) << ELEMENT_SIZE_LOG2) - sizeof(tlsfSize_t);
+                              ((poolRealSize - GusedBlockOverhead) << ELEMENT_SIZE_LOG2) - sizeof(tlsfSize_t);
         ST_SIZE(locationToWrite, poolRealSize - 2*GusedBlockOverhead);
 
         ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, mainBlock), prevFreeBlock), 0xBEEF);  // Some value that is not 0 or 1 for now
@@ -865,7 +865,7 @@ static void initializePool(u64 pgStart, tlsfSize_t poolRealSize) {
     ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, nullBlock), prevFreeBlock), nullBlockAddr.value);
     ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, nullBlock), nextFreeBlock), nullBlockAddr.value);
     FENCE_STORE;
-    
+
     // Add the big free block
     addFreeBlock(pgStart, mainBlockAddr);
     VALGRIND_NOACCESS(sentinel);
@@ -885,7 +885,7 @@ static u32 tlsfInit(u64 pgStart, u64 size) {
     // and right after it, we can start the big block.
 
     tlsfSize_t poolRealSize = realSizeForPool -
-        ((poolHeaderSize + ELEMENT_SIZE_BYTES - 1) >> ELEMENT_SIZE_LOG2);
+                              ((poolHeaderSize + ELEMENT_SIZE_BYTES - 1) >> ELEMENT_SIZE_LOG2);
 
     if(poolRealSize < GminBlockRealSize || poolRealSize > GmaxBlockRealSize) {
         DPRINTF(DEBUG_LVL_WARN, "Space mismatch allocating TLSF pool at 0x%lx of sz %d (user sz: %d)\n",
@@ -934,7 +934,7 @@ static u64 tlsfMalloc(u64 pgStart, u64 size) {
     removeFreeBlock(pgStart, freeBlock);
     LD_SIZE(returnedSize, ADDR_OF(header_t, freeBlockPtr, sizeBlock));
     FENCE_LOAD;
-    
+
     if(returnedSize > allocSize + GminBlockRealSize) {
         remainingBlock = splitBlock(pgStart, freeBlock, allocSize);
         VALGRIND_DEFINED1(GET_ADDRESS(remainingBlock));
@@ -1020,7 +1020,7 @@ static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
         if(result) {
             u64 sizeToCopy = tempSz<realReqSize?tempSz:realReqSize;
             hal_memCopy(result, ptr, sizeToCopy << ELEMENT_SIZE_LOG2, false);
-            
+
             tlsfFree(pgStart, ptr); // Free the original block
         }
     } else {
@@ -1093,7 +1093,7 @@ void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
     // Get a GUID
     guidify(PD, (u64)self, &(self->fguid), OCR_GUID_ALLOCATOR);
     self->pd = PD;
-    
+
     ASSERT(self->memoryCount == 1);
 
     self->memories[0]->fcts.start(self->memories[0], PD);
@@ -1102,7 +1102,7 @@ void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
 void tlsfStop(ocrAllocator_t *self) {
     ocrPolicyMsg_t msg;
     getCurrentEnv(&(self->pd), NULL, NULL, &msg);
-    
+
 #ifdef OCR_ENABLE_STATISTICS
     statsALLOCATOR_STOP(self->pd, self->guid, self, self->memories[0]->guid,
                         self->memories[0]);
@@ -1110,7 +1110,7 @@ void tlsfStop(ocrAllocator_t *self) {
 
     ASSERT(self->memoryCount == 1);
     self->memories[0]->fcts.stop(self->memories[0]);
-    
+
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
@@ -1146,8 +1146,8 @@ void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
 #ifdef ENABLE_VALGRIND
     VALGRIND_MEMPOOL_ALLOC(rself->addr, toReturn, size);
     VALGRIND_MAKE_MEM_NOACCESS(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t)); // The tlsfSize_t is because the last part
-                                                                                  // of mainBlock can be accessed as part of the
-                                                                                  // first allocated block
+    // of mainBlock can be accessed as part of the
+    // first allocated block
 #endif
     hal_unlock32(&(rself->lock));
     return toReturn;
@@ -1155,7 +1155,7 @@ void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
 
 void tlsfDeallocate(ocrAllocator_t *self, void* address) {
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-    
+
     hal_lock32(&(rself->lock));
 #ifdef ENABLE_VALGRIND
     VALGRIND_MAKE_MEM_DEFINED(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t));
@@ -1190,12 +1190,12 @@ void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
 ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_t *perInstance) {
 
     ocrAllocatorTlsf_t *result = (ocrAllocatorTlsf_t*)
-        runtimeChunkAlloc(sizeof(ocrAllocatorTlsf_t), NULL);
+                                 runtimeChunkAlloc(sizeof(ocrAllocatorTlsf_t), NULL);
     ocrAllocator_t * derived = (ocrAllocator_t *) result;
     factory->initialize(factory, derived, perInstance);
     return (ocrAllocator_t *) result;
 }
-    
+
 void initializeAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrAllocator_t * self, ocrParamList_t * perInstance) {
     initializeAllocatorOcr(factory, self, perInstance);
 
@@ -1218,7 +1218,7 @@ static void destructAllocatorFactoryTlsf(ocrAllocatorFactory_t * factory) {
 
 ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
     ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrAllocatorFactoryTlsf_t), (void *)1);
+                                  runtimeChunkAlloc(sizeof(ocrAllocatorFactoryTlsf_t), (void *)1);
     ASSERT(base);
     base->instantiate = &newAllocatorTlsf;
     base->initialize = &initializeAllocatorTlsf;
@@ -1345,7 +1345,7 @@ int tlsf_check_heap(u64 pgStart, unsigned int *freeRemaining) {
                         ++errCount;
                     }
                     if(blockHeadPtr->sizeBlock < (GminBlockRealSize - GusedBlockOverhead)
-                       || blockHeadPtr->sizeBlock > GmaxBlockRealSize) {
+                            || blockHeadPtr->sizeBlock > GmaxBlockRealSize) {
 
                         fprintf(stderr, "Block 0x%x has illegal size for (%d, %d)\n", blockHeadPtr, i, j);
                         ++errCount;

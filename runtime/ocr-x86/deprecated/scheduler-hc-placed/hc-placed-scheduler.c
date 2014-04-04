@@ -44,7 +44,7 @@ ocrWorkpileIterator_t* steal_mapping_assert (ocrScheduler_t* base, ocrWorker_t* 
 }
 
 u8 hc_placed_scheduler_take (ocrScheduler_t *base, struct _ocrCost_t *cost, u32 *count,
-                  ocrGuid_t *edts, struct _ocrPolicyCtx_t *context) {
+                             ocrGuid_t *edts, struct _ocrPolicyCtx_t *context) {
     ocrWorker_t* w = NULL;
     ocrGuid_t wid = context->sourceObj;
     deguidify(getCurrentPD(), wid, (u64*)&w, NULL);
@@ -95,7 +95,7 @@ u8 hc_placed_scheduler_give (ocrScheduler_t* base, u32 count, ocrGuid_t* edts, s
  * Mapping function many-to-one to map a set of workpiles to a scheduler instance
  */
 static void hc_ocr_module_map_workpiles_to_schedulers( ocrMappable_t * self_module, ocrMappableKind kind,
-                                               u64 nb_instances, ocrMappable_t ** ptr_instances) {
+        u64 nb_instances, ocrMappable_t ** ptr_instances) {
     // Checking mapping conforms to what we're expecting in this implementation
     assert(kind == OCR_WORKPILE);
     // allocate steal iterator cache
@@ -148,4 +148,4 @@ ocrScheduler_t* newSchedulerHcPlaced(ocrSchedulerFactory_t * factory, ocrParamLi
     return base;
 }
 
-#endif 
+#endif

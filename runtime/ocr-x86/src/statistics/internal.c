@@ -18,29 +18,29 @@
 
 ocrStatsProcess_t* intCreateStatsProcess(ocrGuid_t processGuid) {
     ocrStatsProcess_t *result = checkedMalloc(result, sizeof(ocrStatsProcess_t));
-    
+
     u64 i;
     ocrPolicyDomain_t *policy = getCurrentPD();
     ocrPolicyCtx_t *ctx = getCurrentWorkerContext();
-    
+
     result->me = processGuid;
     result->processing = policy->getLock(policy, ctx);
     result->messages = policy->getQueue(policy, 32, ctx);
     result->tick = 0;
-    
+
     // +1 because the first bucket keeps track of all filters uniquely
     result->outFilters = (ocrStatsFilter_t***)checkedMalloc(result->outFilters,
-                                                            sizeof(ocrStatsFilter_t**)*(STATS_EVT_MAX+1));
+                         sizeof(ocrStatsFilter_t**)*(STATS_EVT_MAX+1));
     result->outFilterCounts = (u64*)checkedMalloc(result->outFilterCounts, sizeof(u64)*(STATS_EVT_MAX+1));
     result->filters = (ocrStatsFilter_t***)checkedMalloc(result->filters,
-                                                        sizeof(ocrStatsFilter_t**)*(STATS_EVT_MAX+1));
+                      sizeof(ocrStatsFilter_t**)*(STATS_EVT_MAX+1));
     result->filterCounts = (u64*)checkedMalloc(result->filterCounts, sizeof(u64)*(STATS_EVT_MAX+1));
-    
+
     for(i = 0; i < (u64)STATS_EVT_MAX + 1; ++i) {
         result->outFilterCounts[i] = 0ULL;
         result->filterCounts[i] = 0ULL;
     }
-        
+
     return result;
 }
 
@@ -168,10 +168,10 @@ u8 intProcessOutgoingMessage(ocrStatsProcess_t *src, ocrStatsMessage_t* msg) {
     DPRINTF(DEBUG_LVL_VERB, "Processing outgoing message 0x%lx for 0x%lx\n",
             (u64)msg, src->me);
 
-    
+
     u64 type = fls64(msg->type);
     ASSERT((1ULL<<type) == msg->type);
-    
+
     u32 countFilter = src->outFilterCounts[type] & 0xFFFFFFFF;
     if(countFilter) {
         // We have at least one filter that is registered to
@@ -183,13 +183,13 @@ u8 intProcessOutgoingMessage(ocrStatsProcess_t *src, ocrStatsMessage_t* msg) {
             myFilters[countFilter]->fcts.notify(myFilters[countFilter], msg);
         }
     }
-        
+
     return 0;
 }
 
 u8 intProcessMessage(ocrStatsProcess_t *dst) {
     ocrStatsMessage_t* msg = (ocrStatsMessage_t*)
-        dst->messages->fctPtrs->popHead(dst->messages);
+                             dst->messages->fctPtrs->popHead(dst->messages);
 
     if(msg) {
         DPRINTF(DEBUG_LVL_VERB, "Processing incomming message 0x%lx for 0x%lx\n",
@@ -199,7 +199,7 @@ u8 intProcessMessage(ocrStatsProcess_t *dst) {
 
         u64 type = fls64(msg->type);
         ASSERT((1ULL<<type) == msg->type);
-        
+
         u32 countFilter = dst->filterCounts[type] & 0xFFFFFFFF;
         if(countFilter) {
             // We have at least one filter that is registered to

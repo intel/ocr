@@ -39,7 +39,7 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
 
     // Notify the sender that a message is being sent
     intProcessOutgoingMessage(src, msg);
-    
+
     // Push the message into the messages queue
     dst->messages->fctPtrs->pushTail(dst->messages, (u64)msg);
 
@@ -60,7 +60,7 @@ void ocrStatsAsyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
 }
 
 void ocrStatsSyncMessage(ocrStatsProcess_t *src, ocrStatsProcess_t *dst,
-                          ocrStatsMessage_t *msg) {
+                         ocrStatsMessage_t *msg) {
 
     if(!msg) {
         DPRINTF(DEBUG_LVL_VVERB, "Message is NULL, ignoring\n");
