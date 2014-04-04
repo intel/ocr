@@ -776,21 +776,37 @@ u8 taskExecute(ocrTask_t* base) {
 
     // Now deal with the output event
     if(base->outputEvent != NULL_GUID) {
-#define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_DEP_SATISFY
-        msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
-        PD_MSG_FIELD(guid.guid) = base->outputEvent;
-        PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-        PD_MSG_FIELD(payload.guid) = retGuid;
-        PD_MSG_FIELD(payload.metaDataPtr) = NULL;
-        PD_MSG_FIELD(slot) = 0; // Always satisfy on slot 0. This will trickle to
-        // the finish latch if needed
-        PD_MSG_FIELD(properties) = 0;
-        // Ignore failure for now
-        // FIXME: Probably need to be a bit more selective
-        pd->fcts.processMessage(pd, &msg, false);
-#undef PD_MSG
-#undef PD_TYPE
+        if(retGuid != NULL_GUID) {
+    #define PD_MSG (&msg)
+    #define PD_TYPE PD_MSG_DEP_ADD
+            msg.type = PD_MSG_DEP_ADD | PD_MSG_REQUEST;
+            PD_MSG_FIELD(source.guid) = retGuid;
+            PD_MSG_FIELD(dest.guid) = base->outputEvent;
+            PD_MSG_FIELD(slot) = 0; // Always satisfy on slot 0. This will trickle to
+            // the finish latch if needed
+            PD_MSG_FIELD(properties) = 0;
+            // Ignore failure for now
+            // FIXME: Probably need to be a bit more selective
+            pd->fcts.processMessage(pd, &msg, false);
+    #undef PD_MSG
+    #undef PD_TYPE
+        } else {
+    #define PD_MSG (&msg)
+    #define PD_TYPE PD_MSG_DEP_SATISFY
+            msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
+            PD_MSG_FIELD(guid.guid) = base->outputEvent;
+            PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+            PD_MSG_FIELD(payload.guid) = retGuid;
+            PD_MSG_FIELD(payload.metaDataPtr) = NULL;
+            PD_MSG_FIELD(slot) = 0; // Always satisfy on slot 0. This will trickle to
+            // the finish latch if needed
+            PD_MSG_FIELD(properties) = 0;
+            // Ignore failure for now
+            // FIXME: Probably need to be a bit more selective
+            pd->fcts.processMessage(pd, &msg, false);
+    #undef PD_MSG
+    #undef PD_TYPE
+        }
     }
     return 0;
 }
