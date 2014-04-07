@@ -20,17 +20,28 @@
 typedef enum _allocatorType_t {
     allocatorTlsf_id,
     allocatorNull_id,
+    // As other types are added, add switch cases in allocater-all.c
     allocatorMax_id
 } allocatorType_t;
 
+// When a block is freed, the Policy Domain extracts an index of the type of allocator that
+// allocated the block from a "pool header descriptor" in the block header.  That descriptor
+// also contains the address of the pool header itself.  So this descriptor aggregates to
+// both the type and instance of the allocator to which the block needs to be returned.  As
+// such, the number of bits available for the allocator type index is only those left over
+// from expressing the pool address.  I.e., with allocators working at a granularity of
+// eight-byte aligned allocations, there are three bits available to distinguish allocator
+// type.  Thus, there can only be up to eight allocator types, not counting the Null allocator.
+// These masks support extracting the allocator type and pool address from the block header.
+#define POOL_HEADER_TYPE_MASK (7L)
+#define POOL_HEADER_ADDR_MASK (~(POOL_HEADER_TYPE_MASK))
+
 extern const char * allocator_types[];
 
-// TLSF allocator
-#include "allocator/tlsf/tlsf-allocator.h"
+#include "allocator/tlsf/tlsf-allocator.h"    // TLSF allocator
 #include "allocator/null/null-allocator.h"
 
-// Add other allocators using the same pattern as above
-
 ocrAllocatorFactory_t *newAllocatorFactory(allocatorType_t type, ocrParamList_t *typeArg);
+void allocatorFreeFunction(void* blockPayloadAddr);
 
 #endif /* __ALLOCATOR_ALL_H__ */

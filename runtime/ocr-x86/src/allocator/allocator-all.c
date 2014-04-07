@@ -6,6 +6,10 @@
 
 #include "allocator/allocator-all.h"
 #include "debug.h"
+#ifdef ENABLE_VALGRIND
+#include <valgrind/memcheck.h>
+#include "ocr-hal.h"
+#endif
 
 const char * allocator_types[] = {
     "tlsf",
@@ -38,4 +42,28 @@ void initializeAllocatorOcr(ocrAllocatorFactory_t * factory, ocrAllocator_t * se
     self->fcts = factory->allocFcts;
     self->memories = NULL;
     self->memoryCount = 0;
+}
+
+void allocatorFreeFunction(void* blockPayloadAddr) {
+    u64 * pPoolHeaderDescr = ((u64 *)(((u64) blockPayloadAddr)-sizeof(u64)));
+#ifdef ENABLE_VALGRIND
+    VALGRIND_MAKE_MEM_DEFINED((u64) pPoolHeaderDescr, sizeof(u64));
+#endif
+    u64 poolHeaderDescr;
+    GET64(poolHeaderDescr, (u64) pPoolHeaderDescr);
+#ifdef ENABLE_VALGRIND
+    VALGRIND_MAKE_MEM_NOACCESS((u64) pPoolHeaderDescr, sizeof(u64));
+#endif
+    u64 type = poolHeaderDescr & POOL_HEADER_TYPE_MASK;
+    switch(type) {
+#ifdef ENABLE_ALLOCATOR_TLSF
+    case allocatorTlsf_id:
+        tlsfDeallocate(blockPayloadAddr);
+        return;
+#endif
+    case allocatorMax_id:
+    default:
+        ASSERT(0);
+        return;
+    };
 }

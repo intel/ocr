@@ -18,8 +18,11 @@
 #endif
 
 #include "policy-domain/ce/ce-policy.h"
+#include "allocator/allocator-all.h"
 
 #define DEBUG_TYPE POLICY
+
+#define ENGINE_INDEX_OF_CE (8)
 
 void cePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     // The PD should have been brought up by now and everything instantiated
@@ -265,84 +268,103 @@ static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
 static u8 getEngineIndex(ocrPolicyDomain_t *self, ocrLocation_t location) {
 
     if(location == self->myLocation) {
-        return 8; // Get the old behavior back
+        return ENGINE_INDEX_OF_CE; // Get the old behavior back
     }
     // This is an XE
-    ASSERT(location < 8);
+    ASSERT(location < ENGINE_INDEX_OF_CE);
     return location;
 }
 
 // In all these functions, we consider only a single PD. In other words, in CE, we
 // deal with everything locally and never send messages
+
+// allocateDatablock:  Utility used by ceAllocateDb and ceMemAlloc, just below.
+static void* allocateDatablock (ocrPolicyDomain_t *self,
+                                u64                size,
+                                u64                engineIndex,
+                                u64                prescription,
+                                u64               *allocatorIdx) {
+    void* result;
+    u64 hints = 0; // Allocator hint
+    u64 idx;  // Index into the allocators array to select the allocator to try.
+    ASSERT (self->allocatorCount > 0);
+    do {
+        hints = (prescription & 1)?(OCR_ALLOC_HINT_NONE):(OCR_ALLOC_HINT_REDUCE_CONTENTION);
+        prescription >>= 1;
+        idx = prescription & 7;  // Get the index of the allocator to use.
+        prescription >>= 3;
+        if (idx == 0) {
+            idx = engineIndex;   // Zero selects an L1.  Which?  The one belonging to the requesting engine.
+        } else {
+            idx += ENGINE_INDEX_OF_CE;  // Non-zero selects something higher than L1.  Adjust index to get past ALL the L1s in the Block.
+        }
+        if ((idx > self->allocatorCount) || (self->allocators[idx] == NULL)) {
+            continue;  // Skip this allocator if it doesn't exist.
+        }
+        result = self->allocators[idx]->fcts.allocate(self->allocators[idx], size, hints);
+
+        if (result) {
+            *allocatorIdx = idx;
+            return result;
+        }
+    } while (prescription != 0);
+    return NULL;
+}
+
 static u8 ceAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, u64 size,
                        u32 properties, u64 engineIndex,
-                       ocrFatGuid_t affinity, ocrInDbAllocator_t allocator) {
-    // This function allocates a data block for the requestor, who is either this CE itself, or
-    // is one of this CE's XE children.  Currently, the "affinity" and "allocator" arguments are
-    // ignored.  Instead, we try to allocate the data block using the allocator corresponding to
-    // the L1 memory located nearest the requesting agent.  Failing that, we try successive levels
-    // of the memory hierarchy -- L2, then L3, then DRAM -- each of which is managed by an
-    // allocator.  Thus for these levels, the allocators and their memories are a shared resource
-    // among this CE and its XE children, but NOT shared with any other CE's or XE's.
-    u64 i;
-    u64 numberOfL1AllocatorsInABlock = getEngineIndex(self, self->myLocation)+1; // CE's L1 is the last in the block.
-    void* result;
-    for(i = engineIndex;            // First try the allocator for the L1 collocated with the engine
-            i < self->allocatorCount;
-            i = (i < numberOfL1AllocatorsInABlock ? numberOfL1AllocatorsInABlock : i+1)) { // Then try L2, L3, DRAM.
-        result = self->allocators[i]->fcts.allocate(self->allocators[i], size);
-        if(result) break;
-    }
-
-    if(i < self->allocatorCount) {
+                       ocrFatGuid_t affinity, ocrInDbAllocator_t allocator,
+                       u64 prescription) {
+    // This function allocates a data block for the requestor, who is either this computing agent or a
+    // different one that sent us a message.  After getting that data block, it "guidifies" the results
+    // which, by the way, ultimately causes ceMemAlloc (just below) to run.
+    //
+    // Currently, the "affinity" and "allocator" arguments are ignored, and I expect that these will
+    // eventually be eliminated here and instead, above this level, processed into the "prescription"
+    // variable, which has been added to this argument list.  The prescription indicates an order in
+    // which to attempt to allocate the block to a pool.
+    u64 idx;
+    void* result = allocateDatablock (self, size, engineIndex, prescription, &idx);
+    if (result) {
         ocrDataBlock_t *block = self->dbFactories[0]->instantiate(
-            self->dbFactories[0], self->allocators[i]->fguid, self->fguid,
+            self->dbFactories[0], self->allocators[idx]->fguid, self->fguid,
             size, result, properties, NULL);
         *ptr = result;
         (*guid).guid = block->guid;
         (*guid).metaDataPtr = block;
         return 0;
+    } else {
+        DPRINTF(DEBUG_LVL_WARN, "ceAllocateDb returning NULL for size %ld\n", (u64) size);
+        return OCR_ENOMEM;
     }
-
-    // In the fullness of time, we might want to implement handling of failure of all above allocators
-    // by forwarding the request to an agent responsible for managing a huge, SHARED pool of DRAM
-    // (and maybe shared pools of L2 and/or L3, too.)
-    ASSERT (false);  // No memory available for block.
-    return OCR_ENOMEM;
 }
 
 static u8 ceMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
-                     u64 engineIndex, ocrMemType_t memType, void** ptr) {
-    // This function allocates dynamic storage for the requestor, who is either this CE itself, or
-    // is one of this CE's XE children.  We first try to allocate the data block using the allocator
-    // corresponding to /the L1 memory located nearest the requesting agent.  Failing that, we try
-    // successive levels of the memory hierarchy -- L2, then L3, then DRAM -- each of which is
-    // managed by an allocator.  Thus for these levels, the allocators and their memories are a
-    // shared resource among this CE and its XE children, but NOT shared with any other CE's or XE's.
-    u64 i;
-    u64 numberOfEnginesInABlock = 9;
+                     u64 engineIndex, ocrMemType_t memType, void** ptr,
+                     u64 prescription) {
+    // Like hcAllocateDb, this function also allocates a data block.  But it does NOT guidify
+    // the results.  The main usage of this function is to allocate space for the guid needed
+    // by ceAllocateDb; so if this function also guidified its results, you'd be in an infinite
+    // guidification loop!
     void* result;
+    u64 idx;
     ASSERT (memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
-    ASSERT (self->allocatorCount > 0);
-    for(i = (memType == GUID_MEMTYPE) ? // If we are allocating storage for a GUID...
-            (self->allocatorCount-1) :  // just allocate it in DRAM (for now).  Otherwise...
-            engineIndex;                // First try the allocator for L1 collocated with the engine
-            i < self->allocatorCount;
-            i = (i < numberOfEnginesInABlock ? numberOfEnginesInABlock : i+1)) { // Then try L2, L3, DRAM.
-        result = self->allocators[i]->fcts.allocate(self->allocators[i], size);
-        if(result) break;
-    }
-
-    if(i < self->allocatorCount) {
+    result = allocateDatablock (self, size, engineIndex, prescription, &idx);
+    if (result) {
         *ptr = result;
-        *allocator = self->allocators[i]->fguid;
+        *allocator = self->allocators[idx]->fguid;
         return 0;
+    } else {
+        DPRINTF(DEBUG_LVL_WARN, "ceMemAlloc returning NULL for size %ld\n", (u64) size);
+        return OCR_ENOMEM;
     }
-    return OCR_ENOMEM;
 }
 
 static u8 ceMemUnalloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
                        void* ptr, ocrMemType_t memType) {
+#if 1
+    allocatorFreeFunction(ptr);
+#else
     // Look for the allocator that has a guid that matches the one provided in the unalloc
     // request message.  (This pre-supposes that the caller properly conveys this information
     // from the response gotten back on the alloc request, to the unalloc request.  This might
@@ -353,18 +375,19 @@ static u8 ceMemUnalloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
         for(i=0; i < self->allocatorCount; ++i) {
             if(self->allocators[i]->fguid.guid == allocator->guid) {
                 allocator->metaDataPtr = self->allocators[i]->fguid.metaDataPtr;
-                self->allocators[i]->fcts.free(self->allocators[i], ptr);
+                self->allocators[i]->fcts.free(->allocators[i], ptr);
                 return 0;
             }
         }
         return OCR_EINVAL;
     } else if (memType == GUID_MEMTYPE) {
         ASSERT (self->allocatorCount > 0);
-        self->allocators[self->allocatorCount-1]->fcts.free(self->allocators[self->allocatorCount-1], ptr);
+        self->allocators[self->allocatorCount-1]->fcts.free(ptr);
         return 0;
     } else {
         ASSERT (false);
     }
+#endif
     return 0;
 }
 
@@ -496,10 +519,12 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // This would impact where we do the PD_MSG_MEM_ALLOC for example
         // For now we deal with both USER and RT dbs the same way
         ASSERT((PD_MSG_FIELD(dbType) == USER_DBTYPE) || (PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE));
+// TODO:  The prescription needs to be derived from the affinity, and needs to default to something sensible.
+#define PRESCRIPTION 0xFEDCBA9876543210LL
         PD_MSG_FIELD(properties) = ceAllocateDb(
             self, &(PD_MSG_FIELD(guid)), &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
-            PD_MSG_FIELD(properties), getEngineIndex(self, msg->srcLocation),
-            PD_MSG_FIELD(affinity), PD_MSG_FIELD(allocator));
+            PD_MSG_FIELD(properties), msg->srcLocation,
+            PD_MSG_FIELD(affinity), PD_MSG_FIELD(allocator), PRESCRIPTION);
         if(PD_MSG_FIELD(properties) == 0) {
             ocrDataBlock_t *db= PD_MSG_FIELD(guid.metaDataPtr);
             ASSERT(db);
@@ -583,7 +608,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(allocatingPD) = self->fguid;
         PD_MSG_FIELD(properties) = ceMemAlloc(
             self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
-            engineIndex, PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)));
+            engineIndex, PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)),
+            PRESCRIPTION);
         returnCode = ceProcessResponse(self, msg, 0);
 #undef PD_MSG
 #undef PD_TYPE
@@ -977,12 +1003,10 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
     case PD_MSG_MGT_SHUTDOWN: {
         START_PROFILE(pd_ce_Shutdown);
-        u32 i;
         u32 neighborCount = self->neighborCount;
         ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t *)self;
         if (msg->type & PD_MSG_REQUEST) {
             // This triggers the shutdown of the machine
-            ocrLocation_t origRequester = msg->srcLocation;
             ASSERT(!(msg->type & PD_MSG_RESPONSE));
             ASSERT(msg->srcLocation != self->myLocation);
             cePolicy->shutdownCount++; //FIXME: Assumes block local shutdown message from XE
@@ -1041,12 +1065,27 @@ u8 cePdWaitMessage(ocrPolicyDomain_t *self,  ocrMsgHandle_t **handle) {
 }
 
 void* cePdMalloc(ocrPolicyDomain_t *self, u64 size) {
-    // Just try in the first allocator
-    return self->allocators[0]->fcts.allocate(self->allocators[0], size);
+    u64 i;
+    void* result;
+    for(i = ENGINE_INDEX_OF_CE; i < self->allocatorCount; i++) {
+        result = self->allocators[i]->fcts.allocate(self->allocators[i], size,
+            OCR_ALLOC_HINT_REDUCE_CONTENTION);   // Staticly reduce contention (Possibly refine later)
+        if(result) break;
+        result = self->allocators[i]->fcts.allocate(self->allocators[i], size,
+            OCR_ALLOC_HINT_NONE);   // Staticly use common pool (Possibly refine later)
+        if(result) break;
+    }
+
+    if(i < self->allocatorCount) {
+        return result;
+    }
+
+    DPRINTF(DEBUG_LVL_WARN, "cePdMalloc returning NULL for size %ld\n", (u64) size);
+    return NULL;
 }
 
 void cePdFree(ocrPolicyDomain_t *self, void* addr) {
-    return self->allocators[0]->fcts.free(self->allocators[0], addr);
+    allocatorFreeFunction(addr);
 }
 
 ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * factory,

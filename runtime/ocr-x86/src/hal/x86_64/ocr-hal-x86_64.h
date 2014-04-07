@@ -209,4 +209,15 @@
  */
 #define hal_exit(arg) exit(arg)
 
+// Abstraction to do a load operation from any level of the memory hierarchy
+#define GET8(temp, addr)   ((temp) = *((u8*)(addr)))
+#define GET16(temp, addr)  ((temp) = *((u16*)(addr)))
+#define GET32(temp, addr)  ((temp) = *((u32*)(addr)))
+#define GET64(temp, addr)  ((temp) = *((u64*)(addr)))
+// Abstraction to do a store operation to any level of the memory hierarchy
+#define SET8(addr, value)  (*((u8*)(addr))  = (u8)(value))
+#define SET16(addr, value) (*((u16*)(addr)) = (u16)(value))
+#define SET32(addr, value) (*((u32*)(addr)) = (u32)(value))
+#define SET64(addr, value) (*((u64*)(addr)) = (u64)(value))
+
 #endif /* __OCR_HAL_X86_64_H__ */

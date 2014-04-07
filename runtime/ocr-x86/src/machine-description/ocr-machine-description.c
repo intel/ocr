@@ -566,7 +566,6 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
                 DPRINTF(DEBUG_LVL_INFO, "Created memplatform of type %s, index %d\n", inststr, j);
         }
         break;
-
     case memtarget_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
@@ -579,7 +578,38 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
         break;
     case allocator_type:
         for (j = low; j<=high; j++) {
-            ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
+            allocatorType_t mytype = -1;
+            TO_ENUM (mytype, inststr, allocatorType_t, allocator_types, allocatorMax_id);
+            switch (mytype) {
+#ifdef ENABLE_ALLOCATOR_TLSF
+                case allocatorTlsf_id: {
+                    ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorTlsf_t);
+                    ((paramListAllocatorTlsf_t *)inst_param[j])->sliceCount = 0;
+                    ((paramListAllocatorTlsf_t *)inst_param[j])->sliceSize  = 0;
+                    if (key_exists(dict, secname, "slicesize") || key_exists(dict, secname, "slicecount")) {
+                        if (key_exists(dict, secname, "slicesize") && key_exists(dict, secname, "slicecount")) {
+                            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "slicecount");
+                            INI_GET_INT (key, value, -1);
+                            ((paramListAllocatorTlsf_t *)inst_param[j])->sliceCount = (value==-1)?0:value;
+                            snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "slicesize");
+                            INI_GET_INT (key, value, -1);
+                            ((paramListAllocatorTlsf_t *)inst_param[j])->sliceSize = (value==-1)?0:value;
+                            if (((paramListAllocatorTlsf_t *)inst_param[j])->sliceCount != 0 &&
+                                ((paramListAllocatorTlsf_t *)inst_param[j])->sliceSize < 256) {
+                                DPRINTF(DEBUG_LVL_INFO, "When slicing allocators, minimum slice size is 256 bytes.  Suppressing slicing.\n");
+                                ((paramListAllocatorTlsf_t *)inst_param[j])->sliceCount = 0;
+                            }
+                        } else {
+                            DPRINTF(DEBUG_LVL_INFO, "slicesize and slicecount must be given together or not at all.\n");
+                        }
+                    }
+                }
+                break;
+#endif
+                default:
+                    ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
+                break;
+            }
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
             ((paramListAllocatorInst_t *)inst_param[j])->size = (u64)iniparser_getlonglong(dict, key, 0);
             instance[j] = (void *)((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);
@@ -587,6 +617,8 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
                 DPRINTF(DEBUG_LVL_INFO, "Created allocator of type %s, index %d\n", inststr, j);
         }
         break;
+
+
     case commapi_type:
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListCommApiInst_t);

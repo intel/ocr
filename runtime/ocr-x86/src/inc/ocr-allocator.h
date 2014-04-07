@@ -20,6 +20,10 @@
 #include "ocr-statistics.h"
 #endif
 
+typedef enum {
+    OCR_ALLOC_HINT_NONE         = 0x0,
+    OCR_ALLOC_HINT_REDUCE_CONTENTION = 0x1
+} ocrAllocatorHints_t;
 
 struct _ocrPolicyDomain_t;
 
@@ -67,7 +71,6 @@ typedef struct _ocrAllocatorFcts_t {
      */
     void (*destruct)(struct _ocrAllocator_t* self);
 
-
     void (*begin)(struct _ocrAllocator_t* self, struct _ocrPolicyDomain_t *PD);
 
     void (*start)(struct _ocrAllocator_t* self, struct _ocrPolicyDomain_t * PD);
@@ -83,10 +86,23 @@ typedef struct _ocrAllocatorFcts_t {
      *
      * @param self              Pointer to this allocator
      * @param size              Size to allocate (in bytes)
-     * @return NULL if allocation is unsuccessful or the address
+     * @param hints             Hints for the allocation. These
+     *                          hints help guide allocation inside the allocator.
+     *                          Not all allocators implement all types of hints so
+     *                          allocation should not fail if an unknown hint is
+     *                          passed in. Hints should also not be relied on
+     *                          as directives by the upper-levels. See
+     *                          ocrAllocatorHints_t.
+     * @return NULL if allocation is unsuccessful
      **/
-    void* (*allocate)(struct _ocrAllocator_t *self, u64 size);
+    void* (*allocate)(struct _ocrAllocator_t *self, u64 size, u64 hints);
 
+#if 0
+// The pointer to the "free" function has been removed.  Instead, the
+// appropriate "free" function is derived from information stored in
+// the data block's header at the time it was allocated.  This information
+// allows the Policy Domain to track the block back to the pool it came
+// from, both the type and the instance of that pool.
     /**
      * @brief Frees a previously allocated block
      *
@@ -97,6 +113,7 @@ typedef struct _ocrAllocatorFcts_t {
      * @param address           Address to free
      **/
     void (*free)(struct _ocrAllocator_t *self, void* address);
+#endif
 
     /**
      * @brief Reallocate within the chunk managed by this allocator
@@ -119,9 +136,9 @@ struct _ocrMemTarget_t;
  * @brief Allocator is the interface to the allocator to a zone
  * of memory.
  *
- * This is *not* the low-level memory allocator. This allows memory
- * to be managed in "chunks" (for example one per location) and each can
- * have an independent allocator. Specifically, this enables the
+ * This is *not* the OS/system memory allocator. This allows memory to be
+ * managed in "chunks" (for example one per hierarchical level) and each
+ * can have an independent allocator. Specifically, this enables the
  * modeling of scratchpads and makes NUMA memory explicit
  */
 typedef struct _ocrAllocator_t {
@@ -133,7 +150,7 @@ typedef struct _ocrAllocator_t {
 #endif
 
     struct _ocrMemTarget_t **memories; /**< Allocators are mapped to ocrMemTarget_t (0+) */
-    u64 memoryCount;          /**< Number of memories associated */
+    u64 memoryCount;                   /**< Number of memories associated */
 
     ocrAllocatorFcts_t fcts;
 } ocrAllocator_t;

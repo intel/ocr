@@ -16,6 +16,7 @@
 #define __OCR_HAL_FSIM_CE_H__
 
 #include "ocr-types.h"
+#include "rmd-mmio.h"
 
 
 /****************************************************/
@@ -276,4 +277,84 @@
 #define hal_exit(arg)                           \
     __asm__ __volatile__("int $0xFE\n\t")
 
+// Support for abstract load and store macros
+#define MAP_AGENT_SIZE_LOG2 (21)
+#define IS_REMOTE(addr) (((u64)(addr)) >= (1LL << MAP_AGENT_SIZE_LOG2))
+// Abstraction to do a load operation from any level of the memory hierarchy
+static inline u8 AbstractLoad8(u64 addr) {
+    u8 temp;
+    if (IS_REMOTE(addr)) {
+        temp = rmd_ld8(addr);
+    } else {
+        temp = *((u8 *) addr);
+    }
+    return temp;
+}
+#define GET8(temp,addr)  temp = AbstractLoad8(addr)
+
+static inline u16 AbstractLoad16(u64 addr) {
+    u16 temp;
+    if (IS_REMOTE(addr)) {
+        temp = rmd_ld16(addr);
+    } else {
+        temp = *((u16 *) addr);
+    }
+    return temp;
+}
+#define GET16(temp,addr)  temp = AbstractLoad16(addr)
+
+static inline u32 AbstractLoad32(u64 addr) {
+    u32 temp;
+    if (IS_REMOTE(addr)) {
+        temp = rmd_ld32(addr);
+    } else {
+        temp = *((u32 *) addr);
+    }
+    return temp;
+}
+#define GET32(temp,addr)  temp = AbstractLoad32(addr)
+
+static inline u64 AbstractLoad64(u64 addr) {
+    u64 temp;
+    if (IS_REMOTE(addr)) {
+        temp = rmd_ld64(addr);
+    } else {
+        temp = *((u64 *) addr);
+    }
+    return temp;
+}
+#define GET64(temp,addr)  temp = AbstractLoad64(addr)
+
+// Abstraction to do a store operation to any level of the memory hierarchy
+static inline void SET8(u8 value, u64 addr) {
+    if (IS_REMOTE(addr)) {
+        rmd_st8(addr, value);
+    } else {
+        *((u8 *) addr) = value;
+    }
+}
+
+static inline void SET16(u16 value, u64 addr) {
+    if (IS_REMOTE(addr)) {
+        rmd_st16(addr, value);
+    } else {
+        *((u16 *) addr) = value;
+    }
+}
+
+static inline void SET32(u32 value, u64 addr) {
+    if (IS_REMOTE(addr)) {
+        rmd_st32(addr, value);
+    } else {
+        *((u32 *) addr) = value;
+    }
+}
+
+static inline void SET64(u64 value, u64 addr) {
+    if (IS_REMOTE(addr)) {
+        rmd_st64(addr, value);
+    } else {
+        *((u64 *) addr) = value;
+    }
+}
 #endif /* __OCR_HAL_FSIM_CE_H__ */

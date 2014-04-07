@@ -20,6 +20,7 @@
 #include "utils/profiler/profiler.h"
 
 #include "policy-domain/hc/hc-policy.h"
+#include "allocator/allocator-all.h"
 
 #define DEBUG_TYPE POLICY
 
@@ -312,57 +313,91 @@ static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
     RETURN_PROFILE();
 }
 
-// In all these functions, we consider only a single PD. In other words, in HC, we
+// In all these functions, we consider only a single PD. In other words, in CE, we
 // deal with everything locally and never send messages
-static u8 hcAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, u64 size,
-                       u32 properties, ocrFatGuid_t affinity, ocrInDbAllocator_t allocator) {
 
-    // Currently a very simple model of just going through all allocators
-    u64 i;
+// allocateDatablock:  Utility used by hcAllocateDb and hcMemAlloc, just below.
+static void* allocateDatablock (ocrPolicyDomain_t *self,
+                                u64                size,
+                                u64                prescription,
+                                u64               *allocatorIdx) {
     void* result;
-    for(i=0; i < self->allocatorCount; ++i) {
-        result = self->allocators[i]->fcts.allocate(self->allocators[i], size);
-        if(result) break;
-    }
+    u64 hints = 0; // Allocator hint
+    u64 idx;  // Index into the allocators array to select the allocator to try.
+    ASSERT (self->allocatorCount > 0);
+    do {
+        hints = (prescription & 1)?(OCR_ALLOC_HINT_NONE):(OCR_ALLOC_HINT_REDUCE_CONTENTION);
+        prescription >>= 1;
+        idx = prescription & 7;  // Get the index of the allocator to use.
+        prescription >>= 3;
+        if ((idx > self->allocatorCount) || (self->allocators[idx] == NULL)) {
+            continue;  // Skip this allocator if it doesn't exist.
+        }
+        result = self->allocators[idx]->fcts.allocate(self->allocators[idx], size, hints);
 
-    if(i < self->allocatorCount) {
+        if (result) {
+            *allocatorIdx = idx;
+            return result;
+        }
+    } while (prescription != 0);
+    return NULL;
+}
+
+static u8 hcAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, u64 size,
+                       u32 properties, ocrFatGuid_t affinity, ocrInDbAllocator_t allocator,
+                       u64 prescription) {
+    // This function allocates a data block for the requestor, who is either this computing agent or a
+    // different one that sent us a message.  After getting that data block, it "guidifies" the results
+    // which, by the way, ultimately causes hcMemAlloc (just below) to run.
+    //
+    // Currently, the "affinity" and "allocator" arguments are ignored, and I expect that these will
+    // eventually be eliminated here and instead, above this level, processed into the "prescription"
+    // variable, which has been added to this argument list.  The prescription indicates an order in
+    // which to attempt to allocate the block to a pool.
+    u64 idx;
+    void* result = allocateDatablock (self, size, prescription, &idx);
+    if (result) {
         ocrDataBlock_t *block = self->dbFactories[0]->instantiate(
-                                    self->dbFactories[0], self->allocators[i]->fguid, self->fguid,
-                                    size, result, properties, NULL);
+            self->dbFactories[0], self->allocators[idx]->fguid, self->fguid,
+            size, result, properties, NULL);
         *ptr = result;
         (*guid).guid = block->guid;
         (*guid).metaDataPtr = block;
         return 0;
+    } else {
+        DPRINTF(DEBUG_LVL_WARN, "hcAllocateDb returning NULL for size %ld\n", (u64) size);
+        return OCR_ENOMEM;
     }
-    return OCR_ENOMEM;
 }
 
 static u8 hcMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
-                     ocrMemType_t memType, void** ptr) {
-    u64 i;
+                     ocrMemType_t memType, void** ptr, u64 prescription) {
+    // Like hcAllocateDb, this function also allocates a data block.  But it does NOT guidify
+    // the results.  The main usage of this function is to allocate space for the guid needed
+    // by hcAllocateDb; so if this function also guidified its results, you'd be in an infinite
+    // guidification loop!
+    //
+    // The prescription indicates an order in which to attempt to allocate the block to a pool.
     void* result;
-
-    ASSERT(memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
-    ASSERT (self->allocatorCount > 0);
-    for(i = (memType == GUID_MEMTYPE) ? // If we are allocating storage for a GUID...
-            (self->allocatorCount-1) :  // just allocate it in DRAM (for now).  Otherwise...
-            0;                          // try first allocator (L1) first.
-            i < self->allocatorCount;
-            i++) {                          // Then try L2, L3, DRAM.
-        result = self->allocators[i]->fcts.allocate(self->allocators[i], size);
-        if(result) break;
-    }
-
-    if(i < self->allocatorCount) {
+    u64 idx;
+    ASSERT (memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
+    result = allocateDatablock (self, size, prescription, &idx);
+    if (result) {
         *ptr = result;
-        *allocator = self->allocators[i]->fguid;
+        *allocator = self->allocators[idx]->fguid;
         return 0;
+    } else {
+        DPRINTF(DEBUG_LVL_WARN, "hcMemAlloc returning NULL for size %ld\n", (u64) size);
+        return OCR_ENOMEM;
     }
-    return OCR_ENOMEM;
 }
 
 static u8 hcMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
                        void* ptr, ocrMemType_t memType) {
+#if 1
+    allocatorFreeFunction(ptr);
+    return 0;
+#else
     u64 i;
     ASSERT (memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
     if (memType == DB_MEMTYPE) {
@@ -382,6 +417,7 @@ static u8 hcMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
         ASSERT (false);
     }
     return OCR_EINVAL;
+#endif
 }
 
 static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
@@ -524,11 +560,13 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // This would impact where we do the PD_MSG_MEM_ALLOC for ex
         // For now we deal with both USER and RT dbs the same way
         ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE || PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE);
+#define PRESCRIPTION 0x10LL
         PD_MSG_FIELD(properties) = hcAllocateDb(self, &(PD_MSG_FIELD(guid)),
                                   &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
                                   PD_MSG_FIELD(properties),
                                   PD_MSG_FIELD(affinity),
-                                  PD_MSG_FIELD(allocator));
+                                  PD_MSG_FIELD(allocator),
+                                  PRESCRIPTION);
         if(PD_MSG_FIELD(properties) == 0) {
             ocrDataBlock_t *db = PD_MSG_FIELD(guid.metaDataPtr);
             ASSERT(db);
@@ -622,7 +660,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         PD_MSG_FIELD(properties) = hcMemAlloc(
             self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
-            PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)));
+            PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)), PRESCRIPTION);
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
@@ -1255,7 +1293,8 @@ void* hcPdMalloc(ocrPolicyDomain_t *self, u64 size) {
 
     // Just try in the first allocator
     void* toReturn = NULL;
-    toReturn = self->allocators[0]->fcts.allocate(self->allocators[0], size);
+    toReturn = self->allocators[0]->fcts.allocate(self->allocators[0], size, OCR_ALLOC_HINT_NONE);
+    if (toReturn == NULL) DPRINTF(DEBUG_LVL_WARN, "hcPdMalloc returning NULL for size %ld\n", (u64) size);
 
     hcReleasePd((ocrPolicyDomainHc_t*)self);
     RETURN_PROFILE(toReturn);
@@ -1267,8 +1306,7 @@ void hcPdFree(ocrPolicyDomain_t *self, void* addr) {
     if(hcGrabPd((ocrPolicyDomainHc_t*)self))
         RETURN_PROFILE();
 
-    // Just try in the first allocator
-    self->allocators[0]->fcts.free(self->allocators[0], addr);
+    allocatorFreeFunction(addr);
 
     hcReleasePd((ocrPolicyDomainHc_t*)self);
     RETURN_PROFILE();

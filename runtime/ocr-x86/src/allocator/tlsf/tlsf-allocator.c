@@ -8,6 +8,165 @@
  * removed or modified.
  */
 
+// ***********************************************************************************************************
+// ****** SOME OF THE DETAILS IN THE COMMENTS BELOW, PARTICULARLY ABOUT CHANGES RELATED TO "PREV" AND "NEXT"
+// ****** ARE NOT ACTUALLY REFLECTED IN THIS VERSION OF THE CODE.  THEY WILL BECOME ACCURATE IN THE ***NEXT***
+// CHECK-IN.   -- TODO  FIXME
+// ***********************************************************************************************************
+
+// In the past, "pool" ambigiously referred to either the entire domain of an allocator, or to the
+// bookkeeping space it needed to manage it.  The word "block" is horribly overloaded and unspecific,
+// both internally, and in its implications with regard to collections (aka "islands") of processors.
+// Concomitant with introducing some rigorous type checking, more specific terminology is also
+// introduced, to wit:
+//
+// An instance of a TLSF allocator generally manages the entire inventory of dynamically allocatable
+// memory at one particular memory domain.  For example, all the non-statically allocated memory in
+// one L1 scratch pad; or in L2 scratch pad; or L3; ...; or "MCDRAM" (i.e. an external memory typified
+// by smaller size, higher bandwidth, and usually around the same latency as DRAM); or other external
+// memory such as GDDR or NVM.  On platforms where the lower-level memory domains are caches rather
+// than scratch pads, no TLSF allocator exists for those levels.  But where allocators do exist, they
+// either manage their memory inventory as a single pool (as is best for L1, and perhaps L2), or as
+// multiple "slice pools" and a single "remnant pool" (as is highly advised for the very large
+// external memories utilized by many agents).  The advantage of slicing is that it reduces
+// contention when multiple agents are seeking to do malloc/free operations simultaneously.  The
+// remnant pool acts as a backstop to "catch" larger blocks, which works especially well if they
+// are shared among multiple agents.  The advantage of a single monolithic pool is that it supports
+// larger block requests and less fragmentation, but for the higher-up levels, excessive contention
+// would make this a major choke point (imagine hundreds of thousands of simultaneous mallocs!).
+//
+// A "pool" is comprised of the overall bookkeeping structure followed by the "net" space that is
+// actually available for parceling into the requested blocks.  The bookkeeping area is now called
+// poolHdr_t, though the typedef for that struct is only able to portray the constant-sized components
+// and it is necessary to annex onto this struct the storage for the variable-length components.
+// (The size of this annex is determined when the pool is instantiated, after which its size is invariant.)
+// The space in the pool available for parceling is called the "glebe" (hearkening to parish farmlands
+// distributable to peasant farmers at the whim of the parish council).
+//
+// Blocks in the glebe, be they allocated or free, would better be called "packets", as they are
+// comprised of two distinct parts: a [packet] header and the "payload".  However, "block" is rather
+// entrenched in the code and comments, so in the context of this source code, we continue to use
+// "block" for this construct.  Thus, a block consists of the blkHdr_t header struct, followed by
+// the payload, which is the part that the user "sees" after a successful allocation request, and
+// which he subsequently frees when he is done with it, at which time the entire block is returned
+// to the glebe.
+//
+// The glebe is initially comprised of one really big free block spanning from the start of the
+// glebe right up to a wee sentinel block at the end of the glebe.  The sentinel block exists for
+// the purposes of facilitating the coalescent freeing of a block that occurs contiguously just
+// before it.  This sentinel is not be confused with the nullBlock, which acts as the end-of-chain
+// indicator for free-list chasing operations.
+//
+// The above constructs are depicted thusly:
+//
+//        *  Each allocator instance:  (zero to several "slice pools" followed by a "remnant pool"
+//           =====================================================================================
+//
+//     slice 0  slice 1  slice 2  slice 3  slice 4  slice 5  slice 6  slice 7       remnant
+//   +--------+--------+--------+--------+--------+--------+--------+--------+----------------------+
+//   |        |        |        |        |        |        |        |        |                      |
+//   |        |        |        |        |        |        |        |        |                      |
+//   |        |        |        |        |        |        |        |        |                      |
+//   +--------+--------+--------+--------+--------+--------+--------+--------+----------------------+
+//   .        .
+//   .        .     *  Every pool, including the remnant, is comprised of the following (not to scale):
+//   .        .        ================================================================================
+//   .        .
+//   .        . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+//   .                                                                                      .
+//   .                                                                                      .
+//   . poolHdr_t      pool header annex      glebe                                          .
+//   +--------------+----------------------+------------------------------------------------+
+//   |              |                      |                                                |
+//   | see notes at | see notes at         |                                                |
+//   | poolHdr_t    | poolHdr_t            |                                                |
+//   | typedef      | typedef              |                                                |
+//   | for          | for                  |                                                |
+//   | contents     | contents             |                                                |
+//   |              |                      |                                                |
+//   +--------------+----------------------+------------------------------------------------+
+//                                         .                                                .
+//                                         .                                                .
+//                                         .                                                .
+//                                         .    *  The glebe contains the blocks:           .
+//   . . . . . . . . . . . . . . . . . . . .       ==============================           .
+//   .                                                                                      .
+//   .                                                                                      .
+//   . used block    free block    used block        used blk  free block        used block .
+//   +-------------+-------------+-----------------+---------+-----------------+------------+
+//   |             |             |                 |         |                 |            |
+//   |             |             |                 |         |                 |            |
+//   +-------------+-------------+-----------------+---------+-----------------+------------+
+//   .             .                                         .                 .
+//   .             .                                         .                 .
+//   .             .   * Blocks have a header, then space:   .                 .
+//   .             .     =================================   .                 .
+//   .             .                                         .                 .
+//   . used block: . . . . . . . . . . . .         . . . . . . free block:     . . . . . . .
+//   .                                   .         .                                       .
+//   . blkHdr_t   payload                .         . blkHdr_t   free space          blkLen .
+//   +----------+------------------------+         +----------+------------------------+---+
+//   |          |                        |         |          |                        |   |
+//   | see      |                        |         | see      |                        |   |
+//   | blkHdr_t | user-visible datablock |         | blkHdr_t |                        |   |
+//   | typedef  |                        |         | typedef  |                        |   |
+//   |          |                        |         |          |                        |   |
+//   +----------+------------------------+         +----------+------------------------+---+
+//
+//
+// Terminology has also been clarified in regard to the usage of "previous" and "next".  Formerly,
+// these terms sometimes referred to relative positions along a linked lists in some places, versus
+// relative absolute location along the continuum of glebe address space in other places.  To make
+// this more clear, for the list usage, "Previous" has been changed to "BkwdLink" and "Next" has
+// been changed to "FrwdLink"; and for the spatial adjacency context, "Previous" has become "PrevNbr"
+// and "Next" has become "NextNbr".
+//
+// For example:
+//
+//   NOTES:
+//
+//   *  "U" means Used block; "F" means Free block.  It is impossible for there to be two free blocks in a row.
+//   *  NextNbr and PrevNbr are NOT actual fields in the block headers.  They are derived from fields that are there.
+//      We use "access methods" to get and set these values, as we do for real header values.
+//   *  The first and last blocks depicted are pseudo-blocks, i.e. sentinels, always present, and always marked Used.
+//   *  The head of the free list comes from the pool header, and there is one free list for each "bucket" of free
+//      block sizes.  But only TWO free lists are depicted, to keep this simple diagram from getting messy.  The
+//      free list ends at the null block, also a pseudo-block.  Forward pointer from the last real block in the list
+//      points to null block, but backward pointer from null block is undefined (since there is only ONE null block
+//      serving as the termination sentinel for ALL free lists).  Likewise backward pointer from the first real
+//      block points to the null block, but forward pointer from the null block is undefined.  Only the defined
+//      pointers are depicted below.  End-of-chain, pointing into null block, is depicted as -->x.  In addition,
+//      the pool header provides the head pointer to the free list, but there is no need to keep the tail.
+//
+//
+//        +-------------------------------------------------------------------------+
+//        |  poolHdr_t:                                                             |
+//        |                                                                         |
+//        |  Free block buckets.  Here is where the availBlkListHead comes from     |
+//        |                 *                                             *         |
+//        +-----------------|---------------------------------------------|---------+
+//                          |                                             |
+//                          +------------------------------+              +------+
+//                                                         |                     |
+//                        +----------------------------+   |                     |
+//                        |                            |   |                     |
+//            +---+      +|--+      +---+      +---+   |  +|--+      +---+      +|--+      +---+      +---+
+//            |   |      |v  |      |   |      |   |   |  |v  |      |   |      |v  |      |   |      |   |
+//  FwrdLink: |   |   x<--*  |      |   |      |   |   +---*  |      |   |   x<--*  |      |   |      |   |
+//            |   |      |   |      |   |      |   |      |   |      |   |      |   |      |   |      |   |
+//  NextNbr:  |*--------->*--------->*--------->*--------->*--------->*--------->*--------->*--------->   |
+//            |   |      |   |      |   |      |   |      |   |      |   |      |   |      |   |      |   |
+//            | U |      | F |      | U |      | U |      | F |      | U |      | F |      | U |      | U |
+//            |   |      |   |      |   |      |   |      |   |      |   |      |   |      |   |      |   |
+//  PrevNbr:  |*<---------*<---------*<---------*<---------*<---------*<---------*<---------*<---------*  |
+//            |   |      |   |      |   |      |   |      |   |      |   |      |   |      |   |      |   |
+//            |   |      |   |      |   |      |   |      |   |      |   |      |   |      |   |      |   |
+//  BkwdLink: |   |      |*  |      |   |      |   |   x<--*  |      |   |   x<--*  |      |   |      |   |
+//            |   |      ||  |      |   |      |   |      |^  |      |   |      |   |      |   |      |   |
+//            +---+      +|--+      +---+      +---+      +|--+      +---+      +---+      +---+      +---+
+//                        |                                |
+//                        +--------------------------------+
+
 #include "ocr-config.h"
 #ifdef ENABLE_ALLOCATOR_TLSF
 
@@ -19,6 +178,7 @@
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
 #include "tlsf-allocator.h"
+#include "allocator/allocator-all.h"
 
 #define DEBUG_TYPE ALLOCATOR
 
@@ -31,10 +191,16 @@
 
 #ifdef ENABLE_VALGRIND
 #include <valgrind/memcheck.h>
-#define VALGRIND_DEFINED(addr) VALGRIND_MAKE_MEM_DEFINED((addr), sizeof(header_t) - sizeof(tlsfSize_t))
-#define VALGRIND_NOACCESS(addr) VALGRIND_MAKE_MEM_NOACCESS((addr), sizeof(header_t) - sizeof(tlsfSize_t))
-#define VALGRIND_DEFINED1(addr) VALGRIND_MAKE_MEM_DEFINED((addr), sizeof(header_t))
-#define VALGRIND_NOACCESS1(addr) VALGRIND_MAKE_MEM_NOACCESS((addr), sizeof(header_t))
+// The distinction between VALGRIND_xxx and VALGRIND_xxx1 used to be that the former supported
+// the last few bytes of the blkHdr_t being used as the first part of the payload of in-use
+// data blocks.  That is no longer the case, as that location now is used to hold the info
+// necessary to be able to free the block back to the right pool, no matter who calls free.
+//#define VALGRIND_DEFINED(addr) VALGRIND_MAKE_MEM_DEFINED((addr), sizeof(blkHdr_t) - sizeof(tlsfSize_t))
+//#define VALGRIND_NOACCESS(addr) VALGRIND_MAKE_MEM_NOACCESS((addr), sizeof(blkHdr_t) - sizeof(tlsfSize_t))
+#define VALGRIND_DEFINED(addr) VALGRIND_MAKE_MEM_DEFINED((addr), sizeof(blkHdr_t))
+#define VALGRIND_NOACCESS(addr) VALGRIND_MAKE_MEM_NOACCESS((addr), sizeof(blkHdr_t))
+#define VALGRIND_DEFINED1(addr) VALGRIND_MAKE_MEM_DEFINED((addr), sizeof(blkHdr_t))
+#define VALGRIND_NOACCESS1(addr) VALGRIND_MAKE_MEM_NOACCESS((addr), sizeof(blkHdr_t))
 #else
 #define VALGRIND_DEFINED(addr)
 #define VALGRIND_NOACCESS(addr)
@@ -46,145 +212,352 @@
 /* OCR ALLOCATOR TLSF IMPLEMENTATION                  */
 /******************************************************/
 
-/**
- * @todo A lot of the weird notations here are remnants of an older
- * code base. They will be simplified but it should not impact
- * performance
- */
-
-/*
- * Type used to store the "size" of a block
- * The minimum size of a block will be 4*sizeof(tlsfSize_t)
- * padded to be a multiple of 2^ALIGN_LOG2 bytes
- * NOTE: When changing this:
- *  - make sure the fls routine in tlsfMalloc.c exists for the size
- *  - change FL_MAX_LOG2 if required
- */
-typedef u32 tlsfSize_t;
-#define SIZE_TLSF_SIZE 32
-#define SIZE_TLSF_SIZE_LOG2 5
-
 /*
  * Configuration constants
  */
-/*
- * VERY IMPORTANT: The maximum size of the memory supported
- * is *very* dependent on a few parameters:
- *  - tlsfSize_t: this encodes the "addresses" and size of
- *  each block. It must be able to contain the entire range
- *  of addresses
- *  - this is partly compensated by ELEMENT_SIZE_LOG2/BYTES which
- *  contains the number of bytes per "unit" of memory. This
- *  increases granularity to be able to address more with fewer
- *  bits. Therefore, tlsfSize_t needs only to encode
- *  the total size in ELEMENT_SIZE_BYTES unit.
- *  - FL_MAX_LOG2: The total size of memory is (1<<FL_MAX_LOG2) * ELEMENT_SIZE_BYTES
- */
 
-
-/*
- * Number of bytes the "size" of a block
- * is a multiple of. A size of 1 means 1 word (4 bytes, 32 bits)
- * This is used to "extend" the range possible by trading some
- * granularity in allocation. The maximum size allocatable/addressable
- * will be ELEMENT_SIZE_BYTES*2^{sizeof(tlsfSize_t)*8} bytes
- * NOTE: Must be at least 2 bytes
- */
-#define ELEMENT_SIZE_LOG2 2
-#define ELEMENT_SIZE_BYTES 4
-
-/*
- * Alignment of returned block
- * Mostly an 8 byte alignment
- */
-#define ALIGN_LOG2  3   // 8 byte alignment
-#define ALIGN_BYTES 8
-
-/*
- * Alignment of full block (including headers)
- * Can be ALIGN_LOG2 or half of that if 2 fields
- * of tlsfSize_t will "pad" the full block to start
- * on an ALIGN_BYTES alignment
- */
-#define ALIGN_BLOCK_LOG2 2 // 4 byte
-#define ALIGN_BLOCK_BYTES 4
+// As a stake in the ground to clean up the hard-to-read code with respect to alignment generality,
+// ALL structures -- poolHdr_t struct, blkHdr_t structs, and user payloads -- will be on 8-byte
+// alignment boundaries.
+#define ALIGNMENT 8LL
 
 /*
  * Number of subdivisions in the second-level list
- * 2^SL_COUNT_LOG2 must be less than SIZE_TLSF_SIZE
+ * Can be 2 to 5; 6 if slAvailOrNot is changed from u32 to u64.
+ * 4 is the "sweet spot";  less results in more fragmentation;
+ * more results in more pool header overhead.
  */
-#define SL_COUNT_LOG2 4
+#define SL_COUNT_LOG2 4LL
 
 /*
- * Support allocations/memory of size up to (1 << FL_MAX_LOG2) * ELEMENT_SIZE_BYTES
- * Note that bitmaps are of type tlsfSize_t so FL_MAX_LOG2 must be
- * less than or equal to SIZE_TLSF_SIZE.
- * For 64K memory: 14 (if ELEMENT_SIZE_LOG2 == 2)
- * For 1024K memory: 18 (if ELEMENT_SIZE_LOG2 == 2)
- * For 4096K memory: 20 (if ELEMENT_SIZE_LOG2 == 2)
- * For 16384K memory: 22 (if ELEMENT_SIZE_LOG2 == 2)
- * For 32768K memory: 23 (if ELEMENT_SIZE_LOG2 == 2)
- * For 65536K memory: 24 (if ELEMENT_SIZE_LOG2 == 2)
- * For 128MB memory: 25 (if ELEMENT_SIZE_LOG2 == 2)
- * For 256MB memory: 26 (if ELEMENT_SIZE_LOG2 == 2)
- * For 512MB memory: 27 (if ELEMENT_SIZE_LOG2 == 2)
- * For 2GB memory: 29
- * For 4GB memory: 30
+ * Support allocations/memory of size up to (1 << FL_MAX_LOG2) * ALIGNMENT
+ * For 64KB memory: 13 (at ALIGNMENT == 8)
+ * For  1MB memory: 17 (at ALIGNMENT == 8)
+ * For  1GB memory: 27 (at ALIGNMENT == 8)
+ * For  8EB memory: 60 (at ALIGNMENT == 8)
  */
-#define FL_MAX_LOG2 29
+#define FL_MAX_LOG2 60LL
 
-
-/* Size specific functions:
- * fls: Find last set: position of the MSB set to 1
- * ffs: find first set: position of the LSB set to 1
+/*
+ * Some computed values:
+ *  - SL_COUNT: Number of buckets in each SL list
+ *  - FL_COUNT_SHIFT: For the first SL_COUNT, we do not need to maintain
+ *  first level lists (since they all go in the "0th" one.
+ *  - ZERO_LIST_SIZE: Size under which we are in SL 0
  */
-// IMPORTANT: CHANGE THESE FUNCTIONS IF tlsfSize_t CHANGES
-// ST_SIZE/LD_SIZE will be used to st/ld values of type tlsfSize_t
-#if SIZE_TLSF_SIZE == 16
-#define FLS fls16
-#define ST_SIZE(addr, value) (*((u16*)(addr)) = (u16)(value))
-#define LD_SIZE(var, addr)   ((var) = *((u16*)(addr)))
-#elif SIZE_TLSF_SIZE == 32
-#define FLS fls32
-#define ST_SIZE(addr, value) (*((u32*)(addr)) = (u32)(value))
-#define LD_SIZE(var, addr)   ((var) = *((u32*)(addr)))
-#else
-#error "Unknown size for tlsfSize_t"
-#endif
+enum computedVals {
+    SL_COUNT        = (1LL << SL_COUNT_LOG2),
+    FL_COUNT_SHIFT  = (SL_COUNT_LOG2),
+    ZERO_LIST_SIZE  = (1LL << FL_COUNT_SHIFT),
+};
 
-
-// Usually no need of any fences on x86 for this
-#define FENCE_LOAD
-#define FENCE_STORE
-
-/**
- * @brief Function to compute the address of a field
+/*
+ * Header of a block (allocated or free) of memory.
  *
- * Usage: ADDR_OF(type, ptr, field) <=> &(ptr->field)
- * where 'type' is the type of 'ptr'
- */
-#define ADDR_OF(type, ptr, field) (ptr + offsetof(type, field))
-
-/**
- * @brief Function to compute the address of an element of a field that
- * is an array
  *
- * Usage: ADDR_OF_1(type, ptr, fieldtype, field, idx) <=> &(ptr->field[idx])
- * where 'type' is the type of 'ptr' and 'field' is of type 'fieldtype[]'
- */
-#define ADDR_OF_1(type, ptr, fieldtype, field, idx) (ADDR_OF(type, ptr, field) + sizeof(fieldtype)*idx)
-
-/**
- * @brief Function to compute the address of an element of a field
- * that is a 2D array
+ * Free block:  (freeBlkHdr_t)
  *
- * Usage: ADDR_OF_2(type, ptr, fieldtype, field, idx, dim2, idx2) <=> &(ptr->field[idx][idx2])
- * where 'type' is the type of 'ptr' and 'field' is of type 'fieldtype[][dim2]'
+ *   blkHdr_t * prevFreeBlock; <-- can NEVER be 0 or 1 (would indicate an
+ *      occupied block). This should be fine as that would mean that
+ *      the address of the previous block is 0x8 (in absolute) which
+ *      is never going to happen...
+ *   u64 payloadSize;     <-- Size of this free block NOT including
+ *      the size of this header.
+ *   blkHdr_t * nextFreeBlock; <-- This field aligned 2^ALIGN_LOG2 bytes
+ *   Immediately after this header:
+ *       <FREE SPACE>
+ *   u64 payloadSize; (used by next occupied block); must be at the very end
+ *
+ *
+ * Used block:  (usedBlkHdr_t)
+ *
+ *   u64 aggregatedFreeBlockIndicators;
+ *      - bit 0 indicates whether the previous block is free (1) or not (0)
+ *      - the rest MUST be 0 to indicate that THIS block is occupied.
+ *   u64 payloadSize;     <-- Size of this in-use block NOT including
+ *      the size of this header. I.e., size of the "payload".
+ *   u64 poolHeaderDescr;
+ *      - low 3 bits index to the type of allocator in use.  This TLSF
+ *        allocator is one of those index values, and other [potential]
+ *        allocators are other values.  This is used to index into the
+ *        appropriate "free" function.
+ *      - remaining bits are the address of the poolHdr_t from which the
+ *        block was taken.
+ *
+ *
+ * Generic block -- A block the type of which is either in need of determination, or
+ * for which the specific type does not presently matter:  (gnrcBlkHdr_t)
+ *
+ *   bit 0:     isPrevBlockFree:         1 = Free; 0 = In Use
+ *   bits 1:63  isThisBlockFree:  non-zero = Free; 0 = In Use
+ *   u64        payloadSize; <-- Size of this free block NOT including this header.
+ *   u64        typeDependentInfo; <-- Depends on if the block is in use or free.
+ *
+ * */
+typedef struct blkHdr_t {
+    union {
+        struct blkHdr_t * pPrevFreeBlock;   // If THIS block header is for a free block, this value is defined.
+        u64 aggregatedFreeBlockIndicators;  // Handy for initializing these fields together.
+        struct {
+            u64 isPrevBlockFree:1;          // zero == in use;  non-zero == free
+            u64 isThisBlockFree:63;         // zero == in use;  non-zero == free
+        };
+    };
+    u64 payloadSize;                        // Relevant for both free and in-use blocks.
+    union {
+        struct blkHdr_t * pNextFreeBlock;   // Relevant for free blocks.
+        u64 poolHeaderDescr;                // Relevant for in-use blocks.
+    };
+} blkHdr_t;
+
+typedef void blkPayload_t;   // Strongly type-check the ptr-to-void that comprises the ptr-to-payload results.
+
+/* The pool (containing the bitmaps and the lists of free blocks.
+ *
+ * This struct has been reordered to attain the goal of allowing the size of the
+ * large 2D "blocks" array to be kept as small as possible.  This is necessary to
+ * keep from wasting precious L1 on buckets that aren't even needed.  Moreover, the
+ * 1D "slAvailOrNot" array is changed to an additional column of the "blocks" array
+ * so that its length too can be minimized.
  */
-#define ADDR_OF_2(type, ptr, fieldtype, field, idx, dim2, idx2)         \
-    (ADDR_OF(type, ptr, field) + sizeof(fieldtype)*(idx*dim2 + idx2))
+typedef struct {
+    u32 lock;           // Lock to serialize shared access to pool's management data structures.
+    u32 flCount;        // Number of first-level buckets.  This is invariant after constructor runs.
+    u32 offsetToGlebe;  // Offset in bytes from start of this struct to the start of the glebe.
+    u32 currSliceNum;   // Round-robin counter for slice assignment (only used from poolHdr_t of remnant).
+    u64 flAvailOrNot;   // bitmap that indicates the presence (1) or absence (0) of free blocks in blocks[i][*]
+    blkHdr_t nullBlock; // Used to mark NULL blocks.  (This contains three u64 elements.)
+    // Variably-sized elements annexed onto the end of the above:
+    // u32        slAvailOrNot[flCount];            // Second level bitmaps
+    // <one u32 of padding, if flCount == odd>
+    // u32 or u64 availBlocks[flCount][SL_COUNT];   // Index into mainBlock for free list of appropriately-sized blocks.
+    // blkHdr_t   glebeHdr;                         // Main memory block (this needs to be aligned and
+                                                    // must be last before the net pool space to be managed)
+    // <the "glebe", i.e. the net pool space to manage>
+    // sentinel header
+} poolHdr_t;
 
+// The following function exist for the purposes of abstracting load and store operations
+// so that they can expand to appropriate (different) code for different levels of the
+// memory hierarchy on FSIM-CE (and FSIM-XE, if any allocators run on XEs, which is not
+// presently the case at the time of this writing).  Ultimately, FSIM will probably be
+// modified to do this seamlessly, but presently, the CPU load/store instructions only
+// work if the data is in L1.  Some poolHdr_t and blkHdr_t structs are in other memory
+// levels.
 
+// FLS: Find last set: position of the MSB set to 1
+#define FLS fls64
+
+// Usually no need of any fences on x86 for this.
+
+// If we were C++, the following would be "access methods", to "private" data of poolHdr_t class:
+
+static inline u32 GET_flCount (poolHdr_t * pPool) {
+    u32 temp;
+    GET32(temp,((u64)(&(pPool->flCount))));
+    return temp;
+}
+
+static inline u32 GET_lock (poolHdr_t * pPool) {
+    u32 temp;
+    GET32(temp,((u64)(&(pPool->lock))));
+    return temp;
+}
+
+static inline u32 GET_offsetToGlebe (poolHdr_t * pPool) {
+    u32 temp;
+    GET32(temp,((u64)(&(pPool->offsetToGlebe))));
+    return temp;
+}
+
+static inline blkHdr_t * GET_glebeAsInitialBlock (poolHdr_t * pPool) {
+    return ((blkHdr_t *) (((u64) pPool) + ((u64) GET_offsetToGlebe(pPool))));
+}
+
+static inline u32 GET_currSliceNum (poolHdr_t * pPool) {
+    u32 temp;
+    GET32(temp,((u64)(&(pPool->currSliceNum))));
+    return temp;
+}
+
+static inline u64 GET_flAvailOrNot(poolHdr_t * pPool) {
+    u64 temp;
+    GET64(temp,((u64)(&(pPool->flAvailOrNot))));
+    return temp;
+}
+
+static inline u64 GET_slAvailOrNot (poolHdr_t * pPool, int firstLvlIdx) {
+    u32 temp;
+    GET32(temp,(((u64)(pPool))+sizeof(poolHdr_t)+(firstLvlIdx*sizeof(u32))));
+    return (u64)temp;
+}
+
+static inline blkHdr_t * GET_availBlkListHead (poolHdr_t * pPool, int firstLvlIdx, int secondLvlIdx) {
+    u32 flCount = GET_flCount(pPool);
+    if (flCount < 26) {
+        // Use 32-bit offsets for avail_blocks values when full pool size is small enough.
+        flCount += flCount&1;  // If flCount is odd, we need to skip over one DWORD of padding to reach the availBlkListHead array.
+        u32 temp;
+        GET32(temp,(((u64)(pPool))+sizeof(poolHdr_t)+(flCount*sizeof(u32))+((firstLvlIdx*SL_COUNT+secondLvlIdx)*sizeof(u32))));
+        return (blkHdr_t *) (((u64) pPool) + ((u64) temp));
+    } else {
+        // Use 64-bit offsets for avail_blocks for large memory pools.
+        flCount += flCount&1;  // If flCount is odd, we need to skip over one DWORD of padding to reach the availBlkListHead array.
+        u64 temp;
+        GET64(temp,(((u64)(pPool))+sizeof(poolHdr_t)+(flCount*sizeof(u32))+((firstLvlIdx*SL_COUNT+secondLvlIdx)*sizeof(u64))));
+        return (blkHdr_t *) (((u64) pPool) + temp);
+    }
+}
+
+static inline void SET_flCount (poolHdr_t * pPool, u32 value) {
+    SET32((u64) (&(pPool->flCount)), value);
+}
+
+static inline void SET_lock (poolHdr_t * pPool, u32 value) {
+    SET32((u64) (&(pPool->lock)), value);
+}
+
+static inline void SET_offsetToGlebe (poolHdr_t * pPool, u32 value) {
+    SET32((u64) (&(pPool->offsetToGlebe)), value);
+}
+
+static inline void SET_currSliceNum (poolHdr_t * pPool, u32 value) {
+    SET32((u64) (&(pPool->currSliceNum)), value);
+}
+
+static inline void SET_flAvailOrNot (poolHdr_t * pPool, u64 value) {
+    SET64((u64) (&(pPool->flAvailOrNot)), value);
+}
+
+static inline void SET_nullBlock_pPrevFreeBlock (poolHdr_t * pPool, blkHdr_t * pBlk) {
+    blkHdr_t * pNullBlock = &(pPool->nullBlock);
+    u64 locToWrite = (u64) &(pNullBlock->pPrevFreeBlock);
+    SET64(locToWrite, (u64) pBlk);
+}
+
+static inline void SET_nullBlock_payloadSize (poolHdr_t * pPool, u64 value) {
+    SET64((u64) (&(pPool->nullBlock.payloadSize)), value);
+}
+
+static inline void SET_nullBlock_pNextFreeBlock (poolHdr_t * pPool, blkHdr_t * pBlk) {
+    blkHdr_t * pNullBlock = &(pPool->nullBlock);
+    u64 locToWrite = (u64) &(pNullBlock->pNextFreeBlock);
+    SET64(locToWrite, (u64) pBlk);
+}
+
+static inline void SET_slAvailOrNot (poolHdr_t * pPool, int firstLvlIdx, u64 value) {
+    ASSERT (value <= 0xFFFFFFFFLL);
+    u32 temp=(u32)value;
+    SET32((((u64)(pPool))+sizeof(poolHdr_t)+(firstLvlIdx*sizeof(u32))),temp);
+}
+
+static inline void SET_availBlkListHead (poolHdr_t * pPool, int firstLvlIdx, int secondLvlIdx, blkHdr_t * pBlk) {
+    u64 value = ((u64) pBlk) - ((u64) pPool);
+    u32 flCount = GET_flCount(pPool);
+    if (flCount < 26) {
+        // Use 32-bit offsets for avail_blocks values when full pool size is small enough.
+        flCount += flCount&1;  // If flCount is odd, we need to skip over one DWORD of padding to reach the availBlkListHead array.
+        ASSERT (value <= 0xFFFFFFFFLL);
+        SET32((((u64) pPool)+sizeof(poolHdr_t)+(flCount*sizeof(u32))+((firstLvlIdx*SL_COUNT+secondLvlIdx)*sizeof(u32))), (u32) value);
+    } else {
+        // Use 64-bit offsets for avail_blocks for large memory pools.
+        flCount += flCount&1;  // If flCount is odd, we need to skip over one DWORD of padding to reach the availBlkListHead array.
+        SET64((((u64) pPool)+sizeof(poolHdr_t)+(flCount*sizeof(u32))+((firstLvlIdx*SL_COUNT+secondLvlIdx)*sizeof(u64))), value);
+    }
+}
+
+// If we were C++, the following would be "access methods", to "private" data of various blkHdr_t classes:
+
+static inline u64 GET_aggregatedFreeBlockIndicators (blkHdr_t * pBlk) {
+    u64 temp;
+    GET64(temp,((u64)(&(pBlk->aggregatedFreeBlockIndicators))));
+    return temp;
+}
+
+static inline bool GET_isThisBlockFree (blkHdr_t * pBlk) {
+    return (GET_aggregatedFreeBlockIndicators((blkHdr_t *) pBlk) & (~1LL)) != 0;
+}
+
+static inline blkHdr_t * GET_pPrevFreeBlock (blkHdr_t * pBlk) {
+    ASSERT (GET_isThisBlockFree(pBlk));   // Should NOT try to access pPrevFreeBlock from a header of an in-use block.
+    u64 temp;
+    u64 locToRead = (u64) (&(pBlk->pPrevFreeBlock));
+    GET64(temp, locToRead);
+    return (blkHdr_t *) temp;
+}
+
+static inline u64 GET_payloadSize (blkHdr_t * pBlk) {
+    u64 temp;
+    GET64(temp,((u64)(&(pBlk->payloadSize))));
+    return temp;
+}
+
+static inline blkHdr_t * GET_pNextFreeBlock (blkHdr_t * pBlk) {
+    ASSERT (GET_isThisBlockFree(pBlk));   // Should NOT try to access pNextFreeBlock from a header of an in-use block.
+    u64 temp;
+    u64 locToRead = (u64) (&(pBlk->pNextFreeBlock));
+    GET64(temp, locToRead);
+    return (blkHdr_t *) temp;
+}
+
+static inline u64 GET_poolHeaderDescr (blkHdr_t * pBlk) {
+    ASSERT (!GET_isThisBlockFree(pBlk));   // Should NOT try to access poolHeaderDescr from a header of a free block.
+    u64 temp;
+    GET64(temp,((u64)(&(pBlk->poolHeaderDescr))));
+    return temp;
+}
+
+static inline bool GET_isPrevBlockFree (blkHdr_t * pBlk) {
+    if(GET_isThisBlockFree(pBlk)) {
+        return false;  // If THIS block is free, it would have been combined with the spatially contiguous preceeding
+                       // block if that block was also free.  Therefore, it must NOT be free.
+    } else {
+        return (GET_aggregatedFreeBlockIndicators((blkHdr_t *) pBlk) & 1LL) != 0;
+    }
+}
+
+static inline void SET_pPrevFreeBlock (blkHdr_t * pBlk, blkHdr_t * pPrevBlk, bool overrideAsserts) {
+    if (! overrideAsserts) {
+        ASSERT (GET_isThisBlockFree(pBlk));       // Should NOT try to access pPrevFreeBlock from a header of an in-use block.
+    }
+    u64 locToWrite = (u64) (&(pBlk->pPrevFreeBlock));
+    SET64(locToWrite, (u64) pPrevBlk);
+}
+
+static inline void SET_payloadSize (blkHdr_t * pBlk, u64 value) {
+    SET64((u64) (&(pBlk->payloadSize)),value);
+}
+
+static inline void SET_pNextFreeBlock (blkHdr_t * pBlk, blkHdr_t * pNextBlk) {
+    ASSERT (GET_isThisBlockFree(pBlk));       // Should NOT try to access pNextFreeBlock from a header of an in-use block.
+    ASSERT (GET_isThisBlockFree(pNextBlk));   // Should NOT set pNextFreeBlock of this block to point to an in-use block.
+    u64 locToWrite = (u64) (&(pBlk->pNextFreeBlock));
+    SET64(locToWrite, (u64) pNextBlk);
+}
+
+static inline void SET_aggregatedFreeBlockIndicators (blkHdr_t * pBlk, u64 value) {
+    SET64((u64) (&(pBlk->aggregatedFreeBlockIndicators)), value);
+}
+
+static inline void SET_poolHeaderDescr (blkHdr_t * pBlk, u64 value) {
+    ASSERT (!GET_isThisBlockFree(pBlk));   // Should NOT try to access poolHeaderDescr from a header of a free block.
+    SET64((u64) (&(pBlk->poolHeaderDescr)), value);
+}
+
+static inline void SET_isPrevBlockFree (blkHdr_t * pBlk, bool value) {
+    ASSERT(!GET_isThisBlockFree(pBlk)); /* SET_isPrevBlockFree can only be called on used block */
+    u64 temp = GET_aggregatedFreeBlockIndicators(pBlk);
+    temp = (temp & (~1LL)) | (value ? 1LL : 0LL);
+    SET_aggregatedFreeBlockIndicators(pBlk, temp);
+}
+
+static void markPrevBlockUsed(blkHdr_t * pBlk) {
+    SET_isPrevBlockFree(pBlk, 0);
+}
+
+static void markPrevBlockFree(blkHdr_t * pBlk) {
+    SET_isPrevBlockFree(pBlk, 1);
+}
 
 // A whole bunch of internal methods used only in this file.
 
@@ -192,333 +565,139 @@ typedef u32 tlsfSize_t;
 
 #define _NULL 0ULL
 
-#define GET_ADDRESS(header_addr)                                \
-    (pgStart + (header_addr.address << ELEMENT_SIZE_LOG2))
-
-#define SET_VALUE(header_addr, addr)                                    \
-    do { (header_addr).address = 0ULL;                                  \
-        (header_addr).value = ((u64)(addr) - pgStart) >> ELEMENT_SIZE_LOG2; \
-    } while(0)
-
-
-#define SET_NULL(header_addr) SET_VALUE(header_addr, pgStart)
-#define IS_NULL(addr)         ((addr) == pgStart)
-
-
-myStaticAssert(ELEMENT_SIZE_BYTES >= 2);
-myStaticAssert(SL_COUNT_LOG2 < SIZE_TLSF_SIZE_LOG2);
-myStaticAssert(FL_MAX_LOG2 <= SIZE_TLSF_SIZE);
-
-/*
- * Some computed values:
- *  - SL_COUNT: Number of buckets in each SL list
- *  - FL_COUNT_SHIFT: For the first SL_COUNT, we do not need to maintain
- *  first level lists (since they all go in the "0th" one.
- *  - FL_COUNT: Number of buckets in FL (so number of SL bitmaps)
- *  - ZERO_LIST_SIZE: Size under which we are in SL 0
- */
-enum computedVals {
-    SL_COUNT        = (1 << SL_COUNT_LOG2),
-    FL_COUNT_SHIFT  = (SL_COUNT_LOG2),
-    FL_COUNT        = (FL_MAX_LOG2 - FL_COUNT_SHIFT + 1),
-    ZERO_LIST_SIZE  = (1 << FL_COUNT_SHIFT),
-};
-
-/*
- * Header of a block (allocated or free) of memory. Note that not all
- * fields are valid at all times:
- *
- * Free block:
- * tlsfSize_t prevFreeBlock; <-- can NEVER be 0 or 1 (would indicate
- *  an occupied block). This should be fine as that would mean that
- *  the address of the previous block is 0x4 (in absolute) which is
- *  never going to happen...
- * tlsfSize_t sizeBlock;
- * tlsfSize_t nextFreeBlock; <-- This field aligned 2^ALIGN_LOG2 bytes
- * <SPACE>
- * tlsfSize_t sizeBlock; (used by next occupied block); must be at the very end
- *
- * Used block:
- * tlsfSize_t prevFreeBlock <- not used as that:
- *  - bit 0 indicates whether the previous block is free (1) or not (0)
- *  - the rest MUST be 0 to indicate an occupied block.
- * tlsfSize_t sizeBlock
- *
- * Note that prevFreeBlock and nextFreeBlock are actually pointers
- * but we only consider the lower tlsfSize_t bits. The rest are zero
- * since the total size of the memory is small.
- * */
-typedef struct {
-    tlsfSize_t prevFreeBlock; // __attribute__ (( aligned (ALIGN_BLOCK_BYTES) ));
-    tlsfSize_t sizeBlock;
-
-    tlsfSize_t nextFreeBlock; // __attribute__ (( aligned (ALIGN_BYTES) ));
-} header_t;
-
-// Union to hold both pointer to header and tlsfSize_t which
-// are used inter-changeably
-typedef union {
-    u64 address;
-    tlsfSize_t value;
-} headerAddr_t;
+myStaticAssert(ALIGNMENT == 8LL);
+myStaticAssert((ALIGNMENT-1) == POOL_HEADER_TYPE_MASK);
+myStaticAssert(SL_COUNT_LOG2 < 5);
+myStaticAssert(FL_MAX_LOG2 <= 64);
 
 // Some assertions to make sure things are OK
-myStaticAssert(sizeof(header_t) == 3*SIZE_TLSF_SIZE/8);
-myStaticAssert(2*sizeof(tlsfSize_t) >= ELEMENT_SIZE_BYTES);
-myStaticAssert(offsetof(header_t, nextFreeBlock) % ELEMENT_SIZE_BYTES == 0);
+myStaticAssert(sizeof(blkHdr_t) == 3*sizeof(u64));
+myStaticAssert(sizeof(blkHdr_t) % ALIGNMENT == 0);
+myStaticAssert(sizeof(poolHdr_t) % ALIGNMENT == 0);
+myStaticAssert(offsetof(poolHdr_t, nullBlock) % ALIGNMENT == 0);
 myStaticAssert(ZERO_LIST_SIZE == SL_COUNT);
 myStaticAssert(sizeof(char) == 1);
 
-/* The pool (containing the bitmaps and the lists of
- * free blocks.
- */
-typedef struct {
-    tlsfSize_t flAvailOrNot;                // bitmap that indicates the presence
-    // (1) or absence (0) of free blocks
-    // in blocks[i][*]
-    tlsfSize_t slAvailOrNot[FL_COUNT];      // Second level bitmaps
-    tlsfSize_t blocks[FL_COUNT][SL_COUNT];  // Pointers to starts of free-lists
-
-    // The padding works as follows:
-    //  - ((FL_COUNT*(1+SL_COUNT) + 1)*(SIZE_TLSF_SIZE/8)) is the size of what is above in bytes
-    //      + Call this quantity x
-    //  - we know that x = k*ALIGN_BYTES + r and we want x + p = (k+1)*ALIGN_BYTES
-    //  - Therefore p = ALIGN_BYTES - r except when r == 0 in which case p = 0
-    //  r is (x & (ALIGN_BYTES - 1)
-#define _R_SIZE_TEMP (((FL_COUNT*(1+SL_COUNT) + 1)*(SIZE_TLSF_SIZE/8)) & (ALIGN_BYTES - 1))
-    u8 _padding[_R_SIZE_TEMP?(ALIGN_BYTES - _R_SIZE_TEMP):0];
-#undef _R_SIZE_TEMP
-
-    /* nullBlock will be used to mark NULL blocks. This is important
-     * since prev/next blocks can never be NULL as that is also used
-     * as the busy flag
-     */
-    header_t nullBlock; // Contains 3*tlsfSize_t
-#define _R_SIZE_TEMP ((3*(SIZE_TLSF_SIZE/8)) & (ALIGN_BYTES - 1))
-    u8 _padding2[_R_SIZE_TEMP?(ALIGN_BYTES - _R_SIZE_TEMP):0];
-#undef _R_SIZE_TEMP
-    header_t mainBlock; // Main memory block (this needs to be aligned ALIGN_BYTES)
-} pool_t;
-
-myStaticAssert(offsetof(pool_t, nullBlock) % ALIGN_BYTES == 0);
-myStaticAssert(offsetof(pool_t, mainBlock) % ALIGN_BYTES == 0);
-
-
 /* Some contants */
-static const tlsfSize_t GoffsetToStart      = offsetof(header_t, nextFreeBlock);
-static const tlsfSize_t GusedBlockOverhead  = (offsetof(header_t, nextFreeBlock)) >> ELEMENT_SIZE_LOG2;
+static const u64 GoffsetFromBlkHdrToPayload = (sizeof(blkHdr_t));
+static const u64 GminBlockSizeIncludingHdr  = sizeof(blkHdr_t) + sizeof(u64);
+static const u64 GminPayloadSize = sizeof(blkHdr_t);
 
-// This computation just rounds it up to the closest multiple of ELEMENT_SIZE_BYTES
-static const tlsfSize_t GminBlockRealSize   = (sizeof(header_t) + sizeof(tlsfSize_t) + ELEMENT_SIZE_BYTES - 1)
-        >> ELEMENT_SIZE_LOG2;
-static const tlsfSize_t GmaxBlockRealSize   = (tlsfSize_t)((1<<FL_MAX_LOG2) - 1);
-
-static int myffs(tlsfSize_t val) {
-    return FLS(val & (~val + 1));
+static int myffs(u64 val) {
+    return FLS(val & (~val + 1LL));
 }
 
-/* Utility functions for blocks. All these functions that
- * a "me" block pointer as their first argument
- */
-u64 addressForBlock(u64 me /* header_t* */) {
-    u64 t;
-    t = (me + GoffsetToStart);
-    return t;
+// More utility functions for blocks.
+
+// Given the address of the block's header (at the start of the block), return the address of the payload.
+static inline blkPayload_t * payloadAddressForBlock(blkHdr_t * pBlk) {    // Return address of block's payload, given address of header.
+    return ((blkPayload_t *) (((u64) pBlk) + sizeof(blkHdr_t)));
 }
 
-headerAddr_t blockForAddress(u64 pgStart, u64 me) {
-    headerAddr_t res;
-
-    SET_VALUE(res, (me - GoffsetToStart));
-    return res;
+static inline blkHdr_t * mapPayloadAddrToBlockAddr(blkPayload_t * payload) {  // Return address of block's header, given address of payload.
+    return ((blkHdr_t *) (((u64) payload) - sizeof(blkHdr_t)));
 }
 
-// R from prevFreeBlock (tlsfSize_t)
-static bool isBlockFree(u64 me /* const header_t* */) {
-    tlsfSize_t temp;
-    LD_SIZE(temp, ADDR_OF(header_t, me, prevFreeBlock));
-    FENCE_LOAD;
-    return ((temp & ~0x1) != 0);   // Checks if there is a non-null bit
-    // (ie: a valid pointer) past the first bit
-}
-
-static bool isPrevBlockFree(u64 me /* const header_t* */) {
-    if(isBlockFree(me)) {
-        return false;
-    } else {
-        tlsfSize_t temp;
-        LD_SIZE(temp, ADDR_OF(header_t, me, prevFreeBlock));
-        FENCE_LOAD;
-        return (temp & 0x1);
-    }
-}
-
-
-static headerAddr_t getPrevBlock(u64 pgStart, u64 me /* const header_t* */) {
-    headerAddr_t res;
-    ASSERT(isPrevBlockFree(me));
-    tlsfSize_t offset;
+static inline blkHdr_t * getPrevBlock(poolHdr_t * pPool, blkHdr_t * pCurrBlk) {
+    ASSERT(GET_isPrevBlockFree(pCurrBlk));
+    u64 distanceToHeaderOfPreviousBlock;
 #ifdef ENABLE_VALGRIND
     // Weird case so I'll just hack it for now
-    VALGRIND_MAKE_MEM_DEFINED(me - sizeof(tlsfSize_t), sizeof(tlsfSize_t));
+    VALGRIND_MAKE_MEM_DEFINED(((u64) pCurrBlk) - sizeof(u64), sizeof(u64));
 #endif
-    LD_SIZE(offset, me - sizeof(tlsfSize_t));
+    GET64 (distanceToHeaderOfPreviousBlock, (((u64) pCurrBlk)-sizeof(u64)));
 #ifdef ENABLE_VALGRIND
-    // Weird case so I'll just hack it for now
-    VALGRIND_MAKE_MEM_NOACCESS(me - sizeof(tlsfSize_t), sizeof(tlsfSize_t));
+    VALGRIND_MAKE_MEM_NOACCESS(((u64) pCurrBlk) - sizeof(u64), sizeof(u64));
 #endif
-    FENCE_LOAD;
-    offset += GusedBlockOverhead;   // Gets sizeBlock2 in previous block (which is free)
-
-    SET_VALUE(res, (me - (offset << ELEMENT_SIZE_LOG2)));
-    return res;
+    distanceToHeaderOfPreviousBlock += sizeof(blkHdr_t);
+    return ((blkHdr_t *) (((u64) pCurrBlk) - distanceToHeaderOfPreviousBlock));
 }
 
-static headerAddr_t getNextBlock(u64 pgStart, u64 me /* const header_t* */) {
-    headerAddr_t res;
-    tlsfSize_t offset;
-    LD_SIZE(offset, ADDR_OF(header_t, me, sizeBlock));
-    FENCE_LOAD;
-
-    offset += GusedBlockOverhead;
-    SET_VALUE(res, (me + (offset << ELEMENT_SIZE_LOG2)));
-
-    return res;
-}
-
-static headerAddr_t getPrevFreeBlock(u64 me /* const header_t* */) {
-    headerAddr_t res = { .address = 0ULL };
-    ASSERT(isBlockFree(me)); /* getPrevFreeBlock not called on free block */
-
-    LD_SIZE(res.value, ADDR_OF(header_t, me, prevFreeBlock));
-    FENCE_LOAD;
-    return res;
-}
-
-static headerAddr_t getNextFreeBlock(u64 me /* const header_t* */) {
-    headerAddr_t res = { .address = 0ULL };
-    ASSERT(isBlockFree(me)); /* getNextFreeBlock not called on free block" */
-
-    LD_SIZE(res.value, ADDR_OF(header_t, me, nextFreeBlock));
-    FENCE_LOAD;
-    return res;
+static inline blkHdr_t * getNextBlock(poolHdr_t * pPool, blkHdr_t * pBlk) {
+    u64 offset = GET_payloadSize(pBlk);
+    offset += sizeof(blkHdr_t);
+    return ((blkHdr_t *) (((u64) pBlk) + offset));
 }
 
 // For valgrind, assumes first and second are properly setup
-static void linkFreeBlocks(u64 pgStart, headerAddr_t first, headerAddr_t second) {
-    ASSERT(isBlockFree(GET_ADDRESS(first)));  /* linkFreeBlocks arg1 not free */
-    ASSERT(isBlockFree(GET_ADDRESS(second))); /* linkFreeBlocks arg2 not free */
+static void linkFreeBlocks(poolHdr_t * pPool, blkHdr_t * pFirstBlk, blkHdr_t * pSecondBlk) {
+    ASSERT(GET_isThisBlockFree(pFirstBlk));  /* linkFreeBlocks arg1 not free */
+    ASSERT(GET_isThisBlockFree(pSecondBlk)); /* linkFreeBlocks arg2 not free */
 
     /* Consec blocks cannot be free */
-    ASSERT(getNextBlock(pgStart, GET_ADDRESS(first)).value != second.value);
+    ASSERT(getNextBlock(pPool, pFirstBlk) != pSecondBlk);
 
     /* linkFreeBlocks arg1 misaligned */
-    ASSERT((GET_ADDRESS(first) & ((1<<ELEMENT_SIZE_LOG2) - 1)) == 0);
+    ASSERT((((u64) pFirstBlk) & (ALIGNMENT-1LL)) == 0LL);
 
     /* linkFreeBlocks arg2 misaligned */
-    ASSERT((GET_ADDRESS(second) & ((1<<ELEMENT_SIZE_LOG2) - 1)) == 0);
+    ASSERT((((u64) pSecondBlk) & (ALIGNMENT-1LL)) == 0LL);
 
-    ST_SIZE(ADDR_OF(header_t, GET_ADDRESS(first), nextFreeBlock), second.value);
-    ST_SIZE(ADDR_OF(header_t, GET_ADDRESS(second), prevFreeBlock), first.value);
-    FENCE_STORE;
+    SET_pNextFreeBlock(pFirstBlk, pSecondBlk);
+    SET_pPrevFreeBlock(pSecondBlk, pFirstBlk, false);
 }
 
-// The previous block of a free block is *ALWAYS* used
-// (otherwise, it would be coalesced)
-static void markPrevBlockUsed(u64 me /* header_t* */) {
-    ASSERT(!isBlockFree(me)); /* markPrevBlockUsed can only be called on used block */
-    ST_SIZE(ADDR_OF(header_t, me, prevFreeBlock), 0);
-    FENCE_STORE;
+static void markBlockUsed(poolHdr_t * pPool, blkHdr_t * pBlk) {
+    SET_aggregatedFreeBlockIndicators(pBlk, 0LL);
+    SET_poolHeaderDescr(pBlk, (((u64) pPool) | allocatorTlsf_id));
+
+    blkHdr_t * pNextBlock = getNextBlock(pPool, pBlk);
+    VALGRIND_DEFINED(pNextBlock);
+    if(!GET_isThisBlockFree(pNextBlock))
+        markPrevBlockUsed(pNextBlock);
+    VALGRIND_NOACCESS(pNextBlock);
 }
 
-static void markPrevBlockFree(u64 me /* header_t* */) {
-    ASSERT(!isBlockFree(me)); /* markPrevBlockFree can only be called on used block */
-    ST_SIZE(ADDR_OF(header_t, me, prevFreeBlock), 1);
-    FENCE_STORE;
-}
-
-static void markBlockUsed(u64 pgStart, u64 me/* header_t* */) {
-    ST_SIZE(ADDR_OF(header_t, me, prevFreeBlock), 0);
-    FENCE_STORE;
-
-    headerAddr_t nextBlock = getNextBlock(pgStart, me);
-    VALGRIND_DEFINED(GET_ADDRESS(nextBlock));
-    if(!isBlockFree(GET_ADDRESS(nextBlock)))
-        markPrevBlockUsed(GET_ADDRESS(nextBlock));
-    VALGRIND_NOACCESS(GET_ADDRESS(nextBlock));
-}
-
-static void markBlockFree(u64 pgStart, u64 me /* header_t* */) {
-    // To mark a block as free, we need to duplicate it's size
-    // at the end of the block so that the next block can find the beginning
-    // of the free block.
-    tlsfSize_t temp;
-    LD_SIZE(temp, ADDR_OF(header_t, me, sizeBlock));
-    FENCE_LOAD;
-    u64 locationToWrite = me +
-                          ((temp + GusedBlockOverhead) << ELEMENT_SIZE_LOG2) - sizeof(tlsfSize_t);
+static void markBlockFree(poolHdr_t * pPool, blkHdr_t * pBlk) {
+    // To mark a block as free, we need to duplicate it's size at the end of
+    // the block so that the next block can find the beginning of the free block.
+    u64 payloadSize = GET_payloadSize(pBlk);
+    u64 locationToWrite = ((u64) pBlk) + sizeof(blkHdr_t) + payloadSize - sizeof(u64);
 #ifdef ENABLE_VALGRIND
     // Weird case so I'll just hack it for now
-    VALGRIND_MAKE_MEM_DEFINED(locationToWrite, sizeof(tlsfSize_t));
+    VALGRIND_MAKE_MEM_DEFINED(locationToWrite, sizeof(u64));
 #endif
-    ST_SIZE(locationToWrite, temp);
+    SET64 (locationToWrite, payloadSize);
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MAKE_MEM_NOACCESS(locationToWrite, sizeof(tlsfSize_t));
+    VALGRIND_MAKE_MEM_NOACCESS(locationToWrite, sizeof(u64));
 #endif
 
-    ST_SIZE(ADDR_OF(header_t, me, prevFreeBlock), 0xBEEF);  // Some value that is not 0 or 1 for now
-    // will be updated when this
-    // free block is actually inserted
+    SET_pPrevFreeBlock(pBlk, ((blkHdr_t *) 0xBEEFLL), true); // Write some value that is not 0 or 1 for now;
+        // will be updated when this free block is actually inserted
 
-    u64 nextBlockPtr = GET_ADDRESS(getNextBlock(pgStart, me));
-    VALGRIND_DEFINED(nextBlockPtr);
-    FENCE_STORE;
+    blkHdr_t * pNextBlock = getNextBlock(pPool, pBlk);
+    VALGRIND_DEFINED((u64) pNextBlock);
 
-    if(!isBlockFree(nextBlockPtr))  // Usually, no two free blocks follow each other but it may happen temporarily
-        markPrevBlockFree(nextBlockPtr);
+    if(!GET_isThisBlockFree(pNextBlock))  // Usually, no two free blocks follow each other but it may happen temporarily
+        markPrevBlockFree(pNextBlock);
 
-    VALGRIND_NOACCESS(nextBlockPtr);
+    VALGRIND_NOACCESS((u64) pNextBlock);
 }
 
 
 /*
  * Allocation helpers (size and alignement constraints)
  */
-static tlsfSize_t getRealSizeOfRequest(u64 size) {
-    if((size >> ELEMENT_SIZE_LOG2) > GmaxBlockRealSize)
-        return 0; // Too big to allocate
-
-    if(size < ((GminBlockRealSize - GusedBlockOverhead) << ELEMENT_SIZE_LOG2)) {
-        return GminBlockRealSize - GusedBlockOverhead;
-    }
-
-    // We want this to be aligned so that the total w/ the header is ALIGN_BYTES but
-    // since the header may be smaller than ALIGN_BYTES, we do this weird computation
-    // to take it into account
-    size = ((size + ALIGN_BYTES - GoffsetToStart - 1) & ~(ALIGN_BYTES - 1))
-           + GoffsetToStart;
-
-    ASSERT(size % ELEMENT_SIZE_BYTES == 0);
-
-    size >>= ELEMENT_SIZE_LOG2;
-    ASSERT(size >= (GminBlockRealSize - GusedBlockOverhead));
-
+static u64 getRealSizeOfRequest(u64 size) {
+    if (size < sizeof(u64)) size = sizeof(u64);
+    size = (size + ALIGNMENT - 1LL) & (~(ALIGNMENT-1LL));
     return size;
 }
 
 /* Two-level function to determine indices. This is pretty much
  * taken straight from the specs
  */
-static void mappingInsert(tlsfSize_t realSize, int* flIndex, int* slIndex) {
+static void mappingInsert(u64 payloadSizeInBytes, int* flIndex, int* slIndex) {
     int tf, ts;
+    u64 sizeInElements = payloadSizeInBytes / ALIGNMENT;
 
-    if(realSize < ZERO_LIST_SIZE) {
+    if(sizeInElements < ZERO_LIST_SIZE) {
         tf = 0;
-        ts = realSize;
+        ts = sizeInElements;
     } else {
-        tf = FLS(realSize);
-        ts = (realSize >> (tf - SL_COUNT_LOG2)) - (SL_COUNT);
-        tf -= (FL_COUNT_SHIFT - 1);
+        tf = FLS(sizeInElements);
+        ts = (sizeInElements >> (tf - SL_COUNT_LOG2)) - (SL_COUNT);
+        tf -= (FL_COUNT_SHIFT - 1LL);
     }
     *flIndex = tf;
     *slIndex = ts;
@@ -528,13 +707,15 @@ static void mappingInsert(tlsfSize_t realSize, int* flIndex, int* slIndex) {
  * so that we are sure that any block will work so we can
  * pick it in constant time.
  */
-static void mappingSearch(tlsfSize_t realSize, int* flIndex, int* slIndex) {
-    if(realSize >= ZERO_LIST_SIZE) {
+static void mappingSearch(u64 payloadSize, int* flIndex, int* slIndex) {
+    u64 sizeInElements = payloadSize / ALIGNMENT;
+    if(sizeInElements >= ZERO_LIST_SIZE) {
         // If not, we don't need to do anything since the mappingInsert
         // will return the correct thing
-        realSize += (1 << (FLS(realSize) - SL_COUNT_LOG2)) - 1;
+        sizeInElements += (1LL << (FLS(sizeInElements) - SL_COUNT_LOG2)) - 1LL;
     }
-    mappingInsert(realSize, flIndex, slIndex);
+    payloadSize = sizeInElements * ALIGNMENT;
+    mappingInsert(payloadSize, flIndex, slIndex);
 }
 
 /* Search for a suitable free block:
@@ -545,33 +726,30 @@ static void mappingSearch(tlsfSize_t realSize, int* flIndex, int* slIndex) {
  *  Returns the header of a free block as well as flIndex and slIndex
  *  that block was taken from.
  */
-static headerAddr_t findFreeBlockForRealSize(u64 pgStart, tlsfSize_t realSize,
-        int* flIndex, int* slIndex) {
+static blkHdr_t * findFreeBlockForRealSize(
+    poolHdr_t * pPool, u64 realSize, int* flIndex, int* slIndex) {
 
+    blkHdr_t * pRes;
     int tf, ts;
-    headerAddr_t res = { .address = 0ULL };
-    tlsfSize_t flBitMap, slBitMap;
+    u64 flBitMap, slBitMap, flBucketCount;
 
     mappingSearch(realSize, flIndex, slIndex);
     tf = *flIndex;
     ts = *slIndex;
 
-    if(tf >= FL_COUNT) {
-        SET_NULL(res); // This means the alloc size is too large
-        return res;
+    flBucketCount = GET_flCount(pPool);
+    if(tf >= flBucketCount) {
+        return _NULL;
     }
 
-    LD_SIZE(slBitMap, ADDR_OF_1(pool_t, pgStart, tlsfSize_t, slAvailOrNot, tf));
-    FENCE_LOAD;
-    slBitMap &= (~0 << ts); // This takes all SL bins bigger or requal to ts
+    slBitMap = GET_slAvailOrNot(pPool, tf);
+    slBitMap &= (~0LL << ts); // This takes all SL bins bigger or equal to ts
     if(slBitMap == 0) {
         // We don't have any non-zero block here so we look at the flAvailOrNot map
-        LD_SIZE(flBitMap, ADDR_OF(pool_t, pgStart, flAvailOrNot));
-        FENCE_LOAD;
-        flBitMap &= (~0 << (tf + 1));
+        flBitMap = GET_flAvailOrNot(pPool);
+        flBitMap &= (~0LL << (tf + 1LL));
         if(flBitMap == 0) {
-            SET_NULL(res);
-            return res;
+            return _NULL;
         }
 
         // Look for the first bit that is a one
@@ -580,8 +758,7 @@ static headerAddr_t findFreeBlockForRealSize(u64 pgStart, tlsfSize_t realSize,
         *flIndex = tf;
 
         // Now we get the slBitMap. There is definitely a 1 in there since there is a 1 in tf
-        LD_SIZE(slBitMap, ADDR_OF_1(pool_t, pgStart, tlsfSize_t, slAvailOrNot, tf));
-        FENCE_LOAD;
+        slBitMap = GET_slAvailOrNot(pPool, tf);
     }
 
     ASSERT(slBitMap != 0);
@@ -589,316 +766,283 @@ static headerAddr_t findFreeBlockForRealSize(u64 pgStart, tlsfSize_t realSize,
     ts = myffs(slBitMap);
     *slIndex = ts;
 
-    LD_SIZE(res.value, ADDR_OF_2(pool_t, pgStart, tlsfSize_t, blocks, tf, SL_COUNT, ts));
-    FENCE_LOAD;
-    return res;
+    pRes = GET_availBlkListHead(pPool,tf,ts);
+    return pRes;
 }
 
 
 /* Helpers to manipulate the free lists */
 // For valgrind, assumes freeBlock is OK
-static void removeFreeBlock(u64 pgStart, headerAddr_t freeBlock) {
-    /* header_t* */ u64 freeBlockPtr = GET_ADDRESS(freeBlock);
-    tlsfSize_t tempSz;
-
-    ASSERT(isBlockFree(freeBlockPtr));
-
+static void removeFreeBlock(poolHdr_t * pPool, blkHdr_t * pFreeBlk) {
+    u64 tempSz;
+    ASSERT(GET_isThisBlockFree(pFreeBlk));
     int flIndex, slIndex;
-    LD_SIZE(tempSz, ADDR_OF(header_t, freeBlockPtr, sizeBlock));
-    FENCE_LOAD;
+    tempSz = GET_payloadSize(pFreeBlk);
     mappingInsert(tempSz, &flIndex, &slIndex);
 
     // First remove it from the chain of free blocks
-    headerAddr_t prevFreeBlock = getPrevFreeBlock(freeBlockPtr);
-    headerAddr_t nextFreeBlock = getNextFreeBlock(freeBlockPtr);
+    blkHdr_t * pPrevFreeBlock = GET_pPrevFreeBlock(pFreeBlk);
+    blkHdr_t * pNextFreeBlock = GET_pNextFreeBlock(pFreeBlk);
 
-    VALGRIND_DEFINED1(GET_ADDRESS(prevFreeBlock));
-    VALGRIND_DEFINED(GET_ADDRESS(nextFreeBlock));
+    VALGRIND_DEFINED1(pPrevFreeBlock);
+    VALGRIND_DEFINED(pNextFreeBlock);
 
-    ASSERT(prevFreeBlock.value !=0 && isBlockFree(GET_ADDRESS(prevFreeBlock)));
-    ASSERT(nextFreeBlock.value !=0 && isBlockFree(GET_ADDRESS(nextFreeBlock)));
+    ASSERT(pPrevFreeBlock != _NULL && GET_isThisBlockFree(pPrevFreeBlock));
+    ASSERT(pNextFreeBlock != _NULL && GET_isThisBlockFree(pNextFreeBlock));
 
-    linkFreeBlocks(pgStart, prevFreeBlock, nextFreeBlock);
+    linkFreeBlocks(pPool, pPrevFreeBlock, pNextFreeBlock);
 
     // Check if we need to change the head of the blocks list
-    LD_SIZE(tempSz, ADDR_OF_2(pool_t, pgStart, tlsfSize_t, blocks, flIndex, SL_COUNT, slIndex));
-    FENCE_LOAD;
-    if(tempSz == freeBlock.value) {
-        ST_SIZE(ADDR_OF_2(pool_t, pgStart, tlsfSize_t, blocks, flIndex, SL_COUNT, slIndex),
-                nextFreeBlock.value);
+    if(pFreeBlk == GET_availBlkListHead(pPool, flIndex, slIndex)) {
+        SET_availBlkListHead (pPool, flIndex, slIndex, pNextFreeBlock);
 
         // If the new head is nullBlock then we clear the bitmaps to
         // indicate that we have no more blocks available here
-        if(GET_ADDRESS(nextFreeBlock) == ADDR_OF(pool_t, pgStart, nullBlock)) {
-            LD_SIZE(tempSz, ADDR_OF_1(pool_t, pgStart, tlsfSize_t, slAvailOrNot, flIndex));
-            FENCE_LOAD;
-            tempSz &= ~(1 << slIndex); // Clear me bit
-            ST_SIZE(ADDR_OF_1(pool_t, pgStart, tlsfSize_t, slAvailOrNot, flIndex), tempSz);
+        if(pNextFreeBlock == &(pPool->nullBlock)) {
+            tempSz = GET_slAvailOrNot(pPool, flIndex);
+            tempSz &= ~(((u64) 1LL) << slIndex); // Clear me bit
+            SET_slAvailOrNot(pPool, flIndex, tempSz);
 
             // Check if slAvailOrNot is now 0
             if(tempSz == 0) {
-                LD_SIZE(tempSz, ADDR_OF(pool_t, pgStart, flAvailOrNot));
-                FENCE_LOAD;
+                tempSz = GET_flAvailOrNot(pPool);
 
-                tempSz &= ~(1 << flIndex);
-                ST_SIZE(ADDR_OF(pool_t, pgStart, flAvailOrNot), tempSz);
+                tempSz &= ~(1LL << flIndex);
+                SET_flAvailOrNot(pPool, tempSz);
             }
         }
-        FENCE_STORE;
     }
 
-    VALGRIND_NOACCESS1(GET_ADDRESS(prevFreeBlock));
-    VALGRIND_NOACCESS(GET_ADDRESS(nextFreeBlock));
+    VALGRIND_NOACCESS1(pPrevFreeBlock);
+    VALGRIND_NOACCESS(pNextFreeBlock);
 }
 
 // Assumes freeBlock OK for valgrind
-void addFreeBlock(u64 pgStart, headerAddr_t freeBlock) {
-    /* header_t* */ u64 freeBlockPtr = GET_ADDRESS(freeBlock);
+void addFreeBlock(poolHdr_t * pPool, blkHdr_t * pFreeBlock) {
     int flIndex, slIndex;
-    tlsfSize_t tempSz;
+    u64 tempSz;
 
-    LD_SIZE(tempSz, ADDR_OF(header_t, freeBlockPtr, sizeBlock));
-    FENCE_LOAD;
+    tempSz = GET_payloadSize(pFreeBlock);
     mappingInsert(tempSz, &flIndex, &slIndex);
 
-    headerAddr_t currentHead = { .address = 0ULL }, temp = { .address = 0ULL };
+    blkHdr_t * pCurrentHead;
 
-    LD_SIZE(currentHead.value, ADDR_OF_2(pool_t, pgStart, tlsfSize_t, blocks, flIndex, SL_COUNT, slIndex));
-    FENCE_LOAD;
+    pCurrentHead = GET_availBlkListHead(pPool, flIndex, slIndex);
 
-    ASSERT(GET_ADDRESS(currentHead));
-    ASSERT(freeBlockPtr);
-    ASSERT(freeBlockPtr != ADDR_OF(pool_t, pgStart, nullBlock));
+    ASSERT(pCurrentHead != _NULL);
+    ASSERT(pFreeBlock != _NULL);
+    ASSERT(pFreeBlock != &(pPool->nullBlock));
 
-    VALGRIND_DEFINED(GET_ADDRESS(currentHead));
+    VALGRIND_DEFINED(pCurrentHead);
     // Set the links properly
-    SET_VALUE(temp, ADDR_OF(pool_t, pgStart, nullBlock));
+    SET_pPrevFreeBlock(pFreeBlock, &(pPool->nullBlock), false);
+    linkFreeBlocks(pPool, pFreeBlock, pCurrentHead);
 
-    ST_SIZE(ADDR_OF(header_t, freeBlockPtr, prevFreeBlock), temp.value);
-    FENCE_STORE;
-    linkFreeBlocks(pgStart, freeBlock, currentHead);
-
-    ST_SIZE(ADDR_OF(header_t, freeBlockPtr, prevFreeBlock), temp.value);
-    ST_SIZE(ADDR_OF(header_t, freeBlockPtr, nextFreeBlock), currentHead.value);
-    ST_SIZE(ADDR_OF(header_t, GET_ADDRESS(currentHead), prevFreeBlock), freeBlock.value);   // Does not matter
-    // if the head was the
-    // nullBlock,
-    // that value is ignored anyways
+    SET_pPrevFreeBlock(pFreeBlock, &(pPool->nullBlock), false);
+    SET_pNextFreeBlock(pFreeBlock, pCurrentHead);
+    SET_pPrevFreeBlock(pCurrentHead, pFreeBlock, false); // Does not matter if head , was the nullBlock; that value is ignored anyway
 
     // Update the bitmaps
-    ST_SIZE(ADDR_OF_2(pool_t, pgStart, tlsfSize_t, blocks, flIndex, SL_COUNT, slIndex), freeBlock.value);
+    SET_availBlkListHead (pPool, flIndex, slIndex, pFreeBlock);
 
-    LD_SIZE(tempSz, ADDR_OF(pool_t, pgStart, flAvailOrNot));
-    FENCE_LOAD;
+    tempSz = GET_flAvailOrNot(pPool);
 
-    LD_SIZE(tempSz, ADDR_OF_1(pool_t, pgStart, tlsfSize_t, slAvailOrNot, flIndex));
-    FENCE_LOAD;
-    if(!(tempSz & (1 << slIndex))) {
+    tempSz = GET_slAvailOrNot(pPool, flIndex);
+    if(!(tempSz & (1LL << slIndex))) {
         // Here it wasn't stored so we definitely have to update
 
-        tempSz |= (1 << slIndex);
-        ST_SIZE(ADDR_OF_1(pool_t, pgStart, tlsfSize_t, slAvailOrNot, flIndex), tempSz);
+        tempSz |= (1LL << slIndex);
+        SET_slAvailOrNot(pPool, flIndex, tempSz);
 
-        LD_SIZE(tempSz, ADDR_OF(pool_t, pgStart, flAvailOrNot));
-        FENCE_LOAD;
-        if(!(tempSz & (1 << flIndex))) {
-            tempSz |= (1 << flIndex);
-            ST_SIZE(ADDR_OF(pool_t, pgStart, flAvailOrNot), tempSz);
+        tempSz = GET_flAvailOrNot(pPool);
+        if(!(tempSz & (1LL << flIndex))) {
+            tempSz |= (1LL << flIndex);
+            SET_flAvailOrNot(pPool, tempSz);
         }
     }
 
-    VALGRIND_NOACCESS(GET_ADDRESS(currentHead));
-    FENCE_STORE;
+    VALGRIND_NOACCESS(pCurrentHead);
 }
 
-/* Split origBlock so that origBlock is realSize long and
+/* Split origBlock so that origBlock is allocSize long and
  * returns a pointer to the remaining block which is free
  */
 // Assumes origBlock OK for valgrind
-static headerAddr_t splitBlock(u64 pgStart, headerAddr_t origBlock, tlsfSize_t realSize) {
-    headerAddr_t remainingBlock = { .address = 0ULL };
+static blkHdr_t * splitBlock(poolHdr_t * pPool, blkHdr_t * pOrigBlock, u64 allocSize) {
+    blkHdr_t * pRemainingBlock;
+    u64 origBlockSize;
+    origBlockSize = GET_payloadSize(pOrigBlock);
+    ASSERT(origBlockSize > allocSize + GminBlockSizeIncludingHdr);
 
-    /* header_t* */ u64 origBlockPtr = GET_ADDRESS(origBlock);
-    tlsfSize_t origBlockSize;
-    LD_SIZE(origBlockSize, ADDR_OF(header_t, origBlockPtr, sizeBlock));
-    FENCE_LOAD;
-    ASSERT(origBlockSize > realSize + GminBlockRealSize);
+    u64 remainingSize = origBlockSize - allocSize - sizeof(blkHdr_t);
 
-    tlsfSize_t remainingSize = origBlockSize - realSize - GusedBlockOverhead;
+    pRemainingBlock = ((blkHdr_t *) (((u64) pOrigBlock) + GoffsetFromBlkHdrToPayload + allocSize));
 
-    SET_VALUE(remainingBlock,
-              (origBlockPtr + GoffsetToStart + (realSize << ELEMENT_SIZE_LOG2)));
-
-    VALGRIND_DEFINED(GET_ADDRESS(remainingBlock));
+    VALGRIND_DEFINED(pRemainingBlock);
     // Take care of the remaining block (set its size and mark it as free)
-    ST_SIZE(ADDR_OF(header_t, GET_ADDRESS(remainingBlock), sizeBlock), remainingSize);
-    FENCE_STORE;
-    markBlockFree(pgStart, GET_ADDRESS(remainingBlock));
+    SET_payloadSize(pRemainingBlock, remainingSize);
+    markBlockFree(pPool, pRemainingBlock);
 
     // Set the size of the original block properly
-    ST_SIZE(ADDR_OF(header_t, origBlockPtr, sizeBlock), realSize);
-    FENCE_STORE;
+    SET_payloadSize(pOrigBlock, allocSize);
 
-    VALGRIND_NOACCESS(GET_ADDRESS(remainingBlock));
-    return remainingBlock;
+    VALGRIND_NOACCESS(pRemainingBlock);
+    return pRemainingBlock;
 }
 
-/* Absorbs nextBlock into freeBlock making one much
- * larger freeBlock. nextBlock must be physically next
- * to freeBlock
+/* Absorbs nextBlock into freeBlock making one much larger freeBlock. nextBlock
+ * must be physically next to freeBlock
  */
 // Assumes freeBlock and nextBlock OK for valgrind
-static void absorbNext(u64 pgStart, headerAddr_t freeBlock, headerAddr_t nextBlock) {
-    /* header_t * */ u64 freeBlockPtr = GET_ADDRESS(freeBlock);
-    /* header_t * */ u64 nextBlockPtr = GET_ADDRESS(nextBlock);
-    tlsfSize_t tempSz, tempSz2;
-
-
-    ASSERT(isBlockFree(freeBlockPtr));
-    ASSERT(isBlockFree(nextBlockPtr));
-    ASSERT(getNextBlock(pgStart, freeBlockPtr).value == nextBlock.value);
-
-    LD_SIZE(tempSz, ADDR_OF(header_t, freeBlockPtr, sizeBlock));
-    LD_SIZE(tempSz2, ADDR_OF(header_t, nextBlockPtr, sizeBlock));
-    FENCE_LOAD;
-    tempSz += tempSz2 + GusedBlockOverhead; // freeBlockPtr->sizeBlock += nextBlockPtr->sizeBlock + GusedBlockOverhead
-    ST_SIZE(ADDR_OF(header_t, freeBlockPtr, sizeBlock), tempSz);
-    FENCE_STORE;
-    markBlockFree(pgStart, freeBlockPtr); // will update the other field
+static void absorbNext(poolHdr_t * pPool, blkHdr_t * pFreeBlock, blkHdr_t * pNextBlock) {
+    ASSERT(GET_isThisBlockFree(pFreeBlock));
+    ASSERT(GET_isThisBlockFree(pNextBlock));
+    ASSERT(getNextBlock(pPool, pFreeBlock) == pNextBlock);
+    u64 tempSz = GET_payloadSize(pFreeBlock) + GET_payloadSize(pNextBlock) + sizeof(blkHdr_t);
+    SET_payloadSize(pFreeBlock, tempSz);
+    markBlockFree(pPool, pFreeBlock); // will update the other field
 }
 
-/* Merge with the previous block if it is free (toBeFreedBlock must
- * be used so isPrevBlockFree can return true)
- * Returns the resulting free block (either toBeFreedBlock marked as free
- * or the larger block)
+/* Merge with the previous block if it is free (blockToBeFreed must be used so
+ * GET_isPrevBlockFree can return true) Returns the resulting free block (either
+ * blockToBeFreed marked as free or the larger block)
  */
-// Assume toBeFreedBlock OK for valgrind
-static headerAddr_t mergePrevious(u64 pgStart, headerAddr_t toBeFreedBlock) {
-    /* header_t * */ u64 toBeFreedBlockPtr = GET_ADDRESS(toBeFreedBlock);
-
-    ASSERT(!isBlockFree(toBeFreedBlockPtr));
-    if(isPrevBlockFree(toBeFreedBlockPtr)) {
+// Assume blockToBeFreed OK for valgrind
+static blkHdr_t * mergePrevious(poolHdr_t * pPool, blkHdr_t * pBlockToBeFreed) {
+    ASSERT(!GET_isThisBlockFree(pBlockToBeFreed));
+    if(GET_isPrevBlockFree(pBlockToBeFreed)) {
         // Get the previous block
-        headerAddr_t prevBlock = getPrevBlock(pgStart, toBeFreedBlockPtr);
-        VALGRIND_DEFINED1(GET_ADDRESS(prevBlock));
+        blkHdr_t * pPrevBlock = getPrevBlock(pPool, pBlockToBeFreed);
+        VALGRIND_DEFINED1(pPrevBlock);
         // Remove it from the free-lists (since it will be made bigger)
-        removeFreeBlock(pgStart, prevBlock);
+        removeFreeBlock(pPool, pPrevBlock);
 
-        // Now we mark the toBeFreedBlock as free and merge it with the other one
-        markBlockFree(pgStart, toBeFreedBlockPtr);
-        absorbNext(pgStart, prevBlock, toBeFreedBlock);
-        VALGRIND_NOACCESS1(GET_ADDRESS(prevBlock));
-        toBeFreedBlock.value = prevBlock.value;
+        // Now we mark the BlockToBeFreed as free and merge it with the other one
+        markBlockFree(pPool, pBlockToBeFreed);
+        absorbNext(pPool, pPrevBlock, pBlockToBeFreed);
+        pBlockToBeFreed = pPrevBlock;
+        ASSERT(GET_isThisBlockFree(pBlockToBeFreed));
+        VALGRIND_NOACCESS1(pPrevBlock);
     } else {
-        markBlockFree(pgStart, toBeFreedBlockPtr);
+        markBlockFree(pPool, pBlockToBeFreed);
+        ASSERT(GET_isThisBlockFree(pBlockToBeFreed));
     }
 
-    ASSERT(isBlockFree(toBeFreedBlockPtr));
-    return toBeFreedBlock;
+    return pBlockToBeFreed;
 }
 
 /* Merges a block with its block if that one is free as well. The input
  * block must be free to start with
  */
-static headerAddr_t mergeNext(u64 pgStart, headerAddr_t freeBlock) {
-    ASSERT(isBlockFree(GET_ADDRESS(freeBlock)));
-    headerAddr_t nextBlock = getNextBlock(pgStart, GET_ADDRESS(freeBlock));
-    VALGRIND_DEFINED1(GET_ADDRESS(nextBlock));
-    if(isBlockFree(GET_ADDRESS(nextBlock))) {
-        removeFreeBlock(pgStart, nextBlock);
-        absorbNext(pgStart, freeBlock, nextBlock);
+static blkHdr_t * mergeNext(poolHdr_t * pPool, blkHdr_t * pFreeBlock) {
+    ASSERT(GET_isThisBlockFree(pFreeBlock));
+    blkHdr_t * pNextBlock = getNextBlock(pPool, pFreeBlock);
+    VALGRIND_DEFINED1(pNextBlock);
+    if(GET_isThisBlockFree(pNextBlock)) {
+        removeFreeBlock(pPool, pNextBlock);
+        absorbNext(pPool, pFreeBlock, pNextBlock);
     }
-    VALGRIND_NOACCESS1(GET_ADDRESS(nextBlock));
-    return freeBlock;
+    VALGRIND_NOACCESS1(pNextBlock);
+    return pFreeBlock;
 }
 
-/* Pool construction */
-static void initializePool(u64 pgStart, tlsfSize_t poolRealSize) {
-
-    headerAddr_t mainBlockAddr, nullBlockAddr;
-
-    SET_VALUE(nullBlockAddr, ADDR_OF(pool_t, pgStart, nullBlock));
-    SET_VALUE(mainBlockAddr, ADDR_OF(pool_t, pgStart, mainBlock));
-
-    // Initialize the bitmaps to 0
-
-    ST_SIZE(ADDR_OF(pool_t, pgStart, flAvailOrNot), 0);
+/* Pool construction (size of pool header is determined by tlsfInit, which then calls this function).*/
+static void initializePool(poolHdr_t * pPool, u64 poolRealSize) {
+    blkHdr_t * pNullBlock = &(pPool->nullBlock);
+    blkHdr_t * pGlebe = GET_glebeAsInitialBlock(pPool);
+    SET_flAvailOrNot(pPool, 0); // Initialize the bitmaps to 0
     int i, j;
-    for(i=0; i<FL_COUNT; ++i) {
-        ST_SIZE(ADDR_OF_1(pool_t, pgStart, tlsfSize_t, slAvailOrNot, i), 0);
+    u64 flBucketCount = GET_flCount(pPool);
+    for(i=0; i<flBucketCount; ++i) {
+        SET_slAvailOrNot(pPool, i, 0);
         for(j=0; j<SL_COUNT; ++j) {
-            ST_SIZE(ADDR_OF_2(pool_t, pgStart, tlsfSize_t, blocks, i, SL_COUNT, j), nullBlockAddr.value);
+           SET_availBlkListHead (pPool, i, j, pNullBlock);
         }
     }
 
-    // Initialize the main block properly
-    // We do something a little special in the main block: we take a little bit
-    // of it at the end to create a zero-sized block that is used
-    // to act as a sentinel. We therefore need GusedBlockOverhead space in the
-    // end (the 2* is because we also account for our own overhead)
-    ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, mainBlock), sizeBlock),
-            poolRealSize - 2*GusedBlockOverhead);
+    // Initialize the glebe properly
+    // We do something a little special in the glebe: we take a little bit
+    // of it at the end to create a block with an empty payload that is used
+    // to act as a sentinel. We therefore need space for a block header in the
+    // end (the 2* is because we also account for our own block header overhead)
+    SET_aggregatedFreeBlockIndicators (pGlebe, 0xBEEF0LL);
+    SET_aggregatedFreeBlockIndicators (pNullBlock, 0xBEEF0LL);
+    SET_payloadSize(pGlebe, poolRealSize - 2LL*sizeof(blkHdr_t));
+    SET_pNextFreeBlock(pGlebe, pNullBlock);
 
-    ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, mainBlock), nextFreeBlock), nullBlockAddr.value);
-
-    // This code is from markBlockFree (it marks mainBlock as free)
-    // We paste it here to remove some of the actions on next/prev block
-    // which bother valgrind
-    {
-        u64 locationToWrite = ADDR_OF(pool_t, pgStart, mainBlock) +
-                              ((poolRealSize - GusedBlockOverhead) << ELEMENT_SIZE_LOG2) - sizeof(tlsfSize_t);
-        ST_SIZE(locationToWrite, poolRealSize - 2*GusedBlockOverhead);
-
-        ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, mainBlock), prevFreeBlock), 0xBEEF);  // Some value that is not 0 or 1 for now
-    }
-    FENCE_STORE;
+    // This code is from markBlockFree (it marks the glebe as a single free block).  We paste
+    // it here to remove some of the actions on next/prev block which bother valgrind
+    u64 locationToWrite = ((u64) pGlebe) + (poolRealSize - sizeof(blkHdr_t)) - sizeof(u64);
+    SET64 (locationToWrite, poolRealSize - (2LL*sizeof(blkHdr_t)));
+    SET_pPrevFreeBlock(pGlebe, ((blkHdr_t *) 0xBEEFLL), true);  // Write some value that is not 0 or 1 for now
 
     // Add the sentinel
-    u64 sentinel = (ADDR_OF(pool_t, pgStart, mainBlock) +
-                    ((poolRealSize - GusedBlockOverhead) << ELEMENT_SIZE_LOG2));
-
-    ST_SIZE(ADDR_OF(header_t, sentinel, sizeBlock), 0);
-    ST_SIZE(ADDR_OF(header_t, sentinel, prevFreeBlock), 1); // This is mark prevBlockFree for sentinel
+    blkHdr_t * pSentinelBlk = (blkHdr_t *) (locationToWrite + sizeof(u64));
+    SET_payloadSize(pSentinelBlk, 0);
+    SET_aggregatedFreeBlockIndicators(pSentinelBlk, 1);  // This is mark prevBlockFree for sentinel
 
     // Initialize the nullBlock properly
-    ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, nullBlock), sizeBlock), 0);
-    ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, nullBlock), prevFreeBlock), nullBlockAddr.value);
-    ST_SIZE(ADDR_OF(header_t, ADDR_OF(pool_t, pgStart, nullBlock), nextFreeBlock), nullBlockAddr.value);
-    FENCE_STORE;
+    SET_nullBlock_payloadSize(pPool, 0);
+    SET_nullBlock_pPrevFreeBlock(pPool, pNullBlock);
+    SET_nullBlock_pNextFreeBlock(pPool, pNullBlock);
 
-    // Add the big free block
-    addFreeBlock(pgStart, mainBlockAddr);
-    VALGRIND_NOACCESS(sentinel);
+    // Add the glebe, i.e. the big free block
+    addFreeBlock(pPool, pGlebe);
+    VALGRIND_NOACCESS(pSentinelBlk);
 }
 
-static u32 tlsfInit(u64 pgStart, u64 size) {
-    tlsfSize_t realSizeForPool = size >> ELEMENT_SIZE_LOG2;
+static u32 tlsfInit(poolHdr_t * pPool, u64 size) {
     /* The memory will be layed out as follows:
-     *  - at location: the pool structure is used
-     *  - the first free block starts right after that (aligned)
+     *  - at location: the poolHdr_t structure is used
+     *  - the typedef of that structure only has the fixed-length data included.  The variable-length
+     *    data (variable at init time, invariant thereafter) has to be "annexed" onto that.
+     *  - then the glebe, i.e. net pool space, i.e. the first free block starts right after that (aligned)
      */
 
-    tlsfSize_t poolHeaderSize = sizeof(pool_t) + ALIGN_BLOCK_BYTES - 1;
-    poolHeaderSize = (poolHeaderSize & ~(ALIGN_BLOCK_BYTES - 1));
+// Figure out how much additional space needs to be annexed onto the end of the poolHdr_t struct
+// for first-level buckets beyond the first one:
 
-    // Now we have a poolHeaderSize that is big enough to contain the pool
-    // and right after it, we can start the big block.
-
-    tlsfSize_t poolRealSize = realSizeForPool -
-                              ((poolHeaderSize + ELEMENT_SIZE_BYTES - 1) >> ELEMENT_SIZE_LOG2);
-
-    if(poolRealSize < GminBlockRealSize || poolRealSize > GmaxBlockRealSize) {
-        DPRINTF(DEBUG_LVL_WARN, "Space mismatch allocating TLSF pool at 0x%lx of sz %d (user sz: %d)\n",
-                pgStart, (u32)poolRealSize, (u32)(poolRealSize << ELEMENT_SIZE_LOG2));
-        DPRINTF(DEBUG_LVL_WARN, "Sz must be at least %d and at most %d\n", GminBlockRealSize, GmaxBlockRealSize);
+    size &= ~(ALIGNMENT-1);
+    u64 poolHeaderSize = sizeof(poolHdr_t);  // This size will increase as we add first-level buckets.
+    u64 sizeRemainingAfterPoolHeader =
+        size -             // From the gross pool size ...
+        poolHeaderSize -   // ... subtract the size of the poolHdr_t ...
+        sizeof(blkHdr_t);  // ... and the size of the blkHdr_t that starts the single, huge whole-glebe block.
+    u64 flBucketCount = 0;
+    u64 poolSizeSpannedByFlBuckets = (1LL << (FL_COUNT_SHIFT-1)) * ALIGNMENT;
+    while (poolSizeSpannedByFlBuckets < sizeRemainingAfterPoolHeader) {
+        flBucketCount++;
+        poolHeaderSize = sizeof(poolHdr_t) +                                     // Non-variable-sized parts of pool header
+                         (sizeof(u32) * (flBucketCount + (flBucketCount & 1))) + // Space for slAvailOrNot array
+                         (sizeof(u32) * SL_COUNT * flBucketCount);               // Space for sl_avail 2D array.
+        sizeRemainingAfterPoolHeader = size - poolHeaderSize - sizeof(blkHdr_t);
+        poolSizeSpannedByFlBuckets <<= 1;
+        if (flBucketCount == 26) break;
+    }
+    while (poolSizeSpannedByFlBuckets < sizeRemainingAfterPoolHeader) {
+        flBucketCount++;
+        poolHeaderSize = sizeof(poolHdr_t) +                                     // Non-variable-sized parts of pool header
+                         (sizeof(u32) * (flBucketCount + (flBucketCount & 1))) + // Space for slAvailOrNot array
+                         (sizeof(u64) * SL_COUNT * flBucketCount);               // Space for sl_avail 2D array.
+        sizeRemainingAfterPoolHeader = size - poolHeaderSize - sizeof(blkHdr_t);
+        poolSizeSpannedByFlBuckets <<= 1;
+    }
+    SET_lock         (pPool, 0);
+    SET_flCount      (pPool, flBucketCount);
+    SET_offsetToGlebe(pPool, poolHeaderSize);
+    SET_currSliceNum (pPool, 0);
+    poolHeaderSize += sizeof(blkHdr_t);
+// Now we have a poolHeaderSize that is big enough to contain the pool and right after it, we can start the glebe.
+    sizeRemainingAfterPoolHeader = size - poolHeaderSize;
+    if(sizeRemainingAfterPoolHeader < GminBlockSizeIncludingHdr) {
+        DPRINTF(DEBUG_LVL_WARN, "Not enough space provided to make a meaningful TLSF pool at pPool=0x%lx.", (u64)pPool);
+        DPRINTF(DEBUG_LVL_WARN, "Provision of %ld bytes nets a glebe (net pool size, after pool overhead) of %ld bytes\n",
+            (u64) size, (u64)sizeRemainingAfterPoolHeader);
         return -1; // Can't allocate pool
     }
-
-    DPRINTF(DEBUG_LVL_INFO,"Allocating a TLSF pool at 0x%lx of sz %d (user sz: %d)\n",
-            pgStart, (u32)poolRealSize, (u32)(poolRealSize << ELEMENT_SIZE_LOG2));
-
-    initializePool(pgStart, poolRealSize);
-
+    DPRINTF(DEBUG_LVL_INFO,"Allocating a TLSF pool at 0x%lx of %ld bytes (glebe size, i.e. net size after pool overhead)\n",
+        (u64)pPool, (u64)sizeRemainingAfterPoolHeader);
+    initializePool(pPool, sizeRemainingAfterPoolHeader);
     return 0;
 }
 
@@ -907,79 +1051,75 @@ static u32 tlsfInit(u64 pgStart, u64 size) {
 //    // TODO: Not implemented yet
 //}
 
-static u64 tlsfMalloc(u64 pgStart, u64 size) {
-    u64 result = 0ULL;
-    tlsfSize_t allocSize, returnedSize;
+static blkPayload_t * tlsfMalloc(poolHdr_t * pPool, u64 size) {
+    blkPayload_t * result = 0ULL;
+    u64 payloadSize, returnedSize;
     int flIndex, slIndex;
-    headerAddr_t freeBlock, remainingBlock;
+    blkHdr_t * pAvailableBlock;
+    blkHdr_t * pRemainingBlock;
 
-    allocSize = getRealSizeOfRequest(size);
-    if(size > 0 && allocSize == 0) {
-        DPRINTF(DEBUG_LVL_WARN, "tslfMalloc @ 0x%lx returning NULL for too large size %ld\n",
-                pgStart, size);
+    payloadSize = getRealSizeOfRequest(size);
+    if(size > 0 && payloadSize == 0) {
+        DPRINTF(DEBUG_LVL_WARN, "tslfMalloc returning NULL for request size too large (%ld bytes) on pool at 0x%lx\n",
+                size, (u64) pPool);
         return _NULL;
     }
 
-    freeBlock = findFreeBlockForRealSize(pgStart, allocSize, &flIndex, &slIndex);
-    DPRINTF(DEBUG_LVL_VERB, "tslf_malloc @0x%lx found a free block at 0x%lx\n", pgStart,
-            addressForBlock(GET_ADDRESS(freeBlock)));
-    /* header_t * */ u64 freeBlockPtr = GET_ADDRESS(freeBlock);
+    pAvailableBlock = findFreeBlockForRealSize(pPool, payloadSize, &flIndex, &slIndex);
+    DPRINTF(DEBUG_LVL_VERB, "tslf_malloc @0x%lx found a free block at 0x%lx\n",
+        (u64) pPool, (u64) pAvailableBlock);
 
-    VALGRIND_DEFINED1(freeBlockPtr);
-    if(IS_NULL(freeBlockPtr)) {
-        DPRINTF(DEBUG_LVL_WARN, "tlsfMalloc @ 0x%lx returning NULL for size %ld\n",
-                pgStart, size);
+    VALGRIND_DEFINED1(pAvailableBlock);
+    if (pAvailableBlock == _NULL) {
+        // No longer print this warning here.  It is on the caller's head to decide if it should generate the
+        // warning.  The other possibility is that the caller might try allocating the block in a different pool.
+        //DPRINTF(DEBUG_LVL_WARN, "tlsfMalloc @ 0x%lx returning NULL for size %ld\n",
+        //        (u64) pPool, size);
         return _NULL;
     }
-    removeFreeBlock(pgStart, freeBlock);
-    LD_SIZE(returnedSize, ADDR_OF(header_t, freeBlockPtr, sizeBlock));
-    FENCE_LOAD;
-
-    if(returnedSize > allocSize + GminBlockRealSize) {
-        remainingBlock = splitBlock(pgStart, freeBlock, allocSize);
-        VALGRIND_DEFINED1(GET_ADDRESS(remainingBlock));
-        DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @0x%lx split block and re-added to free list 0x%lx\n", pgStart,
-                addressForBlock(GET_ADDRESS(remainingBlock)));
-        addFreeBlock(pgStart, remainingBlock);
-        VALGRIND_NOACCESS1(GET_ADDRESS(remainingBlock));
+    removeFreeBlock(pPool, pAvailableBlock);
+    returnedSize = GET_payloadSize(pAvailableBlock);
+    if(returnedSize > payloadSize + GminBlockSizeIncludingHdr) {
+        pRemainingBlock = splitBlock(pPool, pAvailableBlock, payloadSize);
+        VALGRIND_DEFINED1(pRemainingBlock);
+        DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @0x%lx split block and re-added to free list 0x%lx\n",
+            (u64) pPool, (u64) (pRemainingBlock));
+        addFreeBlock(pPool, pRemainingBlock);
+        VALGRIND_NOACCESS1(pRemainingBlock);
     }
-
-    markBlockUsed(pgStart, freeBlockPtr);
-
-    VALGRIND_NOACCESS1(freeBlockPtr);
-    result = addressForBlock(freeBlockPtr);
+    markBlockUsed(pPool, pAvailableBlock);
+    VALGRIND_NOACCESS1(pAvailableBlock);
+    result = payloadAddressForBlock(pAvailableBlock);
     DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @ 0x%lx returning 0x%lx for size %ld\n",
-            pgStart, result, size);
+        (u64) pPool, (u64) result, (u64) size);
     return result;
 }
 
-static void tlsfFree(u64 pgStart, u64 ptr) {
-    headerAddr_t bl;
-
+static void tlsfFree(poolHdr_t * pPool, blkPayload_t * pPayload) {
     DPRINTF(DEBUG_LVL_VERB, "tlsfFree @ 0x%lx going to free 0x%lx\n",
-            pgStart, ptr);
-
-    bl = blockForAddress(pgStart, ptr);
-
+            (u64) pPool, (u64) pPayload);
+    blkHdr_t * pBlk = mapPayloadAddrToBlockAddr (pPayload);
 #ifdef ENABLE_VALGRIND
-    headerAddr_t bltemp = bl;
-    VALGRIND_DEFINED1(GET_ADDRESS(bl));
-    bl = mergePrevious(pgStart, bl);
-    VALGRIND_NOACCESS1(GET_ADDRESS(bltemp));
-    bltemp = bl;
-    VALGRIND_DEFINED1(GET_ADDRESS(bl));
-    bl = mergeNext(pgStart, bl);
-    VALGRIND_NOACCESS1(GET_ADDRESS(bltemp));
-    VALGRIND_DEFINED1(GET_ADDRESS(bl));
-    addFreeBlock(pgStart, bl);
-    VALGRIND_NOACCESS1(GET_ADDRESS(bl));
+    blkHdr_t * pBlkTemp = pBlk;
+    VALGRIND_DEFINED1(pBlk);
+    pBlk = mergePrevious(pPool, pBlk);
+    VALGRIND_NOACCESS1(pBlkTemp);
+    pBlkTemp = pBlk;
+    VALGRIND_DEFINED1(pBlk);
+    pBlk = mergeNext(pPool, pBlk);
+    VALGRIND_NOACCESS1(pBlkTemp);
+    VALGRIND_DEFINED1(pBlk);
+    addFreeBlock(pPool, pBlk);
+    VALGRIND_NOACCESS1(pBlk);
 #else
-    bl = mergePrevious(pgStart, bl);
-    bl = mergeNext(pgStart, bl);
-    addFreeBlock(pgStart, bl);
+    pBlk = mergePrevious(pPool, pBlk);
+    pBlk = mergeNext(pPool, pBlk);
+    addFreeBlock(pPool, pBlk);
 #endif
 }
 
+#if 0
+// TODO:  Usage is presently disabled.  Will need lots of rework.
 static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
     // First deal with corner cases:
     //  - non-zero size with null pointer is like malloc
@@ -996,8 +1136,8 @@ static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
     u64 result;
     result = _NULL;
     headerAddr_t bl, nextBlock;
-    /* header_t * */ u64 blockAddr, nextBlockAddr;
-    tlsfSize_t realReqSize, realAvailSize, tempSz;
+    /* blkHdr_t * */ u64 blockAddr, nextBlockAddr;
+    u64 realReqSize, realAvailSize, tempSz;
 
     bl = blockForAddress(pgStart, ptr);
     blockAddr = GET_ADDRESS(bl);
@@ -1006,29 +1146,26 @@ static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
     nextBlockAddr = GET_ADDRESS(nextBlock);
     VALGRIND_DEFINED1(nextBlockAddr);
 
-    LD_SIZE(realAvailSize, ADDR_OF(header_t, nextBlockAddr, sizeBlock));
-    LD_SIZE(tempSz, ADDR_OF(header_t, blockAddr, sizeBlock));
-    FENCE_LOAD;
-    realAvailSize += tempSz + GusedBlockOverhead; // realAvailSize = blockAddr->sizeBlock
-    // + nextBlockAddr->sizeBlock + GusedBlockOverhead
+    realAvailSize = ((gnrcBlkHdr_t *) nextBlockAddr)->payloadSize;
+    tempSz = ((gnrcBlkHdr_t *) blockAddr)->payloadSize;
+    realAvailSize += tempSz + GusedBlockOverhead; // realAvailSize = blockAddr->payloadSize
+    // + nextBlockAddr->payloadSize + GusedBlockOverhead
     realReqSize = getRealSizeOfRequest(size);
 
-    if(realReqSize > tempSz || (!isBlockFree(nextBlockAddr) || realReqSize > realAvailSize)) {
+    if(realReqSize > tempSz || (!GET_isThisBlockFree(nextBlockAddr) || realReqSize > realAvailSize)) {
         // We need to reallocate and copy
         // Note, does not matter if pgStart was already truncated, it is an idempotent operation
         result = tlsfMalloc(pgStart, size);
         if(result) {
             u64 sizeToCopy = tempSz<realReqSize?tempSz:realReqSize;
             hal_memCopy(result, ptr, sizeToCopy << ELEMENT_SIZE_LOG2, false);
-
             tlsfFree(pgStart, ptr); // Free the original block
         }
     } else {
         if(realReqSize > tempSz) {
             // This means we need to extend to the other block
             removeFreeBlock(pgStart, nextBlock);
-            ST_SIZE(ADDR_OF(header_t, blockAddr, sizeBlock), realAvailSize);
-            FENCE_STORE;
+            ((gnrcBlkHdr_t *) blockAddr)->payloadSize = realAvailSize;
             markBlockUsed(pgStart, blockAddr);
         } else {
             realAvailSize = tempSz;
@@ -1048,6 +1185,7 @@ static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
     VALGRIND_NOACCESS1(nextBlockAddr);
     return result;
 }
+#endif
 
 void tlsfDestruct(ocrAllocator_t *self) {
     if(self->memoryCount) {
@@ -1061,31 +1199,43 @@ void tlsfDestruct(ocrAllocator_t *self) {
 }
 
 void tlsfBegin(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
+    u32 i;
     ASSERT(self->memoryCount == 1);
     self->memories[0]->fcts.begin(self->memories[0], PD);
 
     // Do the allocation
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     RESULT_ASSERT(rself->base.memories[0]->fcts.chunkAndTag(
-                      rself->base.memories[0], &(rself->poolAddr), rself->totalSize,
+                      rself->base.memories[0], &(rself->poolStorageAddr), rself->poolSize,
                       USER_FREE_TAG, USER_USED_TAG), ==, 0);
-    ASSERT(rself->poolAddr);
+    ASSERT(rself->poolStorageAddr);
     // Adjust alignment if required
-    rself->addr = rself->poolAddr;
-    u64 t = (rself->poolAddr & ((1ULL<<ALIGN_LOG2) - 1));
+    rself->poolAddr = rself->poolStorageAddr;
+    u64 t = (rself->poolStorageAddr & (ALIGNMENT-1LL));
     if(t) {
         // Not properly aligned
-        t = (1ULL<<ALIGN_LOG2) - t; // t now has how much we have to add to align
-        rself->addr += t;
-        rself->totalSize -= t;
+        t = ALIGNMENT - t; // t now has how much we have to add to align
+        rself->poolAddr += t;
+        rself->poolSize -= t;
     }
+    rself->poolSize &= ~((ALIGNMENT-1LL));
 #ifdef OCR_ENABLE_STATISTICS
     statsALLOCATOR_START(PD, self->guid, self, self->memories[0]->guid, self->memories[0]);
 #endif
-    RESULT_ASSERT(tlsfInit(rself->addr, rself->totalSize), ==, 0);
+    ASSERT(((rself->sliceCount+2)*rself->sliceSize)<=rself->poolSize); // Remnant has to be at least as large as two slices.  (Note:  we might want to implement the option of there being NO remnant!)
+    for (i = 0; i < rself->sliceCount; i++) {
+        RESULT_ASSERT(tlsfInit(((poolHdr_t *) (rself->poolAddr)), rself->sliceSize), ==, 0);
 #ifdef ENABLE_VALGRIND
-    VALGRIND_CREATE_MEMPOOL(rself->addr, 0, false);
-    VALGRIND_MAKE_MEM_NOACCESS(rself->addr, rself->totalSize);
+        VALGRIND_CREATE_MEMPOOL(((poolHdr_t *) (rself->poolAddr)), 0, false);
+        VALGRIND_MAKE_MEM_NOACCESS(((poolHdr_t *) (rself->poolAddr)), rself->sliceSize);
+#endif
+        rself->poolAddr += rself->sliceSize;
+        rself->poolSize -= rself->sliceSize;
+    }
+    RESULT_ASSERT(tlsfInit(((poolHdr_t *) (rself->poolAddr)), rself->poolSize), ==, 0);
+#ifdef ENABLE_VALGRIND
+    VALGRIND_CREATE_MEMPOOL(((poolHdr_t *) (rself->poolAddr)), 0, false);
+    VALGRIND_MAKE_MEM_NOACCESS(((poolHdr_t *) (rself->poolAddr)), rself->poolSize);
 #endif
 }
 
@@ -1123,65 +1273,120 @@ void tlsfStop(ocrAllocator_t *self) {
 }
 
 void tlsfFinish(ocrAllocator_t *self) {
+    int i;
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     RESULT_ASSERT(rself->base.memories[0]->fcts.tag(
-                      rself->base.memories[0], rself->poolAddr, rself->totalSize + rself->addr,
-                      USER_FREE_TAG), ==, 0);
+        rself->base.memories[0], rself->poolStorageAddr, rself->poolStorageSize + rself->poolStorageAddr,
+        USER_FREE_TAG), ==, 0);
+    u64 poolAddr = rself->poolAddr - (((u64) rself->sliceCount)*((u64) rself->sliceSize));
+    for (i = 0; i < rself->sliceCount; i++) {
 #ifdef ENABLE_VALGRIND
-    VALGRIND_DESTROY_MEMPOOL(rself->addr);
-    VALGRIND_MAKE_MEM_DEFINED(rself->addr, rself->totalSize);
+        VALGRIND_DESTROY_MEMPOOL(poolAddr);
+        VALGRIND_MAKE_MEM_DEFINED(poolAddr, rself->sliceSize);
+#endif
+        poolAddr += rself->sliceSize;
+    }
+
+#ifdef ENABLE_VALGRIND
+    VALGRIND_DESTROY_MEMPOOL(poolAddr);
+    VALGRIND_MAKE_MEM_DEFINED(poolAddr, rself->poolSize);
 #endif
     ASSERT(self->memoryCount == 1);
     self->memories[0]->fcts.finish(self->memories[0]);
 }
 
-void* tlsfAllocate(ocrAllocator_t *self, u64 size) {
+void* tlsfAllocate(
+    ocrAllocator_t *self,   // Allocator to attempt block allocation
+    u64 size,               // Size of desired block, in bytes
+    u64 hints) {      // Allocator-dependent hints; TLSF supports reduced contention
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
 
-    hal_lock32(&(rself->lock));
+    bool useRemnant = !(hints & OCR_ALLOC_HINT_REDUCE_CONTENTION);
+    poolHdr_t * pPool = (poolHdr_t *) (((ocrAllocatorTlsf_t*)self)->poolAddr); // Addr of remnant pool (pool shared by ALL clients of allocator)
+
+    if (useRemnant == 0) {  // Attempt to allocate the requested block to a semi-private slice pool picked in round-robin fashion.
+        if (rself->sliceCount == 0) return _NULL;  // Slicing is NOT implemented on this pool.  Return failure status.
+        if (rself->sliceSize < size) return _NULL; // Don't bother trying if the requested block is bigger than the pool supports.
+        // Attempt allocations to slice pools on an entirely round-robin basis, so that any number of concurrent allocations up to
+        // the number of slices can be supported with NO throttling on their locks.  In the following code, the increment and
+        // wrap-around of the currSliceNum round-robin rotor is NOT thread safe, but it doesn't really need to be.  In the rare
+        // occurrence of a race on that variable, getting it "wrong" doesn't hurt anything, and it's cheaper just to "let it ride".
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MAKE_MEM_DEFINED(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t));
+    VALGRIND_MAKE_MEM_DEFINED((u64) pPool, sizeof(poolHdr_t));
 #endif
-    void* toReturn = (void*)tlsfMalloc(rself->addr, size);
+        u64 sliceNum = GET_currSliceNum(pPool) + 1LL; // Read of thread-unsafe read-modify-write operation, but not a problem.
+        u64 slicePoolOffset = sliceNum * rself->sliceSize;
+        if (sliceNum == rself->sliceCount) sliceNum = 0;
+        SET_currSliceNum (pPool, sliceNum); // Write of thread-unsafe read-modify-write operation, but not a problem.
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MEMPOOL_ALLOC(rself->addr, toReturn, size);
-    VALGRIND_MAKE_MEM_NOACCESS(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t)); // The tlsfSize_t is because the last part
-    // of mainBlock can be accessed as part of the
-    // first allocated block
+    VALGRIND_MAKE_MEM_NOACCESS((u64) pPool, sizeof(poolHdr_t));
 #endif
-    hal_unlock32(&(rself->lock));
+        pPool = ((poolHdr_t *) (((u64) pPool) - slicePoolOffset)); // Adjust pool pointer to point to this slice instead of remnant.
+    }
+
+#ifdef ENABLE_VALGRIND
+    VALGRIND_MAKE_MEM_DEFINED((u64) pPool, sizeof(poolHdr_t));
+    u64 sizeOfPoolHdr = GET_offsetToGlebe(pPool) + sizeof(blkHdr_t);
+    VALGRIND_MAKE_MEM_NOACCESS((u64) pPool, sizeof(poolHdr_t));
+    VALGRIND_MAKE_MEM_DEFINED((u64) pPool, sizeOfPoolHdr);
+#endif
+    hal_lock32(&(pPool->lock));
+    void* toReturn = (void*)tlsfMalloc(pPool, size);
+    hal_unlock32(&(pPool->lock));
+#ifdef ENABLE_VALGRIND
+    if (toReturn) VALGRIND_MEMPOOL_ALLOC((u64) pPool, toReturn, size);
+    VALGRIND_MAKE_MEM_NOACCESS((u64) pPool, sizeOfPoolHdr);
+#endif
     return toReturn;
 }
 
-void tlsfDeallocate(ocrAllocator_t *self, void* address) {
-    ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
-
-    hal_lock32(&(rself->lock));
+void tlsfDeallocate(void* address) {
+    blkHdr_t * pBlock = mapPayloadAddrToBlockAddr(address);
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MAKE_MEM_DEFINED(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t));
+    VALGRIND_MAKE_MEM_DEFINED((u64) pBlock, sizeof(blkHdr_t));
 #endif
-    tlsfFree(rself->addr, (u64)address);
+    poolHdr_t * pPool = (poolHdr_t *) (GET_poolHeaderDescr(pBlock) & POOL_HEADER_ADDR_MASK);
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MEMPOOL_FREE(rself->addr, address);
-    VALGRIND_MAKE_MEM_NOACCESS(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t));
+    VALGRIND_MAKE_MEM_NOACCESS((u64) pBlock, sizeof(blkHdr_t));
+    VALGRIND_MAKE_MEM_DEFINED((u64) pPool, sizeof(poolHdr_t));
 #endif
-    hal_unlock32(&(rself->lock));
+    hal_lock32(&(pPool->lock));
+#ifdef ENABLE_VALGRIND
+    u64 sizeOfPoolHdrWithAnnex = GET_offsetToGlebe(pPool) + sizeof(blkHdr_t);
+    VALGRIND_MAKE_MEM_NOACCESS((u64) pPool, sizeof(poolHdr_t));
+    VALGRIND_MAKE_MEM_DEFINED((u64) pPool, sizeOfPoolHdrWithAnnex);
+#endif
+    tlsfFree(pPool, (blkPayload_t *) address);
+#ifdef ENABLE_VALGRIND
+    VALGRIND_MEMPOOL_FREE((u64) pPool, address);
+#endif
+    hal_unlock32(&(pPool->lock));
+#ifdef ENABLE_VALGRIND
+    VALGRIND_MAKE_MEM_NOACCESS((u64) pPool, sizeOfPoolHdrWithAnnex);
+#endif
 }
 
 void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
+#if 1
+    DPRINTF (DEBUG_LVL_VERB, "TODO:  rework tlsfReallocate code.  Take into account caller might be different than original allocator.\n");
+    ASSERT (0);
+    return NULL;
+#else
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
 
-    hal_lock32(&(rself->lock));
+    hal_lock32(&(((poolHdr_t *) (rself->poolAddr))->lock));
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MAKE_MEM_DEFINED(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t));
+    u64 sizeOfPoolHdr = ((poolHdr_t *) (rself->poolAddr))->offsetToGlebe + sizeof(blkHdr_t);
+    VALGRIND_MAKE_MEM_DEFINED(rself->poolAddr, sizeOfPoolHdr);
 #endif
-    void* toReturn = (void*)(tlsfRealloc(rself->addr, (u64)address, size));
+    void* toReturn = (void*)(tlsfRealloc(rself->poolAddr, (u64)address, size));
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MEMPOOL_CHANGE(rself->addr, address, toReturn, size);
-    VALGRIND_MAKE_MEM_NOACCESS(rself->addr, sizeof(pool_t) - sizeof(tlsfSize_t));
+    VALGRIND_MEMPOOL_CHANGE(rself->poolAddr, address, toReturn, size);
+    VALGRIND_MAKE_MEM_NOACCESS(rself->poolAddr, sizeOfPoolHdr);
 #endif
-    hal_unlock32(&(rself->lock));
+    hal_unlock32(&(((poolHdr_t *) (rself->poolAddr))->lock));
     return toReturn;
+#endif
 }
 
 //#endif /* ENABLE_BUILDER_ONLY */
@@ -1190,7 +1395,7 @@ void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
 ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_t *perInstance) {
 
     ocrAllocatorTlsf_t *result = (ocrAllocatorTlsf_t*)
-                                 runtimeChunkAlloc(sizeof(ocrAllocatorTlsf_t), NULL);
+        runtimeChunkAlloc(sizeof(ocrAllocatorTlsf_t), NULL);
     ocrAllocator_t * derived = (ocrAllocator_t *) result;
     factory->initialize(factory, derived, perInstance);
     return (ocrAllocator_t *) result;
@@ -1200,12 +1405,12 @@ void initializeAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrAllocator_t * s
     initializeAllocatorOcr(factory, self, perInstance);
 
     ocrAllocatorTlsf_t *derived = (ocrAllocatorTlsf_t *)self;
-    paramListAllocatorInst_t *perInstanceReal = (paramListAllocatorInst_t*)perInstance;
+    paramListAllocatorTlsf_t *perInstanceReal = (paramListAllocatorTlsf_t*)perInstance;
 
-    derived->addr = derived->poolAddr = 0ULL;
-    derived->totalSize = derived->poolSize = perInstanceReal->size;
-
-    derived->lock = 0;
+    derived->sliceCount        = perInstanceReal->sliceCount;
+    derived->sliceSize         = perInstanceReal->sliceSize;
+    derived->poolAddr          = derived->poolStorageAddr = 0ULL;
+    derived->poolSize          = derived->poolStorageSize = perInstanceReal->base.size;
 }
 
 /******************************************************/
@@ -1218,7 +1423,7 @@ static void destructAllocatorFactoryTlsf(ocrAllocatorFactory_t * factory) {
 
 ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
     ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*)
-                                  runtimeChunkAlloc(sizeof(ocrAllocatorFactoryTlsf_t), (void *)1);
+        runtimeChunkAlloc(sizeof(ocrAllocatorFactoryTlsf_t), (void *)1);
     ASSERT(base);
     base->instantiate = &newAllocatorTlsf;
     base->initialize = &initializeAllocatorTlsf;
@@ -1228,8 +1433,8 @@ ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
     base->allocFcts.start = FUNC_ADDR(void (*)(ocrAllocator_t*, ocrPolicyDomain_t*), tlsfStart);
     base->allocFcts.stop = FUNC_ADDR(void (*)(ocrAllocator_t*), tlsfStop);
     base->allocFcts.finish = FUNC_ADDR(void (*)(ocrAllocator_t*), tlsfFinish);
-    base->allocFcts.allocate = FUNC_ADDR(void* (*)(ocrAllocator_t*, u64), tlsfAllocate);
-    base->allocFcts.free = FUNC_ADDR(void (*)(ocrAllocator_t*, void*), tlsfDeallocate);
+    base->allocFcts.allocate = FUNC_ADDR(void* (*)(ocrAllocator_t*, u64, u64), tlsfAllocate);
+    //base->allocFcts.free = FUNC_ADDR(void (*)(void*), tlsfDeallocate);
     base->allocFcts.reallocate = FUNC_ADDR(void* (*)(ocrAllocator_t*, void*, u64), tlsfReallocate);
     return base;
 }
@@ -1239,12 +1444,12 @@ ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
 
 
 static void printBlock(void *block_, void* extra) {
-    header_t *bl = (header_t*)block_;
+    blkHdr_t *bl = (blkHdr_t*)block_;
     int *count = (int*)extra;
     fprintf(stderr, "\tBlock %d starts at 0x%lx (user: 0x%lx) of size %d (user: %d) %s\n",
             *count, bl, (char*)bl + (GusedBlockOverhead << ELEMENT_SIZE_LOG2),
-            bl->sizeBlock, (bl->sizeBlock << ELEMENT_SIZE_LOG2),
-            isBlockFree(bl)?"free":"used");
+            bl->payloadSize, (bl->payloadSize << ELEMENT_SIZE_LOG2),
+            GET_isThisBlockFree(bl)?"free":"used");
     *count += 1;
 }
 
@@ -1255,14 +1460,14 @@ typedef struct flagVerifier_t {
 } flagVerifier_t;
 
 static void verifyFlags(void *block_, void* extra) {
-    header_t *bl = (header_t*)block_;
+    blkHdr_t *bl = (blkHdr_t*)block_;
     flagVerifier_t* verif = (flagVerifier_t*)extra;
 
-    if(isPrevBlockFree(bl) != verif->isPrevFree) {
+    if(GET_isPrevBlockFree(bl) != verif->isPrevFree) {
         verif->countErrors += 1;
         fprintf(stderr, "Mismatch in free flag for block 0x%x\n", bl);
     }
-    if(isBlockFree(bl)) {
+    if(GET_isThisBlockFree(bl)) {
         verif->countConsecutiveFrees += 1;
         if(verif->countConsecutiveFrees > 1) {
             fprintf(stderr, "Blocks did not coalesce (count of %d at 0x%x)\n",
@@ -1277,13 +1482,13 @@ static void verifyFlags(void *block_, void* extra) {
 }
 
 void tlsf_walk_heap(u64 pgStart, tlsf_walkerAction action, void* extra) {
-    pool_t *poolToUse = (pool_t*)pgStart;
+    // poolHdr_t *poolToUse = (poolHdr_t*)pgStart;
     if(action == 0) {
         action = (tlsf_walkerAction)printBlock;
     }
-    header_t *bl = &(poolToUse->mainBlock);
+    blkHdr_t *bl = (blkHdr_t *) ADDR_OF_MAIN_BLOCK;     // poolToUse->pMainBlock;
 
-    while(bl && !(bl->sizeBlock == 0)) {
+    while(bl && !(bl->payloadSize == 0)) {
         action(bl, extra);
         bl = GET_ADDRESS(getNextBlock(pgStart, bl));
     }
@@ -1294,7 +1499,7 @@ void tlsf_walk_heap(u64 pgStart, tlsf_walkerAction action, void* extra) {
  * Return the number of errors
  */
 int tlsf_check_heap(u64 pgStart, unsigned int *freeRemaining) {
-    pool_t *poolToUse = (pool_t*)pgStart;
+    poolHdr_t *poolToUse = (poolHdr_t*)pgStart;
     int errCount = 0;
     unsigned int countFree = 0;
     flagVerifier_t verif = {0, FALSE, 0};
@@ -1306,10 +1511,12 @@ int tlsf_check_heap(u64 pgStart, unsigned int *freeRemaining) {
     }
 
     // Check the bitmaps
-    for(int i=0; i < FL_COUNT; ++i) {
-        bool hasFlAvail = poolToUse->flAvailOrNot & (1 << i);
+    u64 flBucketCount;
+    flBucketCount = GET_flCount(pgStart);
+    for(int i=0; i < flBucketCount; ++i) {
+        bool hasFlAvail = poolToUse->flAvailOrNot & (1LL << i);
         for(int j=0; j < SL_COUNT; ++j) {
-            bool hasSlAvail = poolToUse->slAvailOrNot[i] & (1 << j);
+            bool hasSlAvail = poolToUse->slAvailOrNot[i] & (1LL << j);
 
             headerAddr_t blockHead;
             blockHead.value = poolToUse->blocks[i][j];
@@ -1325,17 +1532,17 @@ int tlsf_check_heap(u64 pgStart, unsigned int *freeRemaining) {
             }
             if(hasSlAvail) {
                 // We now check all the blocks
-                header_t *blockHeadPtr = GET_ADDRESS(blockHead);
+                blkHdr_t *blockHeadPtr = GET_ADDRESS(blockHead);
                 while(blockHeadPtr != &(poolToUse->nullBlock)) {
-                    if(!isBlockFree(blockHeadPtr)) {
+                    if(!GET_isThisBlockFree(blockHeadPtr)) {
                         fprintf(stderr, "Block 0x%x should be free for (%d, %d)\n", blockHeadPtr, i, j);
                         ++errCount;
                     }
-                    if(isBlockFree(GET_ADDRESS(getNextBlock(pgStart, blockHeadPtr)))) {
+                    if(GET_isThisBlockFree(GET_ADDRESS(getNextBlock(pgStart, blockHeadPtr)))) {
                         fprintf(stderr, "Block 0x%x should have coalesced with next for (%d, %d)\n", blockHeadPtr, i, j);
                         ++errCount;
                     }
-                    if(!isPrevBlockFree(GET_ADDRESS(getNextBlock(pgStart, blockHeadPtr)))) {
+                    if(!GET_isPrevBlockFree(GET_ADDRESS(getNextBlock(pgStart, blockHeadPtr)))) {
                         fprintf(stderr, "Block 0x%x is not prevFree for (%d, %d)\n", blockHeadPtr, i, j);
                         ++errCount;
                     }
@@ -1344,21 +1551,21 @@ int tlsf_check_heap(u64 pgStart, unsigned int *freeRemaining) {
                         fprintf(stderr, "Block 0x%x cannot be back-reached for (%d, %d)\n", blockHeadPtr, i, j);
                         ++errCount;
                     }
-                    if(blockHeadPtr->sizeBlock < (GminBlockRealSize - GusedBlockOverhead)
-                            || blockHeadPtr->sizeBlock > GmaxBlockRealSize) {
+                    if(blockHeadPtr->payloadSize < (GminBlockRealSize - GusedBlockOverhead)
+                            || blockHeadPtr->payloadSize > GmaxBlockRealSize) {
 
                         fprintf(stderr, "Block 0x%x has illegal size for (%d, %d)\n", blockHeadPtr, i, j);
                         ++errCount;
                     }
 
                     int tf, ts;
-                    mappingInsert(blockHeadPtr->sizeBlock, &tf, &ts);
+                    mappingInsert(blockHeadPtr->payloadSize, &tf, &ts);
                     if(tf != i || ts != j) {
                         fprintf(stderr, "Block 0x%x is in wrong bucket for (%d, %d)\n", blockHeadPtr, i, j);
                         ++errCount;
                     }
-                    countFree += blockHeadPtr->sizeBlock;
-                    blockHead = getNextFreeBlock(blockHeadPtr);
+                    countFree += blockHeadPtr->payloadSize;
+                    blockHead = GET_pNextFreeBlock(blockHeadPtr);
                     blockHeadPtr = GET_ADDRESS(blockHead);
                 }
             }
@@ -1370,3 +1577,4 @@ int tlsf_check_heap(u64 pgStart, unsigned int *freeRemaining) {
 #endif /* OCR_DEBUG */
 
 #endif /* ENABLE_TLSF_ALLOCATOR */
+

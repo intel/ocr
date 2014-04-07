@@ -34,7 +34,7 @@ void nullStop(ocrAllocator_t *self) {
 void nullFinish(ocrAllocator_t *self) {
 }
 
-void* nullAllocate(ocrAllocator_t *self, u64 size) {
+void* nullAllocate(ocrAllocator_t *self, u64 size, u64 hints) {
     return NULL;
 }
 
@@ -48,8 +48,7 @@ void* nullReallocate(ocrAllocator_t *self, void* address, u64 size) {
 // Method to create the NULL allocator
 ocrAllocator_t * newAllocatorNull(ocrAllocatorFactory_t * factory, ocrParamList_t *perInstance) {
 
-    ocrAllocator_t *base = (ocrAllocator_t*)
-                           runtimeChunkAlloc(sizeof(ocrAllocatorNull_t), NULL);
+    ocrAllocator_t *base = (ocrAllocator_t*) runtimeChunkAlloc(sizeof(ocrAllocatorNull_t), NULL);
     factory->initialize(factory, base, perInstance);
     return (ocrAllocator_t *) base;
 }
@@ -78,8 +77,8 @@ ocrAllocatorFactory_t * newAllocatorFactoryNull(ocrParamList_t *perType) {
     base->allocFcts.start = FUNC_ADDR(void (*)(ocrAllocator_t*, ocrPolicyDomain_t*), nullStart);
     base->allocFcts.stop = FUNC_ADDR(void (*)(ocrAllocator_t*), nullStop);
     base->allocFcts.finish = FUNC_ADDR(void (*)(ocrAllocator_t*), nullFinish);
-    base->allocFcts.allocate = FUNC_ADDR(void* (*)(ocrAllocator_t*, u64), nullAllocate);
-    base->allocFcts.free = FUNC_ADDR(void (*)(ocrAllocator_t*, void*), nullDeallocate);
+    base->allocFcts.allocate = FUNC_ADDR(void* (*)(ocrAllocator_t*, u64, u64), nullAllocate);
+    //base->allocFcts.free = FUNC_ADDR(void (*)(ocrAllocator_t*, void*), nullDeallocate);
     base->allocFcts.reallocate = FUNC_ADDR(void* (*)(ocrAllocator_t*, void*, u64), nullReallocate);
     return base;
 }
