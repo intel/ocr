@@ -322,7 +322,7 @@ void bringUpRuntime(const char *inifile) {
 
 #ifdef ENABLE_BUILDER_ONLY
     {
-        u64 start_address = iniparser_getlonglong(dict, START_ADDRESS, 0);
+        u64 start_address = (u64)iniparser_getlonglong(dict, START_ADDRESS, 0);
 
         for(i = 0; i < inst_counts[policydomain_type]; i++)
             dumpStructs(all_instances[policydomain_type][i], output_binary, start_address);

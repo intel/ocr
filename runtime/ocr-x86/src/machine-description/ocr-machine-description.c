@@ -557,8 +557,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             }
 
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
-            INI_GET_INT(key, value, -1);
-            ((paramListMemPlatformInst_t *)inst_param[j])->size = value;
+            ((paramListMemPlatformInst_t *)inst_param[j])->size = (u64)iniparser_getlonglong(dict, key, 0);
             instance[j] = (void *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created memplatform of type %s, index %d\n", inststr, j);
@@ -569,8 +568,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
-            INI_GET_INT(key, value, -1);
-            ((paramListMemTargetInst_t *)inst_param[j])->size = value;
+            ((paramListMemTargetInst_t *)inst_param[j])->size = (u64)iniparser_getlonglong(dict, key, 0);
             instance[j] = (void *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created memtarget of type %s, index %d\n", inststr, j);
@@ -580,8 +578,7 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
         for (j = low; j<=high; j++) {
             ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
-            INI_GET_INT (key, value, -1);
-            ((paramListAllocatorInst_t *)inst_param[j])->size = value;
+            ((paramListAllocatorInst_t *)inst_param[j])->size = (u64)iniparser_getlonglong(dict, key, 0);
             instance[j] = (void *)((ocrAllocatorFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created allocator of type %s, index %d\n", inststr, j);
