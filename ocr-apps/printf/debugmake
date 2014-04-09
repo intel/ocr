@@ -1,4 +1,4 @@
-all: ocr bin blob
+all: ocr bin blob check
 
 ocr:
 	# Build all flavours of OCR
@@ -18,6 +18,10 @@ blob:
 	bash -c "../../build/x86-builder-fsim-ce/builder.exe -ocr:cfg fsim_ce.cfg"
 	bash -c "../../build/x86-builder-fsim-xe/builder.exe -ocr:cfg fsim_xe.cfg"
 	bash -c "../../scripts/Blob/aggregate_binary_files.sh ce_blob.bin xe_blob.bin dummy blob"
+
+check:
+	# Check that the built binaries are within the SPAD limits in config
+	bash -c "echo 'base=16; `objdump -t ../../../ss/rmdkrnl/bin/rmdkrnl.dbg|grep ' _end'|cut -d\  -f1|sed -e 's/^0*//g'|sed -e 's/\(.*\)/\U\1/'`>`grep 'start ' fsim_ce.cfg |cut -d\= -f2|sed -e 's/ 0x//g'|sed -e 's/\(.*\)/\U\1/'`'|bc -l" # 1 here indicates failure!
 
 clean:
 	bash -c "cd ../../build/fsim-null-fsim-ce; make uninstall clean"
