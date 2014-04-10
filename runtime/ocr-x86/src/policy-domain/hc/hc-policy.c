@@ -1,4 +1,3 @@
-
 /*
  * This file is subject to the license agreement located in the file LICENSE
  * and cannot be distributed without it. This notice cannot be
@@ -496,6 +495,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     ASSERT((msg->type & PD_MSG_REQUEST) && !(msg->type & PD_MSG_RESPONSE))
     switch(msg->type & PD_MSG_TYPE_ONLY) {
     case PD_MSG_DB_CREATE: {
+        START_PROFILE(pd_hc_DbCreate);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_DB_CREATE
         // TODO: Add properties whether DB needs to be acquired or not
@@ -524,6 +524,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
+        EXIT_PROFILE;
         break;
     }
 
@@ -536,6 +537,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     }
 
     case PD_MSG_DB_ACQUIRE: {
+        START_PROFILE(pd_hc_DbAcquire);
         // Call the appropriate acquire function
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_DB_ACQUIRE
@@ -554,11 +556,13 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_DB_RELEASE: {
         // Call the appropriate release function
+        START_PROFILE(pd_hc_DbRelease);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_DB_RELEASE
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
@@ -572,11 +576,13 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_DB_FREE: {
         // Call the appropriate free function
+        START_PROFILE(pd_hc_DbFree);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_DB_FREE
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
@@ -590,10 +596,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_MEM_ALLOC: {
+        START_PROFILE(pd_hc_MemAlloc);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_ALLOC
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
@@ -604,10 +612,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_MEM_UNALLOC: {
+        START_PROFILE(pd_hc_MemUnalloc);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_UNALLOC
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
@@ -617,10 +627,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_WORK_CREATE: {
+        START_PROFILE(pd_hc_WorkCreate);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_WORK_CREATE
         localDeguidify(self, &(PD_MSG_FIELD(templateGuid)));
@@ -638,6 +650,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
+        EXIT_PROFILE;
         break;
     }
 
@@ -647,6 +660,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     }
 
     case PD_MSG_WORK_DESTROY: {
+        START_PROFILE(pd_hc_WorkDestroy);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_WORK_DESTROY
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
@@ -659,10 +673,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_EDTTEMP_CREATE: {
+        START_PROFILE(pd_hc_EdtTempCreate);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
         PD_MSG_FIELD(properties) = returnCode =
@@ -674,10 +690,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
 #undef PD_TYPE
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_EDTTEMP_DESTROY: {
+        START_PROFILE(pd_hc_EdtTempDestroy);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_EDTTEMP_DESTROY
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
@@ -688,10 +706,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST);
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_EVT_CREATE: {
+        START_PROFILE(pd_hc_EvtCreate);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_EVT_CREATE
         PD_MSG_FIELD(properties) = returnCode =
@@ -701,10 +721,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_EVT_DESTROY: {
+        START_PROFILE(pd_hc_EvtDestroy);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_EVT_DESTROY
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
@@ -715,10 +737,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST);
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_EVT_GET: {
+        START_PROFILE(pd_hc_EvtGet);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_EVT_GET
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
@@ -729,10 +753,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_GUID_CREATE: {
+        START_PROFILE(pd_hc_GuidCreate);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_GUID_CREATE
         if(PD_MSG_FIELD(size) != 0) {
@@ -754,10 +780,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_GUID_INFO: {
+        START_PROFILE(pd_hc_GuidInfo);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_GUID_INFO
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
@@ -772,10 +800,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_GUID_DESTROY: {
+        START_PROFILE(pd_hc_GuidDestroy);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_GUID_DESTROY
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
@@ -786,10 +816,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_COMM_TAKE: {
+        START_PROFILE(pd_hc_Take);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_TAKE
         if (PD_MSG_FIELD(type) == OCR_GUID_EDT) {
@@ -814,10 +846,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_COMM_GIVE: {
+        START_PROFILE(pd_hc_Give);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_GIVE
         if (PD_MSG_FIELD(type) == OCR_GUID_EDT) {
@@ -834,11 +868,13 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
 
     case PD_MSG_DEP_ADD: {
+        START_PROFILE(pd_hc_AddDep);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_DEP_ADD
         // We first get information about the source and destination
@@ -891,10 +927,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_DEP_REGSIGNALER: {
+        START_PROFILE(pd_hc_RegSignaler);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_DEP_REGSIGNALER
         // We first get information about the signaler and destination
@@ -936,10 +974,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_DEP_REGWAITER: {
+        START_PROFILE(pd_hc_RegWaiter);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_DEP_REGWAITER
 // We first get information about the signaler and destination
@@ -968,10 +1008,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_DEP_SATISFY: {
+        START_PROFILE(pd_hc_Satisfy);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_DEP_SATISFY
         ocrGuidKind dstKind;
@@ -1004,6 +1046,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
@@ -1020,6 +1063,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     }
 
     case PD_MSG_DEP_DYNADD: {
+        START_PROFILE(pd_hc_DynAdd);
         ocrTask_t *curTask = NULL;
         getCurrentEnv(NULL, NULL, &curTask, NULL);
 #define PD_MSG msg
@@ -1037,10 +1081,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_DEP_DYNREMOVE: {
+        START_PROFILE(pd_hc_DynRemove);
         ocrTask_t *curTask = NULL;
         getCurrentEnv(NULL, NULL, &curTask, NULL);
 #define PD_MSG msg
@@ -1058,6 +1104,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
@@ -1081,16 +1128,20 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         break;
     }
     case PD_MSG_MGT_SHUTDOWN: {
+        START_PROFILE(pd_hc_Shutdown);
         self->fcts.stop(self);
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_MGT_FINISH: {
+        START_PROFILE(pd_hc_Finish);
         self->fcts.finish(self);
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 

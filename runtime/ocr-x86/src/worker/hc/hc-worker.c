@@ -42,11 +42,11 @@ static inline u64 getWorkerId(ocrWorker_t * worker) {
  * The computation worker routine that asks work to the scheduler
  */
 static void workerLoop(ocrWorker_t * worker) {
-    START_PROFILE(wo_hc_workerLoop);
     ocrPolicyDomain_t *pd = worker->pd;
     ocrPolicyMsg_t msg;
     getCurrentEnv(NULL, NULL, NULL, &msg);
     while(worker->fcts.isRunning(worker)) {
+        START_PROFILE(wo_hc_workerLoop);
         ocrFatGuid_t taskGuid = {.guid = NULL_GUID, .metaDataPtr = NULL};
         u32 count = 1;
 #define PD_MSG (&msg)
@@ -79,8 +79,8 @@ static void workerLoop(ocrWorker_t * worker) {
 #undef PD_TYPE
             }
         }
+        EXIT_PROFILE;
     } /* End of while loop */
-    RETURN_PROFILE();
 }
 
 void destructWorkerHc(ocrWorker_t * base) {
@@ -285,4 +285,3 @@ ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
 }
 
 #endif /* ENABLE_WORKER_HC */
-

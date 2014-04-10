@@ -27,6 +27,8 @@
 #endif
 #endif /* OCR_ENABLE_STATISTICS */
 
+#include "utils/profiler/profiler.h"
+
 #define DEBUG_TYPE TASK
 
 /******************************************************/
@@ -632,6 +634,7 @@ u8 taskExecute(ocrTask_t* base) {
     ASSERT(derived->unkDbs == NULL); // Should be no dynamically acquired DBs before running
 
     if (depc != 0) {
+        START_PROFILE(ta_hc_dbAcq);
         //TODO would be nice to resolve regNode into guids before
         depv = pd->fcts.pdMalloc(pd, sizeof(ocrEdtDep_t)*depc);
         // Double-check we're not rescheduling an already executed edt
@@ -667,6 +670,7 @@ u8 taskExecute(ocrTask_t* base) {
             ++maxAcquiredDb;
         }
         derived->signalers = END_OF_LIST;
+        EXIT_PROFILE;
     }
 
 #ifdef OCR_ENABLE_STATISTICS
@@ -685,8 +689,12 @@ u8 taskExecute(ocrTask_t* base) {
 #endif /* OCR_ENABLE_STATISTICS */
 
     ocrGuid_t retGuid = NULL_GUID;
-    if(depc == 0 || (maxAcquiredDb == depc)) {
-        retGuid = base->funcPtr(paramc, paramv, depc, depv);
+    {
+        START_PROFILE(userCode);
+        if(depc == 0 || (maxAcquiredDb == depc)) {
+            retGuid = base->funcPtr(paramc, paramv, depc, depv);
+        }
+        EXIT_PROFILE;
     }
 #ifdef OCR_ENABLE_STATISTICS
     // We now say that the worker is done executing the EDT
@@ -695,6 +703,7 @@ u8 taskExecute(ocrTask_t* base) {
 
     // edt user code is done, if any deps, release data-blocks
     if(depc != 0) {
+        START_PROFILE(ta_hc_dbRel);
         u32 i;
         for(i=0; i < maxAcquiredDb; ++i) { // Only release the ones we managed to grab
             if(depv[i].guid != NULL_GUID) {
@@ -713,6 +722,7 @@ u8 taskExecute(ocrTask_t* base) {
             }
         }
         pd->fcts.pdFree(pd, depv);
+        EXIT_PROFILE;
     }
 
     // We now release all other data-blocks that we may potentially
