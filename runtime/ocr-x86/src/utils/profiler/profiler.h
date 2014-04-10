@@ -47,7 +47,7 @@
 // It is automatically generated from all the START_PROFILE calls
 #include "profilerAutoGen.h"
 
-#define MAX_PROFILER_LEVEL 64
+#define MAX_PROFILER_LEVEL 512
 
 //timeMs = a/PROFILE_KHZ;
 //timeNs = (unsigned int)(1000000.0*((double)a/PROFILE_KHZ - (double)timeMs));
@@ -73,8 +73,8 @@ typedef struct __profilerChildEntry {
 
 typedef struct __profilerSelfEntry {
     u64 count;
-    u64 sumMs, tempMs, negMs, sumSqMs;
-    u32 sumNs, tempNs, negNs, sumSqNs;
+    u64 sumMs, sumSqMs;
+    u32 sumNs, sumSqNs;
 } _profilerSelfEntry;
 
 struct __profilerData;
@@ -89,10 +89,10 @@ typedef struct __profiler {
 } _profiler;
 
 typedef struct __profilerData {
-    _profiler* stack[MAX_PROFILER_LEVEL]; // Do not go above max of 256 levels
+    _profiler* stack[MAX_PROFILER_LEVEL];
     FILE *output;
     u64 overheadTimer;
-    u8 level; // Max 256 levels
+    u32 level;
 
     _profilerSelfEntry selfEvents[MAX_EVENTS];
     _profilerChildEntry childrenEvents[MAX_EVENTS][MAX_EVENTS-1]; // We already have the self entry
@@ -144,65 +144,27 @@ static inline void _profilerChildEntryAddChildTime(_profilerChildEntry *self,
 
 /* _profilerSelfEntry functions */
 static inline void _profilerSelfEntryReset(_profilerSelfEntry *self) {
-    self->count = self->sumMs = self->sumSqMs = self->tempMs = self->negMs = 0UL;
-    self->sumNs = self->tempNs = self->negNs = self->sumSqNs = 0;
+    self->count = self->sumMs = self->sumSqMs = 0;
+    self->sumNs = self->sumSqNs = 0;
 }
 
 static inline void _profilerSelfEntryAddTime(_profilerSelfEntry *self,
-                                             u64 *timeMs, u32 *timeNs) {
+                                             u64 timeMs, u32 timeNs) {
     ++self->count;
-    self->tempMs += *timeMs;
-    self->tempMs -= self->negMs;
 
-    self->tempNs += *timeNs;
-    if(self->tempNs < self->negNs) {
-        self->tempNs += 1000000;
-        self->tempMs -= 1;
-    }
-    self->tempNs -= self->negNs;
-
-    self->sumNs += self->tempNs;
-    if(self->sumNs >= 2000000) {
-        self->sumNs -= 2000000;
-        self->sumMs += 2;
-    } else if(self->sumNs >= 1000000) {
+    self->sumNs += timeNs;
+    if(self->sumNs >= 1000000) {
         self->sumNs -= 1000000;
         ++self->sumMs;
     }
-    self->sumMs += self->tempMs;
+    self->sumMs += timeMs;
 
-    self->sumSqNs += (u32)((double)self->tempNs/(double)1e6*(double)self->tempNs);
+    self->sumSqNs += (u32)((double)timeNs/(double)1e6*(double)timeNs);
     while(self->sumSqNs >= 1000000) {
         self->sumSqNs -= 1000000;
         ++self->sumSqMs;
     }
-    self->sumSqMs += self->tempMs*self->tempMs;
-    *timeMs = self->tempMs;
-    *timeNs = self->tempNs;
-    self->tempMs = 0;
-    self->tempNs = 0;
-    self->negMs = 0;
-    self->negNs = 0;
-}
-
-static inline void _profilerSelfEntryAddPartialTime(_profilerSelfEntry *self,
-                                                    u64 timeMs, u32 timeNs) {
-    self->tempNs += timeNs;
-    if(self->tempNs >= 1000000) {
-        self->tempNs -= 1000000;
-        ++self->tempMs;
-    }
-    self->tempMs += timeMs;
-}
-
-static inline void _profilerSelfEntryFixupTime(_profilerSelfEntry *self,
-                                               u64 timeMs, u32 timeNs) {
-    self->negNs += timeNs;
-    if(self->negNs >= 1000000) {
-        self->negNs -= 1000000;
-        ++self->negMs;
-    }
-    self->negMs += timeMs;
+    self->sumSqMs += timeMs*timeMs;
 }
 
 /* _profiler inline functions */
@@ -241,6 +203,17 @@ static inline void _profilerResume(_profiler *self, u8 isFakePause) {
     }
 }
 
+static inline void _profilerFixup(_profiler *self, u64 ticks) __attribute__((always_inline));
+static inline void _profilerFixup(_profiler *self, u64 ticks) {
+    ASSERT(self->accumulatorTicks > ticks);
+    self->accumulatorTicks -= ticks;
+}
+
+static inline void _profilerAddTime(_profiler *self, u64 ticks) __attribute__((always_inline));
+static inline void _profilerAddTime(_profiler *self, u64 ticks) {
+    self->accumulatorTicks += ticks;
+}
+
 /* Non-inline profiler functions */
 void _profilerInit(_profiler *self, profilerEvent_t ev, u64 lastTick);
 _profiler* _profilerDestroy(_profiler *self, u64 tick);
@@ -250,8 +223,7 @@ void _profilerDataInit(_profilerData *self);
 void _profilerDataDestroy(void * self);
 
 /* the overhead we are not accounting for is:
- *    - pushing on stack of _tempMs and tempNs
- *    - overhead of _gettime
+  *    - overhead of _gettime
  */
 #define START_PROFILE(eventId)                                          \
     u64 _tempTicks;                                                     \

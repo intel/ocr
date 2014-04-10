@@ -81,6 +81,7 @@ void _profilerInit(_profiler *self, profilerEvent_t event, u64 prevTicks) {
 _profiler* _profilerDestroy(_profiler *self, u64 end) {
     u8 removedFromStack = 0;
     if(self->active && !self->isPaused) {
+        ASSERT(self->myData->stack[self->myData->level-1]->onStackCount >= 1);
         if(--(self->myData->stack[self->myData->level-1]->onStackCount) == 0) {
             --(self->myData->level);
             self->myData->stack[self->myData->level] = NULL;
@@ -96,7 +97,7 @@ _profiler* _profilerDestroy(_profiler *self, u64 end) {
             _profilerPause(self->myData->stack[self->myData->level-1], end);
             // We compute the time to "fix-up" by
             ASSERT(self->accumulatorTicks == 0);
-            ASSERT(self->onStackCount == 1);
+            ASSERT(self->onStackCount == 1); // This is 1 because it should not have changed at all
             self->isPaused = true;
             self->accumulatorTicks = self->startTicks - self->endTicks;
         }
@@ -108,31 +109,33 @@ _profiler* _profilerDestroy(_profiler *self, u64 end) {
 
     ASSERT(self->active && self->isPaused);
 
+
     if(self->accumulatorTicks < (1+self->countResume)*self->myData->overheadTimer) {
         self->accumulatorTicks = 0;
     } else {
         self->accumulatorTicks -= (1+self->countResume)*self->myData->overheadTimer;
     }
+
     u64 accumulatorMs = self->accumulatorTicks/PROFILE_KHZ;
     u32 accumulatorNs = (u32)(1000000.0*((double)self->accumulatorTicks/PROFILE_KHZ - (double)accumulatorMs));
 
     if(removedFromStack) {
         // First the self counter
-        _profilerSelfEntryAddTime(&(self->myData->selfEvents[self->myEvent]), &accumulatorMs, &accumulatorNs);
+        _profilerSelfEntryAddTime(&(self->myData->selfEvents[self->myEvent]), accumulatorMs, accumulatorNs);
 
         // We also update the child counter
         if(self->myData->level >= 1) {
             // We have a parent so we update there
             _profiler *parentEventPtr = self->myData->stack[self->myData->level-1];
             u32 parentEvent = parentEventPtr->myEvent;
+            ASSERT(parentEvent != self->myEvent);
             _profilerChildEntryAddTime(
                 &(self->myData->childrenEvents[parentEvent][self->myEvent<parentEvent?self->myEvent:(self->myEvent-1)]),
                 accumulatorMs, accumulatorNs);
 
             // We also add the time directly to the parent as the parent has been paused to avoid counting
             // the overhead of creating the child profiling object
-            _profilerSelfEntryAddPartialTime(&(self->myData->selfEvents[parentEvent]),
-                                             accumulatorMs, accumulatorNs);
+            _profilerAddTime(self->myData->stack[self->myData->level-1], self->accumulatorTicks);
 
             if(self->myData->level >= 2) {
                 // We have a parent of parent
@@ -141,6 +144,7 @@ _profiler* _profilerDestroy(_profiler *self, u64 end) {
                 // was due to a child of parent (us in this case)
                 _profiler *grandParentEventPtr = self->myData->stack[self->myData->level-2];
                 u32 grandParentEvent = grandParentEventPtr->myEvent;
+                ASSERT(grandParentEvent != parentEvent);
                 _profilerChildEntryAddChildTime(
                     &(self->myData->childrenEvents[grandParentEvent][parentEvent<grandParentEvent?parentEvent:(parentEvent-1)]),
                     accumulatorMs, accumulatorNs);
@@ -150,7 +154,7 @@ _profiler* _profilerDestroy(_profiler *self, u64 end) {
     } else {
         // Not removed from stack which means that this is a collapsed call
         ASSERT(self->myEvent == self->myData->stack[self->myData->level-1]->myEvent);
-        _profilerSelfEntryFixupTime(&(self->myData->selfEvents[self->myEvent]), accumulatorMs, accumulatorNs);
+        _profilerFixup(self->myData->stack[self->myData->level-1], self->accumulatorTicks);
         return self->myData->stack[self->myData->level-1]; // We resume our "parent" from the pause earlier in this function
     }
     return NULL;
@@ -221,4 +225,3 @@ void _profilerDataDestroy(void* _self) {
 }
 
 #endif /* OCR_RUNTIME_PROFILER */
-

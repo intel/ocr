@@ -347,10 +347,10 @@ def main(argv=None):
         else:
             curDict = totalDict
 
-        # Calculate total overhead
-        totalOverhead = 0.0
+        # Calculate total time
+        totalMeasuredTime = 0.0
         for entry in curDict.itervalues():
-            totalOverhead += entry.totalTimeSelf
+            totalMeasuredTime += entry.totalTimeSelf
         # Sort by total time to assign a rank
         sortedByTotal = sorted(curDict.values(), key=itemgetter('totalTime'), reverse=True)
 
@@ -363,16 +363,16 @@ def main(argv=None):
         else:
             print "#### Overall ###"
 
-        print "\tTotal overhead: %f" % totalOverhead
+        print "\tTotal measured time: %f" % totalMeasuredTime
         print "\t--- Flat profile ---"
-        print "%Time      Cum ms         Self ms          Calls          Avg (Cum)        Std Dev (Cum)"
+        print "%Time        Cum ms             Self ms             Calls             Avg (Cum)            Std Dev (Cum)"
         sortedEntries = sorted(curDict.values(), key=itemgetter('totalTimeSelf'), reverse=True)
         for e in sortedEntries:
-            print "%5.2f    %12.6f    %12.6f    %10d    %12.6f    %12.6f    %s [%d]" % (e.totalTimeSelf/totalOverhead*100, e.totalTime,
+            print "%6.2f    %16.6f    %16.6f    %12d    %16.6f    %16.6f    %s [%d]" % (e.totalTimeSelf/totalMeasuredTime*100, e.totalTime,
                 e.totalTimeSelf, e.count, e.avg, e.stdDev, e.name, e.rank)
 
         print "\n\n\t--- Call-graph profile ---"
-        print "Index    %Time         Self         Descendant              Called"
+        print "Index      %Time           Self             Descendant                 Called"
         for e in sortedByTotal:
             # First build a list of all the entries that refer to us in our parents
             myParentsChildrenEntry = []
@@ -381,19 +381,19 @@ def main(argv=None):
 
             # Print all parents
             for myChildEntry in sorted(myParentsChildrenEntry, key=itemgetter("totalTime"), reverse=True):
-                print " "*18, "%12.6f    %12.6f    %10d/%-10d    %s [%d]" % (myChildEntry.totalTimeSelf, myChildEntry.totalTimeInChildren, myChildEntry.count,
+                print " "*18, "%16.6f    %16.6f    %12d/%-12d    %s [%d]" % (myChildEntry.totalTimeSelf, myChildEntry.totalTimeInChildren, myChildEntry.count,
                     e.count, myChildEntry.parent.name, myChildEntry.parent.rank)
 
             # Print our entry
-            print "[%3d]     %5.2f    %12.6f    %12.6f      %10d             %s [%d]" % (e.rank, e.totalTime/totalOverhead*100, e.totalTimeSelf,
+            print "[%3d]     %6.2f    %16.6f    %16.6f        %12d            %s [%d]" % (e.rank, e.totalTime/totalMeasuredTime*100, e.totalTimeSelf,
                 e.totalTimeInChildren, e.count, e.name, e.rank)
 
             # Print all children
             for cEntry in sorted(e.childrenEntries.values(), key=itemgetter('totalTime'), reverse=True):
-                print " "*18, "%12.6f    %12.6f    %10d/%-10d    %s [%d]" % (cEntry.totalTimeSelf, cEntry.totalTimeInChildren, cEntry.count,
+                print " "*18, "%16.6f    %16.6f    %12d/%-12d    %s [%d]" % (cEntry.totalTimeSelf, cEntry.totalTimeInChildren, cEntry.count,
                     cEntry.tlEntry.count, cEntry.tlEntry.name, cEntry.tlEntry.rank)
             # Done for this function
-            print "-"*80
+            print "-"*90
 
         print "\n"
     return 0

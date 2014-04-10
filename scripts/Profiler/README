@@ -45,7 +45,7 @@ gprof.
 
 It will first output a flat profile of all the blocks of code
 profiled. For each block of code it will output (in this order):
-    - the percentage of total overhead time spent in this block of code (not
+    - the percentage of total measured time spent in this block of code (not
       including its children). The flat profile is ordered by this
       percentage.
     - the total time spent in this block of code and children
@@ -59,7 +59,7 @@ profiled. For each block of code it will output (in this order):
 
 It will also output a call-graph profile which gives more detail about
 how each block of code is called. This profile is ordered by the
-percentage of total overhead time spent in the block of code (INCLUDING
+percentage of total measured time spent in the block of code (INCLUDING
 its children).
 
 To clarify the notations, we will use the following example output:
@@ -85,8 +85,12 @@ For the lines describing the parents:
 
 For the line describing the entry:
     - the first column is its index
-    - the second column is the percentage of total overhead time spent in
-        this entry (including its children)
+    - the second column is the percentage of total measured time spent in
+        this entry (including its children). This percentage may be bigger
+        than 100% if the function calls itself because the full total measured
+        time only sums the "self" times (and here, the time of a function
+        that calls itself is counted more than once in the total measured
+        time of the entry).
     - the third column is the total time spent inside this entry (excluding
         its children)
     - the fourth column is the total time spent inside its
@@ -113,3 +117,10 @@ scope (ie: if START_PROFILE(foobar) is called after a START_PROFILE(foobar) with
 any intervening EXIT/RETURN_PROFILE) are collapsed into one. This has the effect
 of lengthening the effective time of the profiled function but produces more accurate
 results.
+
+For chains such as:
+A->B->A
+
+The execution time of the last A will be counted multiple times (it will be counted
+as part of A's execution time when the last A finishes and also as part of
+the first A's execution time).
