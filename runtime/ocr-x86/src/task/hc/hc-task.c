@@ -567,7 +567,7 @@ u8 notifyDbAcquireTaskHc(ocrTask_t *base, ocrFatGuid_t db) {
     ocrTaskHc_t *derived = (ocrTaskHc_t*)base;
     ocrPolicyDomain_t *pd = NULL;
     getCurrentEnv(&pd, NULL, NULL, NULL);
-    if(derived->countUnkDbs == 0) {
+    if(derived->maxUnkDbs == 0) {
         derived->unkDbs = (ocrGuid_t*)pd->fcts.pdMalloc(pd, sizeof(ocrGuid_t)*8);
         ASSERT(derived->unkDbs);
         derived->maxUnkDbs = 8;
@@ -712,6 +712,7 @@ u8 taskExecute(ocrTask_t* base) {
 #undef PD_TYPE
             }
         }
+        pd->fcts.pdFree(pd, depv);
     }
 
     // We now release all other data-blocks that we may potentially
