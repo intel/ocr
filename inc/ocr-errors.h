@@ -37,5 +37,6 @@
 
 // OCR specific errors
 #define OCR_EGUIDEXISTS     100     /* The object referred to by the given GUID already exists */
+#define OCR_EACQ            101     /* DB is already acquired */
 #define OCR_ECANCELED       125     /* Operation canceled */
 #endif /* __OCR_ERRORS_H__ */

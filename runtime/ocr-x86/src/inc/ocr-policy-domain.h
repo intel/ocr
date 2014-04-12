@@ -284,7 +284,9 @@ typedef struct _ocrPolicyMsg_t {
      *       If they are not NULL_GUID on input, the runtime will use the GUID
      *       specified for the object.
      *     - All 'properties' field are in/out and contain the error code
-     *       on return.
+     *       of the call on return. The return value of processMessage is
+     *       the error code of the processMessage call (ie: not the internal
+     *       message's processing)
      */
     union {
         struct {

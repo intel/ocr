@@ -628,6 +628,10 @@ u8 taskExecute(ocrTask_t* base) {
     getCurrentEnv(&pd, NULL, NULL, &msg);
 
     ocrEdtDep_t * depv = NULL;
+    u64 doNotReleaseSlots = 0; // Used to support an EDT acquiring the same DB
+                               // multiple times. For now limit to 64 DBs
+                               // (ie: an EDT that does this should not have more
+                               // than 64 DBs, others can have as many as they want)
     // If any dependencies, acquire their data-blocks
     u32 maxAcquiredDb = 0;
 
@@ -660,6 +664,21 @@ u8 taskExecute(ocrTask_t* base) {
                 if(pd->fcts.processMessage(pd, &msg, true)) {
                     // We are not going to launch the EDT
                     break;
+                }
+                switch(PD_MSG_FIELD(properties)) {
+                case 0:
+                    ASSERT(PD_MSG_FIELD(ptr));
+                    break; // Everything went fine
+                case OCR_EACQ:
+                    // The EDT was already acquired
+                    ASSERT(PD_MSG_FIELD(ptr));
+                    ASSERT(maxAcquiredDb < 64);
+                    DPRINTF(DEBUG_LVL_VERB, "EDT (GUID: 0x%lx) acquiring DB (GUID: 0x%lx) multiple times. Ignoring acquire on slot %d\n",
+                            base->guid, depv[maxAcquiredDb].guid, maxAcquiredDb);
+                    doNotReleaseSlots |= (1ULL << maxAcquiredDb);
+                    break;
+                default:
+                    ASSERT(0);
                 }
                 depv[maxAcquiredDb].ptr = PD_MSG_FIELD(ptr);
 #undef PD_MSG
@@ -706,7 +725,9 @@ u8 taskExecute(ocrTask_t* base) {
         START_PROFILE(ta_hc_dbRel);
         u32 i;
         for(i=0; i < maxAcquiredDb; ++i) { // Only release the ones we managed to grab
-            if(depv[i].guid != NULL_GUID) {
+            if((depv[i].guid != NULL_GUID) &&
+               ((i >= 64) || (doNotReleaseSlots == 0) ||
+                ((i < 64) && (((1ULL << i) & doNotReleaseSlots) == 0)))) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_RELEASE
                 msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;

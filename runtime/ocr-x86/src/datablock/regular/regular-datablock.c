@@ -32,9 +32,11 @@
 // Forward declaraction
 u8 regularDestruct(ocrDataBlock_t *self);
 
-void* regularAcquire(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
+u8 regularAcquire(ocrDataBlock_t *self, void** ptr, ocrFatGuid_t edt,
+                  bool isInternal) {
 
     ocrDataBlockRegular_t *rself = (ocrDataBlockRegular_t*)self;
+    *ptr = NULL;
 
     DPRINTF(DEBUG_LVL_VERB, "Acquiring DB @ 0x%lx (GUID: 0x%lx) from EDT (GUID: 0x%lx) (runtime acquire: %d)\n",
             (u64)self->ptr, rself->base.guid, edt.guid, (u32)isInternal);
@@ -43,7 +45,7 @@ void* regularAcquire(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
     hal_lock32(&(rself->lock));
     if(rself->attributes.freeRequested) {
         hal_unlock32(&(rself->lock));
-        return NULL;
+        return OCR_EACCES;
     }
     u32 idForEdt = ocrGuidTrackerFind(&(rself->usersTracker), edt.guid);
     if(idForEdt > 63)
@@ -51,12 +53,13 @@ void* regularAcquire(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
     else {
         DPRINTF(DEBUG_LVL_VVERB, "EDT already had acquired DB (pos %d)\n", idForEdt);
         hal_unlock32(&(rself->lock));
-        return self->ptr;
+        *ptr = self->ptr;
+        return OCR_EACQ;
     }
 
     if(idForEdt > 63) {
         hal_unlock32(&(rself->lock));
-        return NULL;
+        return OCR_EAGAIN;
     }
     rself->attributes.numUsers += 1;
     if(isInternal)
@@ -72,7 +75,8 @@ void* regularAcquire(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
         statsDB_ACQ(pd, edt.guid, (ocrTask_t*)edt.metaDataPtr, self->guid, self);
     }
 #endif /* OCR_ENABLE_STATISTICS */
-    return self->ptr;
+    *ptr = self->ptr;
+    return 0;
 }
 
 u8 regularRelease(ocrDataBlock_t *self, ocrFatGuid_t edt,
@@ -96,7 +100,7 @@ u8 regularRelease(ocrDataBlock_t *self, ocrFatGuid_t edt,
         } else {
             // Definitely a problem here
             hal_unlock32(&(rself->lock));
-            return (u8)OCR_EACCES;
+            return OCR_EACCES;
         }
     }
 
@@ -215,6 +219,18 @@ u8 regularFree(ocrDataBlock_t *self, ocrFatGuid_t edt) {
     return 0;
 }
 
+u8 regularRegisterWaiter(ocrDataBlock_t *self, ocrFatGuid_t waiter, u32 slot,
+                         bool isDepAdd) {
+    ASSERT(0);
+    return OCR_ENOSYS;
+}
+
+u8 regularUnregisterWaiter(ocrDataBlock_t *self, ocrFatGuid_t waiter, u32 slot,
+                           bool isDepRem) {
+    ASSERT(0);
+    return OCR_ENOSYS;
+}
+
 ocrDataBlock_t* newDataBlockRegular(ocrDataBlockFactory_t *factory, ocrFatGuid_t allocator,
                                     ocrFatGuid_t allocPD, u64 size, void* ptr,
                                     u32 properties, ocrParamList_t *perInstance) {
@@ -283,9 +299,13 @@ ocrDataBlockFactory_t *newDataBlockFactoryRegular(ocrParamList_t *perType, u32 f
                                    u64, void*, u32, ocrParamList_t*), newDataBlockRegular);
     base->destruct = FUNC_ADDR(void (*)(ocrDataBlockFactory_t*), destructRegularFactory);
     base->fcts.destruct = FUNC_ADDR(u8 (*)(ocrDataBlock_t*), regularDestruct);
-    base->fcts.acquire = FUNC_ADDR(void* (*)(ocrDataBlock_t*, ocrFatGuid_t, bool), regularAcquire);
+    base->fcts.acquire = FUNC_ADDR(u8 (*)(ocrDataBlock_t*, void**, ocrFatGuid_t, bool), regularAcquire);
     base->fcts.release = FUNC_ADDR(u8 (*)(ocrDataBlock_t*, ocrFatGuid_t, bool), regularRelease);
     base->fcts.free = FUNC_ADDR(u8 (*)(ocrDataBlock_t*, ocrFatGuid_t), regularFree);
+    base->fcts.registerWaiter = FUNC_ADDR(u8 (*)(ocrDataBlock_t*, ocrFatGuid_t,
+                                                 u32, bool), regularRegisterWaiter);
+    base->fcts.unregisterWaiter = FUNC_ADDR(u8 (*)(ocrDataBlock_t*, ocrFatGuid_t,
+                                                   u32, bool), regularUnregisterWaiter);
     base->factoryId = factoryId;
 
     return base;

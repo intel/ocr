@@ -54,7 +54,7 @@ typedef struct _ocrDataBlockFcts_t {
      * is no longer used
      *
      * @param self          Pointer for this data-block
-     * @todo: FIXME. This does perform a free!!!!
+     * @return 0 on success and an error code on failure
      */
     u8 (*destruct)(struct _ocrDataBlock_t *self);
 
@@ -63,16 +63,20 @@ typedef struct _ocrDataBlockFcts_t {
      *
      * This call registers a user (the EDT) for the data-block
      *
-     * @param self          Pointer for this data-block
-     * @param edt           EDT seeking registration
-     *                      Must be fully resolved
-     * @param isInternal    True if this is an acquire implicitly
-     *                      done by the runtime at EDT launch
-     * @return Address of the data-block
+     * @param[in] self          Pointer for this data-block
+     * @param[out] ptr          Returns the pointer to use to access the data
+     * @param[in] edt           EDT seeking registration
+     *                          Must be fully resolved
+     * @param[in] isInternal    True if this is an acquire implicitly
+     *                          done by the runtime at EDT launch
+     * @return 0 on success or the following error code:
      *
-     * @note Multiple acquires for the same EDT have no effect
+     *
+     * @note Multiple acquires for the same EDT have no effect BUT
+     * the DB should only be freed ONCE
      */
-    void* (*acquire)(struct _ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal);
+    u8 (*acquire)(struct _ocrDataBlock_t *self, void** ptr, ocrFatGuid_t edt,
+                  bool isInternal);
 
     /**
      * @brief Releases a data-block previously acquired
@@ -102,6 +106,38 @@ typedef struct _ocrDataBlockFcts_t {
      * @return 0 on success and an error code on failure (see ocr-db.h)
      */
     u8 (*free)(struct _ocrDataBlock_t *self, ocrFatGuid_t edt);
+
+    /**
+     * @brief Register a "waiter" (aka a dependence) on the data-block
+     *
+     * The waiter is waiting on 'slot' for this data-block.
+     *
+     * @param[in] self          Pointer to this data-block
+     * @param[in] waiter        EDT/Event to register as a waiter
+     * @param[in] slot          Slot the waiter is waiting on
+     * @param[in] isDepAdd      True if this call is part of adding a dependence.
+     *                          False if due to a standalone call.
+     * @return 0 on success and a non-zero code on failure
+     * @note For DBs, this is mostly a "hint" to inform the data-block
+     * of where it is going to be needed at some point
+     */
+    u8 (*registerWaiter)(struct _ocrDataBlock_t *self, ocrFatGuid_t waiter, u32 slot,
+                         bool isDepAdd);
+
+    /**
+     * @brief Unregisters a "waiter" (aka a dependence) on the data-block
+     *
+     * Note again that if a waiter is registered multiple times (for multiple
+     * slots), you will need to unregister it multiple time as well.
+     *
+     * @param[in] self          Pointer to this data-block
+     * @param[in] waiter        EDT/Event to register as a waiter
+     * @param[in] slot          Slot the waiter is waiting on
+     * @param[in] isDepRem      True if part of removing a dependence
+     * @return 0 on success and a non-zero code on failure
+     */
+    u8 (*unregisterWaiter)(struct _ocrDataBlock_t *self, ocrFatGuid_t waiter, u32 slot,
+                           bool isDepRem);
 } ocrDataBlockFcts_t;
 
 /**
