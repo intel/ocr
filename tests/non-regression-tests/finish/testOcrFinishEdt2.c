@@ -11,10 +11,10 @@
 #include "ocr.h"
 
 #define FLAGS 0xdead
-#define N 100
+#define N 16
 
 /**
- * DESC: Creates a top-level finish-edt which forks 100 edts, writing in a
+ * DESC: Creates a top-level finish-edt which forks 16 edts, writing in a
  * shared data block. Then the sink edt checks everybody wrote to the db and
  * terminates.
  */

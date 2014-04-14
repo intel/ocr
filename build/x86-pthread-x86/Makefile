@@ -13,6 +13,9 @@ ifneq (${ARCH}, x86-pthread-x86)
 $(error ARCH is set to ${ARCH} but expected x86-pthread-x86)
 endif
 endif
+
+DEFAULT_CONFIG=mach-hc-4w.cfg
+
 #
 # Tool-chain to be used for the build
 #

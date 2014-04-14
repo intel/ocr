@@ -30,11 +30,18 @@ job_ocr_regression_x86_pthread_x86 = {
     'sandbox': ('inherit0',)
 }
 
+job_ocr_regression_x86_pthread_fsim = {
+    'name': 'ocr-regression-x86-pthread-fsim',
+    'depends': ('ocr-build-x86-pthread-fsim',),
+    'jobtype': 'ocr-regression',
+    'run-args': 'x86-pthread-fsim',
+    'sandbox': ('inherit0',)
+}
+
 job_ocr_runtest_x86_pthread_fsim_1 = {
     'name': 'ocr-runtest-x86-pthread-fsim-1',
     'depends': ('ocr-buildtest-x86-pthread-fsim-1',),
     'jobtype': 'ocr-runtest',
-    'run-args': 'x86-pthread-fsim ${JJOB_START_HOME}/ocr/examples/fsim_x86_test golden.txt ./helloworld.exe -ocr:cfg fsim_x86.cfg',
+    'run-args': 'x86-pthread-fsim ${JJOB_START_HOME}/ocr/examples/fsim_x86_test golden.txt ./helloworld.exe -ocr:cfg ${JJOB_START_HOME}/ocr/install/x86-pthread-fsim/config/default.cfg',
     'sandbox': ('inherit0',)
 }
-

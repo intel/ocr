@@ -14,6 +14,7 @@ $(error ARCH is set to ${ARCH} but expected x86-pthread-fsim)
 endif
 endif
 
+DEFAULT_CONFIG=mach-1block.cfg
 #
 # Tool-chain to be used for the build
 #

@@ -261,7 +261,7 @@ install: ${INSTALL_TARGETS}
 	@echo -e "\e[32m Installing '$(INSTALL_FILES)' into '$(OCRDIR)/install/$(ARCH)'\e[0m"
 	@$(CP) ${INSTALL_FILES} $(OCRDIR)/install/$(ARCH)/lib
 	@$(CP) -r $(OCRDIR)/inc/* $(OCRDIR)/install/$(ARCH)/include
-	@$(CP) -r $(OCRDIR)/machine-configs/* $(OCRDIR)/install/$(ARCH)/config
+	@$(CP) -r $(OCRDIR)/machine-configs/$(ARCH)/* $(OCRDIR)/install/$(ARCH)/config
 	-@$(LN) -fs ./$(DEFAULT_CONFIG) $(OCRDIR)/install/$(ARCH)/config/default.cfg
 
 .PHONY: uninstall

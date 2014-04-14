@@ -14,7 +14,7 @@
  * DESC: latch-event simulating a finish-edt + check termination of children
  */
 
-#define N 100
+#define N 16
 
 ocrGuid_t terminateEDT(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     printf("Call Terminate\n");

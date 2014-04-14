@@ -6,15 +6,9 @@ ifndef OCR_INSTALL
 $(error OCR_INSTALL not set)
 endif
 
-MYCONFIG=fsim_x86.cfg
-
-ifeq ($(wildcard ${MYCONFIG}),)
 ifndef OCR_CONFIG
 OCR_CONFIG=${OCR_INSTALL}/config/default.cfg
 $(warning OCR_CONFIG not set, defaulting to ${OCR_CONFIG})
-endif
-else
-OCR_CONFIG=${MYCONFIG}
 endif
 
 OCR_RUN_FLAGS=-ocr:cfg ${OCR_CONFIG}
