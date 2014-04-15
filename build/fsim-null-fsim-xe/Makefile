@@ -50,4 +50,6 @@ SUPPORTS_STATIC=yes
 .PHONY: all
 all: static
 
+DEFAULT_CONFIG = fsim_xe.cfg
+
 include ../common.mk
