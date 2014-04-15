@@ -20,6 +20,8 @@
 
 #include "policy-domain/xe/xe-policy.h"
 
+#include "utils/profiler/profiler.h"
+
 #define DEBUG_TYPE POLICY
 
 #ifdef TOOL_CHAIN_XE
@@ -272,89 +274,6 @@ static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
     }
 }
 
-// In all these functions, we consider only a single PD. In other words, in XE, we
-// deal with everything locally and never send messages
-
-
-static u8 xeCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
-                      ocrFatGuid_t  edtTemplate, u32 *paramc, u64* paramv,
-                      u32 *depc, u32 properties, ocrFatGuid_t affinity,
-                      ocrFatGuid_t * outputEvent) {
-
-
-    ocrTaskTemplate_t *taskTemplate = (ocrTaskTemplate_t*)edtTemplate.metaDataPtr;
-
-    ASSERT(((taskTemplate->paramc == EDT_PARAM_UNK) && *paramc != EDT_PARAM_DEF) ||
-           (taskTemplate->paramc != EDT_PARAM_UNK && (*paramc == EDT_PARAM_DEF ||
-                   taskTemplate->paramc == *paramc)));
-    ASSERT(((taskTemplate->depc == EDT_PARAM_UNK) && *depc != EDT_PARAM_DEF) ||
-           (taskTemplate->depc != EDT_PARAM_UNK && (*depc == EDT_PARAM_DEF ||
-                   taskTemplate->depc == *depc)));
-
-    if(*paramc == EDT_PARAM_DEF) {
-        *paramc = taskTemplate->paramc;
-    }
-    if(*depc == EDT_PARAM_DEF) {
-        *depc = taskTemplate->depc;
-    }
-    // If paramc are expected, double check paramv is not NULL
-    if((*paramc > 0) && (paramv == NULL)) {
-        ASSERT(0);
-        return OCR_EINVAL;
-    }
-
-    ocrTask_t * base = self->taskFactories[0]->instantiate(
-                           self->taskFactories[0], edtTemplate, *paramc, paramv,
-                           *depc, properties, affinity, outputEvent, NULL);
-
-    (*guid).guid = base->guid;
-    (*guid).metaDataPtr = base;
-    return 0;
-}
-
-static u8 xeCreateEdtTemplate(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
-                              ocrEdt_t func, u32 paramc, u32 depc, const char* funcName) {
-
-
-    ocrTaskTemplate_t *base = self->taskTemplateFactories[0]->instantiate(
-                                  self->taskTemplateFactories[0], func, paramc, depc, funcName, NULL);
-    (*guid).guid = base->guid;
-    (*guid).metaDataPtr = base;
-    return 0;
-}
-
-static u8 xeCreateEvent(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
-                        ocrEventTypes_t type, bool takesArg) {
-
-    ocrEvent_t *base = self->eventFactories[0]->instantiate(
-                           self->eventFactories[0], type, takesArg, NULL);
-    (*guid).guid = base->guid;
-    (*guid).metaDataPtr = base;
-    return 0;
-}
-
-static void convertDepAddToSatisfy(ocrPolicyDomain_t *self, ocrFatGuid_t dbGuid,
-                                   ocrFatGuid_t destGuid, u32 slot) {
-
-    ocrPolicyMsg_t msg;
-    getCurrentEnv(NULL, NULL, NULL, &msg);
-#define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_DEP_SATISFY
-    msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
-    PD_MSG_FIELD(guid) = destGuid;
-    PD_MSG_FIELD(payload) = dbGuid;
-    PD_MSG_FIELD(slot) = slot;
-    PD_MSG_FIELD(properties) = 0;
-    RESULT_ASSERT(self->fcts.processMessage(self, &msg, false), ==, 0);
-#undef PD_MSG
-#undef PD_TYPE
-}
-#ifdef OCR_ENABLE_STATISTICS
-static ocrStats_t* xeGetStats(ocrPolicyDomain_t *self) {
-    return self->statsObject;
-}
-#endif
-
 static ocrFatGuid_t * getTaskGuidBuffer(ocrPolicyDomain_t *self, u32 count) {
     ocrPolicyDomainXe_t * derived = (ocrPolicyDomainXe_t *)self;
     ASSERT(derived->taskCounter < MAX_XE_TASK);
@@ -371,12 +290,17 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
     ASSERT((*msg)->type & PD_MSG_REQUEST);
     if ((*msg)->type & PD_MSG_REQ_RESPONSE) {
         ocrMsgHandle_t *handle = NULL;
-        returnCode = self->fcts.sendMessage(self, self->parentLocation, (*msg), &handle, (TWOWAY_MSG_PROP | PERSIST_MSG_PROP));
+        returnCode = self->fcts.sendMessage(self, self->parentLocation, (*msg),
+                                            &handle, (TWOWAY_MSG_PROP | PERSIST_MSG_PROP));
         if (returnCode == 0) {
             ASSERT(handle && handle->msg);
             RESULT_ASSERT(self->fcts.waitMessage(self, &handle), ==, 0);
             ASSERT(handle->response && ((handle->response->type & PD_MSG_TYPE_ONLY) == type));
-            //*msg = handle->response;
+            // No guarantee that the response will be in the same location as the
+            // original message so we make sure. Since we pass the original message
+            // as persistent, it is likely that the same buffer is used for the response
+            // Update this if necessary.
+            ASSERT(handle->response == *msg);
             handle->destruct(handle);
         }
     } else {
@@ -397,461 +321,77 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
     u8 returnCode = 0;
     ASSERT((msg->type & PD_MSG_REQUEST) && (!(msg->type & PD_MSG_RESPONSE)));
+
     switch(msg->type & PD_MSG_TYPE_ONLY) {
-    case PD_MSG_DB_CREATE: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_DB_CREATE
-        // TODO: Add properties whether DB needs to be acquired or not
-        // This would impact where we do the PD_MSG_MEM_ALLOC for example
-        // For now we deal with both USER and RT dbs the same way
-        ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE || PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE);
-        ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, &msg);
-#undef PD_MSG
-#undef PD_TYPE
-        break;
-    }
+    // First type of messages: things that we offload completely to the CE
+    case PD_MSG_DB_CREATE: case PD_MSG_DB_DESTROY:
+    case PD_MSG_DB_ACQUIRE: case PD_MSG_DB_RELEASE: case PD_MSG_DB_FREE:
+    case PD_MSG_MEM_ALLOC: case PD_MSG_MEM_UNALLOC:
+    case PD_MSG_WORK_CREATE: case PD_MSG_WORK_DESTROY:
+    case PD_MSG_EDTTEMP_CREATE: case PD_MSG_EDTTEMP_DESTROY:
+    case PD_MSG_EVT_CREATE: case PD_MSG_EVT_DESTROY: case PD_MSG_EVT_GET:
+    case PD_MSG_GUID_CREATE: case PD_MSG_GUID_INFO: case PD_MSG_GUID_DESTROY:
+    case PD_MSG_COMM_TAKE: case PD_MSG_COMM_GIVE:
+    case PD_MSG_DEP_ADD: case PD_MSG_DEP_REGSIGNALER: case PD_MSG_DEP_REGWAITER:
+    case PD_MSG_DEP_SATISFY: {
 
-    case PD_MSG_DB_DESTROY: {
-        // Should never ever be called. The user calls free and internally
-        // this will call whatever it needs (most likely PD_MSG_MEM_UNALLOC)
-        // This would get called when DBs move for example
-        ASSERT(0);
-        break;
-    }
-
-    case PD_MSG_DB_ACQUIRE: {
-        // Call the appropriate acquire function
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_DB_ACQUIRE
-        localDeguidify(self, &(PD_MSG_FIELD(guid)));
-        localDeguidify(self, &(PD_MSG_FIELD(edt)));
-        ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
-        ASSERT(db->fctId == self->dbFactories[0]->factoryId);
-        ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, &msg);
-#undef PD_MSG
-#undef PD_TYPE
-        break;
-    }
-
-    case PD_MSG_DB_RELEASE: {
-        // Call the appropriate release function
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_DB_RELEASE
-        localDeguidify(self, &(PD_MSG_FIELD(guid)));
-        localDeguidify(self, &(PD_MSG_FIELD(edt)));
-        ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
-        ASSERT(db->fctId == self->dbFactories[0]->factoryId);
-        ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, &msg);
-#undef PD_MSG
-#undef PD_TYPE
-        break;
-    }
-
-    case PD_MSG_DB_FREE: {
-        // Call the appropriate free function
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_DB_FREE
-        localDeguidify(self, &(PD_MSG_FIELD(guid)));
-        localDeguidify(self, &(PD_MSG_FIELD(edt)));
-        ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
-        ASSERT(db->fctId == self->dbFactories[0]->factoryId);
-        ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, &msg);
-#undef PD_MSG
-#undef PD_TYPE
-        break;
-    }
-
-    case PD_MSG_MEM_ALLOC: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_MEM_ALLOC
-        ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, &msg);
-#undef PD_MSG
-#undef PD_TYPE
-        break;
-    }
-
-    case PD_MSG_MEM_UNALLOC: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_MEM_UNALLOC
-        ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
-        returnCode = xeProcessCeRequest(self, &msg);
-#undef PD_MSG
-#undef PD_TYPE
-        break;
-    }
-
-    case PD_MSG_WORK_CREATE: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_WORK_CREATE
-        localDeguidify(self, &(PD_MSG_FIELD(templateGuid)));
-        localDeguidify(self, &(PD_MSG_FIELD(affinity)));
-        ocrFatGuid_t *outputEvent = NULL;
-        if(PD_MSG_FIELD(outputEvent.guid) == UNINITIALIZED_GUID) {
-            outputEvent = &(PD_MSG_FIELD(outputEvent));
-        }
-        ASSERT(PD_MSG_FIELD(workType) == EDT_WORKTYPE);
-        PD_MSG_FIELD(properties) = xeCreateEdt(
-                                       self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(templateGuid),
-                                       &PD_MSG_FIELD(paramc), PD_MSG_FIELD(paramv), &PD_MSG_FIELD(depc),
-                                       PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity), outputEvent);
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_WORK_EXECUTE: {
-        ASSERT(0); // Not used for this PD
-        break;
-    }
-
-    case PD_MSG_WORK_DESTROY: {
-        // TODO: FIXME: Could be called directly by user but
-        // we do not implement it just yet
-        ASSERT(0);
-        break;
-    }
-
-    case PD_MSG_EDTTEMP_CREATE: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_EDTTEMP_CREATE
-
-        returnCode = xeCreateEdtTemplate(self, &(PD_MSG_FIELD(guid)),
-                                         PD_MSG_FIELD(funcPtr), PD_MSG_FIELD(paramc),
-                                         PD_MSG_FIELD(depc), PD_MSG_FIELD(funcName));
-
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_EDTTEMP_DESTROY: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_EDTTEMP_DESTROY
-        localDeguidify(self, &(PD_MSG_FIELD(guid)));
-        ocrTaskTemplate_t *tTemplate = (ocrTaskTemplate_t*)(PD_MSG_FIELD(guid.metaDataPtr));
-        ASSERT(tTemplate->fctId == self->taskTemplateFactories[0]->factoryId);
-        self->taskTemplateFactories[0]->fcts.destruct(tTemplate);
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST);
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_EVT_CREATE: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_EVT_CREATE
-        PD_MSG_FIELD(properties) = xeCreateEvent(self, &(PD_MSG_FIELD(guid)),
-                                   PD_MSG_FIELD(type), PD_MSG_FIELD(properties) & 1);
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_EVT_DESTROY: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_EVT_DESTROY
-        localDeguidify(self, &(PD_MSG_FIELD(guid)));
-        ocrEvent_t *evt = (ocrEvent_t*)PD_MSG_FIELD(guid.metaDataPtr);
-        ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-        self->eventFactories[0]->fcts[evt->kind].destruct(evt);
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= (~PD_MSG_REQUEST);
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_EVT_GET: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_EVT_GET
-        localDeguidify(self, &(PD_MSG_FIELD(guid)));
-        ocrEvent_t *evt = (ocrEvent_t*)PD_MSG_FIELD(guid.metaDataPtr);
-        ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-        PD_MSG_FIELD(data) = self->eventFactories[0]->fcts[evt->kind].get(evt);
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_GUID_CREATE: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_GUID_CREATE
-        if(PD_MSG_FIELD(size) != 0) {
-            // Here we need to create a metadata area as well
-            PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.createGuid(
-                                           self->guidProviders[0], &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(size),
-                                           PD_MSG_FIELD(kind));
-        } else {
-            // Here we just need to associate a GUID
-            ocrGuid_t temp;
-            PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.getGuid(
-                                           self->guidProviders[0], &temp, (u64)PD_MSG_FIELD(guid.metaDataPtr),
-                                           PD_MSG_FIELD(kind));
-            PD_MSG_FIELD(guid.guid) = temp;
-        }
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_GUID_INFO: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_GUID_INFO
-        localDeguidify(self, &(PD_MSG_FIELD(guid)));
-        if(PD_MSG_FIELD(properties) & KIND_GUIDPROP) {
-            self->guidProviders[0]->fcts.getKind(self->guidProviders[0],
-                                                 PD_MSG_FIELD(guid.guid), &(PD_MSG_FIELD(kind)));
-            PD_MSG_FIELD(properties) = KIND_GUIDPROP | WMETA_GUIDPROP | RMETA_GUIDPROP;
-        } else {
-            PD_MSG_FIELD(properties) = WMETA_GUIDPROP | RMETA_GUIDPROP;
-        }
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_GUID_DESTROY: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_GUID_DESTROY
-        localDeguidify(self, &(PD_MSG_FIELD(guid)));
-        PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.releaseGuid(
-                                       self->guidProviders[0], PD_MSG_FIELD(guid), PD_MSG_FIELD(properties) & 1);
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_COMM_TAKE: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_COMM_TAKE
-        ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
-        returnCode = xeProcessCeRequest(self, &msg);
-        if (PD_MSG_FIELD(guidCount) > 0) {
-            DPRINTF(DEBUG_LVL_INFO, "[XE%lu] (%lu) Received Edt guid: %lx metadata: %p\n",
-                    (u64)self->myLocation, (u64)msg->srcLocation, (PD_MSG_FIELD(guids))->guid,
-                    (PD_MSG_FIELD(guids))->metaDataPtr);
-            PD_MSG_FIELD(properties) = 0;
-            localDeguidify(self, (PD_MSG_FIELD(guids)));
-            // For now, we return the execute function for EDTs
-            PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
-        }
-#undef PD_MSG
-#undef PD_TYPE
-        break;
-    }
-
-    case PD_MSG_COMM_GIVE: {
+        START_PROFILE(pd_xe_OffloadtoCE);
+        if((msg->type & PD_MSG_TYPE_ONLY) == PD_MSG_COMM_GIVE) {
+            START_PROFILE(pd_xe_Give);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_GIVE
-        ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
-        ocrFatGuid_t * guidBuf = getTaskGuidBuffer(self, PD_MSG_FIELD(guidCount));
-        u32 i;
-        for (i = 0; i < PD_MSG_FIELD(guidCount); i++)
-            guidBuf[i] = PD_MSG_FIELD(guids)[i];
-        PD_MSG_FIELD(guids) = guidBuf;
-        //DPRINTF(DEBUG_LVL_INFO, "[XE%lu] (%lu) Sending Edt guid: %lx metadata: %p\n",
-        //        (u64)self->myLocation, (u64)msg->srcLocation, (PD_MSG_FIELD(guids))->guid,
-        //        (PD_MSG_FIELD(guids))->metaDataPtr);
+            ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
+            ocrFatGuid_t * guidBuf = getTaskGuidBuffer(self, PD_MSG_FIELD(guidCount));
+            u32 i;
+            for (i = 0; i < PD_MSG_FIELD(guidCount); i++)
+                guidBuf[i] = PD_MSG_FIELD(guids)[i];
+            PD_MSG_FIELD(guids) = guidBuf;
+#undef PD_MSG
+#undef PD_TYPE
+            EXIT_PROFILE;
+        }
+
+        DPRINTF(DEBUG_LVL_VERB, "XE Policy offloading message of type 0x%x to CE\n",
+                msg->type & PD_MSG_TYPE_ONLY);
         returnCode = xeProcessCeRequest(self, &msg);
-#undef PD_MSG
-#undef PD_TYPE
-        break;
-    }
 
-    case PD_MSG_DEP_ADD: {
+        if((msg->type & PD_MSG_TYPE_ONLY) == PD_MSG_COMM_TAKE) {
+            START_PROFILE(pd_xe_Take);
 #define PD_MSG msg
-#define PD_TYPE PD_MSG_DEP_ADD
-        // We first get information about the source and destination
-        ocrGuidKind srcKind, dstKind;
-        self->guidProviders[0]->fcts.getVal(
-            self->guidProviders[0], PD_MSG_FIELD(source.guid),
-            (u64*)(&(PD_MSG_FIELD(source.metaDataPtr))), &srcKind);
-        self->guidProviders[0]->fcts.getVal(
-            self->guidProviders[0], PD_MSG_FIELD(dest.guid),
-            (u64*)(&(PD_MSG_FIELD(dest.metaDataPtr))), &dstKind);
-
-        ocrFatGuid_t src = PD_MSG_FIELD(source);
-        ocrFatGuid_t dest = PD_MSG_FIELD(dest);
-        if(srcKind == OCR_GUID_DB) {
-            // This is equivalent to an immediate satisfy
-            convertDepAddToSatisfy(self, src, dest, PD_MSG_FIELD(slot));
-        } else {
-            if(srcKind == OCR_GUID_EVENT) {
-                ocrEvent_t *evt = (ocrEvent_t*)(src.metaDataPtr);
-                ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-                self->eventFactories[0]->fcts[evt->kind].registerWaiter(
-                    evt, dest, PD_MSG_FIELD(slot), true);
-            } else {
-                // Some sanity check
-                ASSERT(srcKind == OCR_GUID_EDT);
+#define PD_TYPE PD_MSG_COMM_TAKE
+            if (PD_MSG_FIELD(guidCount) > 0) {
+                DPRINTF(DEBUG_LVL_INFO, "[XE%lu] (%lu) Received EDT guid: 0x%lx metadata: 0x%p\n",
+                        (u64)self->myLocation, (u64)msg->srcLocation, (PD_MSG_FIELD(guids))->guid,
+                        (PD_MSG_FIELD(guids))->metaDataPtr);
+                localDeguidify(self, (PD_MSG_FIELD(guids)));
+                // For now, we return the execute function for EDTs
+                PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
             }
-            if(dstKind == OCR_GUID_EDT) {
-                ocrTask_t *task = (ocrTask_t*)(dest.metaDataPtr);
-                ASSERT(task->fctId == self->taskFactories[0]->factoryId);
-                self->taskFactories[0]->fcts.registerSignaler(task, src, PD_MSG_FIELD(slot), true);
-            } else if(dstKind == OCR_GUID_EVENT) {
-                ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
-                ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-                self->eventFactories[0]->fcts[evt->kind].registerSignaler(
-                    evt, src, PD_MSG_FIELD(slot), true);
-            } else {
-                ASSERT(0); // Cannot have other types of destinations
-            }
-        }
-#ifdef OCR_ENABLE_STATISTICS
-        // TODO: Fixme
-        statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
-#endif
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
+            EXIT_PROFILE;
+        }
+        EXIT_PROFILE;
         break;
     }
 
-    case PD_MSG_DEP_REGSIGNALER: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_DEP_REGSIGNALER
-        // We first get information about the signaler and destination
-        ocrGuidKind signalerKind, dstKind;
-        self->guidProviders[0]->fcts.getVal(
-            self->guidProviders[0], PD_MSG_FIELD(signaler.guid),
-            (u64*)(&(PD_MSG_FIELD(signaler.metaDataPtr))), &signalerKind);
-        self->guidProviders[0]->fcts.getVal(
-            self->guidProviders[0], PD_MSG_FIELD(dest.guid),
-            (u64*)(&(PD_MSG_FIELD(dest.metaDataPtr))), &dstKind);
-
-        ocrFatGuid_t signaler = PD_MSG_FIELD(signaler);
-        ocrFatGuid_t dest = PD_MSG_FIELD(dest);
-
-        switch(dstKind) {
-        case OCR_GUID_EVENT: {
-            ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
-            ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-            self->eventFactories[0]->fcts[evt->kind].registerSignaler(
-                evt, signaler, PD_MSG_FIELD(slot), false);
-            break;
-        }
-        case OCR_GUID_EDT: {
-            ocrTask_t *edt = (ocrTask_t*)(dest.metaDataPtr);
-            ASSERT(edt->fctId == self->taskFactories[0]->factoryId);
-            self->taskFactories[0]->fcts.registerSignaler(
-                edt, signaler, PD_MSG_FIELD(slot), false);
-            break;
-        }
-        default:
-            ASSERT(0); // No other things we can register signalers on
-        }
-#ifdef OCR_ENABLE_STATISTICS
-        // TODO: Fixme
-        statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
-#endif
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_DEP_REGWAITER: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_DEP_REGWAITER
-// We first get information about the signaler and destination
-        ocrGuidKind waiterKind, dstKind;
-        self->guidProviders[0]->fcts.getVal(
-            self->guidProviders[0], PD_MSG_FIELD(waiter.guid),
-            (u64*)(&(PD_MSG_FIELD(waiter.metaDataPtr))), &waiterKind);
-        self->guidProviders[0]->fcts.getVal(
-            self->guidProviders[0], PD_MSG_FIELD(dest.guid),
-            (u64*)(&(PD_MSG_FIELD(dest.metaDataPtr))), &dstKind);
-
-        ocrFatGuid_t waiter = PD_MSG_FIELD(waiter);
-        ocrFatGuid_t dest = PD_MSG_FIELD(dest);
-
-        ASSERT(dstKind == OCR_GUID_EVENT); // Waiters can only wait on events
-        ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
-        ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-        self->eventFactories[0]->fcts[evt->kind].registerWaiter(
-            evt, waiter, PD_MSG_FIELD(slot), false);
-#ifdef OCR_ENABLE_STATISTICS
-        // TODO: Fixme
-        statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
-#endif
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_DEP_SATISFY: {
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_DEP_SATISFY
-        ocrGuidKind dstKind;
-        self->guidProviders[0]->fcts.getVal(
-            self->guidProviders[0], PD_MSG_FIELD(guid.guid),
-            (u64*)(&(PD_MSG_FIELD(guid.metaDataPtr))), &dstKind);
-
-        ocrFatGuid_t dst = PD_MSG_FIELD(guid);
-        if(dstKind == OCR_GUID_EVENT) {
-            ocrEvent_t *evt = (ocrEvent_t*)(dst.metaDataPtr);
-            ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-            self->eventFactories[0]->fcts[evt->kind].satisfy(
-                evt, PD_MSG_FIELD(payload), PD_MSG_FIELD(slot));
-        } else {
-            if(dstKind == OCR_GUID_EDT) {
-                ocrTask_t *edt = (ocrTask_t*)(dst.metaDataPtr);
-                ASSERT(edt->fctId == self->taskFactories[0]->factoryId);
-                self->taskFactories[0]->fcts.satisfy(
-                    edt, PD_MSG_FIELD(payload), PD_MSG_FIELD(slot));
-            } else {
-                ASSERT(0); // We can't satisfy anything else
-            }
-        }
-#ifdef OCR_ENABLE_STATISTICS
-        // TODO: Fixme
-        statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
-#endif
-#undef PD_MSG
-#undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_DEP_UNREGSIGNALER: {
-        // Never used for now
+    // Messages are not handled at all
+    case PD_MSG_WORK_EXECUTE: case PD_MSG_DEP_UNREGSIGNALER:
+    case PD_MSG_DEP_UNREGWAITER: case PD_MSG_SAL_PRINT:
+    case PD_MSG_SAL_READ: case PD_MSG_SAL_WRITE:
+    case PD_MSG_MGT_REGISTER: case PD_MSG_MGT_UNREGISTER:
+    case PD_MSG_SAL_TERMINATE:
+    {
+        DPRINTF(DEBUG_LVL_WARN, "XE PD does not handle call of type 0x%x\n",
+                (u32)(msg->type & PD_MSG_TYPE_ONLY));
         ASSERT(0);
+        returnCode = OCR_ENOTSUP;
         break;
     }
 
-    case PD_MSG_DEP_UNREGWAITER: {
-        // Never used for now
-        ASSERT(0);
-        break;
-    }
-
+    // Messages handled locally
     case PD_MSG_DEP_DYNADD: {
+        START_PROFILE(pd_xe_DepDynAdd);
         ocrTask_t *curTask = NULL;
         getCurrentEnv(NULL, NULL, &curTask, NULL);
 #define PD_MSG msg
@@ -864,15 +404,14 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
         ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
         PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.notifyDbAcquire(curTask, PD_MSG_FIELD(db));
-        PD_MSG_FIELD(properties) = returnCode;
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_DEP_DYNREMOVE: {
+        START_PROFILE(pd_xe_DepDynRemove);
         ocrTask_t *curTask = NULL;
         getCurrentEnv(NULL, NULL, &curTask, NULL);
 #define PD_MSG msg
@@ -881,72 +420,38 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // itself
         // Also, this should only happen when there is an actual EDT
         ASSERT(curTask &&
-               curTask->guid == PD_MSG_FIELD(edt.guid));
+            curTask->guid == PD_MSG_FIELD(edt.guid));
 
         ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
         PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.notifyDbRelease(curTask, PD_MSG_FIELD(db));
-        PD_MSG_FIELD(properties) = returnCode;
 #undef PD_MSG
 #undef PD_TYPE
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |= PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_SAL_PRINT: {
-        ASSERT(0);
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_SAL_READ: {
-        ASSERT(0);
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
-        break;
-    }
-
-    case PD_MSG_SAL_WRITE: {
-        ASSERT(0);
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
         break;
     }
 
     case PD_MSG_MGT_SHUTDOWN: {
+        START_PROFILE(pd_xe_Shutdown);
         self->fcts.stop(self);
-        if (msg->srcLocation == self->myLocation) {
+        if(msg->srcLocation == self->myLocation) {
             returnCode = xeProcessCeRequest(self, &msg);
         } else {
             returnCode = xeProcessCeResponse(self, msg);
         }
+        EXIT_PROFILE;
         break;
     }
 
     case PD_MSG_MGT_FINISH: {
+        START_PROFILE(pd_xe_Finish);
         self->fcts.finish(self);
-        msg->type &= ~PD_MSG_REQUEST;
-        msg->type |=  PD_MSG_RESPONSE;
+        EXIT_PROFILE;
         break;
     }
-
-    case PD_MSG_MGT_REGISTER: {
-        // Only one PD at this time
-        ASSERT(0);
-        break;
-    }
-
-    case PD_MSG_MGT_UNREGISTER: {
-        // Only one PD at this time
-        ASSERT(0);
-        break;
-    }
-
-    default:
-        // Not handled
+    default: {
+        DPRINTF(DEBUG_LVL_WARN, "Unknown message type 0x%x\n", (u32)(msg->type & PD_MSG_TYPE_ONLY));
         ASSERT(0);
     }
+    }; // End of giant switch
 
     return returnCode;
 }
@@ -961,8 +466,8 @@ u8 xePdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t
     case OCR_ECANCELED: {
         ocrMsgHandle_t *tempHandle = NULL;
         RESULT_ASSERT(self->fcts.waitMessage(self, &tempHandle), ==, 0);
-        ASSERT(tempHandle && tempHandle->msg);
-        ocrPolicyMsg_t * newMsg = tempHandle->msg;
+        ASSERT(tempHandle && tempHandle->response);
+        ocrPolicyMsg_t * newMsg = tempHandle->response;
         ASSERT(newMsg->srcLocation != self->myLocation);
         tempHandle->destruct(tempHandle);
         RESULT_ASSERT(self->fcts.processMessage(self, newMsg, false), ==, 0);
@@ -983,30 +488,42 @@ u8 xePdWaitMessage(ocrPolicyDomain_t *self,  ocrMsgHandle_t **handle) {
 }
 
 void* xePdMalloc(ocrPolicyDomain_t *self, u64 size) {
-    // Just try in the first allocator
-    //return self->allocators[0]->fcts.allocate(self->allocators[0], size);
+    START_PROFILE(pd_xe_pdMalloc);
     void *ptr;
     ocrPolicyMsg_t msg;
     ocrPolicyMsg_t* pmsg = &msg;
     getCurrentEnv(NULL, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_MEM_ALLOC
+    msg.type = PD_MSG_MEM_ALLOC  | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(type) = DB_MEMTYPE;
     PD_MSG_FIELD(size) = size;
-    msg.type = PD_MSG_MEM_ALLOC  | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE; // and those of its own making.
-    // ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  TODO:  I don't think this assert holds up any more, now that the request is being forwarded to the CE. BRN
-//    ASSERT(PD_MSG_FIELD(allocatingPD.guid) == self->fguid.guid);  // TODO: On second thought, maybe it is still applicable.  Experiment.  BRN 29 Jan 2014
     ASSERT(self->workerCount == 1);              // Assert this XE has exactly one worker.
     u8 msgResult = xeProcessCeRequest(self, &pmsg);
     ASSERT (msgResult == 0);   // TODO: Are there error cases I need to handle?  How?
     ptr = PD_MSG_FIELD(ptr);
 #undef PD_TYPE
 #undef PD_MSG
-    return ptr;
+    RETURN_PROFILE(ptr);
 }
 
 void xePdFree(ocrPolicyDomain_t *self, void* addr) {
-    return self->allocators[0]->fcts.free(self->allocators[0], addr);
+    START_PROFILE(pd_xe_pdFree);
+    ocrPolicyMsg_t msg;
+    ocrPolicyMsg_t *pmsg = &msg;
+    getCurrentEnv(NULL, NULL, NULL, &msg);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_MEM_UNALLOC
+    msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST;
+    PD_MSG_FIELD(ptr) = addr;
+    PD_MSG_FIELD(type) = DB_MEMTYPE;
+    // TODO: Things are missing. Brian's new way to free things should fix this!
+    PD_MSG_FIELD(properties) = 0;
+    u8 msgResult = xeProcessCeRequest(self, &pmsg);
+    ASSERT(msgResult == 0);
+#undef PD_MSG
+#undef PD_TYPE
+    RETURN_PROFILE();
 }
 
 ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * factory,
@@ -1075,6 +592,3 @@ ocrPolicyDomainFactory_t * newPolicyDomainFactoryXe(ocrParamList_t *perType) {
 }
 
 #endif /* ENABLE_POLICY_DOMAIN_XE */
-
-
-

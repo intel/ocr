@@ -61,19 +61,16 @@ static void workerLoop(ocrWorker_t * worker) {
                 u8 (*executeFunc)(ocrTask_t *) = (u8 (*)(ocrTask_t*))PD_MSG_FIELD(extra); // Execute is stored in extra
                 executeFunc(worker->curTask);
                 worker->curTask = NULL;
-#undef PD_MSG
 #undef PD_TYPE
                 // Destroy the work
-                /* TODO:
-                #define PD_MSG (&msg)
-                #define PD_TYPE PD_MSG_WORK_DESTROY
-                                msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
-                                PD_MSG_FIELD(guid) = taskGuid;
-                                PD_MSG_FIELD(properties) = 0;
-                                RESULT_ASSERT(pd->processMessage(pd, &msg, false), ==, 0);
-                #undef PD_MSG
-                #undef PD_TYPE
-                */
+#define PD_TYPE PD_MSG_WORK_DESTROY
+                msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
+                PD_MSG_FIELD(guid) = taskGuid;
+                PD_MSG_FIELD(properties) = 0;
+                // Ignore failures, we may be shutting down
+                pd->fcts.processMessage(pd, &msg, false);
+#undef PD_MSG
+#undef PD_TYPE
             } else if (count > 1) {
                 // TODO: In the future, potentially take more than one)
                 ASSERT(0);

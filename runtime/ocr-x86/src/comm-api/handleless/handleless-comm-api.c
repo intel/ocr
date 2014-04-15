@@ -81,7 +81,7 @@ u8 handlelessCommWaitMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
         *handle = &(commApiHandleless->handle);
         ASSERT((*handle)->status == 0);
         (*handle)->status = HDL_NORMAL;
-        RESULT_ASSERT(self->commPlatform->fcts.waitMessage(self->commPlatform, &((*handle)->msg), 0, NULL), ==, 0);
+        RESULT_ASSERT(self->commPlatform->fcts.waitMessage(self->commPlatform, &((*handle)->response), 0, NULL), ==, 0);
     }
     return 0;
 }
@@ -96,7 +96,7 @@ ocrCommApi_t* newCommApiHandleless(ocrCommApiFactory_t *factory,
                                    ocrParamList_t *perInstance) {
 
     ocrCommApiHandleless_t * commApiHandleless = (ocrCommApiHandleless_t*)
-            runtimeChunkAlloc(sizeof(ocrCommApiHandleless_t), NULL);
+        runtimeChunkAlloc(sizeof(ocrCommApiHandleless_t), NULL);
 
 
     commApiHandleless->base.fcts = factory->apiFcts;
@@ -118,7 +118,7 @@ void destructCommApiFactoryHandleless(ocrCommApiFactory_t *factory) {
 
 ocrCommApiFactory_t *newCommApiFactoryHandleless(ocrParamList_t *perType) {
     ocrCommApiFactory_t *base = (ocrCommApiFactory_t*)
-                                runtimeChunkAlloc(sizeof(ocrCommApiFactoryHandleless_t), (void *)1);
+        runtimeChunkAlloc(sizeof(ocrCommApiFactoryHandleless_t), (void *)1);
 
 
     base->instantiate = newCommApiHandleless;

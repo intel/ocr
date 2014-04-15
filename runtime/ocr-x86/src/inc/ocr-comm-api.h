@@ -173,7 +173,7 @@ typedef struct _ocrCommApiFcts_t {
      *     //   - handle->msg is non-NULL
      *     //     and needs to be freed BUT only
      *     //     do it after processing the response as
-     *     //     handle->other->msg may be handle->msg
+     *     //     handle->response may be handle->msg
      *
      *     // Use handle->response
      *     // to process message
