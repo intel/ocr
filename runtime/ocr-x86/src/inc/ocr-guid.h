@@ -16,19 +16,7 @@
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
 
-typedef enum {
-    OCR_GUID_NONE = 0,
-    OCR_GUID_ALLOCATOR = 1,
-    OCR_GUID_DB = 2,
-    OCR_GUID_EDT = 3,
-    OCR_GUID_EDT_TEMPLATE = 4,
-    OCR_GUID_EVENT = 5,
-    OCR_GUID_POLICY = 6,
-    OCR_GUID_WORKER = 7,
-    OCR_GUID_MEM_TARGET = 8,
-    OCR_GUID_COMP_TARGET = 9
-} ocrGuidKind;
-
+#include "ocr-guid-kind.h"
 
 /****************************************************/
 /* OCR PARAMETER LISTS                              */

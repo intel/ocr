@@ -184,6 +184,9 @@ typedef struct _ocrMemTarget_t {
     ocrFatGuid_t fguid; /**< GUID for this mem-target */
     struct _ocrPolicyDomain_t *pd; /**< Policy domain that uses this mem-target */
     u64 size, startAddr, endAddr;
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStatsProcess_t *statProcess;
+#endif
     struct _ocrMemPlatform_t **memories; /**< Pointers to underlying mem-target */
     u64 memoryCount;                     /**< Number of mem-targets */
     ocrMemTargetFcts_t fcts;             /**< Functions for this instance */

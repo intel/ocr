@@ -2,7 +2,7 @@
 
 #
 # DO NOT EXECUTE THIS SCRIPT -- SOURCE IT INTO YOUR SHELL, E.G.:
-# 
+#
 #   [ibganev@bar2 ocr-x86]$ pwd
 #   /home/ibganev/xstack/ocr/runtime/ocr-x86
 #   [ibganev@bar2 ocr-x86]$
