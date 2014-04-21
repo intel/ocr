@@ -36,6 +36,8 @@ void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD
         commPlatformCePthread->channels[i].xeCounter = 0;
         commPlatformCePthread->channels[i].ceCounter = 0;
     }
+    // Set my location to be what is expected by the XEs (ie: the address of my PD)
+    PD->myLocation = (u64)PD;
     return;
 }
 

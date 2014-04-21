@@ -46,7 +46,7 @@ static void workerLoop(ocrWorker_t * worker) {
         RESULT_ASSERT(pd->fcts.waitMessage(pd, &handle), ==, 0);
         ASSERT(handle);
         ocrPolicyMsg_t *msg = handle->response;
-        RESULT_ASSERT(pd->fcts.processMessage(pd, msg, false), ==, 0);
+        RESULT_ASSERT(pd->fcts.processMessage(pd, msg, true), ==, 0);
         handle->destruct(handle);
     } /* End of while loop */
 }

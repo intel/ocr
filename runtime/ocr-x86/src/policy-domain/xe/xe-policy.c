@@ -284,8 +284,6 @@ static ocrFatGuid_t * getTaskGuidBuffer(ocrPolicyDomain_t *self, u32 count) {
 
 static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
     u8 returnCode = 0;
-    (*msg)->srcLocation  = self->myLocation;
-    (*msg)->destLocation = self->parentLocation;
     u32 type = ((*msg)->type & PD_MSG_TYPE_ONLY);
     ASSERT((*msg)->type & PD_MSG_REQUEST);
     if ((*msg)->type & PD_MSG_REQ_RESPONSE) {
@@ -294,13 +292,18 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
                                             &handle, (TWOWAY_MSG_PROP | PERSIST_MSG_PROP));
         if (returnCode == 0) {
             ASSERT(handle && handle->msg);
+            ASSERT(handle->msg == *msg); // This is what we passed in
             RESULT_ASSERT(self->fcts.waitMessage(self, &handle), ==, 0);
-            ASSERT(handle->response && ((handle->response->type & PD_MSG_TYPE_ONLY) == type));
-            // No guarantee that the response will be in the same location as the
-            // original message so we make sure. Since we pass the original message
-            // as persistent, it is likely that the same buffer is used for the response
-            // Update this if necessary.
-            ASSERT(handle->response == *msg);
+            ASSERT(handle->response);
+            // Check if the message was a proper response and came from the right place
+            ASSERT((handle->response->type & PD_MSG_TYPE_ONLY) == type);
+            ASSERT(handle->response->srcLocation == self->parentLocation);
+            ASSERT(handle->response->destLocation == self->myLocation);
+            // The call provides no guarantee that the message in response
+            // will use the same buffer (msg). For now, we don't handle that
+            // case. If we needed to do it, we would need to copy response
+            // into *msg.
+            ASSERT(handle->response == *msg); // If this is not the case, we need to copy back in msg
             handle->destruct(handle);
         }
     } else {
@@ -458,21 +461,30 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
 u8 xePdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t *message,
                    ocrMsgHandle_t **handle, u32 properties) {
+    ASSERT(target == self->parentLocation);
+    // Set the header of this message
+    message->srcLocation  = self->myLocation;
+    message->destLocation = self->parentLocation;
     u8 returnCode = self->commApis[0]->fcts.sendMessage(self->commApis[0], target, message, handle, properties);
     if (returnCode == 0) return 0;
-    if (handle && *handle) (*handle)->destruct(*handle);
     switch (returnCode) {
     case OCR_EBUSY:
     case OCR_ECANCELED: {
+        // Our outgoing message was cancelled and we probably have an incomming
+        // reason why (shutdown most likely)
+        // We destruct the handle for the first message in case it was partially used
+        if(*handle)
+            (*handle)->destruct(*handle);
         ocrMsgHandle_t *tempHandle = NULL;
         RESULT_ASSERT(self->fcts.waitMessage(self, &tempHandle), ==, 0);
         ASSERT(tempHandle && tempHandle->response);
         ocrPolicyMsg_t * newMsg = tempHandle->response;
-        ASSERT(newMsg->srcLocation != self->myLocation);
+        ASSERT(newMsg->srcLocation == self->parentLocation);
+        ASSERT(newMsg->destLocation == self->myLocation);
+        RESULT_ASSERT(self->fcts.processMessage(self, newMsg, true), ==, 0);
         tempHandle->destruct(tempHandle);
-        RESULT_ASSERT(self->fcts.processMessage(self, newMsg, false), ==, 0);
     }
-    break;
+        break;
     default:
         ASSERT(0);
     }

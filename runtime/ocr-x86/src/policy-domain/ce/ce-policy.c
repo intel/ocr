@@ -262,6 +262,16 @@ static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
     }
 }
 
+static u8 getEngineIndex(ocrPolicyDomain_t *self, ocrLocation_t location) {
+
+    if(location == self->myLocation) {
+        return 8; // Get the old behavior back
+    }
+    // This is an XE
+    ASSERT(location < 8);
+    return location;
+}
+
 // In all these functions, we consider only a single PD. In other words, in CE, we
 // deal with everything locally and never send messages
 static u8 ceAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, u64 size,
@@ -275,7 +285,7 @@ static u8 ceAllocateDb(ocrPolicyDomain_t *self, ocrFatGuid_t *guid, void** ptr, 
     // allocator.  Thus for these levels, the allocators and their memories are a shared resource
     // among this CE and its XE children, but NOT shared with any other CE's or XE's.
     u64 i;
-    u64 numberOfL1AllocatorsInABlock = ocrLocation_getEngineIndex(self->myLocation)+1; // CE's L1 is the last in the block.
+    u64 numberOfL1AllocatorsInABlock = getEngineIndex(self, self->myLocation)+1; // CE's L1 is the last in the block.
     void* result;
     for(i = engineIndex;            // First try the allocator for the L1 collocated with the engine
             i < self->allocatorCount;
@@ -444,10 +454,12 @@ static u8 ceProcessResponse(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u32 pr
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |=  PD_MSG_RESPONSE;
     } else {
+        msg->destLocation = msg->srcLocation;
+        msg->srcLocation = self->myLocation;
         if (msg->type & PD_MSG_REQ_RESPONSE) {
             msg->type &= ~PD_MSG_REQUEST;
             msg->type |=  PD_MSG_RESPONSE;
-            RESULT_ASSERT(self->fcts.sendMessage(self, msg->srcLocation, msg, NULL, properties), ==, 0);
+            RESULT_ASSERT(self->fcts.sendMessage(self, msg->destLocation, msg, NULL, properties), ==, 0);
         }
     }
     return 0;
@@ -480,7 +492,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE || PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE);
         PD_MSG_FIELD(properties) = ceAllocateDb(
             self, &(PD_MSG_FIELD(guid)), &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
-            PD_MSG_FIELD(properties), ocrLocation_getEngineIndex(msg->srcLocation),
+            PD_MSG_FIELD(properties), getEngineIndex(self, msg->srcLocation),
             PD_MSG_FIELD(affinity), PD_MSG_FIELD(allocator));
         if(PD_MSG_FIELD(properties) == 0) {
             ocrDataBlock_t *db= PD_MSG_FIELD(guid.metaDataPtr);
@@ -559,7 +571,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
     case PD_MSG_MEM_ALLOC: {
         START_PROFILE(pd_ce_MemAlloc);
-        u64 engineIndex = ocrLocation_getEngineIndex(msg->srcLocation);
+        u64 engineIndex = getEngineIndex(self, msg->srcLocation);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_ALLOC
         PD_MSG_FIELD(allocatingPD) = self->fguid;
@@ -963,18 +975,23 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         u32 neighborCount = self->neighborCount;
         ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t *)self;
         if (msg->type & PD_MSG_REQUEST) {
+            // This triggers the shutdown of the machine
+            ocrLocation_t origRequester = msg->srcLocation;
             ASSERT(!(msg->type & PD_MSG_RESPONSE));
             ASSERT(msg->srcLocation != self->myLocation && cePolicy->shutdownCount == 0);
             cePolicy->shutdownCount = 1; //FIXME: Assumes block local shutdown message from XE
             for (i = 0; i < neighborCount; i++) {
-                //ocrLocation_t target = self->neighbors[i];
+                // We should get this from the neighbors. For now HACK
+                // ocrLocation_t target = self->neighbors[i];
                 ocrLocation_t target = (ocrLocation_t)(i);
-                if (target != msg->srcLocation) {
+                if (target != origRequester) {
                     ocrPolicyMsg_t * mesgPtr = &(cePolicy->shutdownMsgs[target]);
                     getCurrentEnv(NULL, NULL, NULL, mesgPtr);
+                    mesgPtr->destLocation = target;
 #define PD_MSG mesgPtr
 #define PD_TYPE PD_MSG_MGT_SHUTDOWN
                     mesgPtr->type = PD_MSG_MGT_SHUTDOWN | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+                    PD_MSG_FIELD(properties) = 0;
                     RESULT_ASSERT(self->fcts.sendMessage(self, target, mesgPtr, NULL, 0), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE
@@ -1017,8 +1034,6 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         DPRINTF(DEBUG_LVL_WARN, "Unknown message type 0x%x\n", (u32)(msg->type & PD_MSG_TYPE_ONLY));
         ASSERT(0);
     }
-    ASSERT((msg->srcLocation != self->myLocation) ||
-           ((msg->type & PD_MSG_RESPONSE) || !(msg->type & PD_MSG_REQ_RESPONSE)));
     return returnCode;
 }
 
