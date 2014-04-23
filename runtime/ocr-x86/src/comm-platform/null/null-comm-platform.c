@@ -50,13 +50,13 @@ u8 nullCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
 }
 
 u8 nullCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
-                       u32 properties, u32 *mask) {
+                       u64 *bufferSize, u32 properties, u32 *mask) {
     ASSERT(0);
     return OCR_ENOTSUP;
 }
 
 u8 nullCommWaitMessage(ocrCommPlatform_t *self,  ocrPolicyMsg_t **msg,
-                       u32 properties, u32 *mask) {
+                       u64 *bufferSize, u32 properties, u32 *mask) {
     ASSERT(0);
     return OCR_ENOTSUP;
 }
@@ -107,9 +107,9 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryNull(ocrParamList_t *perType) {
             nullCommSetMaxExpectedMessageSize);
     base->platformFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrLocation_t,
                                      ocrPolicyMsg_t *, u64, u64*, u32, u32), nullCommSendMessage);
-    base->platformFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**, u32, u32*),
+    base->platformFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**, u64*, u32, u32*),
                                      nullCommPollMessage);
-    base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**, u32, u32*),
+    base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t**, u64*, u32, u32*),
                                      nullCommWaitMessage);
     base->platformFcts.destructMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t*),
                                          nullCommDestructMessage);

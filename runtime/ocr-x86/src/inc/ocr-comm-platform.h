@@ -162,12 +162,33 @@ typedef struct _ocrCommPlatformFcts_t {
      *
      * This function checks for ANY incomming message
      * @param[in] self        Pointer to this comm-platform
-     * @param[out] msg        Returns a pointer to an ocrPolicyMsg_t. Once
-     *                        used by the upper levels, the returned pointer
-     *                        needs to be "freed" using destructMessage.
+     * @param[in/out] msg     Returns a pointer to an ocrPolicyMsg_t. On input,
+     *                        if *msg is non-NULL, this is a "hint" to the
+     *                        comm-platform that it can use the provided buffer
+     *                        for the response message. There is, however
+     *                        no obligation. If *msg is non NULL on input,
+     *                        bufferSize contains the size of the "hint" buffer
+     *                        specified in the same way as for sendMessage (in
+     *                        this case though, the actual size of the message
+     *                        is irrelevant).
+     *                        The comm-platform will *NEVER* free the input
+     *                        buffer passed in. It is up to the caller to
+     *                        determine if the comm-platform used the buffer
+     *                        (if *msg on output is the same as *msg on input).
+     *                        If on output *msg is not the same as the one
+     *                        passed in, the output *msg will have been created
+     *                        by the comm-platform and the caller needs to call
+     *                        it needs to be "freed" using
+     *                        destructMessage once the buffer is done being used.
+     *                        Otherwise (ie: *msg is the same on input and
+     *                        output), destructMessage should not be called
      *                        If *msg is NULL on return, check return code
      *                        to see if there was an error or if no messages
      *                        were available
+     * @param[in/out] bufferSize On input, contains the size of the hint
+     *                        buffer if applicable. On output, contains the
+     *                        size of the message returned (same format as
+     *                        for sendMessage).
      * @param[in] properties  Unused for now
      * @param[out] mask       Mask of the returned message (may always be 0)
      * @return
@@ -177,23 +198,22 @@ typedef struct _ocrCommPlatformFcts_t {
      * #POLL_ERR_MASK
      */
     u8 (*pollMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t **msg,
-                      u32 properties, u32 *mask);
+                      u64* bufferSize, u32 properties, u32 *mask);
 
     /**
      * @brief Blocking check for incomming messages
      *
      * This function checks for ANY incomming message
+     * See pollMessage() for a detailed explanation of the parameters
      * @param[in] self        Pointer to this comm-platform
-     * @param[out] msg        Returns a pointer to an ocrPolicyMsg_t. Once
-     *                        used by the upper levels, the returned pointer
-     *                        needs to be "freed" using destructMessage.
-     *                        If *msg is NULL on return, an error has occured
+     * @param[in/out] msg     Pointer to the message returned
+     * @param[in/out] bufferSize Size of the message returned
      * @param[in] properties  Unused for now
      * @param[out] mask       Mask of the returned message (may always be 0)
      * @return 0 on success and a non-zero error code
      */
     u8 (*waitMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t **msg,
-                      u32 properties, u32 *mask);
+                      u64 *bufferSize, u32 properties, u32 *mask);
 
     /**
      * @brief Releases/frees a message returned by pollMessage/waitMessage

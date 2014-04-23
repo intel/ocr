@@ -78,11 +78,13 @@ u8 xePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target, ocrPo
     return 0;
 }
 
-u8 xePthreadCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg, u32 properties, u32 *mask) {
+u8 xePthreadCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
+                            u64* bufferSize, u32 properties, u32 *mask) {
     ASSERT(0);
 }
 
-u8 xePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg, u32 properties, u32 *mask) {
+u8 xePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
+                            u64* bufferSize, u32 properties, u32 *mask) {
     ocrCommPlatformXePthread_t * commPlatformXePthread = (ocrCommPlatformXePthread_t*)self;
     ocrCommChannel_t * channel = commPlatformXePthread->channel;
     do {
@@ -143,9 +145,9 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryXePthread(ocrParamList_t *perTyp
     base->platformFcts.finish = FUNC_ADDR(void (*)(ocrCommPlatform_t*), xePthreadCommFinish);
     base->platformFcts.sendMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrLocation_t, ocrPolicyMsg_t *, u64, u64*, u32, u32),
                                      xePthreadCommSendMessage);
-    base->platformFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t **, u32, u32*),
+    base->platformFcts.pollMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t **, u64*, u32, u32*),
                                      xePthreadCommPollMessage);
-    base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t **, u32, u32*),
+    base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t **, u64*, u32, u32*),
                                      xePthreadCommWaitMessage);
 
     return base;

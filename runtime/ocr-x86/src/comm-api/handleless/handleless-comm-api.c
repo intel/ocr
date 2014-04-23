@@ -74,15 +74,23 @@ u8 handlelessCommPollMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
 u8 handlelessCommWaitMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
     ASSERT(handle);
     ocrCommApiHandleless_t * commApiHandleless = (ocrCommApiHandleless_t*)self;
+    u64 bufferSize = (u32)(sizeof(ocrPolicyMsg_t)) | (sizeof(ocrPolicyMsg_t) << 32);
     if (*handle) {
-        ASSERT((*handle)->status == HDL_NORMAL && (*handle)->msg && (*handle) == (&(commApiHandleless->handle)));
-        RESULT_ASSERT(self->commPlatform->fcts.waitMessage(self->commPlatform, &((*handle)->response), 0, NULL), ==, 0);
+        ASSERT((*handle)->status == HDL_NORMAL &&
+               (*handle)->msg && (*handle) == (&(commApiHandleless->handle)));
+        // Pass a "hint" saying that the the buffer is available
+        RESULT_ASSERT(self->commPlatform->fcts.waitMessage(
+                          self->commPlatform, &((*handle)->msg), &bufferSize, 0,
+                          NULL), ==, 0);
     } else {
         *handle = &(commApiHandleless->handle);
         ASSERT((*handle)->status == 0);
         (*handle)->status = HDL_NORMAL;
-        RESULT_ASSERT(self->commPlatform->fcts.waitMessage(self->commPlatform, &((*handle)->response), 0, NULL), ==, 0);
+        RESULT_ASSERT(self->commPlatform->fcts.waitMessage(
+                          self->commPlatform, &((*handle)->msg), &bufferSize,
+                          0, NULL), ==, 0);
     }
+    (*handle)->response = (*handle)->msg; // The response is always read in response
     return 0;
 }
 
