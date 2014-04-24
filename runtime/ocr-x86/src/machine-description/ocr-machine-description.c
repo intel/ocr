@@ -544,10 +544,9 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             switch (mytype) {
 #ifdef ENABLE_MEM_PLATFORM_FSIM
             case memPlatformFsim_id: {
+                extern u64 end_marker;
                 ALLOC_PARAM_LIST(inst_param[j], paramListMemPlatformFsim_t);
-                snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "start");
-                INI_GET_INT (key, value, -1);
-                ((paramListMemPlatformFsim_t *)inst_param[j])->start = (value==-1)?0:value;
+                ((paramListMemPlatformFsim_t *)inst_param[j])->start = end_marker;
             }
             break;
 #endif
@@ -558,6 +557,10 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
 
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
             ((paramListMemPlatformInst_t *)inst_param[j])->size = (u64)iniparser_getlonglong(dict, key, 0);
+#ifdef ENABLE_MEM_PLATFORM_FSIM
+            // For FSim, we revise the size because start address eats into the allocation
+            ((paramListMemPlatformInst_t *)inst_param[j])->size -= ((paramListMemPlatformFsim_t *)inst_param[j])->start;
+#endif
             instance[j] = (void *)((ocrMemPlatformFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created memplatform of type %s, index %d\n", inststr, j);

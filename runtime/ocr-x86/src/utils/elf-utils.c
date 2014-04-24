@@ -23,19 +23,30 @@ typedef struct _func_entry {
 
 // The below holds all functions in the app
 func_entry func_list[MAXFNS];
-int func_list_sz = 0;
+u32 func_list_sz = 0;
 u64 dram_offset = 0;
+u64 end_marker = 0;
+
+#define END1 "_end"
+#define END2 "_end_local"
+
+static void check_for_end_marker (char *symname, u64 symaddr) {
+    if(!strcmp(symname, END1) || !strcmp(symname, END2)) {
+        end_marker = symaddr;
+        end_marker += (symaddr%0x40)?(0x40-symaddr%0x40):(0); // Align to 64-byte boundary
+    }
+}
 
 /* Below code adapted from libelf tutorial example */
-static int extract_functions_internal (const char *str, func_entry *func_list) {
+static u32 extract_functions_internal (const char *str, func_entry *func_list) {
     Elf *e;
     Elf_Kind ek;
     Elf_Scn *scn;
     Elf_Data *edata;
-    int fd, i, symbol_count;
+    u32 fd, i, symbol_count;
     GElf_Sym sym;
     GElf_Shdr shdr;
-    int func_count = 0;
+    u32 func_count = 0;
 
     if(elf_version(EV_CURRENT) == EV_NONE) {
         printf("Error initializing ELF: %s\n", elf_errmsg(-1));
@@ -64,8 +75,11 @@ static int extract_functions_internal (const char *str, func_entry *func_list) {
                 symbol_count = shdr.sh_size / shdr.sh_entsize;
                 for(i = 0; i < symbol_count; i++) {
                     gelf_getsym(edata, i, &sym);
+                    if(ELF32_ST_TYPE(sym.st_info) != STT_FUNC) {
+                        check_for_end_marker(elf_strptr(e, shdr.sh_link, sym.st_name), sym.st_value);
+                        continue;
+                    }
                     if(sym.st_size == 0) continue;
-                    if(ELF32_ST_TYPE(sym.st_info) != STT_FUNC) continue;
 
                     func_list[func_count].offset = sym.st_value;
                     func_list[func_count++].func_name = strdup(elf_strptr(e, shdr.sh_link, sym.st_name));
@@ -85,8 +99,8 @@ static int extract_functions_internal (const char *str, func_entry *func_list) {
     return func_count;
 }
 
-static void free_func_names(func_entry *func_lists, int func_list_size) {
-    int i;
+static void free_func_names(func_entry *func_lists, u32 func_list_size) {
+    u32 i;
     for(i = 0; i < func_list_size; i++)
         free(func_lists[i].func_name);
 }
@@ -99,8 +113,8 @@ void free_functions (void) {
     free_func_names(func_list, func_list_sz);
 }
 
-char* find_function(u64 address, func_entry *func_lists, int func_list_size) {
-    int i;
+char* find_function(u64 address, func_entry *func_lists, u32 func_list_size) {
+    u32 i;
 
     for(i = 0; i<func_list_size; i++)
         if(func_lists[i].offset == address)
@@ -109,8 +123,8 @@ char* find_function(u64 address, func_entry *func_lists, int func_list_size) {
     return NULL;
 }
 
-u64 find_function_address (char *fname, func_entry *func_lists, int func_list_size) {
-    int i;
+u64 find_function_address (char *fname, func_entry *func_lists, u32 func_list_size) {
+    u32 i;
 
     for(i = 0; i<func_list_size; i++)
         if(!strcmp(func_lists[i].func_name, fname)) {
