@@ -1,6 +1,6 @@
 /* Default linker script, for normal executables */
 OUTPUT_FORMAT("elf32-rmd", "elf32-bigrmd", "elf32-rmd")
-ENTRY (_start)
+ENTRY (xe_main)
 MEMORY
 {
     /*
@@ -74,7 +74,6 @@ SECTIONS
     /* DRAM */
     .text : {
         . = ALIGN(8);
-        _start          = .;    /* Should *NOT* be ABSOLUTE because in DRAM, does not fit in 32 bits */
         _ftext          = ABSOLUTE(.);
         /* xe-header.o(.text); */
         einit           = ABSOLUTE(.);
