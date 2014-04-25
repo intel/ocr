@@ -20,7 +20,7 @@
 #define ENABLE_BUILDER_ONLY
 
 // Allocator
-#define ENABLE_ALLOCATOR_TLSF
+#define ENABLE_ALLOCATOR_NULL
 
 
 // CommApi
