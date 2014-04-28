@@ -417,7 +417,7 @@ typedef struct _ocrStatsFactory_t {
  *       at a time. That message will be passed to each filter sequentially. In other
  *       words, you can access any data-structure only accessed for outgoing messages
  *       without any synchronization provided it is accessed only by one ocrStatsProcess_t
- *     - For a given ocrStatsProcess_t, multiple threads may process its incomming messages
+ *     - For a given ocrStatsProcess_t, multiple threads may process its incoming messages
  *       but a lock is held when processing a message.
  *     - When a message is processed, all filters registered to that message will be called
  *       (no partial message processing)

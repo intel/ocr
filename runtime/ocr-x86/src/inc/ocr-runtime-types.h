@@ -98,7 +98,7 @@ typedef enum {
                               * by the target */
     HDL_SEND_RECV_ERR = 0x10201, /**< Outgoing message was sent but an error
                               * occured on the receiving end */
-    HDL_RECV_ERR      = 0x10400, /**< An error occured on the incomming response */
+    HDL_RECV_ERR      = 0x10400, /**< An error occured on the incoming response */
     HDL_RESPONSE_OK   = 0x00400  /**< (MANDATORY) Handle has a ready response */
 
 } ocrMsgHandleStatus_t;

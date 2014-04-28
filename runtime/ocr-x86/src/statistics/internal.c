@@ -192,7 +192,7 @@ u8 intProcessMessage(ocrStatsProcess_t *dst) {
                              dst->messages->fctPtrs->popHead(dst->messages);
 
     if(msg) {
-        DPRINTF(DEBUG_LVL_VERB, "Processing incomming message 0x%lx for 0x%lx\n",
+        DPRINTF(DEBUG_LVL_VERB, "Processing incoming message 0x%lx for 0x%lx\n",
                 (u64)msg, dst->me);
         u64 newTick = msg->tick > (dst->tick + 1)?msg->tick:(dst->tick + 1);
         msg->tick = dst->tick = newTick;

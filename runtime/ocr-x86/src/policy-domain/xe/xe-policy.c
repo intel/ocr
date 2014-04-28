@@ -470,7 +470,7 @@ u8 xePdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t
     switch (returnCode) {
     case OCR_EBUSY:
     case OCR_ECANCELED: {
-        // Our outgoing message was cancelled and we probably have an incomming
+        // Our outgoing message was cancelled and we probably have an incoming
         // reason why (shutdown most likely)
         // We destruct the handle for the first message in case it was partially used
         if(*handle)

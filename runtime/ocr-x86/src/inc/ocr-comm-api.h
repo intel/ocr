@@ -89,7 +89,7 @@ typedef struct _ocrCommApiFcts_t {
      * is being made with regards to the lifetime of 'message' and 'handle':
      *    - if (properties & TWOWAY_MSG_PROP) is non zero:
      *        - An "answer" to this message is expected. In other words, it is
-     *          expected that the a poll/wait call at a later point will return
+     *          expected that a poll/wait call at a later point will return
      *          a message that is a "response" to this message.
      *    - if (properties & PERSIST_MSG_PROP) is non zero:
      *        - The caller guarantees that the value pointed to by
@@ -158,7 +158,7 @@ typedef struct _ocrCommApiFcts_t {
      *     - Heap allocated persistent messages with responses
      * // Send 10 messages
      * for(u32 i=0; i<10; ++i) {
-     *   ocrPolicyMsg_t *msg = pd->pdMalloc(pd, sizeof(ocrPolicyMsg_t));
+     *   ocrPolicyMsg_t *msg = pd->fcts.pdMalloc(pd, sizeof(ocrPolicyMsg_t));
      *   // Fill in msg
      *   sendMessage(me, target, msg, NULL, PERSIST_MSG_PROP | TWOWAY_MSG_PROP);
      * }
@@ -177,7 +177,7 @@ typedef struct _ocrCommApiFcts_t {
      *
      *     // Use handle->response
      *     // to process message
-     *     pd->pdFree(pd, handle->msg);
+     *     pd->fcts.pdFree(pd, handle->msg);
      *     handle->destruct(handle);
      *     ++countResp;
      *   }
@@ -190,7 +190,7 @@ typedef struct _ocrCommApiFcts_t {
                       struct _ocrMsgHandle_t **handle, u32 properties);
 
     /**
-     * @brief Non-blocking check for incomming messages
+     * @brief Non-blocking check for incoming messages
      *
      * This function allows the caller to check for the status of
      * a specific message or ANY message.
@@ -222,7 +222,7 @@ typedef struct _ocrCommApiFcts_t {
     u8 (*pollMessage)(struct _ocrCommApi_t *self, struct _ocrMsgHandle_t **handle);
 
     /**
-     * @brief Blocking check for incomming messages
+     * @brief Blocking check for incoming messages
      *
      * This call blocks until a response has been received to a particular
      * handle or ANY message has been received.

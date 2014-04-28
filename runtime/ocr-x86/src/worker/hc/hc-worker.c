@@ -201,7 +201,6 @@ void hcStopWorker(ocrWorker_t * base) {
 
     u64 computeCount = base->computeCount;
     u64 i = 0;
-    // This code should be called by the master thread to join others
     for(i = 0; i < computeCount; i++) {
         base->computes[i]->fcts.stop(base->computes[i]);
 #ifdef OCR_ENABLE_STATISTICS

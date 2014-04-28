@@ -83,7 +83,7 @@ typedef struct _ocrCommPlatformFcts_t {
      * messages expected are of size 'size'
      *
      * Certain implementations may need/want to pre-allocated
-     * structures to receive incomming messages. This indicates how
+     * structures to receive incoming messages. This indicates how
      * big the biggest message that is expected is for a particular
      * mask (mask of 0 means all messages).
      *
@@ -158,9 +158,9 @@ typedef struct _ocrCommPlatformFcts_t {
                       u32 properties, u32 mask);
 
     /**
-     * @brief Non-blocking check for incomming messages
+     * @brief Non-blocking check for incoming messages
      *
-     * This function checks for ANY incomming message
+     * This function checks for ANY incoming message
      * @param[in] self        Pointer to this comm-platform
      * @param[in/out] msg     Returns a pointer to an ocrPolicyMsg_t. On input,
      *                        if *msg is non-NULL, this is a "hint" to the
@@ -201,9 +201,9 @@ typedef struct _ocrCommPlatformFcts_t {
                       u64* bufferSize, u32 properties, u32 *mask);
 
     /**
-     * @brief Blocking check for incomming messages
+     * @brief Blocking check for incoming messages
      *
-     * This function checks for ANY incomming message
+     * This function checks for ANY incoming message
      * See pollMessage() for a detailed explanation of the parameters
      * @param[in] self        Pointer to this comm-platform
      * @param[in/out] msg     Pointer to the message returned

@@ -678,7 +678,7 @@ typedef struct _ocrPolicyDomainFcts_t {
                       ocrMsgHandle_t **handle, u32 properties);
 
     /**
-     * @brief Non-blocking check for incomming messages
+     * @brief Non-blocking check for incoming messages
      * This API can be used by any client of the policy domain and
      * will call into the correct comm-api pollMessage to actually
      * poll for a message.
@@ -691,7 +691,7 @@ typedef struct _ocrPolicyDomainFcts_t {
     u8 (*pollMessage)(struct _ocrPolicyDomain_t *self, ocrMsgHandle_t **handle);
 
     /**
-     * @brief Blocking check for incomming messages
+     * @brief Blocking check for incoming messages
      * This API can be used by any client of the policy domain and
      * will call into the correct comm-api waitMessage to actually
      * wait for a message.
