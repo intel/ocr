@@ -192,10 +192,10 @@ typedef struct _ocrCommPlatformFcts_t {
      * @param[in] properties  Unused for now
      * @param[out] mask       Mask of the returned message (may always be 0)
      * @return
-     * #POLL_NO_MESSAGE: 0 messages found
-     * 0 : Only 1 message found
-     * #POLL_MORE_MESSAGE: 1 message found but more available
-     * #POLL_ERR_MASK
+     *     - #POLL_NO_MESSAGE: 0 messages found
+     *     - 0: One message found and returned
+     *     - #POLL_MORE_MESSAGE: 1 message found and returned but more available
+     *     - <val> & #POLL_ERR_MASK: error code or 0 if all went well
      */
     u8 (*pollMessage)(struct _ocrCommPlatform_t *self, struct _ocrPolicyMsg_t **msg,
                       u64* bufferSize, u32 properties, u32 *mask);
