@@ -44,6 +44,11 @@ void hcPolicyDomainBegin(ocrPolicyDomain_t * policy) {
         policy->schedulers[i]->fcts.begin(policy->schedulers[i], policy);
     }
 
+    maxCount = policy->commApiCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->commApis[i]->fcts.begin(policy->commApis[i], policy);
+    }
+
     // REC: Moved all workers to start here.
     // Note: it's important to first logically start all workers.
     // Once they are all up, start the runtime.
@@ -93,6 +98,11 @@ void hcPolicyDomainStart(ocrPolicyDomain_t * policy) {
         policy->schedulers[i]->fcts.start(policy->schedulers[i], policy);
     }
 
+    maxCount = policy->commApiCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->commApis[i]->fcts.start(policy->commApis[i], policy);
+    }
+
     // REC: Moved all workers to start here.
     // Note: it's important to first logically start all workers.
     // Once they are all up, start the runtime.
@@ -125,6 +135,11 @@ void hcPolicyDomainFinish(ocrPolicyDomain_t * policy) {
         policy->workers[i]->fcts.finish(policy->workers[i]);
     }
 
+    maxCount = policy->commApiCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->commApis[i]->fcts.finish(policy->commApis[i]);
+    }
+
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
         policy->schedulers[i]->fcts.finish(policy->schedulers[i]);
@@ -152,8 +167,7 @@ void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
 
     ocrPolicyDomainHc_t *rself = (ocrPolicyDomainHc_t*)policy;
 
-    // We inform people that we want to stop
-    // the policy domain
+    // We inform people that we want to stop the policy domain
     // We make sure that no one else is using the PD (in processMessage mostly)
     u32 oldState = 0, newState = 0;
     do {
@@ -176,12 +190,13 @@ void hcPolicyDomainStop(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; i++) {
         policy->workers[i]->fcts.stop(policy->workers[i]);
     }
-    // WARNING: Do not add code here unless you know what you're doing !!
-    // If we are here, it means an EDT called ocrShutdown which
-    // logically finished workers and can make thread '0' executes this
-    // code before joining the other threads.
 
-    // Thread '0' joins the other (N-1) threads.
+    // Note: As soon as worker '0' is stopped; its thread is
+    // free to fall-through from 'start' and call 'finish'.
+    maxCount = policy->commApiCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->commApis[i]->fcts.stop(policy->commApis[i]);
+    }
 
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
@@ -220,6 +235,11 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     maxCount = policy->workerCount;
     for(i = 0; i < maxCount; i++) {
         policy->workers[i]->fcts.destruct(policy->workers[i]);
+    }
+
+    maxCount = policy->commApiCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->commApis[i]->fcts.destruct(policy->commApis[i]);
     }
 
     maxCount = policy->schedulerCount;
@@ -786,6 +806,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         } else {
             PD_MSG_FIELD(properties) = WMETA_GUIDPROP | RMETA_GUIDPROP;
         }
+
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
