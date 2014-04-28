@@ -219,7 +219,9 @@ void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
     if(vals->worker && task)
         *task = vals->worker->curTask;
     if(msg) {
+        //By default set src and dest location to current location.
         msg->srcLocation = vals->pd->myLocation;
+        msg->destLocation = msg->srcLocation;
     }
     RETURN_PROFILE();
 }
