@@ -105,15 +105,20 @@ ocrCommApi_t* newCommApiHandleless(ocrCommApiFactory_t *factory,
 
     ocrCommApiHandleless_t * commApiHandleless = (ocrCommApiHandleless_t*)
         runtimeChunkAlloc(sizeof(ocrCommApiHandleless_t), NULL);
-
-
-    commApiHandleless->base.fcts = factory->apiFcts;
+    factory->initialize(factory, (ocrCommApi_t*) commApiHandleless, perInstance);
     commApiHandleless->handle.msg = NULL;
     commApiHandleless->handle.response = NULL;
     commApiHandleless->handle.status = 0;
     commApiHandleless->handle.destruct = FUNC_ADDR(void (*)(ocrMsgHandle_t*), handlelessCommDestructHandle);
 
     return (ocrCommApi_t*)commApiHandleless;
+}
+
+/**
+ * @brief Initialize an instance of comm-api handleless
+ */
+void initializeCommApiHandleless(ocrCommApiFactory_t * factory, ocrCommApi_t* self, ocrParamList_t * perInstance) {
+    initializeCommApiOcr(factory, self, perInstance);
 }
 
 /******************************************************/
@@ -128,8 +133,8 @@ ocrCommApiFactory_t *newCommApiFactoryHandleless(ocrParamList_t *perType) {
     ocrCommApiFactory_t *base = (ocrCommApiFactory_t*)
         runtimeChunkAlloc(sizeof(ocrCommApiFactoryHandleless_t), (void *)1);
 
-
     base->instantiate = newCommApiHandleless;
+    base->initialize = initializeCommApiHandleless;
     base->destruct = destructCommApiFactoryHandleless;
     base->apiFcts.destruct = FUNC_ADDR(void (*)(ocrCommApi_t*), handlelessCommDestruct);
     base->apiFcts.begin = FUNC_ADDR(void (*)(ocrCommApi_t*, ocrPolicyDomain_t*),
@@ -144,7 +149,6 @@ ocrCommApiFactory_t *newCommApiFactoryHandleless(ocrParamList_t *perType) {
                                           handlelessCommPollMessage);
     base->apiFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCommApi_t*, ocrMsgHandle_t**),
                                           handlelessCommWaitMessage);
-
 
     return base;
 }

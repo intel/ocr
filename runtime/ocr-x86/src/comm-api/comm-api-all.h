@@ -17,25 +17,12 @@ typedef enum _commApiType_t {
     commApiMax_id
 } commApiType_t;
 
-const char * commapi_types[] = {
-    "Handleless",
-    NULL,
-};
+extern const char * commapi_types[];
 
 #include "comm-api/handleless/handleless-comm-api.h"
 
 // Add other communication APIs using the same pattern as above
 
-inline ocrCommApiFactory_t *newCommApiFactory(commApiType_t type, ocrParamList_t *typeArg) {
-    switch(type) {
-#ifdef ENABLE_COMM_API_HANDLELESS
-    case commApiHandleless_id:
-        return newCommApiFactoryHandleless(typeArg);
-#endif
-    default:
-        ASSERT(0);
-        return NULL;
-    };
-}
+ocrCommApiFactory_t *newCommApiFactory(commApiType_t type, ocrParamList_t *typeArg);
 
 #endif /* __COMM_API_ALL_H__ */

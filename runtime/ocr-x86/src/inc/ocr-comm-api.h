@@ -276,6 +276,15 @@ typedef struct _ocrCommApiFactory_t {
                                  ocrParamList_t *instanceArg);
 
     /**
+     * @brief Initialize a comm-api
+     *
+     * @param factory       Pointer to this factory
+     * @param self          The comm-api instance to initialize
+     * @param instanceArg   Arguments specific for this instance
+     */
+    void (*initialize)(struct _ocrCommApiFactory_t * factory, struct _ocrCommApi_t * self, ocrParamList_t * perInstance);
+
+    /**
      * @brief comm-api factory destructor
      * @param factory       Pointer to the factory to destroy.
      */
@@ -283,5 +292,7 @@ typedef struct _ocrCommApiFactory_t {
 
     ocrCommApiFcts_t apiFcts; /**< Function pointers created instances should use */
 } ocrCommApiFactory_t;
+
+void initializeCommApiOcr(struct _ocrCommApiFactory_t * factory, struct _ocrCommApi_t * self, ocrParamList_t *perInstance);
 
 #endif /* __OCR_COMM_API_H__ */
