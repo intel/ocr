@@ -19,10 +19,30 @@ typedef struct _ocr_hashtable_entry_struct {
     struct _ocr_hashtable_entry_struct * nxt; /* the next bucket in the hashtable */
 } ocr_hashtable_entry;
 
+
+/******************************************************/
+/* HASHTABLE COMMON FUNCTIONS                         */
+/******************************************************/
+
+static ocr_hashtable_entry* hashtableFindEntryAndPrev(hashtable_t * hashtable, void * key, ocr_hashtable_entry** prev) {
+    u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
+    ocr_hashtable_entry * current = hashtable->table[bucket];
+    *prev = current;
+    while(current != NULL) {
+        if (current->key == key) {
+            return current;
+        }
+        *prev = current;
+        current = current->nxt;
+    }
+    *prev = NULL;
+    return NULL;
+}
+
 /**
  * @brief find hashtable entry for 'key'.
  */
-static ocr_hashtable_entry* hashtableFindEntry(hashtable_t * hashtable, void * key, ocr_hashtable_entry** prev) {
+static ocr_hashtable_entry* hashtableFindEntry(hashtable_t * hashtable, void * key) {
     u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
     ocr_hashtable_entry * current = hashtable->table[bucket];
     while(current != NULL) {
@@ -49,10 +69,44 @@ static void hashtableInit(ocrPolicyDomain_t * pd, hashtable_t * hashtable, u32 n
 }
 
 /**
+ * @brief Create a new hashtable instance that uses the specified hashing function.
+ */
+hashtable_t * newHashtable(ocrPolicyDomain_t * pd, u32 nbBuckets, hashFct hashing) {
+    hashtable_t * hashtable = pd->fcts.pdMalloc(pd, sizeof(hashtable_t));
+    hashtableInit(pd, hashtable, nbBuckets, hashing);
+    return hashtable;
+}
+
+/**
+ * @brief Destruct the hashtable and all its entries (do not deallocate keys and values pointers).
+ */
+void destructHashtable(hashtable_t * hashtable) {
+    ocrPolicyDomain_t * pd;
+    getCurrentEnv(&pd, NULL, NULL, NULL);
+    // go over each bucket and deallocate entries
+    u32 i = 0;
+    while(i < hashtable->nbBuckets) {
+        struct _ocr_hashtable_entry_struct * bucketHead = hashtable->table[i];
+        while (bucketHead != NULL) {
+            struct _ocr_hashtable_entry_struct * next = bucketHead->nxt;
+            pd->fcts.pdFree(pd, bucketHead);
+            bucketHead = next;
+        }
+        i++;
+    }
+    pd->fcts.pdFree(pd, hashtable);
+}
+
+
+/******************************************************/
+/* NON-CONCURRENT HASHTABLE                           */
+/******************************************************/
+
+/**
  * @brief get the value associated with a key
  */
-void * hashtableGet(hashtable_t * hashtable, void * key) {
-    ocr_hashtable_entry * entry = hashtableFindEntry(hashtable, key, NULL);
+void * hashtableNonConcGet(hashtable_t * hashtable, void * key) {
+    ocr_hashtable_entry * entry = hashtableFindEntry(hashtable, key);
     return (entry == NULL) ? NULL_GUID : entry->value;
 }
 
@@ -62,7 +116,82 @@ void * hashtableGet(hashtable_t * hashtable, void * key) {
  * if present in the table, otherwise returns the value
  * passed as parameter.
  */
-void * hashtableTryPut(hashtable_t * hashtable, void * key, void * value) {
+void * hashtableNonConcTryPut(hashtable_t * hashtable, void * key, void * value) {
+    ocr_hashtable_entry * entry = hashtableFindEntry(hashtable, key);
+    if (entry == NULL) {
+        hashtableNonConcPut(hashtable, key, value);
+        return value;
+    } else {
+        return entry->value;
+    }
+}
+
+/**
+ * @brief Put a key associated with a given value in the map.
+ */
+bool hashtableNonConcPut(hashtable_t * hashtable, void * key, void * value) {
+    u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
+    ocrPolicyDomain_t * pd;
+    getCurrentEnv(&pd, NULL, NULL, NULL);
+    ocr_hashtable_entry * newHead = pd->fcts.pdMalloc(pd, sizeof(ocr_hashtable_entry));
+    newHead->key = key;
+    newHead->value = value;
+    ocr_hashtable_entry * oldHead = hashtable->table[bucket];
+    newHead->nxt = oldHead;
+    hashtable->table[bucket] = newHead;
+    return true;
+}
+
+/**
+ * @brief Removes a key from the table.
+ * If 'value' is not NULL, fill-in the pointer with the entry's value associated with 'key'.
+ * If the hashtable implementation allows for NULL values entries, check the returned boolean.
+ * Returns true if entry has been found and removed.
+ */
+bool hashtableNonConcRemove(hashtable_t * hashtable, void * key, void ** value) {
+    ocr_hashtable_entry * prev;
+    ocr_hashtable_entry * entry = hashtableFindEntryAndPrev(hashtable, key, &prev);
+    if (entry != NULL) {
+        ASSERT(prev != NULL);
+        ASSERT(key == entry->key);
+        if (entry == prev) {
+            // entry is bucket's head
+            u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
+            hashtable->table[bucket] = entry->nxt;
+        } else {
+            prev->nxt = entry->nxt;
+        }
+        if (value != NULL) {
+            *value = entry->value;
+        }
+        ocrPolicyDomain_t * pd;
+        getCurrentEnv(&pd, NULL, NULL, NULL);
+        pd->fcts.pdFree(pd, entry);
+        return true;
+    }
+    return false;
+}
+
+
+/******************************************************/
+/* CONCURRENT HASHTABLE FUNCTIONS                     */
+/******************************************************/
+
+/**
+ * @brief get the value associated with a key
+ */
+void * hashtableConcGet(hashtable_t * hashtable, void * key) {
+    ocr_hashtable_entry * entry = hashtableFindEntry(hashtable, key);
+    return (entry == NULL) ? NULL_GUID : entry->value;
+}
+
+/**
+ * @brief Attempt to insert the key if absent.
+ * Return the current value associated with the key
+ * if present in the table, otherwise returns the value
+ * passed as parameter.
+ */
+void * hashtableConcTryPut(hashtable_t * hashtable, void * key, void * value) {
     // Compete with other potential put
     u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
     ocr_hashtable_entry * newHead = NULL;
@@ -74,7 +203,7 @@ void * hashtableTryPut(hashtable_t * hashtable, void * key, void * value) {
         // Ensure oldHead is read before iterating
         //TODO not sure which hashtable members should be volatile
         hal_fence();
-        ocr_hashtable_entry * entry = hashtableFindEntry(hashtable, key, NULL);
+        ocr_hashtable_entry * entry = hashtableFindEntry(hashtable, key);
         if (entry == NULL) {
             // key is not there, try to CAS the head to insert it
             if (newHead == NULL) {
@@ -106,7 +235,7 @@ void * hashtableTryPut(hashtable_t * hashtable, void * key, void * value) {
  * @brief Put a key associated with a given value in the map.
  * The put always occurs.
  */
-bool hashtablePut(hashtable_t * hashtable, void * key, void * value) {
+bool hashtableConcPut(hashtable_t * hashtable, void * key, void * value) {
     // Compete with other potential put
     u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
     ocrPolicyDomain_t * pd;
@@ -125,40 +254,13 @@ bool hashtablePut(hashtable_t * hashtable, void * key, void * value) {
 
 /**
  * @brief Removes a key from the table.
+ * If 'value' is not NULL, fill-in the pointer with the entry's value associated with 'key'.
+ * If the hashtable implementation allows for NULL values entries, check the returned boolean.
  * Returns true if entry has been found and removed.
  */
-bool hashtableRemove(hashtable_t * hashtable, void * key) {
+bool hashtableConcRemove(hashtable_t * hashtable, void * key, void ** value) {
     //DIST-TODO implement concurrent removal
     return false;
-}
-
-/**
- * @brief Create a new hashtable instance that uses the specified hashing function.
- */
-hashtable_t * newHashtable(ocrPolicyDomain_t * pd, u32 nbBuckets, hashFct hashing) {
-    hashtable_t * hashtable = pd->fcts.pdMalloc(pd, sizeof(hashtable_t));
-    hashtableInit(pd, hashtable, nbBuckets, hashing);
-    return hashtable;
-}
-
-/**
- * @brief Destruct the hashtable and all its entries (do not deallocate keys and values pointers).
- */
-void destructHashtable(hashtable_t * hashtable) {
-    ocrPolicyDomain_t * pd;
-    getCurrentEnv(&pd, NULL, NULL, NULL);
-    // go over each bucket and deallocate entries
-    u32 i = 0;
-    while(i < hashtable->nbBuckets) {
-        struct _ocr_hashtable_entry_struct * bucketHead = hashtable->table[i];
-        while (bucketHead != NULL) {
-            struct _ocr_hashtable_entry_struct * next = bucketHead->nxt;
-            pd->fcts.pdFree(pd, bucketHead);
-            bucketHead = next;
-        }
-        i++;
-    }
-    pd->fcts.pdFree(pd, hashtable);
 }
 
 //

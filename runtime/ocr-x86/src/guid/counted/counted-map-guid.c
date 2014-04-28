@@ -91,7 +91,7 @@ static u64 generateNextGuid(ocrGuidProvider_t* self, ocrGuidKind kind) {
 static u8 countedMapGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind kind) {
     // Here no need to allocate
     u64 newGuid = generateNextGuid(self, kind);
-    hashtablePut(((ocrGuidProviderCountedMap_t *) self)->guidImplTable, (void *) newGuid, (void *) val);
+    hashtableConcPut(((ocrGuidProviderCountedMap_t *) self)->guidImplTable, (void *) newGuid, (void *) val);
     *guid = (ocrGuid_t) newGuid;
     return 0;
 }
@@ -124,7 +124,7 @@ u8 countedMapCreateGuid(ocrGuidProvider_t* self, ocrFatGuid_t *fguid, u64 size, 
  * @brief Returns the value associated with a guid and its kind if requested.
  */
 static u8 countedMapGetVal(ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKind* kind) {
-    *val = (u64) hashtableGet(((ocrGuidProviderCountedMap_t *) self)->guidImplTable, (void *) guid);
+    *val = (u64) hashtableConcGet(((ocrGuidProviderCountedMap_t *) self)->guidImplTable, (void *) guid);
     if(kind) {
         *kind = getKindFromGuid(guid);
     }
@@ -157,7 +157,7 @@ u8 countedMapReleaseGuid(ocrGuidProvider_t *self, ocrFatGuid_t fatGuid, bool rel
     }
     // In any case, we need to recycle the guid
     ocrGuidProviderCountedMap_t * derived = (ocrGuidProviderCountedMap_t *) self;
-    hashtableRemove(derived->guidImplTable, (void *)guid);
+    hashtableConcRemove(derived->guidImplTable, (void *)guid, NULL);
     return 0;
 }
 

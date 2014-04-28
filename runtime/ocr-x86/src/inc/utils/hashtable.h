@@ -27,10 +27,16 @@ typedef struct _hashtable {
     hashFct hashing;
 } hashtable_t;
 
-void * hashtableGet(hashtable_t * hashtable, void * key);
-bool hashtablePut(hashtable_t * hashtable, void * key, void * value);
-void * hashtableTryPut(hashtable_t * hashtable, void * key, void * value);
-bool hashtableRemove(hashtable_t * hashtable, void * key);
+void * hashtableConcGet(hashtable_t * hashtable, void * key);
+bool hashtableConcPut(hashtable_t * hashtable, void * key, void * value);
+void * hashtableConcTryPut(hashtable_t * hashtable, void * key, void * value);
+bool hashtableConcRemove(hashtable_t * hashtable, void * key, void ** value);
+
+
+void * hashtableNonConcGet(hashtable_t * hashtable, void * key);
+bool hashtableNonConcPut(hashtable_t * hashtable, void * key, void * value);
+void * hashtableNonConcTryPut(hashtable_t * hashtable, void * key, void * value);
+bool hashtableNonConcRemove(hashtable_t * hashtable, void * key, void ** value);
 
 hashtable_t * newHashtable(ocrPolicyDomain_t * pd, u32 nbBuckets, hashFct hashing);
 void destructHashtable(hashtable_t * hashtable);
