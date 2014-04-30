@@ -19,6 +19,11 @@
 #define DEBUG_TYPE COMM_API
 
 void handlelessCommDestruct (ocrCommApi_t * base) {
+    // call destruct on child
+    if(base->commPlatform) {
+        base->commPlatform->fcts.destruct(base->commPlatform);
+        base->commPlatform = NULL;
+    }
     runtimeChunkFree((u64)base, NULL);
 }
 

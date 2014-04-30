@@ -32,7 +32,9 @@
 /******************************************************/
 
 void mallocDestruct(ocrMemPlatform_t *self) {
-    destroyRange(&(((ocrMemPlatformMalloc_t*)self)->rangeTracker));
+    ocrMemPlatformMalloc_t *rself = (ocrMemPlatformMalloc_t*)self;
+    destroyRange(&(rself->rangeTracker));
+    free((void*)self->startAddr);
     runtimeChunkFree((u64)self, NULL);
 }
 
@@ -60,9 +62,6 @@ void mallocStop(ocrMemPlatform_t *self) {
 }
 
 void mallocFinish(ocrMemPlatform_t *self) {
-    ocrMemPlatformMalloc_t *rself = (ocrMemPlatformMalloc_t*)self;
-    destroyRange(&(rself->rangeTracker));
-    free((void*)self->startAddr);
 }
 
 u8 mallocGetThrottle(ocrMemPlatform_t *self, u64 *value) {

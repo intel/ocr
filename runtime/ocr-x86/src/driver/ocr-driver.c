@@ -244,8 +244,6 @@ void bringUpRuntime(const char *inifile) {
             if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) {
                 if(type_counts[j] && type_params[j]==NULL) {
                     type_params[j] = (ocrParamList_t **)runtimeChunkAlloc(type_counts[j] * sizeof(ocrParamList_t *), (void *)1);
-//                    factory_names[j] = (char **)calloc(type_counts[j], sizeof(char *));
-//                    all_factories[j] = (void **)calloc(type_counts[j], sizeof(void *));
                     factory_names[j] = (char **)runtimeChunkAlloc(type_counts[j] * sizeof(char *), (void *)1);
                     all_factories[j] = (void **)runtimeChunkAlloc(type_counts[j] * sizeof(void *), (void *)1);
                     count = 0;
@@ -253,7 +251,7 @@ void bringUpRuntime(const char *inifile) {
                 factory_names[j][count] = populate_type(&type_params[j][count], j, dict, iniparser_getsecname(dict, i));
                 all_factories[j][count] = create_factory(j, factory_names[j][count], type_params[j][count]);
                 if (all_factories[j][count] == NULL) {
-                    free(factory_names[j][count]);
+                    runtimeChunkFree((u64)factory_names[j][count], NULL);
                     factory_names[j][count] = NULL;
                 }
                 count++;
@@ -281,15 +279,13 @@ void bringUpRuntime(const char *inifile) {
                     DPRINTF(DEBUG_LVL_INFO, "Create %d instances of %s\n", inst_counts[j], inst_str[j]);
                     inst_params[j] = (ocrParamList_t **)runtimeChunkAlloc(inst_counts[j] * sizeof(ocrParamList_t *), (void *)1);
                     all_instances[j] = (void **)runtimeChunkAlloc(inst_counts[j] * sizeof(void *), (void *)1);
-//                    inst_params[j] = (ocrParamList_t **)calloc(inst_counts[j], sizeof(ocrParamList_t *));
-//                    all_instances[j] = (void **)calloc(inst_counts[j], sizeof(void *));
                     count = 0;
                 }
                 populate_inst(inst_params[j], all_instances[j], type_counts, factory_names, all_factories, all_instances, j, dict, iniparser_getsecname(dict, i));
             }
         }
     }
-
+#if 0
     // Special case: register compPlatformFactory's functions
     ocrCompPlatformFactory_t *compPlatformFactory;
     compPlatformFactory = (ocrCompPlatformFactory_t *) all_factories[compplatform_type][0];
@@ -297,7 +293,7 @@ void bringUpRuntime(const char *inifile) {
         DPRINTF(DEBUG_LVL_WARN, "Only the first type of CompPlatform is used. If you don't want this behavior, please reorder!\n");
     }
     if(compPlatformFactory->setEnvFuncs != NULL) compPlatformFactory->setEnvFuncs(compPlatformFactory);
-
+#endif
     // BUILD DEPENDENCES
     DPRINTF(DEBUG_LVL_INFO, "========= Build dependences ==========\n");
 
@@ -354,23 +350,28 @@ void freeUpRuntime (void) {
 
     for (i = 0; i < total_types; i++) {
         for (j = 0; j < type_counts[i]; j++) {
-            free (all_factories[i][j]);
-            free (type_params[i][j]);
-            free (factory_names[i][j]);
+            if(i<=policydomain_type)
+                runtimeChunkFree((u64)all_factories[i][j], NULL);
+            runtimeChunkFree((u64)type_params[i][j], NULL);
+            runtimeChunkFree((u64)factory_names[i][j], NULL);
         }
-        free (all_factories[i]);
+        runtimeChunkFree((u64)all_factories[i], NULL);
+        runtimeChunkFree((u64)type_params[i], NULL);
+        runtimeChunkFree((u64)factory_names[i], NULL);
     }
 
     for (i = 0; i < total_types; i++) {
         for (j = 0; j < inst_counts[i]; j++) {
             if(inst_params[i][j])
-                free (inst_params[i][j]);
+                runtimeChunkFree((u64)inst_params[i][j], NULL);
         }
         if(inst_params[i])
-            free (inst_params[i]);
-        free (all_instances[i]);
+            runtimeChunkFree((u64)inst_params[i], NULL);
+        if(all_instances[i])
+            runtimeChunkFree((u64)all_instances[i], NULL);
     }
 }
+
 
 /**
  * @brief Packs user args in a contiguous chunk of memory.

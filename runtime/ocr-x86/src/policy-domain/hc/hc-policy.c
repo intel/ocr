@@ -232,6 +232,7 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     // Note: As soon as worker '0' is stopped; its thread is
     // free to fall-through and continue shutting down the
     // policy domain
+
     maxCount = policy->workerCount;
     for(i = 0; i < maxCount; i++) {
         policy->workers[i]->fcts.destruct(policy->workers[i]);
@@ -247,19 +248,19 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
         policy->schedulers[i]->fcts.destruct(policy->schedulers[i]);
     }
 
-    maxCount = policy->allocatorCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->allocators[i]->fcts.destruct(policy->allocators[i]);
-    }
-
-
     // Simple hc policies don't have neighbors
     ASSERT(policy->neighbors == NULL);
 
     // Destruct factories
+
     maxCount = policy->taskFactoryCount;
     for(i = 0; i < maxCount; ++i) {
         policy->taskFactories[i]->destruct(policy->taskFactories[i]);
+    }
+
+    maxCount = policy->eventFactoryCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->eventFactories[i]->destruct(policy->eventFactories[i]);
     }
 
     maxCount = policy->taskTemplateFactoryCount;
@@ -272,11 +273,6 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
         policy->dbFactories[i]->destruct(policy->dbFactories[i]);
     }
 
-    maxCount = policy->eventFactoryCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->eventFactories[i]->destruct(policy->eventFactories[i]);
-    }
-
     //Anticipate those to be null-impl for some time
     ASSERT(policy->costFunction == NULL);
 
@@ -286,8 +282,14 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
         policy->guidProviders[i]->fcts.destruct(policy->guidProviders[i]);
     }
 
+    maxCount = policy->allocatorCount;
+    for(i = 0; i < maxCount; ++i) {
+        policy->allocators[i]->fcts.destruct(policy->allocators[i]);
+    }
+
     // Destroy self
     runtimeChunkFree((u64)policy->workers, NULL);
+    runtimeChunkFree((u64)policy->commApis, NULL);
     runtimeChunkFree((u64)policy->schedulers, NULL);
     runtimeChunkFree((u64)policy->allocators, NULL);
     runtimeChunkFree((u64)policy->taskFactories, NULL);

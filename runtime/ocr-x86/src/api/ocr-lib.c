@@ -146,7 +146,7 @@ static void ocrConfigInit(ocrConfig_t * ocrConfig) {
 
 // All these externs are in ocr-driver.c.
 extern void bringUpRuntime(const char *inifile);
-extern void freeUpRuntime();
+extern void freeUpRuntime(void);
 extern void stopAllPD(ocrPolicyDomain_t *pd);
 
 /**!
@@ -206,12 +206,14 @@ void ocrFinalize() {
     // will then fall through here so that it can finish the PD
     worker->fcts.start(worker, pd);
     pd->fcts.finish(pd);
+    pd->fcts.destruct(pd);
+    freeUpRuntime();
+
     /*
     ocrPolicyDomain_t* masterPD = getMasterPD();
     stopAllPD(masterPD);
     masterPD->destruct(masterPD);
     */
-    freeUpRuntime();
     //TODO we need to start by stopping the master PD which
     //controls stopping down PD located on the same machine.
 // #ifdef OCR_ENABLE_STATISTICS
