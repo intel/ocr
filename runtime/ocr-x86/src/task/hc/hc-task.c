@@ -441,13 +441,16 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     // Whenever we receive a signal:
     //  - it can be from the frontier (we registered on it)
     //  - it can be a ONCE event
-    //  - it can be a data-block being added (causing an immediate
-    //    satisfy
-    ocrTaskHc_t * self = (ocrTaskHc_t *) base;
+    //  - it can be a data-block being added (causing an immediate satisfy)
 
+    ocrTaskHc_t * self = (ocrTaskHc_t *) base;
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
     getCurrentEnv(&pd, NULL, NULL, &msg);
+
+    // Replace the signaler's guid by the data guid, this is to avoid
+    // further references to the event's guid, which is good in general
+    // and crucial for once-event since they are being destroyed on satisfy.
 
     // Could be moved a little later if the ASSERT was not here
     // Should not make a huge difference
@@ -476,10 +479,15 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
                 self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
             u32 tslot = self->frontierSlot;
             hal_unlock32(&(self->lock));
+            //TODO There seems to be a race here between registerSignalerTaskHc that
+            //gets a db signaler on slot 'n', set the guid to db's buid, then get stalled
+            //before setting up slot to -1. Then a satisfy on n-1 happens and lead us here
+            // because slot[n] is still n. registerOnFrontier would then crash because we
+            // cannot register on a db.
             RESULT_PROPAGATE(registerOnFrontier(self, pd, &msg, tslot));
-            // If we are UNITIALIZED_GUID, we will do the REGWAITER
-            // when we do get the dependence
         } else {
+            // If the slot's guid is UNITIALIZED_GUID it means add-dependence
+            // hasn't happened yet for this slot.
             hal_unlock32(&(self->lock));
         }
     } else {
@@ -488,30 +496,31 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     return 0;
 }
 
+/**
+ * Can be invoked concurrently, however each invocation should be for a different slot
+ */
 u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot, bool isDepAdd) {
     ASSERT(isDepAdd); // This should only be called when adding a dependence
 
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
     regNode_t * node = &(self->signalers[slot]);
 
-    node->guid = signalerGuid.guid;
-
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
     getCurrentEnv(&pd, NULL, NULL, &msg);
-
     ocrGuidKind signalerKind = OCR_GUID_NONE;
     deguidify(pd, &signalerGuid, &signalerKind);
     if(signalerKind == OCR_GUID_EVENT) {
         node->slot = slot;
         ocrEventTypes_t evtKind = eventType(pd, signalerGuid);
         if(evtKind == OCR_EVENT_ONCE_T ||
-                evtKind == OCR_EVENT_LATCH_T) {
+           evtKind == OCR_EVENT_LATCH_T) {
 
             node->slot = (u32)-2; // To signal that this is a once event
 
             // We need to move the frontier slot over
             hal_lock32(&(self->lock));
+            node->guid = signalerGuid.guid;
             while(++self->frontierSlot < base->depc &&
                     self->signalers[self->frontierSlot].slot != ++slot) ;
 
@@ -520,7 +529,6 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
                     self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
                 u32 tslot = self->frontierSlot;
                 hal_unlock32(&(self->lock));
-
                 RESULT_PROPAGATE(registerOnFrontier(self, pd, &msg, tslot));
                 // If we are UNITIALIZED_GUID, we will do the REGWAITER
                 // when we add the dependence (just below)
@@ -528,16 +536,31 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
                 hal_unlock32(&(self->lock));
             }
         } else {
+            // By setting node->guid inside the lock, we order registerSignaler
+            // and satisfy concurrent execution. The later updates the frontierSlot
+            // but cannot proceed with registerOnFrontier since the guid is still
+            // UNINITIALIZED
+            hal_lock32(&(self->lock));
+            node->guid = signalerGuid.guid;
             if(slot == self->frontierSlot) {
+                hal_unlock32(&(self->lock));
                 // We actually need to register ourself as a waiter here
                 ocrPolicyDomain_t *pd = NULL;
                 ocrPolicyMsg_t msg;
                 getCurrentEnv(&pd, NULL, NULL, &msg);
                 RESULT_PROPAGATE(registerOnFrontier(self, pd, &msg, slot));
+            } else {
+                hal_unlock32(&(self->lock));
             }
+            // else The edt will lazily register on the signalerGuid when
+            // the frontier reaches the signaler's slot.
         }
     } else {
         if(signalerKind == OCR_GUID_DB) {
+            ASSERT(false);
+            //TODO Seems this is always handled beforehand by converting add-dep to satisfy
+            //TODO additionally, think there'a bug here because we need to try and iterate
+            //the frontier here because the first slot could be db, followed by other dependences.
             node->slot = (u32)-1; // Already satisfied
             hal_lock32(&(self->lock));
             ++(self->slotSatisfiedCount);
