@@ -178,7 +178,6 @@ typedef struct _ocrCommPlatformFcts_t {
      *                        If on output *msg is not the same as the one
      *                        passed in, the output *msg will have been created
      *                        by the comm-platform and the caller needs to call
-     *                        it needs to be "freed" using
      *                        destructMessage once the buffer is done being used.
      *                        Otherwise (ie: *msg is the same on input and
      *                        output), destructMessage should not be called

@@ -591,6 +591,8 @@ typedef struct _ocrMsgHandle_t {
     void (*destruct)(struct _ocrMsgHandle_t * self); /**< Destructor for this
                                                        * instance of the message
                                                        * handle */
+    ocrCommApi_t* commApi;         /**< Pointer to the comm API that manages this handle */
+    u64 properties;                /**< Implementation defined properties */
 } ocrMsgHandle_t;
 
 typedef struct _ocrPolicyDomainFcts_t {

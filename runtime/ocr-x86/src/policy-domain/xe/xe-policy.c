@@ -299,25 +299,18 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
             ASSERT((handle->response->type & PD_MSG_TYPE_ONLY) == type);
             ASSERT(handle->response->srcLocation == self->parentLocation);
             ASSERT(handle->response->destLocation == self->myLocation);
-            // The call provides no guarantee that the message in response
-            // will use the same buffer (msg). For now, we don't handle that
-            // case. If we needed to do it, we would need to copy response
-            // into *msg.
-            ASSERT(handle->response == *msg); // If this is not the case, we need to copy back in msg
+            if(handle->response != *msg) {
+                // We need to copy things back into *msg
+                // TODO: FIXME when issue #68 is fully implemented by checking
+                // sizes
+                hal_memCopy(*msg, handle->response, sizeof(ocrPolicyMsg_t), false);
+            }
             handle->destruct(handle);
         }
     } else {
         returnCode = self->fcts.sendMessage(self, self->parentLocation, (*msg), NULL, 0);
     }
     return returnCode;
-}
-
-static u8 xeProcessCeResponse(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg) {
-    ASSERT(msg->type & PD_MSG_REQ_RESPONSE);
-    msg->type &= ~PD_MSG_REQUEST;
-    msg->type |=  PD_MSG_RESPONSE;
-    RESULT_ASSERT(self->fcts.sendMessage(self, msg->srcLocation, msg, NULL, 0), ==, 0);
-    return 0;
 }
 
 u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlocking) {
@@ -438,7 +431,15 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         if(msg->srcLocation == self->myLocation) {
             returnCode = xeProcessCeRequest(self, &msg);
         } else {
-            returnCode = xeProcessCeResponse(self, msg);
+            // Send the message back saying that
+            // we did the shutdown
+            msg->destLocation = msg->srcLocation;
+            msg->srcLocation = self->myLocation;
+            msg->type &= ~PD_MSG_REQUEST;
+            msg->type |= PD_MSG_RESPONSE;
+            RESULT_ASSERT(self->fcts.sendMessage(self, msg->destLocation, msg, NULL, 0),
+                          ==, 0);
+            returnCode = 0;
         }
         EXIT_PROFILE;
         break;

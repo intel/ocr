@@ -75,29 +75,39 @@ u8 handlelessCommWaitMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
     ASSERT(handle);
     ocrCommApiHandleless_t * commApiHandleless = (ocrCommApiHandleless_t*)self;
     u64 bufferSize = (u32)(sizeof(ocrPolicyMsg_t)) | (sizeof(ocrPolicyMsg_t) << 32);
-    if (*handle) {
-        ASSERT((*handle)->status == HDL_NORMAL &&
-               (*handle)->msg && (*handle) == (&(commApiHandleless->handle)));
-        // Pass a "hint" saying that the the buffer is available
-        RESULT_ASSERT(self->commPlatform->fcts.waitMessage(
-                          self->commPlatform, &((*handle)->msg), &bufferSize, 0,
-                          NULL), ==, 0);
-    } else {
+    if (!(*handle)) {
         *handle = &(commApiHandleless->handle);
         ASSERT((*handle)->status == 0);
         (*handle)->status = HDL_NORMAL;
-        RESULT_ASSERT(self->commPlatform->fcts.waitMessage(
-                          self->commPlatform, &((*handle)->msg), &bufferSize,
-                          0, NULL), ==, 0);
+    } else {
+        ASSERT((*handle)->msg);
     }
-    (*handle)->response = (*handle)->msg; // The response is always read in response
+    ASSERT((*handle)->status == HDL_NORMAL &&
+           (*handle) == (&(commApiHandleless->handle)));
+    // Pass a "hint" saying that the the buffer is available
+    (*handle)->response = (*handle)->msg;
+    RESULT_ASSERT(self->commPlatform->fcts.waitMessage(
+                      self->commPlatform, &((*handle)->response), &bufferSize, 0,
+                      NULL), ==, 0);
+    if((*handle)->response == (*handle)->msg) {
+        // This means that the comm platform did *not* allocate the buffer itself
+        (*handle)->properties = 0; // Indicates "do not free"
+    } else {
+        // This means that the comm platform did allocate the buffer itself
+        (*handle)->properties = 1; // Indicates "do free"
+    }
     return 0;
 }
 
 void handlelessCommDestructHandle(ocrMsgHandle_t *handle) {
+    if(handle->properties == 1) {
+        RESULT_ASSERT(handle->commApi->commPlatform->fcts.destructMessage(
+                          handle->commApi->commPlatform, handle->response), ==, 0);
+    }
     handle->msg = NULL;
     handle->response = NULL;
     handle->status = 0;
+    handle->properties = 0;
 }
 
 ocrCommApi_t* newCommApiHandleless(ocrCommApiFactory_t *factory,
@@ -109,6 +119,8 @@ ocrCommApi_t* newCommApiHandleless(ocrCommApiFactory_t *factory,
     commApiHandleless->handle.msg = NULL;
     commApiHandleless->handle.response = NULL;
     commApiHandleless->handle.status = 0;
+    commApiHandleless->handle.properties = 0;
+    commApiHandleless->handle.commApi = (ocrCommApi_t*)commApiHandleless;
     commApiHandleless->handle.destruct = FUNC_ADDR(void (*)(ocrMsgHandle_t*), handlelessCommDestructHandle);
 
     return (ocrCommApi_t*)commApiHandleless;

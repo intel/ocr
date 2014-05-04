@@ -102,6 +102,11 @@ u8 xePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
     return 0;
 }
 
+u8 xePthreadDestructMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t *msg) {
+    // TODO
+    return 0;
+}
+
 ocrCommPlatform_t* newCommPlatformXePthread(ocrCommPlatformFactory_t *factory,
         ocrParamList_t *perInstance) {
 
@@ -149,6 +154,8 @@ ocrCommPlatformFactory_t *newCommPlatformFactoryXePthread(ocrParamList_t *perTyp
                                      xePthreadCommPollMessage);
     base->platformFcts.waitMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t **, u64*, u32, u32*),
                                      xePthreadCommWaitMessage);
+    base->platformFcts.destructMessage = FUNC_ADDR(u8 (*)(ocrCommPlatform_t*, ocrPolicyMsg_t *),
+                                                   xePthreadDestructMessage);
 
     return base;
 }
