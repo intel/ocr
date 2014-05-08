@@ -181,7 +181,7 @@ static u8 registerOnFrontier(ocrTaskHc_t *self, ocrPolicyDomain_t *pd,
     PD_MSG_FIELD(dest.guid) = self->signalers[slot].guid;
     PD_MSG_FIELD(dest.metaDataPtr) = NULL;
     PD_MSG_FIELD(slot) = self->signalers[slot].slot;
-    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD(properties) = false; // not called from add-dependence
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, msg, false));
 #undef PD_MSG
 #undef PD_TYPE

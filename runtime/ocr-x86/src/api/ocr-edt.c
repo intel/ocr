@@ -223,6 +223,8 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
 #undef PD_MSG
 #undef PD_TYPE
     } else {
+      //Handle 'NULL_GUID' case here to avoid overhead of
+      //going through dep_add and end-up doing the same thing.
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_SATISFY
         msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;

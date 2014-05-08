@@ -891,6 +891,11 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_DEP_ADD
         // We first get information about the source and destination
         ocrGuidKind srcKind, dstKind;
+        //NOTE: In distributed the metaDataPtr is set to NULL_GUID since
+        //the guid provider doesn't fetch remote metaDataPtr yet. It's ok
+        //(but fragile) because the HC event/task does not try to use it
+        //Querying the kind through the PD's interface should be ok as it's
+        //the problem of the guid provider to give this information
         self->guidProviders[0]->fcts.getVal(
             self->guidProviders[0], PD_MSG_FIELD(source.guid),
             (u64*)(&(PD_MSG_FIELD(source.metaDataPtr))), &srcKind);
@@ -900,34 +905,66 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
         ocrFatGuid_t src = PD_MSG_FIELD(source);
         ocrFatGuid_t dest = PD_MSG_FIELD(dest);
-        if(srcKind == OCR_GUID_DB) {
+        if ((srcKind == OCR_GUID_DB) || (srcKind == NULL_GUID)) {
+            //NOTE: Handle 'NULL_GUID' case here to be safe although
+            //we've already caught it in ocrAddDependence for performance
             // This is equivalent to an immediate satisfy
             PD_MSG_FIELD(properties) = convertDepAddToSatisfy(
                 self, src, dest, PD_MSG_FIELD(slot));
         } else {
-            if(srcKind == OCR_GUID_EVENT) {
-                ocrEvent_t *evt = (ocrEvent_t*)(src.metaDataPtr);
-                ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-                PD_MSG_FIELD(properties) = self->eventFactories[0]->fcts[evt->kind].registerWaiter(
-                    evt, dest, PD_MSG_FIELD(slot), true);
-            } else {
-                // Some sanity check
-                ASSERT(srcKind == OCR_GUID_EDT);
-            }
+            // Only left with events as potential source
+            ASSERT(srcKind == OCR_GUID_EVENT);
+            u8 needSignalerReg = 0;
+            ocrPolicyMsg_t registerMsg;
+            getCurrentEnv(NULL, NULL, NULL, &registerMsg);
+            ocrFatGuid_t sourceGuid = PD_MSG_FIELD(source);
+            ocrFatGuid_t destGuid = PD_MSG_FIELD(dest);
+            u32 slot = PD_MSG_FIELD(slot);
+        #undef PD_MSG
+        #undef PD_TYPE
+        #define PD_MSG (&registerMsg)
+        #define PD_TYPE PD_MSG_DEP_REGWAITER
+            // Requires response to determine if we need to register signaler too
+            registerMsg.type = PD_MSG_DEP_REGWAITER | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+            // Registers destGuid (waiter) onto sourceGuid
+            PD_MSG_FIELD(waiter) = destGuid;
+            PD_MSG_FIELD(dest) = sourceGuid;
+            PD_MSG_FIELD(slot) = slot;
+            PD_MSG_FIELD(properties) = true; // Specify context is add-dependence
+            RESULT_PROPAGATE(self->fcts.processMessage(self, &registerMsg, true));
+            needSignalerReg = PD_MSG_FIELD(properties);
+        #undef PD_MSG
+        #undef PD_TYPE
+        #define PD_MSG msg
+        #define PD_TYPE PD_MSG_DEP_ADD
+            PD_MSG_FIELD(properties) = needSignalerReg;
+
+            //PERF: property returned by registerWaiter allows to decide
+            // whether or not a registerSignaler call is needed.
+            //TODO this is not done yet so some calls are pure waste
             if(!PD_MSG_FIELD(properties)) {
-                if(dstKind == OCR_GUID_EDT) {
-                    ocrTask_t *task = (ocrTask_t*)(dest.metaDataPtr);
-                    ASSERT(task->fctId == self->taskFactories[0]->factoryId);
-                    PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.registerSignaler(
-                        task, src, PD_MSG_FIELD(slot), true);
-                } else if(dstKind == OCR_GUID_EVENT) {
-                    ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
-                    ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-                    PD_MSG_FIELD(properties) = self->eventFactories[0]->fcts[evt->kind].registerSignaler(
-                        evt, src, PD_MSG_FIELD(slot), true);
-                } else {
-                    ASSERT(0); // Cannot have other types of destinations
-                }
+                // Cannot have other types of destinations
+                ASSERT((dstKind == OCR_GUID_EDT) || (dstKind == OCR_GUID_EVENT));
+                ocrPolicyMsg_t registerMsg;
+                getCurrentEnv(NULL, NULL, NULL, &registerMsg);
+                ocrFatGuid_t sourceGuid = PD_MSG_FIELD(source);
+                ocrFatGuid_t destGuid = PD_MSG_FIELD(dest);
+                u32 slot = PD_MSG_FIELD(slot);
+            #undef PD_MSG
+            #undef PD_TYPE
+            #define PD_MSG (&registerMsg)
+            #define PD_TYPE PD_MSG_DEP_REGSIGNALER
+                registerMsg.type = PD_MSG_DEP_REGSIGNALER | PD_MSG_REQUEST;
+                // Registers sourceGuid (signaller) onto destGuid
+                PD_MSG_FIELD(signaler) = sourceGuid;
+                PD_MSG_FIELD(dest) = destGuid;
+                PD_MSG_FIELD(slot) = slot;
+                PD_MSG_FIELD(properties) = true; // Specify context is add-dependence
+                RESULT_PROPAGATE(self->fcts.processMessage(self, &registerMsg, true));
+            #undef PD_MSG
+            #undef PD_TYPE
+            #define PD_MSG msg
+            #define PD_TYPE PD_MSG_DEP_ADD
             }
         }
 
@@ -949,6 +986,9 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_DEP_REGSIGNALER
         // We first get information about the signaler and destination
         ocrGuidKind signalerKind, dstKind;
+        //NOTE: In distributed the metaDataPtr is set to NULL_GUID since
+        //the guid provider doesn't fetch remote metaDataPtr yet. It's ok
+        //(but fragile) because the HC event/task does not try to use it
         self->guidProviders[0]->fcts.getVal(
             self->guidProviders[0], PD_MSG_FIELD(signaler.guid),
             (u64*)(&(PD_MSG_FIELD(signaler.metaDataPtr))), &signalerKind);
@@ -958,20 +998,21 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
         ocrFatGuid_t signaler = PD_MSG_FIELD(signaler);
         ocrFatGuid_t dest = PD_MSG_FIELD(dest);
+        bool isAddDep = PD_MSG_FIELD(properties);
 
         switch(dstKind) {
         case OCR_GUID_EVENT: {
             ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
             ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
             PD_MSG_FIELD(properties) = self->eventFactories[0]->fcts[evt->kind].registerSignaler(
-                evt, signaler, PD_MSG_FIELD(slot), false);
+                evt, signaler, PD_MSG_FIELD(slot), isAddDep);
             break;
         }
         case OCR_GUID_EDT: {
             ocrTask_t *edt = (ocrTask_t*)(dest.metaDataPtr);
             ASSERT(edt->fctId == self->taskFactories[0]->factoryId);
             PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.registerSignaler(
-                edt, signaler, PD_MSG_FIELD(slot), false);
+                edt, signaler, PD_MSG_FIELD(slot), isAddDep);
             break;
         }
         default:
@@ -993,8 +1034,11 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         START_PROFILE(pd_hc_RegWaiter);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_DEP_REGWAITER
-// We first get information about the signaler and destination
+        // We first get information about the signaler and destination
         ocrGuidKind waiterKind, dstKind;
+        //NOTE: In distributed the metaDataPtr is set to NULL_GUID since
+        //the guid provider doesn't fetch remote metaDataPtr yet. It's ok
+        //(but fragile) because the HC event/task does not try to use it
         self->guidProviders[0]->fcts.getVal(
             self->guidProviders[0], PD_MSG_FIELD(waiter.guid),
             (u64*)(&(PD_MSG_FIELD(waiter.metaDataPtr))), &waiterKind);
@@ -1008,8 +1052,9 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(dstKind == OCR_GUID_EVENT); // Waiters can only wait on events
         ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
         ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
+        bool isAddDep = PD_MSG_FIELD(properties);
         PD_MSG_FIELD(properties) = self->eventFactories[0]->fcts[evt->kind].registerWaiter(
-            evt, waiter, PD_MSG_FIELD(slot), false);
+            evt, waiter, PD_MSG_FIELD(slot), isAddDep);
 #ifdef OCR_ENABLE_STATISTICS
         // TODO: Fixme
         statsDEP_ADD(pd, getCurrentEDT(), NULL, signalerGuid, waiterGuid, NULL, slot);
@@ -1021,6 +1066,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         EXIT_PROFILE;
         break;
     }
+
 
     case PD_MSG_DEP_SATISFY: {
         START_PROFILE(pd_hc_Satisfy);
