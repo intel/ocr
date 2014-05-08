@@ -22,8 +22,6 @@
 
 #include "utils/profiler/profiler.h"
 
-#include "xe-abi.h"
-
 #define DEBUG_TYPE POLICY
 
 #ifdef TOOL_CHAIN_XE
@@ -69,9 +67,8 @@ void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     xePolicyDomainStart(policy);
 #endif
 
-#ifndef ENABLE_BUILDER_ONLY
-    // By now the worker loop has exited and we've nothing else to do by DIE!
-    __asm__ __volatile__("alarm %0\n\t" : : "L" (XE_TERMINATE));
+#ifdef TEMPORARY_FSIM_HACK_TILL_WE_FIGURE_OCR_START_STOP_HANDSHAKES
+    hal_exit(0);
 #endif
 }
 

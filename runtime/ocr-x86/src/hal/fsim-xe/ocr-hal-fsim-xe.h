@@ -16,6 +16,7 @@
 #define __OCR_HAL_FSIM_XE_H__
 
 #include "ocr-types.h"
+#include "xe-abi.h"
 
 
 /****************************************************/
@@ -271,7 +272,7 @@
  * This will exit the runtime more cleanly than abort
  */
 #define hal_exit(arg)                           \
-    __asm__ __volatile__(".long 0\n\t")
+    __asm__ __volatile__("alarm %0\n\t" : : "L" (XE_TERMINATE))
 
 
 #endif /* __OCR_HAL_FSIM_XE_H__ */

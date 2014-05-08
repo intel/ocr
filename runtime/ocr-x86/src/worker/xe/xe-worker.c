@@ -147,11 +147,13 @@ void xeStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     }
 }
 
+#ifdef TEMPORARY_FSIM_HACK_TILL_WE_FIGURE_OCR_START_STOP_HANDSHAKES
 // FIXME: HACK!!! HACK!!! HACK!!!
 // Fwd declaration so we can call the fn directly instead of go
 // through a blob function to cook args. Bala needs to resolve this in
 // a better way that allows for args in FSIM.
 ocrGuid_t mainEdt( u32, u64 *, u32, ocrEdtDep_t * );
+#endif
 
 void* xeRunWorker(ocrWorker_t * worker) {
     // Need to pass down a data-structure
@@ -162,7 +164,7 @@ void* xeRunWorker(ocrWorker_t * worker) {
 // FIXME: HACK!!! HACK!!! HACK!!!
 // Until Bala resolves how to handle args in FSIM, we will call
 // directly into mainEdt. See fwd decl above.
-#if 0
+#ifndef TEMPORARY_FSIM_HACK_TILL_WE_FIGURE_OCR_START_STOP_HANDSHAKES
         // This is all part of the mainEdt setup
         // and should be executed by the "blessed" worker.
         void * packedUserArgv = userArgsGet();
