@@ -80,6 +80,26 @@
 
 
 /**
+ * @brief Atomic swap (64 bit)
+ *
+ * Atomically swap:
+ *
+ * @param atomic        u64*: Pointer to the atomic value (location)
+ * @param newValue      u64: New value to set
+ *
+ * @return Old value of the atomic
+ */
+#define hal_swap64(atomic, newValue)                                    \
+    ({                                                                  \
+        u64 __tmp;                                                      \
+        __asm__ __volatile__("xchg %0, %1\n\t"                          \
+                             : "=m" (*(u64*)atomic),                    \
+                               "=r" (__tmp)                             \
+                             : "1" ((u64)newValue));                    \
+        __tmp;                                                          \
+    })
+
+/**
  * @brief Compare and swap (64 bit)
  *
  * The semantics are as follows (all operations performed atomically):
@@ -129,6 +149,26 @@
  */
 #define hal_radd64(atomic, addValue)            \
     __sync_fetch_and_add(atomic, addValue)
+
+/**
+ * @brief Atomic swap (32 bit)
+ *
+ * Atomically swap:
+ *
+ * @param atomic        u32*: Pointer to the atomic value (location)
+ * @param newValue      u32: New value to set
+ *
+ * @return Old value of the atomic
+ */
+#define hal_swap32(atomic, newValue)                                    \
+    ({                                                                  \
+        u32 __tmp;                                                      \
+        __asm__ __volatile__("xchg %0, %1\n\t"                          \
+                             : "=m" (*(u32*)atomic),                    \
+                               "=r" (__tmp)                             \
+                             : "1" ((u32)newValue));                    \
+        __tmp;                                                          \
+    })
 
 /**
  * @brief Compare and swap (32 bit)

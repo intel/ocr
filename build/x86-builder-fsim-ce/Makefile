@@ -18,7 +18,7 @@ endif
 #
 
 CC      := gcc
-CFLAGS  := -fno-builtin
+CFLAGS  := -fno-builtin -Wno-unused-local-typedefs -I ../../../ss/common/include
 
 RM      := rm
 RMFLAGS := -rf

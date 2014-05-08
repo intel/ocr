@@ -147,11 +147,22 @@ void xeStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     }
 }
 
+// FIXME: HACK!!! HACK!!! HACK!!!
+// Fwd declaration so we can call the fn directly instead of go
+// through a blob function to cook args. Bala needs to resolve this in
+// a better way that allows for args in FSIM.
+ocrGuid_t mainEdt( u32, u64 *, u32, ocrEdtDep_t * );
+
 void* xeRunWorker(ocrWorker_t * worker) {
     // Need to pass down a data-structure
     ocrPolicyDomain_t *pd = worker->pd;
 
     if (pd->myLocation == 0) { //Blessed worker
+
+// FIXME: HACK!!! HACK!!! HACK!!!
+// Until Bala resolves how to handle args in FSIM, we will call
+// directly into mainEdt. See fwd decl above.
+#if 0
         // This is all part of the mainEdt setup
         // and should be executed by the "blessed" worker.
         void * packedUserArgv = userArgsGet();
@@ -175,6 +186,11 @@ void* xeRunWorker(ocrWorker_t * worker) {
 
         // Call into mainEdt
         mainEdt(0, NULL, 1, &depv);
+#else
+        // FIXME: HACK!!! HACK!!! HACK!!
+        // Direct call into mainEdt() with NO ARGUMENTS
+        mainEdt((u32)0, (u64*)NULL, (u32)0, (ocrEdtDep_t*)NULL);
+#endif
     }
 
     DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
