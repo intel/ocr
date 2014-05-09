@@ -25,6 +25,7 @@ typedef struct {
 
 typedef struct {
     ocrPolicyDomain_t base;
+    void *packedArgsLocation;
     ocrFatGuid_t fguidPool[MAX_XE_TASK]; // Hacky task pool; needs to replaced by real task pool
     u32 taskCounter;
 } ocrPolicyDomainXe_t;

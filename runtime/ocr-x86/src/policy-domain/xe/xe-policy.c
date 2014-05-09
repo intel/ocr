@@ -65,9 +65,6 @@ void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
 
 #ifdef TOOL_CHAIN_XE
     xePolicyDomainStart(policy);
-#endif
-
-#ifdef TEMPORARY_FSIM_HACK_TILL_WE_FIGURE_OCR_START_STOP_HANDSHAKES
     hal_exit(0);
 #endif
 }
@@ -558,6 +555,7 @@ ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * factory,
 #else
     factory->initialize(factory, base, costFunction, perInstance);
 #endif
+    derived->packedArgsLocation = NULL;
 
     return base;
 }

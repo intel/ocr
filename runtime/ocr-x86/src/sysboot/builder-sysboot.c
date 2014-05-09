@@ -18,25 +18,34 @@
 #define CHUNKSZ 32768                // The chunk size of runtimeChunkAlloc's pool
 char persistent_chunk[CHUNKSZ];      // The underlying pool - persistent memory
 char nonpersistent_chunk[CHUNKSZ];   // The underlying pool - non-persistent memory
+char args_chunk[CHUNKSZ];            // The underlying pool - for args
 u64  persistent_pointer = 0;         // The pointer to the free area of persistent
 u64  nonpersistent_pointer = 0;      // The pointer to free area of non-persistent
+u64  args_pointer = 0;               // The pointer to free area of args pool
+
+static void * packedUserArgs = NULL;
+static ocrEdt_t mainEdt = NULL;
 
 u64 FsimRuntimeChunkAlloc(u64 size, u64 *extra) {
     void* returnValue = NULL;
 
-    if(extra != NULL) { // default, non-persistent
-        returnValue = &(nonpersistent_chunk[nonpersistent_pointer]);
-        nonpersistent_pointer += size;
-    } else {
+    if(extra==NULL) {  // NULL => persistent
         // Align the offset if unaligned
         u64 offset = (u64)&(persistent_chunk[persistent_pointer]);
         if(offset % 8) persistent_pointer += (8 - (offset%8));
         returnValue = &(persistent_chunk[persistent_pointer]);
         persistent_pointer += size;
+    } else if(extra == (u64)2) { // special case, for arguments
+        returnValue = &(args_chunk[args_pointer]);
+        args_pointer += size;
+    } else { // default, non-persistent
+        returnValue = &(nonpersistent_chunk[nonpersistent_pointer]);
+        nonpersistent_pointer += size;
     }
 
     ASSERT((persistent_pointer < CHUNKSZ) && "Persistent allocation needs more than CHUNKSZ bytes of memory");
     ASSERT((nonpersistent_pointer < CHUNKSZ) && "Non-persistent allocation needs more than CHUNKSZ bytes of memory");
+    ASSERT((args_pointer < CHUNKSZ) && "Non-persistent allocation needs more than CHUNKSZ bytes of memory");
 
     return (u64)returnValue;
 }
@@ -71,11 +80,15 @@ void fsimMainEdtSet(ocrEdt_t edt) {
 }
 
 void fsimUserArgsSet(void *ptr) {
-    return;
+    packedUserArgs = ptr;
+}
+
+void* fsimUserArgsGet(void) {
+    return packedUserArgs;
 }
 
 void (*userArgsSet)(void *) = &fsimUserArgsSet;
-void * (*userArgsGet)() = NULL;
+void * (*userArgsGet)() = &fsimUserArgsGet;
 void (*mainEdtSet)(ocrEdt_t) = &fsimMainEdtSet;
 ocrEdt_t (*mainEdtGet)() = NULL;
 

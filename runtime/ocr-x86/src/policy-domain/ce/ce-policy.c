@@ -489,7 +489,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // TODO: Add properties whether DB needs to be acquired or not
         // This would impact where we do the PD_MSG_MEM_ALLOC for example
         // For now we deal with both USER and RT dbs the same way
-        ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE || PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE);
+        ASSERT((PD_MSG_FIELD(dbType) == USER_DBTYPE) || (PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE));
         PD_MSG_FIELD(properties) = ceAllocateDb(
             self, &(PD_MSG_FIELD(guid)), &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
             PD_MSG_FIELD(properties), getEngineIndex(self, msg->srcLocation),
@@ -972,12 +972,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     case PD_MSG_MGT_SHUTDOWN: {
         START_PROFILE(pd_ce_Shutdown);
         u32 i;
-        // FIXME: HACK!!! HACK!!! HACK!!!
-        // Blame Bala for this. This needs to change to pick up a
-        // correct value somehow... Is that per-block? Is it
-        // per-machine? Some OCR expert please comment?!
-        //u32 neighborCount = self->neighborCount;
-        u32 neighborCount = 1;
+        u32 neighborCount = self->neighborCount;
         ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t *)self;
         if (msg->type & PD_MSG_REQUEST) {
             // This triggers the shutdown of the machine

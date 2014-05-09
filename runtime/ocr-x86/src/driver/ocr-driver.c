@@ -115,16 +115,19 @@ ocrParamList_t **inst_params[sizeof(inst_str)/sizeof(const char *)];
 
 #define APP_BINARY    "CrossPlatform:app_file"
 #define OUTPUT_BINARY "CrossPlatform:struct_file"
+#define ARGS_BINARY   "CrossPlatform:args_file"
 #define START_ADDRESS "CrossPlatform:start_address"
 #define DRAM_OFFSET   "CrossPlatform:dram_offset"
 
 char *app_binary;
 char *output_binary;
+char *args_binary;
 
 extern int extract_functions(const char *);
 extern void free_functions(void);
 extern char *persistent_chunk;
 extern u64 persistent_pointer;
+extern u64 args_pointer;
 extern u64 dram_offset;
 
 /* Format of this file:
@@ -193,10 +196,23 @@ void dumpStructs(void *pd, const char* output_binary, u64 start_address) {
     fclose(fp);
 }
 
+void dumpArgs(const char* args_binary) {
+    FILE *fp = fopen(args_binary, "w");
+    void *userArgs = userArgsGet();
+
+    if(fp == NULL) printf("Unable to open file %s for writing\n", args_binary);
+    else {
+        fwrite(userArgs, sizeof(u8), args_pointer, fp);
+        printf("Wrote %ld bytes to %s\n", args_pointer, args_binary);
+    }
+    fclose(fp);
+}
+
 void builderPreamble(dictionary *dict) {
 
     app_binary = iniparser_getstring(dict, APP_BINARY, NULL);
     output_binary = iniparser_getstring(dict, OUTPUT_BINARY, NULL);
+    args_binary = iniparser_getstring(dict, ARGS_BINARY, NULL);
     dram_offset = (u64)iniparser_getlonglong(dict, DRAM_OFFSET, 0);
 
     if(app_binary==NULL || output_binary==NULL) {
@@ -322,6 +338,7 @@ void bringUpRuntime(const char *inifile) {
 
         for(i = 0; i < inst_counts[policydomain_type]; i++)
             dumpStructs(all_instances[policydomain_type][i], output_binary, start_address);
+        if(args_binary) dumpArgs(args_binary);
         free_functions();
     }
 #else
@@ -399,7 +416,7 @@ static void * packUserArguments(int argc, char ** argv) {
     // Prepare arguments for the mainEdt
     ASSERT(argc < 64); // For now
     u32 i;
-    u64* offsets = (u64*) runtimeChunkAlloc(sizeof(u64)*argc, NULL);
+    u64* offsets = (u64*) runtimeChunkAlloc(sizeof(u64)*argc, (u64 *)2);
     u64 argsUsed = 0ULL;
     u64 totalLength = 0;
     u32 maxArg = 0;
@@ -413,7 +430,7 @@ static void * packUserArguments(int argc, char ** argv) {
     //--maxArg;
     // Create a memory chunk containing the parameters
     u64 extraOffset = (maxArg + 1)*sizeof(u64);
-    void* ptr = (void *) runtimeChunkAlloc(totalLength + sizeof(u64) + extraOffset, NULL);
+    void* ptr = (void *) runtimeChunkAlloc(totalLength + sizeof(u64) + extraOffset, (u64 *)2);
 
     // Copy in the values to the ptr. The format is as follows:
     // - First 4 bytes encode the size of the packed arguments

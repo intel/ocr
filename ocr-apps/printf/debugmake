@@ -17,7 +17,7 @@ blob: fsim_ce.cfg fsim_xe.cfg printf.dbg ../../../ss/rmdkrnl/bin/rmdkrnl.dbg
 	# Build blob
 	bash -c "../../build/x86-builder-fsim-ce/builder.exe -ocr:cfg fsim_ce.cfg"
 	bash -c "../../build/x86-builder-fsim-xe/builder.exe -ocr:cfg fsim_xe.cfg"
-	bash -c "../../scripts/Blob/aggregate_binary_files.sh ce_blob.bin xe_blob.bin dummy blob"
+	bash -c "../../scripts/Blob/aggregate_binary_files.sh ce_blob.bin xe_blob.bin args.bin blob"
 
 clean:
 	bash -c "cd ../../build/fsim-null-fsim-ce; make uninstall clean"

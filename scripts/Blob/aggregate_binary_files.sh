@@ -29,8 +29,11 @@ dd if=/dev/zero ibs=1 count=$size status=none >> $4
 
 # Do the same with XE struct file
 cat $2 >> $4
-size=`stat -c%s $1`
-let size=${LEAF_CE_STRUCT}-$size
+size=`stat -c%s $2`
+let size=${XE_STRUCT}-$size
 dd if=/dev/zero ibs=1 count=$size status=none >> $4
+
+# TODO: for now just arg, extend to any bin file
+cat $3 >> $4
 
 fi
