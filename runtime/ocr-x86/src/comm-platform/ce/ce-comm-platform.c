@@ -87,9 +87,23 @@ void ceCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrCo
 
     ocrCommPlatformCe_t * cp = (ocrCommPlatformCe_t *)commPlatform;
 
+    // FIXME: HACK!!! HACK!!! HACK!!!
+    // Because currently PD->Start() never returns, the CE cannot
+    // Start() before booting its XEs. So, it boots the XEs and
+    // Start()s only then. Which leads to a race between XEs Send()ing
+    // to the CE and the CE initializing its comm-platform. The comm
+    // buffers need to be cleared before use (otherwise you get
+    // Full/Empty bit issues), but if we clear them here, we may clear
+    // the first message sent by a fast XE that was started before us.
+    // The HACK FIX is to clear the CE message buffers in RMDKRNL
+    // before OCR on both CEs and XEs is started, so we shouldn't
+    // clear it here now (commented out below.) Eventually, when the
+    // Begin()/Start() issues are resolved and we can init properly
+    // this HACK needs to be reversed...
+    //
     // Zero-out our stage for receiving messages
-    for(i=MSG_QUEUE_OFFT; i<(MAX_NUM_XE * MSG_QUEUE_SIZE); i += sizeof(u64))
-        *(volatile u64 *)i = 0;
+    //for(i=MSG_QUEUE_OFFT; i<(MAX_NUM_XE * MSG_QUEUE_SIZE); i += sizeof(u64))
+    //    *(volatile u64 *)i = 0;
 
     // Fill-in location tuples: ours and our parent's (the CE in FSIM)
     PD->myLocation = (ocrLocation_t)rmd_ld64(CE_MSR_BASE + CORE_LOCATION * sizeof(u64));
