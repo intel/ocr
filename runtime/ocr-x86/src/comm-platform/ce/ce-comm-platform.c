@@ -177,8 +177,11 @@ u8 ceCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
 
     // bufferSize: Top u32 is buffer size, bottom u32 is message size
 
-    // - Check remote stage F/E is E.
-    ASSERT(rmd_ld64((u64)rq) == 0);
+    // - Check remote stage Empty/Busy/Full is Empty.
+    {
+        u64 tmp = rmd_ld64((u64)rq);
+        ASSERT(tmp == 0);
+    }
 
 #ifndef ENABLE_BUILDER_ONLY
     // - DMA to remote stage
@@ -187,8 +190,11 @@ u8 ceCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
     // - Fence DMA
     rmd_fence_fbm();
 
-    // - Atomically test & set remote stage to F. Error if already F.
-    ASSERT(rmd_mmio_xchg64((u64)rq, (u64)1) == 0);
+    // - Atomically test & set remote stage to Full. Error if already non-Empty.
+    {
+        u64 tmp = rmd_mmio_xchg64((u64)rq, (u64)2);
+        ASSERT(tmp == 0);
+    }
 #endif
 
     return 0;
@@ -209,8 +215,8 @@ u8 ceCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
 
     // Loop once over the local stages searching for a message
     do {
-        // Check this stage for F/E
-        if((cp->lq[i])[0] != 0) {
+        // Check this stage for Empty/Busy/Full
+        if((cp->lq[i])[0] == 2) {
             // Have one, break out
             break;
         } else {
@@ -220,7 +226,7 @@ u8 ceCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
     } while(i != cp->pollq);
 
     // Either we got a message in the current queue, or we ran through all of them and they're all empty
-    if((cp->lq[i])[0] != 0) {
+    if((cp->lq[i])[0] == 2) {
         // We have a message
         // Provide a ptr to the local stage's contents
         *msg = (ocrPolicyMsg_t *)&((cp->lq[i])[1]);
@@ -250,7 +256,11 @@ u8 ceCommWaitMessage(ocrCommPlatform_t *self,  ocrPolicyMsg_t **msg,
     u64 i;
 
     // Loop throught the stages till we receive something
-    for(i = cp->pollq; (cp->lq[i])[0] == 0; i = (i+1) % MAX_NUM_XE);
+    for(i = cp->pollq; (cp->lq[i])[0] != 2; i = (i+1) % MAX_NUM_XE) {
+        // Halt the CPU, instead of burning rubber
+        // An alarm would wake us, so no delay will result
+        __asm__ __volatile__("hlt\n\t");
+    }
 
 #if 1
     // We have a message

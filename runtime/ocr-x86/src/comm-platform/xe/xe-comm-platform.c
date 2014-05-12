@@ -155,14 +155,23 @@ u8 xeCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
     // For now, XEs only sent to their CE; make sure!
     ASSERT(target == cp->pdPtr->parentLocation);
 
-    // - Atomically test & set remote stage to F. Error if already F.
-    ASSERT(hal_swap64(cp->rq, (u64)1) == 0);
+    // - Atomically test & set remote stage to Busy. Error if already non-Empty.
+    {
+        u64 tmp = hal_swap64(cp->rq, (u64)1);
+        ASSERT(tmp == 0);
+    }
 
     // - DMA to remote stage
     hal_memCopy(&(cp->rq)[1], message, bufferSize & 0xFFFFFFFFUL, 0);
 
     // - Fence DMA
     hal_fence();
+
+    // - Atomically test & set remote stage to Full. Error otherwise (Empty/Busy.)
+    {
+        u64 tmp = hal_swap64(cp->rq, (u64)2);
+        ASSERT(tmp == 1);
+    }
 
     // - Alarm remote, freezing
     __asm__ __volatile__("alarm %0\n\t" : : "L" (XE_MSG_QUEUE));
@@ -181,8 +190,8 @@ u8 xeCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
     // Local stage is at well-known 0x0
     u64 * lq = 0x0;
 
-    // Check local stage's F/E word. If E, return empty. If F, return content.
-    if(lq[0] == 0) return 0;
+    // Check local stage's Empty/Busy/Full word. If non-Full, return; else, return content.
+    if(lq[0] != 2) return 0;
 
 #if 1
     // Provide a ptr to the local stage's contents
@@ -207,8 +216,8 @@ u8 xeCommWaitMessage(ocrCommPlatform_t *self,  ocrPolicyMsg_t **msg,
     // Local stage is at well-known 0x0
     volatile u64 * lq = 0x0;
 
-    // While local stage E, keep looping. (FIXME: sleep?)
-    while(lq[0] == 0);
+    // While local stage non-Full, keep looping. (FIXME: sleep?)
+    while(lq[0] != 2);
 
     // Once it is F, return content.
 
@@ -235,11 +244,10 @@ u8 xeCommDestructMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t *msg) {
     u64 * lq = 0x0;
 
 #ifndef ENABLE_BUILDER_ONLY
-    // Atomically test & set local stage to E. Error if already E.
-    // - Atomically test & set remote stage to F. Error if already F.
+    // - Atomically test & set local stage to Empty. Error if prev not Full.
     {
         u64 old = hal_swap64(lq, 0);
-        ASSERT(old == 1);
+        ASSERT(old == 2);
     }
 #endif
 
