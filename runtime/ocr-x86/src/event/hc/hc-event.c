@@ -203,10 +203,10 @@ u8 satisfyEventHcOnce(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
     return destructEventHc(base);
 }
 
-// This is for persistent events such as sticky or idempotent
+// This is for persistent events such as sticky or idempotent.
 u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
     ocrEventHcPersist_t *event = (ocrEventHcPersist_t*)base;
-    ASSERT(slot == 0); // For non-latch events, only one slot
+    ASSERT(slot == 0); // Persistent-events are single slot
     ASSERT(event->base.base.kind == OCR_EVENT_IDEM_T ||
            event->data == UNINITIALIZED_GUID); // Sticky events can be satisfied once
 
@@ -376,7 +376,11 @@ u8 unregisterSignalerHc(ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot, bool 
     return 0; // We do not do anything for signalers
 }
 
-// In this call, we do not contend with the satisfy (once and latch events)
+/**
+ * In this call, we do not contend with the satisfy (once and latch events) however,
+ * we do contend with multiple registration.
+ * By construction, users must ensure a ONCE event is registered before satisfy is called.
+ */
 u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool isDepAdd) {
     // Here we always add the waiter to our list so we ignore isDepAdd
     ocrEventHc_t *event = (ocrEventHc_t*)base;
@@ -394,6 +398,8 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
     u32 i;
 
     getCurrentEnv(&pd, NULL, &curTask, &msg);
+
+    // TODO there's definitively a bug here because several concurrent registration can happen
 
     // Acquire the DB that contains the waiters
 #define PD_MSG (&msg)
@@ -468,7 +474,15 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
 }
 
 
-// In this call, we do have to contend with concurrent satisfies (persistent events)
+/**
+ * @brief Registers waiters on persistent events such as sticky or idempotent.
+ *
+ * This code contends with a satisfy call and with concurrent add-dependences that try
+ * to register their waiter.
+ * The event waiterLock is grabbed, if the event is already satisfied, directly satisfy
+ * the waiter. Otherwise add the waiter's guid to the waiters db list. If db is too small
+ * reallocate and copy over to a new one.
+ */
 u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool isDepAdd) {
     ocrEventHcPersist_t *event = (ocrEventHcPersist_t*)base;
 
@@ -867,19 +881,24 @@ ocrEventFactory_t * newEventFactoryHc(ocrParamList_t *perType, u32 factoryId) {
     }
     base->fcts[OCR_EVENT_ONCE_T].satisfy =
         FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcOnce);
-    base->fcts[OCR_EVENT_IDEM_T].satisfy = base->fcts[OCR_EVENT_STICKY_T].satisfy =
+    base->fcts[OCR_EVENT_IDEM_T].satisfy =
+    base->fcts[OCR_EVENT_STICKY_T].satisfy =
             FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcPersist);
     base->fcts[OCR_EVENT_LATCH_T].satisfy =
         FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32), satisfyEventHcLatch);
 
-    base->fcts[OCR_EVENT_ONCE_T].registerWaiter = base->fcts[OCR_EVENT_LATCH_T].registerWaiter =
+    base->fcts[OCR_EVENT_ONCE_T].registerWaiter =
+    base->fcts[OCR_EVENT_LATCH_T].registerWaiter =
                 FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), registerWaiterEventHc);
-    base->fcts[OCR_EVENT_IDEM_T].registerWaiter = base->fcts[OCR_EVENT_STICKY_T].registerWaiter =
+    base->fcts[OCR_EVENT_IDEM_T].registerWaiter =
+    base->fcts[OCR_EVENT_STICKY_T].registerWaiter =
                 FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), registerWaiterEventHcPersist);
 
-    base->fcts[OCR_EVENT_ONCE_T].unregisterWaiter = base->fcts[OCR_EVENT_LATCH_T].unregisterWaiter =
+    base->fcts[OCR_EVENT_ONCE_T].unregisterWaiter =
+    base->fcts[OCR_EVENT_LATCH_T].unregisterWaiter =
                 FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), unregisterWaiterEventHc);
-    base->fcts[OCR_EVENT_IDEM_T].unregisterWaiter = base->fcts[OCR_EVENT_STICKY_T].unregisterWaiter =
+    base->fcts[OCR_EVENT_IDEM_T].unregisterWaiter =
+    base->fcts[OCR_EVENT_STICKY_T].unregisterWaiter =
                 FUNC_ADDR(u8 (*)(ocrEvent_t*, ocrFatGuid_t, u32, bool), unregisterWaiterEventHcPersist);
 
     base->factoryId = factoryId;

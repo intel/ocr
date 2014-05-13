@@ -146,7 +146,7 @@ static void ocrConfigInit(ocrConfig_t * ocrConfig) {
 
 // All these externs are in ocr-driver.c.
 extern void bringUpRuntime(const char *inifile);
-extern void freeUpRuntime(void);
+extern void freeUpRuntime();
 extern void stopAllPD(ocrPolicyDomain_t *pd);
 
 /**!
@@ -154,10 +154,8 @@ extern void stopAllPD(ocrPolicyDomain_t *pd);
  * @param ocrConfig Data-structure containing runtime options
  */
 void ocrInit(ocrConfig_t * ocrConfig) {
-
     const char * iniFile = ocrConfig->iniFile;
     ASSERT(iniFile != NULL);
-
     bringUpRuntime(iniFile);
 }
 
@@ -201,26 +199,18 @@ void ocrFinalize() {
     ocrWorker_t *worker = NULL;
     getCurrentEnv(&pd, &worker, NULL, NULL);
     // We start the current worker. After it starts, it will loop
-    // until ocrShutdown is called which will cause it the entire PD to
-    // stop (including this worker). The current worker
-    // will then fall through here so that it can finish the PD
+    // until ocrShutdown is called which will cause the entire PD
+    // to stop (including this worker). The currently executing
+    // worker then fallthrough from start to finish.
     worker->fcts.start(worker, pd);
+    // NOTE: finish blocks until stop has completed
     pd->fcts.finish(pd);
     pd->fcts.destruct(pd);
     freeUpRuntime();
-
-    /*
-    ocrPolicyDomain_t* masterPD = getMasterPD();
-    stopAllPD(masterPD);
-    masterPD->destruct(masterPD);
-    */
-    //TODO we need to start by stopping the master PD which
-    //controls stopping down PD located on the same machine.
 // #ifdef OCR_ENABLE_STATISTICS
 //     ocrStatsProcessDestruct(&GfakeProcess);
 //     GocrFilterAggregator->destruct(GocrFilterAggregator);
 // #endif
-
 }
 
 

@@ -11,7 +11,7 @@
 #include "ocr.h"
 
 /**
- * DESC: Create and EDT and directly give its depv
+ * DESC: Create an EDT and directly give its depv
  */
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
