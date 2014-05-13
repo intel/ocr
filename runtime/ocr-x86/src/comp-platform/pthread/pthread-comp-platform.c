@@ -137,7 +137,10 @@ void pthreadStart(ocrCompPlatform_t * compPlatform, ocrPolicyDomain_t * PD, ocrW
 }
 
 void pthreadStop(ocrCompPlatform_t * compPlatform) {
-    // Nothing to do really
+    // To do anything to the TLS (freeing, clean-up, etc.), you need to add
+    // to destroyKey. This will be called when each of the threads
+    // (except the master thread) are joined. For the master thread, you
+    // can clean up in pthreadFinish (it calls destroyKey).
 }
 
 void pthreadFinish(ocrCompPlatform_t *compPlatform) {
@@ -146,9 +149,11 @@ void pthreadFinish(ocrCompPlatform_t *compPlatform) {
     if(!pthreadCompPlatform->isMaster) {
         RESULT_ASSERT(pthread_join(pthreadCompPlatform->osThread, NULL), ==, 0);
     } else {
-        // For some reason the key is not being destroyed for the master thread
+        // For some reason the key(s) are not being destroyed for the master thread
+        void* _t = pthread_getspecific(selfKey);
+        destroyKey(_t);
 #ifdef OCR_RUNTIME_PROFILER
-        void* _t = pthread_getspecific(_profilerThreadData);
+        _t = pthread_getspecific(_profilerThreadData);
         _profilerDataDestroy(_t);
 #endif
     }
