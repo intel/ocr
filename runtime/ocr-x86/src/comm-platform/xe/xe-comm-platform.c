@@ -88,7 +88,7 @@ void xeCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrCo
 #ifndef ENABLE_BUILDER_ONLY
     ocrCommPlatformXe_t * cp = (ocrCommPlatformXe_t *)commPlatform;
 
-    u64 myid = *(u64 *)(XE_MSR_BASE(0) + CORE_LOCATION * sizeof(u64));
+    u64 myid = *(u64 *)(XE_MSR_OFFT + CORE_LOCATION * sizeof(u64));
 
     // Zero-out our stage for receiving messages
     for(i=MSG_QUEUE_OFFT; i<MSG_QUEUE_SIZE; i += sizeof(u64))
