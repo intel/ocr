@@ -1,0 +1,20 @@
+SCF-NWCHEM for OCRx86 using API v. 0.8, August 2013.
+
+- Copy the folder in xstack/ocr/runtime/ocr-x86/examples
+
+- CD to xstack/ocr/runtime/ocr-x86 and set up:
+
+	export OCR_INSTALL=${PWD}/ocr-install
+  	export LD_LIBRARY_PATH=${OCR_INSTALL}/lib:${LD_LIBRARY_PATH}
+
+- Compile using make. Compilation flags are also available as make DYNAMIC_SCHED=1. See Makefile for the other flags.
+
+- Execute using make run
+
+- The number of atoms and threads is hardcoded in the main function. It would be updated to grab these values from argv in a future version when a stable example shows it how.
+
+- Currently, there are limitations in memory (some tests showed that goes up to 48 threads and 23 atoms).
+
+Jaime
+jaime@udel.edu
+

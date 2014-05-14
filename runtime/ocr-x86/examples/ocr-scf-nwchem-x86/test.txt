@@ -1,0 +1,182 @@
+EDT(INFO) W 0: Create 0x1c6ab40 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x1c6aa50 to 0x1c6ab40 slot 0
+EDT(INFO) W 0: Schedule 0x1c6ab40
+EDT(INFO) W 0: Execute 0x1c6ab40
+=========================================
+SCF-NWCHEM on OCR
+=========================================
+EDT(INFO) W 0: Create 0x7f4b50006c90 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b50006c90 slot 0
+EDT(INFO) W 0: Schedule 0x7f4b50006c90
+EDT(INFO) W 0: Execute 0x7f4b50006c90
+EDT(INFO) W 0: Create 0x7f4b50006e30 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b50006e30 slot 0
+EDT(INFO) W 0: Schedule 0x7f4b50006e30
+EDT(INFO) W 0: Create 0x7f4b50006f40 depc 3 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b50006f40 slot 0
+EDT(INFO) W 0: AddDependence from 0x7f4b50006bf0 to 0x7f4b50006f40 slot 1
+EDT(INFO) W 0: AddDependence from 0x7f4b50006d90 to 0x7f4b50006f40 slot 2
+EDT(INFO) W 0: AddDependence from 0x7f4b50006bf0 to 0x7f4b50006f40 slot 1
+EDT(INFO) W 0: Create 0x7f4b50007060 depc 2 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b50007060 slot 0
+EDT(INFO) W 0: AddDependence from 0x7f4b50006c70 to 0x7f4b50007060 slot 1
+EDT(INFO) W 0: AddDependence from 0x7f4b50006c70 to 0x7f4b50007060 slot 1
+EDT(INFO) W 0: Destroy 0x1c6ab40
+EDT(INFO) W 0: Execute 0x7f4b50006e30
+EDT(INFO) W 0: Destroy 0x7f4b50006e30
+EDT(INFO) W 0: Schedule 0x7f4b50006f40
+EDT(INFO) W 0: Execute 0x7f4b50006f40
+EDT(INFO) W 0: Destroy 0x7f4b50006c90
+EDT(INFO) W 0: Schedule 0x7f4b50007060
+EDT(INFO) W 0: Execute 0x7f4b50007060
+EDT(INFO) W 0: Destroy 0x7f4b50006f40
+ iter=   0, energy=   -29.35614413, deltad= 0.7725167, deltaf=594.5585475, time=    0.0034
+EDT(INFO) W 0: Create 0x1c6b560 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x1c6b560 slot 0
+EDT(INFO) W 0: Schedule 0x1c6b560
+EDT(INFO) W 0: Execute 0x1c6b560
+EDT(INFO) W 0: Create 0x1c6b6b0 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x1c6b6b0 slot 0
+EDT(INFO) W 0: Schedule 0x1c6b6b0
+EDT(INFO) W 0: Execute 0x1c6b6b0
+EDT(INFO) W 0: Create 0x1c6b7c0 depc 3 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x1c6b7c0 slot 0
+EDT(INFO) W 0: AddDependence from 0x1c6b520 to 0x1c6b7c0 slot 1
+EDT(INFO) W 0: AddDependence from 0x1c6b610 to 0x1c6b7c0 slot 2
+EDT(INFO) W 0: AddDependence from 0x1c6b520 to 0x1c6b7c0 slot 1
+EDT(INFO) W 0: Create 0x1c6b8c0 depc 2 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x1c6b8c0 slot 0
+EDT(INFO) W 0: AddDependence from 0x1c6b540 to 0x1c6b8c0 slot 1
+EDT(INFO) W 0: AddDependence from 0x1c6b540 to 0x1c6b8c0 slot 1
+EDT(INFO) W 0: Destroy 0x7f4b50007060
+EDT(INFO) W 0: Destroy 0x1c6b6b0
+EDT(INFO) W 0: Schedule 0x1c6b7c0
+EDT(INFO) W 0: Execute 0x1c6b7c0
+EDT(INFO) W 0: Destroy 0x1c6b560
+EDT(INFO) W 0: Schedule 0x1c6b8c0
+EDT(INFO) W 0: Destroy 0x1c6b7c0
+EDT(INFO) W 0: Execute 0x1c6b8c0
+ iter=   1, energy=   -29.10063707, deltad= 0.0804018, deltaf=0.0327658, time=    0.0035
+EDT(INFO) W 0: Create 0x7f4b48001360 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b48001360 slot 0
+EDT(INFO) W 0: Schedule 0x7f4b48001360
+EDT(INFO) W 0: Execute 0x7f4b48001360
+EDT(INFO) W 0: Create 0x7f4b48001500 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b48001500 slot 0
+EDT(INFO) W 0: Schedule 0x7f4b48001500
+EDT(INFO) W 0: Execute 0x7f4b48001500
+EDT(INFO) W 0: Create 0x7f4b48001610 depc 3 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b48001610 slot 0
+EDT(INFO) W 0: AddDependence from 0x7f4b480012c0 to 0x7f4b48001610 slot 1
+EDT(INFO) W 0: AddDependence from 0x7f4b48001460 to 0x7f4b48001610 slot 2
+EDT(INFO) W 0: AddDependence from 0x7f4b480012c0 to 0x7f4b48001610 slot 1
+EDT(INFO) W 0: Create 0x7f4b48001710 depc 2 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b48001710 slot 0
+EDT(INFO) W 0: AddDependence from 0x7f4b48001340 to 0x7f4b48001710 slot 1
+EDT(INFO) W 0: AddDependence from 0x7f4b48001340 to 0x7f4b48001710 slot 1
+EDT(INFO) W 0: Destroy 0x1c6b8c0
+EDT(INFO) W 0: Destroy 0x7f4b48001500
+EDT(INFO) W 0: Schedule 0x7f4b48001610
+EDT(INFO) W 0: Execute 0x7f4b48001610
+EDT(INFO) W 0: Destroy 0x7f4b48001360
+EDT(INFO) W 0: Schedule 0x7f4b48001710
+EDT(INFO) W 0: Execute 0x7f4b48001710
+EDT(INFO) W 0: Destroy 0x7f4b48001610
+ iter=   2, energy=   -29.10609357, deltad= 0.0294229, deltaf=0.0106779, time=    0.0034
+EDT(INFO) W 0: Create 0x7f4b48001f70 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b48001f70 slot 0
+EDT(INFO) W 0: Schedule 0x7f4b48001f70
+EDT(INFO) W 0: Execute 0x7f4b48001f70
+EDT(INFO) W 0: Create 0x7f4b48002060 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b48002060 slot 0
+EDT(INFO) W 0: Schedule 0x7f4b48002060
+EDT(INFO) W 0: Execute 0x7f4b48002060
+EDT(INFO) W 0: Create 0x7f4b48002110 depc 3 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b48002110 slot 0
+EDT(INFO) W 0: AddDependence from 0x7f4b48001f30 to 0x7f4b48002110 slot 1
+EDT(INFO) W 0: AddDependence from 0x7f4b48002020 to 0x7f4b48002110 slot 2
+EDT(INFO) W 0: AddDependence from 0x7f4b48001f30 to 0x7f4b48002110 slot 1
+EDT(INFO) W 0: Create 0x7f4b48002210 depc 2 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b48002210 slot 0
+EDT(INFO) W 0: AddDependence from 0x7f4b48001f50 to 0x7f4b48002210 slot 1
+EDT(INFO) W 0: AddDependence from 0x7f4b48001f50 to 0x7f4b48002210 slot 1
+EDT(INFO) W 0: Destroy 0x7f4b48001710
+EDT(INFO) W 0: Destroy 0x7f4b48002060
+EDT(INFO) W 0: Schedule 0x7f4b48002110
+EDT(INFO) W 0: Execute 0x7f4b48002110
+EDT(INFO) W 0: Destroy 0x7f4b48001f70
+EDT(INFO) W 0: Schedule 0x7f4b48002210
+EDT(INFO) W 0: Destroy 0x7f4b48002110
+EDT(INFO) W 0: Execute 0x7f4b48002210
+ iter=   3, energy=   -29.10648310, deltad= 0.0145138, deltaf=0.0023457, time=    0.0034
+EDT(INFO) W 0: Create 0x7f4b50006e30 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b50006e30 slot 0
+EDT(INFO) W 0: Schedule 0x7f4b50006e30
+EDT(INFO) W 0: Execute 0x7f4b50006e30
+EDT(INFO) W 0: Create 0x7f4b50007940 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b50007940 slot 0
+EDT(INFO) W 0: Schedule 0x7f4b50007940
+EDT(INFO) W 0: Execute 0x7f4b50007940
+EDT(INFO) W 0: Create 0x7f4b500079f0 depc 3 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b500079f0 slot 0
+EDT(INFO) W 0: AddDependence from 0x7f4b50006fa0 to 0x7f4b500079f0 slot 1
+EDT(INFO) W 0: AddDependence from 0x7f4b50000980 to 0x7f4b500079f0 slot 2
+EDT(INFO) W 0: AddDependence from 0x7f4b50006fa0 to 0x7f4b500079f0 slot 1
+EDT(INFO) W 0: Create 0x7f4b50007a90 depc 2 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x7f4b50007a90 slot 0
+EDT(INFO) W 0: AddDependence from 0x7f4b50006e80 to 0x7f4b50007a90 slot 1
+EDT(INFO) W 0: AddDependence from 0x7f4b50006e80 to 0x7f4b50007a90 slot 1
+EDT(INFO) W 0: Destroy 0x7f4b48002210
+EDT(INFO) W 0: Destroy 0x7f4b50007940
+EDT(INFO) W 0: Schedule 0x7f4b500079f0
+EDT(INFO) W 0: Execute 0x7f4b500079f0
+EDT(INFO) W 0: Destroy 0x7f4b50006e30
+EDT(INFO) W 0: Schedule 0x7f4b50007a90
+EDT(INFO) W 0: Execute 0x7f4b50007a90
+EDT(INFO) W 0: Destroy 0x7f4b500079f0
+ iter=   4, energy=   -29.10654811, deltad= 0.0063439, deltaf=0.0009418, time=    0.0034
+EDT(INFO) W 0: Create 0x1c6b6b0 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x1c6b6b0 slot 0
+EDT(INFO) W 0: Schedule 0x1c6b6b0
+EDT(INFO) W 0: Execute 0x1c6b6b0
+EDT(INFO) W 0: Create 0x1c6c1b0 depc 1 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x1c6c1b0 slot 0
+EDT(INFO) W 0: Schedule 0x1c6c1b0
+EDT(INFO) W 0: Execute 0x1c6c1b0
+EDT(INFO) W 0: Create 0x1c6c260 depc 3 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x1c6c260 slot 0
+EDT(INFO) W 0: AddDependence from 0x1c6b690 to 0x1c6c260 slot 1
+EDT(INFO) W 0: AddDependence from 0x1c6c170 to 0x1c6c260 slot 2
+EDT(INFO) W 0: AddDependence from 0x1c6b690 to 0x1c6c260 slot 1
+EDT(INFO) W 0: Create 0x1c6c300 depc 2 outputEvent 0x0
+EDT(INFO) W 0: AddDependence from 0x7f4b50003b40 to 0x1c6c300 slot 0
+EDT(INFO) W 0: AddDependence from 0x1c6b700 to 0x1c6c300 slot 1
+EDT(INFO) W 0: AddDependence from 0x1c6b700 to 0x1c6c300 slot 1
+EDT(INFO) W 0: Destroy 0x7f4b50007a90
+EDT(INFO) W 0: Destroy 0x1c6c1b0
+EDT(INFO) W 0: Schedule 0x1c6c260
+EDT(INFO) W 0: Execute 0x1c6c260
+EDT(INFO) W 0: Destroy 0x1c6b6b0
+EDT(INFO) W 0: Schedule 0x1c6c300
+EDT(INFO) W 0: Execute 0x1c6c300
+EDT(INFO) W 0: Destroy 0x1c6c260
+ iter=   5, energy=   -29.10655947, deltad= 0.0026872, deltaf=0.0003893, time=    0.0029
+
+
+final energy =    -29.10655947067
+
+eigenvalues
+
+      init       onel      twoel       diag       dens       print       eigen
+      ----       ----      -----       ----       ----       ----        ----
+      0.00       0.00       0.02       0.00       0.00       0.00       0.00
+ elapsed time in seconds       0.02
+
+No. of integrals screened or computed (all iters)
+
+-------------------------------------
+  failed #ij test   failed #j test  failed #kl test    #compute           #total       fraction
+  ---------------  ---------------  ---------------  ---------------  ---------------  --------
+           665208            72672           357840          3764280          4860000   0.774543
+
+EDT(INFO) W 0: Destroy 0x1c6c300
