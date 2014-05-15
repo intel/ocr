@@ -55,6 +55,7 @@
                               : "r" ((void *)(destination)),            \
                                 "r" ((void *)(source)),                 \
                                 "r" (size));                            \
+        if (!isBackground) __asm__ __volatile__("fence 0xF\n\t");       \
     } while(0)
 
 

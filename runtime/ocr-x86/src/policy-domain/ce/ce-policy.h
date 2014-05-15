@@ -24,7 +24,6 @@ typedef struct {
 typedef struct {
     ocrPolicyDomain_t base;
     u64 shutdownCount;
-    ocrPolicyMsg_t * shutdownMsgs;
 } ocrPolicyDomainCe_t;
 
 typedef struct {

@@ -161,11 +161,8 @@ u8 xeCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
         ASSERT(tmp == 0);
     }
 
-    // - DMA to remote stage
+    // - DMA to remote stage, with fence
     hal_memCopy(&(cp->rq)[1], message, bufferSize & 0xFFFFFFFFUL, 0);
-
-    // - Fence DMA
-    hal_fence();
 
     // - Atomically test & set remote stage to Full. Error otherwise (Empty/Busy.)
     {

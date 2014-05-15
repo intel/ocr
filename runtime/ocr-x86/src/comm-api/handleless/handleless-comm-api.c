@@ -58,6 +58,12 @@ u8 handlelessCommSendMessage(ocrCommApi_t *self, ocrLocation_t target, ocrPolicy
         if(handle) {
             ASSERT(message->type & PD_MSG_REQ_RESPONSE);
             ocrCommApiHandleless_t * commApiHandleless = (ocrCommApiHandleless_t*)self;
+
+            if(commApiHandleless->handle.status != 0) {
+                commApiHandleless->handle.status = 0;
+                return OCR_ECANCELED;
+            }
+
             ASSERT(commApiHandleless->handle.status == 0);
             *handle = &(commApiHandleless->handle);
             (*handle)->msg = message;

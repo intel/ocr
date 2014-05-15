@@ -450,6 +450,12 @@ static ocrStats_t* ceGetStats(ocrPolicyDomain_t *self) {
 #endif
 
 static u8 ceProcessResponse(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u32 properties) {
+    if((((ocrPolicyDomainCe_t*)self)->shutdownCount) &&
+         (msg->srcLocation != self->myLocation) &&
+         (msg->type != PD_MSG_MGT_SHUTDOWN)) {
+        msg->type &= ~PD_MSG_TYPE_ONLY;
+        msg->type |= PD_MSG_MGT_SHUTDOWN;
+    }
     if (msg->srcLocation == self->myLocation) {
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |=  PD_MSG_RESPONSE;
@@ -978,25 +984,9 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             // This triggers the shutdown of the machine
             ocrLocation_t origRequester = msg->srcLocation;
             ASSERT(!(msg->type & PD_MSG_RESPONSE));
-            ASSERT(msg->srcLocation != self->myLocation && cePolicy->shutdownCount == 0);
-            cePolicy->shutdownCount = 1; //FIXME: Assumes block local shutdown message from XE
-            for (i = 0; i < neighborCount; i++) {
-                // We should get this from the neighbors. For now HACK
-                // ocrLocation_t target = self->neighbors[i];
-                ocrLocation_t target = (ocrLocation_t)(i);
-                if (target != origRequester) {
-                    ocrPolicyMsg_t * mesgPtr = &(cePolicy->shutdownMsgs[target]);
-                    getCurrentEnv(NULL, NULL, NULL, mesgPtr);
-                    mesgPtr->destLocation = target;
-#define PD_MSG mesgPtr
-#define PD_TYPE PD_MSG_MGT_SHUTDOWN
-                    mesgPtr->type = PD_MSG_MGT_SHUTDOWN | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-                    PD_MSG_FIELD(properties) = 0;
-                    RESULT_ASSERT(self->fcts.sendMessage(self, target, mesgPtr, NULL, 0), ==, 0);
-#undef PD_MSG
-#undef PD_TYPE
-                }
-            }
+            ASSERT(msg->srcLocation != self->myLocation);
+            cePolicy->shutdownCount++; //FIXME: Assumes block local shutdown message from XE
+            DPRINTF(DEBUG_LVL_INFO, "CE received shutdown from XE %lu; shutdown %d/%d\n", (u64)msg->srcLocation, cePolicy->shutdownCount, neighborCount);
         } else {
             ASSERT(msg->type & PD_MSG_RESPONSE);
             ++(cePolicy->shutdownCount);
@@ -1093,7 +1083,6 @@ void initializePolicyDomainCe(ocrPolicyDomainFactory_t * factory, ocrPolicyDomai
 
     // TODO: If this is in the base class, it should be in the base param list
     self->neighborCount = ((paramListPolicyDomainCeInst_t*)perInstance)->neighborCount;
-    derived->shutdownMsgs = (ocrPolicyMsg_t*) runtimeChunkAlloc(sizeof(ocrPolicyMsg_t) * self->neighborCount, 0);
     derived->shutdownCount = 0;
 }
 

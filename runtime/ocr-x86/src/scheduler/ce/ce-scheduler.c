@@ -231,10 +231,12 @@ u8 ceSchedulerTake (ocrScheduler_t *self, u32 *count, ocrFatGuid_t *edts) {
     // guid (most likely store using the address of a local)
     if(NULL_GUID != popped.guid) {
         *count = 1;
-        edts[0] = popped;
     } else {
         *count = 0;
+        popped.guid = NULL_GUID;
+        popped.metaDataPtr = NULL;
     }
+    edts[0] = popped;
     return 0;
 }
 
