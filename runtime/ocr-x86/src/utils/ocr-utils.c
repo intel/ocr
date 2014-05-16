@@ -152,6 +152,15 @@ u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind) {
     return result;
 }
 
+s32 ocrStrcmp(u8 *str1, u8 *str2) {
+    u32 index = 0;
+    while((str1[index] != '\0') && (str2[index] != '\0')) {
+        if(str1[index] == str2[index]) index++;
+        else break;
+    }
+    return(str1[index]-str2[index]);
+}
+
 /* This is not currently used. What to do with it?
 void ocrPlaceTrackerAllocate ( ocrPlaceTracker_t** toFill ) {
     *toFill = (ocrPlaceTracker_t*) malloc(sizeof(ocrPlaceTracker_t));

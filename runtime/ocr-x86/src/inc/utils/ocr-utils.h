@@ -162,6 +162,15 @@ u32 ocrGuidTrackerIterateAndClear(ocrGuidTracker_t *self);
  */
 u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind);
 
+/**
+ * @brief String compare; behaves similar to libc's strcmp()
+ *
+ * @param str1              First string to compare
+ * @param str2              Second string to compare
+ * @return zero if the strings match, non-zero if they don't match
+ */
+s32 ocrStrcmp(u8 *str1, u8 *str2);
+
 /* Not currently used
 typedef struct ocrPlaceTrackerStruct_t {
     u64 existInPlaces;

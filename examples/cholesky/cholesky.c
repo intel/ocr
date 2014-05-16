@@ -6,8 +6,13 @@
 
 #define __OCR__
 #include "compat.h"
-
 #include <sys/time.h>
+
+// Uncomment the below two lines to include EDT profiling information
+// Also see OCR_ENABLE_EDT_PROFILING in common.mk
+//#include "app-profiling.h"
+//#include "db-weights.h"
+
 struct timeval a,b;
 static double** readMatrix( int matrixSize, FILE* in );
 

@@ -16,6 +16,10 @@
 #include "ocr-statistics.h"
 #endif
 
+#ifdef OCR_ENABLE_EDT_PROFILING
+#include "ocr-edt-profiling.h"
+#endif
+
 struct _ocrTask_t;
 struct _ocrTaskTemplate_t;
 
@@ -63,6 +67,10 @@ typedef struct _ocrTaskTemplate_t {
     ocrEdt_t executePtr;    /**< Function pointer to execute */
 #ifdef OCR_ENABLE_EDT_NAMING
     const char* name;       /**< Name of the EDT */
+#endif
+#ifdef OCR_ENABLE_EDT_PROFILING
+    struct _profileStruct *profileData;
+    struct _dbWeightStruct *dbWeights;
 #endif
     u32 fctId;              /**< Functions to manage this template */
 } ocrTaskTemplate_t;

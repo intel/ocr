@@ -22,6 +22,9 @@ DEFAULT_CONFIG ?= mach-hc-4w.cfg
 # If this is note the case, an ASSERT will happen
 #CFLAGS += -DOCR_ENABLE_EDT_NAMING
 
+# Enable profiling data to be used by runtime. This requires EDT_NAMING
+#CFLAGS += -DOCR_ENABLE_EDT_PROFILING -DOCR_ENABLE_EDT_NAMING
+
 # Debugging support
 # Enable debug
 CFLAGS += -DOCR_DEBUG
