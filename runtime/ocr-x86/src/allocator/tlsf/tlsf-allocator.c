@@ -167,6 +167,8 @@
 //                        |                                |
 //                        +--------------------------------+
 
+//#define UNIT_TEST_tlsfRealloc_TO_SAME_POOL   // Uncomment this to unit test that part of realloc functionality that tries to do the realloc in the SAME pool.
+
 #include "ocr-config.h"
 #ifdef ENABLE_ALLOCATOR_TLSF
 
@@ -257,22 +259,21 @@ enum computedVals {
  *
  * Free block:  (freeBlkHdr_t)
  *
- *   blkHdr_t * prevFreeBlock; <-- can NEVER be 0 or 1 (would indicate an
- *      occupied block). This should be fine as that would mean that
- *      the address of the previous block is 0x8 (in absolute) which
- *      is never going to happen...
+ *   blkHdr_t * pFreeBlkBkwdLink; <-- can NEVER be 0 or 1 (would indicate an
+ *      occupied block). This should be fine as no in-use block should start
+ *      at 0x0 or 0x1.
  *   u64 payloadSize;     <-- Size of this free block NOT including
  *      the size of this header.
- *   blkHdr_t * nextFreeBlock; <-- This field aligned 2^ALIGN_LOG2 bytes
+ *   blkHdr_t * pFreeBlkFrwdLink; <-- This field aligned ALIGNMENT bytes
  *   Immediately after this header:
  *       <FREE SPACE>
- *   u64 payloadSize; (used by next occupied block); must be at the very end
+ *   u64 payloadSize; (used by contiguously next block); must be at the very end
  *
  *
  * Used block:  (usedBlkHdr_t)
  *
  *   u64 aggregatedFreeBlockIndicators;
- *      - bit 0 indicates whether the previous block is free (1) or not (0)
+ *      - bit 0:  whether the contiguously previous block is free (1) or not (0)
  *      - the rest MUST be 0 to indicate that THIS block is occupied.
  *   u64 payloadSize;     <-- Size of this in-use block NOT including
  *      the size of this header. I.e., size of the "payload".
@@ -288,24 +289,24 @@ enum computedVals {
  * Generic block -- A block the type of which is either in need of determination, or
  * for which the specific type does not presently matter:  (gnrcBlkHdr_t)
  *
- *   bit 0:     isPrevBlockFree:         1 = Free; 0 = In Use
- *   bits 1:63  isThisBlockFree:  non-zero = Free; 0 = In Use
- *   u64        payloadSize; <-- Size of this free block NOT including this header.
+ *   bit 0:     isPrevNbrBlkFree:  <--        1 = Free; 0 = In Use
+ *   bits 1:63  isThisBlkFree:     <-- non-zero = Free; 0 = In Use
+ *   u64        payloadSize;       <-- Size of this free block NOT including this header.
  *   u64        typeDependentInfo; <-- Depends on if the block is in use or free.
  *
  * */
 typedef struct blkHdr_t {
     union {
-        struct blkHdr_t * pPrevFreeBlock;   // If THIS block header is for a free block, this value is defined.
+        struct blkHdr_t * pFreeBlkBkwdLink; // If THIS block header is for a free block, this value is defined.
         u64 aggregatedFreeBlockIndicators;  // Handy for initializing these fields together.
         struct {
-            u64 isPrevBlockFree:1;          // zero == in use;  non-zero == free
-            u64 isThisBlockFree:63;         // zero == in use;  non-zero == free
+            u64 isPrevNbrBlkFree:1;         // zero == in use;  non-zero == free
+            u64 isThisBlkFree:63;           // zero == in use;  non-zero == free
         };
     };
     u64 payloadSize;                        // Relevant for both free and in-use blocks.
     union {
-        struct blkHdr_t * pNextFreeBlock;   // Relevant for free blocks.
+        struct blkHdr_t * pFreeBlkFrwdLink; // Relevant for free blocks.
         u64 poolHeaderDescr;                // Relevant for in-use blocks.
     };
 } blkHdr_t;
@@ -429,9 +430,9 @@ static inline void SET_flAvailOrNot (poolHdr_t * pPool, u64 value) {
     SET64((u64) (&(pPool->flAvailOrNot)), value);
 }
 
-static inline void SET_nullBlock_pPrevFreeBlock (poolHdr_t * pPool, blkHdr_t * pBlk) {
+static inline void SET_nullBlock_pFreeBlkBkwdLink (poolHdr_t * pPool, blkHdr_t * pBlk) {
     blkHdr_t * pNullBlock = &(pPool->nullBlock);
-    u64 locToWrite = (u64) &(pNullBlock->pPrevFreeBlock);
+    u64 locToWrite = (u64) &(pNullBlock->pFreeBlkBkwdLink);
     SET64(locToWrite, (u64) pBlk);
 }
 
@@ -439,9 +440,9 @@ static inline void SET_nullBlock_payloadSize (poolHdr_t * pPool, u64 value) {
     SET64((u64) (&(pPool->nullBlock.payloadSize)), value);
 }
 
-static inline void SET_nullBlock_pNextFreeBlock (poolHdr_t * pPool, blkHdr_t * pBlk) {
+static inline void SET_nullBlock_pFreeBlkFrwdLink (poolHdr_t * pPool, blkHdr_t * pBlk) {
     blkHdr_t * pNullBlock = &(pPool->nullBlock);
-    u64 locToWrite = (u64) &(pNullBlock->pNextFreeBlock);
+    u64 locToWrite = (u64) &(pNullBlock->pFreeBlkFrwdLink);
     SET64(locToWrite, (u64) pBlk);
 }
 
@@ -474,14 +475,14 @@ static inline u64 GET_aggregatedFreeBlockIndicators (blkHdr_t * pBlk) {
     return temp;
 }
 
-static inline bool GET_isThisBlockFree (blkHdr_t * pBlk) {
+static inline bool GET_isThisBlkFree (blkHdr_t * pBlk) {
     return (GET_aggregatedFreeBlockIndicators((blkHdr_t *) pBlk) & (~1LL)) != 0;
 }
 
-static inline blkHdr_t * GET_pPrevFreeBlock (blkHdr_t * pBlk) {
-    ASSERT (GET_isThisBlockFree(pBlk));   // Should NOT try to access pPrevFreeBlock from a header of an in-use block.
+static inline blkHdr_t * GET_pFreeBlkBkwdLink (blkHdr_t * pBlk) {
+    ASSERT (GET_isThisBlkFree(pBlk));   // Should NOT try to access pFreeBlkBkwdLink from a header of an in-use block.
     u64 temp;
-    u64 locToRead = (u64) (&(pBlk->pPrevFreeBlock));
+    u64 locToRead = (u64) (&(pBlk->pFreeBlkBkwdLink));
     GET64(temp, locToRead);
     return (blkHdr_t *) temp;
 }
@@ -492,23 +493,23 @@ static inline u64 GET_payloadSize (blkHdr_t * pBlk) {
     return temp;
 }
 
-static inline blkHdr_t * GET_pNextFreeBlock (blkHdr_t * pBlk) {
-    ASSERT (GET_isThisBlockFree(pBlk));   // Should NOT try to access pNextFreeBlock from a header of an in-use block.
+static inline blkHdr_t * GET_pFreeBlkFrwdLink (blkHdr_t * pBlk) {
+    ASSERT (GET_isThisBlkFree(pBlk));   // Should NOT try to access pFreeBlkFrwdLink from a header of an in-use block.
     u64 temp;
-    u64 locToRead = (u64) (&(pBlk->pNextFreeBlock));
+    u64 locToRead = (u64) (&(pBlk->pFreeBlkFrwdLink));
     GET64(temp, locToRead);
     return (blkHdr_t *) temp;
 }
 
 static inline u64 GET_poolHeaderDescr (blkHdr_t * pBlk) {
-    ASSERT (!GET_isThisBlockFree(pBlk));   // Should NOT try to access poolHeaderDescr from a header of a free block.
+    ASSERT (!GET_isThisBlkFree(pBlk));   // Should NOT try to access poolHeaderDescr from a header of a free block.
     u64 temp;
     GET64(temp,((u64)(&(pBlk->poolHeaderDescr))));
     return temp;
 }
 
-static inline bool GET_isPrevBlockFree (blkHdr_t * pBlk) {
-    if(GET_isThisBlockFree(pBlk)) {
+static inline bool GET_isPrevNbrBlkFree (blkHdr_t * pBlk) {
+    if(GET_isThisBlkFree(pBlk)) {
         return false;  // If THIS block is free, it would have been combined with the spatially contiguous preceeding
                        // block if that block was also free.  Therefore, it must NOT be free.
     } else {
@@ -516,11 +517,11 @@ static inline bool GET_isPrevBlockFree (blkHdr_t * pBlk) {
     }
 }
 
-static inline void SET_pPrevFreeBlock (blkHdr_t * pBlk, blkHdr_t * pPrevBlk, bool overrideAsserts) {
+static inline void SET_pFreeBlkBkwdLink (blkHdr_t * pBlk, blkHdr_t * pPrevBlk, bool overrideAsserts) {
     if (! overrideAsserts) {
-        ASSERT (GET_isThisBlockFree(pBlk));       // Should NOT try to access pPrevFreeBlock from a header of an in-use block.
+        ASSERT (GET_isThisBlkFree(pBlk));       // Should NOT try to access pFreeBlkBkwdLink from a header of an in-use block.
     }
-    u64 locToWrite = (u64) (&(pBlk->pPrevFreeBlock));
+    u64 locToWrite = (u64) (&(pBlk->pFreeBlkBkwdLink));
     SET64(locToWrite, (u64) pPrevBlk);
 }
 
@@ -528,10 +529,10 @@ static inline void SET_payloadSize (blkHdr_t * pBlk, u64 value) {
     SET64((u64) (&(pBlk->payloadSize)),value);
 }
 
-static inline void SET_pNextFreeBlock (blkHdr_t * pBlk, blkHdr_t * pNextBlk) {
-    ASSERT (GET_isThisBlockFree(pBlk));       // Should NOT try to access pNextFreeBlock from a header of an in-use block.
-    ASSERT (GET_isThisBlockFree(pNextBlk));   // Should NOT set pNextFreeBlock of this block to point to an in-use block.
-    u64 locToWrite = (u64) (&(pBlk->pNextFreeBlock));
+static inline void SET_pFreeBlkFrwdLink (blkHdr_t * pBlk, blkHdr_t * pNextBlk) {
+    ASSERT (GET_isThisBlkFree(pBlk));       // Should NOT try to access pFreeBlkFrwdLink from a header of an in-use block.
+    ASSERT (GET_isThisBlkFree(pNextBlk));   // Should NOT set pFreeBlkFrwdLink of this block to point to an in-use block.
+    u64 locToWrite = (u64) (&(pBlk->pFreeBlkFrwdLink));
     SET64(locToWrite, (u64) pNextBlk);
 }
 
@@ -540,23 +541,23 @@ static inline void SET_aggregatedFreeBlockIndicators (blkHdr_t * pBlk, u64 value
 }
 
 static inline void SET_poolHeaderDescr (blkHdr_t * pBlk, u64 value) {
-    ASSERT (!GET_isThisBlockFree(pBlk));   // Should NOT try to access poolHeaderDescr from a header of a free block.
+    ASSERT (!GET_isThisBlkFree(pBlk));   // Should NOT try to access poolHeaderDescr from a header of a free block.
     SET64((u64) (&(pBlk->poolHeaderDescr)), value);
 }
 
-static inline void SET_isPrevBlockFree (blkHdr_t * pBlk, bool value) {
-    ASSERT(!GET_isThisBlockFree(pBlk)); /* SET_isPrevBlockFree can only be called on used block */
+static inline void SET_isPrevNbrBlkFree (blkHdr_t * pBlk, bool value) {
+    ASSERT(!GET_isThisBlkFree(pBlk)); /* SET_isPrevNbrBlkFree can only be called on used block */
     u64 temp = GET_aggregatedFreeBlockIndicators(pBlk);
     temp = (temp & (~1LL)) | (value ? 1LL : 0LL);
     SET_aggregatedFreeBlockIndicators(pBlk, temp);
 }
 
-static void markPrevBlockUsed(blkHdr_t * pBlk) {
-    SET_isPrevBlockFree(pBlk, 0);
+static void markPrevNbrBlockUsed(blkHdr_t * pBlk) {
+    SET_isPrevNbrBlkFree(pBlk, 0);
 }
 
-static void markPrevBlockFree(blkHdr_t * pBlk) {
-    SET_isPrevBlockFree(pBlk, 1);
+static void markPrevNbrBlockFree(blkHdr_t * pBlk) {
+    SET_isPrevNbrBlkFree(pBlk, 1);
 }
 
 // A whole bunch of internal methods used only in this file.
@@ -598,22 +599,22 @@ static inline blkHdr_t * mapPayloadAddrToBlockAddr(blkPayload_t * payload) {  //
     return ((blkHdr_t *) (((u64) payload) - sizeof(blkHdr_t)));
 }
 
-static inline blkHdr_t * getPrevBlock(poolHdr_t * pPool, blkHdr_t * pCurrBlk) {
-    ASSERT(GET_isPrevBlockFree(pCurrBlk));
-    u64 distanceToHeaderOfPreviousBlock;
+static inline blkHdr_t * getPrevNbrBlock(blkHdr_t * pCurrBlk) {
+    ASSERT(GET_isPrevNbrBlkFree(pCurrBlk));
+    u64 distanceToHeaderOfPrevNbrBlock;
 #ifdef ENABLE_VALGRIND
     // Weird case so I'll just hack it for now
     VALGRIND_MAKE_MEM_DEFINED(((u64) pCurrBlk) - sizeof(u64), sizeof(u64));
 #endif
-    GET64 (distanceToHeaderOfPreviousBlock, (((u64) pCurrBlk)-sizeof(u64)));
+    GET64 (distanceToHeaderOfPrevNbrBlock, (((u64) pCurrBlk)-sizeof(u64)));
 #ifdef ENABLE_VALGRIND
     VALGRIND_MAKE_MEM_NOACCESS(((u64) pCurrBlk) - sizeof(u64), sizeof(u64));
 #endif
-    distanceToHeaderOfPreviousBlock += sizeof(blkHdr_t);
-    return ((blkHdr_t *) (((u64) pCurrBlk) - distanceToHeaderOfPreviousBlock));
+    distanceToHeaderOfPrevNbrBlock += sizeof(blkHdr_t);
+    return ((blkHdr_t *) (((u64) pCurrBlk) - distanceToHeaderOfPrevNbrBlock));
 }
 
-static inline blkHdr_t * getNextBlock(poolHdr_t * pPool, blkHdr_t * pBlk) {
+static inline blkHdr_t * getNextNbrBlock(blkHdr_t * pBlk) {
     u64 offset = GET_payloadSize(pBlk);
     offset += sizeof(blkHdr_t);
     return ((blkHdr_t *) (((u64) pBlk) + offset));
@@ -621,11 +622,11 @@ static inline blkHdr_t * getNextBlock(poolHdr_t * pPool, blkHdr_t * pBlk) {
 
 // For valgrind, assumes first and second are properly setup
 static void linkFreeBlocks(poolHdr_t * pPool, blkHdr_t * pFirstBlk, blkHdr_t * pSecondBlk) {
-    ASSERT(GET_isThisBlockFree(pFirstBlk));  /* linkFreeBlocks arg1 not free */
-    ASSERT(GET_isThisBlockFree(pSecondBlk)); /* linkFreeBlocks arg2 not free */
+    ASSERT(GET_isThisBlkFree(pFirstBlk));  /* linkFreeBlocks arg1 not free */
+    ASSERT(GET_isThisBlkFree(pSecondBlk)); /* linkFreeBlocks arg2 not free */
 
     /* Consec blocks cannot be free */
-    ASSERT(getNextBlock(pPool, pFirstBlk) != pSecondBlk);
+    ASSERT(getNextNbrBlock(pFirstBlk) != pSecondBlk);
 
     /* linkFreeBlocks arg1 misaligned */
     ASSERT((((u64) pFirstBlk) & (ALIGNMENT-1LL)) == 0LL);
@@ -633,24 +634,24 @@ static void linkFreeBlocks(poolHdr_t * pPool, blkHdr_t * pFirstBlk, blkHdr_t * p
     /* linkFreeBlocks arg2 misaligned */
     ASSERT((((u64) pSecondBlk) & (ALIGNMENT-1LL)) == 0LL);
 
-    SET_pNextFreeBlock(pFirstBlk, pSecondBlk);
-    SET_pPrevFreeBlock(pSecondBlk, pFirstBlk, false);
+    SET_pFreeBlkFrwdLink(pFirstBlk, pSecondBlk);
+    SET_pFreeBlkBkwdLink(pSecondBlk, pFirstBlk, false);
 }
 
 static void markBlockUsed(poolHdr_t * pPool, blkHdr_t * pBlk) {
     SET_aggregatedFreeBlockIndicators(pBlk, 0LL);
     SET_poolHeaderDescr(pBlk, (((u64) pPool) | allocatorTlsf_id));
 
-    blkHdr_t * pNextBlock = getNextBlock(pPool, pBlk);
+    blkHdr_t * pNextBlock = getNextNbrBlock(pBlk);
     VALGRIND_DEFINED(pNextBlock);
-    if(!GET_isThisBlockFree(pNextBlock))
-        markPrevBlockUsed(pNextBlock);
+    if(!GET_isThisBlkFree(pNextBlock))
+        markPrevNbrBlockUsed(pNextBlock);
     VALGRIND_NOACCESS(pNextBlock);
 }
 
 static void markBlockFree(poolHdr_t * pPool, blkHdr_t * pBlk) {
     // To mark a block as free, we need to duplicate it's size at the end of
-    // the block so that the next block can find the beginning of the free block.
+    // the block so that the contiguously next block can find the beginning of the free block.
     u64 payloadSize = GET_payloadSize(pBlk);
     u64 locationToWrite = ((u64) pBlk) + sizeof(blkHdr_t) + payloadSize - sizeof(u64);
 #ifdef ENABLE_VALGRIND
@@ -662,14 +663,14 @@ static void markBlockFree(poolHdr_t * pPool, blkHdr_t * pBlk) {
     VALGRIND_MAKE_MEM_NOACCESS(locationToWrite, sizeof(u64));
 #endif
 
-    SET_pPrevFreeBlock(pBlk, ((blkHdr_t *) 0xBEEFLL), true); // Write some value that is not 0 or 1 for now;
+    SET_pFreeBlkBkwdLink(pBlk, ((blkHdr_t *) 0xBEEFLL), true); // Write some value that is not 0 or 1 for now;
         // will be updated when this free block is actually inserted
 
-    blkHdr_t * pNextBlock = getNextBlock(pPool, pBlk);
+    blkHdr_t * pNextBlock = getNextNbrBlock(pBlk);
     VALGRIND_DEFINED((u64) pNextBlock);
 
-    if(!GET_isThisBlockFree(pNextBlock))  // Usually, no two free blocks follow each other but it may happen temporarily
-        markPrevBlockFree(pNextBlock);
+    if(!GET_isThisBlkFree(pNextBlock))  // Usually, no two free blocks follow each other but it may happen temporarily
+        markPrevNbrBlockFree(pNextBlock);
 
     VALGRIND_NOACCESS((u64) pNextBlock);
 }
@@ -775,30 +776,30 @@ static blkHdr_t * findFreeBlockForRealSize(
 // For valgrind, assumes freeBlock is OK
 static void removeFreeBlock(poolHdr_t * pPool, blkHdr_t * pFreeBlk) {
     u64 tempSz;
-    ASSERT(GET_isThisBlockFree(pFreeBlk));
+    ASSERT(GET_isThisBlkFree(pFreeBlk));
     int flIndex, slIndex;
     tempSz = GET_payloadSize(pFreeBlk);
     mappingInsert(tempSz, &flIndex, &slIndex);
 
     // First remove it from the chain of free blocks
-    blkHdr_t * pPrevFreeBlock = GET_pPrevFreeBlock(pFreeBlk);
-    blkHdr_t * pNextFreeBlock = GET_pNextFreeBlock(pFreeBlk);
+    blkHdr_t * pFreeBlkBkwdLink = GET_pFreeBlkBkwdLink(pFreeBlk);
+    blkHdr_t * pFreeBlkFrwdLink = GET_pFreeBlkFrwdLink(pFreeBlk);
 
-    VALGRIND_DEFINED1(pPrevFreeBlock);
-    VALGRIND_DEFINED(pNextFreeBlock);
+    VALGRIND_DEFINED1(pFreeBlkBkwdLink);
+    VALGRIND_DEFINED(pFreeBlkFrwdLink);
 
-    ASSERT(pPrevFreeBlock != _NULL && GET_isThisBlockFree(pPrevFreeBlock));
-    ASSERT(pNextFreeBlock != _NULL && GET_isThisBlockFree(pNextFreeBlock));
+    ASSERT(pFreeBlkBkwdLink != _NULL && GET_isThisBlkFree(pFreeBlkBkwdLink));
+    ASSERT(pFreeBlkFrwdLink != _NULL && GET_isThisBlkFree(pFreeBlkFrwdLink));
 
-    linkFreeBlocks(pPool, pPrevFreeBlock, pNextFreeBlock);
+    linkFreeBlocks(pPool, pFreeBlkBkwdLink, pFreeBlkFrwdLink);
 
     // Check if we need to change the head of the blocks list
     if(pFreeBlk == GET_availBlkListHead(pPool, flIndex, slIndex)) {
-        SET_availBlkListHead (pPool, flIndex, slIndex, pNextFreeBlock);
+        SET_availBlkListHead (pPool, flIndex, slIndex, pFreeBlkFrwdLink);
 
         // If the new head is nullBlock then we clear the bitmaps to
         // indicate that we have no more blocks available here
-        if(pNextFreeBlock == &(pPool->nullBlock)) {
+        if(pFreeBlkFrwdLink == &(pPool->nullBlock)) {
             tempSz = GET_slAvailOrNot(pPool, flIndex);
             tempSz &= ~(((u64) 1LL) << slIndex); // Clear me bit
             SET_slAvailOrNot(pPool, flIndex, tempSz);
@@ -813,8 +814,8 @@ static void removeFreeBlock(poolHdr_t * pPool, blkHdr_t * pFreeBlk) {
         }
     }
 
-    VALGRIND_NOACCESS1(pPrevFreeBlock);
-    VALGRIND_NOACCESS(pNextFreeBlock);
+    VALGRIND_NOACCESS1(pFreeBlkBkwdLink);
+    VALGRIND_NOACCESS(pFreeBlkFrwdLink);
 }
 
 // Assumes freeBlock OK for valgrind
@@ -835,12 +836,12 @@ void addFreeBlock(poolHdr_t * pPool, blkHdr_t * pFreeBlock) {
 
     VALGRIND_DEFINED(pCurrentHead);
     // Set the links properly
-    SET_pPrevFreeBlock(pFreeBlock, &(pPool->nullBlock), false);
+    SET_pFreeBlkBkwdLink(pFreeBlock, &(pPool->nullBlock), false);
     linkFreeBlocks(pPool, pFreeBlock, pCurrentHead);
 
-    SET_pPrevFreeBlock(pFreeBlock, &(pPool->nullBlock), false);
-    SET_pNextFreeBlock(pFreeBlock, pCurrentHead);
-    SET_pPrevFreeBlock(pCurrentHead, pFreeBlock, false); // Does not matter if head , was the nullBlock; that value is ignored anyway
+    SET_pFreeBlkBkwdLink(pFreeBlock, &(pPool->nullBlock), false);
+    SET_pFreeBlkFrwdLink(pFreeBlock, pCurrentHead);
+    SET_pFreeBlkBkwdLink(pCurrentHead, pFreeBlock, false); // Does not matter if head was the nullBlock; that value is ignored anyway
 
     // Update the bitmaps
     SET_availBlkListHead (pPool, flIndex, slIndex, pFreeBlock);
@@ -895,24 +896,24 @@ static blkHdr_t * splitBlock(poolHdr_t * pPool, blkHdr_t * pOrigBlock, u64 alloc
  */
 // Assumes freeBlock and nextBlock OK for valgrind
 static void absorbNext(poolHdr_t * pPool, blkHdr_t * pFreeBlock, blkHdr_t * pNextBlock) {
-    ASSERT(GET_isThisBlockFree(pFreeBlock));
-    ASSERT(GET_isThisBlockFree(pNextBlock));
-    ASSERT(getNextBlock(pPool, pFreeBlock) == pNextBlock);
+    ASSERT(GET_isThisBlkFree(pFreeBlock));
+    ASSERT(GET_isThisBlkFree(pNextBlock));
+    ASSERT(getNextNbrBlock(pFreeBlock) == pNextBlock);
     u64 tempSz = GET_payloadSize(pFreeBlock) + GET_payloadSize(pNextBlock) + sizeof(blkHdr_t);
     SET_payloadSize(pFreeBlock, tempSz);
     markBlockFree(pPool, pFreeBlock); // will update the other field
 }
 
-/* Merge with the previous block if it is free (blockToBeFreed must be used so
- * GET_isPrevBlockFree can return true) Returns the resulting free block (either
+/* Merge with the contiguously previous block if it is free (blockToBeFreed must be used
+ * so GET_isPrevNbrBlkFree can return true) Returns the resulting free block (either
  * blockToBeFreed marked as free or the larger block)
  */
 // Assume blockToBeFreed OK for valgrind
-static blkHdr_t * mergePrevious(poolHdr_t * pPool, blkHdr_t * pBlockToBeFreed) {
-    ASSERT(!GET_isThisBlockFree(pBlockToBeFreed));
-    if(GET_isPrevBlockFree(pBlockToBeFreed)) {
+static blkHdr_t * mergePrevNbr(poolHdr_t * pPool, blkHdr_t * pBlockToBeFreed) {
+    ASSERT(!GET_isThisBlkFree(pBlockToBeFreed));
+    if(GET_isPrevNbrBlkFree(pBlockToBeFreed)) {
         // Get the previous block
-        blkHdr_t * pPrevBlock = getPrevBlock(pPool, pBlockToBeFreed);
+        blkHdr_t * pPrevBlock = getPrevNbrBlock(pBlockToBeFreed);
         VALGRIND_DEFINED1(pPrevBlock);
         // Remove it from the free-lists (since it will be made bigger)
         removeFreeBlock(pPool, pPrevBlock);
@@ -921,24 +922,24 @@ static blkHdr_t * mergePrevious(poolHdr_t * pPool, blkHdr_t * pBlockToBeFreed) {
         markBlockFree(pPool, pBlockToBeFreed);
         absorbNext(pPool, pPrevBlock, pBlockToBeFreed);
         pBlockToBeFreed = pPrevBlock;
-        ASSERT(GET_isThisBlockFree(pBlockToBeFreed));
+        ASSERT(GET_isThisBlkFree(pBlockToBeFreed));
         VALGRIND_NOACCESS1(pPrevBlock);
     } else {
         markBlockFree(pPool, pBlockToBeFreed);
-        ASSERT(GET_isThisBlockFree(pBlockToBeFreed));
+        ASSERT(GET_isThisBlkFree(pBlockToBeFreed));
     }
 
     return pBlockToBeFreed;
 }
 
-/* Merges a block with its block if that one is free as well. The input
+/* Merges a block with the block contiguously next if that one is free as well. The input
  * block must be free to start with
  */
-static blkHdr_t * mergeNext(poolHdr_t * pPool, blkHdr_t * pFreeBlock) {
-    ASSERT(GET_isThisBlockFree(pFreeBlock));
-    blkHdr_t * pNextBlock = getNextBlock(pPool, pFreeBlock);
+static blkHdr_t * mergeNextNbr(poolHdr_t * pPool, blkHdr_t * pFreeBlock) {
+    ASSERT(GET_isThisBlkFree(pFreeBlock));
+    blkHdr_t * pNextBlock = getNextNbrBlock(pFreeBlock);
     VALGRIND_DEFINED1(pNextBlock);
-    if(GET_isThisBlockFree(pNextBlock)) {
+    if(GET_isThisBlkFree(pNextBlock)) {
         removeFreeBlock(pPool, pNextBlock);
         absorbNext(pPool, pFreeBlock, pNextBlock);
     }
@@ -968,13 +969,13 @@ static void initializePool(poolHdr_t * pPool, u64 poolRealSize) {
     SET_aggregatedFreeBlockIndicators (pGlebe, 0xBEEF0LL);
     SET_aggregatedFreeBlockIndicators (pNullBlock, 0xBEEF0LL);
     SET_payloadSize(pGlebe, poolRealSize - 2LL*sizeof(blkHdr_t));
-    SET_pNextFreeBlock(pGlebe, pNullBlock);
+    SET_pFreeBlkFrwdLink(pGlebe, pNullBlock);
 
     // This code is from markBlockFree (it marks the glebe as a single free block).  We paste
     // it here to remove some of the actions on next/prev block which bother valgrind
     u64 locationToWrite = ((u64) pGlebe) + (poolRealSize - sizeof(blkHdr_t)) - sizeof(u64);
     SET64 (locationToWrite, poolRealSize - (2LL*sizeof(blkHdr_t)));
-    SET_pPrevFreeBlock(pGlebe, ((blkHdr_t *) 0xBEEFLL), true);  // Write some value that is not 0 or 1 for now
+    SET_pFreeBlkBkwdLink(pGlebe, ((blkHdr_t *) 0xBEEFLL), true);  // Write some value that is not 0 or 1 for now
 
     // Add the sentinel
     blkHdr_t * pSentinelBlk = (blkHdr_t *) (locationToWrite + sizeof(u64));
@@ -983,8 +984,8 @@ static void initializePool(poolHdr_t * pPool, u64 poolRealSize) {
 
     // Initialize the nullBlock properly
     SET_nullBlock_payloadSize(pPool, 0);
-    SET_nullBlock_pPrevFreeBlock(pPool, pNullBlock);
-    SET_nullBlock_pNextFreeBlock(pPool, pNullBlock);
+    SET_nullBlock_pFreeBlkBkwdLink(pPool, pNullBlock);
+    SET_nullBlock_pFreeBlkFrwdLink(pPool, pNullBlock);
 
     // Add the glebe, i.e. the big free block
     addFreeBlock(pPool, pGlebe);
@@ -1000,7 +1001,7 @@ static u32 tlsfInit(poolHdr_t * pPool, u64 size) {
      */
 
 // Figure out how much additional space needs to be annexed onto the end of the poolHdr_t struct
-// for first-level buckets beyond the first one:
+// for the first-level bucket bit-masks and second-level block lists.
 
     size &= ~(ALIGNMENT-1);
     u64 poolHeaderSize = sizeof(poolHdr_t);  // This size will increase as we add first-level buckets.
@@ -1050,9 +1051,49 @@ static u32 tlsfInit(poolHdr_t * pPool, u64 size) {
 //    return -1;
 //    // TODO: Not implemented yet
 //}
+#ifdef UNIT_TEST_tlsfRealloc_TO_SAME_POOL
+static blkPayload_t * tlsfMallocShim(poolHdr_t * pPool, u64 size);
+static blkPayload_t * tlsfRealloc(poolHdr_t * pPool, blkPayload_t * pOldBlkPayload, u64 size);
+static void tlsfFree(poolHdr_t * pPool, blkPayload_t * pPayload);
+#endif
 
-static blkPayload_t * tlsfMalloc(poolHdr_t * pPool, u64 size) {
-    blkPayload_t * result = 0ULL;
+void tlsf_walk_heap(poolHdr_t * pPool/*, tlsf_walkerAction action, void* extra*/);
+static blkPayload_t * tlsfMalloc(poolHdr_t * pPool, u64 size)
+{
+// To unit test same-pool Realloc, create the requested block, increase its size artificially, then reduce it back to the requested size.
+#ifdef UNIT_TEST_tlsfRealloc_TO_SAME_POOL
+    blkPayload_t * pResult = tlsfMallocShim(pPool, size);
+    blkPayload_t * p1 = tlsfMallocShim(pPool, 64);
+    blkPayload_t * p2 = tlsfMallocShim(pPool, 64);
+    blkPayload_t * p1r = tlsfRealloc(pPool, p1, 128);
+    if (p1r) tlsfFree(pPool, p1r); else if (p1) tlsfFree(pPool, p1);
+    if (p2) tlsfFree(pPool, p2);
+    if (pResult == _NULL) return _NULL;
+    blkPayload_t * pLargerBlock = tlsfRealloc(pPool, pResult, size+64L);
+    if (pLargerBlock == _NULL) {
+        return pResult;
+    }
+    if (pLargerBlock == pResult) {
+        printf ("tlsfMalloc (unit testing tlsfRealloc) was able to realloc to a larger block IN PLACE\n");
+    } else {
+        printf ("tlsfMalloc (unit testing tlsfRealloc) was able to realloc to a larger block BY MOVING IT\n");
+    }
+    printf ("about to shrink block\n");
+    pResult = tlsfRealloc(pPool, pLargerBlock, size);
+    if (pResult == _NULL) {
+        printf ("tlsfMalloc (unit testing tlsfRealloc) failed to realloc from %ld to %ld bytes (very bad!)\n", (u64) (size+64), (u64) size);
+        return pLargerBlock;
+    }
+    ASSERT (pResult == pLargerBlock);  // Should always be able to shring a block in place.
+    //printf ("heap walk after malloc of %ld bytes to 0x%ld\n", (u64) size, (u64) pResult);
+    //tlsf_walk_heap(pPool);
+    return pResult;
+}
+
+static blkPayload_t * tlsfMallocShim(poolHdr_t * pPool, u64 size)
+{
+#endif
+    blkPayload_t * pResult = 0ULL;
     u64 payloadSize, returnedSize;
     int flIndex, slIndex;
     blkHdr_t * pAvailableBlock;
@@ -1089,10 +1130,10 @@ static blkPayload_t * tlsfMalloc(poolHdr_t * pPool, u64 size) {
     }
     markBlockUsed(pPool, pAvailableBlock);
     VALGRIND_NOACCESS1(pAvailableBlock);
-    result = payloadAddressForBlock(pAvailableBlock);
+    pResult = payloadAddressForBlock(pAvailableBlock);
     DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @ 0x%lx returning 0x%lx for size %ld\n",
-        (u64) pPool, (u64) result, (u64) size);
-    return result;
+        (u64) pPool, (u64) pResult, (u64) size);
+    return pResult;
 }
 
 static void tlsfFree(poolHdr_t * pPool, blkPayload_t * pPayload) {
@@ -1102,90 +1143,94 @@ static void tlsfFree(poolHdr_t * pPool, blkPayload_t * pPayload) {
 #ifdef ENABLE_VALGRIND
     blkHdr_t * pBlkTemp = pBlk;
     VALGRIND_DEFINED1(pBlk);
-    pBlk = mergePrevious(pPool, pBlk);
+    pBlk = mergePrevNbr(pPool, pBlk);
     VALGRIND_NOACCESS1(pBlkTemp);
     pBlkTemp = pBlk;
     VALGRIND_DEFINED1(pBlk);
-    pBlk = mergeNext(pPool, pBlk);
+    pBlk = mergeNextNbr(pPool, pBlk);
     VALGRIND_NOACCESS1(pBlkTemp);
     VALGRIND_DEFINED1(pBlk);
     addFreeBlock(pPool, pBlk);
     VALGRIND_NOACCESS1(pBlk);
 #else
-    pBlk = mergePrevious(pPool, pBlk);
-    pBlk = mergeNext(pPool, pBlk);
+    pBlk = mergePrevNbr(pPool, pBlk);
+    pBlk = mergeNextNbr(pPool, pBlk);
     addFreeBlock(pPool, pBlk);
 #endif
 }
 
-#if 0
-// TODO:  Usage is presently disabled.  Will need lots of rework.
-static u64 tlsfRealloc(u64 pgStart, u64 ptr, u64 size) {
+static blkPayload_t * tlsfRealloc(poolHdr_t * pPool, blkPayload_t * pOldBlkPayload, u64 size) {
     // First deal with corner cases:
     //  - non-zero size with null pointer is like malloc
     //  - zero size with ptr like free
 
-    if(ptr && size == 0) {
-        tlsfFree(pgStart, ptr);
+    if(pOldBlkPayload != _NULL && size == 0) {
+        tlsfFree(pPool, pOldBlkPayload);
         return _NULL;
     }
-    if(!ptr) {
-        return tlsfMalloc(pgStart, size);
+    if(pOldBlkPayload == _NULL) {
+#ifdef UNIT_TEST_tlsfRealloc_TO_SAME_POOL
+        return tlsfMallocShim(pPool, size);
+#else
+        return tlsfMalloc(pPool, size);
+#endif
     }
 
-    u64 result;
-    result = _NULL;
-    headerAddr_t bl, nextBlock;
-    /* blkHdr_t * */ u64 blockAddr, nextBlockAddr;
-    u64 realReqSize, realAvailSize, tempSz;
-
-    bl = blockForAddress(pgStart, ptr);
-    blockAddr = GET_ADDRESS(bl);
-    VALGRIND_DEFINED(blockAddr);
-    nextBlock = getNextBlock(pgStart, blockAddr);
-    nextBlockAddr = GET_ADDRESS(nextBlock);
-    VALGRIND_DEFINED1(nextBlockAddr);
-
-    realAvailSize = ((gnrcBlkHdr_t *) nextBlockAddr)->payloadSize;
-    tempSz = ((gnrcBlkHdr_t *) blockAddr)->payloadSize;
-    realAvailSize += tempSz + GusedBlockOverhead; // realAvailSize = blockAddr->payloadSize
-    // + nextBlockAddr->payloadSize + GusedBlockOverhead
-    realReqSize = getRealSizeOfRequest(size);
-
-    if(realReqSize > tempSz || (!GET_isThisBlockFree(nextBlockAddr) || realReqSize > realAvailSize)) {
-        // We need to reallocate and copy
-        // Note, does not matter if pgStart was already truncated, it is an idempotent operation
-        result = tlsfMalloc(pgStart, size);
-        if(result) {
-            u64 sizeToCopy = tempSz<realReqSize?tempSz:realReqSize;
-            hal_memCopy(result, ptr, sizeToCopy << ELEMENT_SIZE_LOG2, false);
-            tlsfFree(pgStart, ptr); // Free the original block
+    blkPayload_t * pResultPayload;
+    blkHdr_t * pOldBlk = mapPayloadAddrToBlockAddr (pOldBlkPayload);
+    VALGRIND_DEFINED(pOldBlk);
+    blkHdr_t * pNextNbrBlk = getNextNbrBlock(pOldBlk);
+    VALGRIND_DEFINED1(pNextNbrBlk);
+    u64 annexSizeAvailable = GET_isThisBlkFree(pNextNbrBlk) ?  // Is the next contiguous block free?
+        GET_payloadSize(pNextNbrBlk) + sizeof(blkHdr_t) :      // If so, its total size is available for annexation;
+        0;                                                     // but if not, then no space is available for annexation.
+    u64 existingPayloadSize = GET_payloadSize(pOldBlk);
+    u64 maximumInPlacePayloadSize = existingPayloadSize + annexSizeAvailable;
+    u64 newPayloadSize = getRealSizeOfRequest(size);
+    if (newPayloadSize > maximumInPlacePayloadSize) {          // Needed size exceeds available?
+#ifdef UNIT_TEST_tlsfRealloc_TO_SAME_POOL
+        blkPayload_t * pNewBlkPayload = tlsfMallocShim(pPool, newPayloadSize);
+#else
+        blkPayload_t * pNewBlkPayload = tlsfMalloc(pPool, newPayloadSize);
+#endif
+        if (pNewBlkPayload) {
+            hal_memCopy(pNewBlkPayload, pOldBlkPayload, existingPayloadSize, false);
+            tlsfFree(pPool, pOldBlkPayload);
         }
+        pResultPayload = pNewBlkPayload;
     } else {
-        if(realReqSize > tempSz) {
+        if (newPayloadSize > existingPayloadSize) {
             // This means we need to extend to the other block
-            removeFreeBlock(pgStart, nextBlock);
-            ((gnrcBlkHdr_t *) blockAddr)->payloadSize = realAvailSize;
-            markBlockUsed(pgStart, blockAddr);
+            removeFreeBlock(pPool, pNextNbrBlk);
+            SET_payloadSize(pOldBlk, maximumInPlacePayloadSize);
+            markBlockUsed(pPool, pOldBlk);
         } else {
-            realAvailSize = tempSz;
+            maximumInPlacePayloadSize = existingPayloadSize;
         }
         // We can trim to just the size used to create a new
         // free block and reduce internal fragmentation
-        if(realAvailSize > realReqSize + GminBlockRealSize) {
-            headerAddr_t remainingBlock = splitBlock(pgStart, bl, realReqSize);
-            VALGRIND_DEFINED1(GET_ADDRESS(remainingBlock));
-            addFreeBlock(pgStart, remainingBlock);
-            VALGRIND_NOACCESS1(GET_ADDRESS(remainingBlock));
+        if(maximumInPlacePayloadSize > newPayloadSize + sizeof(blkHdr_t)) {
+            blkHdr_t * pRemainingBlock = splitBlock(pPool, pOldBlk, newPayloadSize);
+#ifdef ENABLE_VALGRIND
+            VALGRIND_DEFINED1(pRemainingBlock);
+            blkHdr_t * pBlkTemp = pRemainingBlock;
+            pRemainingBlock = mergeNextNbr(pPool, pRemainingBlock);
+            VALGRIND_NOACCESS1(pBlkTemp);
+            VALGRIND_DEFINED1(pRemainingBlock);
+            addFreeBlock(pPool, pRemainingBlock);
+            VALGRIND_NOACCESS1(pRemainingBlock);
+#else
+            pRemainingBlock = mergeNextNbr(pPool, pRemainingBlock);
+            addFreeBlock(pPool, pRemainingBlock);
+#endif
         }
-        result = ptr;
+        pResultPayload = pOldBlkPayload;
     }
 
-    VALGRIND_NOACCESS(blockAddr);
-    VALGRIND_NOACCESS1(nextBlockAddr);
-    return result;
+    VALGRIND_NOACCESS(pOldBlk);
+    VALGRIND_NOACCESS1(pNextNbrBlk);
+    return pResultPayload;
 }
-#endif
 
 void tlsfDestruct(ocrAllocator_t *self) {
     if(self->memoryCount) {
@@ -1298,7 +1343,7 @@ void tlsfFinish(ocrAllocator_t *self) {
 void* tlsfAllocate(
     ocrAllocator_t *self,   // Allocator to attempt block allocation
     u64 size,               // Size of desired block, in bytes
-    u64 hints) {      // Allocator-dependent hints; TLSF supports reduced contention
+    u64 hints) {            // Allocator-dependent hints; TLSF supports reduced contention
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
 
     bool useRemnant = !(hints & OCR_ALLOC_HINT_REDUCE_CONTENTION);
@@ -1366,27 +1411,84 @@ void tlsfDeallocate(void* address) {
 #endif
 }
 
-void* tlsfReallocate(ocrAllocator_t *self, void* address, u64 size) {
-#if 1
-    DPRINTF (DEBUG_LVL_VERB, "TODO:  rework tlsfReallocate code.  Take into account caller might be different than original allocator.\n");
-    ASSERT (0);
-    return NULL;
-#else
-    ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
+void* tlsfReallocate(
+    ocrAllocator_t *self,   // Allocator to attempt block allocation
+    void * pCurrBlkPayload, // Address of existing block.  (NOT necessarily allocated to this Allocator instance, nor even in an allocator of this type.)
+    u64 size,               // Size of desired block, in bytes
+    u64 hints) {            // Allocator-dependent hints; TLSF supports reduced contention
 
-    hal_lock32(&(((poolHdr_t *) (rself->poolAddr))->lock));
+    if (pCurrBlkPayload == _NULL) {  // Handle corner case, where a non-existent "existing" block means this is just a plain ole malloc.
+        return tlsfAllocate (self, size, hints);
+    }
+    ASSERT (size != 0);     // Caller has to handle the oddball corner case where size is zero, meaning what we really want to do is a "free".
+
+    bool useRemnant = !(hints & OCR_ALLOC_HINT_REDUCE_CONTENTION);
+    blkHdr_t * pExistingBlock = mapPayloadAddrToBlockAddr(pCurrBlkPayload);
 #ifdef ENABLE_VALGRIND
-    u64 sizeOfPoolHdr = ((poolHdr_t *) (rself->poolAddr))->offsetToGlebe + sizeof(blkHdr_t);
-    VALGRIND_MAKE_MEM_DEFINED(rself->poolAddr, sizeOfPoolHdr);
+    VALGRIND_MAKE_MEM_DEFINED((u64) pExistingBlock, sizeof(blkHdr_t));
 #endif
-    void* toReturn = (void*)(tlsfRealloc(rself->poolAddr, (u64)address, size));
+    poolHdr_t * pPoolOfExistingBlock = (poolHdr_t *) (GET_poolHeaderDescr(pExistingBlock) & POOL_HEADER_ADDR_MASK);
+    ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
+    poolHdr_t * pRemnantPool = (poolHdr_t *) (((ocrAllocatorTlsf_t*)self)->poolAddr); // Addr of remnant pool (pool shared by ALL clients of allocator)
+    poolHdr_t * pFirstSlicePool = (poolHdr_t *) (((u64) pRemnantPool) - (((u64) rself->sliceCount) * ((u64) rself->sliceSize)));
+    if (pPoolOfExistingBlock <= pRemnantPool && pPoolOfExistingBlock >= pFirstSlicePool) {
+        // Existing block is in one of the pools of this allocator, either in one of its slices or in its remnant.  Ignoring the useRemnant flag, attempt
+        // to reallocate it to the same pool that it is already in.  Failing that, we will try reallocating it to the remnant.
+        hal_lock32(&(pPoolOfExistingBlock->lock));
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MEMPOOL_CHANGE(rself->poolAddr, address, toReturn, size);
-    VALGRIND_MAKE_MEM_NOACCESS(rself->poolAddr, sizeOfPoolHdr);
+        u64 sizeOfPoolHdr = GET_offsetToGlebe(pPoolOfExistingBlock) + sizeof(blkHdr_t);
+        VALGRIND_MAKE_MEM_DEFINED(pPoolOfExistingBlock, sizeOfPoolHdr);
 #endif
-    hal_unlock32(&(((poolHdr_t *) (rself->poolAddr))->lock));
-    return toReturn;
+        blkPayload_t* pNewBlockPayload = tlsfRealloc(pPoolOfExistingBlock, (blkPayload_t *)pCurrBlkPayload, size);
+#ifdef ENABLE_VALGRIND
+        VALGRIND_MEMPOOL_CHANGE(pPoolOfExistingBlock, pCurrBlkPayload, pNewBlockPayload, size);
+        VALGRIND_MAKE_MEM_NOACCESS(pPoolOfExistingBlock, sizeOfPoolHdr);
 #endif
+        hal_unlock32(&(pPoolOfExistingBlock->lock));
+        if (pNewBlockPayload != _NULL) return (void *) pNewBlockPayload; // If we succeeded in reallocating it in its existing pool, return the successful result.
+        if (pPoolOfExistingBlock == pRemnantPool) return _NULL;  // If the existing pool was the remnant, return failure so that the caller can try a different memory level.  Else, drop through to try remnant.
+        useRemnant = 1;
+    }
+
+    poolHdr_t * pPool = pRemnantPool;
+    if (useRemnant == 0) {  // Attempt to allocate the requested block to a semi-private slice pool picked in round-robin fashion.
+        if (rself->sliceCount == 0) return _NULL;  // Slicing is NOT implemented on this pool.  Return failure status.
+        if (rself->sliceSize < size) return _NULL; // Don't bother trying if the requested block is bigger than the pool supports.
+#ifdef ENABLE_VALGRIND
+        VALGRIND_MAKE_MEM_DEFINED((u64) pPool, sizeof(poolHdr_t));
+#endif
+        u64 sliceNum = GET_currSliceNum(pPool) + 1LL; // Read of thread-unsafe read-modify-write operation, but not a problem.
+        u64 slicePoolOffset = sliceNum * rself->sliceSize;
+        if (sliceNum == rself->sliceCount) sliceNum = 0;
+        SET_currSliceNum (pPool, sliceNum); // Write of thread-unsafe read-modify-write operation, but not a problem.
+#ifdef ENABLE_VALGRIND
+        VALGRIND_MAKE_MEM_NOACCESS((u64) pPool, sizeof(poolHdr_t));
+#endif
+        pPool = ((poolHdr_t *) (((u64) pPool) - slicePoolOffset)); // Adjust pool pointer to point to this slice instead of remnant.
+    }
+
+#ifdef ENABLE_VALGRIND
+    VALGRIND_MAKE_MEM_DEFINED((u64) pPool, sizeof(poolHdr_t));
+    u64 sizeOfPoolHdr = GET_offsetToGlebe(pPool) + sizeof(blkHdr_t);
+    VALGRIND_MAKE_MEM_NOACCESS((u64) pPool, sizeof(poolHdr_t));
+    VALGRIND_MAKE_MEM_DEFINED((u64) pPool, sizeOfPoolHdr);
+#endif
+    hal_lock32(&(pPool->lock));
+    blkPayload_t * pNewBlockPayload = tlsfMalloc(pPool, size);
+    hal_unlock32(&(pPool->lock));
+
+    if (pNewBlockPayload != _NULL) {
+        u64 sizeOfOldBlock = GET_payloadSize(pExistingBlock);
+        u64 sizeOfNewBlock = GET_payloadSize(mapPayloadAddrToBlockAddr((blkPayload_t *) pNewBlockPayload));
+        u64 sizeToCopy = sizeOfOldBlock < sizeOfNewBlock ? sizeOfOldBlock : sizeOfNewBlock;
+        hal_memCopy(pNewBlockPayload, ((blkPayload_t *) pCurrBlkPayload), sizeToCopy, false);
+#ifdef ENABLE_VALGRIND
+        VALGRIND_MEMPOOL_ALLOC((u64) pPool, pNewBlockPayload, size);
+        VALGRIND_MAKE_MEM_NOACCESS((u64) pPool, sizeOfPoolHdr);
+#endif
+        allocatorFreeFunction(pCurrBlkPayload);  // Free up the old block.  (Note that this might call an entirely different allocator instance, and even a different allocator type.)
+    }
+    return pNewBlockPayload;
 }
 
 //#endif /* ENABLE_BUILDER_ONLY */
@@ -1449,7 +1551,7 @@ static void printBlock(void *block_, void* extra) {
     fprintf(stderr, "\tBlock %d starts at 0x%lx (user: 0x%lx) of size %d (user: %d) %s\n",
             *count, bl, (char*)bl + (GusedBlockOverhead << ELEMENT_SIZE_LOG2),
             bl->payloadSize, (bl->payloadSize << ELEMENT_SIZE_LOG2),
-            GET_isThisBlockFree(bl)?"free":"used");
+            GET_isThisBlkFree(bl)?"free":"used");
     *count += 1;
 }
 
@@ -1463,11 +1565,11 @@ static void verifyFlags(void *block_, void* extra) {
     blkHdr_t *bl = (blkHdr_t*)block_;
     flagVerifier_t* verif = (flagVerifier_t*)extra;
 
-    if(GET_isPrevBlockFree(bl) != verif->isPrevFree) {
+    if(GET_isPrevNbrBlkFree(bl) != verif->isPrevFree) {
         verif->countErrors += 1;
         fprintf(stderr, "Mismatch in free flag for block 0x%x\n", bl);
     }
-    if(GET_isThisBlockFree(bl)) {
+    if(GET_isThisBlkFree(bl)) {
         verif->countConsecutiveFrees += 1;
         if(verif->countConsecutiveFrees > 1) {
             fprintf(stderr, "Blocks did not coalesce (count of %d at 0x%x)\n",
@@ -1490,7 +1592,7 @@ void tlsf_walk_heap(u64 pgStart, tlsf_walkerAction action, void* extra) {
 
     while(bl && !(bl->payloadSize == 0)) {
         action(bl, extra);
-        bl = GET_ADDRESS(getNextBlock(pgStart, bl));
+        bl = GET_ADDRESS(getNextNbrBlock(bl));
     }
 }
 
@@ -1534,19 +1636,19 @@ int tlsf_check_heap(u64 pgStart, unsigned int *freeRemaining) {
                 // We now check all the blocks
                 blkHdr_t *blockHeadPtr = GET_ADDRESS(blockHead);
                 while(blockHeadPtr != &(poolToUse->nullBlock)) {
-                    if(!GET_isThisBlockFree(blockHeadPtr)) {
+                    if(!GET_isThisBlkFree(blockHeadPtr)) {
                         fprintf(stderr, "Block 0x%x should be free for (%d, %d)\n", blockHeadPtr, i, j);
                         ++errCount;
                     }
-                    if(GET_isThisBlockFree(GET_ADDRESS(getNextBlock(pgStart, blockHeadPtr)))) {
+                    if(GET_isThisBlkFree(GET_ADDRESS(getNextNbrBlock(blockHeadPtr)))) {
                         fprintf(stderr, "Block 0x%x should have coalesced with next for (%d, %d)\n", blockHeadPtr, i, j);
                         ++errCount;
                     }
-                    if(!GET_isPrevBlockFree(GET_ADDRESS(getNextBlock(pgStart, blockHeadPtr)))) {
+                    if(!GET_isPrevNbrBlkFree(GET_ADDRESS(getNextNbrBlock(blockHeadPtr)))) {
                         fprintf(stderr, "Block 0x%x is not prevFree for (%d, %d)\n", blockHeadPtr, i, j);
                         ++errCount;
                     }
-                    if(blockHeadPtr != GET_ADDRESS(getPrevBlock(pgStart, GET_ADDRESS(getNextBlock(pgStart, blockHeadPtr))))) {
+                    if(blockHeadPtr != GET_ADDRESS(getPrevNbrBlock(GET_ADDRESS(getNextNbrBlock(blockHeadPtr))))) {
 
                         fprintf(stderr, "Block 0x%x cannot be back-reached for (%d, %d)\n", blockHeadPtr, i, j);
                         ++errCount;
@@ -1565,7 +1667,7 @@ int tlsf_check_heap(u64 pgStart, unsigned int *freeRemaining) {
                         ++errCount;
                     }
                     countFree += blockHeadPtr->payloadSize;
-                    blockHead = GET_pNextFreeBlock(blockHeadPtr);
+                    blockHead = GET_pFreeBlkFrwdLink(blockHeadPtr);
                     blockHeadPtr = GET_ADDRESS(blockHead);
                 }
             }
