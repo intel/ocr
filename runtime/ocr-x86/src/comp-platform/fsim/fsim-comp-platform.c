@@ -20,7 +20,7 @@
 #define DEBUG_TYPE COMP_PLATFORM
 
 
-#if defined(TOOL_CHAIN_XE)
+#if defined(SAL_FSIM_XE)
 //
 // Apparently, the compiler needs memcpy() as a proper function and
 // cannot do without it for portable code... Hence, we need to define

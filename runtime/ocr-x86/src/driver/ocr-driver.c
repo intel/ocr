@@ -18,7 +18,6 @@
 #include "ocr-types.h"
 #include "ocr-sysboot.h"
 #include "utils/ocr-utils.h"
-#include "ocr.h"
 
 #include <stdlib.h>
 #include <stdio.h>

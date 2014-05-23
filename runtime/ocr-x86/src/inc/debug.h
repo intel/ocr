@@ -298,8 +298,6 @@
 #endif
 
 
-// Imply OCR_STATUS
-#define OCR_STATUS
 // Imply ASSERTs
 #define OCR_ASSERT
 
@@ -329,16 +327,6 @@
 #define DPRINTF(level, format, ...) DPRINTF_TYPE_INT(DEBUG_TYPE, level, format, ## __VA_ARGS__)
 
 #define END_DEBUG }
-
-#ifdef OCR_STATUS
-#define STATUS(format, ...)                                             \
-    PRINTF("##OCR-STATUS %s:%d " format, __FILE__, __LINE__,##__VA_ARGS__);
-
-#else
-#define STATUS(format, ...)
-#endif /* OCR_STATUS */
-
-#define STATUS0(format) STATUS("%s" format, "")
 
 #ifdef OCR_ASSERT
 #define ASSERT(a) do { sal_assert((bool)((a) != 0), __FILE__, __LINE__); } while(0);

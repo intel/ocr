@@ -41,8 +41,18 @@ extern "C" {
  * @return Number of characters printed, as per printf().
  *
  **/
-u32 PRINTF(const char * fmt, ...);
+extern u32 PRINTF(const char * fmt, ...);
 
+/**
+ * @brief Platform independent ASSERT
+ */
+extern void _ocrAssert(bool val, const char* file, u32 line);
+
+#ifdef OCR_ASSERT
+#define ASSERT(a) do { _ocrAssert((bool)((a) != 0), __FILE__, __LINE__); } while(0);
+#else
+#define ASSERT(a)
+#endif
 
 /**
  * @}

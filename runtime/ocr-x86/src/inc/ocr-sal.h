@@ -26,6 +26,7 @@ void getCurrentEnv(struct _ocrPolicyDomain_t** pd, struct _ocrWorker_t** worker,
 u32 SNPRINTF(char * buf, u32 size, const char * fmt, ...);
 u32 PRINTF(const char * fmt, ...);
 
+void _ocrAssert(bool val, const char* file, u32 line);
 
 #if defined(SAL_FSIM_XE)
 #include "sal/fsim-xe/ocr-sal-fsim-xe.h"

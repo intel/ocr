@@ -24,9 +24,9 @@
 
 #define DEBUG_TYPE POLICY
 
-#ifdef TOOL_CHAIN_XE
+
 void xePolicyDomainStart(ocrPolicyDomain_t * policy);
-#endif
+
 extern void ocrShutdown(void);
 
 void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
@@ -64,7 +64,7 @@ void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
         policy->workers[i]->fcts.begin(policy->workers[i], policy);
     }
 
-#ifdef TOOL_CHAIN_XE
+#if defined(SAL_FSIM_XE) // If running on FSim XE
     xePolicyDomainStart(policy);
     hal_exit(0);
 #endif

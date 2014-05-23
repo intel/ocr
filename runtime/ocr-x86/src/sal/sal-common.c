@@ -2,6 +2,10 @@
 #include "ocr-types.h"
 #include "ocr-sal.h"
 
+void _ocrAssert(bool val, const char* file, u32 line) {
+    sal_assert(val, file, line);
+}
+
 //
 // Common part of the SAL for all architectures
 //

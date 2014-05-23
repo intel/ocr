@@ -163,7 +163,7 @@ void* xeRunWorker(ocrWorker_t * worker) {
         // and should be executed by the "blessed" worker.
 
         void * packedUserArgv;
-#ifdef TOOL_CHAIN_XE
+#if defined(SAL_FSIM_XE)
         packedUserArgv = ((ocrPolicyDomainXe_t*)pd)->packedArgsLocation;
 extern ocrGuid_t mainEdt( u32, u64 *, u32, ocrEdtDep_t * );
 #else
@@ -179,7 +179,7 @@ extern ocrGuid_t mainEdt( u32, u64 *, u32, ocrEdtDep_t * );
         ocrDbCreate(&dbGuid, &dbPtr, totalLength,
                     DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 
-#ifndef TOOL_CHAIN_XE
+#if !defined(SAL_FSIM_XE)
         // copy packed args to DB
         hal_memCopy(dbPtr, packedUserArgv, totalLength, 0);
 #endif
