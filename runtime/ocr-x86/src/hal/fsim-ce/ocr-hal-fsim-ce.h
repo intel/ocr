@@ -326,7 +326,7 @@ static inline u64 AbstractLoad64(u64 addr) {
 #define GET64(temp,addr)  temp = AbstractLoad64(addr)
 
 // Abstraction to do a store operation to any level of the memory hierarchy
-static inline void SET8(u8 value, u64 addr) {
+static inline void SET8(u64 addr, u8 value) {
     if (IS_REMOTE(addr)) {
         rmd_st8(addr, value);
     } else {
@@ -334,7 +334,7 @@ static inline void SET8(u8 value, u64 addr) {
     }
 }
 
-static inline void SET16(u16 value, u64 addr) {
+static inline void SET16(u64 addr, u16 value) {
     if (IS_REMOTE(addr)) {
         rmd_st16(addr, value);
     } else {
@@ -342,7 +342,7 @@ static inline void SET16(u16 value, u64 addr) {
     }
 }
 
-static inline void SET32(u32 value, u64 addr) {
+static inline void SET32(u64 addr, u32 value) {
     if (IS_REMOTE(addr)) {
         rmd_st32(addr, value);
     } else {
@@ -350,7 +350,7 @@ static inline void SET32(u32 value, u64 addr) {
     }
 }
 
-static inline void SET64(u64 value, u64 addr) {
+static inline void SET64(u64 addr, u64 value) {
     if (IS_REMOTE(addr)) {
         rmd_st64(addr, value);
     } else {

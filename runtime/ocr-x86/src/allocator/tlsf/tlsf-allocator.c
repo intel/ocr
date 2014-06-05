@@ -989,6 +989,7 @@ static void initializePool(poolHdr_t * pPool, u64 poolRealSize) {
 
     // Add the glebe, i.e. the big free block
     addFreeBlock(pPool, pGlebe);
+
     VALGRIND_NOACCESS(pSentinelBlk);
 }
 
@@ -1020,6 +1021,7 @@ static u32 tlsfInit(poolHdr_t * pPool, u64 size) {
         poolSizeSpannedByFlBuckets <<= 1;
         if (flBucketCount == 26) break;
     }
+
     while (poolSizeSpannedByFlBuckets < sizeRemainingAfterPoolHeader) {
         flBucketCount++;
         poolHeaderSize = sizeof(poolHdr_t) +                                     // Non-variable-sized parts of pool header
@@ -1028,12 +1030,13 @@ static u32 tlsfInit(poolHdr_t * pPool, u64 size) {
         sizeRemainingAfterPoolHeader = size - poolHeaderSize - sizeof(blkHdr_t);
         poolSizeSpannedByFlBuckets <<= 1;
     }
+
     SET_lock         (pPool, 0);
     SET_flCount      (pPool, flBucketCount);
     SET_offsetToGlebe(pPool, poolHeaderSize);
     SET_currSliceNum (pPool, 0);
     poolHeaderSize += sizeof(blkHdr_t);
-// Now we have a poolHeaderSize that is big enough to contain the pool and right after it, we can start the glebe.
+    // Now we have a poolHeaderSize that is big enough to contain the pool and right after it, we can start the glebe.
     sizeRemainingAfterPoolHeader = size - poolHeaderSize;
     if(sizeRemainingAfterPoolHeader < GminBlockSizeIncludingHdr) {
         DPRINTF(DEBUG_LVL_WARN, "Not enough space provided to make a meaningful TLSF pool at pPool=0x%lx.", (u64)pPool);
@@ -1043,6 +1046,7 @@ static u32 tlsfInit(poolHdr_t * pPool, u64 size) {
     }
     DPRINTF(DEBUG_LVL_INFO,"Allocating a TLSF pool at 0x%lx of %ld bytes (glebe size, i.e. net size after pool overhead)\n",
         (u64)pPool, (u64)sizeRemainingAfterPoolHeader);
+
     initializePool(pPool, sizeRemainingAfterPoolHeader);
     return 0;
 }
@@ -1101,13 +1105,13 @@ static blkPayload_t * tlsfMallocShim(poolHdr_t * pPool, u64 size)
 
     payloadSize = getRealSizeOfRequest(size);
     if(size > 0 && payloadSize == 0) {
-        DPRINTF(DEBUG_LVL_WARN, "tslfMalloc returning NULL for request size too large (%ld bytes) on pool at 0x%lx\n",
+        DPRINTF(DEBUG_LVL_WARN, "tlsfMalloc returning NULL for request size too large (%ld bytes) on pool at 0x%lx\n",
                 size, (u64) pPool);
         return _NULL;
     }
 
     pAvailableBlock = findFreeBlockForRealSize(pPool, payloadSize, &flIndex, &slIndex);
-    DPRINTF(DEBUG_LVL_VERB, "tslf_malloc @0x%lx found a free block at 0x%lx\n",
+    DPRINTF(DEBUG_LVL_VERB, "tlsfMalloc @0x%lx found a free block at 0x%lx\n",
         (u64) pPool, (u64) pAvailableBlock);
 
     VALGRIND_DEFINED1(pAvailableBlock);
@@ -1253,6 +1257,7 @@ void tlsfBegin(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
     RESULT_ASSERT(rself->base.memories[0]->fcts.chunkAndTag(
                       rself->base.memories[0], &(rself->poolStorageAddr), rself->poolSize,
                       USER_FREE_TAG, USER_USED_TAG), ==, 0);
+
     ASSERT(rself->poolStorageAddr);
     // Adjust alignment if required
     rself->poolAddr = rself->poolStorageAddr;
@@ -1264,20 +1269,30 @@ void tlsfBegin(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
         rself->poolSize -= t;
     }
     rself->poolSize &= ~((ALIGNMENT-1LL));
+    DPRINTF(DEBUG_LVL_VERB, "TLSF Allocator @ 0x%llx got pool at address 0x%llx of size %lld\n",
+            rself, rself->poolAddr, rself->poolSize);
+
 #ifdef OCR_ENABLE_STATISTICS
     statsALLOCATOR_START(PD, self->guid, self, self->memories[0]->guid, self->memories[0]);
 #endif
     ASSERT(((rself->sliceCount+2)*rself->sliceSize)<=rself->poolSize); // Remnant has to be at least as large as two slices.  (Note:  we might want to implement the option of there being NO remnant!)
+
     for (i = 0; i < rself->sliceCount; i++) {
+        DPRINTF(DEBUG_LVL_VVERB, "TLSF Allocator @0x%llx initializing slice %d"
+                " at address 0x%llx of size %lld", rself, i, rself->poolAddr, rself->sliceSize);
         RESULT_ASSERT(tlsfInit(((poolHdr_t *) (rself->poolAddr)), rself->sliceSize), ==, 0);
+
 #ifdef ENABLE_VALGRIND
         VALGRIND_CREATE_MEMPOOL(((poolHdr_t *) (rself->poolAddr)), 0, false);
         VALGRIND_MAKE_MEM_NOACCESS(((poolHdr_t *) (rself->poolAddr)), rself->sliceSize);
 #endif
+
         rself->poolAddr += rself->sliceSize;
         rself->poolSize -= rself->sliceSize;
     }
+
     RESULT_ASSERT(tlsfInit(((poolHdr_t *) (rself->poolAddr)), rself->poolSize), ==, 0);
+
 #ifdef ENABLE_VALGRIND
     VALGRIND_CREATE_MEMPOOL(((poolHdr_t *) (rself->poolAddr)), 0, false);
     VALGRIND_MAKE_MEM_NOACCESS(((poolHdr_t *) (rself->poolAddr)), rself->poolSize);
@@ -1348,23 +1363,25 @@ void* tlsfAllocate(
 
     bool useRemnant = !(hints & OCR_ALLOC_HINT_REDUCE_CONTENTION);
     poolHdr_t * pPool = (poolHdr_t *) (((ocrAllocatorTlsf_t*)self)->poolAddr); // Addr of remnant pool (pool shared by ALL clients of allocator)
+    DPRINTF(DEBUG_LVL_VERB, "TLSF Allocate called with pool @ 0x%llx for size 0x%lld and useRemnant %d\n",
+            pPool, size, useRemnant);
 
     if (useRemnant == 0) {  // Attempt to allocate the requested block to a semi-private slice pool picked in round-robin fashion.
-        if (rself->sliceCount == 0) return _NULL;  // Slicing is NOT implemented on this pool.  Return failure status.
-        if (rself->sliceSize < size) return _NULL; // Don't bother trying if the requested block is bigger than the pool supports.
+        if (rself->sliceCount == 0) return _NULL; // Slicing is NOT implemented on this pool.  Return failure status.
+        if (rself->sliceSize < size) return _NULL; // Don't boter trying if the requested block is bigger than the pool supports.
         // Attempt allocations to slice pools on an entirely round-robin basis, so that any number of concurrent allocations up to
         // the number of slices can be supported with NO throttling on their locks.  In the following code, the increment and
         // wrap-around of the currSliceNum round-robin rotor is NOT thread safe, but it doesn't really need to be.  In the rare
         // occurrence of a race on that variable, getting it "wrong" doesn't hurt anything, and it's cheaper just to "let it ride".
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MAKE_MEM_DEFINED((u64) pPool, sizeof(poolHdr_t));
+        VALGRIND_MAKE_MEM_DEFINED((u64) pPool, sizeof(poolHdr_t));
 #endif
         u64 sliceNum = GET_currSliceNum(pPool) + 1LL; // Read of thread-unsafe read-modify-write operation, but not a problem.
         u64 slicePoolOffset = sliceNum * rself->sliceSize;
         if (sliceNum == rself->sliceCount) sliceNum = 0;
         SET_currSliceNum (pPool, sliceNum); // Write of thread-unsafe read-modify-write operation, but not a problem.
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MAKE_MEM_NOACCESS((u64) pPool, sizeof(poolHdr_t));
+        VALGRIND_MAKE_MEM_NOACCESS((u64) pPool, sizeof(poolHdr_t));
 #endif
         pPool = ((poolHdr_t *) (((u64) pPool) - slicePoolOffset)); // Adjust pool pointer to point to this slice instead of remnant.
     }
@@ -1513,6 +1530,9 @@ void initializeAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrAllocator_t * s
     derived->sliceSize         = perInstanceReal->sliceSize;
     derived->poolAddr          = derived->poolStorageAddr = 0ULL;
     derived->poolSize          = derived->poolStorageSize = perInstanceReal->base.size;
+    DPRINTF(DEBUG_LVL_INFO, "TLSF Allocator instance @ 0x%llx initialized with "
+            "sliceCount: %lld, sliceSize: %lld, poolSize: %lld",
+            self, derived->sliceCount, derived->sliceSize, derived->poolSize);
 }
 
 /******************************************************/
@@ -1679,4 +1699,3 @@ int tlsf_check_heap(u64 pgStart, unsigned int *freeRemaining) {
 #endif /* OCR_DEBUG */
 
 #endif /* ENABLE_TLSF_ALLOCATOR */
-

@@ -288,16 +288,36 @@ static void* allocateDatablock (ocrPolicyDomain_t *self,
     u64 hints = 0; // Allocator hint
     u64 idx;  // Index into the allocators array to select the allocator to try.
     ASSERT (self->allocatorCount > 0);
+
     do {
         hints = (prescription & 1)?(OCR_ALLOC_HINT_NONE):(OCR_ALLOC_HINT_REDUCE_CONTENTION);
+        // TODO: REC HACK. This code assumes that the CE has all allocators which is
+        // not the case for FSim right now. If only one allocator, ignore
+        // prescription
+        // In general, we should probably return something if we can whatever
+        // the prescription says...
+        if(self->allocatorCount == 1) {
+            result = self->allocators[0]->fcts.allocate(self->allocators[0], size, hints);
+            if(result) {
+                *allocatorIdx = 0;
+                return result;
+            } else {
+                prescription >>= 4; // Move to the next setting
+                continue;   // This allows us to fail allocating to a slice pool (which is probably always the case with L1 since
+                            // it doesn't make much sense to slice it), but still try the remnant pool.
+            }
+        }
+
         prescription >>= 1;
         idx = prescription & 7;  // Get the index of the allocator to use.
+
         prescription >>= 3;
         if (idx == 0) {
             idx = engineIndex;   // Zero selects an L1.  Which?  The one belonging to the requesting engine.
         } else {
             idx += ENGINE_INDEX_OF_CE;  // Non-zero selects something higher than L1.  Adjust index to get past ALL the L1s in the Block.
         }
+
         if ((idx > self->allocatorCount) || (self->allocators[idx] == NULL)) {
             continue;  // Skip this allocator if it doesn't exist.
         }
@@ -1067,6 +1087,22 @@ u8 cePdWaitMessage(ocrPolicyDomain_t *self,  ocrMsgHandle_t **handle) {
 void* cePdMalloc(ocrPolicyDomain_t *self, u64 size) {
     u64 i;
     void* result;
+    // TODO: REC HACK. Same as for allocateDatablock. If only one allocator, use it!!
+    if(self->allocatorCount == 1) {
+        result = self->allocators[0]->fcts.allocate(self->allocators[0], size,
+                                                    OCR_ALLOC_HINT_REDUCE_CONTENTION);
+        if(result == NULL) {
+            // Try the other way
+            result = self->allocators[0]->fcts.allocate(self->allocators[0], size,
+                                                        OCR_ALLOC_HINT_NONE);
+        }
+
+        if(result == NULL) {
+            DPRINTF(DEBUG_LVL_WARN, "cePdMalloc returning NULL for size %ld\n", size);
+        }
+        return result;
+    }
+
     for(i = ENGINE_INDEX_OF_CE; i < self->allocatorCount; i++) {
         result = self->allocators[i]->fcts.allocate(self->allocators[i], size,
             OCR_ALLOC_HINT_REDUCE_CONTENTION);   // Staticly reduce contention (Possibly refine later)

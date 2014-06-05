@@ -100,7 +100,7 @@ CFLAGS_STATIC := ${CFLAGS} ${CFLAGS_STATIC}
 endif
 # Shared library name (only set if not set in ARCH specific file)
 ifeq (${SUPPORTS_SHARED}, yes)
-CFLAGS_SHARED ?= 
+CFLAGS_SHARED ?=
 CFLAGS_SHARED := ${CFLAGS} ${CFLAGS_SHARED}
 OCRSHARED ?= libocr.so
 endif
@@ -249,7 +249,7 @@ endif
 
 # Install
 INSTALL_TARGETS :=
-INSTALL_FILES := 
+INSTALL_FILES :=
 ifeq (${SUPPORTS_STATIC}, yes)
 INSTALL_TARGETS += static
 INSTALL_FILES += $(OCRSTATIC)
@@ -268,7 +268,7 @@ install: ${INSTALL_TARGETS}
 	-@$(LN) -fs ./$(DEFAULT_CONFIG) $(OCRDIR)/install/$(ARCH)/config/default.cfg
 
 .PHONY: uninstall
-uninstall: 
+uninstall:
 	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/lib/*
 	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/include/*
 	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/config/*
@@ -276,4 +276,3 @@ uninstall:
 .PHONY:clean
 clean:
 	-$(RM) $(RMFLAGS) $(OBJDIR)/* $(OCRSHARED) $(OCRSTATIC) $(OCREXEC)
-
