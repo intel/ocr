@@ -252,8 +252,8 @@ function compile () {
     NAME=
     get_name ${FILE}
 
-    echo "gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${LDFLAGS} ${FILE} -o ${BIN_GEN_DIR}/${NAME}"
-    gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${LDFLAGS} ${FILE} -o ${BIN_GEN_DIR}/${NAME}
+    echo "gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${FILE} -o ${BIN_GEN_DIR}/${NAME} ${LDFLAGS}"
+    gcc ${OCR_CFLAGS} ${CFLAGS} ${INCLUDES} ${FILE} -o ${BIN_GEN_DIR}/${NAME} ${LDFLAGS}
     RES=$?
 
         rename_binary ${FILE}
