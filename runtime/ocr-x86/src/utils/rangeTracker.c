@@ -235,8 +235,8 @@ static avlBinaryNode_t* avlFindMin(avlBinaryNode_t *root) {
         parent = root;
         root = root->left;
     }
-    DPRINTF(DEBUG_LVL_VVERB, "Tree @ 0x%lx: Found minimum node 0x%lx (key: %ld)\n",
-            (u64)oldRoot, (u64)parent, parent?parent->key:0);
+    DPRINTF(DEBUG_LVL_VVERB, "Tree @ 0x%lx: Found minimum node 0x%lx (key: 0x%lx)\n",
+            (u64)oldRoot, (u64)parent, (u64)(parent?parent->key:0));
     return parent;
 }
 
@@ -253,19 +253,19 @@ static avlBinaryNode_t* avlFindMax(avlBinaryNode_t *root) {
         parent = root;
         root = root->right;
     }
-    DPRINTF(DEBUG_LVL_VVERB, "Tree @ 0x%lx: Found maximum node 0x%lx (key: %ld)\n",
-            (u64)oldRoot, (u64)parent, parent?parent->key:0);
+    DPRINTF(DEBUG_LVL_VVERB, "Tree @ 0x%lx: Found maximum node 0x%lx (key: 0x%lx)\n",
+            (u64)oldRoot, (u64)parent, (u64)(parent?parent->key:0));
     return parent;
 }
 
 // Helper function for the search
 static avlBinaryNode_t* avlSearchSub(avlBinaryNode_t *root, avlBinaryNode_t *upperBoundParent, u64 key, s8 mode) {
     ASSERT(root);
-    DPRINTF(DEBUG_LVL_VERB, "Going to search for %ld (mode %d) in root 0x%lx\n",
+    DPRINTF(DEBUG_LVL_VERB, "Going to search for 0x%lx (mode %d) in root 0x%lx\n",
             key, mode, (u64)root);
     if(key == root->key) {
         // Ah-ha, we found the node
-        DPRINTF(DEBUG_LVL_VVERB, "Found node for %ld @ 0x%lx\n",
+        DPRINTF(DEBUG_LVL_VVERB, "Found node for 0x%lx @ 0x%lx\n",
                 key, (u64)root);
         switch(mode) {
         case 0:
@@ -298,11 +298,11 @@ static avlBinaryNode_t* avlSearchSub(avlBinaryNode_t *root, avlBinaryNode_t *upp
             upperBoundParent = root;
         // We need to go search on the left of the tree
         if(root->left) {
-            DPRINTF(DEBUG_LVL_VVERB, "Going to search for %ld to the left: from 0x%lx to 0x%lx\n",
+            DPRINTF(DEBUG_LVL_VVERB, "Going to search for 0x%lx to the left: from 0x%lx to 0x%lx\n",
                     key, (u64)root, (u64)(root->left));
             return avlSearchSub(root->left, upperBoundParent, key, mode);
         }
-        DPRINTF(DEBUG_LVL_VVERB, "Cannot search further for %ld (going left)\n", key);
+        DPRINTF(DEBUG_LVL_VVERB, "Cannot search further for 0x%lx (going left)\n", key);
         // Here, there is no left
         switch(mode) {
         case 0:
@@ -320,11 +320,11 @@ static avlBinaryNode_t* avlSearchSub(avlBinaryNode_t *root, avlBinaryNode_t *upp
     if(key > root->key) {
         // We need to go search on the right of the tree
         if(root->right) {
-            DPRINTF(DEBUG_LVL_VVERB, "Going to search for %ld to the right: from 0x%lx to 0x%lx\n",
+            DPRINTF(DEBUG_LVL_VVERB, "Going to search for 0x%lx to the right: from 0x%lx to 0x%lx\n",
                     key, (u64)root, (u64)(root->right));
             return avlSearchSub(root->right, upperBoundParent, key, mode);
         }
-        DPRINTF(DEBUG_LVL_VVERB, "Cannot search further for %ld (going right)\n", key);
+        DPRINTF(DEBUG_LVL_VVERB, "Cannot search further for 0x%lx (going right)\n", key);
         // Here there is no right
         switch(mode) {
         case 0:
@@ -421,7 +421,7 @@ static void linkTag(rangeTracker_t *range, u64 addr, ocrMemoryTag_t tag) {
  ********************************************/
 static avlBinaryNode_t* avlInsert(u64 startChunk, avlBinaryNode_t *root,
                                   u64 key, u64 value, avlBinaryNode_t **node) {
-    DPRINTF(DEBUG_LVL_VERB, "Inserting (%ld, %ld) into tree @ 0x%lx\n",
+    DPRINTF(DEBUG_LVL_VERB, "Inserting (0x%lx, %ld) into tree @ 0x%lx\n",
             key, value, (u64)root);
     if(!root) {
         DPRINTF(DEBUG_LVL_VVERB, "Creating new node\n");
@@ -718,4 +718,3 @@ u8 getRegionWithTag(rangeTracker_t *range, ocrMemoryTag_t tag, u64 *startRange, 
     UNLOCK(&(range->lock));
     return 2;
 }
-

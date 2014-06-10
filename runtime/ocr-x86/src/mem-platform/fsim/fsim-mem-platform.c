@@ -81,8 +81,11 @@ void fsimGetRange(ocrMemPlatform_t *self, u64* startAddr,
 u8 fsimChunkAndTag(ocrMemPlatform_t *self, u64 *startAddr, u64 size,
                    ocrMemoryTag_t oldTag, ocrMemoryTag_t newTag) {
 
-    if(oldTag >= MAX_TAG || newTag >= MAX_TAG)
+    if(oldTag >= MAX_TAG || newTag >= MAX_TAG) {
+        DPRINTF(DEBUG_LVL_WARN, "Cannot chunk and tag because oldTag (%d) or newTag (%d) are bigger than %d\n",
+                (u32)oldTag, (u32)newTag, (u32)MAX_TAG);
         return 3;
+    }
 
     ocrMemPlatformFsim_t *rself = (ocrMemPlatformFsim_t *)self;
 
@@ -96,9 +99,16 @@ u8 fsimChunkAndTag(ocrMemPlatform_t *self, u64 *startAddr, u64 size,
         if(endRange - startRange >= size) {
             // This is a fit, we do not look for "best" fit for now
             *startAddr = startRange;
+            DPRINTF(DEBUG_LVL_VERB, "ChunkAndTag returning start of 0x%llx for size %lld and newTag %d\n",
+                    *startAddr, size, newTag);
             RESULT_ASSERT(splitRange(&(rself->rangeTracker),
                                      startRange, size, newTag), ==, 0);
             break;
+        } else {
+            if(result == 0) {
+                DPRINTF(DEBUG_LVL_VVERB, "ChunkAndTag, found [0x%llx; 0x%llx[ but too small for size %lld\n",
+                        startRange, endRange, size);
+            }
         }
     } while(result == 0);
 
