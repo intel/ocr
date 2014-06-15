@@ -23,12 +23,13 @@ u64  persistent_pointer = 0;         // The pointer to the free area of persiste
 u64  nonpersistent_pointer = 0;      // The pointer to free area of non-persistent
 u64  args_pointer = 0;               // The pointer to free area of args pool
 
+#define DEBUG_TYPE SYSBOOT
+
 static void * packedUserArgs = NULL;
 static ocrEdt_t mainEdt = NULL;
 
 u64 FsimRuntimeChunkAlloc(u64 size, u64 *extra) {
     void* returnValue = NULL;
-
     if(extra==NULL) {  // NULL => persistent
         // Align the offset if unaligned
         u64 offset = (u64)&(persistent_chunk[persistent_pointer]);
@@ -46,6 +47,8 @@ u64 FsimRuntimeChunkAlloc(u64 size, u64 *extra) {
     ASSERT((persistent_pointer < CHUNKSZ) && "Persistent allocation needs more than CHUNKSZ bytes of memory");
     ASSERT((nonpersistent_pointer < CHUNKSZ) && "Non-persistent allocation needs more than CHUNKSZ bytes of memory");
     ASSERT((args_pointer < CHUNKSZ) && "Non-persistent allocation needs more than CHUNKSZ bytes of memory");
+
+    DPRINTF(DEBUG_LVL_VVERB, "Runtime chunk alloc(%lld, %lld) => 0x%llx\n", size, (u64)extra, (u64)returnValue);
 
     return (u64)returnValue;
 }

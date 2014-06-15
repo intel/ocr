@@ -20,7 +20,7 @@ DEFAULT_CONFIG=mach-1block.cfg
 #
 
 CC      := gcc
-CFLAGS  :=  
+CFLAGS  := -fno-stack-protector
 
 RM      := rm
 RMFLAGS := -rf
@@ -38,7 +38,7 @@ CFLAGS_SHARED := -fpic
 
 # Static libraries specific builds
 # Same as for CFLAGS_SHARED
-CFLAGS_STATIC := 
+CFLAGS_STATIC :=
 AR := ar
 ARFLAGS := cru
 
@@ -50,9 +50,12 @@ SUPPORTS_STATIC=yes
 
 
 # For Valgrind, uncomment this line
-CFLAGS += -I/usr/include -DENABLE_VALGRIND
+#CFLAGS += -I/usr/include -DENABLE_VALGRIND
 
 .PHONY: all
 all: static shared
+
+.PHONY: debug
+debug: debug-static debug-shared
 
 include ../common.mk

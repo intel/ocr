@@ -1,12 +1,14 @@
 #
 # OCR top level directory
 #
-OCRDIR ?= ../..
+OCR_SRC ?= ../..
+OCR_BUILD ?= .
+OCR_INSTALL ?= ../../install/$(ARCH)
 
 #
 # Object & dependence file subdirectory
 #
-OBJDIR ?= objs
+OBJDIR ?= $(OCR_BUILD)/objs
 
 #
 # Default machine configuration
@@ -69,13 +71,14 @@ CFLAGS := -g -Wall -DELS_USER_SIZE=0 $(CFLAGS)
 #
 # Generate a list of all source files and the respective objects
 #
-SRCS   := $(shell find -L $(OCRDIR)/src -name '*.[csS]' -print)
+SRCS   := $(shell find -L $(OCR_SRC)/src -name '*.[csS]' -print)
 
 
 ifneq (,$(findstring OCR_RUNTIME_PROFILER,$(CFLAGS)))
 SRCSORIG = $(SRCS)
-SRCS += $(OCRDIR)/src/profilerAutoGen.c
-PROFILER_FILE=$(OCRDIR)/src/profilerAutoGen.c
+SRCS += $(OCR_BUILD)/src/profilerAutoGen.c
+PROFILER_FILE=$(OCR_BUILD)/src/profilerAutoGen.c
+CFLAGS += -I $(OCR_BUILD)/src
 else
 PROFILER_FILE=
 endif
@@ -87,14 +90,15 @@ OBJS_EXEC     := $(addprefix $(OBJDIR)/exec/, $(addsuffix .o, $(basename $(notdi
 #
 # Generate a source search path
 #
-VPATH  := $(shell find -L $(OCRDIR)/src -type d -print)
+VPATH  := $(shell find -L $(OCR_SRC)/src -type d -print)
 
 # Update include paths
-CFLAGS := -I . -I $(OCRDIR)/inc -I $(OCRDIR)/src -I $(OCRDIR)/src/inc $(CFLAGS)
+CFLAGS := -I . -I $(OCR_SRC)/inc -I $(OCR_SRC)/src -I $(OCR_SRC)/src/inc $(CFLAGS)
 
 # Static library name (only set if not set in ARCH specific file)
 ifeq (${SUPPORTS_STATIC}, yes)
 OCRSTATIC ?= libocr.a
+OCRSTATIC := $(OCR_BUILD)/$(OCRSTATIC)
 CFLAGS_STATIC ?=
 CFLAGS_STATIC := ${CFLAGS} ${CFLAGS_STATIC}
 endif
@@ -103,20 +107,20 @@ ifeq (${SUPPORTS_SHARED}, yes)
 CFLAGS_SHARED ?=
 CFLAGS_SHARED := ${CFLAGS} ${CFLAGS_SHARED}
 OCRSHARED ?= libocr.so
+OCRSHARED := $(OCR_BUILD)/$(OCRSHARED)
 endif
 # Executable name (only set if not set in ARCH specific file)
 ifeq (${SUPPORTS_EXEC}, yes)
 CFLAGS_EXEC ?=
 CFLAGS_EXEC := ${CFLAGS} ${CFLAGS_EXEC}
 OCREXEC ?= builder.exe
+OCREXEC := $(OCR_BUILD)/$(OCREXEC)
 endif
 
 
 #
 # Build targets
 #
-.PHONY: all
-#all: static
 
 .PHONY: static
 static: CFLAGS_STATIC += -O2
@@ -141,6 +145,10 @@ debug-shared: supports-shared info-shared $(OCRSHARED)
 .PHONY: debug-exec
 debug-exec: CFLAGS_EXEC += -O0
 debug-exec: supports-exec info-exec $(OCREXEC)
+
+# This is for the profiler-generated file
+$(OCR_BUILD)/src:
+	@$(MKDIR) -p $(OCR_BUILD)/src
 
 # Static target
 
@@ -209,9 +217,9 @@ $(OCREXEC): $(OBJS_EXEC)
 # Objects build rules
 #
 
-$(PROFILER_FILE): $(SRCSORIG)
+$(PROFILER_FILE): $(SRCSORIG) | $(OCR_BUILD)/src
 	@echo "Generating profile file..."
-	@$(OCRDIR)/scripts/Profiler/generateProfilerFile.py $(OCRDIR)/src $(OCRDIR)/src/profilerAutoGen h,c .git profiler
+	@$(OCR_SRC)/scripts/Profiler/generateProfilerFile.py $(OCR_SRC)/src $(OCR_BUILD)/src/profilerAutoGen h,c .git profiler
 	@echo "\tDone."
 
 $(OBJDIR)/static/%.o: %.c Makefile ../common.mk $(PROFILER_FILE) | $(OBJDIR)/static
@@ -249,29 +257,48 @@ endif
 
 # Install
 INSTALL_TARGETS :=
-INSTALL_FILES :=
+INSTALL_LIBS    :=
+INSTALL_EXES    :=
 ifeq (${SUPPORTS_STATIC}, yes)
 INSTALL_TARGETS += static
-INSTALL_FILES += $(OCRSTATIC)
+INSTALL_LIBS += $(OCRSTATIC)
 endif
 ifeq (${SUPPORTS_SHARED}, yes)
 INSTALL_TARGETS += shared
-INSTALL_FILES += $(OCRSHARED)
+INSTALL_LIBS += $(OCRSHARED)
+endif
+ifeq (${SUPPORTS_EXEC}, yes)
+INSTALL_TARGETS += exec
+INSTALL_EXES += $(OCREXEC)
 endif
 
 .PHONY: install
+.ONESHELL:
 install: ${INSTALL_TARGETS}
-	@echo -e "\e[32m Installing '$(INSTALL_FILES)' into '$(OCRDIR)/install/$(ARCH)'\e[0m"
-	@$(CP) ${INSTALL_FILES} $(OCRDIR)/install/$(ARCH)/lib
-	@$(CP) -r $(OCRDIR)/inc/* $(OCRDIR)/install/$(ARCH)/include
-	@$(CP) -r $(OCRDIR)/machine-configs/$(ARCH)/* $(OCRDIR)/install/$(ARCH)/config
-	-@$(LN) -fs ./$(DEFAULT_CONFIG) $(OCRDIR)/install/$(ARCH)/config/default.cfg
+	@echo -e "\e[32m Installing '$(INSTALL_LIBS) $(INSTALL_EXES)' into '$(OCR_INSTALL)'\e[0m"
+	@if [ -n "${INSTALL_LIBS}" ]; then \
+		$(MKDIR) -p $(OCR_INSTALL)/lib ; \
+		$(CP) ${INSTALL_LIBS} $(OCR_INSTALL)/lib ; \
+	fi
+	@if [ -n "$(INSTALL_EXES)" ]; then \
+		$(MKDIR) -p $(OCR_INSTALL)/bin ; \
+		$(CP) $(INSTALL_EXES) $(OCR_INSTALL)/bin ; \
+	fi
+	@$(MKDIR) -p $(OCR_INSTALL)/include
+	@$(CP) -r $(OCR_SRC)/inc/* $(OCR_INSTALL)/include
+	@if [ -d $(OCR_SRC)/machine-configs/$(ARCH) ]; then \
+		$(MKDIR) -p $(OCR_INSTALL)/config; \
+		$(CP) -r $(OCR_SRC)/machine-configs/$(ARCH)/* $(OCR_INSTALL)/config; \
+		$(LN) -fs ./$(DEFAULT_CONFIG) $(OCR_INSTALL)/config/default.cfg; \
+	fi
 
 .PHONY: uninstall
+.ONESHELL:
 uninstall:
-	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/lib/*
-	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/include/*
-	-$(RM) $(RMFLAGS) $(OCRDIR)/install/$(ARCH)/config/*
+	-$(RM) $(RMFLAGS) $(OCR_INSTALL)/bin/*
+	-$(RM) $(RMFLAGS) $(OCR_INSTALL)/lib/*
+	-$(RM) $(RMFLAGS) $(OCR_INSTALL)/include/*
+	-$(RM) $(RMFLAGS) $(OCR_INSTALL)/config/*
 
 .PHONY:clean
 clean:

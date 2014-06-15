@@ -17,8 +17,10 @@ endif
 # Tool-chain to be used for the build
 #
 
+RMD_INSTALL ?= ../../../ss/install
+
 CC      := gcc
-CFLAGS  := -fno-builtin -Wno-unused-local-typedefs -I ../../../ss/common/include
+CFLAGS  := -fno-builtin -fno-stack-protector -Wno-unused-local-typedefs -I ${RMD_INSTALL}/include
 
 RM      := rm
 RMFLAGS := -rf
@@ -38,11 +40,11 @@ CFLAGS_SHARED := -fpic
 
 # Static libraries specific builds
 # Same as for CFLAGS_SHARED
-CFLAGS_STATIC := 
+CFLAGS_STATIC :=
 AR := ar
 ARFLAGS := cru
 
-CFLAGS_EXEC := 
+CFLAGS_EXEC :=
 
 RANLIB := ranlib
 
@@ -53,11 +55,13 @@ SUPPORTS_EXEC=yes
 
 
 # For Valgrind, uncomment this line
-CFLAGS += -I/usr/include -DENABLE_VALGRIND
+#CFLAGS += -I/usr/include -DENABLE_VALGRIND
 
 
 .PHONY: all
 all: exec
 
-include ../common.mk
+.PHONY: debug
+debug: debug-exec
 
+include ../common.mk

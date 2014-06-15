@@ -17,9 +17,11 @@ endif
 # Tool-chain to be used for the build
 #
 
-PREFIX  := ../../../ss/bin/bin/rmd-linux-elf-
+RMD_INSTALL ?= ../../../ss/install
+
+PREFIX  := ${RMD_INSTALL}/bin/rmd-linux-elf-
 CC      := $(PREFIX)clang
-CFLAGS  := -frmd-extensions -fno-builtin -I ../../../ss/common/include
+CFLAGS  := -frmd-extensions -fno-builtin -I ${RMD_INSTALL}/include
 
 RM      := rm
 RMFLAGS := -rf
@@ -37,7 +39,7 @@ CFLAGS_SHARED :=
 
 # Static libraries specific builds
 # Same as for CFLAGS_SHARED
-CFLAGS_STATIC := 
+CFLAGS_STATIC :=
 AR := $(PREFIX)ar
 ARFLAGS := cru
 
@@ -49,6 +51,9 @@ SUPPORTS_STATIC=yes
 
 .PHONY: all
 all: static
+
+.PHONY: debug
+debug: debug-static
 
 DEFAULT_CONFIG = fsim_xe.cfg
 

@@ -21,6 +21,10 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+/**
+ * Modified by Bala Seshasayee and Romain Cledat, Intel 2014
+ */
+
 /*-------------------------------------------------------------------------*/
 /**
    @file    iniparser.c
@@ -385,12 +389,63 @@ char ** iniparser_getseckeys(dictionary * d, char * s) {
 char * iniparser_getstring(dictionary * d, const char * key, char * def) {
     char * lc_key ;
     char * sval ;
+    char * origSval ;
+    char * sval2 ;
+    char result[ASCIILINESZ+1] ;
+    char *resultPtr = &(result[0]);
+    char tmp[ASCIILINESZ+1];
+    int resultSize = 0;
+    char *startMatch;
 
     if (d==NULL || key==NULL)
         return def ;
 
     lc_key = strlwc(key);
     sval = dictionary_get(d, lc_key, def);
+    if(sval == def)
+     	return sval;
+
+    origSval = sval;
+    // We check if there is an environment variable
+    // and if so we expand it
+    while((startMatch = strstr(sval, "$(")) ||
+       (startMatch = strstr(sval, "${"))) {
+        // We found a match at startMatch
+        assert(resultSize + (startMatch - sval) <= ASCIILINESZ);
+        strncpy(resultPtr, sval, startMatch - sval);
+        resultPtr += startMatch - sval;
+        resultSize += startMatch - sval;
+        sval = startMatch + 1; // Skip the $
+        if(sval[0] == '(') {
+            startMatch = strstr(sval, ")");
+            assert(startMatch && "Unmatched ( in environment variable");
+        } else {
+            startMatch = strstr(sval, "}");
+            assert(startMatch && "Unmatched { in environment variable");
+        }
+        // We replace the terminating character with a 0 so we can look it up
+        startMatch[0] = '\0';
+        ++sval; // Skip the { or (
+
+        snprintf(tmp, ASCIILINESZ, "environment:%s", sval);
+        lc_key = strlwc(tmp);
+        sval2 = dictionary_get(d, lc_key, "NO_MATCH");
+
+        // We now replace thing in result
+        assert(resultSize + strlen(sval2) <= ASCIILINESZ);
+        strncpy(resultPtr, sval2, strlen(sval2));
+        resultPtr += strlen(sval2);
+        resultSize += strlen(sval2);
+        sval = startMatch + 1; // Continue the string
+    }
+    // Here we copy whatever is left to result
+    if(sval != origSval) {
+        assert(resultSize + strlen(sval) <= ASCIILINESZ);
+        strncpy(resultPtr, sval, strlen(sval) + 1);
+        lc_key = strlwc(key);
+        dictionary_set(d, lc_key, &(result[0]));
+        sval = dictionary_get(d, lc_key, def); // Get the internally allocated one
+    }
     return sval ;
 }
 
@@ -579,6 +634,7 @@ static line_status iniparser_line(
     const char * input_line,
     char * section,
     char * key,
+    char * origKey,
     char * value) {
     line_status sta ;
     char        line[ASCIILINESZ+1];
@@ -600,12 +656,12 @@ static line_status iniparser_line(
         strcpy(section, strstrip(section));
         strcpy(section, strlwc(section));
         sta = LINE_SECTION ;
-    } else if (sscanf (line, "%[^=] = \"%[^\"]\"", key, value) == 2
-               ||  sscanf (line, "%[^=] = '%[^\']'",   key, value) == 2
-               ||  sscanf (line, "%[^=] = %[^;#]",     key, value) == 2) {
+    } else if (sscanf (line, "%[^=] = \"%[^\"]\"", origKey, value) == 2
+               ||  sscanf (line, "%[^=] = '%[^\']'",   origKey, value) == 2
+               ||  sscanf (line, "%[^=] = %[^;#]",     origKey, value) == 2) {
         /* Usual key=value, with or without comments */
-        strcpy(key, strstrip(key));
-        strcpy(key, strlwc(key));
+        strcpy(origKey, strstrip(origKey));
+        strcpy(key, strlwc(origKey));
         strcpy(value, strstrip(value));
         /*
          * sscanf cannot handle '' or "" as empty values
@@ -615,16 +671,16 @@ static line_status iniparser_line(
             value[0]=0 ;
         }
         sta = LINE_VALUE ;
-    } else if (sscanf(line, "%[^=] = %[;#]", key, value)==2
-               ||  sscanf(line, "%[^=] %[=]", key, value) == 2) {
+    } else if (sscanf(line, "%[^=] = %[;#]", origKey, value)==2
+               ||  sscanf(line, "%[^=] %[=]", origKey, value) == 2) {
         /*
          * Special cases:
          * key=
          * key=;
          * key=#
          */
-        strcpy(key, strstrip(key));
-        strcpy(key, strlwc(key));
+        strcpy(origKey, strstrip(origKey));
+        strcpy(key, strlwc(origKey));
         value[0]=0 ;
         sta = LINE_VALUE ;
     } else {
@@ -654,6 +710,7 @@ dictionary * iniparser_load(const char * ininame) {
     char line    [ASCIILINESZ+1] ;
     char section [ASCIILINESZ+1] ;
     char key     [ASCIILINESZ+1] ;
+    char origKey [ASCIILINESZ+1] ;
     char tmp     [ASCIILINESZ+1] ;
     char val     [ASCIILINESZ+1] ;
 
@@ -678,6 +735,7 @@ dictionary * iniparser_load(const char * ininame) {
     memset(line,    0, ASCIILINESZ);
     memset(section, 0, ASCIILINESZ);
     memset(key,     0, ASCIILINESZ);
+    memset(origKey, 0, ASCIILINESZ);
     memset(val,     0, ASCIILINESZ);
     last=0 ;
 
@@ -710,7 +768,7 @@ dictionary * iniparser_load(const char * ininame) {
         } else {
             last=0 ;
         }
-        switch (iniparser_line(line, section, key, val)) {
+        switch (iniparser_line(line, section, key, origKey, val)) {
         case LINE_EMPTY:
         case LINE_COMMENT:
             break ;
@@ -721,6 +779,14 @@ dictionary * iniparser_load(const char * ininame) {
 
         case LINE_VALUE:
             sprintf(tmp, "%s:%s", section, key);
+            if(strncmp(section, "environment", 12) == 0) {
+                // Special case for environment variables. We
+                // check if they exist otherwise we use the value given
+                char *tmp2 = getenv(origKey);
+                if((tmp2 != NULL) && (strncmp(tmp2, "", 1))) {
+                    strncpy(&(val[0]), tmp2, ASCIILINESZ);
+                }
+            }
             errs = dictionary_set(dict, tmp, val) ;
             break ;
 

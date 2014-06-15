@@ -162,24 +162,29 @@ void dumpStructs(void *pd, const char* output_binary, u64 start_address) {
         // Header size
         value = 5*sizeof(u64);
         fwrite(&value, sizeof(u64), 1, fp);
+        DPRINTF(DEBUG_LVL_VERB, "Wrote header size: 0x%llx\n", value);
         totu64++;
 
         // Absolute location - currently read from config file
         fwrite(&start_address, sizeof(u64), 1, fp);
+        DPRINTF(DEBUG_LVL_VERB, "Wrote abs location: 0x%llx\n", start_address);
         totu64++;
 
         // PD address
         offset = (u64)pd - (u64)&persistent_chunk + (u64)start_address;
         fwrite(&offset, sizeof(u64), 1, fp);
+        DPRINTF(DEBUG_LVL_VERB, "Wrote PD address: 0x%llx\n", offset);
         totu64++;
 
         // Size of all structs
         fwrite(&persistent_pointer, sizeof(u64), 1, fp);
+        DPRINTF(DEBUG_LVL_VERB, "Wrote size of all structs: 0x%llx\n", persistent_pointer);
         totu64++;
 
         // myLocation
         offset = (u64)(&((ocrPolicyDomain_t *)pd)->myLocation) - (u64)&persistent_chunk + (u64)start_address;
         fwrite(&offset, sizeof(u64), 1, fp);
+        DPRINTF(DEBUG_LVL_VERB, "Wrote my location: 0x%llx\n", offset);
         totu64++;
 
         // Fix up all the pointers
@@ -189,9 +194,10 @@ void dumpStructs(void *pd, const char* output_binary, u64 start_address) {
                 ptrs[i] -= (u64)ptrs;
                 ptrs[i] += start_address;
             }
+            DPRINTF(DEBUG_LVL_VVERB, "ptrs[%d]: 0x%llx\n", i, ptrs[i]);
         }
         fwrite(&persistent_chunk, sizeof(char), persistent_pointer, fp);
-        printf("Wrote %ld bytes to %s\n", persistent_pointer+totu64*8, output_binary);
+        DPRINTF(DEBUG_LVL_INFO, "Wrote %ld bytes to %s\n", persistent_pointer+totu64*8, output_binary);
     }
     fclose(fp);
 }
@@ -203,7 +209,7 @@ void dumpArgs(const char* args_binary) {
     if(fp == NULL) printf("Unable to open file %s for writing\n", args_binary);
     else {
         fwrite(userArgs, sizeof(u8), args_pointer, fp);
-        printf("Wrote %ld bytes to %s\n", args_pointer, args_binary);
+        DPRINTF(DEBUG_LVL_INFO, "Wrote %ld bytes to %s\n", args_pointer, args_binary);
     }
     fclose(fp);
 }

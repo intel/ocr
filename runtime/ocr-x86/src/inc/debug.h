@@ -246,6 +246,16 @@
 #define DEBUG_LVL_SYNC OCR_DEBUG_LVL
 #endif
 
+#ifdef OCR_DEBUG_SYSBOOT
+#define OCR_DEBUG_SYSBOOT 1
+#else
+#define OCR_DEBUG_SYSBOOT 0
+#endif
+#define OCR_DEBUG_SYSBOOT_STR "SYSBOOT"
+#ifndef DEBUG_LVL_SYSBOOT
+#define DEBUG_LVL_SYSBOOT OCR_DEBUG_LVL
+#endif
+
 #ifdef OCR_DEBUG_TASK
 #define OCR_DEBUG_TASK 1
 #else

@@ -1,0 +1,174 @@
+#
+#                 INTEL CONFIDENTIAL
+# Copyright (c) 2010-2011 Intel Corporation. All rights reserved.
+#
+# THIS PROGRAM IS FULLY PROTECTED BY COPYRIGHT LAWS AND IS
+# CONSIDERED A TRADE SECRET BELONGING TO THE INTEL CORPORATION.
+#
+# Author: Ivan B Ganev <ivan.b.ganev@intel.com>
+#
+#
+
+# RMD
+RMD_INSTALL ?= ../../../ss/install
+RMD_SRC     ?= ../../../ss
+
+# OCR
+XE_TARGET   ?= fsim-null-fsim-xe
+XE_BUILDER  ?= x86-builder-fsim-xe
+CE_TARGET   ?= fsim-null-fsim-ce
+CE_BUILDER  ?= x86-builder-fsim-ce
+OCR_INSTALL ?= ../../install/$(XE_TARGET)
+OCR_SRC     ?= ../..
+OCR_BUILD   ?= ../../build/$(XE_TARGET)
+
+# Application
+WORKLOAD_SRC     ?= .
+WORKLOAD_BUILD   ?= ./build
+WORKLOAD_INSTALL ?= ./install
+
+## END of variables coming from user/environment
+
+OCR_INSTALL_ROOT := $(OCR_INSTALL)/..
+OCR_BUILD_ROOT   := $(OCR_BUILD)/..
+
+# Get absolute paths. This is useful since we go in
+# subfolders to do make and that screws up the relative
+# paths
+RMD_INSTALL      := $(shell cd "${RMD_INSTALL}" && pwd)
+RMD_SRC          := $(shell cd "${RMD_SRC}" && pwd)
+WORKLOAD_SRC     := $(shell cd "${WORKLOAD_SRC}" && pwd)
+WORKLOAD_BUILD   := $(shell cd "${WORKLOAD_BUILD}" && pwd)
+WORKLOAD_INSTALL := $(shell cd "${WORKLOAD_INSTALL}" && pwd)
+OCR_INSTALL      := $(shell cd "${OCR_INSTALL}" && pwd)
+OCR_BUILD        := $(shell cd "${OCR_BUILD}" && pwd)
+OCR_INSTALL_ROOT := $(shell cd "${OCR_INSTALL_ROOT}" && pwd)
+OCR_BUILD_ROOT   := $(shell cd "${OCR_BUILD_ROOT}" && pwd)
+
+
+PREFIX           := ${RMD_INSTALL}/bin/rmd-linux-elf
+
+AS	= $(PREFIX)-as
+ASFLAGS	=
+
+AR	= $(PREFIX)-ar
+ARFLAGS	= rcs
+
+CC	= $(PREFIX)-clang
+CFLAGS_BASE	= -I $(OCR_INSTALL)/include
+
+OBJCOPY	= $(PREFIX)-objcopy
+STRIP	= $(PREFIX)-strip
+
+LD	= $(PREFIX)-ld
+LDFLAGS	= -L $(RMD_INSTALL)/ld-scripts -T fsim-xe-icache.ld -static -Map=$(WORKLOAD_BUILD)/out.map
+
+CUT	= cut
+GREP	= grep
+RM	= rm
+CP      = cp
+MKDIR   = mkdir
+
+
+TARGET = printf
+
+all:	CFLAGS = -O2 $(CFLAGS_BASE)
+all:	TARGETS := all
+all:	default
+
+debug:	CFLAGS = -O0 $(CFLAGS_BASE)
+debug:	TARGETS := debug
+debug:	default
+
+install: TARGETS := all
+
+.ONESHELL:
+install: default
+	@echo "Installing from $(WORKLOAD_BUILD) into $(WORKLOAD_INSTALL)..."
+	@$(CP) $(WORKLOAD_BUILD)/$(TARGET) $(WORKLOAD_INSTALL)/
+	@$(CP) $(WORKLOAD_BUILD)/$(TARGET).blob $(WORKLOAD_INSTALL)/
+	@$(CP) $(WORKLOAD_SRC)/config.cfg $(WORKLOAD_INSTALL)/
+	@$(CP) $(WORKLOAD_BUILD)/build.rmdkrnl/rmdkrnl $(WORKLOAD_INSTALL)/
+
+default: $(WORKLOAD_BUILD)/$(TARGET) $(WORKLOAD_BUILD)/$(TARGET).blob $(WORKLOAD_BUILD)/rmdkrnl
+
+# Require libocr.a as this means all include files are up-to-date
+$(WORKLOAD_BUILD)/%.o: $(WORKLOAD_SRC)/%.c Makefile.whole-fsim $(OCR_INSTALL)/lib/libocr.a
+	$(CC) $(CFLAGS) -fno-builtin -c -o $@ $<
+#	$(CC) $(CFLAGS) -fno-builtin -c -o $@.tmp $<
+#	$(OBJCOPY) -R .data_local -R .rodata_local -R .bss_local -R .data_block -R .rodata_block -R .bss_block $@.tmp $@
+#	$(RM) $@.tmp
+
+$(WORKLOAD_BUILD)/$(TARGET).dbg: $(WORKLOAD_BUILD)/$(TARGET).o $(OCR_INSTALL)/lib/libocr.a
+	$(LD) $(LDFLAGS) -o $@ $(WORKLOAD_BUILD)/$(TARGET).o --whole-archive $(OCR_INSTALL)/lib/libocr.a
+
+$(WORKLOAD_BUILD)/$(TARGET): $(WORKLOAD_BUILD)/$(TARGET).dbg
+	$(CP) $(WORKLOAD_BUILD)/$(TARGET).dbg $(WORKLOAD_BUILD)/$(TARGET)
+	$(STRIP) $(WORKLOAD_BUILD)/$(TARGET)
+
+# Build the final blob
+# Note the order of the dependence. IMPORTANT!! Do not randomly change
+$(WORKLOAD_BUILD)/$(TARGET).blob: $(OCR_SRC)/scripts/Blob/aggregate_binary_files.sh \
+$(WORKLOAD_BUILD)/$(TARGET).blob.ce $(WORKLOAD_BUILD)/$(TARGET).blob.xe \
+$(WORKLOAD_BUILD)/$(TARGET).blob.arg
+	$^ $@
+
+# Build the CE blob
+$(WORKLOAD_BUILD)/$(TARGET).blob.ce: $(WORKLOAD_SRC)/fsim_ce.cfg \
+$(WORKLOAD_BUILD)/rmdkrnl.dbg $(OCR_INSTALL_ROOT)/$(CE_BUILDER)/bin/builder.exe
+	RMD_INSTALL=$(RMD_INSTALL) WORKLOAD_BUILD=$(WORKLOAD_BUILD) STRUCT_OUT=$(WORKLOAD_BUILD)/$(TARGET).blob.ce \
+$(OCR_INSTALL_ROOT)/$(CE_BUILDER)/bin/builder.exe -ocr:cfg $(WORKLOAD_SRC)/fsim_ce.cfg
+
+# Build the XE blob
+$(WORKLOAD_BUILD)/$(TARGET).blob.xe: $(WORKLOAD_SRC)/fsim_xe.cfg \
+$(WORKLOAD_BUILD)/$(TARGET).dbg $(OCR_INSTALL_ROOT)/$(XE_BUILDER)/bin/builder.exe
+	RMD_INSTALL=$(RMD_INSTALL) WORKLOAD_BUILD=$(WORKLOAD_BUILD) STRUCT_OUT=$(WORKLOAD_BUILD)/$(TARGET).blob.xe \
+ARGS_OUT=$(WORKLOAD_BUILD)/$(TARGET).blob.arg $(OCR_INSTALL_ROOT)/$(XE_BUILDER)/bin/builder.exe -ocr:cfg $(WORKLOAD_SRC)/fsim_xe.cfg
+
+# The arg blob is build automatically but just say how
+$(WORKLOAD_BUILD)/$(TARGET).blob.arg: $(WORKLOAD_BUILD)/$(TARGET).blob.xe
+
+# Local version of the RMDKRNL (built with the CE's libocr)
+# We build locally so we can run without impacting RMD_INSTALL
+#.ONESHELL:
+$(WORKLOAD_BUILD)/rmdkrnl.dbg: $(OCR_INSTALL_ROOT)/$(CE_TARGET)/lib/libocr.a .FORCE
+	@echo "Building RMDKRNL from $(RMD_SRC)..."
+	-@$(RM) -rf $(WORKLOAD_BUILD)/build.rmdkrnl
+	@$(CP) -r $(RMD_SRC)/build/build.rmdkrnl $(WORKLOAD_BUILD)/
+	OCR_INSTALL=$(OCR_INSTALL_ROOT)/$(CE_TARGET) RMD_SRC=$(RMD_SRC) \
+	RMD_INSTALL=$(RMD_INSTALL) \
+	$(MAKE) -C $(WORKLOAD_BUILD)/build.rmdkrnl -f make-me.make $(TARGETS)
+
+$(WORKLOAD_BUILD)/rmdkrnl: $(WORKLOAD_BUILD)/rmdkrnl.dbg
+
+# XE libocr.a
+$(OCR_INSTALL)/lib/libocr.a: $(OCR_BUILD)/Makefile Makefile.whole-fsim .FORCE
+	@echo "Building XE libocr.a..."
+	OCR_BUILD=$(OCR_BUILD) OCR_INSTALL=$(OCR_INSTALL) OCR_SRC=$(OCR_SRC) $(MAKE) -C $(OCR_BUILD) $(TARGETS) install
+
+# XE builder
+$(OCR_INSTALL_ROOT)/$(XE_BUILDER)/bin/builder.exe: $(OCR_BUILD_ROOT)/$(XE_BUILDER)/Makefile Makefile.whole-fsim .FORCE
+	@echo "Building XE builder..."
+	OCR_BUILD=$(OCR_BUILD_ROOT)/$(XE_BUILDER) OCR_INSTALL=$(OCR_INSTALL_ROOT)/$(XE_BUILDER) \
+	OCR_SRC=$(OCR_SRC) $(MAKE) -C $(OCR_BUILD_ROOT)/$(XE_BUILDER) $(TARGETS) install
+
+# CE libocr.a
+$(OCR_INSTALL_ROOT)/$(CE_TARGET)/lib/libocr.a: $(OCR_BUILD_ROOT)/$(CE_TARGET)/Makefile Makefile.whole-fsim .FORCE
+	@echo "Building CE libocr.a..."
+	OCR_BUILD=$(OCR_BUILD_ROOT)/$(CE_TARGET) OCR_INSTALL=$(OCR_INSTALL_ROOT)/$(CE_TARGET) \
+	OCR_SRC=$(OCR_SRC) $(MAKE) -C $(OCR_BUILD_ROOT)/$(CE_TARGET) $(TARGETS) install
+
+# CE builder
+$(OCR_INSTALL_ROOT)/$(CE_BUILDER)/bin/builder.exe: $(OCR_BUILD_ROOT)/$(CE_BUILDER)/Makefile Makefile.whole-fsim .FORCE
+	@echo "Building CE builder..."
+	OCR_BUILD=$(OCR_BUILD_ROOT)/$(CE_BUILDER) OCR_INSTALL=$(OCR_INSTALL_ROOT)/$(CE_BUILDER) \
+	OCR_SRC=$(OCR_SRC) $(MAKE) -C $(OCR_BUILD_ROOT)/$(CE_BUILDER) $(TARGETS) install
+
+clean:
+	-cd $(WORKLOAD_BUILD); \
+	$(RM) -rf *.s *.o *blob* build.rmdkrnl $(TARGET) $(TARGET).dbg out.map
+	-cd $(WORKLOAD_INSTALL); \
+	$(RM) -f *
+
+.PHONY:
+.FORCE:
