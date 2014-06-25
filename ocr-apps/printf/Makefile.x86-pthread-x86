@@ -1,32 +1,61 @@
+# This file is subject to the license agreement located in the file LICENSE
+# and cannot be distributed without it. This notice cannot be
+# removed or modified.
 
-OCR_INSTALL := ../../install/$(ARCH)
+# ARCH
+ARCH        ?= x86-pthread-x86
+# OCR
+OCR_TARGET   ?= x86-pthread-x86
+OCR_INSTALL_ROOT ?= ../../install
+OCR_SRC     ?= ../..
+OCR_BUILD_ROOT   ?= ../../build/
 
-PROG   := printf
+# Application
+WORKLOAD_SRC     ?= .
+WORKLOAD_BUILD   ?= ./build/${ARCH}
+WORKLOAD_INSTALL ?= ./install/${ARCH}
 
-CC     := gcc
-CFLAGS := -O0 -g -Werror -I. -I../../inc -c
+## END of variables coming from user/environment
 
-OCR_FLAGS := -L ${OCR_INSTALL}/lib -I ${OCR_INSTALL}/include -locr -lpthread
+# Get absolute paths. This is useful since we go in
+# subfolders to do make and that screws up the relative
+# paths
+WORKLOAD_SRC     := $(shell cd "${WORKLOAD_SRC}" && pwd)
+WORKLOAD_BUILD   := $(shell mkdir -p "${WORKLOAD_BUILD}" && cd "${WORKLOAD_BUILD}" && pwd)
+WORKLOAD_INSTALL := $(shell mkdir -p "${WORKLOAD_INSTALL}" && cd "${WORKLOAD_INSTALL}" && pwd)
+OCR_SRC          := $(shell cd "${OCR_SRC}" && pwd)
+OCR_INSTALL_ROOT := $(shell cd "${OCR_INSTALL_ROOT}" && pwd)
+OCR_BUILD_ROOT   := $(shell cd "${OCR_BUILD_ROOT}" && pwd)
 
-ifndef OCR_INSTALL
-$(error OCR_INSTALL not set)
-endif
+OCR_INSTALL      := ${OCR_INSTALL_ROOT}/${OCR_TARGET}
+OCR_BUILD        := ${OCR_BUILD_ROOT}/${OCR_TARGET}
 
-ifndef OCR_CONFIG
-OCR_CONFIG := ${OCR_INSTALL}/config/default.cfg
-$(warning OCR_CONFIG not set, defaulting to ${OCR_CONFIG})
-endif
+CC	= gcc
+CFLAGS_BASE	= -g -Werror -I. -I${OCR_INSTALL}/include
 
-OCR_RUN_FLAGS := -ocr:cfg ${OCR_CONFIG}
+LDFLAGS = -L ${OCR_INSTALL}/lib -locr -lpthread
 
-all: compile run
+STRIP   = strip
 
-compile:
-	$(CC) $(CFLAGS) $(PROG).c
-	$(CC) -g -o $(PROG).exe $(PROG).o $(OCR_FLAGS)
+CUT	= cut
+GREP	= grep
+RM	= rm
+CP      = cp
+MKDIR   = mkdir
 
-run:
-	LD_LIBRARY_PATH=$(OCR_INSTALL)/lib ./$(PROG).exe $(OCR_RUN_FLAGS)
 
-clean:
-	-rm -Rf *.o $(PROG).exe
+TARGET = printf
+
+SRCS := printf.c
+
+CFLAGS := $(CFLAGS_BASE)
+
+all:	CFLAGS += -O2
+all:	TARGETS := all
+all:	default
+
+debug:	CFLAGS += -O0
+debug:	TARGETS := debug
+debug:	default
+
+include ${WORKLOAD_SRC}/../make-regular.inc

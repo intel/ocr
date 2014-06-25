@@ -161,6 +161,13 @@ s32 ocrStrcmp(u8 *str1, u8 *str2) {
     return(str1[index]-str2[index]);
 }
 
+u64 ocrStrlen(const char* str) {
+    u64 res = 0;
+    if(str == NULL) return res;
+    while(*str++ != '\0') ++res;
+    return res;
+}
+
 /* This is not currently used. What to do with it?
 void ocrPlaceTrackerAllocate ( ocrPlaceTracker_t** toFill ) {
     *toFill = (ocrPlaceTracker_t*) malloc(sizeof(ocrPlaceTracker_t));

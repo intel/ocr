@@ -11,7 +11,7 @@
 #include "ocr-policy-domain.h"
 #include "ocr-types.h"
 #include "ocr-macros.h"
-#include "ocr-runtime-itf.h"
+#include "extensions/ocr-runtime-itf.h"
 #include "ocr-statistics-callbacks.h"
 #include "statistics/stats-llvm-callback.h"
 

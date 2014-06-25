@@ -327,6 +327,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     u8 returnCode = 0;
     ASSERT((msg->type & PD_MSG_REQUEST) && (!(msg->type & PD_MSG_RESPONSE)));
 
+    DPRINTF(DEBUG_LVL_VVERB, "Going to process message of type 0x%lx\n",
+            (msg->type & PD_MSG_TYPE_ONLY));
     switch(msg->type & PD_MSG_TYPE_ONLY) {
     // First type of messages: things that we offload completely to the CE
     case PD_MSG_DB_CREATE: case PD_MSG_DB_DESTROY:
@@ -356,7 +358,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             EXIT_PROFILE;
         }
 
-        DPRINTF(DEBUG_LVL_VERB, "XE Policy offloading message of type 0x%x to CE\n",
+        DPRINTF(DEBUG_LVL_VVERB, "Offloading message of type 0x%x to CE\n",
                 msg->type & PD_MSG_TYPE_ONLY);
         returnCode = xeProcessCeRequest(self, &msg);
 
@@ -365,10 +367,12 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_TAKE
             if (PD_MSG_FIELD(guidCount) > 0) {
-                DPRINTF(DEBUG_LVL_INFO, "[XE%lu] (%lu) Received EDT guid: 0x%lx metadata: 0x%p\n",
-                        (u64)self->myLocation, (u64)msg->srcLocation, (PD_MSG_FIELD(guids))->guid,
-                        (PD_MSG_FIELD(guids))->metaDataPtr);
+                DPRINTF(DEBUG_LVL_VVERB, "Received EDT with GUID 0x%lx (@ 0x%lx)\n",
+                        PD_MSG_FIELD(guids[0].guid), &(PD_MSG_FIELD(guids[0].guid)));
                 localDeguidify(self, (PD_MSG_FIELD(guids)));
+                DPRINTF(DEBUG_LVL_VVERB, "Received EDT (0x%lx; 0x%lx)\n",
+                        (u64)self->myLocation, (PD_MSG_FIELD(guids))->guid,
+                        (PD_MSG_FIELD(guids))->metaDataPtr);
                 // For now, we return the execute function for EDTs
                 PD_MSG_FIELD(extra) = (u64)(self->taskFactories[0]->fcts.execute);
             }
@@ -407,6 +411,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(curTask &&
                curTask->guid == PD_MSG_FIELD(edt.guid));
 
+        DPRINTF(DEBUG_LVL_VVERB, "DEP_DYNADD req/resp for GUID 0x%lx\n",
+                PD_MSG_FIELD(db.guid));
         ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
         PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.notifyDbAcquire(curTask, PD_MSG_FIELD(db));
 #undef PD_MSG
@@ -426,7 +432,8 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // Also, this should only happen when there is an actual EDT
         ASSERT(curTask &&
             curTask->guid == PD_MSG_FIELD(edt.guid));
-
+        DPRINTF(DEBUG_LVL_VVERB, "DEP_DYNREMOVE req/resp for GUID 0x%lx\n",
+                PD_MSG_FIELD(db.guid));
         ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
         PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.notifyDbRelease(curTask, PD_MSG_FIELD(db));
 #undef PD_MSG
@@ -437,10 +444,12 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         START_PROFILE(pd_xe_Shutdown);
         self->fcts.stop(self);
         if(msg->srcLocation == self->myLocation) {
-            DPRINTF(DEBUG_LVL_INFO, "XE %lu initiating shutdown\n", (u64)msg->srcLocation);
+            DPRINTF(DEBUG_LVL_VVERB, "MGT_SHUTDOWN initiation from 0x%lx\n",
+                    msg->srcLocation);
             returnCode = xeProcessCeRequest(self, &msg);
         } else {
-            DPRINTF(DEBUG_LVL_INFO, "XE %lu responding to shutdown\n", (u64)msg->srcLocation);
+            DPRINTF(DEBUG_LVL_VVERB, "MGT_SHUTDOWN(slave) from 0x%lx\n",
+                    msg->srcLocation);
             // Send the message back saying that
             // we did the shutdown
             msg->destLocation = msg->srcLocation;
@@ -456,6 +465,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     }
     case PD_MSG_MGT_FINISH: {
         START_PROFILE(pd_xe_Finish);
+        DPRINTF(DEBUG_LVL_VVERB, "MGT_FINISH req/resp\n");
         self->fcts.finish(self);
         EXIT_PROFILE;
         break;

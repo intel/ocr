@@ -66,9 +66,9 @@ CP      = cp
 MKDIR   = mkdir
 
 
-TARGET = printf
+TARGET = fib
 
-SRCS := printf.c
+SRCS := fib.c
 
 CFLAGS := ${CFLAGS_BASE}
 

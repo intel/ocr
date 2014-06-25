@@ -12,7 +12,7 @@
 // Only tested when OCR library interface is available
 #ifdef OCR_LIBRARY_ITF
 
-#include "ocr-lib.h"
+#include "extensions/ocr-lib.h"
 
 /**
  * DESC: Simplest OCR-library, init, shutdown, finalize

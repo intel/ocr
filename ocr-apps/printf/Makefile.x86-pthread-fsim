@@ -3,17 +3,9 @@
 # removed or modified.
 
 # ARCH
-ARCH        ?= whole-fsim
-
-# RMD
-RMD_INSTALL ?= ../../../ss/install
-RMD_SRC     ?= ../../../ss
-
+ARCH        ?= x86-pthread-fsim
 # OCR
-XE_TARGET   ?= fsim-null-fsim-xe
-XE_BUILDER  ?= x86-builder-fsim-xe
-CE_TARGET   ?= fsim-null-fsim-ce
-CE_BUILDER  ?= x86-builder-fsim-ce
+OCR_TARGET   ?= x86-pthread-fsim
 OCR_INSTALL_ROOT ?= ../../install
 OCR_SRC     ?= ../..
 OCR_BUILD_ROOT   ?= ../../build/
@@ -28,8 +20,6 @@ WORKLOAD_INSTALL ?= ./install/${ARCH}
 # Get absolute paths. This is useful since we go in
 # subfolders to do make and that screws up the relative
 # paths
-RMD_INSTALL      := $(shell cd "${RMD_INSTALL}" && pwd)
-RMD_SRC          := $(shell cd "${RMD_SRC}" && pwd)
 WORKLOAD_SRC     := $(shell cd "${WORKLOAD_SRC}" && pwd)
 WORKLOAD_BUILD   := $(shell mkdir -p "${WORKLOAD_BUILD}" && cd "${WORKLOAD_BUILD}" && pwd)
 WORKLOAD_INSTALL := $(shell mkdir -p "${WORKLOAD_INSTALL}" && cd "${WORKLOAD_INSTALL}" && pwd)
@@ -37,27 +27,15 @@ OCR_SRC          := $(shell cd "${OCR_SRC}" && pwd)
 OCR_INSTALL_ROOT := $(shell cd "${OCR_INSTALL_ROOT}" && pwd)
 OCR_BUILD_ROOT   := $(shell cd "${OCR_BUILD_ROOT}" && pwd)
 
-OCR_INSTALL_XE   := ${OCR_INSTALL_ROOT}/${XE_TARGET}
-OCR_BUILD_XE     := ${OCR_BUILD_ROOT}/${XE_TARGET}
-OCR_INSTALL_CE   := ${OCR_INSTALL_ROOT}/${CE_TARGET}
-OCR_BUILD_CE     := ${OCR_BUILD_ROOT}/${CE_TARGET}
+OCR_INSTALL      := ${OCR_INSTALL_ROOT}/${OCR_TARGET}
+OCR_BUILD        := ${OCR_BUILD_ROOT}/${OCR_TARGET}
 
-PREFIX           := ${RMD_INSTALL}/bin/rmd-linux-elf
+CC	= gcc
+CFLAGS_BASE	= -g -Werror -I. -I${OCR_INSTALL}/include
 
-AS	= $(PREFIX)-as
-ASFLAGS	=
+LDFLAGS = -L ${OCR_INSTALL}/lib -locr -lpthread
 
-AR	= $(PREFIX)-ar
-ARFLAGS	= rcs
-
-CC	= $(PREFIX)-clang
-CFLAGS_BASE	= -I $(OCR_INSTALL_XE)/include
-
-OBJCOPY	= $(PREFIX)-objcopy
-STRIP	= $(PREFIX)-strip
-
-LD	= $(PREFIX)-ld
-LDFLAGS	= -L $(RMD_INSTALL)/ld-scripts -T fsim-xe-icache.ld -static -Map=$(WORKLOAD_BUILD)/out.map
+STRIP   = strip
 
 CUT	= cut
 GREP	= grep
@@ -80,4 +58,4 @@ debug:	CFLAGS += -O0
 debug:	TARGETS := debug
 debug:	default
 
-include ${WORKLOAD_SRC}/../make-fsim.inc
+include ${WORKLOAD_SRC}/../make-regular.inc

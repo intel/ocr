@@ -99,6 +99,7 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
     PD_MSG_FIELD(paramc) = paramc;
     PD_MSG_FIELD(depc) = depc;
     PD_MSG_FIELD(funcName) = funcName;
+    PD_MSG_FIELD(funcNameLen) = ocrStrlen(funcName);
 
     returnCode = pd->fcts.processMessage(pd, &msg, true);
     if(returnCode == 0)

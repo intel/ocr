@@ -98,6 +98,7 @@ void hcBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
     u64 computeCount = base->computeCount;
+    base->location = (ocrLocation_t)base;
     ASSERT(computeCount == 1);
     u64 i = 0;
     for(i = 0; i < computeCount; ++i) {

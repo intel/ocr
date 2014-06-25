@@ -13,7 +13,7 @@
 // Only tested when ocr runtime interface is available
 #ifdef RUNTIME_ITF_EXT
 
-#include "ocr-runtime-itf.h"
+#include "extensions/ocr-runtime-itf.h"
 
 #define FLAGS 0xdead
 #define ELS_OFFSET 0

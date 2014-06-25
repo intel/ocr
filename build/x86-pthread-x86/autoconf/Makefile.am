@@ -1,4 +1,3 @@
-
 rootdir=../../..
 
 AUX_DIST = \
@@ -16,12 +15,12 @@ $(rootdir)/inc/ocr-stathooks.h $(rootdir)/inc/ocr-std.h
 
 # Distribute runtime interface headers - set by configure
 if INCLUDE_RUNTIME_ITF_HEADERS
-library_include_HEADERS += $(rootdir)/inc/ocr-runtime-itf.h
+library_include_HEADERS += $(rootdir)/inc/extensions/ocr-runtime-itf.h
 endif
 
 # Distribute OCR library interface headers - set by configure
 if INCLUDE_OCR_LIBRARY_ITF_HEADERS
-library_include_HEADERS += $(rootdir)/inc/ocr-lib.h
+library_include_HEADERS += $(rootdir)/inc/extensions/ocr-lib.h
 endif
 
 configdir = $(prefix)/config
@@ -114,7 +113,7 @@ libocr_la_LIBADD += libocr_allocator_tlsf.la
 libocr_allocator_tlsf_la_SOURCES = \
 ../../../src/allocator/tlsf/tlsf-allocator.c
 
-# bypass -Werror from top-level makefile to pass 
+# bypass -Werror from top-level makefile to pass
 # compilation on 32 bits systems
 libocr_allocator_tlsf_la_CFLAGS = $(OCR_AM_CFLAGS)
 

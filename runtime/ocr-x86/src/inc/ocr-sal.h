@@ -13,6 +13,7 @@
 #define __OCR_SAL_H__
 
 #include "ocr-config.h"
+#include "ocr-types.h"
 
 struct _ocrPolicyDomain_t;
 struct _ocrWorker_t;

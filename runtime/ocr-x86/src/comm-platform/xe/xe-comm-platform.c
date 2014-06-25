@@ -81,11 +81,10 @@ void xeCommDestruct (ocrCommPlatform_t * base) {
 
 void xeCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrCommApi_t *api) {
 
-    u64 i;
-
     ASSERT(commPlatform != NULL && PD != NULL && api != NULL);
 
 #ifndef ENABLE_BUILDER_ONLY
+    u64 i;
     ocrCommPlatformXe_t * cp = (ocrCommPlatformXe_t *)commPlatform;
 
     u64 myid = *(u64 *)(XE_MSR_OFFT + CORE_LOCATION * sizeof(u64));
@@ -161,8 +160,20 @@ u8 xeCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
         ASSERT(tmp == 0);
     }
 
+    // We marshall things properly
+    u64 fullMsgSize = 0, marshalledSize = 0;
+    ocrCommPlatformGetMsgSize(message, &fullMsgSize, &marshalledSize);
+    // We can only deal with the case where everything fits in the message
+    if(fullMsgSize > (bufferSize >> 32)) {
+        DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %ld\n",
+                bufferSize >> 32);
+        ASSERT(0);
+    }
+    ocrCommPlatformMarshallMsg(message, (u8*)message, MARSHALL_APPEND);
     // - DMA to remote stage, with fence
-    hal_memCopy(&(cp->rq)[1], message, bufferSize & 0xFFFFFFFFUL, 0);
+    DPRINTF(DEBUG_LVL_VVERB, "DMA-ing out message to 0x%lx of size %ld\n",
+            &(cp->rq)[1], message->size);
+    hal_memCopy(&(cp->rq)[1], message, message->size, 0);
 
     // - Atomically test & set remote stage to Full. Error otherwise (Empty/Busy.)
     {
@@ -193,6 +204,17 @@ u8 xeCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
 #if 1
     // Provide a ptr to the local stage's contents
     *msg = (ocrPolicyMsg_t *)&lq[1];
+    // We fixup pointers
+    u64 fullMsgSize = 0, marshalledSize = 0;
+    ocrCommPlatformGetMsgSize(*msg, &fullMsgSize, &marshalledSize);
+    if(fullMsgSize > sizeof(ocrPolicyMsg_t)) {
+        DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %ld\n",
+                sizeof(ocrPolicyMsg_t));
+        ASSERT(0);
+    }
+    (*msg)->size = fullMsgSize; // Reset it properly
+    ocrCommPlatformUnMarshallMsg((u8*)*msg, NULL, *msg, MARSHALL_APPEND);
+
 #else
     // NOTE: For now we copy it into the buffer provided by the caller
     //       eventually when QMA arrives we'll move to a posted-buffer
@@ -221,6 +243,16 @@ u8 xeCommWaitMessage(ocrCommPlatform_t *self,  ocrPolicyMsg_t **msg,
 #if 1
     // Provide a ptr to the local stage's contents
     *msg = (ocrPolicyMsg_t *)&lq[1];
+    // We fixup pointers
+    u64 fullMsgSize = 0, marshalledSize = 0;
+    ocrCommPlatformGetMsgSize(*msg, &fullMsgSize, &marshalledSize);
+    if(fullMsgSize > sizeof(ocrPolicyMsg_t)) {
+        DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %ld\n",
+                sizeof(ocrPolicyMsg_t));
+        ASSERT(0);
+    }
+    (*msg)->size = fullMsgSize; // Reset it properly
+    ocrCommPlatformUnMarshallMsg((u8*)*msg, NULL, *msg, MARSHALL_APPEND);
 #else
     // NOTE: For now we copy it into the buffer provided by the caller
     //       eventually when QMA arrives we'll move to a posted-buffer
@@ -237,10 +269,9 @@ u8 xeCommDestructMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t *msg) {
     ASSERT(self != NULL);
     ASSERT(msg != NULL);
 
+#ifndef ENABLE_BUILDER_ONLY
     // Local stage is at well-known 0x0
     u64 * lq = 0x0;
-
-#ifndef ENABLE_BUILDER_ONLY
     // - Atomically test & set local stage to Empty. Error if prev not Full.
     {
         u64 old = hal_swap64(lq, 0);

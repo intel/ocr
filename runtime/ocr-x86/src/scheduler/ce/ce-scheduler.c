@@ -19,6 +19,7 @@
 // CE worker) but works for now
 #include "worker/ce/ce-worker.h" // NON PORTABLE FOR NOW
 
+#define DEBUG_TYPE SCHEDULER
 /******************************************************/
 /* Support structures                                 */
 /******************************************************/
@@ -94,6 +95,8 @@ void ceSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
     self->pd = PD;
     ocrSchedulerCe_t * derived = (ocrSchedulerCe_t *) self;
 
+    DPRINTF(DEBUG_LVL_VERB, "Starting CE scheduler with %ld workpiles\n",
+            self->workpileCount);
     u64 workpileCount = self->workpileCount;
     u64 i;
     for(i = 0; i < workpileCount; ++i) {
@@ -104,6 +107,8 @@ void ceSchedulerStart(ocrScheduler_t * self, ocrPolicyDomain_t * PD) {
 
     // allocate steal iterator cache. Use pdMalloc since this is something
     // local to the policy domain and that will never be shared
+    DPRINTF(DEBUG_LVL_VVERB, "Going to request mem for %ld workpiles of size %ld each\n",
+            workpileCount, sizeof(ceWorkpileIterator_t));
     ceWorkpileIterator_t * stealIteratorsCache = PD->fcts.pdMalloc(
                 PD, sizeof(ceWorkpileIterator_t)*workpileCount);
 

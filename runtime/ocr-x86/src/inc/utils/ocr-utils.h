@@ -171,6 +171,14 @@ u32 ocrGuidTrackerFind(ocrGuidTracker_t *self, ocrGuid_t toFind);
  */
 s32 ocrStrcmp(u8 *str1, u8 *str2);
 
+/**
+ * @brief String length operation; behaves similar to libc's strlen()
+ *
+ * @param[in] str           NULL-terminated string
+ * @return the number of characters (not including the null termination
+ */
+u64 ocrStrlen(const char* str);
+
 /* Not currently used
 typedef struct ocrPlaceTrackerStruct_t {
     u64 existInPlaces;

@@ -1363,7 +1363,7 @@ void* tlsfAllocate(
 
     bool useRemnant = !(hints & OCR_ALLOC_HINT_REDUCE_CONTENTION);
     poolHdr_t * pPool = (poolHdr_t *) (((ocrAllocatorTlsf_t*)self)->poolAddr); // Addr of remnant pool (pool shared by ALL clients of allocator)
-    DPRINTF(DEBUG_LVL_VERB, "TLSF Allocate called with pool @ 0x%llx for size 0x%lld and useRemnant %d\n",
+    DPRINTF(DEBUG_LVL_VERB, "TLSF Allocate called with pool @ 0x%llx for size %lld and useRemnant %d\n",
             pPool, size, useRemnant);
 
     if (useRemnant == 0) {  // Attempt to allocate the requested block to a semi-private slice pool picked in round-robin fashion.

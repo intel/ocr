@@ -9,6 +9,7 @@
 #define __OCR_TASK_H__
 
 #include "ocr-edt.h"
+#include "ocr-runtime-types.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
 

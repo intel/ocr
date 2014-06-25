@@ -141,7 +141,6 @@ hihex:
         }
 
         (*chars)++;
-
     } while (ud /= radix);
 
     // Currently, we only support xX "%#" formatting

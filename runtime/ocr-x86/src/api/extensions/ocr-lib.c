@@ -8,7 +8,7 @@
 #ifdef ENABLE_OCR_LIB
 #include "debug.h"
 #include "machine-description/ocr-machine.h"
-#include "ocr-lib.h"
+#include "extensions/ocr-lib.h"
 #include "ocr-policy-domain.h"
 #include "ocr-types.h"
 

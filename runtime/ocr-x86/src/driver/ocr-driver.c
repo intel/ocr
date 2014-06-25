@@ -13,7 +13,7 @@
 #include "ocr-config.h"
 #include "ocr-db.h"
 #include "ocr-edt.h"
-#include "ocr-lib.h"
+#include "extensions/ocr-lib.h"
 #include "ocr-runtime.h"
 #include "ocr-types.h"
 #include "ocr-sysboot.h"

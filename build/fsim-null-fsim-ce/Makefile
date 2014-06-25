@@ -19,6 +19,9 @@ endif
 
 RMD_INSTALL ?= ../../../ss/install
 
+DEFAULT_CONFIG = ce-default.cfg
+
+
 CC      := gcc
 CFLAGS  := -fno-builtin -fno-stack-protector -Wno-unused-local-typedefs -I $(RMD_INSTALL)/include
 
@@ -53,7 +56,5 @@ all: static
 
 .PHONY: debug
 debug: debug-static
-
-DEFAULT_CONFIG = fsim_ce.cfg
 
 include ../common.mk

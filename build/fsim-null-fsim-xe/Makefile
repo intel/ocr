@@ -17,6 +17,8 @@ endif
 # Tool-chain to be used for the build
 #
 
+DEFAULT_CONFIG = xe-default.cfg
+
 RMD_INSTALL ?= ../../../ss/install
 
 PREFIX  := ${RMD_INSTALL}/bin/rmd-linux-elf-
@@ -54,7 +56,5 @@ all: static
 
 .PHONY: debug
 debug: debug-static
-
-DEFAULT_CONFIG = fsim_xe.cfg
 
 include ../common.mk

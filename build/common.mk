@@ -2,9 +2,9 @@
 # OCR top level directory
 #
 OCR_SRC ?= ../..
-OCR_BUILD ?= .
 OCR_INSTALL ?= ../../install/$(ARCH)
 
+OCR_BUILD := .
 #
 # Object & dependence file subdirectory
 #
@@ -32,6 +32,7 @@ DEFAULT_CONFIG ?= mach-hc-4w.cfg
 CFLAGS += -DOCR_DEBUG
 # Define level
 CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_WARN
+#CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_VVERB
 #CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_INFO
 # Define which modules you want for debugging
 # You can optionally define an individual debuging level by

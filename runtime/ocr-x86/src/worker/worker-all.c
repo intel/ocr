@@ -45,6 +45,7 @@ void initializeWorkerOcr(ocrWorkerFactory_t * factory, ocrWorker_t * self, ocrPa
     self->fguid.guid = UNINITIALIZED_GUID;
     self->fguid.metaDataPtr = self;
     self->pd = NULL;
+    self->location = 0;
     self->curTask = NULL;
     self->fcts = factory->workerFcts;
 }

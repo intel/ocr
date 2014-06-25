@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Only tested when OCR runtime API is available
 #ifdef RUNTIME_ITF_EXT
 
-#include "ocr-runtime-itf.h"
+#include "extensions/ocr-runtime-itf.h"
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t edtGuid = *((ocrGuid_t*)depv[0].ptr);

@@ -47,6 +47,8 @@ typedef struct _paramListPolicyDomainInst_t {
 /* OCR POLICY DOMAIN INTERFACE                        */
 /******************************************************/
 
+// WARNING: Keep this list in sync with ocr-policy-msg-list.h
+
 /**< Invalid message */
 #define PD_MSG_INVAL            0
 
@@ -216,16 +218,16 @@ typedef struct _paramListPolicyDomainInst_t {
 /**< And this to just get the type of the message without
  * the upper flags
  */
-#define PD_MSG_TYPE_ONLY        0xFFFFF
+#define PD_MSG_TYPE_ONLY        0xFFFFFULL
 
-#define PD_MSG_META_ONLY        0xFFF00000
+#define PD_MSG_META_ONLY        0xFFF00000ULL
 
 /**< Defines that the message is a query (non-answered) */
-#define PD_MSG_REQUEST          0x100000
+#define PD_MSG_REQUEST          0x100000ULL
 /**< Defines that the message is a response */
-#define PD_MSG_RESPONSE         0x200000
+#define PD_MSG_RESPONSE         0x200000ULL
 /**< Defines if the message requires a return message */
-#define PD_MSG_REQ_RESPONSE     0x400000
+#define PD_MSG_REQ_RESPONSE     0x400000ULL
 
 
 #define PD_MSG_ARG_NAME_SUB(ID) _data_##ID
@@ -268,7 +270,7 @@ typedef struct _ocrPolicyMsg_t {
                                * is a request or a response */
     u32 size;                 /**< Useful size of this message in bytes */
     ocrLocation_t srcLocation;  /**< Source of the message
-                                         * (location making the request */
+                                         * (location making the request) */
     ocrLocation_t destLocation; /**< Destination of the message
                                          * (location processing the request) */
     u64 msgId;                /**< Implementation specific ID identifying
@@ -379,6 +381,7 @@ typedef struct _ocrPolicyMsg_t {
             u32 depc;              /**< In: Number of dependences for EDT */
             u32 properties;        /**< In: Properties */
             const char * funcName; /**< In: Debug help: user identifier */
+            u64 funcNameLen;       /**< In: Number of characters (excluding '\0') in funcName */
         } PD_MSG_STRUCT_NAME(PD_MSG_EDTTEMP_CREATE);
 
         struct {
@@ -557,6 +560,7 @@ typedef struct _ocrPolicyMsg_t {
             u32 properties;
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_UNREGISTER);
     } args;
+    char _padding[64]; // REC: HACK to be able to fit everything in messages!!
 } ocrPolicyMsg_t;
 
 /**

@@ -19,7 +19,7 @@ extern "C" {
 #include "ocr-errors.h"
 #include "ocr-types.h"
 #include "ocr-std.h"
-#include "compat.h"
+//#include "compat.h"
 
 /**
  * @brief Called by an EDT to indicate the end of an OCR

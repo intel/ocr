@@ -86,6 +86,7 @@ void ceBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
     u64 computeCount = base->computeCount;
+
     ASSERT(computeCount == 1);
     u64 i = 0;
     for(i = 0; i < computeCount; ++i) {
@@ -101,6 +102,7 @@ void ceStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 
     ocrWorkerCe_t * ceWorker = (ocrWorkerCe_t *) base;
 
+    DPRINTF(DEBUG_LVL_VVERB, "Starting worker\n");
 #ifdef ENABLE_COMP_PLATFORM_PTHREAD  // Sanjay, the below should go away
     // since it's not applicable to FSim
     if(!ceWorker->secondStart) {
@@ -109,6 +111,7 @@ void ceStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     }
 #endif
 
+    base->location = policy->myLocation;
     // Get a GUID
     guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
     base->pd = policy;
@@ -139,7 +142,6 @@ void* ceRunWorker(ocrWorker_t * worker) {
         worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
     }
 
-    DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of CE worker %ld\n", getWorkerId(worker));
     workerLoop(worker);
     return NULL;
 }

@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "ocr-lib.h"
+#include "extensions/ocr-lib.h"
 
 /**
  * DESC: OCR-library, init, edt-finish, finalize

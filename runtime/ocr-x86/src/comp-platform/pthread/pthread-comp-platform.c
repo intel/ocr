@@ -150,8 +150,9 @@ void pthreadFinish(ocrCompPlatform_t *compPlatform) {
         RESULT_ASSERT(pthread_join(pthreadCompPlatform->osThread, NULL), ==, 0);
     } else {
         // For some reason the key(s) are not being destroyed for the master thread
-        void* _t = pthread_getspecific(selfKey);
-        destroyKey(_t);
+        // We do *not* destroy selfKey however because debug messages depend on it.
+        // This may leak a little (but we are terminating anyways) and it probably
+        // gets destroyed when the program exits
 #ifdef OCR_RUNTIME_PROFILER
         _t = pthread_getspecific(_profilerThreadData);
         _profilerDataDestroy(_t);
@@ -217,6 +218,8 @@ void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
 
     START_PROFILE(cp_getCurrentEnv);
     perThreadStorage_t *vals = pthread_getspecific(selfKey);
+    if(vals == NULL)
+        return;
     if(pd)
         *pd = vals->pd;
     if(worker)
