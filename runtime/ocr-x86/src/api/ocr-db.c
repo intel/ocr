@@ -80,6 +80,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
         // just to be safe
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_DYNADD
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DEP_DYNADD | PD_MSG_REQUEST;
         PD_MSG_FIELD(edt.guid) = task->guid;
         PD_MSG_FIELD(edt.metaDataPtr) = task;
@@ -124,6 +125,7 @@ u8 ocrDbDestroy(ocrGuid_t db) {
         // just to be safe
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_DYNREMOVE
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DEP_DYNREMOVE | PD_MSG_REQUEST;
         PD_MSG_FIELD(edt.guid) = task->guid;
         PD_MSG_FIELD(edt.metaDataPtr) = task;
@@ -168,6 +170,7 @@ u8 ocrDbRelease(ocrGuid_t db) {
         // just to be safe
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_DYNREMOVE
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DEP_DYNREMOVE | PD_MSG_REQUEST;
         PD_MSG_FIELD(edt.guid) = task->guid;
         PD_MSG_FIELD(edt.metaDataPtr) = task;

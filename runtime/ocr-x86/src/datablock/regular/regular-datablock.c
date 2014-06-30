@@ -171,6 +171,7 @@ u8 regularDestruct(ocrDataBlock_t *self) {
 
 #undef PD_TYPE
 #define PD_TYPE PD_MSG_GUID_DESTROY
+    getCurrentEnv(NULL, NULL, NULL, &msg);
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     // These next two statements may be not required. Just to be safe
     PD_MSG_FIELD(guid.guid) = self->guid;

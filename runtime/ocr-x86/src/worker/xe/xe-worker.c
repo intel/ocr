@@ -67,6 +67,7 @@ static void workerLoop(ocrWorker_t * worker) {
 #undef PD_TYPE
                 // Destroy the work
 #define PD_TYPE PD_MSG_WORK_DESTROY
+                getCurrentEnv(NULL, NULL, NULL, &msg);
                 msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
                 PD_MSG_FIELD(guid) = taskGuid;
                 PD_MSG_FIELD(properties) = 0;

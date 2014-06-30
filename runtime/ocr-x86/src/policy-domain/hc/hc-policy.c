@@ -561,18 +561,18 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // For now we deal with both USER and RT dbs the same way
         ASSERT(PD_MSG_FIELD(dbType) == USER_DBTYPE || PD_MSG_FIELD(dbType) == RUNTIME_DBTYPE);
 #define PRESCRIPTION 0x10LL
-        PD_MSG_FIELD(properties) = hcAllocateDb(self, &(PD_MSG_FIELD(guid)),
+        PD_MSG_FIELD(returnDetail) = hcAllocateDb(self, &(PD_MSG_FIELD(guid)),
                                   &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
                                   PD_MSG_FIELD(properties),
                                   PD_MSG_FIELD(affinity),
                                   PD_MSG_FIELD(allocator),
                                   PRESCRIPTION);
-        if(PD_MSG_FIELD(properties) == 0) {
+        if(PD_MSG_FIELD(returnDetail) == 0) {
             ocrDataBlock_t *db = PD_MSG_FIELD(guid.metaDataPtr);
             ASSERT(db);
             // TODO: Check if properties want DB acquired
             ASSERT(db->fctId == self->dbFactories[0]->factoryId);
-            PD_MSG_FIELD(properties) = self->dbFactories[0]->fcts.acquire(
+            PD_MSG_FIELD(returnDetail) = self->dbFactories[0]->fcts.acquire(
                 db, &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(edt), false);
         } else {
             // Cannot acquire
@@ -603,7 +603,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(edt)));
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
-        PD_MSG_FIELD(properties) = self->dbFactories[0]->fcts.acquire(
+        PD_MSG_FIELD(returnDetail) = self->dbFactories[0]->fcts.acquire(
             db, &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
@@ -623,7 +623,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
         ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
-        PD_MSG_FIELD(properties) = self->dbFactories[0]->fcts.release(
+        PD_MSG_FIELD(returnDetail) = self->dbFactories[0]->fcts.release(
             db, PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
@@ -643,7 +643,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrDataBlock_t *db = (ocrDataBlock_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
         ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
-        PD_MSG_FIELD(properties) = self->dbFactories[0]->fcts.free(
+        PD_MSG_FIELD(returnDetail) = self->dbFactories[0]->fcts.free(
             db, PD_MSG_FIELD(edt));
 #undef PD_MSG
 #undef PD_TYPE
@@ -658,7 +658,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_ALLOC
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
-        PD_MSG_FIELD(properties) = hcMemAlloc(
+        PD_MSG_FIELD(returnDetail) = hcMemAlloc(
             self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
             PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)), PRESCRIPTION);
         msg->type &= ~PD_MSG_REQUEST;
@@ -674,7 +674,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MEM_UNALLOC
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
-        PD_MSG_FIELD(properties) = hcMemUnAlloc(
+        PD_MSG_FIELD(returnDetail) = hcMemUnAlloc(
             self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), PD_MSG_FIELD(type));
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
@@ -696,7 +696,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             outputEvent = &(PD_MSG_FIELD(outputEvent));
         }
         ASSERT(PD_MSG_FIELD(workType) == EDT_WORKTYPE);
-        PD_MSG_FIELD(properties) = hcCreateEdt(
+        PD_MSG_FIELD(returnDetail) = hcCreateEdt(
                 self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(templateGuid),
                 &(PD_MSG_FIELD(paramc)), PD_MSG_FIELD(paramv), &(PD_MSG_FIELD(depc)),
                 PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity), outputEvent,
@@ -722,7 +722,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrTask_t *task = (ocrTask_t*)PD_MSG_FIELD(guid.metaDataPtr);
         ASSERT(task);
         ASSERT(task->fctId == self->taskFactories[0]->factoryId);
-        PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.destruct(task);
+        PD_MSG_FIELD(returnDetail) = self->taskFactories[0]->fcts.destruct(task);
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
@@ -735,7 +735,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         START_PROFILE(pd_hc_EdtTempCreate);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
-        PD_MSG_FIELD(properties) = hcCreateEdtTemplate(
+        PD_MSG_FIELD(returnDetail) = hcCreateEdtTemplate(
             self, &(PD_MSG_FIELD(guid)),
             PD_MSG_FIELD(funcPtr), PD_MSG_FIELD(paramc),
             PD_MSG_FIELD(depc), PD_MSG_FIELD(funcName));
@@ -755,7 +755,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
         ocrTaskTemplate_t *tTemplate = (ocrTaskTemplate_t*)(PD_MSG_FIELD(guid.metaDataPtr));
         ASSERT(tTemplate->fctId == self->taskTemplateFactories[0]->factoryId);
-        PD_MSG_FIELD(properties) = self->taskTemplateFactories[0]->fcts.destruct(tTemplate);
+        PD_MSG_FIELD(returnDetail) = self->taskTemplateFactories[0]->fcts.destruct(tTemplate);
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST);
@@ -767,7 +767,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         START_PROFILE(pd_hc_EvtCreate);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_EVT_CREATE
-        PD_MSG_FIELD(properties) = hcCreateEvent(
+        PD_MSG_FIELD(returnDetail) = hcCreateEvent(
             self, &(PD_MSG_FIELD(guid)),
             PD_MSG_FIELD(type), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
@@ -785,7 +785,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
         ocrEvent_t *evt = (ocrEvent_t*)PD_MSG_FIELD(guid.metaDataPtr);
         ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-        PD_MSG_FIELD(properties) = self->eventFactories[0]->fcts[evt->kind].destruct(evt);
+        PD_MSG_FIELD(returnDetail) = self->eventFactories[0]->fcts[evt->kind].destruct(evt);
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= (~PD_MSG_REQUEST);
@@ -815,13 +815,13 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_GUID_CREATE
         if(PD_MSG_FIELD(size) != 0) {
             // Here we need to create a metadata area as well
-            PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.createGuid(
+            PD_MSG_FIELD(returnDetail) = self->guidProviders[0]->fcts.createGuid(
                 self->guidProviders[0], &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(size),
                 PD_MSG_FIELD(kind));
         } else {
             // Here we just need to associate a GUID
             ocrGuid_t temp;
-            PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.getGuid(
+            PD_MSG_FIELD(returnDetail) = self->guidProviders[0]->fcts.getGuid(
                 self->guidProviders[0], &temp, (u64)PD_MSG_FIELD(guid.metaDataPtr),
                 PD_MSG_FIELD(kind));
             PD_MSG_FIELD(guid.guid) = temp;
@@ -840,13 +840,13 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_GUID_INFO
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
         if(PD_MSG_FIELD(properties) & KIND_GUIDPROP) {
-            PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.getKind(
+            PD_MSG_FIELD(returnDetail) = self->guidProviders[0]->fcts.getKind(
                 self->guidProviders[0], PD_MSG_FIELD(guid.guid), &(PD_MSG_FIELD(kind)));
-            if(PD_MSG_FIELD(properties) == 0)
-                PD_MSG_FIELD(properties) = KIND_GUIDPROP
+            if(PD_MSG_FIELD(returnDetail) == 0)
+                PD_MSG_FIELD(returnDetail) = KIND_GUIDPROP
                     | WMETA_GUIDPROP | RMETA_GUIDPROP;
         } else {
-            PD_MSG_FIELD(properties) = WMETA_GUIDPROP | RMETA_GUIDPROP;
+            PD_MSG_FIELD(returnDetail) = WMETA_GUIDPROP | RMETA_GUIDPROP;
         }
 
 #undef PD_MSG
@@ -862,7 +862,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_GUID_DESTROY
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
-        PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.releaseGuid(
+        PD_MSG_FIELD(returnDetail) = self->guidProviders[0]->fcts.releaseGuid(
             self->guidProviders[0], PD_MSG_FIELD(guid), PD_MSG_FIELD(properties) & 1);
 #undef PD_MSG
 #undef PD_TYPE
@@ -877,7 +877,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_TAKE
         if (PD_MSG_FIELD(type) == OCR_GUID_EDT) {
-            PD_MSG_FIELD(properties) = self->schedulers[0]->fcts.takeEdt(
+            PD_MSG_FIELD(returnDetail) = self->schedulers[0]->fcts.takeEdt(
                 self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
                 PD_MSG_FIELD(guids));
             // For now, we return the execute function for EDTs
@@ -890,7 +890,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             }
         } else {
             ASSERT(PD_MSG_FIELD(type) == OCR_GUID_COMM);
-            PD_MSG_FIELD(properties) = self->schedulers[0]->fcts.takeComm(
+            PD_MSG_FIELD(returnDetail) = self->schedulers[0]->fcts.takeComm(
                 self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
                 PD_MSG_FIELD(guids), PD_MSG_FIELD(properties));
         }
@@ -907,12 +907,12 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_GIVE
         if (PD_MSG_FIELD(type) == OCR_GUID_EDT) {
-            PD_MSG_FIELD(properties) = self->schedulers[0]->fcts.giveEdt(
+            PD_MSG_FIELD(returnDetail) = self->schedulers[0]->fcts.giveEdt(
                 self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
                 PD_MSG_FIELD(guids));
         } else {
             ASSERT(PD_MSG_FIELD(type) == OCR_GUID_COMM);
-            PD_MSG_FIELD(properties) = self->schedulers[0]->fcts.giveComm(
+            PD_MSG_FIELD(returnDetail) = self->schedulers[0]->fcts.giveComm(
                 self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
                 PD_MSG_FIELD(guids), PD_MSG_FIELD(properties));
         }
@@ -949,7 +949,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             //NOTE: Handle 'NULL_GUID' case here to be safe although
             //we've already caught it in ocrAddDependence for performance
             // This is equivalent to an immediate satisfy
-            PD_MSG_FIELD(properties) = convertDepAddToSatisfy(
+            PD_MSG_FIELD(returnDetail) = convertDepAddToSatisfy(
                 self, src, dest, PD_MSG_FIELD(slot));
         } else {
             // Only left with events as potential source
@@ -972,7 +972,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             PD_MSG_FIELD(slot) = slot;
             PD_MSG_FIELD(properties) = true; // Specify context is add-dependence
             RESULT_PROPAGATE(self->fcts.processMessage(self, &registerMsg, true));
-            needSignalerReg = PD_MSG_FIELD(properties);
+            needSignalerReg = PD_MSG_FIELD(returnDetail);
         #undef PD_MSG
         #undef PD_TYPE
         #define PD_MSG msg
@@ -1044,14 +1044,14 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         case OCR_GUID_EVENT: {
             ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
             ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-            PD_MSG_FIELD(properties) = self->eventFactories[0]->fcts[evt->kind].registerSignaler(
+            PD_MSG_FIELD(returnDetail) = self->eventFactories[0]->fcts[evt->kind].registerSignaler(
                 evt, signaler, PD_MSG_FIELD(slot), isAddDep);
             break;
         }
         case OCR_GUID_EDT: {
             ocrTask_t *edt = (ocrTask_t*)(dest.metaDataPtr);
             ASSERT(edt->fctId == self->taskFactories[0]->factoryId);
-            PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.registerSignaler(
+            PD_MSG_FIELD(returnDetail) = self->taskFactories[0]->fcts.registerSignaler(
                 edt, signaler, PD_MSG_FIELD(slot), isAddDep);
             break;
         }
@@ -1093,7 +1093,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrEvent_t *evt = (ocrEvent_t*)(dest.metaDataPtr);
         ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
         bool isAddDep = PD_MSG_FIELD(properties);
-        PD_MSG_FIELD(properties) = self->eventFactories[0]->fcts[evt->kind].registerWaiter(
+        PD_MSG_FIELD(returnDetail) = self->eventFactories[0]->fcts[evt->kind].registerWaiter(
             evt, waiter, PD_MSG_FIELD(slot), isAddDep);
 #ifdef OCR_ENABLE_STATISTICS
         // TODO: Fixme
@@ -1121,13 +1121,13 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         if(dstKind == OCR_GUID_EVENT) {
             ocrEvent_t *evt = (ocrEvent_t*)(dst.metaDataPtr);
             ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-            PD_MSG_FIELD(properties) = self->eventFactories[0]->fcts[evt->kind].satisfy(
+            PD_MSG_FIELD(returnDetail) = self->eventFactories[0]->fcts[evt->kind].satisfy(
                 evt, PD_MSG_FIELD(payload), PD_MSG_FIELD(slot));
         } else {
             if(dstKind == OCR_GUID_EDT) {
                 ocrTask_t *edt = (ocrTask_t*)(dst.metaDataPtr);
                 ASSERT(edt->fctId == self->taskFactories[0]->factoryId);
-                PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.satisfy(
+                PD_MSG_FIELD(returnDetail) = self->taskFactories[0]->fcts.satisfy(
                     edt, PD_MSG_FIELD(payload), PD_MSG_FIELD(slot));
             } else {
                 ASSERT(0); // We can't satisfy anything else
@@ -1170,7 +1170,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                curTask->guid == PD_MSG_FIELD(edt.guid));
 
         ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
-        PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.notifyDbAcquire(curTask, PD_MSG_FIELD(db));
+        PD_MSG_FIELD(returnDetail) = self->taskFactories[0]->fcts.notifyDbAcquire(curTask, PD_MSG_FIELD(db));
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
@@ -1192,7 +1192,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                curTask->guid == PD_MSG_FIELD(edt.guid));
 
         ASSERT(curTask->fctId == self->taskFactories[0]->factoryId);
-        PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.notifyDbRelease(curTask, PD_MSG_FIELD(db));
+        PD_MSG_FIELD(returnDetail) = self->taskFactories[0]->fcts.notifyDbRelease(curTask, PD_MSG_FIELD(db));
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;

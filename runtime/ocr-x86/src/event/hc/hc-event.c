@@ -102,6 +102,7 @@ u8 destructEventHc(ocrEvent_t *base) {
     // Now destroy the GUID
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_DESTROY
+    getCurrentEnv(NULL, NULL, NULL, &msg);
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     // These next two statements may be not required. Just to be safe
     PD_MSG_FIELD(guid.guid) = base->guid;
@@ -169,6 +170,7 @@ u8 satisfyEventHcOnce(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #undef PD_TYPE
         // Call satisfy on all the waiters
 #define PD_TYPE PD_MSG_DEP_SATISFY
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         PD_MSG_FIELD(payload) = db; // Do this once as it may get resolved the first time
         PD_MSG_FIELD(properties) = 0;
         for(i = 0; i < event->waitersCount; ++i) {
@@ -189,6 +191,7 @@ u8 satisfyEventHcOnce(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
         // Release the DB
 #undef PD_TYPE
 #define PD_TYPE PD_MSG_DB_RELEASE
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->waitersDb;
         PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -255,6 +258,7 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #undef PD_TYPE
         // Call satisfy on all the waiters
 #define PD_TYPE PD_MSG_DEP_SATISFY
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         PD_MSG_FIELD(payload) = db; // Do this once as it may get resolved the first time
         PD_MSG_FIELD(properties) = 0;
         for(i = 0; i < waitersCount; ++i) {
@@ -274,6 +278,7 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
         // Release the DB
 #undef PD_TYPE
 #define PD_TYPE PD_MSG_DB_RELEASE
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->base.waitersDb;
         PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -336,6 +341,7 @@ u8 satisfyEventHcLatch(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #undef PD_TYPE
         // Call satisfy on all the waiters
 #define PD_TYPE PD_MSG_DEP_SATISFY
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         PD_MSG_FIELD(payload) = db; // Do this once as it may get resolved the first time
         PD_MSG_FIELD(properties) = 0;
         for(i = 0; i < event->base.waitersCount; ++i) {
@@ -355,6 +361,7 @@ u8 satisfyEventHcLatch(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
         // Release the DB
 #undef PD_TYPE
 #define PD_TYPE PD_MSG_DB_RELEASE
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->base.waitersDb;
         PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -418,6 +425,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
     if(event->waitersCount + 1 == event->waitersMax) {
         // We need to create a new DB
 #define PD_TYPE PD_MSG_DB_CREATE
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DB_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guid) = event->waitersDb;
         PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -450,6 +458,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
     if(waitersNew) {
         // We need to destroy the old DB and release the new one
 #define PD_TYPE PD_MSG_DB_FREE
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->waitersDb;
         PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -462,6 +471,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
 
     // We always release waitersDb as it has been set properly if needed
 #define PD_TYPE PD_MSG_DB_RELEASE
+    getCurrentEnv(NULL, NULL, NULL, &msg);
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->waitersDb;
     PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -535,6 +545,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
     // Acquire the DB that contains the waiters
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_ACQUIRE
+    getCurrentEnv(NULL, NULL, NULL, &msg);
     msg.type = PD_MSG_DB_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid) = event->base.waitersDb;
     PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -552,6 +563,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
     if(event->base.waitersCount + 1 == event->base.waitersMax) {
         // We need to create a new DB
 #define PD_TYPE PD_MSG_DB_CREATE
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DB_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
         PD_MSG_FIELD(guid) = event->base.waitersDb;
         PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -585,6 +597,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
     if(waitersNew) {
         // We need to destroy the old DB and release the new one
 #define PD_TYPE PD_MSG_DB_FREE
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         msg.type = PD_MSG_DB_FREE | PD_MSG_REQUEST;
         PD_MSG_FIELD(guid) = event->base.waitersDb;
         PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -602,6 +615,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
 
     // We always release waitersDb as it has been set properly if needed
 #define PD_TYPE PD_MSG_DB_RELEASE
+    getCurrentEnv(NULL, NULL, NULL, &msg);
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->base.waitersDb;
     PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -658,6 +672,7 @@ u8 unregisterWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool
 
     // We always release waitersDb
 #define PD_TYPE PD_MSG_DB_RELEASE
+    getCurrentEnv(NULL, NULL, NULL, &msg);
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->waitersDb;
     PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -727,6 +742,7 @@ u8 unregisterWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slo
 
     // We always release waitersDb
 #define PD_TYPE PD_MSG_DB_RELEASE
+    getCurrentEnv(NULL, NULL, NULL, &msg);
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->base.waitersDb;
     PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -808,6 +824,7 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     regNode_t *temp = NULL;
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_CREATE
+    getCurrentEnv(NULL, NULL, NULL, &msg);
     msg.type = PD_MSG_DB_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid) = event->waitersDb;
     PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;
@@ -843,6 +860,7 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     */
 #undef PD_TYPE
 #define PD_TYPE PD_MSG_DB_RELEASE
+    getCurrentEnv(NULL, NULL, NULL, &msg);
     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = event->waitersDb;
     PD_MSG_FIELD(edt.guid) = curTask ? curTask->guid : NULL_GUID;

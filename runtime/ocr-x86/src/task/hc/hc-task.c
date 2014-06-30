@@ -718,7 +718,7 @@ u8 taskExecute(ocrTask_t* base) {
                     // We are not going to launch the EDT
                     break;
                 }
-                switch(PD_MSG_FIELD(properties)) {
+                switch(PD_MSG_FIELD(returnDetail)) {
                 case 0:
                     ASSERT(PD_MSG_FIELD(ptr));
                     break; // Everything went fine

@@ -222,7 +222,7 @@ ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
     ocrEvent_t *eventToYieldFor = NULL;
     ocrFatGuid_t result;
 
-    getCurrentEnv(&pd, NULL, NULL, NULL);
+    getCurrentEnv(&pd, NULL, NULL, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_INFO

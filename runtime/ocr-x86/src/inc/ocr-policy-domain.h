@@ -285,10 +285,11 @@ typedef struct _ocrPolicyMsg_t {
      *     - All 'guid' parameters for the creation of objects are in/out:
      *       If they are not NULL_GUID on input, the runtime will use the GUID
      *       specified for the object.
-     *     - All 'properties' field are in/out and contain the error code
-     *       of the call on return. The return value of processMessage is
-     *       the error code of the processMessage call (ie: not the internal
-     *       message's processing)
+     *     - The 'properties' field is input only.
+     *     - The 'returnDetail' field is output only and on return it contains
+     *       the error code of any deeper call the processMessage function makes.
+     *       The return value of processMessage is its own error code (ie: not
+     *       the internal message's processing)
      */
     union {
         struct {
@@ -299,6 +300,7 @@ typedef struct _ocrPolicyMsg_t {
             u64 size;                     /**< In: Size of the created DB */
             ocrFatGuid_t affinity;        /**< In: Affinity group for the DB */
             u32 properties;               /**< In: Properties for creation */
+            u32 returnDetail;             /**< Out: Success or error code */
             ocrDataBlockType_t dbType;    /**< In: Type of memory requested */
             ocrInDbAllocator_t allocator; /**< In: In-DB allocator */
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_CREATE);
@@ -307,6 +309,7 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t guid;         /**< In: GUID of the DB to destroy */
             ocrFatGuid_t edt;          /**< In: EDT doing the destruction */
             u32 properties;            /**< In: properties for the destruction */
+            u32 returnDetail;          /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_DESTROY);
 
         struct {
@@ -314,18 +317,21 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t edt;          /**< In: EDT doing the acquiring */
             void* ptr;                 /**< Out: Pointer to the acquired memory */
             u32 properties;            /**< In: Properties for acquire. Bit 0: 1 if runtime acquire */
+            u32 returnDetail;          /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_ACQUIRE);
 
         struct {
             ocrFatGuid_t guid;         /**< In: GUID of the DB to release */
             ocrFatGuid_t edt;          /**< In: GUID of the EDT doing the release */
             u32 properties;            /**< In: Properties of the release: Bit 0: 1 if runtime release */
+            u32 returnDetail;          /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_RELEASE);
 
         struct {
             ocrFatGuid_t guid;         /**< In: GUID of the DB to free */
             ocrFatGuid_t edt;          /**< In: GUID of the EDT doing the free */
             u32 properties;            /**< In: Properties of the free */
+            u32 returnDetail;          /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_FREE);
 
         struct {
@@ -335,6 +341,7 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t allocator;    /**< Out: GUID of the allocator that provided this memory */
             ocrMemType_t type;         /**< In: Type of memory requested */
             u32 properties;            /**< In: Properties for the allocation */
+            u32 returnDetail;          /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_MEM_ALLOC);
 
         struct {
@@ -345,6 +352,7 @@ typedef struct _ocrPolicyMsg_t {
                                         * as above */
             ocrMemType_t type;
             u32 properties;            /**< In: Properties for the free */
+            u32 returnDetail;          /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_MEM_UNALLOC);
 
         struct {
@@ -361,6 +369,7 @@ typedef struct _ocrPolicyMsg_t {
                                         * in case of EDT_PARAM_DEF as input for example */
             u32 depc;                  /**< In/out: Number of dependence slots; same comment as above */
             u32 properties;            /**< In: properties for the creation */
+            u32 returnDetail;          /**< Out: Success or error code */
             ocrWorkType_t workType;    /**< In: Type of work to create */
             ocrFatGuid_t currentEdt;   /**< In: EDT that is creating work */
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_CREATE);
@@ -368,12 +377,14 @@ typedef struct _ocrPolicyMsg_t {
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the EDT to execute */
             u32 properties;    /**< In: Properties for the execution */
+            u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_EXECUTE);
 
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the EDT to destroy */
-            u32 properties;    /**< In: properties for the destruction */
             ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying work */
+            u32 properties;    /**< In: properties for the destruction */
+            u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_DESTROY);
 
         struct {
@@ -382,6 +393,7 @@ typedef struct _ocrPolicyMsg_t {
             u32 paramc;            /**< In: Number of parameters for EDT */
             u32 depc;              /**< In: Number of dependences for EDT */
             u32 properties;        /**< In: Properties */
+            u32 returnDetail;      /**< Out: Success or error code */
             const char * funcName; /**< In: Debug help: user identifier */
             u64 funcNameLen;       /**< In: Number of characters (excluding '\0') in funcName */
             ocrFatGuid_t currentEdt;   /**< In: EDT that is creating template */
@@ -389,27 +401,31 @@ typedef struct _ocrPolicyMsg_t {
 
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the EDT template to destroy */
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying the template */
             u32 properties;    /**< In: properties for the destruction */
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying template */
+            u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_EDTTEMP_DESTROY);
 
         struct {
             ocrFatGuid_t guid;    /**< In/Out: GUID of the event to create */
             u32 properties;       /**< In: Properties for this creation */
+            u32 returnDetail;     /**< Out: Success or error code */
             ocrEventTypes_t type; /**< Type of the event created: Bit 0: 1 if event takes an argument */
             ocrFatGuid_t currentEdt;   /**< In: EDT that is creating event */
         } PD_MSG_STRUCT_NAME(PD_MSG_EVT_CREATE);
 
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the event to destroy */
-            u32 properties;    /**< In: properties for the destruction */
             ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying event */
+            u32 properties;    /**< In: properties for the destruction */
+            u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_EVT_DESTROY);
 
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the event to get the data from */
             ocrFatGuid_t data; /**< Out: GUID of the DB used to satisfy the event */
             u32 properties;    /**< In: Properties for the get */
+            u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_EVT_GET);
 
         struct {
@@ -422,6 +438,7 @@ typedef struct _ocrPolicyMsg_t {
                                 *   size needed to contain the metadata. Otherwise ignored */
             ocrGuidKind kind;  /**< In: Kind of the GUID to create */
             u32 properties;    /**< In: Properties for the creation. */
+            u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_CREATE);
 
         struct {
@@ -429,14 +446,16 @@ typedef struct _ocrPolicyMsg_t {
                                 * In: The GUID field should be set to the GUID
                                 * whose information is needed
                                 * Out: Fully resolved information */
-            ocrGuidKind kind; /**< Out: Contains the type of the GUID */
-            u32 properties;   /**< In: Properties for the info. See ocrGuidInfoProp_t */
+            ocrGuidKind kind;  /**< Out: Contains the type of the GUID */
+            u32 properties;    /**< In: Properties for the info. See ocrGuidInfoProp_t */
+            u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_INFO);
 
         struct {
             ocrFatGuid_t guid; /**< In: GUID to destroy */
             u32 properties;    /**< In: Properties for the destruction:
                                 * Bit 0: If 1, metadata area is "freed" */
+            u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_DESTROY);
 
         struct {
@@ -450,6 +469,7 @@ typedef struct _ocrPolicyMsg_t {
                                   * number of GUIDs if guids has requested GUIDs or
                                   * maximum number of GUIDs requested. */
             u32 properties;      /**< In: properties for the take; TODO: define some for extra */
+            u32 returnDetail;    /**< Out: Success or error code */
             ocrGuidKind type;    /**< In: Kind of GUIDs requested */
             // TODO: Add something about cost/choice heuristic
         } PD_MSG_STRUCT_NAME(PD_MSG_COMM_TAKE);
@@ -462,6 +482,7 @@ typedef struct _ocrPolicyMsg_t {
                                  * by callee */
             u32 guidCount;       /**< Number of GUID(s) in guids */
             u32 properties;      /**< In: properties for the give */
+            u32 returnDetail;    /**< Out: Success or error code */
             ocrGuidKind type;    /**< In: Kind of GUIDs given */
             // TODO: Do we need something about cost/choice heuristic here
         } PD_MSG_STRUCT_NAME(PD_MSG_COMM_GIVE);
@@ -469,9 +490,10 @@ typedef struct _ocrPolicyMsg_t {
         struct {
             ocrFatGuid_t source; /**< In: Source of the dependence */
             ocrFatGuid_t dest;   /**< In: Destination of the dependence */
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is adding dep */
             u32 slot;            /**< In: Slot of dest to connect the dep to */
             u32 properties;      /**< In: Properties. Lower 3 bits are access modes */
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is adding dep */
+            u32 returnDetail;    /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_ADD);
 
         struct {
@@ -479,6 +501,7 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t dest;     /**< In: Object to register the signaler on */
             u32 slot;              /**< In: Slot on dest to register the signaler on */
             u32 properties;        /**< In: Properties */
+            u32 returnDetail;      /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_REGSIGNALER);
 
         struct {
@@ -486,15 +509,17 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t dest;     /**< In: Object to register the waiter on */
             u32 slot;              /**< In: The slot on waiter that will be notified */
             u32 properties;        /**< In: Properties */
+            u32 returnDetail;      /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_REGWAITER);
 
         struct {
             ocrFatGuid_t guid;    /**< In: GUID of the event/task to satisfy */
             ocrFatGuid_t payload; /**< In: GUID of the "payload" to satisfy the
                                    * event/task with (a DB usually). */
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is satisfying dep */
             u32 slot;             /**< In: Slot to satisfy the event/task on */
             u32 properties;       /**< In: Properties for the satisfaction */
-            ocrFatGuid_t currentEdt;   /**< In: EDT that is satisfying dep */
+            u32 returnDetail;     /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_SATISFY);
 
         struct {
@@ -502,18 +527,21 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t dest;     /**< In: Object to unregister the signaler on */
             u32 slot;              /**< In: Slot on dest to unregister the signaler on */
             u32 properties;        /**< In: Properties */
+            u32 returnDetail;      /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_UNREGSIGNALER);
 
         struct {
             ocrFatGuid_t edt;      /**< In: EDT adding the dynamic dependence (to itself only) */
             ocrFatGuid_t db;       /**< In: DB dynamically acquired */
             u32 properties;        /**< In: Properties */
+            u32 returnDetail;      /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_DYNADD);
 
         struct {
             ocrFatGuid_t edt;      /**< In: EDT removing the dynamic dependence (to itself only) */
             ocrFatGuid_t db;       /**< In: DB dynamically being removed */
             u32 properties;        /**< In: Properties */
+            u32 returnDetail;      /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_DYNREMOVE);
 
         struct {
@@ -521,12 +549,14 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t dest;     /**< In: Object to unregister the waiter on */
             u32 slot;              /**< In: The slot on waiter that will be notified */
             u32 properties;        /**< In: Properties */
+            u32 returnDetail;      /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_UNREGWAITER);
 
         struct {
             const char* buffer;  /**< In: ASCIIZ character string to print */
             u64 length;          /**< In: Length to print, including NULL termination */
             u32 properties;      /**< In: Properties for the print */
+            u32 returnDetail;    /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_PRINT);
 
         struct {
@@ -535,6 +565,7 @@ typedef struct _ocrPolicyMsg_t {
                                  * of buffer, on output, contains length read */
             u64 inputId;        /**< In: Identifier for where to read from */
             u32 properties;     /**< In: Properties for the read */
+            u32 returnDetail;   /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_READ);
 
         struct {
@@ -543,30 +574,36 @@ typedef struct _ocrPolicyMsg_t {
                                  * bytes NOT written */
             u64 outputId;       /**< In: Identifier for where to write to */
             u32 properties;     /**< In: Properties for the write */
+            u32 returnDetail;   /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_WRITE);
 
         struct {
             u64 errorCode;     /**< In: Error code if applicable */
             u32 properties;    /**< For now: 0 if normal exit, 1 if abort, 2 if assert*/
+            u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_TERMINATE);
         struct {
-            u32 properties;
             ocrFatGuid_t currentEdt;   /**< In: EDT that is calling shutdown */
+            u32 properties;
+            u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_SHUTDOWN);
 
         struct {
             u32 properties;
+            u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_FINISH);
 
         struct {
             ocrLocation_t neighbor; /**< In: Neighbor registering */
             // TODO: Add things having to do with cost and relationship
             u32 properties;
+            u32 returnDetail;       /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_REGISTER);
 
         struct {
             ocrLocation_t neighbor; /**< In: Neighbor unregistering */
             u32 properties;
+            u32 returnDetail;       /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_UNREGISTER);
     } args;
     char _padding[64]; // REC: HACK to be able to fit everything in messages!!
@@ -777,6 +814,10 @@ typedef struct _ocrPolicyDomainFcts_t {
  *
  */
 typedef struct _ocrPolicyDomain_t {
+
+// CAUTION:  FIXME:  Any changes to this struct (including, for example, the sizeof(ocrFatGuid_t)
+// will cause problems in the symbolic constants inside rmdkrnl/inc/rmd-bin-files.h
+
     ocrFatGuid_t fguid;                         /**< GUID for this policy */
 
     u64 schedulerCount;                         /**< Number of schedulers */
@@ -804,10 +845,6 @@ typedef struct _ocrPolicyDomain_t {
     ocrEventFactory_t ** eventFactories;        /**< Factories to produce events*/
     ocrGuidProvider_t ** guidProviders;         /**< GUID generators */
 
-#ifdef OCR_ENABLE_STATISTICS
-    ocrStats_t *statsObject;                    /**< Statistics object */
-#endif
-
     // TODO: What to do about this?
     ocrCost_t *costFunction; /**< Cost function used to determine
                               * what to schedule/steal/take/etc.
@@ -820,6 +857,11 @@ typedef struct _ocrPolicyDomain_t {
     u32 neighborCount;
 
     ocrPolicyDomainFcts_t fcts;
+
+    s8 * allocatorIndexLookup;                  /**< Allocator indices for each block agent, over each of 8 memory levels */
+#ifdef OCR_ENABLE_STATISTICS
+    ocrStats_t *statsObject;                    /**< Statistics object */
+#endif
 
 } ocrPolicyDomain_t;
 

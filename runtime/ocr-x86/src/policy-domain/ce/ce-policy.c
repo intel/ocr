@@ -547,16 +547,16 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                 msg->srcLocation, PD_MSG_FIELD(size));
 // TODO:  The prescription needs to be derived from the affinity, and needs to default to something sensible.
 #define PRESCRIPTION 0xFEDCBA9876543210LL
-        PD_MSG_FIELD(properties) = ceAllocateDb(
+        PD_MSG_FIELD(returnDetail) = ceAllocateDb(
             self, &(PD_MSG_FIELD(guid)), &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
             PD_MSG_FIELD(properties), msg->srcLocation,
             PD_MSG_FIELD(affinity), PD_MSG_FIELD(allocator), PRESCRIPTION);
-        if(PD_MSG_FIELD(properties) == 0) {
+        if(PD_MSG_FIELD(returnDetail) == 0) {
             ocrDataBlock_t *db= PD_MSG_FIELD(guid.metaDataPtr);
             ASSERT(db);
             // TODO: Check if properties want DB acquired
             ASSERT(db->fctId == self->dbFactories[0]->factoryId);
-            PD_MSG_FIELD(properties) = self->dbFactories[0]->fcts.acquire(
+            PD_MSG_FIELD(returnDetail) = self->dbFactories[0]->fcts.acquire(
                 db, &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(edt), false);
         } else {
             // Cannot acquire
@@ -583,7 +583,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                 msg->srcLocation, PD_MSG_FIELD(guid.guid));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
         //ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
-        PD_MSG_FIELD(properties) = self->dbFactories[0]->fcts.acquire(
+        PD_MSG_FIELD(returnDetail) = self->dbFactories[0]->fcts.acquire(
             db, &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
         DPRINTF(DEBUG_LVL_VVERB, "DB_ACQUIRE response for GUID 0x%lx: PTR: 0x%lx\n",
                 PD_MSG_FIELD(guid.guid), PD_MSG_FIELD(ptr));
@@ -606,7 +606,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         //ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
         DPRINTF(DEBUG_LVL_VVERB, "DB_RELEASE req/resp from 0x%lx for GUID 0x%lx\n",
                 msg->srcLocation, PD_MSG_FIELD(guid.guid));
-        PD_MSG_FIELD(properties) =
+        PD_MSG_FIELD(returnDetail) =
             self->dbFactories[0]->fcts.release(db, PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & 1);
         returnCode = ceProcessResponse(self, msg, 0);
 #undef PD_MSG
@@ -627,7 +627,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                 msg->srcLocation, PD_MSG_FIELD(guid.guid));
         ASSERT(db->fctId == self->dbFactories[0]->factoryId);
         ASSERT(!(msg->type & PD_MSG_REQ_RESPONSE));
-        PD_MSG_FIELD(properties) =
+        PD_MSG_FIELD(returnDetail) =
             self->dbFactories[0]->fcts.free(db, PD_MSG_FIELD(edt));
         returnCode = ceProcessResponse(self, msg, 0);
 #undef PD_MSG
@@ -644,7 +644,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(allocatingPD) = self->fguid;
         DPRINTF(DEBUG_LVL_VVERB, "MEM_ALLOC request from 0x%lx for size %lu\n",
                 msg->srcLocation, PD_MSG_FIELD(size));
-        PD_MSG_FIELD(properties) = ceMemAlloc(
+        PD_MSG_FIELD(returnDetail) = ceMemAlloc(
             self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(size),
             engineIndex, PD_MSG_FIELD(type), &(PD_MSG_FIELD(ptr)),
             PRESCRIPTION);
@@ -664,7 +664,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         PD_MSG_FIELD(allocatingPD.metaDataPtr) = self;
         DPRINTF(DEBUG_LVL_VVERB, "MEM_UNALLOC req/resp from 0x%lx for PTR 0x%lx\n",
                 msg->srcLocation, PD_MSG_FIELD(ptr));
-        PD_MSG_FIELD(properties) = ceMemUnalloc(
+        PD_MSG_FIELD(returnDetail) = ceMemUnalloc(
             self, &(PD_MSG_FIELD(allocator)), PD_MSG_FIELD(ptr), PD_MSG_FIELD(type));
         returnCode = ceProcessResponse(self, msg, 0);
 #undef PD_MSG
@@ -687,7 +687,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(PD_MSG_FIELD(workType) == EDT_WORKTYPE);
         DPRINTF(DEBUG_LVL_VVERB, "WORK_CREATE request from 0x%lx\n",
                 msg->srcLocation);
-        PD_MSG_FIELD(properties) = ceCreateEdt(
+        PD_MSG_FIELD(returnDetail) = ceCreateEdt(
             self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(templateGuid),
             &PD_MSG_FIELD(paramc), PD_MSG_FIELD(paramv), &PD_MSG_FIELD(depc),
             PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity), outputEvent,
@@ -711,7 +711,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         DPRINTF(DEBUG_LVL_VVERB, "WORK_DESTROY req/resp from 0x%lx for GUID 0x%lx\n",
                 msg->srcLocation, PD_MSG_FIELD(guid.guid));
         ASSERT(task->fctId == self->taskFactories[0]->factoryId);
-        PD_MSG_FIELD(properties) = self->taskFactories[0]->fcts.destruct(task);
+        PD_MSG_FIELD(returnDetail) = self->taskFactories[0]->fcts.destruct(task);
         returnCode = ceProcessResponse(self, msg, 0);
 #undef PD_MSG
 #undef PD_TYPE
@@ -725,7 +725,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
         DPRINTF(DEBUG_LVL_VVERB, "EDTTEMP_CREATE request from 0x%lx\n",
                 msg->srcLocation);
-        PD_MSG_FIELD(properties) = ceCreateEdtTemplate(
+        PD_MSG_FIELD(returnDetail) = ceCreateEdtTemplate(
             self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(funcPtr), PD_MSG_FIELD(paramc),
             PD_MSG_FIELD(depc), PD_MSG_FIELD(funcName));
         DPRINTF(DEBUG_LVL_VVERB, "EDTTEMP_CREATE response: GUID: 0x%lx\n",
@@ -746,7 +746,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         DPRINTF(DEBUG_LVL_VVERB, "EDTTEMP_DESTROY req/resp from 0x%lx for GUID 0x%lx\n",
                 msg->srcLocation, PD_MSG_FIELD(guid.guid));
         ASSERT(tTemplate->fctId == self->taskTemplateFactories[0]->factoryId);
-        PD_MSG_FIELD(properties) = self->taskTemplateFactories[0]->fcts.destruct(tTemplate);
+        PD_MSG_FIELD(returnDetail) = self->taskTemplateFactories[0]->fcts.destruct(tTemplate);
         returnCode = ceProcessResponse(self, msg, 0);
 #undef PD_MSG
 #undef PD_TYPE
@@ -760,8 +760,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_EVT_CREATE
         DPRINTF(DEBUG_LVL_VVERB, "EVT_CREATE request from 0x%lx of type %u\n",
                 msg->srcLocation, PD_MSG_FIELD(type));
-        PD_MSG_FIELD(properties) = ceCreateEvent(self, &(PD_MSG_FIELD(guid)),
-                                                 PD_MSG_FIELD(type), PD_MSG_FIELD(properties) & 1);
+        PD_MSG_FIELD(returnDetail) = ceCreateEvent(self, &(PD_MSG_FIELD(guid)),
+                                                   PD_MSG_FIELD(type), PD_MSG_FIELD(properties) & 1);
         DPRINTF(DEBUG_LVL_VVERB, "EVT_CREATE response for type %u: GUID: 0x%lx\n",
                 PD_MSG_FIELD(type), PD_MSG_FIELD(guid.guid));
         returnCode = ceProcessResponse(self, msg, 0);
@@ -780,7 +780,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         DPRINTF(DEBUG_LVL_VVERB, "EVT_DESTROY req/resp from 0x%lx for GUID 0x%lx\n",
                 msg->srcLocation, PD_MSG_FIELD(guid.guid));
         ASSERT(evt->fctId == self->eventFactories[0]->factoryId);
-        PD_MSG_FIELD(properties) = self->eventFactories[0]->fcts[evt->kind].destruct(evt);
+        PD_MSG_FIELD(returnDetail) = self->eventFactories[0]->fcts[evt->kind].destruct(evt);
         returnCode = ceProcessResponse(self, msg, 0);
 #undef PD_MSG
 #undef PD_TYPE
@@ -815,7 +815,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             // Here we need to create a metadata area as well
             DPRINTF(DEBUG_LVL_VVERB, "GUID_CREATE(new) request from 0x%lx\n",
                     msg->srcLocation);
-            PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.createGuid(
+            PD_MSG_FIELD(returnDetail) = self->guidProviders[0]->fcts.createGuid(
                 self->guidProviders[0], &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(size),
                 PD_MSG_FIELD(kind));
         } else {
@@ -823,7 +823,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             ocrGuid_t temp;
             DPRINTF(DEBUG_LVL_VVERB, "GUID_CREATE(exist) request from 0x%lx\n",
                     msg->srcLocation);
-            PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.getGuid(
+            PD_MSG_FIELD(returnDetail) = self->guidProviders[0]->fcts.getGuid(
                 self->guidProviders[0], &temp, (u64)PD_MSG_FIELD(guid.metaDataPtr),
                 PD_MSG_FIELD(kind));
             PD_MSG_FIELD(guid.guid) = temp;
@@ -845,12 +845,12 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         DPRINTF(DEBUG_LVL_VVERB, "GUID_INFO request from 0x%lx for GUID 0x%lx\n",
                 msg->srcLocation, PD_MSG_FIELD(guid.guid));
         if(PD_MSG_FIELD(properties) & KIND_GUIDPROP) {
-            PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.getKind(
+            PD_MSG_FIELD(returnDetail) = self->guidProviders[0]->fcts.getKind(
                 self->guidProviders[0], PD_MSG_FIELD(guid.guid), &(PD_MSG_FIELD(kind)));
-            if(PD_MSG_FIELD(properties) == 0)
-                PD_MSG_FIELD(properties) = KIND_GUIDPROP | WMETA_GUIDPROP | RMETA_GUIDPROP;
+            if(PD_MSG_FIELD(returnDetail) == 0)
+                PD_MSG_FIELD(returnDetail) = KIND_GUIDPROP | WMETA_GUIDPROP | RMETA_GUIDPROP;
         } else {
-            PD_MSG_FIELD(properties) = WMETA_GUIDPROP | RMETA_GUIDPROP;
+            PD_MSG_FIELD(returnDetail) = WMETA_GUIDPROP | RMETA_GUIDPROP;
         }
         // TODO print more useful stuff
         DPRINTF(DEBUG_LVL_VVERB, "GUID_INFO response\n");
@@ -868,7 +868,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(guid)));
         DPRINTF(DEBUG_LVL_VVERB, "GUID_DESTROY req/resp from 0x%lx for GUID 0x%lx\n",
                 msg->srcLocation, PD_MSG_FIELD(guid.guid));
-        PD_MSG_FIELD(properties) = self->guidProviders[0]->fcts.releaseGuid(
+        PD_MSG_FIELD(returnDetail) = self->guidProviders[0]->fcts.releaseGuid(
             self->guidProviders[0], PD_MSG_FIELD(guid), PD_MSG_FIELD(properties) & 1);
         returnCode = ceProcessResponse(self, msg, 0);
 #undef PD_MSG
@@ -884,7 +884,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
         DPRINTF(DEBUG_LVL_VVERB, "COMM_TAKE request from 0x%lx\n",
                 msg->srcLocation);
-        PD_MSG_FIELD(properties) = self->schedulers[0]->fcts.takeEdt(
+        PD_MSG_FIELD(returnDetail) = self->schedulers[0]->fcts.takeEdt(
             self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
             PD_MSG_FIELD(guids));
         DPRINTF(DEBUG_LVL_VVERB, "COMM_TAKE response: GUID: 0x%lx (@ 0x%lx, base @ 0x%lx)\n",
@@ -903,7 +903,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
         DPRINTF(DEBUG_LVL_VVERB, "COMM_GIVE req/resp from 0x%lx with GUID 0x%lx\n",
                 msg->srcLocation, (PD_MSG_FIELD(guids))->guid);
-        PD_MSG_FIELD(properties) = self->schedulers[0]->fcts.giveEdt(
+        PD_MSG_FIELD(returnDetail) = self->schedulers[0]->fcts.giveEdt(
             self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
             PD_MSG_FIELD(guids));
         returnCode = ceProcessResponse(self, msg, 0);
