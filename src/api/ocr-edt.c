@@ -170,12 +170,12 @@ ocrGuid_t currentEdtUserGet() {
       return NULL_GUID;
 }
 
-u64 nbWorkers() {
+u64 ocrNbWorkers() {
     ocrPolicyDomain_t * pd = getCurrentPD();
     return pd->workerCount;
 }
 
-u64 currentWorkerId() {
+u64 ocrCurrentWorkerId() {
     ocrPolicyCtx_t * ctx = getCurrentWorkerContext();
     return ctx->sourceId;
 }
