@@ -318,7 +318,7 @@ static void* allocateDatablock (ocrPolicyDomain_t *self,
             idx += ENGINE_INDEX_OF_CE;  // Non-zero selects something higher than L1.  Adjust index to get past ALL the L1s in the Block.
         }
 
-        if ((idx > self->allocatorCount) || (self->allocators[idx] == NULL)) {
+        if ((idx >= self->allocatorCount) || (self->allocators[idx] == NULL)) {
             continue;  // Skip this allocator if it doesn't exist.
         }
         result = self->allocators[idx]->fcts.allocate(self->allocators[idx], size, hints);
