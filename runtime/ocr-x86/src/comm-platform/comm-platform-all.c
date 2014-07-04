@@ -143,7 +143,7 @@ u8 ocrCommPlatformMarshallMsg(ocrPolicyMsg_t* msg, u8* buffer, ocrMarshallMode_t
         ASSERT(0);
     }
 
-    DPRINTF(DEBUG_LVL_VERB, "Got incoming message 0x%lx to marshall into 0x%lx mode %d:"
+    DPRINTF(DEBUG_LVL_VERB, "Got message 0x%lx to marshall into 0x%lx mode %d: "
             "startPtr: 0x%lx, curPtr: 0x%lx, outputMsg: 0x%lx\n",
             (u64)msg, (u64)buffer, mode, (u64)startPtr, (u64)curPtr, (u64)outputMsg);
 
@@ -228,9 +228,10 @@ u8 ocrCommPlatformMarshallMsg(ocrPolicyMsg_t* msg, u8* buffer, ocrMarshallMode_t
 
     // Update the size of the output message if needed
     if(mode == MARSHALL_FULL_COPY || mode == MARSHALL_APPEND) {
-        outputMsg->size = (u64)(curPtr - startPtr);
+        outputMsg->size = (u64)(curPtr) - (u64)(startPtr);
     }
 
+    DPRINTF(DEBUG_LVL_VVERB, "Size of message set to 0x%lx\n", outputMsg->size);
     return 0;
 }
 
@@ -370,5 +371,6 @@ u8 ocrCommPlatformUnMarshallMsg(u8* mainBuffer, u8* addlBuffer,
     if(mode == MARSHALL_APPEND || mode == MARSHALL_FULL_COPY) {
         msg->size = fullSize;
     }
+    DPRINTF(DEBUG_LVL_VVERB, "Done unmarshalling and have size of message %ld\n", msg->size);
     return 0;
 }

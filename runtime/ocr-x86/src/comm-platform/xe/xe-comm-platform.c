@@ -181,7 +181,7 @@ u8 xeCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
         ASSERT(tmp == 1);
     }
 
-    // - Alarm remote, freezing
+    // - Alarm remote to tell the CE it has something (in case it is halted)
     __asm__ __volatile__("alarm %0\n\t" : : "L" (XE_MSG_QUEUE));
 
 #endif
