@@ -41,7 +41,7 @@ extern "C" {
  * @return Number of characters printed, as per printf().
  *
  **/
-u32 PRINTF(char * fmt, ...);
+u32 PRINTF(const char * fmt, ...);
 
 
 /**

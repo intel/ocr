@@ -297,7 +297,7 @@ badfmt:
     return chars;
 }
 
-u32 SNPRINTF(char * buf, u32 size, char * fmt, ...) {
+u32 SNPRINTF(char * buf, u32 size, const char * fmt, ...) {
     u32 tmp;
     __builtin_va_list ap;
 
@@ -323,7 +323,7 @@ u32 SNPRINTF(char * buf, u32 size, char * fmt, ...) {
 
 #define PRINTF_MAX (1024)
 
-u32 PRINTF(char * fmt, ...) {
+u32 PRINTF(const char * fmt, ...) {
     u32 tmp;
     __builtin_va_list ap;
 

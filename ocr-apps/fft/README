@@ -1,0 +1,31 @@
+Implementations:
+    - serial/
+        - fft.c                   Baseline serial implementation for the
+                                  Cooley-Tukey algorithm
+    - ocr/
+        - serial.cpp              Serial implementation of Cooley-Tukey algorithm
+                                  using OCR. Each iteration (for testing multiple
+                                  runs) is executed in a single EDT. No parallelism
+                                  is introduced in this version.
+        - naive-parallel.cpp      In the first stage of FFT, recursively spawns child
+                                  EDTs with smaller subsets of the data to transform,
+                                  down to the base case of 1 element. The second
+                                  "butterfly" stage is done in a separate "end EDT".
+                                  This is done serially.
+        - bounded-parallel.cpp    To minimize EDT creation overhead, children are only
+                                  spawned in the first stage until a minimum serial
+                                  block size (can be user-specified) is reached. EndEDTs
+                                  divide their work among a number of slave EDTs,
+                                  which each perform a portion of the "butterfly" stage.
+                                  Each slave processes serialBlockSize elements (same
+                                  as above).
+        - bounded-parallel-db.cpp Same as full-parallel.cpp, but the input data, real
+                                  output, and imaginary output are contained in separate
+                                  datablocks, rather than in a single large block as in
+                                  other prior implementations.
+
+Credit:
+    - Code in this directory was developed by students at Oregon State University
+      as part of the Capstone project
+    - Grady Ellison, Kyung Hwan Pak and Matthew Unrath were the principal contributors:
+        - FFT: Matthew Unrath
