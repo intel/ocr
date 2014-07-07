@@ -1,0 +1,25 @@
+###
+# BUILD
+###
+
+To build:
+    - EXORSOL=<exercises|solutions> TARGET=<target> make -f Makefile.x86-pthread-x86 install
+    - EXORSOL indicates if you want to build the solutions or exercises. Note that the exercises
+      will not compile as is as they are missing code
+    - <target> can be one of ex1, ex2, ex3, ex4, or ex5
+    - By default, the solution to ex1 will be build
+
+Options:
+    - You can modify Makefile.x86-pthread-x86 or set appropriate environment
+      variables to override where the program is built (WORKLOAD_BUILD) and
+      installed (WORKLOAD_INSTALL) as well as where OCR resides (OCR_INSTALL_ROOT
+      and OCR_BUILD_ROOT) and which implementation of OCR to use (OCR_TARGET)
+
+###
+# RUN
+###
+
+To run:
+    - Go to install/
+    - Set up appropriate environment varieables (printed when you do a make install)
+    - Run the exercises (they do not take any arguments)
