@@ -515,9 +515,9 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
     INI_GET_STR (key, inststr, "");
 
     for (i = 0; i < type_counts[index]; i++) {
-        if (factory_names[index][i] && (0 == strncmp(factory_names[index][i], inststr, strlen(factory_names[index][i])))) break;
+        if (factory_names[index][i] && (0 == strncmp(factory_names[index][i], inststr, 1+strlen(factory_names[index][i])))) break;
     }
-    if (factory_names[index][i] == NULL || strncmp(factory_names[index][i], inststr, strlen(factory_names[index][i]))) {
+    if (factory_names[index][i] == NULL || strncmp(factory_names[index][i], inststr, 1+strlen(factory_names[index][i]))) {
         DPRINTF(DEBUG_LVL_WARN, "Unknown type %s while reading key %s\n", inststr, key);
         return 0;
     }
