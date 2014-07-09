@@ -302,9 +302,7 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
             ASSERT(handle->response->destLocation == self->myLocation);
             if((handle->response->type & PD_MSG_TYPE_ONLY) != type) {
                 // Special case: shutdown in progress, cancel this message
-                // The below causes a hang, but it's in the shutdown path
-                // so is not critically investigated. See trac (#73)
-                // handle->destruct(handle);
+                // The handle is destroyed by the caller for this case
                 return OCR_ECANCELED;
             }
             ASSERT((handle->response->type & PD_MSG_TYPE_ONLY) == type);
@@ -489,12 +487,12 @@ u8 xePdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t
     if (returnCode == 0) return 0;
     switch (returnCode) {
     case OCR_ECANCELED:
-        // Our outgoing message was cancelled and we probably have an incoming
-        // reason why (shutdown most likely)
+        // Our outgoing message was cancelled and shutdown is assumed
+        // TODO: later this will be expanded to include failures
         // We destruct the handle for the first message in case it was partially used
         if(*handle)
             (*handle)->destruct(*handle);
-        if(returnCode==OCR_ECANCELED) ocrShutdown();
+        ocrShutdown();
         break;
     case OCR_EBUSY:
         if(*handle)
