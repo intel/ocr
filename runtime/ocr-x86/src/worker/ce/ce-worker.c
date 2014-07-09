@@ -73,7 +73,6 @@ ocrWorker_t* newWorkerCe (ocrWorkerFactory_t * factory, ocrParamList_t * perInst
 void initializeWorkerCe(ocrWorkerFactory_t * factory, ocrWorker_t* base, ocrParamList_t * perInstance) {
     initializeWorkerOcr(factory, base, perInstance);
     base->type = ((paramListWorkerCeInst_t*)perInstance)->workerType;
-    ASSERT(base->type == MASTER_WORKERTYPE);
 
     ocrWorkerCe_t * workerCe = (ocrWorkerCe_t *) base;
     workerCe->id = ((paramListWorkerCeInst_t*)perInstance)->workerId;
@@ -103,9 +102,8 @@ void ceStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     ocrWorkerCe_t * ceWorker = (ocrWorkerCe_t *) base;
 
     DPRINTF(DEBUG_LVL_VVERB, "Starting worker\n");
-#ifdef ENABLE_COMP_PLATFORM_PTHREAD  // Sanjay, the below should go away
-    // since it's not applicable to FSim
-    if(!ceWorker->secondStart) {
+#ifdef ENABLE_COMP_PLATFORM_PTHREAD  //FIXME: Trac bugs #76 and #80
+    if(base->type == MASTER_WORKERTYPE && !ceWorker->secondStart) {
         ceWorker->secondStart = true;
         return; // Don't start right away
     }
@@ -115,7 +113,6 @@ void ceStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     // Get a GUID
     guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
     base->pd = policy;
-    ASSERT(base->type == MASTER_WORKERTYPE);
 
     ceWorker->running = true;
 

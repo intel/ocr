@@ -303,7 +303,7 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
             RESULT_ASSERT(self->fcts.waitMessage(self, &handle), ==, 0);
             ASSERT(handle->response);
             // Check if the message was a proper response and came from the right place
-            ASSERT(handle->response->srcLocation == self->parentLocation);
+            //ASSERT(handle->response->srcLocation == self->parentLocation);
             ASSERT(handle->response->destLocation == self->myLocation);
             if((handle->response->type & PD_MSG_TYPE_ONLY) != type) {
                 // Special case: shutdown in progress, cancel this message
@@ -465,6 +465,10 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                     msg->srcLocation);
             returnCode = xeProcessCeRequest(self, &msg);
         } else {
+            //FIXME: We never exercise this code path.
+            //Keeping it for now until we fix the shutdown protocol
+            //Bug #134
+            ASSERT(0);
             DPRINTF(DEBUG_LVL_VVERB, "MGT_SHUTDOWN(slave) from 0x%lx\n",
                     msg->srcLocation);
             // Send the message back saying that
@@ -511,7 +515,11 @@ u8 xePdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t
         // We destruct the handle for the first message in case it was partially used
         if(*handle)
             (*handle)->destruct(*handle);
-        ocrShutdown();
+        //FIXME: OCR_ECANCELED shouldn't be inferred generally as shutdown
+        //but rather handled on a per message basis. Once we have a proper
+        //shutdown protocol this should go away.
+        //Bug #134
+        if(returnCode==OCR_ECANCELED) ocrShutdown();
         break;
     case OCR_EBUSY:
         if(*handle)

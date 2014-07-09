@@ -30,6 +30,8 @@
 
 #define DEBUG_TYPE POLICY
 
+extern void ocrShutdown(void);
+
 void cePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     DPRINTF(DEBUG_LVL_VVERB, "cePolicyDomainBegin called on policy at 0x%lx\n", (u64) policy);
     // The PD should have been brought up by now and everything instantiated
@@ -65,6 +67,16 @@ void cePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; i++) {
         policy->workers[i]->fcts.begin(policy->workers[i], policy);
     }
+
+    ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t*)policy;
+    //FIXME: This is a hack to get the shutdown reportees.
+    //This should be replaced by a registration protocol for children to parents.
+    //Trac bug: #134
+    if (policy->myLocation == policy->parentLocation) {
+        cePolicy->shutdownMax = cePolicy->xeCount + policy->neighborCount;
+    } else {
+        cePolicy->shutdownMax = cePolicy->xeCount;
+    }
 }
 
 void cePolicyDomainStart(ocrPolicyDomain_t * policy) {
@@ -77,7 +89,6 @@ void cePolicyDomainStart(ocrPolicyDomain_t * policy) {
     ocrPolicyDomainCe_t* cePolicy = (ocrPolicyDomainCe_t*) policy;
     u64 i = 0;
     u64 maxCount = 0;
-
     u64 low, high, level, engineIdx;
 
     maxCount = policy->allocatorCount;
@@ -512,8 +523,8 @@ static u8 ceProcessResponse(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u32 pr
         msg->destLocation = msg->srcLocation;
         msg->srcLocation = self->myLocation;
 
-        if(((ocrPolicyDomainCe_t*)self)->shutdownCount &&
-            (msg->type != PD_MSG_MGT_SHUTDOWN)) {
+        if((((ocrPolicyDomainCe_t*)self)->shutdownMode) &&
+           (msg->type != PD_MSG_MGT_SHUTDOWN)) {
             msg->type &= ~PD_MSG_TYPE_ONLY;
             msg->type |= PD_MSG_MGT_SHUTDOWN;
         }
@@ -893,17 +904,102 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
     case PD_MSG_COMM_TAKE: {
         START_PROFILE(pd_ce_Take);
+        // TAKE protocol on multiblock TG:
+        //
+        // When a XE is out of work it requests the CE for work.
+        // If the CE is out of work, it pings a random neighbor CE for work.
+        // So, a CE can receive a TAKE request from either a XE or another CE.
+        // For a CE, the reaction to a TAKE request is currently the same,
+        // whether it came from a XE or another CE, which is:
+        //
+        // Ask your own scheduler first.
+        // If no work was found locally, start to ping other CE's for new work.
+        // The protocol makes sure that an empty CE does not request back
+        // to a requesting CE. It also makes sure (through local flags), that
+        // it does not resend a request to another CE to which it had already
+        // posted one earlier.
+        //
+        // This protocol may cause an exponentially growing number
+        // of search messages until it fills up the system or finds work.
+        // It may or may not be the fastest way to grab work, but definitely
+        // not energy efficient nor communication-wise cheap. Also, who receives
+        // what work is totally random.
+        //
+        // This implementation will serve as the initial baseline for future
+        // improvements.
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_TAKE
         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
-        DPRINTF(DEBUG_LVL_VVERB, "COMM_TAKE request from 0x%lx\n",
+        // A TAKE request can come from either a CE or XE
+        if (msg->type & PD_MSG_REQUEST) {
+            DPRINTF(DEBUG_LVL_VVERB, "COMM_TAKE request from 0x%lx\n",
                 msg->srcLocation);
-        PD_MSG_FIELD(returnDetail) = self->schedulers[0]->fcts.takeEdt(
-            self->schedulers[0], &(PD_MSG_FIELD(guidCount)),
-            PD_MSG_FIELD(guids));
-        DPRINTF(DEBUG_LVL_VVERB, "COMM_TAKE response: GUID: 0x%lx (@ 0x%lx, base @ 0x%lx)\n",
-                (PD_MSG_FIELD(guids))->guid, &(PD_MSG_FIELD(guids[0].guid)), msg);
-        returnCode = ceProcessResponse(self, msg, 0);
+
+            //First check if my own scheduler can give out work
+            PD_MSG_FIELD(returnDetail) = self->schedulers[0]->fcts.takeEdt(
+                self->schedulers[0], &(PD_MSG_FIELD(guidCount)), PD_MSG_FIELD(guids));
+
+            //If my scheduler does not have work, (i.e guidCount == 0)
+            //then we need to start looking for work on other CE's.
+            ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t*)self;
+            if (PD_MSG_FIELD(guidCount) == 0 && cePolicy->shutdownMode == false) {
+                //Try other CE's
+                u32 i;
+                for (i = 0; i < self->neighborCount; i++) {
+                    //Check if I already have an active work request pending on a CE
+                    //If not, then we post one
+                    if (cePolicy->ceCommTakeActive[i] == 0 && msg->srcLocation != self->neighbors[i]) {
+#undef PD_MSG
+#define PD_MSG (&ceMsg)
+                        ocrPolicyMsg_t ceMsg;
+                        getCurrentEnv(NULL, NULL, NULL, &ceMsg);
+                        ocrFatGuid_t fguid[CE_TAKE_CHUNK_SIZE];
+                        ceMsg.destLocation = self->neighbors[i];
+                        ceMsg.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+                        PD_MSG_FIELD(guids) = &(fguid[0]);
+                        PD_MSG_FIELD(guidCount) = CE_TAKE_CHUNK_SIZE;
+                        PD_MSG_FIELD(properties) = 0;
+                        PD_MSG_FIELD(type) = OCR_GUID_EDT;
+                        RESULT_ASSERT(self->fcts.sendMessage(self, ceMsg.destLocation, &ceMsg, NULL, 0), ==, 0);
+                        cePolicy->ceCommTakeActive[i] = 1;
+#undef PD_MSG
+#define PD_MSG msg
+                    }
+                }
+            }
+
+            // Respond to the requester
+            // If my own scheduler had extra work, we respond with work
+            // If not, then we respond with no work (but we've already put out work requests by now)
+            DPRINTF(DEBUG_LVL_VVERB, "COMM_TAKE response: GUID: 0x%lx (@ 0x%lx, base @ 0x%lx)\n",
+                    (PD_MSG_FIELD(guids))->guid, &(PD_MSG_FIELD(guids[0].guid)), msg);
+            returnCode = ceProcessResponse(self, msg, PD_MSG_FIELD(properties));
+        } else { // A TAKE response has to be from another CE responding to my own request
+            ASSERT(msg->type & PD_MSG_RESPONSE);
+            u32 i, j;
+            for (i = 0; i < self->neighborCount; i++) {
+                if (msg->srcLocation == self->neighbors[i]) {
+                    ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t*)self;
+                    cePolicy->ceCommTakeActive[i] = 0;
+                    if (PD_MSG_FIELD(guidCount) > 0) {
+                        //If my work request was responded with work,
+                        //then we store it in our own scheduler
+                        ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
+                        ocrFatGuid_t *fEdtGuids = PD_MSG_FIELD(guids);
+                        DPRINTF(DEBUG_LVL_INFO, "[CE] Received %lu Edt(s) from %lu: ",
+                                (u64)msg->srcLocation, PD_MSG_FIELD(guidCount));
+                        for (j = 0; j < PD_MSG_FIELD(guidCount); j++) {
+                            DPRINTF(DEBUG_LVL_INFO, "(guid: %lx metadata: %p) ", fEdtGuids[j].guid, fEdtGuids[j].metaDataPtr);
+                        }
+                        DPRINTF(DEBUG_LVL_INFO, "\n");
+                        PD_MSG_FIELD(returnDetail) = self->schedulers[0]->fcts.giveEdt(
+                            self->schedulers[0], &(PD_MSG_FIELD(guidCount)), fEdtGuids);
+                    }
+                    break;
+                }
+            }
+            ASSERT(i < self->neighborCount);
+        }
 #undef PD_MSG
 #undef PD_TYPE
         EXIT_PROFILE;
@@ -1104,23 +1200,31 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     case PD_MSG_MGT_SHUTDOWN: {
         START_PROFILE(pd_ce_Shutdown);
         ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t *)self;
-        u32 neighborCount = cePolicy->xeCount;
-        if (msg->type & PD_MSG_REQUEST) {
-            // This triggers the shutdown of the machine
-            ASSERT(!(msg->type & PD_MSG_RESPONSE));
-            ASSERT(msg->srcLocation != self->myLocation);
-            cePolicy->shutdownCount++; //FIXME: Assumes block local shutdown message from XE
-            DPRINTF(DEBUG_LVL_VVERB, "MSG_SHUTDOWN request from 0x%lx, shutdownCount=%ld, neighborCount=%ld\n",
-                    msg->srcLocation, (u64) (cePolicy->shutdownCount), (u64) (neighborCount));
+        if (cePolicy->shutdownMode == false)
+            cePolicy->shutdownMode = true;
+        if (msg->srcLocation == self->myLocation && self->myLocation != self->parentLocation) {
+            msg->destLocation = self->parentLocation;
+            RESULT_ASSERT(self->fcts.sendMessage(self, msg->destLocation, msg, NULL, BLOCKING_SEND_MSG_PROP), ==, 0);
         } else {
-            ASSERT(msg->type & PD_MSG_RESPONSE);
-            DPRINTF(DEBUG_LVL_VVERB, "MSG_SHUTDOWN(resp) request from 0x%lx\n",
-                    msg->srcLocation);
-            ++(cePolicy->shutdownCount);
-        }
+            if (msg->type & PD_MSG_REQUEST) {
+                // This triggers the shutdown of the machine
+                ASSERT(!(msg->type & PD_MSG_RESPONSE));
+                cePolicy->shutdownCount++;
+                DPRINTF (DEBUG_LVL_VVERB, "CE received shutdown REQ from Agent %lu; shutdown %lu/%lu\n",
+                    (u64)msg->srcLocation, cePolicy->shutdownCount, cePolicy->shutdownMax);
+            } else {
+                ASSERT(msg->type & PD_MSG_RESPONSE);
+                DPRINTF (DEBUG_LVL_VVERB, "CE received shutdown RESP from Agent %lu; shutdown %lu/%lu\n",
+                    (u64)msg->srcLocation, cePolicy->shutdownCount, cePolicy->shutdownMax);
+            }
 
-        if (cePolicy->shutdownCount == neighborCount)
-            self->fcts.stop(self);
+            if (cePolicy->shutdownCount == cePolicy->shutdownMax) {
+                self->fcts.stop(self);
+                if (self->myLocation != self->parentLocation) {
+                    ocrShutdown();
+                }
+            }
+        }
         EXIT_PROFILE;
         break;
     }
@@ -1157,6 +1261,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
 u8 cePdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t *message,
                    ocrMsgHandle_t **handle, u32 properties) {
+    DPRINTF(DEBUG_LVL_VERB, "CE sending message type %lu (%lu:%lu)\n", message->type, (u64)message->srcLocation, (u64)message->destLocation);
     return self->commApis[0]->fcts.sendMessage(self->commApis[0], target, message, handle, properties);
 }
 
@@ -1233,9 +1338,15 @@ void initializePolicyDomainCe(ocrPolicyDomainFactory_t * factory, ocrPolicyDomai
     ocrPolicyDomainCe_t* derived = (ocrPolicyDomainCe_t*) self;
 
     derived->xeCount = ((paramListPolicyDomainCeInst_t*)perInstance)->xeCount;
+    self->neighborCount = ((paramListPolicyDomainCeInst_t*)perInstance)->neighborCount;
     self->allocatorIndexLookup = (s8 *) runtimeChunkAlloc((derived->xeCount+1) * NUM_MEM_LEVELS_SUPPORTED, PERSISTENT_CHUNK);
     for (i = 0; i < ((derived->xeCount+1) * NUM_MEM_LEVELS_SUPPORTED); i++) self->allocatorIndexLookup[i] = -1;
+
     derived->shutdownCount = 0;
+    derived->shutdownMax = 0;
+    derived->shutdownMode = false;
+
+    derived->ceCommTakeActive = (bool*)runtimeChunkAlloc(sizeof(bool) *  self->neighborCount, 0);
 }
 
 static void destructPolicyDomainFactoryCe(ocrPolicyDomainFactory_t * factory) {

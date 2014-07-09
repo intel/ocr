@@ -59,6 +59,8 @@ typedef enum {
     PERSIST_MSG_PROP         = 0x2, /**< The input message is guaranteed to be
                                      * valid until *after* a successful poll/wait */
     PENDING_MSG_PROP         = 0x4,  /*message not processed yet*/
+    BLOCKING_SEND_MSG_PROP   = 0x8,   /**< comm-layer will not return until
+                                           message is sent successfully */
     PRIO1_MSG_PROP           = 0x100, /**< Lowest priority message */
     PRIO2_MSG_PROP           = 0x200, /**< Higher priority message */
     PRIO3_MSG_PROP           = 0x400, /**< Highest priority message */
@@ -208,6 +210,27 @@ typedef enum {
     CMETA_GUIDPROP      = 0x8, /**< Indicates that the metadata returned is a copy (R/O
                                 * and should be freed with pdFree) */
 } ocrGuidInfoProp_t;
+
+typedef enum {
+    MODULE_STATE_NEW = 0,     /**< Module is freshly created */
+    MODULE_STATE_BEGIN,       /**< Module has completed "begin" phase */
+    MODULE_STATE_START,       /**< Module has completed "start" phase */
+    MODULE_STATE_STOP,        /**< Module has completed "stop" phase */
+    MODULE_STATE_FINISH,      /**< Module has completed "finish" phase */
+    MODULE_NUM_STATES
+} ocrModuleState_t;
+
+#define CHECK_AND_SET_MODULE_STATE(m, p, s) {                       \
+  if (p->state >= MODULE_STATE_##s) {                               \
+    DPRINTF(DEBUG_LVL_INFO, "%s: Trying to set state %u (%s). Current state %u is greater or equal! Exiting.\n", \
+      #m, (unsigned)(MODULE_STATE_##s), #s, (unsigned)(p->state)); \
+    return;                                                         \
+  } else {                                                          \
+    p->state = MODULE_STATE_##s;                                    \
+  }                                                                 \
+}
+
+#define SET_MODULE_STATE(m, p, s) p->state = MODULE_STATE_##s;
 
 // REC: FIXME
 // This is a placeholder for something that identifies a memory,

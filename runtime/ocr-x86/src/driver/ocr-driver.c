@@ -229,6 +229,8 @@ void builderPreamble(dictionary *dict) {
 
 #endif
 
+extern bool key_exists(dictionary *dict, char *sec, char *field);
+
 void bringUpRuntime(const char *inifile) {
     int i, j, count=0, nsec;
     dictionary *dict = iniparser_load(inifile);
@@ -331,6 +333,37 @@ void bringUpRuntime(const char *inifile) {
     for (i = 12; i <= 15; i++) {
         build_deps_types(deps[i].to, all_instances[policydomain_type],
                          inst_counts[policydomain_type], all_factories, type_params);
+    }
+
+    // SETUP NEIGHBORS
+    for (i = 0; i < nsec; i++) {
+        char *secname = iniparser_getsecname(dict, i);
+        if (strncasecmp("PolicyDomainInst", iniparser_getsecname(dict, i), strlen("PolicyDomainInst"))==0) {
+          if (key_exists(dict, secname, "neighbors")) {
+            int neighbors_low, neighbors_high, neighbors_count;
+            neighbors_count = read_range(dict, iniparser_getsecname(dict, i), "neighbors", &neighbors_low, &neighbors_high);
+            if (neighbors_count > 0) {
+                int low, high, count;
+                count = read_range(dict, iniparser_getsecname(dict, i), "id", &low, &high);
+                ASSERT(count == 1 && low == high);
+                ocrPolicyDomain_t *pd = (ocrPolicyDomain_t*)all_instances[policydomain_type][low];
+                ASSERT(neighbors_count == pd->neighborCount);
+                pd->neighbors = (ocrLocation_t*)runtimeChunkAlloc(sizeof(ocrLocation_t) * neighbors_count, (void *)1);
+                pd->neighborPDs = (ocrPolicyDomain_t**)runtimeChunkAlloc(sizeof(ocrPolicyDomain_t*) * neighbors_count, (void *)1);
+                int idx = 0;
+                DPRINTF(DEBUG_LVL_VERB, "PD%lu neighbors (%d): ", (u64)pd->myLocation, neighbors_count);
+                for (j = neighbors_low; j <= neighbors_high; j++) {
+                    if (j != low) {
+                        ocrPolicyDomain_t *neighborPd = (ocrPolicyDomain_t*)all_instances[policydomain_type][j];
+                        pd->neighborPDs[idx] = neighborPd;
+                        pd->neighbors[idx++] = neighborPd->myLocation;
+                        DPRINTF(DEBUG_LVL_VERB, "%lu ", (u64)neighborPd->myLocation);
+                    }
+                }
+                DPRINTF(DEBUG_LVL_VERB, "\n");
+            }
+          }
+        }
     }
 
     // START EXECUTION

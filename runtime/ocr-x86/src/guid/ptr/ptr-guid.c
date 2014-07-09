@@ -17,6 +17,8 @@
 
 #include "ocr-sysboot.h"
 
+#define DEBUG_TYPE GUID
+
 typedef struct {
     ocrGuid_t guid;
     ocrGuidKind kind;
@@ -27,20 +29,16 @@ void ptrDestruct(ocrGuidProvider_t* self) {
 }
 
 void ptrBegin(ocrGuidProvider_t *self, ocrPolicyDomain_t *pd) {
-    // Nothing else to do
 }
 
 void ptrStart(ocrGuidProvider_t *self, ocrPolicyDomain_t *pd) {
     self->pd = pd;
-    // Nothing else to do
 }
 
 void ptrStop(ocrGuidProvider_t *self) {
-    // Nothing to do
 }
 
 void ptrFinish(ocrGuidProvider_t *self) {
-    // Nothing to do
 }
 
 u8 ptrGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind kind) {

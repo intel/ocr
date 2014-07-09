@@ -854,6 +854,12 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
                 } else {
                     ((paramListPolicyDomainCeInst_t *)inst_param[j])->xeCount = (u32)8;
                 }
+                if (key_exists(dict, secname, "neighborcount")) {
+                    value = get_key_value(dict, secname, "neighborcount", j-low);
+                    ((paramListPolicyDomainCeInst_t *)inst_param[j])->neighborCount = (u32)value;
+                } else {
+                    ((paramListPolicyDomainCeInst_t *)inst_param[j])->neighborCount = (u32)0;
+                }
             }
             break;
 #endif
@@ -1043,7 +1049,9 @@ void add_dependence (type_enum fromtype, type_enum totype,
             break;
         }
         case policydomain_type: {
-            f->parentLocation = (u64) toinstance; // FIXME: PD2Location
+            ocrPolicyDomain_t* t = (ocrPolicyDomain_t*)toinstance;
+            f->parentLocation = (u64) t->myLocation;
+            f->parentPD = t; // FIXME: PD2Location
             break;
         }
         default:

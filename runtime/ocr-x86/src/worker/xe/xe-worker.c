@@ -115,7 +115,6 @@ void initializeWorkerXe(ocrWorkerFactory_t * factory, ocrWorker_t* base, ocrPara
 }
 
 void xeBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
-
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
     u64 computeCount = base->computeCount;
@@ -131,7 +130,6 @@ void xeBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 }
 
 void xeStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
-
     // Get a GUID
     guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
     base->pd = policy;

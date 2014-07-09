@@ -17,14 +17,19 @@
 /* OCR-CE POLICY DOMAIN                               */
 /******************************************************/
 
+#define CE_TAKE_CHUNK_SIZE 1        //number of tasks that one CE "takes" from another CE
+
 typedef struct {
     ocrPolicyDomainFactory_t base;
 } ocrPolicyDomainFactoryCe_t;
 
 typedef struct {
     ocrPolicyDomain_t base;
-    u32 xeCount;                    //number of XE's serviced by this CE
-    u64 shutdownCount;
+    u8 xeCount;                     //number of XE's serviced by this CE
+    u8 shutdownCount;               //dynamic counter to keep track of agents alreadt shutdown
+    u8 shutdownMax;                 //maximum number of agents participating in the shutdown process
+    bool shutdownMode;              //flag indicating shutdown mode
+    bool *ceCommTakeActive;         //flag to coordinate the search for work
 } ocrPolicyDomainCe_t;
 
 typedef struct {

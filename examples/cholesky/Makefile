@@ -45,7 +45,7 @@ run.omp.task:
 	./$(PROG).omp.task$(SUFFIX) ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}
 
 clean:
-	-rm -Rf *.o $(PROG)$(SUFFIX) cholesky.out
+	-rm -Rf *.o $(PROG)$(SUFFIX) cholesky.out core.*
 
 verify:
 	diff -b ${OCR_INPUT}/$(OUTPUT_FILE) cholesky.out

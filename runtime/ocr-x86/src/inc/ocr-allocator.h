@@ -145,6 +145,7 @@ typedef struct _ocrAllocator_t {
     ocrFatGuid_t fguid;       /**< The allocator also has a GUID so that
                                * data-blocks can know what allocated/freed them */
     struct _ocrPolicyDomain_t *pd; /**< The PD this allocator belongs to */
+    ocrModuleState_t state;   /**< state of the allocator */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStatsProcess_t *statProcess;
 #endif

@@ -23,6 +23,7 @@
  */
 void dequeDestroy(ocrPolicyDomain_t *pd, deque_t* deq) {
     pd->fcts.pdFree(pd, deq->data);
+    pd->fcts.pdFree(pd, deq);
 }
 
 static void baseDequeInit(deque_t* deq, ocrPolicyDomain_t *pd, void * initValue) {

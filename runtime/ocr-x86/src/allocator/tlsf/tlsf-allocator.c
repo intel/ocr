@@ -1248,6 +1248,7 @@ void tlsfDestruct(ocrAllocator_t *self) {
 }
 
 void tlsfBegin(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
+    CHECK_AND_SET_MODULE_STATE(TLSF-ALLOCATOR, self, BEGIN);
     u32 i;
     ASSERT(self->memoryCount == 1);
     self->memories[0]->fcts.begin(self->memories[0], PD);
@@ -1300,6 +1301,7 @@ void tlsfBegin(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
 }
 
 void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
+    CHECK_AND_SET_MODULE_STATE(TLSF-ALLOCATOR, self, START);
     // Get a GUID
     guidify(PD, (u64)self, &(self->fguid), OCR_GUID_ALLOCATOR);
     self->pd = PD;
@@ -1310,6 +1312,7 @@ void tlsfStart(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
 }
 
 void tlsfStop(ocrAllocator_t *self) {
+    CHECK_AND_SET_MODULE_STATE(TLSF-ALLOCATOR, self, STOP);
     ocrPolicyMsg_t msg;
     getCurrentEnv(&(self->pd), NULL, NULL, &msg);
 
@@ -1333,6 +1336,7 @@ void tlsfStop(ocrAllocator_t *self) {
 }
 
 void tlsfFinish(ocrAllocator_t *self) {
+    CHECK_AND_SET_MODULE_STATE(TLSF-ALLOCATOR, self, FINISH);
     int i;
     ocrAllocatorTlsf_t *rself = (ocrAllocatorTlsf_t*)self;
     RESULT_ASSERT(rself->base.memories[0]->fcts.tag(
@@ -1368,7 +1372,7 @@ void* tlsfAllocate(
 
     if (useRemnant == 0) {  // Attempt to allocate the requested block to a semi-private slice pool picked in round-robin fashion.
         if (rself->sliceCount == 0) return _NULL; // Slicing is NOT implemented on this pool.  Return failure status.
-        if (rself->sliceSize < size) return _NULL; // Don't boter trying if the requested block is bigger than the pool supports.
+        if (rself->sliceSize < size) return _NULL; // Don't bother trying if the requested block is bigger than the pool supports.
         // Attempt allocations to slice pools on an entirely round-robin basis, so that any number of concurrent allocations up to
         // the number of slices can be supported with NO throttling on their locks.  In the following code, the increment and
         // wrap-around of the currSliceNum round-robin rotor is NOT thread safe, but it doesn't really need to be.  In the rare
@@ -1515,8 +1519,9 @@ ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_
 
     ocrAllocatorTlsf_t *result = (ocrAllocatorTlsf_t*)
         runtimeChunkAlloc(sizeof(ocrAllocatorTlsf_t), PERSISTENT_CHUNK);
-    ocrAllocator_t * derived = (ocrAllocator_t *) result;
-    factory->initialize(factory, derived, perInstance);
+    ocrAllocator_t * base = (ocrAllocator_t *) result;
+    SET_MODULE_STATE(TLSF-ALLOCATOR, base, NEW);
+    factory->initialize(factory, base, perInstance);
     return (ocrAllocator_t *) result;
 }
 

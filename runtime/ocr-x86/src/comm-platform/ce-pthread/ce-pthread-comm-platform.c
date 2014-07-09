@@ -26,21 +26,48 @@ void cePthreadCommDestruct (ocrCommPlatform_t * base) {
 }
 
 void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrCommApi_t *comm) {
-    u32 i, numXE;
+    u32 i, idx, numChannels, xeCount;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*) commPlatform;
     commPlatform->pd = PD;
-    numXE = ((ocrPolicyDomainCe_t*)PD)->xeCount;
-    commPlatformCePthread->numXE = numXE;
-    commPlatformCePthread->channels = (ocrCommChannel_t*)runtimeChunkAlloc(numXE * sizeof(ocrCommChannel_t), PERSISTENT_CHUNK);
-    for (i = 0; i < numXE; i++) {
+    commPlatformCePthread->numNeighborChannels = 0;
+    xeCount = ((ocrPolicyDomainCe_t*)PD)->xeCount;
+    numChannels = xeCount + PD->neighborCount;
+    commPlatformCePthread->numChannels = numChannels;
+    commPlatformCePthread->numNeighborChannels = PD->neighborCount;
+    commPlatformCePthread->channelIdx = 0;
+    commPlatformCePthread->channels = (ocrCommChannel_t*)runtimeChunkAlloc(numChannels * sizeof(ocrCommChannel_t), PERSISTENT_CHUNK);
+    commPlatformCePthread->neighborChannels = (ocrCommChannel_t**)runtimeChunkAlloc(commPlatformCePthread->numNeighborChannels * sizeof(ocrCommChannel_t*), PERSISTENT_CHUNK);
+    for (i = 0; i < numChannels; i++) {
+        DPRINTF(DEBUG_LVL_VVERB, "CE%lu Setting up channel %d : %p \n", PD->myLocation, i, &(commPlatformCePthread->channels[i]));
         commPlatformCePthread->channels[i].message = NULL;
-        commPlatformCePthread->channels[i].xeCounter = 0;
-        commPlatformCePthread->channels[i].ceCounter = 0;
+        commPlatformCePthread->channels[i].remoteCounter = 0;
+        commPlatformCePthread->channels[i].localCounter = 0;
+        commPlatformCePthread->channels[i].msgCancel = false;
+    }
+
+    for (i = 0, idx = xeCount; i < PD->neighborCount; i++) {
+        commPlatformCePthread->channels[idx++].remoteLocation = PD->neighbors[i];
     }
     return;
 }
 
 void cePthreadCommStart(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrCommApi_t *comm) {
+    u32 i, j;
+    ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*) commPlatform;
+    for (i = 0; i < PD->neighborCount; i++) {
+        ocrPolicyDomain_t * neighborPD = PD->neighborPDs[i];
+        ocrCommPlatformCePthread_t * commPlatformCePthreadNeighbor = (ocrCommPlatformCePthread_t *)neighborPD->commApis[0]->commPlatform;
+        ocrCommChannel_t *neighborChannel = NULL;
+        for (j = 0; j < commPlatformCePthreadNeighbor->numChannels; j++) {
+            if (commPlatformCePthreadNeighbor->channels[j].remoteLocation == PD->myLocation) {
+                neighborChannel = &(commPlatformCePthreadNeighbor->channels[j]);
+                break;
+            }
+        }
+        ASSERT(neighborChannel != NULL);
+        DPRINTF(DEBUG_LVL_VVERB, "CE%lu Setting up neighbor channel %d pointer %p \n", PD->myLocation, i, neighborChannel);
+        commPlatformCePthread->neighborChannels[i] = neighborChannel;
+    }
     return;
 }
 
@@ -53,58 +80,171 @@ void cePthreadCommFinish(ocrCommPlatform_t *commPlatform) {
 
 u8 cePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target, ocrPolicyMsg_t *msg,
                             u64 bufferSize, u64 *id, u32 properties, u32 mask) {
+    u32 i;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
-    ocrCommChannel_t * channel = &(commPlatformCePthread->channels[target]);
-    ocrPolicyMsg_t * channelMessage = (ocrPolicyMsg_t *)__sync_val_compare_and_swap((&(channel->message)), NULL, msg);
-    if (channelMessage != NULL) {
-        DPRINTF(DEBUG_LVL_VERB, "[CE] cancelling CE msg @ %p of type 0x%x to %lu; channel msg @ %p of type 0x%x from %lu\n",
-                msg, msg->type, msg->srcLocation, channelMessage, channelMessage->type,
-                channelMessage->srcLocation);
-        RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->message)), channelMessage, msg));
-        RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->xeCancel)), false, true));
-        hal_fence();
-        ++(channel->ceCounter);
+    ocrPolicyDomainCe_t *cePD = (ocrPolicyDomainCe_t*)self->pd;
+    ASSERT(target != self->pd->myLocation);
+
+    //FIXME: This is currently a hack to know if target is a CE or XE.
+    //This needs to be replaced by a location query in future.
+    //Bug #135
+    ocrCommChannel_t * channel = NULL;
+    bool ceTarget = false;
+    for (i = 0; i < self->pd->neighborCount; i++) {
+        if (target == self->pd->neighbors[i]) {
+            ceTarget = true;
+            break;
+        }
     }
-    DPRINTF(DEBUG_LVL_VERB, "[CE] sending message @ %p of type 0x%x to %lu\n",
-            msg, msg->type, target);
-    hal_fence();
-    ++(channel->ceCounter);
-    do {
+
+    if (ceTarget) {
+        //CE --> CE: Non-blocking sends over a single buffer
+        if (msg->type & PD_MSG_REQUEST) {
+            ASSERT(!(msg->type & PD_MSG_RESPONSE));
+            for (i = 0; i < commPlatformCePthread->numNeighborChannels; i++) {
+                if (commPlatformCePthread->neighborChannels[i]->remoteLocation == self->pd->myLocation) {
+                    channel = commPlatformCePthread->neighborChannels[i];
+                    break;
+                }
+            }
+            ASSERT(channel);
+            DPRINTF(DEBUG_LVL_VVERB, "[CE%lu] Send CE REQ Type: %x Dest: %lu Channel: %p RemoteCounter: %lu LocalCounter: %lu\n",
+                    (u64)self->pd->myLocation, msg->type, target, channel, channel->remoteCounter, channel->localCounter);
+            u64 fullMsgSize = 0, marshalledSize = 0;
+            ocrCommPlatformGetMsgSize(msg, &fullMsgSize, &marshalledSize);
+            hal_fence();
+            ocrPolicyMsg_t * channelMessage = (ocrPolicyMsg_t*)channel->message;
+            if (channelMessage == NULL) {
+                ocrCommPlatformMarshallMsg(msg, (u8*)(&(channel->messageBuffer)), MARSHALL_FULL_COPY);
+                channel->message = &(channel->messageBuffer);
+                hal_fence();
+                ++(channel->remoteCounter);
+            } else if ((msg->type & PD_MSG_TYPE_ONLY) == PD_MSG_MGT_SHUTDOWN && channelMessage != &(channel->overwriteBuffer)) {
+                //Special case for shutdown: Overwrite any exisiting messages in the buffer
+                ocrCommPlatformMarshallMsg(msg, (u8*)(&(channel->overwriteBuffer)), MARSHALL_FULL_COPY);
+                if (!__sync_bool_compare_and_swap((&(channel->message)), channelMessage, &(channel->overwriteBuffer))) {
+                    ASSERT(channel->message == NULL);
+                    channel->message = &(channel->overwriteBuffer);
+                    hal_fence();
+                    ++(channel->remoteCounter);
+                }
+            } else {
+                DPRINTF(DEBUG_LVL_VVERB, "[CE%lu] Send CE Busy Error REQ Type: %x Dest: %lu Channel: %p RemoteCounter: %lu LocalCounter: %lu\n",
+                        (u64)self->pd->myLocation, msg->type, target, channel, channel->remoteCounter, channel->localCounter);
+                return OCR_EBUSY;
+            }
+
+            if (properties & BLOCKING_SEND_MSG_PROP) {
+                do {
+                    hal_fence();
+                } while(channel->remoteCounter > channel->localCounter);
+            }
+        } else {
+            ASSERT(msg->type & PD_MSG_RESPONSE);
+            for (i = cePD->xeCount; i < commPlatformCePthread->numChannels; i++) {
+                if (commPlatformCePthread->channels[i].remoteLocation == target) {
+                    channel = &(commPlatformCePthread->channels[i]);
+                    break;
+                }
+            }
+            ASSERT(channel && channel->message == NULL);
+            DPRINTF(DEBUG_LVL_VVERB, "[CE%lu] Send CE RESP Type: %x Dest: %lu Channel: %p RemoteCounter: %lu LocalCounter: %lu\n",
+                    (u64)self->pd->myLocation, msg->type, target, channel, channel->remoteCounter, channel->localCounter);
+            hal_fence();
+            u64 fullMsgSize = 0, marshalledSize = 0;
+            ocrCommPlatformGetMsgSize(msg, &fullMsgSize, &marshalledSize);
+            ocrCommPlatformMarshallMsg(msg, (u8*)(&(channel->messageBuffer)), MARSHALL_FULL_COPY);
+            channel->message = &(channel->messageBuffer);
+            hal_fence();
+            ++(channel->localCounter);
+        }
+
+        DPRINTF(DEBUG_LVL_VERB, "[CE%lu] sending message @ %p to %lu of type 0x%x\n",
+                (u64)self->pd->myLocation, msg, (u64)target, msg->type);
+    } else {
+        //CE --> XE: Blocking sends over a single buffer
+        u64 block_size = cePD->xeCount + 1;
+        channel = &(commPlatformCePthread->channels[((u64)target) % block_size]);
+
+        ocrPolicyMsg_t * channelMessage = (ocrPolicyMsg_t *)__sync_val_compare_and_swap((&(channel->message)), NULL, msg);
+        if (channelMessage != NULL) {
+            DPRINTF(DEBUG_LVL_VERB, "[CE%lu] cancelling CE msg @ %p of type 0x%x to %lu; channel msg @ %p of type 0x%x from %lu\n",
+                (u64)self->pd->myLocation, msg, msg->type, msg->srcLocation, channelMessage, channelMessage->type,
+                channelMessage->srcLocation);
+            RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->message)), channelMessage, msg));
+            RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->msgCancel)), false, true));
+            hal_fence();
+            ++(channel->localCounter);
+        }
+        DPRINTF(DEBUG_LVL_VERB, "[CE%lu] sending message @ %p of type 0x%x to %lu\n",
+            (u64)self->pd->myLocation, msg, msg->type, target);
         hal_fence();
-    } while(channel->ceCounter > channel->xeCounter);
+        ++(channel->localCounter);
+        do {
+            hal_fence();
+        } while(channel->localCounter > channel->remoteCounter);
+    }
 
     return 0;
 }
 
-//NOTE: sanjay: Currently polls for only XE messages.
 u8 cePthreadCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg, u64* bufferSize,
                             u32 properties, u32 *mask) {
-    u32 i, startIdx, numXE;
+    u32 i, startIdx, numChannels;
+    u64 localCounter, remoteCounter;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)self;
+
+    //Poll for [CE] responses (serve your own self first :-))
+    for (i = 0; i < commPlatformCePthread->numNeighborChannels; i++) {
+        ocrCommChannel_t * channel = commPlatformCePthread->neighborChannels[i];
+        if (channel->localCounter > channel->remoteCounter) {
+            ocrPolicyMsg_t * message = (ocrPolicyMsg_t*)channel->message;
+            ASSERT(message != NULL);
+            RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->message)), message, NULL));
+            ocrCommPlatformUnMarshallMsg((u8*)message, NULL, message, MARSHALL_APPEND);
+            hal_fence();
+            ++(channel->remoteCounter);
+            *msg = message;
+            return 0;
+        }
+    }
+
+    //Poll for [XE,CE] requests
     startIdx = commPlatformCePthread->startIdx;
-    numXE = commPlatformCePthread->numXE;
-    for (i = 0; i < numXE; i++) {
-        u32 idx = (startIdx + i) % numXE;
+    numChannels = commPlatformCePthread->numChannels;
+    for (i = 0; i < numChannels; i++) {
+        u32 idx = (startIdx + i) % numChannels;
         ocrCommChannel_t * channel = &(commPlatformCePthread->channels[idx]);
-        if (channel->ceCounter < channel->xeCounter) {
-            ocrPolicyMsg_t * message = (ocrPolicyMsg_t *)channel->message;
-            ASSERT(message);
-            if (channel->message->type & PD_MSG_REQ_RESPONSE) {
-                DPRINTF(DEBUG_LVL_VVERB, "[CE] message from %u needs a response... using buffer @ %p\n",
-                        idx, message);
+        localCounter = (u64)channel->localCounter;
+        remoteCounter = (u64)channel->remoteCounter;
+        if (localCounter < remoteCounter) {
+            ocrPolicyMsg_t * message = NULL;
+            do {//get a stable message; the original message might get overwritten by shutdown request
+                message = (ocrPolicyMsg_t *)channel->message;
+                remoteCounter = (u64)channel->remoteCounter;
+            } while (!__sync_bool_compare_and_swap((&(channel->message)), message, NULL));
+            ASSERT(message != NULL && remoteCounter == (localCounter + 1));
+            if (message->type & PD_MSG_REQ_RESPONSE) {
+                DPRINTF(DEBUG_LVL_VVERB, "[CE%lu] message from %u needs a response... using buffer @ %p\n",
+                        (u64)self->pd->myLocation, idx, message);
                 *msg = message;
             } else {
-                DPRINTF(DEBUG_LVL_VVERB, "[CE] message from %u one-way... copying from %p to %p\n",
-                        idx, message, &(channel->messageBuffer));
+                DPRINTF(DEBUG_LVL_VVERB, "[CE%lu] message from %u one-way... copying from %p to %p\n",
+                        (u64)self->pd->myLocation, idx, message, &(channel->messageBuffer));
                 hal_memCopy(&(channel->messageBuffer), message, sizeof(ocrPolicyMsg_t), false);
                 *msg = &(channel->messageBuffer);
             }
-            RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->message)), message, NULL));
+
+            //Unmarshall the CE request
+            if (idx >= ((ocrPolicyDomainCe_t*)(self->pd))->xeCount) {
+                ocrCommPlatformUnMarshallMsg((u8*)*msg, NULL, *msg, MARSHALL_APPEND);
+            }
+
             hal_fence();
-            ++(channel->ceCounter);
-            commPlatformCePthread->startIdx = (idx + 1) % numXE;
-            DPRINTF(DEBUG_LVL_VERB, "[CE] received message @ %p of type 0x%x from %lu\n",
-                    (*msg), (*msg)->type, (u64)((*msg)->srcLocation));
+            ++(channel->localCounter);
+            commPlatformCePthread->startIdx = (idx + 1) % numChannels;
+            DPRINTF(DEBUG_LVL_VERB, "[CE%lu] received message @ %p of type 0x%x from %lu\n",
+                    (u64)self->pd->myLocation, (*msg), (*msg)->type, (u64)((*msg)->srcLocation));
             return 0;
         }
     }

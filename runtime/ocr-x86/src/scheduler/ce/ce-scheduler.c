@@ -20,6 +20,7 @@
 #include "worker/ce/ce-worker.h" // NON PORTABLE FOR NOW
 
 #define DEBUG_TYPE SCHEDULER
+
 /******************************************************/
 /* Support structures                                 */
 /******************************************************/

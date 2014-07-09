@@ -25,19 +25,24 @@ typedef struct {
 } ocrCommPlatformFactoryCePthread_t;
 
 typedef struct {
-    volatile ocrPolicyMsg_t * message;
-    ocrPolicyMsg_t messageBuffer;
-    volatile u64 xeCounter;
-    volatile u64 ceCounter;
-    volatile bool xeCancel;
-    char padding[32];
+    volatile ocrPolicyMsg_t * message; //typically used for 2-way messages that require response
+    ocrPolicyMsg_t messageBuffer;      //typically used for 1-way messages that do not require response
+    ocrPolicyMsg_t overwriteBuffer;    //used for overriding messages such as shutdown
+    volatile u64 remoteCounter;        //counter used by remote agent
+    volatile u64 localCounter;         //counter used by channel owner
+    ocrLocation_t remoteLocation;      //location of remote agent
+    volatile bool msgCancel;           //cancel flag
+    char padding[64];
 } ocrCommChannel_t;
 
 typedef struct {
     ocrCommPlatform_t base;
-    u32 numXE;
-    u32 startIdx; // start of next poll loop to avoid starvation
-    ocrCommChannel_t * channels; // array of comm channels; one per XE
+    u32 startIdx;                         //start of next poll loop (to avoid starvation)
+    u32 numChannels;                      //number of channels owned by me
+    u32 numNeighborChannels;              //number of channels I access as a remote agent
+    ocrCommChannel_t * channels;          //array of comm channels owned by me
+    ocrCommChannel_t ** neighborChannels; //comm channels in other CEs I access as a remote agent
+    u32 channelIdx;                       //used to setup the channels
 } ocrCommPlatformCePthread_t;
 
 typedef struct {

@@ -23,4 +23,4 @@ run:
 	./$(PROG).exe $(OCR_RUN_FLAGS)
 
 clean:
-	-rm -Rf *.o $(PROG).exe
+	-rm -Rf *.o $(PROG).exe core.*

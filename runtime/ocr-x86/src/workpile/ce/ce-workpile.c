@@ -21,7 +21,6 @@
 void ceWorkpileDestruct ( ocrWorkpile_t * base ) {
     ocrWorkpileCe_t* derived = (ocrWorkpileCe_t*) base;
     derived->deque->destruct(base->pd, derived->deque);
-    base->pd->fcts.pdFree(base->pd, derived->deque);
     runtimeChunkFree((u64)base, NULL);
 }
 

@@ -856,7 +856,14 @@ typedef struct _ocrPolicyDomain_t {
                               * objective driven scheduling */
     ocrLocation_t myLocation;
     ocrLocation_t parentLocation;
-    s8 * allocatorIndexLookup;  /**< Allocator indices for each block agent, for 8 memory levels */
+    ocrLocation_t* neighbors;
+    u32 neighborCount;
+
+    //FIXME: Temporary solution until we get location services. [Bug #135].
+    struct _ocrPolicyDomain_t **neighborPDs;
+    struct _ocrPolicyDomain_t *parentPD;
+
+    s8 * allocatorIndexLookup;                  /**< Allocator indices for each block agent, over each of 8 memory levels */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t *statsObject;                    /**< Statistics object */
 #else

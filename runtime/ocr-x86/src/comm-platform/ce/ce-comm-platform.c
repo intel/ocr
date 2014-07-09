@@ -108,7 +108,7 @@ void ceCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrCo
     // Fill-in location tuples: ours and our parent's (the CE in FSIM)
     PD->myLocation = (ocrLocation_t)rmd_ld64(CE_MSR_BASE + CORE_LOCATION * sizeof(u64));
     hal_fence();
-    PD->parentLocation = 0x0; /* FIXME: Currently undefined, but a hierarchy someday??? */
+    PD->parentLocation = PD->myLocation; /* FIXME: Currently will work only for single block, but a hierarchy someday??? */
 
     // Remember our PD in case we need to call through it later
     cp->pdPtr = PD;
