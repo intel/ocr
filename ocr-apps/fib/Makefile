@@ -17,5 +17,8 @@ debug:
 install:
 	@$(MAKE) -f Makefile.$(ARCH) $@
 
+run:
+	@$(MAKE) -f Makefile.$(ARCH) $@
+
 clean:
 	@$(MAKE) -f Makefile.$(ARCH) $@

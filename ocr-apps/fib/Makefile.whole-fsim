@@ -80,4 +80,7 @@ debug:	CFLAGS += -O0
 debug:	TARGETS := debug
 debug:	default
 
+install: all
+run: install
+
 include ${WORKLOAD_SRC}/../make-fsim.inc
