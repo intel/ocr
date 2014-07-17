@@ -12,7 +12,6 @@
 #define __OCR_RUNTIME_TYPES_H__
 
 #include "ocr-types.h"
-
 #include "utils/profiler/profiler.h"
 
 /**

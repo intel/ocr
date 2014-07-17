@@ -84,12 +84,17 @@ CFLAGS := -g -Wall -DELS_USER_SIZE=0 $(CFLAGS)
 #
 SRCS   := $(shell find -L $(OCR_SRC)/src -name '*.[csS]' -print)
 
+#
+# Generate a source search path
+#
+VPATH  := $(shell find -L $(OCR_SRC)/src -type d -print)
 
 ifneq (,$(findstring OCR_RUNTIME_PROFILER,$(CFLAGS)))
 SRCSORIG = $(SRCS)
 SRCS += $(OCR_BUILD)/src/profilerAutoGen.c
 PROFILER_FILE=$(OCR_BUILD)/src/profilerAutoGen.c
 CFLAGS += -I $(OCR_BUILD)/src
+VPATH += $(OCR_BUILD)/src
 else
 PROFILER_FILE=
 endif
@@ -98,10 +103,6 @@ OBJS_STATIC   := $(addprefix $(OBJDIR)/static/, $(addsuffix .o, $(basename $(not
 OBJS_SHARED   := $(addprefix $(OBJDIR)/shared/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
 OBJS_EXEC     := $(addprefix $(OBJDIR)/exec/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
 
-#
-# Generate a source search path
-#
-VPATH  := $(shell find -L $(OCR_SRC)/src -type d -print)
 
 # Update include paths
 CFLAGS := -I . -I $(OCR_SRC)/inc -I $(OCR_SRC)/src -I $(OCR_SRC)/src/inc $(CFLAGS)
@@ -313,4 +314,4 @@ uninstall:
 
 .PHONY:clean
 clean:
-	-$(RM) $(RMFLAGS) $(OBJDIR)/* $(OCRSHARED) $(OCRSTATIC) $(OCREXEC)
+	-$(RM) $(RMFLAGS) $(OBJDIR)/* $(OCRSHARED) $(OCRSTATIC) $(OCREXEC) src/*

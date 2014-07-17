@@ -31,6 +31,7 @@
  */
 
 #include "profiler.h"
+#include "debug.h"
 
 #ifdef OCR_RUNTIME_PROFILER
 

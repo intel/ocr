@@ -36,11 +36,12 @@
 #include "ocr-config.h"
 #ifdef OCR_RUNTIME_PROFILER
 #include "ocr-types.h"
-#include "debug.h"
 
 #ifndef ENABLE_COMP_PLATFORM_PTHREAD
 #error "The current runtime profiler is only compatible with the pthread comp-platform at this time"
 #endif
+
+#include <stdio.h>
 
 // This file will be automatically generated and will contain the
 // profilerEvent_t enum as well as the _profilerEventNames array
@@ -176,14 +177,14 @@ static inline void _profilerPause(_profiler *self, u64 realEndTicks) {
         if(self->active && !self->isPaused) {
             --(self->myData->level);
             self->myData->stack[self->myData->level] = NULL;
-            ASSERT(self->endTicks > self->startTicks);
+            // Here: self->endTicks > self->startTicks
             self->accumulatorTicks += self->endTicks - self->startTicks;
             self->isPaused = 1;
         }
     } else {
         self->endTicks = realEndTicks;
         if(self->active && !self->isPaused) {
-            ASSERT(self->endTicks > self->startTicks);
+            // Here: self->endTicks > self->startTicks
             self->accumulatorTicks += self->endTicks - self->startTicks;
             self->isPaused = 1;
         }
@@ -205,7 +206,7 @@ static inline void _profilerResume(_profiler *self, u8 isFakePause) {
 
 static inline void _profilerFixup(_profiler *self, u64 ticks) __attribute__((always_inline));
 static inline void _profilerFixup(_profiler *self, u64 ticks) {
-    ASSERT(self->accumulatorTicks > ticks);
+    // Here: self->accumulatorTicks > ticks
     self->accumulatorTicks -= ticks;
 }
 
