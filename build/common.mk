@@ -175,8 +175,8 @@ ${OBJDIR}/static:
 
 .PHONY: info-static
 info-static:
-	@echo -e "\e[32m>>>> Compile command for .c files is\e[1;30m '$(CC) $(CFLAGS_STATIC) -MMD -c <src> -o <obj>'\e[0m"
-	@echo -e "\e[32m>>>> Building a static library with\e[1;30m '$(AR) $(ARFLAGS)'\e[0m"
+	@printf "\033[32m>>>> Compile command for .c files is\033[1;30m '$(CC) $(CFLAGS_STATIC) -MMD -c <src> -o <obj>'\033[0m\n"
+	@printf "\033[32m>>>> Building a static library with\033[1;30m '$(AR) $(ARFLAGS)'\033[0m\n"
 
 $(OCRSTATIC): $(OBJS_STATIC)
 	@echo "Linking static library ${OCRSTATIC}"
@@ -196,8 +196,8 @@ ${OBJDIR}/shared:
 
 .PHONY: info-shared
 info-shared:
-	@echo -e "\e[32m>>>> Compile command for .c files is\e[1;30m '$(CC) $(CFLAGS_SHARED) -MMD -c <src> -o <obj>'\e[0m"
-	@echo -e "\e[32m>>>> Building a shared library with\e[1;30m '$(CC) $(LDFLAGS)'\e[0m"
+	@printf "\033[32m>>>> Compile command for .c files is\033[1;30m '$(CC) $(CFLAGS_SHARED) -MMD -c <src> -o <obj>'\033[0m\n"
+	@printf "\033[32m>>>> Building a shared library with\033[1;30m '$(CC) $(LDFLAGS)'\033[0m\n"
 
 $(OCRSHARED): $(OBJS_SHARED)
 	@echo "Linking shared library ${OCRSHARED}"
@@ -217,11 +217,11 @@ ${OBJDIR}/exec:
 
 .PHONY: info-exec
 info-exec:
-	@echo -e "\e[32m>>>> Compile command for .c files is\e[1;30m '$(CC) $(CFLAGS_EXEC) -MMD -c <src> -o <obj>'\e[0m"
+	@printf "\033[32m>>>> Compile command for .c files is\033[1;30m '$(CC) $(CFLAGS_EXEC) -MMD -c <src> -o <obj>'\033[0m\n"
 
 $(OCREXEC): $(OBJS_EXEC)
 	@echo "Linking executable binary ${OCREXEC}"
-	@$(CC) $(EXEFLAGS) -o $(OCREXEC) $^
+	@$(CC) -o $(OCREXEC) $^ $(EXEFLAGS)
 
 
 #
@@ -286,7 +286,7 @@ endif
 .PHONY: install
 .ONESHELL:
 install: ${INSTALL_TARGETS}
-	@echo -e "\e[32m Installing '$(INSTALL_LIBS) $(INSTALL_EXES)' into '$(OCR_INSTALL)'\e[0m"
+	@printf "\033[32m Installing '$(INSTALL_LIBS) $(INSTALL_EXES)' into '$(OCR_INSTALL)'\033[0m\n"
 	@if [ -n "${INSTALL_LIBS}" ]; then \
 		$(MKDIR) -p $(OCR_INSTALL)/lib ; \
 		$(CP) ${INSTALL_LIBS} $(OCR_INSTALL)/lib ; \
