@@ -114,7 +114,7 @@ ocrGuid_t fibEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 ocrGuid_t absFinal(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     u32 ans;
     ans = *(u32*)depv[0].ptr;
-    PRINTF("Totally done: answer is %d\n", ans);
+    VERIFY(ans == 55, "Totally done: answer is %d\n", ans);
     ocrShutdown();
     ocrDbDestroy(depv[0].guid);
 
@@ -143,7 +143,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
         ocrShutdown();
         return NULL_GUID;
         }*/
-    int input = 5; // Replace with atoi of argv[1]
+    int input = 10; // Replace with atoi of argv[1]
 
     /* create a db for the results */
     ocrGuid_t fibArg;

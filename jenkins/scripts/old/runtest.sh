@@ -1,11 +1,12 @@
 #!/bin/bash
+# WARNING: DEPRECATED SCRIPT!!!
 
 # Arguments in non '_params' case:
 # <ARCH to use> <directory to execute in> <golden file> <commandline to run>
 if [ $1 == "_params" ]; then
     exit 0
 else
-    export OCR_INSTALL=${JJOB_START_HOME}/ocr/install/$1/
+    export OCR_INSTALL=${JJOB_SHARED_HOME}/ocr/install/$1/
     export LD_LIBRARY_PATH=${OCR_INSTALL}/lib/
     cd $2
     TMPOUT=`mktemp --tmpdir=.`

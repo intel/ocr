@@ -1,6 +1,14 @@
 #!/bin/bash
 
-cd ${JJOB_START_HOME}/ocr/build/$1
-make shared static install
+mkdir -p ${OCR_BUILD_ROOT}/$1
+cd ${OCR_BUILD_ROOT}/$1
+make all install
+RETURN_CODE=$?
 
-exit $?
+if [ $RETURN_CODE -eq 0 ]; then
+    echo "**** Build SUCCESS ****"
+else
+    echo "**** Build FAILURE ****"
+fi
+
+exit $RETURN_CODE

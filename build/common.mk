@@ -2,13 +2,23 @@
 # OCR top level directory
 #
 OCR_SRC ?= ../..
-OCR_INSTALL ?= ../../install/$(ARCH)
+OCR_INSTALL_ROOT ?= ../../install
 
 OCR_BUILD := .
+
+#
+# Make sure we have absolute paths
+#
+OCR_SRC := $(shell cd "${OCR_SRC}" && pwd)
+OCR_INSTALL_ROOT := $(shell mkdir -p "${OCR_INSTALL_ROOT}" && cd "${OCR_INSTALL_ROOT}" && pwd)
+OCR_BUILD := $(shell cd "${OCR_BUILD}" && pwd)
+
+OCR_INSTALL := $(OCR_INSTALL_ROOT)/$(ARCH)
+
 #
 # Object & dependence file subdirectory
 #
-OBJDIR ?= $(OCR_BUILD)/objs
+OBJDIR := $(OCR_BUILD)/objs
 
 #
 # Default machine configuration

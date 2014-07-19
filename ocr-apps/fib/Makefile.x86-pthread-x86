@@ -11,44 +11,18 @@ OCR_SRC     ?= ../..
 OCR_BUILD_ROOT   ?= ../../build/
 
 # Application
-WORKLOAD_SRC     ?= .
-WORKLOAD_BUILD   ?= ./build/${ARCH}
-WORKLOAD_INSTALL ?= ./install/${ARCH}
+WORKLOAD_SRC          ?= .
+WORKLOAD_BUILD_ROOT   ?= ./build
+WORKLOAD_INSTALL_ROOT ?= ./install
 
 ## END of variables coming from user/environment
-
-# Get absolute paths. This is useful since we go in
-# subfolders to do make and that screws up the relative
-# paths
-WORKLOAD_SRC     := $(shell cd "${WORKLOAD_SRC}" && pwd)
-WORKLOAD_BUILD   := $(shell mkdir -p "${WORKLOAD_BUILD}" && cd "${WORKLOAD_BUILD}" && pwd)
-WORKLOAD_INSTALL := $(shell mkdir -p "${WORKLOAD_INSTALL}" && cd "${WORKLOAD_INSTALL}" && pwd)
-OCR_SRC          := $(shell cd "${OCR_SRC}" && pwd)
-OCR_INSTALL_ROOT := $(shell cd "${OCR_INSTALL_ROOT}" && pwd)
-OCR_BUILD_ROOT   := $(shell cd "${OCR_BUILD_ROOT}" && pwd)
-
-OCR_INSTALL      := ${OCR_INSTALL_ROOT}/${OCR_TARGET}
-OCR_BUILD        := ${OCR_BUILD_ROOT}/${OCR_TARGET}
-
-CC	= gcc
-CFLAGS_BASE	= -g -Werror -I. -I${OCR_INSTALL}/include
-
-LDFLAGS = -L ${OCR_INSTALL}/lib -locr -lpthread
-
-STRIP   = strip
-
-CUT	= cut
-GREP	= grep
-RM	= rm
-CP      = cp
-MKDIR   = mkdir
-
 
 TARGET = fib
 
 SRCS := fib.c
 
-CFLAGS := $(CFLAGS_BASE)
+CFLAGS :=
+LDFLAGS := -lpthread
 
 all:	CFLAGS += -O2
 all:	TARGETS := all
@@ -59,6 +33,7 @@ debug:	TARGETS := debug
 debug:	default
 
 install: all
-run: install
+
+VALIDGOALS := all debug install
 
 include ${WORKLOAD_SRC}/../make-regular.inc

@@ -1,1 +1,0 @@
-../../../../ss/xe-sim/ld-scripts/fsim-xe-icache.ld

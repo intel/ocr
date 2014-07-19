@@ -51,4 +51,16 @@ u32 PRINTF(const char * fmt, ...);
 }
 #endif
 
+/**
+ * @brief Allows the verification of programs
+ */
+#define VERIFY(cond, format, ...)                                       \
+    do {                                                                \
+        if(!(cond)) {                                                   \
+            PRINTF("FAILURE @ '%s:%d' " format, __FILE__, __LINE__, ## __VA_ARGS__); \
+        } else {                                                        \
+            PRINTF("PASSED @ '%s:%d' " format, __FILE__, __LINE__, ## __VA_ARGS__); \
+        }                                                               \
+    } while(0);
+
 #endif /* __OCR_STD_H__ */

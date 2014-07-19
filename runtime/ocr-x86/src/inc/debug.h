@@ -333,6 +333,7 @@
 #ifdef OCR_STATUS
 #define STATUS(format, ...)                                             \
     PRINTF("##OCR-STATUS %s:%d " format, __FILE__, __LINE__,##__VA_ARGS__);
+
 #else
 #define STATUS(format, ...)
 #endif /* OCR_STATUS */
@@ -349,4 +350,14 @@
 #define RESULT_TRUE(a) do { a; } while(0);
 #endif /* OCR_ASSERT */
 
+#ifndef VERIFY
+#define VERIFY(cond, format, ...)                                       \
+    do {                                                                \
+        if(!(cond)) {                                                   \
+            PRINTF("FAILURE @ '%s:%d' " format, __FILE__, __LINE__, ## __VA_ARGS__); \
+        } else {                                                        \
+            PRINTF("PASSED @ '%s:%d' " format, __FILE__, __LINE__, ## __VA_ARGS__); \
+        }                                                               \
+    } while(0);
+#endif
 #endif /* __DEBUG_H__ */
