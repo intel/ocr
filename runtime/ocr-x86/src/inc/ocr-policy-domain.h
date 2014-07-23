@@ -362,6 +362,7 @@ typedef struct _ocrPolicyMsg_t {
             u32 depc;                  /**< In/out: Number of dependence slots; same comment as above */
             u32 properties;            /**< In: properties for the creation */
             ocrWorkType_t workType;    /**< In: Type of work to create */
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is creating work */
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_CREATE);
 
         struct {
@@ -372,6 +373,7 @@ typedef struct _ocrPolicyMsg_t {
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the EDT to destroy */
             u32 properties;    /**< In: properties for the destruction */
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying work */
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_DESTROY);
 
         struct {
@@ -382,22 +384,26 @@ typedef struct _ocrPolicyMsg_t {
             u32 properties;        /**< In: Properties */
             const char * funcName; /**< In: Debug help: user identifier */
             u64 funcNameLen;       /**< In: Number of characters (excluding '\0') in funcName */
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is creating template */
         } PD_MSG_STRUCT_NAME(PD_MSG_EDTTEMP_CREATE);
 
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the EDT template to destroy */
             u32 properties;    /**< In: properties for the destruction */
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying template */
         } PD_MSG_STRUCT_NAME(PD_MSG_EDTTEMP_DESTROY);
 
         struct {
             ocrFatGuid_t guid;    /**< In/Out: GUID of the event to create */
             u32 properties;       /**< In: Properties for this creation */
             ocrEventTypes_t type; /**< Type of the event created: Bit 0: 1 if event takes an argument */
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is creating event */
         } PD_MSG_STRUCT_NAME(PD_MSG_EVT_CREATE);
 
         struct {
             ocrFatGuid_t guid; /**< In: GUID of the event to destroy */
             u32 properties;    /**< In: properties for the destruction */
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is destroying event */
         } PD_MSG_STRUCT_NAME(PD_MSG_EVT_DESTROY);
 
         struct {
@@ -465,6 +471,7 @@ typedef struct _ocrPolicyMsg_t {
             ocrFatGuid_t dest;   /**< In: Destination of the dependence */
             u32 slot;            /**< In: Slot of dest to connect the dep to */
             u32 properties;      /**< In: Properties. Lower 3 bits are access modes */
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is adding dep */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_ADD);
 
         struct {
@@ -487,6 +494,7 @@ typedef struct _ocrPolicyMsg_t {
                                    * event/task with (a DB usually). */
             u32 slot;             /**< In: Slot to satisfy the event/task on */
             u32 properties;       /**< In: Properties for the satisfaction */
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is satisfying dep */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_SATISFY);
 
         struct {
@@ -543,6 +551,7 @@ typedef struct _ocrPolicyMsg_t {
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_TERMINATE);
         struct {
             u32 properties;
+            ocrFatGuid_t currentEdt;   /**< In: EDT that is calling shutdown */
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_SHUTDOWN);
 
         struct {

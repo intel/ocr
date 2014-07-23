@@ -340,15 +340,14 @@ u8 destructTaskHc(ocrTask_t* base) {
 ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
                       u32 paramc, u64* paramv, u32 depc, u32 properties,
                       ocrFatGuid_t affinity, ocrFatGuid_t * outputEventPtr,
-                      ocrParamList_t *perInstance) {
+                      ocrTask_t *curEdt, ocrParamList_t *perInstance) {
 
     // Get the current environment
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
-    ocrTask_t *curEdt = NULL;
     u32 i;
 
-    getCurrentEnv(&pd, NULL, &curEdt, &msg);
+    getCurrentEnv(&pd, NULL, NULL, &msg);
 
     ocrFatGuid_t parentLatch = getFinishLatch(curEdt);
     ocrFatGuid_t outputEvent = {.guid = NULL_GUID, .metaDataPtr = NULL};
@@ -872,7 +871,7 @@ void destructTaskFactoryHc(ocrTaskFactory_t* base) {
 ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance, u32 factoryId) {
     ocrTaskFactory_t* base = (ocrTaskFactory_t*)runtimeChunkAlloc(sizeof(ocrTaskFactoryHc_t), NULL);
 
-    base->instantiate = FUNC_ADDR(ocrTask_t* (*) (ocrTaskFactory_t*, ocrFatGuid_t, u32, u64*, u32, u32, ocrFatGuid_t, ocrFatGuid_t*, ocrParamList_t*), newTaskHc);
+    base->instantiate = FUNC_ADDR(ocrTask_t* (*) (ocrTaskFactory_t*, ocrFatGuid_t, u32, u64*, u32, u32, ocrFatGuid_t, ocrFatGuid_t*, ocrTask_t *curEdt, ocrParamList_t*), newTaskHc);
     base->destruct =  FUNC_ADDR(void (*) (ocrTaskFactory_t*), destructTaskFactoryHc);
     base->factoryId = factoryId;
 

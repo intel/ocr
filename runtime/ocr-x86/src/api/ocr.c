@@ -14,10 +14,13 @@ void ocrShutdown() {
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
     ocrPolicyMsg_t * msgPtr = &msg;
-    getCurrentEnv(&pd, NULL, NULL, msgPtr);
+    ocrTask_t * curEdt = NULL;
+    getCurrentEnv(&pd, NULL, &curEdt, msgPtr);
 #define PD_MSG msgPtr
 #define PD_TYPE PD_MSG_MGT_SHUTDOWN
     msgPtr->type = PD_MSG_MGT_SHUTDOWN | PD_MSG_REQUEST;
+    PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
+    PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
     RESULT_ASSERT(pd->fcts.processMessage(pd, msgPtr, true), ==, 0);
 #undef PD_MSG
 #undef PD_TYPE

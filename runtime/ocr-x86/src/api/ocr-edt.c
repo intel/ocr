@@ -17,7 +17,8 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t * pd = NULL;
     u8 returnCode = 0;
-    getCurrentEnv(&pd, NULL, NULL, &msg);
+    ocrTask_t * curEdt = NULL;
+    getCurrentEnv(&pd, NULL, &curEdt, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_CREATE
@@ -26,6 +27,8 @@ u8 ocrEventCreate(ocrGuid_t *guid, ocrEventTypes_t eventType, bool takesArg) {
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(properties) = takesArg;
     PD_MSG_FIELD(type) = eventType;
+    PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
+    PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
     returnCode = pd->fcts.processMessage(pd, &msg, true);
     if(returnCode == 0)
         *guid = PD_MSG_FIELD(guid.guid);
@@ -40,7 +43,8 @@ u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     START_PROFILE(api_EventDestroy);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL, &msg);
+    ocrTask_t * curEdt = NULL;
+    getCurrentEnv(&pd, NULL, &curEdt, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_DESTROY
     msg.type = PD_MSG_EVT_DESTROY | PD_MSG_REQUEST;
@@ -48,6 +52,8 @@ u8 ocrEventDestroy(ocrGuid_t eventGuid) {
     PD_MSG_FIELD(guid.guid) = eventGuid;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
+    PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
 
     u8 toReturn = pd->fcts.processMessage(pd, &msg, false);
     RETURN_PROFILE(toReturn);
@@ -60,7 +66,8 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*
     START_PROFILE(api_EventSatisfySlot);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL, &msg);
+    ocrTask_t * curEdt = NULL;
+    getCurrentEnv(&pd, NULL, &curEdt, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_SATISFY
     msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
@@ -71,6 +78,8 @@ u8 ocrEventSatisfySlot(ocrGuid_t eventGuid, ocrGuid_t dataGuid /*= INVALID_GUID*
     PD_MSG_FIELD(payload.metaDataPtr) = NULL;
     PD_MSG_FIELD(slot) = slot;
     PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
+    PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
     u8 toReturn = pd->fcts.processMessage(pd, &msg, false);
     RETURN_PROFILE(toReturn);
 #undef PD_MSG
@@ -88,8 +97,9 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
 #endif
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
+    ocrTask_t * curEdt = NULL;
     u8 returnCode = 0;
-    getCurrentEnv(&pd, NULL, NULL, &msg);
+    getCurrentEnv(&pd, NULL, &curEdt, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
     msg.type = PD_MSG_EDTTEMP_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -100,6 +110,8 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
     PD_MSG_FIELD(depc) = depc;
     PD_MSG_FIELD(funcName) = funcName;
     PD_MSG_FIELD(funcNameLen) = ocrStrlen(funcName);
+    PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
+    PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
 
     returnCode = pd->fcts.processMessage(pd, &msg, true);
     if(returnCode == 0)
@@ -115,12 +127,15 @@ u8 ocrEdtTemplateDestroy(ocrGuid_t guid) {
     START_PROFILE(api_EdtTemplateDestroy);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL, &msg);
+    ocrTask_t * curEdt = NULL;
+    getCurrentEnv(&pd, NULL, &curEdt, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EDTTEMP_DESTROY
     msg.type = PD_MSG_EDTTEMP_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid.guid) = guid;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
+    PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
     u8 toReturn = pd->fcts.processMessage(pd, &msg, false);
     RETURN_PROFILE(toReturn);
 #undef PD_MSG
@@ -135,7 +150,8 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t * pd = NULL;
     u8 returnCode = 0;
-    getCurrentEnv(&pd, NULL, NULL, &msg);
+    ocrTask_t * curEdt = NULL;
+    getCurrentEnv(&pd, NULL, &curEdt, &msg);
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_WORK_CREATE
@@ -157,6 +173,8 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     PD_MSG_FIELD(depc) = depc;
     PD_MSG_FIELD(properties) = properties;
     PD_MSG_FIELD(workType) = EDT_WORKTYPE;
+    PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
+    PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
 
     returnCode = pd->fcts.processMessage(pd, &msg, true);
     if(returnCode) {
@@ -193,12 +211,15 @@ u8 ocrEdtDestroy(ocrGuid_t edtGuid) {
     START_PROFILE(api_EdtDestroy);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL, &msg);
+    ocrTask_t * curEdt = NULL;
+    getCurrentEnv(&pd, NULL, &curEdt, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_WORK_DESTROY
     msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid.guid) = edtGuid;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+    PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
+    PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
     u8 toReturn = pd->fcts.processMessage(pd, &msg, false);
     RETURN_PROFILE(toReturn);
 #undef PD_MSG
@@ -210,7 +231,8 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
     START_PROFILE(api_AddDependence);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL, &msg);
+    ocrTask_t * curEdt = NULL;
+    getCurrentEnv(&pd, NULL, &curEdt, &msg);
     if(source != NULL_GUID) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DEP_ADD
@@ -221,6 +243,8 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
         PD_MSG_FIELD(dest.metaDataPtr) = NULL;
         PD_MSG_FIELD(slot) = slot;
         PD_MSG_FIELD(properties) = mode;
+        PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
+        PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
 #undef PD_MSG
 #undef PD_TYPE
     } else {
@@ -235,6 +259,8 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
         PD_MSG_FIELD(payload.metaDataPtr) = NULL;
         PD_MSG_FIELD(slot) = slot;
         PD_MSG_FIELD(properties) = 0;
+        PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
+        PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
 #undef PD_MSG
 #undef PD_TYPE
     }

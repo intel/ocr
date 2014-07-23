@@ -266,7 +266,7 @@ typedef struct _ocrTaskFactory_t {
     ocrTask_t* (*instantiate)(struct _ocrTaskFactory_t * factory, ocrFatGuid_t edtTemplate,
                               u32 paramc, u64* paramv, u32 depc, u32 properties,
                               ocrFatGuid_t affinity, ocrFatGuid_t *outputEvent,
-                              ocrParamList_t *perInstance);
+                              ocrTask_t *curEdt, ocrParamList_t *perInstance);
 
     /*! \brief Virtual destructor for the TaskFactory interface
      */
