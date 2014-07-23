@@ -3,17 +3,9 @@
 # removed or modified.
 
 # ARCH
-ARCH        ?= whole-fsim
-
-# RMD
-RMD_INSTALL ?= ../../../ss/install
-RMD_SRC     ?= ../../../ss
-
+ARCH        ?= x86-pthread-fsim
 # OCR
-XE_TARGET   ?= fsim-null-fsim-xe
-XE_BUILDER  ?= x86-builder-fsim-xe
-CE_TARGET   ?= fsim-null-fsim-ce
-CE_BUILDER  ?= x86-builder-fsim-ce
+OCR_TARGET   ?= x86-pthread-fsim
 OCR_INSTALL_ROOT ?= ../../install
 OCR_SRC     ?= ../..
 OCR_BUILD_ROOT   ?= ../../build/
@@ -23,21 +15,14 @@ WORKLOAD_SRC          ?= .
 WORKLOAD_BUILD_ROOT   ?= ./build
 WORKLOAD_INSTALL_ROOT ?= ./install
 
-# Run mode
-
-# Set to "yes" if running with torque
-RUN_TORQUE ?= no
-# Set to "yes" if Jenkins is running this job as an automated test
-RUN_JENKINS ?= no
-
 ## END of variables coming from user/environment
 
-TARGET = printf
+TARGET = fft
 
-SRCS := printf.c
+SRCS := fft.c verify.c
 
-CFLAGS :=
-LDFLAGS :=
+CFLAGS  :=
+LDFLAGS := -lpthread -lm
 
 all:	CFLAGS += -O2
 all:	TARGETS := all
@@ -51,5 +36,4 @@ install: all
 
 VALIDGOALS := all debug install
 
-include ${WORKLOAD_SRC}/../make-fsim.inc
-
+include ${WORKLOAD_SRC}/../make-regular.inc

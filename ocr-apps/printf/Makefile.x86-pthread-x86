@@ -34,6 +34,6 @@ debug:	default
 
 install: all
 
-VALIDGOALS :- all debug install
+VALIDGOALS := all debug install
 
 include ${WORKLOAD_SRC}/../make-regular.inc

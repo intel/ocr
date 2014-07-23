@@ -32,9 +32,9 @@ RUN_JENKINS ?= no
 
 ## END of variables coming from user/environment
 
-TARGET = printf
+TARGET = fft
 
-SRCS := printf.c
+SRCS := fft.c verify.c
 
 CFLAGS :=
 LDFLAGS :=

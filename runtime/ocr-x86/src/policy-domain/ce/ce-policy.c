@@ -517,6 +517,16 @@ static u8 ceProcessResponse(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u32 pr
 u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlocking) {
 
     u8 returnCode = 0;
+
+    // XXX: The below is a stop-gap, intended to convert any requests during a shutdown
+    // that's already in progress, into shutdown requests. The right way of doing this would
+    // be for the CE to simply cancel any XE sends (so that XE's enter shutdown directly)
+    if(((ocrPolicyDomainCe_t *)self)->shutdownCount && (self->myLocation != msg->srcLocation)) {
+        DPRINTF(DEBUG_LVL_VVERB, "Converting to shutdown; myloc=%lx, actual loc=%lx\n",
+                                  self->myLocation, msg->srcLocation);
+        msg->type = PD_MSG_MGT_SHUTDOWN | PD_MSG_REQUEST;
+    }
+
     DPRINTF(DEBUG_LVL_VERB, "Going to processs message of type 0x%x\n",
             msg->type & PD_MSG_TYPE_ONLY);
 

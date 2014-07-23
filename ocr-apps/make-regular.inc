@@ -61,7 +61,7 @@ run:    WORKLOAD_EXEC ?= $(WORKLOAD_INSTALL)
 run:    OCR_CONFIG ?= $(OCR_INSTALL)/config/default.cfg
 run:    install
 	cd $(WORKLOAD_EXEC)
-	LD_LIBRARY_PATH=$(OCR_INSTALL)/lib OCR_CONFIG=$(OCR_CONFIG) bash -c './$(TARGET) "$(filter-out $(VALIDGOALS),$(MAKECMDGOALS))"'
+	LD_LIBRARY_PATH=$(OCR_INSTALL)/lib OCR_CONFIG=$(OCR_CONFIG) bash -c './$(TARGET) $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))'
 
 .PHONY: default
 default: $(WORKLOAD_BUILD)/$(TARGET)

@@ -23,7 +23,6 @@ SRCS := printf.c
 
 CFLAGS  :=
 LDFLAGS := -lpthread
-CFLAGS := ${CFLAGS_BASE}
 
 all:	CFLAGS += -O2
 all:	TARGETS := all
