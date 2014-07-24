@@ -129,13 +129,13 @@ ocrGuid_t setUpVerify(ocrGuid_t inDB, ocrGuid_t XrealDB, ocrGuid_t XimagDB, u64 
     if(XimagDB == NULL_GUID) {
         ocrGuid_t verifyDependencies[4] = { inDB, XrealVDB, XimagVDB, trigger };
 
-        ocrEdtCreate(&vGuid, vTemp, 1, &N, 4, verifyDependencies,
+        ocrEdtCreate(&vGuid, vTemp, EDT_PARAM_DEF, &N, 4, verifyDependencies,
                      EDT_PROP_NONE, NULL_GUID, &vEventGuid);
     } else {
         ocrGuid_t verifyDependencies[6] = { inDB, XrealDB, XimagDB, XrealVDB,
                                             XimagVDB, trigger };
 
-        ocrEdtCreate(&vGuid, vTemp, 1, &N, 6, verifyDependencies,
+        ocrEdtCreate(&vGuid, vTemp, EDT_PARAM_DEF, &N, 6, verifyDependencies,
                      EDT_PROP_NONE, NULL_GUID, &vEventGuid);
     }
 

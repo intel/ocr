@@ -341,6 +341,20 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     case PD_MSG_DEP_SATISFY: {
 
         START_PROFILE(pd_xe_OffloadtoCE);
+        if((msg->type & PD_MSG_TYPE_ONLY) == PD_MSG_WORK_CREATE) {
+            START_PROFILE(pd_xe_resolveTemp);
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_WORK_CREATE
+            if((s32)(PD_MSG_FIELD(paramc)) < 0) {
+                localDeguidify(self, &(PD_MSG_FIELD(templateGuid)));
+                ocrTaskTemplate_t *template = PD_MSG_FIELD(templateGuid).metaDataPtr;
+                PD_MSG_FIELD(paramc) = template->paramc;
+            }
+#undef PD_MSG
+#undef PD_TYPE
+            EXIT_PROFILE;
+        }
+
         if((msg->type & PD_MSG_TYPE_ONLY) == PD_MSG_COMM_GIVE) {
             START_PROFILE(pd_xe_Give);
 #define PD_MSG msg

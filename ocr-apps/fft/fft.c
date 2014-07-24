@@ -46,7 +46,7 @@ ocrGuid_t fftIterationEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
                          serialBlockSize };
 
     ocrGuid_t edtGuid;
-    ocrEdtCreate(&edtGuid, startTempGuid, 8, edtParamv, 1,
+    ocrEdtCreate(&edtGuid, startTempGuid, EDT_PARAM_DEF, edtParamv, 1,
                  dependencies, EDT_PROP_FINISH, NULL_GUID, NULL_GUID);
 
     return NULL_GUID;
@@ -82,17 +82,17 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
             PRINTF("Creating children of size %d\n",N/2);
         ocrGuid_t edtGuid, edtGuid2, endEdtGuid, finishEventGuid, finishEventGuid2;
 
-        ocrEdtCreate(&edtGuid, startGuid, 8, childParamv,
+        ocrEdtCreate(&edtGuid, startGuid, EDT_PARAM_DEF, childParamv,
                      EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID,
                      &finishEventGuid);
-        ocrEdtCreate(&edtGuid2, startGuid, 8, childParamv2,
+        ocrEdtCreate(&edtGuid2, startGuid, EDT_PARAM_DEF, childParamv2,
                      EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID,
                      &finishEventGuid2);
             PRINTF("finishEventGuid after create: %lu\n",finishEventGuid);
 
         ocrGuid_t endDependencies[3] = { dataGuid, finishEventGuid, finishEventGuid2 };
         // Do calculations after having divided and conquered
-        ocrEdtCreate(&endEdtGuid, endGuid, 8, paramv, 3,
+        ocrEdtCreate(&endEdtGuid, endGuid, EDT_PARAM_DEF, paramv, 3,
                      endDependencies, EDT_PROP_FINISH, NULL_GUID, NULL);
 
         ocrAddDependence(dataGuid, edtGuid, 0, DB_MODE_ITW);
@@ -134,7 +134,7 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
             slaveParamv[i*5+3] = i*serialBlockSize;
             slaveParamv[i*5+4] = (i+1)*serialBlockSize;
 
-            ocrEdtCreate(slaveGuids+i, endSlaveGuid, 5,
+            ocrEdtCreate(slaveGuids+i, endSlaveGuid, EDT_PARAM_DEF,
                          slaveParamv+i*5, EDT_PARAM_DEF, &dataGuid,
                          EDT_PROP_NONE, NULL_GUID, NULL);
         }
@@ -148,7 +148,7 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
         slaveParamv[3] = 0;
         slaveParamv[4] = N/2;
 
-        ocrEdtCreate(slaveGuids, endSlaveGuid, 5, slaveParamv,
+        ocrEdtCreate(slaveGuids, endSlaveGuid, EDT_PARAM_DEF, slaveParamv,
                      EDT_PARAM_DEF, &dataGuid, EDT_PROP_NONE, NULL_GUID, NULL);
     }
     return NULL_GUID;
@@ -301,7 +301,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
         PRINTF(">1 iterations currently not supported, dialing down to 1 iteration\n");
     }
 
-    ocrEdtCreate(&edtGuid, iterationTempGuid, 6, edtParamv,
+    ocrEdtCreate(&edtGuid, iterationTempGuid, EDT_PARAM_DEF, edtParamv,
                  EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID,
                  &edtEventGuid);
 
@@ -311,7 +311,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 
     u64 printParamv[3] = { N, verbose, printResults };
     ocrGuid_t finishDependencies[2] = { edtEventGuid, dataGuid };
-    ocrEdtCreate(&printEdtGuid, printTempGuid, 3, printParamv,
+    ocrEdtCreate(&printEdtGuid, printTempGuid, EDT_PARAM_DEF, printParamv,
                  EDT_PARAM_DEF, finishDependencies, EDT_PROP_NONE, NULL_GUID, NULL);
 
     edtEventGuid = NULL_GUID;

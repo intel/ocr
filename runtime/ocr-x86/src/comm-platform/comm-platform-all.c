@@ -77,6 +77,7 @@ u8 ocrCommPlatformGetMsgSize(ocrPolicyMsg_t *msg, u64 *fullSize,
     switch(msg->type & PD_MSG_TYPE_ONLY) {
     case PD_MSG_WORK_CREATE:
 #define PD_TYPE PD_MSG_WORK_CREATE
+        ASSERT((s32)(PD_MSG_FIELD(paramc)) >= 0);
         *marshalledSize = sizeof(u64)*PD_MSG_FIELD(paramc);
         break;
 #undef PD_TYPE
