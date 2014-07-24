@@ -1,0 +1,42 @@
+b stop
+r
+n
+set print pretty on
+p/x *ptr1
+p/x ptr1->args._data_0x1001
+p/x ptr1->args._data_0x2001
+p/x ptr1->args._data_0x3001
+p/x ptr1->args._data_0x4001
+p/x ptr1->args._data_0x5001
+p/x ptr1->args._data_0x1002
+p/x ptr1->args._data_0x2002
+p/x ptr1->args._data_0x1004
+p/x ptr1->args._data_0x2004
+p/x ptr1->args._data_0x3004
+p/x ptr1->args._data_0x1008
+p/x ptr1->args._data_0x2008
+p/x ptr1->args._data_0x1010
+p/x ptr1->args._data_0x2010
+p/x ptr1->args._data_0x3010
+p/x ptr1->args._data_0x1020
+p/x ptr1->args._data_0x2020
+p/x ptr1->args._data_0x3020
+p/x ptr1->args._data_0x1040
+p/x ptr1->args._data_0x2040
+p/x ptr1->args._data_0x1080
+p/x ptr1->args._data_0x2080
+p/x ptr1->args._data_0x3080
+p/x ptr1->args._data_0x4080
+p/x ptr1->args._data_0x5080
+p/x ptr1->args._data_0x7080
+p/x ptr1->args._data_0x8080
+p/x ptr1->args._data_0x6080
+p/x ptr1->args._data_0x1100
+p/x ptr1->args._data_0x2100
+p/x ptr1->args._data_0x3100
+p/x ptr1->args._data_0x4100
+p/x ptr1->args._data_0x1200
+p/x ptr1->args._data_0x2200
+p/x ptr1->args._data_0x3200
+p/x ptr1->args._data_0x4200
+quit

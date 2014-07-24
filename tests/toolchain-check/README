@@ -1,0 +1,6 @@
+This directory consists of files needed to verify that the XE & CE toolchains represent binary in the same way for OCR's structs
+Just do make (after ensuring the toolchain paths are set up correctly).
+
+tools/ consists of bits & pieces of tools needed to generate test.c
+It's mostly auto-generated but manual intervention for small syntax fixings are needed.
+If I have time, I'll revisit and make it cleaner. In the meantime, contact bala.seshasayee@intel.com for help with this

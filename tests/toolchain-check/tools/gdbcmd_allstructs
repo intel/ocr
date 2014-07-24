@@ -1,0 +1,19 @@
+b stop
+r
+n
+set print pretty on
+p/x *ptr2
+p/x *ptr3
+p/x *ptr4
+p/x *ptr5
+p/x *ptr6
+p/x *ptr7
+p/x *ptr8
+p/x *ptr9
+p/x *ptr10
+p/x *ptr11
+p/x *ptr12
+p/x *ptr13
+p/x *ptr14
+p/x *ptr15
+quit

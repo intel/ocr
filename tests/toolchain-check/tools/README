@@ -1,0 +1,3 @@
+generator.c is used to generate the assignments
+Once an executable is created, run it against gdb using the commands in gdbcmd*
+Format the output with awk & friends in a form compatible to test.c in parent directory
