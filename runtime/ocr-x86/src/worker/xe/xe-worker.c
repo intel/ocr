@@ -179,10 +179,8 @@ extern ocrGuid_t mainEdt( u32, u64 *, u32, ocrEdtDep_t * );
         ocrDbCreate(&dbGuid, &dbPtr, totalLength,
                     DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 
-#if !defined(SAL_FSIM_XE)
         // copy packed args to DB
         hal_memCopy(dbPtr, packedUserArgv, totalLength, 0);
-#endif
 
         // Create the depv
         ocrEdtDep_t depv;

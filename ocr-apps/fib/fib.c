@@ -8,6 +8,8 @@
 #include "ocr.h"
 #include "ocr-std.h"
 
+#include "stdlib.h"
+
 ocrGuid_t complete(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     u64 arg = (u64)paramv[0];
 
@@ -114,36 +116,44 @@ ocrGuid_t fibEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 ocrGuid_t absFinal(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     u32 ans;
     ans = *(u32*)depv[0].ptr;
-    VERIFY(ans == 55, "Totally done: answer is %d\n", ans);
+    VERIFY(ans == (u32)paramv[0], "Totally done: answer is %d\n", ans);
     ocrShutdown();
     ocrDbDestroy(depv[0].guid);
 
     return NULL_GUID;
 }
 
+u64 fib(u32 n)
+{
+    if(n<=0) return 0;
+    if(n<=2) return 1;
+    else return fib(n-1) + fib(n-2);
+}
+
 /* just define the main EDT function */
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     PRINTF("Starting mainEdt\n");
+    u32 input;
+    u32 argc = getArgc(depv[0].ptr);
+    if((argc != 2)) {
+        PRINTF("Usage: fib <num>, defaulting to 10\n");
+        input = 10;
+    } else {
+        input = atoi(getArgv(depv[0].ptr, 1));
+    }
+
+    u64 correctAns = fib(input);
 
     ocrGuid_t fibC, totallyDoneEvent, absFinalEdt, templateGuid;
     {
         ocrGuid_t templateGuid;
-        ocrEdtTemplateCreate(&templateGuid, absFinal, 0, 1);
+        ocrEdtTemplateCreate(&templateGuid, absFinal, 1, 1);
         PRINTF("Created template and got GUID 0x%llx\n", templateGuid);
-        ocrEdtCreate(&absFinalEdt, templateGuid, 0, NULL, 1, NULL, EDT_PROP_NONE,
+        ocrEdtCreate(&absFinalEdt, templateGuid, 1, &correctAns, 1, NULL, EDT_PROP_NONE,
                      NULL_GUID, NULL);
         PRINTF("Created ABS EDT and got  GUID 0x%llx\n", absFinalEdt);
         ocrEdtTemplateDestroy(templateGuid);
     }
-    /* for right now, the commandline doesn't work */
-    u32 argc = getArgc(depv[0].ptr);
-    PRINTF("Got argc %d\n", argc);
-    /*if(argc != 2) {
-        PRINTF("Usage: fib <num>\n");
-        ocrShutdown();
-        return NULL_GUID;
-        }*/
-    int input = 10; // Replace with atoi of argv[1]
 
     /* create a db for the results */
     ocrGuid_t fibArg;

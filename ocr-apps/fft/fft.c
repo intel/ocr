@@ -16,15 +16,12 @@
 
 #include "ocr.h"
 
-#ifdef RMD
-#include "rmd-math.h"
-#else
 #include "math.h"
-#endif
+#include "stdlib.h"
 
 #define SERIAL_BLOCK_SIZE_DEFAULT (1024*16)
 
-extern void ditfft2(float *X_real, float *X_imag, float *x_in, int N, int step);
+extern void ditfft2(float *X_real, float *X_imag, float *x_in, u32 N, u32 step);
 extern ocrGuid_t setUpVerify(ocrGuid_t inDB, ocrGuid_t XrealDB, ocrGuid_t XimagDB, u64 N, ocrGuid_t trigger);
 
 // Performs one entire iteration of FFT.
@@ -53,7 +50,7 @@ ocrGuid_t fftIterationEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 }
 
 ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    int i;
+    u32 i;
     ocrGuid_t startGuid = paramv[0];
     ocrGuid_t endGuid = paramv[1];
     ocrGuid_t endSlaveGuid = paramv[2];
@@ -104,7 +101,7 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 }
 
 ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    int i;
+    u32 i;
     ocrGuid_t startGuid = paramv[0];
     ocrGuid_t endGuid = paramv[1];
     ocrGuid_t endSlaveGuid = paramv[2];
@@ -154,7 +151,7 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     return NULL_GUID;
 }
 ocrGuid_t fftEndSlaveEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
-    int i;
+    u32 i;
     float *data = (float*)depv[0].ptr;
     ocrGuid_t dataGuid = depv[0].guid;
     u64 N = paramv[0];
@@ -166,7 +163,7 @@ ocrGuid_t fftEndSlaveEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) 
     u64 kStart = paramv[3];
     u64 kEnd = paramv[4];
 
-    int k;
+    u32 k;
     for(k=kStart;k<kEnd;k++) {
         float t_real = X_real[k];
         float t_imag = X_imag[k];
@@ -192,7 +189,7 @@ ocrGuid_t fftEndSlaveEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) 
 }
 
 ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
-    int i;
+    u32 i;
     float *data = (float*)depv[1].ptr;
     ocrGuid_t dataGuid = depv[1].guid;
     u64 N = paramv[0];
@@ -223,7 +220,7 @@ ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     return NULL_GUID;
 }
 
-bool parseOptions(int argc, char *argv[], u64 *N, bool *verify, u64 *iterations,
+bool parseOptions(u32 argc, char **argv, u64 *N, bool *verify, u64 *iterations,
                   bool *verbose, bool *printResults, u64 *serialBlockSize) {
   char c;
   char *buffer = NULL;
@@ -233,7 +230,7 @@ bool parseOptions(int argc, char *argv[], u64 *N, bool *verify, u64 *iterations,
   *N = 1;
   *iterations = 1;
 
-  int power = 10;  // TODO: get this from the argv
+  s64 power = atoi(argv[1]);
   while(power-- > 0) *N=(*N)*2;
   *verbose = true;
   *verify = true;
@@ -243,8 +240,9 @@ bool parseOptions(int argc, char *argv[], u64 *N, bool *verify, u64 *iterations,
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     u64 argc = getArgc(depv[0].ptr);
-    int i;
+    u32 i;
     char *argv[argc];
+
     for(i=0;i<argc;i++) {
         argv[i] = getArgv(depv[0].ptr,i);
     }

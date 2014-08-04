@@ -33,6 +33,7 @@ ARFLAGS	= rcs
 
 CC	= $(PREFIX)-clang
 CFLAGS_BASE	= -I $(OCR_INSTALL_XE)/include
+CFLAGS  += -I ${WORKLOAD_SRC}/../tg-includes
 
 OBJCOPY	= $(PREFIX)-objcopy
 STRIP	= $(PREFIX)-strip
@@ -90,7 +91,7 @@ run:	install
 	@$(MKDIR) -p $(WORKLOAD_EXEC)/logs
 	@$(RM) -rf $(WORKLOAD_EXEC)/logs/*
 	cd $(WORKLOAD_EXEC)
-	WORKLOAD_EXEC=$(WORKLOAD_EXEC) WORKLOAD_INSTALL=$(WORKLOAD_INSTALL) bash -c '$(RUN_CMD) -s $(MACHINE_CONFIG) -c $(WORKLOAD_INSTALL)/config.cfg $(ARGS)'
+	WORKLOAD_EXEC=$(WORKLOAD_EXEC) WORKLOAD_INSTALL=$(WORKLOAD_INSTALL) bash -c '$(RUN_CMD) -s $(MACHINE_CONFIG) -c $(WORKLOAD_INSTALL)/config.cfg'
 
 .PHONY: default
 default: $(WORKLOAD_BUILD)/$(TARGET) $(WORKLOAD_BUILD)/$(TARGET).blob $(WORKLOAD_BUILD)/rmdkrnl

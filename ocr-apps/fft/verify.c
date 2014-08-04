@@ -6,12 +6,7 @@
 
 #include <ocr.h>
 
-#ifdef RMD
-#include "rmd-math.h"
-#else
 #include "math.h"
-#include <stdio.h>
-#endif
 
 bool areSame(float a, float b) {
     return (fabs(a-b) < 1e-9);
