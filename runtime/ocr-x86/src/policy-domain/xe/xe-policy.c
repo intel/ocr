@@ -303,6 +303,7 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
             if((handle->response->type & PD_MSG_TYPE_ONLY) != type) {
                 // Special case: shutdown in progress, cancel this message
                 // The handle is destroyed by the caller for this case
+                ocrShutdown();
                 return OCR_ECANCELED;
             }
             ASSERT((handle->response->type & PD_MSG_TYPE_ONLY) == type);
@@ -339,7 +340,6 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     case PD_MSG_COMM_TAKE: case PD_MSG_COMM_GIVE:
     case PD_MSG_DEP_ADD: case PD_MSG_DEP_REGSIGNALER: case PD_MSG_DEP_REGWAITER:
     case PD_MSG_DEP_SATISFY: {
-
         START_PROFILE(pd_xe_OffloadtoCE);
         if((msg->type & PD_MSG_TYPE_ONLY) == PD_MSG_WORK_CREATE) {
             START_PROFILE(pd_xe_resolveTemp);
@@ -374,7 +374,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                 msg->type & PD_MSG_TYPE_ONLY);
         returnCode = xeProcessCeRequest(self, &msg);
 
-        if((msg->type & PD_MSG_TYPE_ONLY) == PD_MSG_COMM_TAKE) {
+        if(((msg->type & PD_MSG_TYPE_ONLY) == PD_MSG_COMM_TAKE) && (returnCode == 0)) {
             START_PROFILE(pd_xe_Take);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_COMM_TAKE
