@@ -140,7 +140,7 @@ extern u64 dram_offset;
  * +--------------------------+
  * |  size (of structs) (u64) | = persistent_pointer
  * +--------------------------+
- * |      PD->mylocation      |
+ * |      PD->mylocation      | = DEPRECATED, to be removed
  * +--------------------------+
  * |                          |
  * |     structs be here      |

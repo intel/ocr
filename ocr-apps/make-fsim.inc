@@ -32,7 +32,7 @@ AR	= $(PREFIX)-ar
 ARFLAGS	= rcs
 
 CC	= $(PREFIX)-clang
-CFLAGS_BASE	= -I $(OCR_INSTALL_XE)/include
+CFLAGS_BASE	= -I $(OCR_INSTALL_XE)/include -DTG_ARCH
 CFLAGS  += -I ${WORKLOAD_SRC}/../tg-includes
 
 OBJCOPY	= $(PREFIX)-objcopy
@@ -85,13 +85,18 @@ install: default | ${WORKLOAD_INSTALL}
 
 .PHONY: run
 .ONESHELL:
-run:	ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
-run:	WORKLOAD_EXEC ?= $(WORKLOAD_INSTALL)
-run:	install
+run: ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
+run: INPUTFILE := $(lastword $(ARGS))
+run: WORKLOAD_EXEC ?= $(WORKLOAD_INSTALL)
+run: prerun install
 	@$(MKDIR) -p $(WORKLOAD_EXEC)/logs
 	@$(RM) -rf $(WORKLOAD_EXEC)/logs/*
 	cd $(WORKLOAD_EXEC)
 	WORKLOAD_EXEC=$(WORKLOAD_EXEC) WORKLOAD_INSTALL=$(WORKLOAD_INSTALL) bash -c '$(RUN_CMD) -s $(MACHINE_CONFIG) -c $(WORKLOAD_INSTALL)/config.cfg'
+	if [ -a $(INPUTFILE).bak ] ; \
+	then \
+		mv $(INPUTFILE).bak $(INPUTFILE); \
+	fi;
 
 .PHONY: default
 default: $(WORKLOAD_BUILD)/$(TARGET) $(WORKLOAD_BUILD)/$(TARGET).blob $(WORKLOAD_BUILD)/rmdkrnl
@@ -115,7 +120,7 @@ $(WORKLOAD_BUILD)/$(TARGET): $(WORKLOAD_BUILD)/$(TARGET).dbg | $(WORKLOAD_BUILD)
 $(WORKLOAD_BUILD)/$(TARGET).blob: $(OCR_SRC)/scripts/Blob/aggregate_binary_files.sh \
 $(WORKLOAD_BUILD)/$(TARGET).blob.ce $(WORKLOAD_BUILD)/$(TARGET).blob.xe \
 $(WORKLOAD_BUILD)/$(TARGET).blob.arg | $(WORKLOAD_BUILD)
-	$^ $@
+	$^ $(INPUTFILE) $@
 
 # Build the CE blob
 $(WORKLOAD_BUILD)/$(TARGET).blob.ce: $(OCR_INSTALL_CE)/config/default.cfg \

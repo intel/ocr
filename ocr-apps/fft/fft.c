@@ -231,6 +231,7 @@ bool parseOptions(u32 argc, char **argv, u64 *N, bool *verify, u64 *iterations,
   *iterations = 1;
 
   s64 power = atoi(argv[1]);
+  PRINTF("Power %ld\n", power);
   while(power-- > 0) *N=(*N)*2;
   *verbose = true;
   *verify = true;
@@ -257,12 +258,6 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
                      &serialBlockSize)) {
         ocrShutdown();
         return NULL_GUID;
-    }
-    if(verbose) {
-        for(i=0;i<argc;i++) {
-            PRINTF("argv[%d]: %s\n",i,argv[i]);
-        }
-        PRINTF("Running %d iterations\n",iterations);
     }
 
     ocrGuid_t iterationTempGuid,startTempGuid,endTempGuid,printTempGuid,endSlaveTempGuid;

@@ -1,5 +1,5 @@
-#ifndef RMD_LIB_H
-#define RMD_LIB_H
+#ifndef _STDLIB_H
+#define _STDLIB_H
 
 s64 atoi(char *str)
 {
@@ -19,7 +19,6 @@ s64 atoi(char *str)
     }
 
     return retval * sign;
-
 }
 
-#endif //RMD_LIB_H
+#endif //_STDLIB_H
