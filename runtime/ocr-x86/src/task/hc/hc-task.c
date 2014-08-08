@@ -551,8 +551,9 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
             // We need to move the frontier slot over
             hal_lock32(&(self->lock));
             node->guid = signalerGuid.guid;
-            while(++self->frontierSlot < base->depc &&
-                    self->signalers[self->frontierSlot].slot != ++slot) ;
+            while(self->frontierSlot < base->depc &&
+                  self->signalers[self->frontierSlot].slot != self->frontierSlot)
+                  self->frontierSlot++;
 
             // We found a slot that is == to slot (so unsatisfied and not once)
             if(self->frontierSlot < base->depc &&
