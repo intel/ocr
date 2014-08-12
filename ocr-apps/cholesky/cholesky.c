@@ -12,7 +12,7 @@
 #include <misc.h>
 #else
 #include <stdio.h>
-static double** readMatrix( int matrixSize, FILE* in );
+static double** readMatrix( u32 matrixSize, FILE* in );
 #endif
 
 
@@ -26,11 +26,11 @@ static double** readMatrix( int matrixSize, FILE* in );
 #define PROPERTIES EDT_PROP_NONE
 
 ocrGuid_t sequential_cholesky_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    int index = 0, iB = 0, jB = 0, kB = 0;
+    u32 index = 0, iB = 0, jB = 0, kB = 0;
 
     u64 *func_args = paramv;
-    int k = (int) func_args[0];
-    int tileSize = (int) func_args[1];
+    u32 k = (u32) func_args[0];
+    u32 tileSize = (u32) func_args[1];
     ocrGuid_t out_lkji_kkkp1_event_guid = (ocrGuid_t) func_args[2];
 
     double* aBlock = (double*) (depv[0].ptr);
@@ -73,12 +73,12 @@ ocrGuid_t sequential_cholesky_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDe
 }
 
 ocrGuid_t trisolve_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    int index, iB, jB, kB;
+    u32 index, iB, jB, kB;
 
     u64 *func_args = paramv;
-    int k = (int) func_args[0];
-    int j = (int) func_args[1];
-    int tileSize = (int) func_args[2];
+    u32 k = (u32) func_args[0];
+    u32 j = (u32) func_args[1];
+    u32 tileSize = (u32) func_args[2];
     ocrGuid_t out_lkji_jkkp1_event_guid = (ocrGuid_t) func_args[3];
 
     PRINTF("RUNNING trisolve (%d, %d)\n", k, j);
@@ -114,14 +114,14 @@ ocrGuid_t trisolve_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 }
 
 ocrGuid_t update_diagonal_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    int index, iB, jB, kB;
+    u32 index, iB, jB, kB;
     double temp = 0;
 
     u64 *func_args = paramv;
-    int k = (int) func_args[0];
-    int j = (int) func_args[1];
-    int i = (int) func_args[2];
-    int tileSize = (int) func_args[3];
+    u32 k = (u32) func_args[0];
+    u32 j = (u32) func_args[1];
+    u32 i = (u32) func_args[2];
+    u32 tileSize = (u32) func_args[3];
     ocrGuid_t out_lkji_jjkp1_event_guid = (ocrGuid_t) func_args[4];
 
     PRINTF("RUNNING update_diagonal (%d, %d, %d)\n", k, j, i);
@@ -146,13 +146,13 @@ ocrGuid_t update_diagonal_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 
 ocrGuid_t update_nondiagonal_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     double temp;
-    int index, jB, kB, iB;
+    u32 index, jB, kB, iB;
 
     u64 *func_args = paramv;
-    int k = (int) func_args[0];
-    int j = (int) func_args[1];
-    int i = (int) func_args[2];
-    int tileSize = (int) func_args[3];
+    u32 k = (u32) func_args[0];
+    u32 j = (u32) func_args[1];
+    u32 i = (u32) func_args[2];
+    u32 tileSize = (u32) func_args[3];
     ocrGuid_t out_lkji_jikp1_event_guid = (ocrGuid_t) func_args[4];
 
     PRINTF("RUNNING update_nondiagonal (%d, %d, %d)\n", k, j, i);
@@ -177,17 +177,42 @@ ocrGuid_t update_nondiagonal_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep
 }
 
 ocrGuid_t wrap_up_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    int i, j, i_b, j_b;
+    u32 i, j, i_b, j_b;
     double* temp;
 
-#ifdef RMD
-    VERIFY(1, "Done with cholesky, shutdown (TODO: Dump the output)\n");
+    u64 *func_args = paramv;
+    u32 numTiles = (u32) func_args[0];
+    u32 tileSize = (u32) func_args[1];
+
+#ifdef TG_ARCH
+    u8* output = (u8*)(BLOB_START + sizeof(u64));
+                                    // Starting from offset sizeof(u64),
+                                    // dump the output file contents
+    for ( i = 0; i < numTiles; ++i ) {
+        for( i_b = 0; i_b < tileSize; ++i_b) {
+            for ( j = 0; j <= i; ++j ) {
+                temp = (double*) (depv[i*(i+1)/2+j].ptr);
+                if(i != j) {
+                    for(j_b = 0; j_b < tileSize; ++j_b) {
+                        *(double *)(output) = temp[i_b*tileSize+j_b];
+                        output += sizeof(double);
+                    }
+                } else {
+                    for(j_b = 0; j_b <= i_b; ++j_b) {
+                        *(double *)(output) = temp[i_b*tileSize+j_b];
+                        output += sizeof(double);
+                    }
+                }
+            }
+        }
+    }
+
+    // Finally, dump the size of the file for FSim to write out
+    *(u64 *)(BLOB_START) = output - (BLOB_START + sizeof(u64));
+    PRINTF("Output matrix size %lx\n", *(u64 *)(BLOB_START));
+
 #else
     FILE* out = fopen("cholesky.out", "w");
-
-    u64 *func_args = paramv;
-    int numTiles = (int) func_args[0];
-    int tileSize = (int) func_args[1];
 
     for ( i = 0; i < numTiles; ++i ) {
         for( i_b = 0; i_b < tileSize; ++i_b) {
@@ -195,16 +220,19 @@ ocrGuid_t wrap_up_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) 
                 temp = (double*) (depv[i*(i+1)/2+j].ptr);
                 if(i != j) {
                     for(j_b = 0; j_b < tileSize; ++j_b) {
-                        fprintf( out, "%lf ", temp[i_b*tileSize+j_b]);
+                        fwrite(&temp[i_b*tileSize+j_b], sizeof(double), 1, out);
+                        //fprintf( out, "%lf ", temp[i_b*tileSize+j_b]);
                     }
                 } else {
                     for(j_b = 0; j_b <= i_b; ++j_b) {
-                        fprintf( out, "%lf ", temp[i_b*tileSize+j_b]);
+                        fwrite(&temp[i_b*tileSize+j_b], sizeof(double), 1, out);
+                        //fprintf( out, "%lf ", temp[i_b*tileSize+j_b]);
                     }
                 }
             }
         }
     }
+    fclose(out);
 #endif
 
     ocrShutdown();
@@ -212,8 +240,8 @@ ocrGuid_t wrap_up_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) 
     return NULL_GUID;
 }
 
-inline static void sequential_cholesky_task_prescriber (ocrGuid_t edtTemp, int k,
-        int tileSize, ocrGuid_t*** lkji_event_guids) {
+inline static void sequential_cholesky_task_prescriber (ocrGuid_t edtTemp, u32 k,
+        u32 tileSize, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t seq_cholesky_task_guid;
 
     u64 func_args[3];
@@ -227,7 +255,7 @@ inline static void sequential_cholesky_task_prescriber (ocrGuid_t edtTemp, int k
     ocrAddDependence(lkji_event_guids[k][k][k], seq_cholesky_task_guid, 0, DB_MODE_ITW);
 }
 
-inline static void trisolve_task_prescriber ( ocrGuid_t edtTemp, int k, int j, int tileSize,
+inline static void trisolve_task_prescriber ( ocrGuid_t edtTemp, u32 k, u32 j, u32 tileSize,
         ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t trisolve_task_guid;
 
@@ -245,8 +273,8 @@ inline static void trisolve_task_prescriber ( ocrGuid_t edtTemp, int k, int j, i
     ocrAddDependence(lkji_event_guids[k][k][k+1], trisolve_task_guid, 1, DB_MODE_ITW);
 }
 
-inline static void update_nondiagonal_task_prescriber ( ocrGuid_t edtTemp, int k, int j, int i,
-        int tileSize, ocrGuid_t*** lkji_event_guids) {
+inline static void update_nondiagonal_task_prescriber ( ocrGuid_t edtTemp, u32 k, u32 j, u32 i,
+        u32 tileSize, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t update_nondiagonal_task_guid;
 
     u64 func_args[5];
@@ -265,8 +293,8 @@ inline static void update_nondiagonal_task_prescriber ( ocrGuid_t edtTemp, int k
 }
 
 
-inline static void update_diagonal_task_prescriber ( ocrGuid_t edtTemp, int k, int j, int i,
-        int tileSize, ocrGuid_t*** lkji_event_guids) {
+inline static void update_diagonal_task_prescriber ( ocrGuid_t edtTemp, u32 k, u32 j, u32 i,
+        u32 tileSize, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t update_diagonal_task_guid;
 
     u64 func_args[5];
@@ -283,19 +311,19 @@ inline static void update_diagonal_task_prescriber ( ocrGuid_t edtTemp, int k, i
     ocrAddDependence(lkji_event_guids[j][k][k+1], update_diagonal_task_guid, 1, DB_MODE_ITW);
 }
 
-inline static void wrap_up_task_prescriber ( ocrGuid_t edtTemp, int numTiles, int tileSize,
+inline static void wrap_up_task_prescriber ( ocrGuid_t edtTemp, u32 numTiles, u32 tileSize,
         ocrGuid_t*** lkji_event_guids ) {
-    int i,j,k;
+    u32 i,j,k;
     ocrGuid_t wrap_up_task_guid;
 
     u64 func_args[2];
-    func_args[0]=(int)numTiles;
-    func_args[1]=(int)tileSize;
+    func_args[0]=(u32)numTiles;
+    func_args[1]=(u32)tileSize;
 
     ocrGuid_t affinity = NULL_GUID;
     ocrEdtCreate(&wrap_up_task_guid, edtTemp, 2, func_args, (numTiles+1)*numTiles/2, NULL, PROPERTIES, affinity, NULL);
 
-    int index = 0;
+    u32 index = 0;
     for ( i = 0; i < numTiles; ++i ) {
         k = 1;
         for ( j = 0; j <= i; ++j ) {
@@ -305,8 +333,8 @@ inline static void wrap_up_task_prescriber ( ocrGuid_t edtTemp, int numTiles, in
     }
 }
 
-inline static ocrGuid_t*** allocateCreateEvents ( int numTiles ) {
-    int i,j,k;
+inline static ocrGuid_t*** allocateCreateEvents ( u32 numTiles ) {
+    u32 i,j,k;
     ocrGuid_t*** lkji_event_guids;
     void* lkji_event_guids_db = NULL;
     ocrGuid_t lkji_event_guids_db_guid;
@@ -333,10 +361,10 @@ inline static ocrGuid_t*** allocateCreateEvents ( int numTiles ) {
 }
 
 #ifdef RMD
-inline static void satisfyInitialTiles(int numTiles, int tileSize, u64 startBlob,
+inline static void satisfyInitialTiles(u32 numTiles, u32 tileSize, u64 startBlob,
                                        ocrGuid_t*** lkji_event_guids) {
-    int i,j;
-    int T_i, T_j;
+    u32 i,j;
+    u32 T_i, T_j;
     ocrGuid_t db_guid;
     ocrGuid_t db_affinity;
     void* temp_db;
@@ -356,10 +384,10 @@ inline static void satisfyInitialTiles(int numTiles, int tileSize, u64 startBlob
 
 }
 #else
-inline static void satisfyInitialTiles(int numTiles, int tileSize, double** matrix,
+inline static void satisfyInitialTiles(u32 numTiles, u32 tileSize, double** matrix,
                                        ocrGuid_t*** lkji_event_guids) {
-    int i,j,index;
-    int A_i, A_j, T_i, T_j;
+    u32 i,j,index;
+    u32 A_i, A_j, T_i, T_j;
 
     for( i = 0 ; i < numTiles ; ++i ) {
         for( j = 0 ; j <= i ; ++j ) {
@@ -379,7 +407,7 @@ inline static void satisfyInitialTiles(int numTiles, int tileSize, double** matr
             for( index = 0; index < tileSize; ++index )
                 temp2D [index] = &(temp[index*tileSize]);
 
-            // Split the matrix into tiles and write it into the item space at time 0.
+            // Split the matrix u32o tiles and write it u32o the item space at time 0.
             // The tiles are indexed by tile indices (which are tag values).
             for( A_i = i*tileSize, T_i = 0 ; T_i < tileSize; ++A_i, ++T_i ) {
                 for( A_j = j*tileSize, T_j = 0 ; T_j < tileSize; ++A_j, ++T_j ) {
@@ -394,10 +422,10 @@ inline static void satisfyInitialTiles(int numTiles, int tileSize, double** matr
 #endif
 
 ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
-    int matrixSize = -1;
-    int tileSize = -1;
-    int numTiles = -1;
-    int i, j, k;
+    u32 matrixSize = -1;
+    u32 tileSize = -1;
+    u32 numTiles = -1;
+    u32 i, j, k;
     double **matrix, ** temp;
     u64 argc;
     u64 offsets[4];
@@ -483,8 +511,8 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 }
 
 #ifndef RMD
-static double** readMatrix( int matrixSize, FILE* in ) {
-    int i,j;
+static double** readMatrix( u32 matrixSize, FILE* in ) {
+    u32 i,j;
     double **A = (double**) malloc (sizeof(double*)*matrixSize);
 
     for( i = 0; i < matrixSize; ++i)
