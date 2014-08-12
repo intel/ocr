@@ -395,7 +395,7 @@ static inline u64 GET_slAvailOrNot (poolHdr_t * pPool, int firstLvlIdx) {
 
 static inline blkHdr_t * GET_availBlkListHead (poolHdr_t * pPool, int firstLvlIdx, int secondLvlIdx) {
     u32 flCount = GET_flCount(pPool);
-    if (flCount < 26) {
+    if (flCount <= 26) {
         // Use 32-bit offsets for avail_blocks values when full pool size is small enough.
         flCount += flCount&1;  // If flCount is odd, we need to skip over one DWORD of padding to reach the availBlkListHead array.
         u32 temp;
@@ -455,7 +455,7 @@ static inline void SET_slAvailOrNot (poolHdr_t * pPool, int firstLvlIdx, u64 val
 static inline void SET_availBlkListHead (poolHdr_t * pPool, int firstLvlIdx, int secondLvlIdx, blkHdr_t * pBlk) {
     u64 value = ((u64) pBlk) - ((u64) pPool);
     u32 flCount = GET_flCount(pPool);
-    if (flCount < 26) {
+    if (flCount <= 26) {
         // Use 32-bit offsets for avail_blocks values when full pool size is small enough.
         flCount += flCount&1;  // If flCount is odd, we need to skip over one DWORD of padding to reach the availBlkListHead array.
         ASSERT (value <= 0xFFFFFFFFLL);
