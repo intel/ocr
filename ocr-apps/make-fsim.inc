@@ -85,18 +85,13 @@ install: default | ${WORKLOAD_INSTALL}
 
 .PHONY: run
 .ONESHELL:
-run: ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
-run: INPUTFILE := $(lastword $(ARGS))
+run: INPUTFILE := $(lastword $(NEWARGS))
 run: WORKLOAD_EXEC ?= $(WORKLOAD_INSTALL)
 run: prerun install
 	@$(MKDIR) -p $(WORKLOAD_EXEC)/logs
 	@$(RM) -rf $(WORKLOAD_EXEC)/logs/*
 	cd $(WORKLOAD_EXEC)
 	WORKLOAD_EXEC=$(WORKLOAD_EXEC) WORKLOAD_INSTALL=$(WORKLOAD_INSTALL) bash -c '$(RUN_CMD) -s $(MACHINE_CONFIG) -c $(WORKLOAD_INSTALL)/config.cfg'
-	if [ -a $(INPUTFILE).bak ] ; \
-	then \
-		mv $(INPUTFILE).bak $(INPUTFILE); \
-	fi;
 
 .PHONY: default
 default: $(WORKLOAD_BUILD)/$(TARGET) $(WORKLOAD_BUILD)/$(TARGET).blob $(WORKLOAD_BUILD)/rmdkrnl
@@ -135,7 +130,7 @@ $(WORKLOAD_BUILD)/$(TARGET).blob.xe: $(OCR_INSTALL_XE)/config/default.cfg \
 $(WORKLOAD_BUILD)/$(TARGET).dbg $(OCR_INSTALL_ROOT)/$(XE_BUILDER)/bin/builder.exe | $(WORKLOAD_BUILD)
 	RMD_INSTALL=$(RMD_INSTALL) WORKLOAD_BUILD=$(WORKLOAD_BUILD) STRUCT_OUT=$(WORKLOAD_BUILD)/$(TARGET).blob.xe \
 	ARGS_OUT=$(WORKLOAD_BUILD)/$(TARGET).blob.arg APP_FILE=$(WORKLOAD_BUILD)/$(TARGET).dbg \
-	$(OCR_INSTALL_ROOT)/$(XE_BUILDER)/bin/builder.exe -ocr:cfg $(OCR_INSTALL_XE)/config/default.cfg $(ARGS)
+	$(OCR_INSTALL_ROOT)/$(XE_BUILDER)/bin/builder.exe -ocr:cfg $(OCR_INSTALL_XE)/config/default.cfg $(NEWARGS)
 
 $(OCR_INSTALL_XE)/config/default.cfg: $(OCR_INSTALL_XE)/lib/libocr.a
 

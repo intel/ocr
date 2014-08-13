@@ -32,6 +32,12 @@ RUN_JENKINS ?= no
 
 ## END of variables coming from user/environment
 
+VALIDGOALS := all debug install run
+
+ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
+NEWARGS := $(wordlist 1,2,$(ARGS))
+NEWARGS += cholesky_out.bin
+
 TARGET = cholesky
 
 SRCS := cholesky.c
@@ -49,16 +55,11 @@ debug:	default
 
 install: all
 
-prerun: INFILE := $(lastword $(MAKECMDGOALS))
 prerun: $(WORKLOAD_BUILD_ROOT)/$(ARCH)/convertData.exe
-	cp $(INFILE) $(INFILE).bak
 	./$^ $(filter-out run,$(MAKECMDGOALS))
-	mv cholesky_out.bin $(INFILE)
 
 $(WORKLOAD_BUILD_ROOT)/$(ARCH)/convertData.exe: convertData.c
 	mkdir -p $(WORKLOAD_BUILD_ROOT)/$(ARCH)
 	gcc -m64 -o $@ $^
-
-VALIDGOALS := all debug install run
 
 include ${WORKLOAD_SRC}/../make-fsim.inc
