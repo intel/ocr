@@ -360,7 +360,7 @@ inline static ocrGuid_t*** allocateCreateEvents ( u32 numTiles ) {
     return lkji_event_guids;
 }
 
-#ifdef RMD
+#ifdef ARCH_TG
 inline static void satisfyInitialTiles(u32 numTiles, u32 tileSize, u64 startBlob,
                                        ocrGuid_t*** lkji_event_guids) {
     u32 i,j;
@@ -455,7 +455,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     }
     PRINTF("Matrixsize %d, tileSize %d\n", matrixSize, tileSize);
 
-#ifndef RMD
+#ifndef ARCH_TG
     FILE *in;
     in = fopen(dbAsChar+offsets[3], "r");
     if( !in ) {
@@ -480,7 +480,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtTemplateCreate(&templateWrap, wrap_up_task, 2, (numTiles+1)*numTiles/2);
 
     PRINTF("Going to satisfy initial tiles\n");
-#ifdef RMD
+#ifdef ARCH_TG
     satisfyInitialTiles( numTiles, tileSize, BLOB_START, lkji_event_guids);
 #else
     satisfyInitialTiles( numTiles, tileSize, matrix, lkji_event_guids);
@@ -510,7 +510,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     return NULL_GUID;
 }
 
-#ifndef RMD
+#ifndef ARCH_TG
 static double** readMatrix( u32 matrixSize, FILE* in ) {
     u32 i,j;
     double **A = (double**) malloc (sizeof(double*)*matrixSize);

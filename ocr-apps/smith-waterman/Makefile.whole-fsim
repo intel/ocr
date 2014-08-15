@@ -1,0 +1,65 @@
+# This file is subject to the license agreement located in the file LICENSE
+# and cannot be distributed without it. This notice cannot be
+# removed or modified.
+
+# ARCH
+ARCH        ?= whole-fsim
+
+# RMD
+RMD_INSTALL ?= ../../../ss/install
+RMD_SRC     ?= ../../../ss
+
+# OCR
+XE_TARGET   ?= fsim-null-fsim-xe
+XE_BUILDER  ?= x86-builder-fsim-xe
+CE_TARGET   ?= fsim-null-fsim-ce
+CE_BUILDER  ?= x86-builder-fsim-ce
+OCR_INSTALL_ROOT ?= ../../install
+OCR_SRC     ?= ../..
+OCR_BUILD_ROOT   ?= ../../build/
+
+# Application
+WORKLOAD_SRC          ?= .
+WORKLOAD_BUILD_ROOT   ?= ./build
+WORKLOAD_INSTALL_ROOT ?= ./install
+
+# Run mode
+
+# Set to "yes" if running with torque
+RUN_TORQUE ?= no
+# Set to "yes" if Jenkins is running this job as an automated test
+RUN_JENKINS ?= no
+
+## END of variables coming from user/environment
+
+VALIDGOALS := all debug install run prerun
+
+ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
+NEWARGS := $(wordlist 3,4,$(ARGS))
+
+TARGET = smithwaterman
+
+SRCS := smithwaterman.c
+
+CFLAGS :=
+LDFLAGS :=
+
+all:	CFLAGS += -O2
+all:	TARGETS := all
+all:	default
+
+debug:	CFLAGS += -O0
+debug:	TARGETS := debug
+debug:	default
+
+install: all
+
+prerun: prepare_inputs.sh
+NEWARGS += $(shell ./prepare_inputs.sh $(filter-out $(VALIDGOALS),$(MAKECMDGOALS)))
+NEWARGS += smithwaterman_output.bin
+
+$(WORKLOAD_BUILD_ROOT)/$(ARCH)/convertData.exe: convertData.c
+	mkdir -p $(WORKLOAD_BUILD_ROOT)/$(ARCH)
+	gcc -m64 -o $@ $^
+
+include ${WORKLOAD_SRC}/../make-fsim.inc

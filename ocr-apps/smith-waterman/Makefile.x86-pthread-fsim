@@ -1,0 +1,39 @@
+# This file is subject to the license agreement located in the file LICENSE
+# and cannot be distributed without it. This notice cannot be
+# removed or modified.
+
+# ARCH
+ARCH        ?= x86-pthread-fsim
+# OCR
+OCR_TARGET   ?= x86-pthread-fsim
+OCR_INSTALL_ROOT ?= ../../install
+OCR_SRC     ?= ../..
+OCR_BUILD_ROOT   ?= ../../build/
+
+# Application
+WORKLOAD_SRC          ?= .
+WORKLOAD_BUILD_ROOT   ?= ./build
+WORKLOAD_INSTALL_ROOT ?= ./install
+
+## END of variables coming from user/environment
+
+TARGET = smithwaterman
+
+SRCS := smithwaterman.c
+
+CFLAGS  :=
+LDFLAGS := -lpthread -lm
+
+all:	CFLAGS += -O2
+all:	TARGETS := all
+all:	default
+
+debug:	CFLAGS += -O0
+debug:	TARGETS := debug
+debug:	default
+
+install: all
+
+VALIDGOALS := all debug install
+
+include ${WORKLOAD_SRC}/../make-regular.inc
