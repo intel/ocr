@@ -23,11 +23,13 @@ typedef struct {
 
 typedef struct {
     ocrPolicyDomain_t base;
+    u32 xeCount;                    //number of XE's serviced by this CE
     u64 shutdownCount;
 } ocrPolicyDomainCe_t;
 
 typedef struct {
     paramListPolicyDomainInst_t base;
+    u32 xeCount;
     u32 neighborCount;
 } paramListPolicyDomainCeInst_t;
 

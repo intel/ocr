@@ -2,6 +2,7 @@
 # OCR top level directory
 #
 OCR_SRC ?= ../..
+RMDKRNL_INC ?= ../../../ss/rmdkrnl/inc
 OCR_INSTALL_ROOT ?= ../../install
 
 OCR_BUILD := .
@@ -10,6 +11,7 @@ OCR_BUILD := .
 # Make sure we have absolute paths
 #
 OCR_SRC := $(shell cd "${OCR_SRC}" && pwd)
+RMDKRNL_INC := $(shell cd "${RMDKRNL_INC}" && pwd)
 OCR_INSTALL_ROOT := $(shell mkdir -p "${OCR_INSTALL_ROOT}" && cd "${OCR_INSTALL_ROOT}" && pwd)
 OCR_BUILD := $(shell cd "${OCR_BUILD}" && pwd)
 
@@ -105,7 +107,7 @@ OBJS_EXEC     := $(addprefix $(OBJDIR)/exec/, $(addsuffix .o, $(basename $(notdi
 
 
 # Update include paths
-CFLAGS := -I . -I $(OCR_SRC)/inc -I $(OCR_SRC)/src -I $(OCR_SRC)/src/inc $(CFLAGS)
+CFLAGS := -I . -I $(OCR_SRC)/inc -I $(OCR_SRC)/src -I $(OCR_SRC)/src/inc -I$(RMDKRNL_INC) $(CFLAGS)
 
 # Static library name (only set if not set in ARCH specific file)
 ifeq (${SUPPORTS_STATIC}, yes)

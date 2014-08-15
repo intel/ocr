@@ -36,7 +36,7 @@
 #include <string.h>
 #include <signal.h>
 
-
+#define MAX_INSTANCES 64
 #define MAX_KEY_SZ 64
 #define DEBUG_TYPE INIPARSING
 
@@ -96,6 +96,32 @@ bool key_exists(dictionary *dict, char *sec, char *field) {
         return true;
     else
         return false;
+}
+
+/* Read a mix of ranges & CSV */
+s32 read_values(dictionary *dict, char *sec, char *field, s32 *values_array) {
+    char key[MAX_KEY_SZ];
+    s32 low, high;
+    u32 count = 0;
+    char *values;
+    u32 i;
+
+    snprintf(key, MAX_KEY_SZ, "%s:%s", sec, field);
+    values = iniparser_getstring(dict, key, NULL);
+    do {
+        if(strstr(values, "-")) {
+            sscanf(values, "%d-%d", &low, &high);
+            for(i=count; i<=count+high-low; i++) values_array[i] = low+i-count;
+            count += high-low+1;
+        } else {  // Assume integer
+            sscanf(values, "%d", &low);
+            values_array[count] = low;
+            count++;
+        }
+        while((*(char *)values)!='\0' && (*(char *)values)!=',') values++;
+        if(*(char *)values == ',') values++;
+    } while((*(char *)values)!='\0');
+    return count;
 }
 
 // TODO: expand to parse comma separated values & ranges iterating the below thru strtok with ,
@@ -575,6 +601,12 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             ALLOC_PARAM_LIST(inst_param[j], paramListMemTargetInst_t);
             snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "size");
             ((paramListMemTargetInst_t *)inst_param[j])->size = (u64)iniparser_getlonglong(dict, key, 0);
+            ((paramListMemTargetInst_t *)inst_param[j])->level = 0;
+            if (key_exists(dict, secname, "level")) {
+                snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "level");
+                INI_GET_INT (key, value, -1);
+                ((paramListMemTargetInst_t *)inst_param[j])->level = (value==-1)?0:value;
+            }
             instance[j] = (void *)((ocrMemTargetFactory_t *)factory)->instantiate(factory, inst_param[j]);
             if (instance[j])
                 DPRINTF(DEBUG_LVL_INFO, "Created memtarget of type %s, index %d\n", inststr, j);
@@ -816,11 +848,11 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
 #ifdef ENABLE_POLICY_DOMAIN_CE
             case policyDomainCe_id: {
                 ALLOC_PARAM_LIST(inst_param[j], paramListPolicyDomainCeInst_t);
-                if (key_exists(dict, secname, "neighborcount")) {
-                    value = get_key_value(dict, secname, "neighborcount", j-low);
-                    ((paramListPolicyDomainCeInst_t *)inst_param[j])->neighborCount = (u32)value;
+                if (key_exists(dict, secname, "xecount")) {
+                    value = get_key_value(dict, secname, "xecount", j-low);
+                    ((paramListPolicyDomainCeInst_t *)inst_param[j])->xeCount = (u32)value;
                 } else {
-                    ((paramListPolicyDomainCeInst_t *)inst_param[j])->neighborCount = (u32)0;
+                    ((paramListPolicyDomainCeInst_t *)inst_param[j])->xeCount = (u32)8;
                 }
             }
             break;
@@ -854,7 +886,10 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
     return 0;
 }
 
-void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, ocrParamList_t *fromparam, void *toinstance, ocrParamList_t *toparam, s32 dependence_index, s32 dependence_count) {
+void add_dependence (type_enum fromtype, type_enum totype,
+                     void *frominstance, ocrParamList_t *fromparam,
+                     void *toinstance, ocrParamList_t *toparam,
+                     s32 dependence_index, s32 dependence_count) {
     switch(fromtype) {
     case guid_type:
     case memplatform_type:
@@ -1024,7 +1059,9 @@ void add_dependence (type_enum fromtype, type_enum totype, void *frominstance, o
 s32 build_deps (dictionary *dict, s32 A, s32 B, char *refstr, void ***all_instances, ocrParamList_t ***inst_params) {
     s32 i, j, k;
     s32 low, high;
-    s32 l, h;
+    s32 l;
+    s32 depcount;
+    s32 values_array[MAX_INSTANCES];
 
     for (i = 0; i < iniparser_getnsec(dict); i++) {
         // Go thru the secnames looking for instances of A
@@ -1033,15 +1070,16 @@ s32 build_deps (dictionary *dict, s32 A, s32 B, char *refstr, void ***all_instan
             read_range(dict, iniparser_getsecname(dict, i), "id", &low, &high);
             for (j = low; j <= high; j++) {
                 // Parse corresponding dependences from secname
-                read_range(dict, iniparser_getsecname(dict, i), refstr, &l, &h);
+                depcount = read_values(dict, iniparser_getsecname(dict, i), refstr, values_array);
                 // Connect A with B
                 // Using a rough heuristic for now: if |from| == |to| then 1:1, else all:all TODO: What else makes sense here?
-                if (h-l == high-low) {
-                    k = l+j-low;
+                if (depcount == high-low+1) {
+                    k = values_array[j-low];
                     add_dependence(A, B, all_instances[A][j], inst_params[A][j], all_instances[B][k], inst_params[B][k], 0, 1);
                 } else {
-                    for (k = l; k <= h; k++) {
-                        add_dependence(A, B, all_instances[A][j], inst_params[A][j], all_instances[B][k], inst_params[B][k], k-l, h-l+1);
+                    for (l = 0; l < depcount; l++) {
+                        k = values_array[l];
+                        add_dependence(A, B, all_instances[A][j], inst_params[A][j], all_instances[B][k], inst_params[B][k], l, depcount);
                     }
                 }
             }

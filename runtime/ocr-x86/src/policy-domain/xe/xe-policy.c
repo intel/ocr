@@ -19,6 +19,7 @@
 #endif
 
 #include "policy-domain/xe/xe-policy.h"
+#include "rmd-bin-files.h"
 
 #include "utils/profiler/profiler.h"
 
@@ -30,6 +31,12 @@ void xePolicyDomainStart(ocrPolicyDomain_t * policy);
 extern void ocrShutdown(void);
 
 void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
+    DPRINTF(DEBUG_LVL_VVERB, "xePolicyDomainBegin called on policy at 0x%lx\n", (u64) policy);
+    if (XE_PDARGS_OFFSET != offsetof(ocrPolicyDomainXe_t, packedArgsLocation)) {
+        DPRINTF(DEBUG_LVL_WARN, "XE_PDARGS_OFFSET (in .../ss/rmdkrnl/inc/rmd-bin-files.h) is 0x%lx.  Should be 0x%lx\n",
+            (u64) XE_PDARGS_OFFSET, (u64) offsetof(ocrPolicyDomainXe_t, packedArgsLocation));
+        ASSERT (0);
+    }
     // The PD should have been brought up by now and everything instantiated
 
     u64 i = 0;
@@ -71,6 +78,7 @@ void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
 }
 
 void xePolicyDomainStart(ocrPolicyDomain_t * policy) {
+    DPRINTF(DEBUG_LVL_VVERB, "xePolicyDomainStart called on policy at 0x%lx\n", (u64) policy);
     // The PD should have been brought up by now and everything instantiated
     // This is a bit ugly but I can't find a cleaner solution:
     //   - we need to associate the environment with the
@@ -220,9 +228,6 @@ void xePolicyDomainDestruct(ocrPolicyDomain_t * policy) {
         policy->allocators[i]->fcts.destruct(policy->allocators[i]);
     }
 
-
-    // Simple xe policies don't have neighbors
-    ASSERT(policy->neighbors == NULL);
 
     // Destruct factories
     maxCount = policy->taskFactoryCount;

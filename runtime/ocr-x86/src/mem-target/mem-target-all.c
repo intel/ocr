@@ -30,6 +30,7 @@ void initializeMemTargetOcr(ocrMemTargetFactory_t * factory, ocrMemTarget_t * se
     self->pd = NULL;
 
     self->size = ((paramListMemTargetInst_t *)perInstance)->size;
+    self->level = ((paramListMemTargetInst_t *)perInstance)->level;
     self->startAddr = self->endAddr = 0ULL;
     self->memories = NULL;
     self->memoryCount = 0;

@@ -164,7 +164,7 @@ void* xeRunWorker(ocrWorker_t * worker) {
 
         void * packedUserArgv;
 #if defined(SAL_FSIM_XE)
-        packedUserArgv = ((ocrPolicyDomainXe_t*)pd)->packedArgsLocation;
+        packedUserArgv = ((ocrPolicyDomainXe_t *) pd)->packedArgsLocation;
 extern ocrGuid_t mainEdt( u32, u64 *, u32, ocrEdtDep_t * );
 #else
         packedUserArgv = userArgsGet();

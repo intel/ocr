@@ -249,9 +249,6 @@ void hcPolicyDomainDestruct(ocrPolicyDomain_t * policy) {
         policy->schedulers[i]->fcts.destruct(policy->schedulers[i]);
     }
 
-    // Simple hc policies don't have neighbors
-    ASSERT(policy->neighbors == NULL);
-
     // Destruct factories
 
     maxCount = policy->taskFactoryCount;

@@ -815,8 +815,12 @@ typedef struct _ocrPolicyDomainFcts_t {
  */
 typedef struct _ocrPolicyDomain_t {
 
-// CAUTION:  FIXME:  Any changes to this struct (including, for example, the sizeof(ocrFatGuid_t)
-// will cause problems in the symbolic constants inside rmdkrnl/inc/rmd-bin-files.h
+// CAUTION:  FIXME:  Any changes to this struct may cause problems in the symbolic constants inside
+// rmdkrnl/inc/rmd-bin-files.h.  To minimize problems, put factory first.  (The factory in turn
+// contains the pointers to the Begin and Start functions, which are the relevant data for needing
+// careful placement.  See also xe-policy.h for a third magicly placed value, packedArgsLocation).
+
+    ocrPolicyDomainFcts_t fcts;                 /**< Function pointers */
 
     ocrFatGuid_t fguid;                         /**< GUID for this policy */
 
@@ -850,17 +854,13 @@ typedef struct _ocrPolicyDomain_t {
                               * what to schedule/steal/take/etc.
                               * Currently a placeholder for future
                               * objective driven scheduling */
-
     ocrLocation_t myLocation;
     ocrLocation_t parentLocation;
-    ocrLocation_t* neighbors;
-    u32 neighborCount;
-
-    ocrPolicyDomainFcts_t fcts;
-
-    s8 * allocatorIndexLookup;                  /**< Allocator indices for each block agent, over each of 8 memory levels */
+    s8 * allocatorIndexLookup;  /**< Allocator indices for each block agent, for 8 memory levels */
 #ifdef OCR_ENABLE_STATISTICS
     ocrStats_t *statsObject;                    /**< Statistics object */
+#else
+    u64 *junk_statsObject;                      /**< Placeholder, to assure consistency of PD structure length */
 #endif
 
 } ocrPolicyDomain_t;

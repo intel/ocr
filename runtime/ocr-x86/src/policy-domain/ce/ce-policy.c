@@ -4,6 +4,14 @@
  * removed or modified.
  */
 
+// TODO:  The prescription needs to be derived from the affinity, and needs to default to something sensible.
+// TODO:  All this prescription logic needs to be moved out of the PD, into an abstract allocator level.  See and resolve TRAC #145.
+#define PRESCRIPTION 0xFEDCBA9876544321LL   // L1 remnant, L2 slice, L2 remnant, L3 slice (twice), L3 remnant, remaining levels each slice-then-remnant.
+#define PRESCRIPTION_HINT_MASK 0x1
+#define PRESCRIPTION_HINT_NUMBITS 1
+#define PRESCRIPTION_LEVEL_MASK 0x7
+#define PRESCRIPTION_LEVEL_NUMBITS 3
+#define NUM_MEM_LEVELS_SUPPORTED 8
 
 #include "ocr-config.h"
 #ifdef ENABLE_POLICY_DOMAIN_CE
@@ -22,9 +30,8 @@
 
 #define DEBUG_TYPE POLICY
 
-#define ENGINE_INDEX_OF_CE (8)
-
 void cePolicyDomainBegin(ocrPolicyDomain_t * policy) {
+    DPRINTF(DEBUG_LVL_VVERB, "cePolicyDomainBegin called on policy at 0x%lx\n", (u64) policy);
     // The PD should have been brought up by now and everything instantiated
 
     u64 i = 0;
@@ -61,13 +68,58 @@ void cePolicyDomainBegin(ocrPolicyDomain_t * policy) {
 }
 
 void cePolicyDomainStart(ocrPolicyDomain_t * policy) {
+    DPRINTF(DEBUG_LVL_VVERB, "cePolicyDomainStart called on policy at 0x%lx\n", (u64) policy);
     // The PD should have been brought up by now and everything instantiated
     // This is a bit ugly but I can't find a cleaner solution:
     //   - we need to associate the environment with the
     //   currently running worker/PD so that we can use getCurrentEnv
 
+    ocrPolicyDomainCe_t* cePolicy = (ocrPolicyDomainCe_t*) policy;
     u64 i = 0;
     u64 maxCount = 0;
+
+    u64 low, high, level, engineIdx;
+
+    maxCount = policy->allocatorCount;
+    low = 0;
+    for(i = 0; i < maxCount; ++i) {
+        level = policy->allocators[low]->memories[0]->level;
+        high = i+1;
+        if (high == maxCount || policy->allocators[high]->memories[0]->level != level) {
+            // One or more allocators for some level were provided in the config file.  Their indices in
+            // the array of allocators span from low(inclusive) to high (exclusive).  From this information,
+            // initialize the allocatorIndexLookup table for that level, for all agents.
+            if (high - low == 1) {
+                // All agents in the block use the same allocator (usage conjecture: on TG,
+                // this is used for all but L1.)
+                for (engineIdx = 0; engineIdx <= cePolicy->xeCount; engineIdx++) {
+                    policy->allocatorIndexLookup[engineIdx*NUM_MEM_LEVELS_SUPPORTED+level] = low;
+                }
+            } else if (high - low == 2) {
+                // All agents except the last in the block (i.e. the XEs) use the same allocator.
+                // The last (i.e. the CE) uses a different allocator.  (usage conjecture: on TG,
+                // this is might be used to experiment with XEs sharing a common SPAD that is
+                // different than what the CE uses.  This is presently just for academic interst.)
+                for (engineIdx = 0; engineIdx < cePolicy->xeCount; engineIdx++) {
+                    policy->allocatorIndexLookup[engineIdx*NUM_MEM_LEVELS_SUPPORTED+level] = low;
+                }
+                policy->allocatorIndexLookup[engineIdx*NUM_MEM_LEVELS_SUPPORTED+level] = low+1;
+            } else if (high - low == cePolicy->xeCount+1) {
+                // All agents in the block use different allocators (usage conjecture: on TG,
+                // this is used for L1.)
+                for (engineIdx = 0; engineIdx <= cePolicy->xeCount; engineIdx++) {
+                    policy->allocatorIndexLookup[engineIdx*NUM_MEM_LEVELS_SUPPORTED+level] = low+engineIdx;
+                }
+            } else {
+                DPRINTF(DEBUG_LVL_WARN, "I don't know how to spread allocator[%ld:%ld] (level %ld) across %ld XEs plus the CE\n", (u64) low, (u64) high-1, (u64) level, (u64) cePolicy->xeCount);
+                ASSERT (0);
+            }
+            low = high;
+        }
+    }
+    for(i = 0; i < maxCount; ++i) {
+        policy->allocators[i]->fcts.start(policy->allocators[i], policy);
+    }
 
     maxCount = policy->guidProviderCount;
     for(i = 0; i < maxCount; ++i) {
@@ -75,11 +127,6 @@ void cePolicyDomainStart(ocrPolicyDomain_t * policy) {
     }
 
     guidify(policy, (u64)policy, &(policy->fguid), OCR_GUID_POLICY);
-
-    maxCount = policy->allocatorCount;
-    for(i = 0; i < maxCount; ++i) {
-        policy->allocators[i]->fcts.start(policy->allocators[i], policy);
-    }
 
     maxCount = policy->schedulerCount;
     for(i = 0; i < maxCount; ++i) {
@@ -210,9 +257,6 @@ void cePolicyDomainDestruct(ocrPolicyDomain_t * policy) {
         policy->allocators[i]->fcts.destruct(policy->allocators[i]);
     }
 
-    // Simple ce policies don't have neighbors
-    ASSERT(policy->neighbors == NULL);
-
     // Destruct factories
     maxCount = policy->taskFactoryCount;
     for(i = 0; i < maxCount; ++i) {
@@ -247,6 +291,7 @@ void cePolicyDomainDestruct(ocrPolicyDomain_t * policy) {
     runtimeChunkFree((u64)policy->workers, NULL);
     runtimeChunkFree((u64)policy->schedulers, NULL);
     runtimeChunkFree((u64)policy->allocators, NULL);
+    runtimeChunkFree((u64)policy->allocatorIndexLookup, NULL);
     runtimeChunkFree((u64)policy->taskFactories, NULL);
     runtimeChunkFree((u64)policy->taskTemplateFactories, NULL);
     runtimeChunkFree((u64)policy->dbFactories, NULL);
@@ -267,12 +312,21 @@ static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
 
 static u8 getEngineIndex(ocrPolicyDomain_t *self, ocrLocation_t location) {
 
-    if(location == self->myLocation) {
-        return ENGINE_INDEX_OF_CE; // Get the old behavior back
-    }
-    // This is an XE
-    ASSERT(location < ENGINE_INDEX_OF_CE);
-    return location;
+    ocrPolicyDomainCe_t* derived = (ocrPolicyDomainCe_t*) self;
+
+    // We need the block-relative index of the engine (aka agent).  That index for XE's ranges from
+    // 0 to xeCount-1, and the engine index for the CE is next, i.e. it equals xeCount.  We derive
+    // the index from the system-wide absolute location of the agent.  If a time comes when different
+    // chips in a system might have different numbers of XEs per block, this code might break, and
+    // have to be reworked.
+
+    ocrLocation_t blockRelativeEngineIndex =
+        location -         // Absolute location of the agent for which the allocation is being done.
+        self->myLocation + // Absolute location of the CE doing the allocation.
+        derived->xeCount;  // Offset so that first XE is 0, last is xeCount-1, and CE is xeCount.
+    ASSERT(blockRelativeEngineIndex >= 0);
+    ASSERT(blockRelativeEngineIndex <= derived->xeCount);
+    return blockRelativeEngineIndex;
 }
 
 // In all these functions, we consider only a single PD. In other words, in CE, we
@@ -283,48 +337,31 @@ static void* allocateDatablock (ocrPolicyDomain_t *self,
                                 u64                size,
                                 u64                engineIndex,
                                 u64                prescription,
-                                u64               *allocatorIdx) {
+                                u64               *allocatorIndexReturn) {
     void* result;
-    u64 hints = 0; // Allocator hint
-    u64 idx;  // Index into the allocators array to select the allocator to try.
+    u64 allocatorHints;  // Allocator hint
+    u64 levelIndex; // "Level" of the memory hierarchy, taken from the "prescription" to pick from the allocators array the allocator to try.
+    s8 allocatorIndex;
+
     ASSERT (self->allocatorCount > 0);
 
     do {
-        hints = (prescription & 1)?(OCR_ALLOC_HINT_NONE):(OCR_ALLOC_HINT_REDUCE_CONTENTION);
-        // TODO: REC HACK. This code assumes that the CE has all allocators which is
-        // not the case for FSim right now. If only one allocator, ignore
-        // prescription
-        // In general, we should probably return something if we can whatever
-        // the prescription says...
-        if(self->allocatorCount == 1) {
-            result = self->allocators[0]->fcts.allocate(self->allocators[0], size, hints);
-            if(result) {
-                *allocatorIdx = 0;
-                return result;
-            } else {
-                prescription >>= 4; // Move to the next setting
-                continue;   // This allows us to fail allocating to a slice pool (which is probably always the case with L1 since
-                            // it doesn't make much sense to slice it), but still try the remnant pool.
-            }
-        }
-
-        prescription >>= 1;
-        idx = prescription & 7;  // Get the index of the allocator to use.
-
-        prescription >>= 3;
-        if (idx == 0) {
-            idx = engineIndex;   // Zero selects an L1.  Which?  The one belonging to the requesting engine.
-        } else {
-            idx += ENGINE_INDEX_OF_CE;  // Non-zero selects something higher than L1.  Adjust index to get past ALL the L1s in the Block.
-        }
-
-        if ((idx >= self->allocatorCount) || (self->allocators[idx] == NULL)) {
-            continue;  // Skip this allocator if it doesn't exist.
-        }
-        result = self->allocators[idx]->fcts.allocate(self->allocators[idx], size, hints);
+        allocatorHints = (prescription & PRESCRIPTION_HINT_MASK) ?
+            (OCR_ALLOC_HINT_NONE) :              // If the hint is non-zero, pick this (e.g. for tlsf, tries "remnant" pool.)
+            (OCR_ALLOC_HINT_REDUCE_CONTENTION);  // If the hint is zero, pick this (e.g. for tlsf, tries a round-robin-chosen "slice" pool.)
+        prescription >>= PRESCRIPTION_HINT_NUMBITS;
+        levelIndex = prescription & PRESCRIPTION_LEVEL_MASK;
+        prescription >>= PRESCRIPTION_LEVEL_NUMBITS;
+        allocatorIndex = self->allocatorIndexLookup[engineIndex*NUM_MEM_LEVELS_SUPPORTED+levelIndex]; // Lookup index of allocator to use for requesting engine (aka agent) at prescribed memory hierarchy level.
+        if ((allocatorIndex < 0) ||
+            (allocatorIndex >= self->allocatorCount) ||
+            (self->allocators[allocatorIndex] == NULL)) continue;  // Skip this allocator if it doesn't exist.
+        result = self->allocators[allocatorIndex]->fcts.allocate(self->allocators[allocatorIndex], size, allocatorHints);
 
         if (result) {
-            *allocatorIdx = idx;
+            DPRINTF (DEBUG_LVL_VVERB, "Success allocationg %5ld-byte block to allocator %ld (level %ld) for engine %ld (%2ld) -- 0x%lx\n",
+            (u64) size, (u64) allocatorIndex, (u64) levelIndex, (u64) engineIndex, (u64) self->myLocation, (u64) (((u64*) result)[-1]));
+            *allocatorIndexReturn = allocatorIndex;
             return result;
         }
     } while (prescription != 0);
@@ -382,32 +419,7 @@ static u8 ceMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
 
 static u8 ceMemUnalloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
                        void* ptr, ocrMemType_t memType) {
-#if 1
     allocatorFreeFunction(ptr);
-#else
-    // Look for the allocator that has a guid that matches the one provided in the unalloc
-    // request message.  (This pre-supposes that the caller properly conveys this information
-    // from the response gotten back on the alloc request, to the unalloc request.  This might
-    // be an error-prone design.  TODO: consider a more error-resistent design.)
-    u64 i;
-    ASSERT (memType == GUID_MEMTYPE || memType == DB_MEMTYPE);
-    if (memType == DB_MEMTYPE) {
-        for(i=0; i < self->allocatorCount; ++i) {
-            if(self->allocators[i]->fguid.guid == allocator->guid) {
-                allocator->metaDataPtr = self->allocators[i]->fguid.metaDataPtr;
-                self->allocators[i]->fcts.free(->allocators[i], ptr);
-                return 0;
-            }
-        }
-        return OCR_EINVAL;
-    } else if (memType == GUID_MEMTYPE) {
-        ASSERT (self->allocatorCount > 0);
-        self->allocators[self->allocatorCount-1]->fcts.free(ptr);
-        return 0;
-    } else {
-        ASSERT (false);
-    }
-#endif
     return 0;
 }
 
@@ -548,10 +560,10 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         DPRINTF(DEBUG_LVL_VVERB, "DB_CREATE request from 0x%lx for size %lu\n",
                 msg->srcLocation, PD_MSG_FIELD(size));
 // TODO:  The prescription needs to be derived from the affinity, and needs to default to something sensible.
-#define PRESCRIPTION 0xFEDCBA9876543210LL
+        u64 engineIndex = getEngineIndex(self, msg->srcLocation);
         PD_MSG_FIELD(returnDetail) = ceAllocateDb(
             self, &(PD_MSG_FIELD(guid)), &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(size),
-            PD_MSG_FIELD(properties), msg->srcLocation,
+            PD_MSG_FIELD(properties), engineIndex,
             PD_MSG_FIELD(affinity), PD_MSG_FIELD(allocator), PRESCRIPTION);
         if(PD_MSG_FIELD(returnDetail) == 0) {
             ocrDataBlock_t *db= PD_MSG_FIELD(guid.metaDataPtr);
@@ -1091,15 +1103,15 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
     case PD_MSG_MGT_SHUTDOWN: {
         START_PROFILE(pd_ce_Shutdown);
-        u32 neighborCount = self->neighborCount;
         ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t *)self;
+        u32 neighborCount = cePolicy->xeCount;
         if (msg->type & PD_MSG_REQUEST) {
             // This triggers the shutdown of the machine
             ASSERT(!(msg->type & PD_MSG_RESPONSE));
             ASSERT(msg->srcLocation != self->myLocation);
             cePolicy->shutdownCount++; //FIXME: Assumes block local shutdown message from XE
-            DPRINTF(DEBUG_LVL_VVERB, "MSG_SHUTDOWN request from 0x%lx\n",
-                    msg->srcLocation);
+            DPRINTF(DEBUG_LVL_VVERB, "MSG_SHUTDOWN request from 0x%lx, shutdownCount=%ld, neighborCount=%ld\n",
+                    msg->srcLocation, (u64) (cePolicy->shutdownCount), (u64) (neighborCount));
         } else {
             ASSERT(msg->type & PD_MSG_RESPONSE);
             DPRINTF(DEBUG_LVL_VVERB, "MSG_SHUTDOWN(resp) request from 0x%lx\n",
@@ -1157,36 +1169,27 @@ u8 cePdWaitMessage(ocrPolicyDomain_t *self,  ocrMsgHandle_t **handle) {
 }
 
 void* cePdMalloc(ocrPolicyDomain_t *self, u64 size) {
-    u64 i;
     void* result;
-    // TODO: REC HACK. Same as for allocateDatablock. If only one allocator, use it!!
-    if(self->allocatorCount == 1) {
-        result = self->allocators[0]->fcts.allocate(self->allocators[0], size,
-                                                    OCR_ALLOC_HINT_REDUCE_CONTENTION);
-        if(result == NULL) {
-            // Try the other way
-            result = self->allocators[0]->fcts.allocate(self->allocators[0], size,
-                                                        OCR_ALLOC_HINT_NONE);
-        }
-
-        if(result == NULL) {
-            DPRINTF(DEBUG_LVL_WARN, "cePdMalloc returning NULL for size %ld\n", size);
-        }
-        return result;
-    }
-
-    for(i = ENGINE_INDEX_OF_CE; i < self->allocatorCount; i++) {
-        result = self->allocators[i]->fcts.allocate(self->allocators[i], size,
-            OCR_ALLOC_HINT_REDUCE_CONTENTION);   // Staticly reduce contention (Possibly refine later)
-        if(result) break;
-        result = self->allocators[i]->fcts.allocate(self->allocators[i], size,
-            OCR_ALLOC_HINT_NONE);   // Staticly use common pool (Possibly refine later)
-        if(result) break;
-    }
-
-    if(i < self->allocatorCount) {
-        return result;
-    }
+    u64 engineIndex = getEngineIndex(self, self->myLocation);
+//TODO: Unlike other datablock allocation contexts, cePdMalloc is not going to get hints, so this part can be stripped/simplified. Maybe use an order value directly hard-coded in this function.
+    u64 prescription = PRESCRIPTION;
+    u64 allocatorHints;  // Allocator hint
+    u64 levelIndex; // "Level" of the memory hierarchy, taken from the "prescription" to pick from the allocators array the allocator to try.
+    s8 allocatorIndex;
+    do {
+        allocatorHints = (prescription & PRESCRIPTION_HINT_MASK) ?
+            (OCR_ALLOC_HINT_NONE) :              // If the hint is non-zero, pick this (e.g. for tlsf, tries "remnant" pool.)
+            (OCR_ALLOC_HINT_REDUCE_CONTENTION);  // If the hint is zero, pick this (e.g. for tlsf, tries a round-robin-chosen "slice" pool.)
+        prescription >>= PRESCRIPTION_HINT_NUMBITS;
+        levelIndex = prescription & PRESCRIPTION_LEVEL_MASK;
+        prescription >>= PRESCRIPTION_LEVEL_NUMBITS;
+        allocatorIndex = self->allocatorIndexLookup[engineIndex*NUM_MEM_LEVELS_SUPPORTED+levelIndex]; // Lookup index of allocator to use for requesting engine (aka agent) at prescribed memory hierarchy level.
+        if ((allocatorIndex < 0) ||
+            (allocatorIndex >= self->allocatorCount) ||
+            (self->allocators[allocatorIndex] == NULL)) continue;  // Skip this allocator if it doesn't exist.
+        result = self->allocators[allocatorIndex]->fcts.allocate(self->allocators[allocatorIndex], size, allocatorHints);
+        if (result) return result;
+    } while (prescription != 0);
 
     DPRINTF(DEBUG_LVL_WARN, "cePdMalloc returning NULL for size %ld\n", (u64) size);
     return NULL;
@@ -1221,6 +1224,7 @@ void initializePolicyDomainCe(ocrPolicyDomainFactory_t * factory, ocrPolicyDomai
                               ocrStats_t *statObject,
 #endif
                               ocrCost_t *costFunction, ocrParamList_t *perInstance) {
+    u64 i;
 #ifdef OCR_ENABLE_STATISTICS
     self->statsObject = statsObject;
 #endif
@@ -1228,8 +1232,9 @@ void initializePolicyDomainCe(ocrPolicyDomainFactory_t * factory, ocrPolicyDomai
     initializePolicyDomainOcr(factory, self, perInstance);
     ocrPolicyDomainCe_t* derived = (ocrPolicyDomainCe_t*) self;
 
-    // TODO: If this is in the base class, it should be in the base param list
-    self->neighborCount = ((paramListPolicyDomainCeInst_t*)perInstance)->neighborCount;
+    derived->xeCount = ((paramListPolicyDomainCeInst_t*)perInstance)->xeCount;
+    self->allocatorIndexLookup = (s8 *) runtimeChunkAlloc((derived->xeCount+1) * NUM_MEM_LEVELS_SUPPORTED, NULL);
+    for (i = 0; i < ((derived->xeCount+1) * NUM_MEM_LEVELS_SUPPORTED); i++) self->allocatorIndexLookup[i] = -1;
     derived->shutdownCount = 0;
 }
 

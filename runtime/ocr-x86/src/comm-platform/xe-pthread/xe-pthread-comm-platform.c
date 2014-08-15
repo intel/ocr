@@ -34,6 +34,7 @@ void xePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD
     ocrPolicyDomain_t * cePD = (ocrPolicyDomain_t *)PD->parentLocation;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t *)cePD->commApis[0]->commPlatform;
     commPlatformXePthread->channel = &(commPlatformCePthread->channels[PD->myLocation]);
+    PD->parentLocation = cePD->myLocation;
     return;
 }
 
