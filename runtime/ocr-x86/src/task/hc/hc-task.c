@@ -7,6 +7,10 @@
 #include "ocr-config.h"
 #if defined(ENABLE_TASK_HC) || defined(ENABLE_TASKTEMPLATE_HC)
 
+#ifndef OCR_MAX_MULTI_SLOT
+#define OCR_MAX_MULTI_SLOT 1
+#endif
+
 #include "debug.h"
 #include "event/hc/hc-event.h"
 #include "ocr-datablock.h"
@@ -682,10 +686,21 @@ u8 taskExecute(ocrTask_t* base) {
     getCurrentEnv(&pd, NULL, NULL, &msg);
 
     ocrEdtDep_t * depv = NULL;
-    u64 doNotReleaseSlots = 0; // Used to support an EDT acquiring the same DB
-                               // multiple times. For now limit to 64 DBs
-                               // (ie: an EDT that does this should not have more
-                               // than 64 DBs, others can have as many as they want)
+    /* Used to support an EDT acquiring the same DB
+     * multiple times. By default tracks up to 64 slots
+     * NOTE: An EDT can have as many DBs as it wants
+     * but if it wants to pass the same one on multiple
+     * slots, it needs to have fewer than whatever this
+     * can keep track of (in general)
+     */
+    u64 doNotReleaseSlots[OCR_MAX_MULTI_SLOT];
+    u32 i;
+
+    for(i=0; i < OCR_MAX_MULTI_SLOT; ++i) {
+        doNotReleaseSlots[i] = 0ULL;
+    }
+
+
     // If any dependencies, acquire their data-blocks
     u32 maxAcquiredDb = 0;
 
@@ -726,10 +741,11 @@ u8 taskExecute(ocrTask_t* base) {
                 case OCR_EACQ:
                     // The EDT was already acquired
                     ASSERT(PD_MSG_FIELD(ptr));
-                    ASSERT(maxAcquiredDb < 64);
+                    ASSERT(maxAcquiredDb < 64*OCR_MAX_MULTI_SLOT);
                     DPRINTF(DEBUG_LVL_VERB, "EDT (GUID: 0x%lx) acquiring DB (GUID: 0x%lx) multiple times. Ignoring acquire on slot %d\n",
                             base->guid, depv[maxAcquiredDb].guid, maxAcquiredDb);
-                    doNotReleaseSlots |= (1ULL << maxAcquiredDb);
+                    i = maxAcquiredDb / 64;
+                    doNotReleaseSlots[i] |= (1ULL << (maxAcquiredDb % 64));
                     break;
                 default:
                     ASSERT(0);
@@ -777,11 +793,11 @@ u8 taskExecute(ocrTask_t* base) {
     // edt user code is done, if any deps, release data-blocks
     if(depc != 0) {
         START_PROFILE(ta_hc_dbRel);
-        u32 i;
         for(i=0; i < maxAcquiredDb; ++i) { // Only release the ones we managed to grab
+            u32 j = i / 64;
             if((depv[i].guid != NULL_GUID) &&
-               ((i >= 64) || (doNotReleaseSlots == 0) ||
-                ((i < 64) && (((1ULL << i) & doNotReleaseSlots) == 0)))) {
+               ((j >= OCR_MAX_MULTI_SLOT) || (doNotReleaseSlots[j] == 0) ||
+                ((j < OCR_MAX_MULTI_SLOT) && (((1ULL << (i % 64) ) & doNotReleaseSlots[j]) == 0)))) {
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_RELEASE
                 msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
