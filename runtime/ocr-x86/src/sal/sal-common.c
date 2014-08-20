@@ -468,7 +468,9 @@ u32 SNPRINTF(char * buf, u32 size, const char * fmt, ...) {
 // In addition, precision is supported for %f
 //
 
-#define PRINTF_MAX (1024)
+#ifndef PRINTF_MAX
+#define PRINTF_MAX 1024
+#endif
 
 u32 PRINTF(const char * fmt, ...) {
     u32 tmp;

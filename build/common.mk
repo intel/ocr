@@ -75,7 +75,7 @@ CFLAGS += -DOCR_DEBUG_WORKPILE
 # Global CFLAGS to be passed into all architecture builds
 # concatenated with the architecture-specific CFLAGS at the end
 
-CFLAGS := -g -Wall -DELS_USER_SIZE=0 $(CFLAGS)
+CFLAGS := -g -Wall $(CFLAGS) $(CFLAGS_USER)
 
 ################################################################
 # END OF USER CONFIGURABLE OPTIONS                             #

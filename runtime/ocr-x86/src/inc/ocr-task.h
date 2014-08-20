@@ -216,6 +216,9 @@ typedef struct _ocrTaskFcts_t {
 } ocrTaskFcts_t;
 
 #define ELS_RUNTIME_SIZE 0
+#ifndef ELS_USER_SIZE
+#define ELS_USER_SIZE 0
+#endif
 #define ELS_SIZE (ELS_RUNTIME_SIZE + ELS_USER_SIZE)
 
 /*! \brief Abstract class to represent OCR tasks.

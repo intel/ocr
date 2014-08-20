@@ -48,7 +48,9 @@
 // It is automatically generated from all the START_PROFILE calls
 #include "profilerAutoGen.h"
 
+#ifndef MAX_PROFILER_LEVEL
 #define MAX_PROFILER_LEVEL 512
+#endif
 
 //timeMs = a/PROFILE_KHZ;
 //timeNs = (unsigned int)(1000000.0*((double)a/PROFILE_KHZ - (double)timeMs));
