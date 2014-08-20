@@ -19,7 +19,8 @@ endif
 
 RMD_INSTALL ?= ../../../ss/install
 
-DEFAULT_CONFIG = ce-default.cfg
+#DEFAULT_CONFIG = ce-default.cfg      #Switch to this configuration file to go back to a single 256K memory allocator.
+DEFAULT_CONFIG = ce-multialloc-default.cfg
 
 
 CC      := gcc
