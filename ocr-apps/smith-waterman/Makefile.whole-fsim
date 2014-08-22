@@ -34,8 +34,8 @@ RUN_JENKINS ?= no
 
 VALIDGOALS := all debug install run prerun
 
-ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
-NEWARGS := $(wordlist 3,4,$(ARGS))
+WORKLOAD_ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
+WORKLOAD_NEW_ARGS := $(wordlist 3,4,$(WORKLOAD_ARGS))
 
 TARGET = smithwaterman
 
@@ -43,6 +43,10 @@ SRCS := smithwaterman.c
 
 CFLAGS :=
 LDFLAGS :=
+
+prerun: prepare_inputs.sh
+WORKLOAD_NEW_ARGS += $(shell ./prepare_inputs.sh $(filter-out $(VALIDGOALS),$(MAKECMDGOALS)))
+WORKLOAD_NEW_ARGS += smithwaterman_output.bin
 
 all:	CFLAGS += -O2
 all:	TARGETS := all
@@ -53,13 +57,5 @@ debug:	TARGETS := debug
 debug:	default
 
 install: all
-
-prerun: prepare_inputs.sh
-NEWARGS += $(shell ./prepare_inputs.sh $(filter-out $(VALIDGOALS),$(MAKECMDGOALS)))
-NEWARGS += smithwaterman_output.bin
-
-$(WORKLOAD_BUILD_ROOT)/$(ARCH)/convertData.exe: convertData.c
-	mkdir -p $(WORKLOAD_BUILD_ROOT)/$(ARCH)
-	gcc -m64 -o $@ $^
 
 include ${WORKLOAD_SRC}/../make-fsim.inc

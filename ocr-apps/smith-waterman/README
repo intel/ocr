@@ -1,0 +1,10 @@
+Running:
+
+make -f Makefile.<ARCH> run <string1_file> <string2_file> <tile_width> <tile_height>
+
+NOTE: Whenever any of the arguments to the app change, do a "make -f Makefile.whole-fsim clean" before the next rerun
+
+For e.g., try
+make -f Makefile.whole-fsim run ${PWD}/string1-medium.txt ${PWD}/string2-medium.txt 10 10
+look for the CONSOLE output by doing
+grep CONSOLE install/whole-fsim/logs/ocr-smithwaterman.log.brd00.chp00.unt00.blk00.CE.00

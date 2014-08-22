@@ -56,12 +56,12 @@ install: default | $(WORKLOAD_INSTALL)
 
 .PHONY: run
 .ONESHELL:
-run:    ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
+run:    WORKLOAD_ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
 run:    WORKLOAD_EXEC ?= $(WORKLOAD_INSTALL)
 run:    OCR_CONFIG ?= $(OCR_INSTALL)/config/default.cfg
 run:    install
 	cd $(WORKLOAD_EXEC)
-	LD_LIBRARY_PATH=$(OCR_INSTALL)/lib OCR_CONFIG=$(OCR_CONFIG) bash -c './$(TARGET) $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))'
+	LD_LIBRARY_PATH=$(OCR_INSTALL)/lib OCR_CONFIG=$(OCR_CONFIG) bash -c './$(TARGET) $(WORKLOAD_ARGS)'
 
 .PHONY: default
 default: $(WORKLOAD_BUILD)/$(TARGET)

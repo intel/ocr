@@ -34,9 +34,9 @@ RUN_JENKINS ?= no
 
 VALIDGOALS := all debug install run
 
-ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
-NEWARGS := $(wordlist 1,2,$(ARGS))
-NEWARGS += cholesky_out.bin
+WORKLOAD_ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
+WORKLOAD_NEW_ARGS := $(wordlist 1,2,$(WORKLOAD_ARGS))
+WORKLOAD_NEW_ARGS += cholesky_out.bin
 
 TARGET = cholesky
 

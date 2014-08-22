@@ -7,11 +7,9 @@
 #include "ocr.h"
 #include <stdlib.h>
 #include <math.h>
-
-#ifdef TG_ARCH
-#include <misc.h>
-#else
 #include <stdio.h>
+
+#ifndef TG_ARCH
 static double** readMatrix( u32 matrixSize, FILE* in );
 #endif
 
@@ -184,34 +182,6 @@ ocrGuid_t wrap_up_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) 
     u32 numTiles = (u32) func_args[0];
     u32 tileSize = (u32) func_args[1];
 
-#ifdef TG_ARCH
-    u8* output = (u8*)(BLOB_START + sizeof(u64));
-                                    // Starting from offset sizeof(u64),
-                                    // dump the output file contents
-    for ( i = 0; i < numTiles; ++i ) {
-        for( i_b = 0; i_b < tileSize; ++i_b) {
-            for ( j = 0; j <= i; ++j ) {
-                temp = (double*) (depv[i*(i+1)/2+j].ptr);
-                if(i != j) {
-                    for(j_b = 0; j_b < tileSize; ++j_b) {
-                        *(double *)(output) = temp[i_b*tileSize+j_b];
-                        output += sizeof(double);
-                    }
-                } else {
-                    for(j_b = 0; j_b <= i_b; ++j_b) {
-                        *(double *)(output) = temp[i_b*tileSize+j_b];
-                        output += sizeof(double);
-                    }
-                }
-            }
-        }
-    }
-
-    // Finally, dump the size of the file for FSim to write out
-    *(u64 *)(BLOB_START) = output - (BLOB_START + sizeof(u64));
-    PRINTF("Output matrix size %lx\n", *(u64 *)(BLOB_START));
-
-#else
     FILE* out = fopen("cholesky.out", "w");
 
     for ( i = 0; i < numTiles; ++i ) {
@@ -233,7 +203,6 @@ ocrGuid_t wrap_up_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) 
         }
     }
     fclose(out);
-#endif
 
     ocrShutdown();
 
@@ -360,27 +329,30 @@ inline static ocrGuid_t*** allocateCreateEvents ( u32 numTiles ) {
     return lkji_event_guids;
 }
 
-#ifdef ARCH_TG
-inline static void satisfyInitialTiles(u32 numTiles, u32 tileSize, u64 startBlob,
+#ifdef TG_ARCH
+inline static void satisfyInitialTiles(u32 numTiles, u32 tileSize,
                                        ocrGuid_t*** lkji_event_guids) {
     u32 i,j;
     u32 T_i, T_j;
     ocrGuid_t db_guid;
     ocrGuid_t db_affinity;
     void* temp_db;
+    FILE *fin;
 
+    fin = fopen("inputfile", "r");
+    if(fin == NULL) PRINTF("Error opening input file\n");
     for( i = 0 ; i < numTiles ; ++i ) {
         for( j = 0 ; j <= i ; ++j ) {
             ocrDbCreate(&db_guid, &temp_db, sizeof(double)*tileSize*tileSize,
                      FLAGS, db_affinity, NO_ALLOC);
 
-            hal_memCopy(temp_db, startBlob, sizeof(double)*tileSize*tileSize, 1);
+            fread(temp_db, sizeof(double)*tileSize*tileSize, 1, fin);
             ocrEventSatisfy(lkji_event_guids[i][j][0], db_guid);
             ocrDbRelease(db_guid);
-            startBlob += tileSize*tileSize*sizeof(double);
         }
     }
     hal_fence();
+    fclose(fin);
 
 }
 #else
@@ -455,7 +427,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     }
     PRINTF("Matrixsize %d, tileSize %d\n", matrixSize, tileSize);
 
-#ifndef ARCH_TG
+#ifndef TG_ARCH
     FILE *in;
     in = fopen(dbAsChar+offsets[3], "r");
     if( !in ) {
@@ -480,8 +452,8 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtTemplateCreate(&templateWrap, wrap_up_task, 2, (numTiles+1)*numTiles/2);
 
     PRINTF("Going to satisfy initial tiles\n");
-#ifdef ARCH_TG
-    satisfyInitialTiles( numTiles, tileSize, BLOB_START, lkji_event_guids);
+#ifdef TG_ARCH
+    satisfyInitialTiles( numTiles, tileSize, lkji_event_guids);
 #else
     satisfyInitialTiles( numTiles, tileSize, matrix, lkji_event_guids);
 #endif
@@ -510,7 +482,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     return NULL_GUID;
 }
 
-#ifndef ARCH_TG
+#ifndef TG_ARCH
 static double** readMatrix( u32 matrixSize, FILE* in ) {
     u32 i,j;
     double **A = (double**) malloc (sizeof(double*)*matrixSize);

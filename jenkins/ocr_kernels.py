@@ -138,6 +138,7 @@ job_ocr_build_kernel_fib_fsim = {
     'sandbox': ('inherit0',),
     'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
                   'WORKLOAD_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/ocr-apps/fib/build',
+                  'WORKLOAD_ARGS': '9',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install'}
 }
 
@@ -231,6 +232,7 @@ job_ocr_build_kernel_fft_fsim = {
     'sandbox': ('inherit0',),
     'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
                   'WORKLOAD_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/ocr-apps/fft/build',
+                  'WORKLOAD_ARGS': '9',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install'}
 }
 

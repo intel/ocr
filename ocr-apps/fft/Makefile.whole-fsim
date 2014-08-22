@@ -32,6 +32,11 @@ RUN_JENKINS ?= no
 
 ## END of variables coming from user/environment
 
+VALIDGOALS := all debug install run
+
+WORKLOAD_ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
+WORKLOAD_NEW_ARGS := $(lastword $(WORKLOAD_ARGS))
+
 TARGET = fft
 
 SRCS := fft.c verify.c
@@ -48,8 +53,6 @@ debug:	TARGETS := debug
 debug:	default
 
 install: all
-
-VALIDGOALS := all debug install
 
 include ${WORKLOAD_SRC}/../make-fsim.inc
 

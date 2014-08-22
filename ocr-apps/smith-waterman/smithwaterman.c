@@ -6,11 +6,7 @@
 
 #include "ocr.h"
 
-#ifdef TG_ARCH
-#include <misc.h>
-#else
 #include <stdio.h>
-#endif
 #include <stdlib.h>
 
 #define GAP_PENALTY -1
@@ -74,11 +70,16 @@ u32 clear_whitespaces_do_mapping ( s8* buffer, u32 size ) {
 
 #ifdef TG_ARCH
 s8* read_file( s8* filestart, u32* n_chars ) {
+    static FILE *file = NULL;
     s8* file_buffer;
+
+    if(file==NULL) file = fopen((const char *)filestart, "r");
     u32 file_size = *n_chars;
     ocrGuid_t filebuf;
     ocrDbCreate(&filebuf, (void **)&file_buffer, sizeof(s8)*(1+file_size), FLAGS, NULL_GUID, NO_ALLOC);
-    hal_memCopy(file_buffer, filestart, file_size, 0);
+    fread(file_buffer, sizeof(s8), file_size, file);
+
+    // Clean up what has been read
     *n_chars =  clear_whitespaces_do_mapping(file_buffer, file_size);
     return file_buffer;
 }
@@ -225,9 +226,6 @@ ocrGuid_t smith_waterman_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t d
     /* If this is the last tile (bottom right most tile), finish */
     if ( i == n_tiles_height && j == n_tiles_width ) {
         PRINTF("score: %d\n", curr_bottom_row[tile_width-1]);
-#ifdef TG_ARCH
-        *(u64 *)(BLOB_START) = 0;
-#endif
         ocrShutdown();
     }
     return NULL_GUID;
@@ -324,8 +322,8 @@ static u32 __attribute__ ((noinline)) ioHandling ( void* marshalled, s32* p_n_ti
     *p_tile_height = (s32) atoi(dbAsChar+offsets[2]);
     n_char_in_file_1 = (s32) atoi(dbAsChar+offsets[3]);
     n_char_in_file_2 = (s32) atoi(dbAsChar+offsets[4]);
-    file_name_1 = (s8*)BLOB_START;
-    file_name_2 = (s8*)(BLOB_START + n_char_in_file_1);
+    file_name_1 = NULL; // Doesn't matter anyway
+    file_name_2 = NULL; // since the filename is immaterial
 #else
     file_name_1 = dbAsChar+offsets[1];
     file_name_2 = dbAsChar+offsets[2];
@@ -366,9 +364,6 @@ ocrGuid_t mainEdt ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 
     if(ioHandling(depv[0].ptr, &n_tiles_height, &n_tiles_width, &tile_width, &tile_height, &string_1, &string_2))
     {
-#ifdef TG_ARCH
-        *(u64 *)(BLOB_START) = 0;
-#endif
         ocrShutdown();
         return NULL_GUID;
     }

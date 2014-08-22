@@ -85,7 +85,7 @@ install: default | ${WORKLOAD_INSTALL}
 
 .PHONY: run
 .ONESHELL:
-run: INPUTFILE := $(lastword $(NEWARGS))
+run: INPUTFILE := $(lastword $(WORKLOAD_NEW_ARGS))
 run: WORKLOAD_EXEC ?= $(WORKLOAD_INSTALL)
 run: prerun install
 	@$(MKDIR) -p $(WORKLOAD_EXEC)/logs
@@ -130,7 +130,7 @@ $(WORKLOAD_BUILD)/$(TARGET).blob.xe: $(OCR_INSTALL_XE)/config/default.cfg \
 $(WORKLOAD_BUILD)/$(TARGET).dbg $(OCR_INSTALL_ROOT)/$(XE_BUILDER)/bin/builder.exe | $(WORKLOAD_BUILD)
 	RMD_INSTALL=$(RMD_INSTALL) WORKLOAD_BUILD=$(WORKLOAD_BUILD) STRUCT_OUT=$(WORKLOAD_BUILD)/$(TARGET).blob.xe \
 	ARGS_OUT=$(WORKLOAD_BUILD)/$(TARGET).blob.arg APP_FILE=$(WORKLOAD_BUILD)/$(TARGET).dbg \
-	$(OCR_INSTALL_ROOT)/$(XE_BUILDER)/bin/builder.exe -ocr:cfg $(OCR_INSTALL_XE)/config/default.cfg $(NEWARGS)
+	$(OCR_INSTALL_ROOT)/$(XE_BUILDER)/bin/builder.exe -ocr:cfg $(OCR_INSTALL_XE)/config/default.cfg $(WORKLOAD_NEW_ARGS)
 
 $(OCR_INSTALL_XE)/config/default.cfg: $(OCR_INSTALL_XE)/lib/libocr.a
 
