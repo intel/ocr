@@ -267,6 +267,7 @@ function compile () {
 function run () {
         local FILE=$1
         local FOLDER=$2
+        TEST_RES=0
         RES=0
 
         NAME=
@@ -277,10 +278,21 @@ function run () {
         if [ -f ${TEST_ARGS_FILE} ]; then
                 TEST_ARGS=`cat ${TEST_ARGS_FILE}`
         fi
+        TEST_RES_FILE=${NAME}.res
+        if [ -f ${TEST_RES_FILE} ]; then
+                TEST_RES=`cat ${TEST_RES_FILE}`
+        fi
 
         echo "${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}"
         ${RUN_WRAPPER} ${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS} ${TEST_ARGS}
         RES=$?
+        if [[ $RES -eq $TEST_RES ]]; then
+                RES=0;
+        elif [[ $TEST_RES -ne 0 ]]; then
+                if [[ $RES -eq 0 ]]; then
+                        RES=${TEST_RES};
+                fi
+        fi
         cd -;
 
         return $RES

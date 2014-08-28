@@ -529,9 +529,9 @@ int __attribute__ ((weak)) main(int argc, const char* argv[]) {
     // the "blessed" worker will execute the mainEdt
 
     startMemStat = 1;
-    ocrFinalize();
+    u8 returnCode = ocrFinalize();
 
-    return 0;
+    return returnCode;
 }
 
 #endif

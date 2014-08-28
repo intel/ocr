@@ -583,9 +583,10 @@ typedef struct _ocrPolicyMsg_t {
             u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_TERMINATE);
         struct {
+            u8 errorCode;     /**< In: User provided error code */
             ocrFatGuid_t currentEdt;   /**< In: EDT that is calling shutdown */
             u32 properties;
-            u32 returnDetail;  /**< Out: Success or error code */
+            u32 returnDetail;          /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_SHUTDOWN);
 
         struct {
@@ -858,6 +859,7 @@ typedef struct _ocrPolicyDomain_t {
     ocrLocation_t parentLocation;
     ocrLocation_t* neighbors;
     u32 neighborCount;
+    u8 shutdownCode;
 
     //FIXME: Temporary solution until we get location services. [Bug #135].
     struct _ocrPolicyDomain_t **neighborPDs;

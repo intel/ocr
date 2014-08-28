@@ -10,7 +10,7 @@
 #include "ocr-sal.h"
 #include "ocr-types.h"
 
-void ocrShutdown() {
+static void ocrShutdownInternal(u8 errorCode) {
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
     ocrPolicyMsg_t * msgPtr = &msg;
@@ -19,6 +19,7 @@ void ocrShutdown() {
 #define PD_MSG msgPtr
 #define PD_TYPE PD_MSG_MGT_SHUTDOWN
     msgPtr->type = PD_MSG_MGT_SHUTDOWN | PD_MSG_REQUEST;
+    PD_MSG_FIELD(errorCode) = errorCode;
     PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
     PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
     RESULT_ASSERT(pd->fcts.processMessage(pd, msgPtr, true), ==, 0);
@@ -26,6 +27,14 @@ void ocrShutdown() {
 #undef PD_TYPE
     // TODO: Re-enable teardown for other platforms
     //teardown(pd);
+}
+
+void ocrShutdown() {
+    ocrShutdownInternal(0);
+}
+
+void ocrAbort(u8 errorCode) {
+    ocrShutdownInternal(errorCode);
 }
 
 u64 getArgc(void* dbPtr) {

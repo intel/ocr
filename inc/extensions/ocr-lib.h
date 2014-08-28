@@ -57,8 +57,11 @@ void ocrParseArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig);
 /**
  * @brief OCR library mode - Terminates OCR execution
  * This call bring down the runtime after ocrShutdown has been called by an EDT.
+ * @return Error code provided by user
+ *         0 : clean shutdown, no errors
+ *         non-0: user provided error code to ocrAbort
  */
-void ocrFinalize();
+u8 ocrFinalize();
 
 /**
  * @brief OCR library mode - Waits for an output event to be satisfied

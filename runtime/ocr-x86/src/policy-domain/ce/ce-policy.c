@@ -1199,6 +1199,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
     case PD_MSG_MGT_SHUTDOWN: {
         START_PROFILE(pd_ce_Shutdown);
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_MGT_SHUTDOWN
         ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t *)self;
         if (cePolicy->shutdownMode == false)
             cePolicy->shutdownMode = true;
@@ -1209,13 +1211,16 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             if (msg->type & PD_MSG_REQUEST) {
                 // This triggers the shutdown of the machine
                 ASSERT(!(msg->type & PD_MSG_RESPONSE));
+                ASSERT(msg->srcLocation != self->myLocation);
+                if (self->shutdownCode == 0)
+                    self->shutdownCode = PD_MSG_FIELD(errorCode);
                 cePolicy->shutdownCount++;
-                DPRINTF (DEBUG_LVL_VVERB, "CE received shutdown REQ from Agent %lu; shutdown %lu/%lu\n",
-                    (u64)msg->srcLocation, cePolicy->shutdownCount, cePolicy->shutdownMax);
+                DPRINTF (DEBUG_LVL_VVERB, "MSG_SHUTDOWN REQ from Agent 0x%lx; shutdown %lu/%lu\n",
+                    msg->srcLocation, cePolicy->shutdownCount, cePolicy->shutdownMax);
             } else {
                 ASSERT(msg->type & PD_MSG_RESPONSE);
-                DPRINTF (DEBUG_LVL_VVERB, "CE received shutdown RESP from Agent %lu; shutdown %lu/%lu\n",
-                    (u64)msg->srcLocation, cePolicy->shutdownCount, cePolicy->shutdownMax);
+                DPRINTF (DEBUG_LVL_VVERB, "MSG_SHUTDOWN RESP from Agent 0x%lx; shutdown %lu/%lu\n",
+                    msg->srcLocation, cePolicy->shutdownCount, cePolicy->shutdownMax);
             }
 
             if (cePolicy->shutdownCount == cePolicy->shutdownMax) {
@@ -1225,6 +1230,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                 }
             }
         }
+#undef PD_MSG
+#undef PD_TYPE
         EXIT_PROFILE;
         break;
     }

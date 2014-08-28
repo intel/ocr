@@ -194,7 +194,7 @@ void ocrParseArgs(s32 argc, const char* argv[], ocrConfig_t * ocrConfig) {
 
 // This function is for x86 for now. We may need to make this a function
 // pointer for other platforms
-void ocrFinalize() {
+u8 ocrFinalize() {
     ocrPolicyDomain_t *pd = NULL;
     ocrWorker_t *worker = NULL;
     getCurrentEnv(&pd, &worker, NULL, NULL);
@@ -203,6 +203,7 @@ void ocrFinalize() {
     // to stop (including this worker). The currently executing
     // worker then fallthrough from start to finish.
     worker->fcts.start(worker, pd);
+    u8 returnCode = pd->shutdownCode;
     // NOTE: finish blocks until stop has completed
     pd->fcts.finish(pd);
     pd->fcts.destruct(pd);
@@ -211,6 +212,7 @@ void ocrFinalize() {
 //     ocrStatsProcessDestruct(&GfakeProcess);
 //     GocrFilterAggregator->destruct(GocrFilterAggregator);
 // #endif
+   return returnCode;
 }
 
 

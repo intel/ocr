@@ -33,6 +33,16 @@ extern "C" {
 void ocrShutdown();
 
 /**
+ * @brief Called by an EDT to abort program with error code
+ *
+ * This call will cause the OCR runtime to shutdown
+ *
+ * @param errorCode    User defined error code returned to
+ *                     environment
+ */
+void ocrAbort(u8 errorCode);
+
+/**
  * @brief Gets the number of arguments packed in the
  * single data-block passed to the first EDT
  *

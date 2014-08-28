@@ -1219,7 +1219,13 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     }
     case PD_MSG_MGT_SHUTDOWN: {
         START_PROFILE(pd_hc_Shutdown);
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_MGT_SHUTDOWN
+        if (self->shutdownCode == 0)
+            self->shutdownCode = PD_MSG_FIELD(errorCode);
         self->fcts.stop(self);
+#undef PD_MSG
+#undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
         EXIT_PROFILE;
