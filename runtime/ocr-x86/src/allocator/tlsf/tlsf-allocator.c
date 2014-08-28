@@ -1514,7 +1514,7 @@ void* tlsfReallocate(
 ocrAllocator_t * newAllocatorTlsf(ocrAllocatorFactory_t * factory, ocrParamList_t *perInstance) {
 
     ocrAllocatorTlsf_t *result = (ocrAllocatorTlsf_t*)
-        runtimeChunkAlloc(sizeof(ocrAllocatorTlsf_t), NULL);
+        runtimeChunkAlloc(sizeof(ocrAllocatorTlsf_t), PERSISTENT_CHUNK);
     ocrAllocator_t * derived = (ocrAllocator_t *) result;
     factory->initialize(factory, derived, perInstance);
     return (ocrAllocator_t *) result;
@@ -1545,7 +1545,7 @@ static void destructAllocatorFactoryTlsf(ocrAllocatorFactory_t * factory) {
 
 ocrAllocatorFactory_t * newAllocatorFactoryTlsf(ocrParamList_t *perType) {
     ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrAllocatorFactoryTlsf_t), (void *)1);
+        runtimeChunkAlloc(sizeof(ocrAllocatorFactoryTlsf_t), NONPERSISTENT_CHUNK);
     ASSERT(base);
     base->instantiate = &newAllocatorTlsf;
     base->initialize = &initializeAllocatorTlsf;

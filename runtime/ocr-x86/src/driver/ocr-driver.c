@@ -264,9 +264,14 @@ void bringUpRuntime(const char *inifile) {
         for (j = 0; j < total_types; j++) {
             if (strncasecmp(type_str[j], iniparser_getsecname(dict, i), strlen(type_str[j]))==0) {
                 if(type_counts[j] && type_params[j]==NULL) {
-                    type_params[j] = (ocrParamList_t **)runtimeChunkAlloc(type_counts[j] * sizeof(ocrParamList_t *), (void *)1);
-                    factory_names[j] = (char **)runtimeChunkAlloc(type_counts[j] * sizeof(char *), (void *)1);
-                    all_factories[j] = (void **)runtimeChunkAlloc(type_counts[j] * sizeof(void *), (void *)1);
+                    type_params[j] = (ocrParamList_t **)runtimeChunkAlloc(type_counts[j] * sizeof(ocrParamList_t *), NONPERSISTENT_CHUNK);
+                    factory_names[j] = (char **)runtimeChunkAlloc(type_counts[j] * sizeof(char *), NONPERSISTENT_CHUNK);
+                    // Persistent only for the 'higher' type factories
+                    if(j<taskfactory_type) {
+                        all_factories[j] = (void **)runtimeChunkAlloc(type_counts[j] * sizeof(void *), NONPERSISTENT_CHUNK);
+                    } else {
+                        all_factories[j] = (void **)runtimeChunkAlloc(type_counts[j] * sizeof(void *), PERSISTENT_CHUNK);
+                    }
                     count = 0;
                 }
                 factory_names[j][count] = populate_type(&type_params[j][count], j, dict, iniparser_getsecname(dict, i));
@@ -298,8 +303,8 @@ void bringUpRuntime(const char *inifile) {
             if (strncasecmp(inst_str[j], iniparser_getsecname(dict, i), strlen(inst_str[j]))==0) {
                 if(inst_counts[j] && inst_params[j] == NULL) {
                     DPRINTF(DEBUG_LVL_INFO, "Create %d instances of %s\n", inst_counts[j], inst_str[j]);
-                    inst_params[j] = (ocrParamList_t **)runtimeChunkAlloc(inst_counts[j] * sizeof(ocrParamList_t *), (void *)1);
-                    all_instances[j] = (void **)runtimeChunkAlloc(inst_counts[j] * sizeof(void *), (void *)1);
+                    inst_params[j] = (ocrParamList_t **)runtimeChunkAlloc(inst_counts[j] * sizeof(ocrParamList_t *), NONPERSISTENT_CHUNK);
+                    all_instances[j] = (void **)runtimeChunkAlloc(inst_counts[j] * sizeof(void *), NONPERSISTENT_CHUNK);
                     count = 0;
                 }
                 populate_inst(inst_params[j], all_instances[j], type_counts, factory_names, all_factories, all_instances, j, dict, iniparser_getsecname(dict, i));
@@ -421,7 +426,7 @@ static void * packUserArguments(int argc, char ** argv) {
     // Prepare arguments for the mainEdt
     ASSERT(argc < 64); // For now
     u32 i;
-    u64* offsets = (u64*) runtimeChunkAlloc(sizeof(u64)*argc, (u64 *)2);
+    u64* offsets = (u64*) runtimeChunkAlloc(sizeof(u64)*argc, ARGS_CHUNK);
     u64 argsUsed = 0ULL;
     u64 totalLength = 0;
     u32 maxArg = 0;
@@ -435,7 +440,7 @@ static void * packUserArguments(int argc, char ** argv) {
     //--maxArg;
     // Create a memory chunk containing the parameters
     u64 extraOffset = (maxArg + 1)*sizeof(u64);
-    void* ptr = (void *) runtimeChunkAlloc(totalLength + sizeof(u64) + extraOffset, (u64 *)2);
+    void* ptr = (void *) runtimeChunkAlloc(totalLength + sizeof(u64) + extraOffset, ARGS_CHUNK);
 
     // Copy in the values to the ptr. The format is as follows:
     // - First 4 bytes encode the size of the packed arguments

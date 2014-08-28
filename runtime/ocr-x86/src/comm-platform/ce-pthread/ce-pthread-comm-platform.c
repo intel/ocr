@@ -31,7 +31,7 @@ void cePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD
     commPlatform->pd = PD;
     numXE = ((ocrPolicyDomainCe_t*)PD)->xeCount;
     commPlatformCePthread->numXE = numXE;
-    commPlatformCePthread->channels = (ocrCommChannel_t*)runtimeChunkAlloc(numXE * sizeof(ocrCommChannel_t), NULL);
+    commPlatformCePthread->channels = (ocrCommChannel_t*)runtimeChunkAlloc(numXE * sizeof(ocrCommChannel_t), PERSISTENT_CHUNK);
     for (i = 0; i < numXE; i++) {
         commPlatformCePthread->channels[i].message = NULL;
         commPlatformCePthread->channels[i].xeCounter = 0;
@@ -127,7 +127,7 @@ ocrCommPlatform_t* newCommPlatformCePthread(ocrCommPlatformFactory_t *factory,
         ocrParamList_t *perInstance) {
 
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t*)
-            runtimeChunkAlloc(sizeof(ocrCommPlatformCePthread_t), NULL);
+            runtimeChunkAlloc(sizeof(ocrCommPlatformCePthread_t), PERSISTENT_CHUNK);
     ocrCommPlatform_t * base = (ocrCommPlatform_t *) commPlatformCePthread;
     factory->initialize(factory, base, perInstance);
     return base;
@@ -150,7 +150,7 @@ void destructCommPlatformFactoryCePthread(ocrCommPlatformFactory_t *factory) {
 
 ocrCommPlatformFactory_t *newCommPlatformFactoryCePthread(ocrParamList_t *perType) {
     ocrCommPlatformFactory_t *base = (ocrCommPlatformFactory_t*)
-                                     runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryCePthread_t), (void *)1);
+                                     runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryCePthread_t), NONPERSISTENT_CHUNK);
 
     base->instantiate = &newCommPlatformCePthread;
     base->initialize = &initializeCommPlatformCePthread;

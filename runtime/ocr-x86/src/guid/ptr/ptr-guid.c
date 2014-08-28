@@ -127,7 +127,7 @@ u8 ptrReleaseGuid(ocrGuidProvider_t *self, ocrFatGuid_t guid, bool releaseVal) {
 ocrGuidProvider_t* newGuidProviderPtr(ocrGuidProviderFactory_t *factory,
                                       ocrParamList_t *perInstance) {
     ocrGuidProvider_t *base = (ocrGuidProvider_t*)runtimeChunkAlloc(
-                                  sizeof(ocrGuidProviderPtr_t), NULL);
+                                  sizeof(ocrGuidProviderPtr_t), PERSISTENT_CHUNK);
     base->fcts = factory->providerFcts;
     base->pd = NULL;
     base->id = factory->factoryId;
@@ -144,7 +144,7 @@ void destructGuidProviderFactoryPtr(ocrGuidProviderFactory_t *factory) {
 
 ocrGuidProviderFactory_t *newGuidProviderFactoryPtr(ocrParamList_t *typeArg, u32 factoryId) {
     ocrGuidProviderFactory_t *base = (ocrGuidProviderFactory_t*)
-                                     runtimeChunkAlloc(sizeof(ocrGuidProviderFactoryPtr_t), (void *)1);
+                                     runtimeChunkAlloc(sizeof(ocrGuidProviderFactoryPtr_t), NONPERSISTENT_CHUNK);
 
     base->instantiate = &newGuidProviderPtr;
     base->destruct = &destructGuidProviderFactoryPtr;

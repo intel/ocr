@@ -48,7 +48,7 @@ void* nullReallocate(ocrAllocator_t *self, void* address, u64 size) {
 // Method to create the NULL allocator
 ocrAllocator_t * newAllocatorNull(ocrAllocatorFactory_t * factory, ocrParamList_t *perInstance) {
 
-    ocrAllocator_t *base = (ocrAllocator_t*) runtimeChunkAlloc(sizeof(ocrAllocatorNull_t), NULL);
+    ocrAllocator_t *base = (ocrAllocator_t*) runtimeChunkAlloc(sizeof(ocrAllocatorNull_t), PERSISTENT_CHUNK);
     factory->initialize(factory, base, perInstance);
     return (ocrAllocator_t *) base;
 }
@@ -67,7 +67,7 @@ static void destructAllocatorFactoryNull(ocrAllocatorFactory_t * factory) {
 
 ocrAllocatorFactory_t * newAllocatorFactoryNull(ocrParamList_t *perType) {
     ocrAllocatorFactory_t* base = (ocrAllocatorFactory_t*)
-                                  runtimeChunkAlloc(sizeof(ocrAllocatorFactoryNull_t), (void *)1);
+                                  runtimeChunkAlloc(sizeof(ocrAllocatorFactoryNull_t), NONPERSISTENT_CHUNK);
     ASSERT(base);
     base->instantiate = &newAllocatorNull;
     base->initialize = &initializeAllocatorNull;

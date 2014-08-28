@@ -35,9 +35,13 @@ typedef struct _ocrParamList_t {
     char* misc;                 /**< Miscellaneous arguments (NULL terminated string) */
 } ocrParamList_t;
 
+#define PERSISTENT_CHUNK    NULL
+#define NONPERSISTENT_CHUNK (void *)1
+#define ARGS_CHUNK          (void *)2
+
 #define ALLOC_PARAM_LIST(result, type)                  \
     do {                                                \
-        result = (ocrParamList_t *) runtimeChunkAlloc(sizeof(type), NULL);          \
+        result = (ocrParamList_t *) runtimeChunkAlloc(sizeof(type), NONPERSISTENT_CHUNK);          \
         ocrParamList_t *_t = (ocrParamList_t*)result;   \
         _t->size = (u64)sizeof(type);                   \
     } while(0);

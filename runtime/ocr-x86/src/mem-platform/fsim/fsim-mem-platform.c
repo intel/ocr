@@ -147,7 +147,7 @@ ocrMemPlatform_t* newMemPlatformFsim(ocrMemPlatformFactory_t * factory,
     // For now, we cheat and use good-old fsim which is kind of counter productive with
     // all the trouble we are going through to *not* use fsim...
     ocrMemPlatform_t *result = (ocrMemPlatform_t*)
-                               runtimeChunkAlloc(sizeof(ocrMemPlatformFsim_t), NULL);
+                               runtimeChunkAlloc(sizeof(ocrMemPlatformFsim_t), PERSISTENT_CHUNK);
     factory->initialize(factory, result, perInstance);
 
     return result;
@@ -173,7 +173,7 @@ void destructMemPlatformFactoryFsim(ocrMemPlatformFactory_t *factory) {
 
 ocrMemPlatformFactory_t *newMemPlatformFactoryFsim(ocrParamList_t *perType) {
     ocrMemPlatformFactory_t *base = (ocrMemPlatformFactory_t*)
-                                    runtimeChunkAlloc(sizeof(ocrMemPlatformFactoryFsim_t), (void *)1);
+                                    runtimeChunkAlloc(sizeof(ocrMemPlatformFactoryFsim_t), NONPERSISTENT_CHUNK);
 
     base->instantiate = &newMemPlatformFsim;
     base->initialize = &initializeMemPlatformFsim;

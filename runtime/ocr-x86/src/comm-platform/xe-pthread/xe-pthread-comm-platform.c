@@ -112,7 +112,7 @@ ocrCommPlatform_t* newCommPlatformXePthread(ocrCommPlatformFactory_t *factory,
         ocrParamList_t *perInstance) {
 
     ocrCommPlatformXePthread_t * commPlatformXePthread = (ocrCommPlatformXePthread_t*)
-            runtimeChunkAlloc(sizeof(ocrCommPlatformXePthread_t), NULL);
+            runtimeChunkAlloc(sizeof(ocrCommPlatformXePthread_t), PERSISTENT_CHUNK);
     ocrCommPlatform_t * base = (ocrCommPlatform_t *) commPlatformXePthread;
     factory->initialize(factory, base, perInstance);
     return base;
@@ -136,7 +136,7 @@ void destructCommPlatformFactoryXePthread(ocrCommPlatformFactory_t *factory) {
 
 ocrCommPlatformFactory_t *newCommPlatformFactoryXePthread(ocrParamList_t *perType) {
     ocrCommPlatformFactory_t *base = (ocrCommPlatformFactory_t*)
-                                     runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryXePthread_t), (void *)1);
+                                     runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryXePthread_t), NONPERSISTENT_CHUNK);
 
     base->instantiate = &newCommPlatformXePthread;
     base->initialize = &initializeCommPlatformXePthread;

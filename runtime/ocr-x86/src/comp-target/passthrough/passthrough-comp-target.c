@@ -96,7 +96,7 @@ u8 ptSetCurrentEnv(ocrCompTarget_t *compTarget, ocrPolicyDomain_t *pd,
 
 ocrCompTarget_t * newCompTargetPt(ocrCompTargetFactory_t * factory,
                                   ocrParamList_t* perInstance) {
-    ocrCompTargetPt_t * compTarget = (ocrCompTargetPt_t*)runtimeChunkAlloc(sizeof(ocrCompTargetPt_t), NULL);
+    ocrCompTargetPt_t * compTarget = (ocrCompTargetPt_t*)runtimeChunkAlloc(sizeof(ocrCompTargetPt_t), PERSISTENT_CHUNK);
     ocrCompTarget_t *derived = (ocrCompTarget_t *)compTarget;
     factory->initialize(factory, derived, perInstance);
     return derived;
@@ -115,7 +115,7 @@ static void destructCompTargetFactoryPt(ocrCompTargetFactory_t *factory) {
 
 ocrCompTargetFactory_t *newCompTargetFactoryPt(ocrParamList_t *perType) {
     ocrCompTargetFactory_t *base = (ocrCompTargetFactory_t*)
-                                   runtimeChunkAlloc(sizeof(ocrCompTargetFactoryPt_t), (void *)1);
+                                   runtimeChunkAlloc(sizeof(ocrCompTargetFactoryPt_t), NONPERSISTENT_CHUNK);
     base->instantiate = &newCompTargetPt;
     base->initialize = &initializeCompTargetPt;
     base->destruct = &destructCompTargetFactoryPt;

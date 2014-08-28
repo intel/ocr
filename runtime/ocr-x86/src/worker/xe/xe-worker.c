@@ -99,7 +99,7 @@ void destructWorkerXe(ocrWorker_t * base) {
  * Builds an instance of a XE worker
  */
 ocrWorker_t* newWorkerXe (ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
-    ocrWorker_t * base = (ocrWorker_t*)runtimeChunkAlloc(sizeof(ocrWorkerXe_t), NULL);
+    ocrWorker_t * base = (ocrWorker_t*)runtimeChunkAlloc(sizeof(ocrWorkerXe_t), PERSISTENT_CHUNK);
     factory->initialize(factory, base, perInstance);
     return base;
 }
@@ -251,7 +251,7 @@ void destructWorkerFactoryXe(ocrWorkerFactory_t * factory) {
 }
 
 ocrWorkerFactory_t * newOcrWorkerFactoryXe(ocrParamList_t * perType) {
-    ocrWorkerFactory_t* base = (ocrWorkerFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryXe_t), (void *)1);
+    ocrWorkerFactory_t* base = (ocrWorkerFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryXe_t), NONPERSISTENT_CHUNK);
 
     base->instantiate = &newWorkerXe;
     base->initialize = &initializeWorkerXe;

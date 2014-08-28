@@ -30,13 +30,13 @@ static ocrEdt_t mainEdt = NULL;
 
 u64 FsimRuntimeChunkAlloc(u64 size, u64 *extra) {
     void* returnValue = NULL;
-    if(extra==NULL) {  // NULL => persistent
+    if(extra==PERSISTENT_CHUNK) {
         // Align the offset if unaligned
         u64 offset = (u64)&(persistent_chunk[persistent_pointer]);
         if(offset % 8) persistent_pointer += (8 - (offset%8));
         returnValue = &(persistent_chunk[persistent_pointer]);
         persistent_pointer += size;
-    } else if(extra == (u64)2) { // special case, for arguments
+    } else if(extra == ARGS_CHUNK) { // special case, for arguments
         returnValue = &(args_chunk[args_pointer]);
         args_pointer += size;
     } else { // default, non-persistent

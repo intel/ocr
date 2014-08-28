@@ -353,7 +353,7 @@ ocrCommPlatform_t* newCommPlatformCe(ocrCommPlatformFactory_t *factory,
                                      ocrParamList_t *perInstance) {
 
     ocrCommPlatformCe_t * commPlatformCe = (ocrCommPlatformCe_t*)
-                                           runtimeChunkAlloc(sizeof(ocrCommPlatformCe_t), NULL);
+                                           runtimeChunkAlloc(sizeof(ocrCommPlatformCe_t), PERSISTENT_CHUNK);
     ocrCommPlatform_t * derived = (ocrCommPlatform_t *) commPlatformCe;
     factory->initialize(factory, derived, perInstance);
     return derived;
@@ -373,7 +373,7 @@ void destructCommPlatformFactoryCe(ocrCommPlatformFactory_t *factory) {
 
 ocrCommPlatformFactory_t *newCommPlatformFactoryCe(ocrParamList_t *perType) {
     ocrCommPlatformFactory_t *base = (ocrCommPlatformFactory_t*)
-                                     runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryCe_t), (void *)1);
+                                     runtimeChunkAlloc(sizeof(ocrCommPlatformFactoryCe_t), NONPERSISTENT_CHUNK);
 
     base->instantiate = &newCommPlatformCe;
     base->initialize = &initializeCommPlatformCe;

@@ -163,7 +163,7 @@ u8 countedMapReleaseGuid(ocrGuidProvider_t *self, ocrFatGuid_t fatGuid, bool rel
 
 static ocrGuidProvider_t* newGuidProviderCountedMap(ocrGuidProviderFactory_t *factory,
         ocrParamList_t *perInstance) {
-    ocrGuidProvider_t *base = (ocrGuidProvider_t*) runtimeChunkAlloc(sizeof(ocrGuidProviderCountedMap_t), NULL);
+    ocrGuidProvider_t *base = (ocrGuidProvider_t*) runtimeChunkAlloc(sizeof(ocrGuidProviderCountedMap_t), PERSISTENT_CHUNK);
     base->fcts = factory->providerFcts;
     base->pd = NULL;
     base->id = factory->factoryId;
@@ -180,7 +180,7 @@ static void destructGuidProviderFactoryCountedMap(ocrGuidProviderFactory_t *fact
 
 ocrGuidProviderFactory_t *newGuidProviderFactoryCountedMap(ocrParamList_t *typeArg, u32 factoryId) {
     ocrGuidProviderFactory_t *base = (ocrGuidProviderFactory_t*)
-                                     runtimeChunkAlloc(sizeof(ocrGuidProviderFactoryCountedMap_t), (void *)1);
+                                     runtimeChunkAlloc(sizeof(ocrGuidProviderFactoryCountedMap_t), NONPERSISTENT_CHUNK);
 
     base->instantiate = &newGuidProviderCountedMap;
     base->destruct = &destructGuidProviderFactoryCountedMap;

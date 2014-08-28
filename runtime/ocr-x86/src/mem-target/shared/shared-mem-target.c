@@ -120,7 +120,7 @@ ocrMemTarget_t* newMemTargetShared(ocrMemTargetFactory_t * factory,
                                    ocrParamList_t *perInstance) {
 
     ocrMemTarget_t *result = (ocrMemTarget_t*)
-                             runtimeChunkAlloc(sizeof(ocrMemTargetShared_t), NULL);
+                             runtimeChunkAlloc(sizeof(ocrMemTargetShared_t), PERSISTENT_CHUNK);
     factory->initialize(factory, result, perInstance);
     return result;
 }
@@ -139,7 +139,7 @@ static void destructMemTargetFactoryShared(ocrMemTargetFactory_t *factory) {
 
 ocrMemTargetFactory_t *newMemTargetFactoryShared(ocrParamList_t *perType) {
     ocrMemTargetFactory_t *base = (ocrMemTargetFactory_t*)
-                                  runtimeChunkAlloc(sizeof(ocrMemTargetFactoryShared_t), (void *)1);
+                                  runtimeChunkAlloc(sizeof(ocrMemTargetFactoryShared_t), NONPERSISTENT_CHUNK);
     base->instantiate = &newMemTargetShared;
     base->initialize = &initializeMemTargetShared;
     base->destruct = &destructMemTargetFactoryShared;

@@ -237,7 +237,7 @@ bool hcIsRunningWorker(ocrWorker_t * base) {
  * @brief Builds an instance of a HC worker
  */
 ocrWorker_t* newWorkerHc(ocrWorkerFactory_t * factory, ocrParamList_t * perInstance) {
-    ocrWorker_t * worker = (ocrWorker_t*) runtimeChunkAlloc( sizeof(ocrWorkerHc_t), NULL);
+    ocrWorker_t * worker = (ocrWorker_t*) runtimeChunkAlloc( sizeof(ocrWorkerHc_t), PERSISTENT_CHUNK);
     factory->initialize(factory, worker, perInstance);
     return worker;
 }
@@ -268,7 +268,7 @@ void destructWorkerFactoryHc(ocrWorkerFactory_t * factory) {
 }
 
 ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
-    ocrWorkerFactory_t* base = (ocrWorkerFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryHc_t), (void *)1);
+    ocrWorkerFactory_t* base = (ocrWorkerFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkerFactoryHc_t), NONPERSISTENT_CHUNK);
 
     base->instantiate = &newWorkerHc;
     base->initialize = &initializeWorkerHc;

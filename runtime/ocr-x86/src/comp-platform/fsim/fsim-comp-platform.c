@@ -93,7 +93,7 @@ ocrCompPlatform_t* newCompPlatformFsim(ocrCompPlatformFactory_t *factory,
                                        ocrParamList_t *perInstance) {
 
     ocrCompPlatformFsim_t * compPlatformFsim = (ocrCompPlatformFsim_t*)
-            runtimeChunkAlloc(sizeof(ocrCompPlatformFsim_t), NULL);
+            runtimeChunkAlloc(sizeof(ocrCompPlatformFsim_t), PERSISTENT_CHUNK);
     ocrCompPlatform_t *base = (ocrCompPlatform_t*)compPlatformFsim;
     factory->initialize(factory, base, perInstance);
     return base;
@@ -121,7 +121,7 @@ void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
 
 ocrCompPlatformFactory_t *newCompPlatformFactoryFsim(ocrParamList_t *perType) {
     ocrCompPlatformFactory_t *base = (ocrCompPlatformFactory_t*)
-                                     runtimeChunkAlloc(sizeof(ocrCompPlatformFactoryFsim_t), (void *)1);
+                                     runtimeChunkAlloc(sizeof(ocrCompPlatformFactoryFsim_t), NONPERSISTENT_CHUNK);
 
     base->instantiate = &newCompPlatformFsim;
     base->initialize = &initializeCompPlatformFsim;

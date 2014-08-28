@@ -83,7 +83,7 @@ void hcWorkpilePush(ocrWorkpile_t * base, ocrWorkPushType_t type,
 }
 
 ocrWorkpile_t * newWorkpileHc(ocrWorkpileFactory_t * factory, ocrParamList_t *perInstance) {
-    ocrWorkpile_t* derived = (ocrWorkpile_t*) runtimeChunkAlloc(sizeof(ocrWorkpileHc_t), NULL);
+    ocrWorkpile_t* derived = (ocrWorkpile_t*) runtimeChunkAlloc(sizeof(ocrWorkpileHc_t), PERSISTENT_CHUNK);
     factory->initialize(factory, derived, perInstance);
     return derived;
 }
@@ -101,7 +101,7 @@ void destructWorkpileFactoryHc(ocrWorkpileFactory_t * factory) {
 }
 
 ocrWorkpileFactory_t * newOcrWorkpileFactoryHc(ocrParamList_t *perType) {
-    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkpileFactoryHc_t), (void *)1);
+    ocrWorkpileFactory_t* base = (ocrWorkpileFactory_t*)runtimeChunkAlloc(sizeof(ocrWorkpileFactoryHc_t), NONPERSISTENT_CHUNK);
 
     base->instantiate = &newWorkpileHc;
     base->initialize = &initializeWorkpileHc;

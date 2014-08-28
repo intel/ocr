@@ -1317,7 +1317,7 @@ ocrPolicyDomain_t * newPolicyDomainHc(ocrPolicyDomainFactory_t * factory,
 #endif
                                       ocrCost_t *costFunction, ocrParamList_t *perInstance) {
 
-    ocrPolicyDomainHc_t * derived = (ocrPolicyDomainHc_t *) runtimeChunkAlloc(sizeof(ocrPolicyDomainHc_t), NULL);
+    ocrPolicyDomainHc_t * derived = (ocrPolicyDomainHc_t *) runtimeChunkAlloc(sizeof(ocrPolicyDomainHc_t), PERSISTENT_CHUNK);
     ocrPolicyDomain_t * base = (ocrPolicyDomain_t *) derived;
     ASSERT(base);
 #ifdef OCR_ENABLE_STATISTICS
@@ -1349,7 +1349,7 @@ static void destructPolicyDomainFactoryHc(ocrPolicyDomainFactory_t * factory) {
 }
 
 ocrPolicyDomainFactory_t * newPolicyDomainFactoryHc(ocrParamList_t *perType) {
-    ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryHc_t), (void *)1);
+    ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryHc_t), NONPERSISTENT_CHUNK);
 
     // Set factory's methods
 #ifdef OCR_ENABLE_STATISTICS

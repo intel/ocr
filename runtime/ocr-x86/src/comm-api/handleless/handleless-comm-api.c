@@ -125,7 +125,7 @@ ocrCommApi_t* newCommApiHandleless(ocrCommApiFactory_t *factory,
                                    ocrParamList_t *perInstance) {
 
     ocrCommApiHandleless_t * commApiHandleless = (ocrCommApiHandleless_t*)
-        runtimeChunkAlloc(sizeof(ocrCommApiHandleless_t), NULL);
+        runtimeChunkAlloc(sizeof(ocrCommApiHandleless_t), PERSISTENT_CHUNK);
     factory->initialize(factory, (ocrCommApi_t*) commApiHandleless, perInstance);
     commApiHandleless->handle.msg = NULL;
     commApiHandleless->handle.response = NULL;
@@ -154,7 +154,7 @@ void destructCommApiFactoryHandleless(ocrCommApiFactory_t *factory) {
 
 ocrCommApiFactory_t *newCommApiFactoryHandleless(ocrParamList_t *perType) {
     ocrCommApiFactory_t *base = (ocrCommApiFactory_t*)
-        runtimeChunkAlloc(sizeof(ocrCommApiFactoryHandleless_t), (void *)1);
+        runtimeChunkAlloc(sizeof(ocrCommApiFactoryHandleless_t), NONPERSISTENT_CHUNK);
 
     base->instantiate = newCommApiHandleless;
     base->initialize = initializeCommApiHandleless;

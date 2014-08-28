@@ -584,7 +584,7 @@ ocrPolicyDomain_t * newPolicyDomainXe(ocrPolicyDomainFactory_t * factory,
 #endif
                                       ocrCost_t *costFunction, ocrParamList_t *perInstance) {
 
-    ocrPolicyDomainXe_t * derived = (ocrPolicyDomainXe_t *) runtimeChunkAlloc(sizeof(ocrPolicyDomainXe_t), NULL);
+    ocrPolicyDomainXe_t * derived = (ocrPolicyDomainXe_t *) runtimeChunkAlloc(sizeof(ocrPolicyDomainXe_t), PERSISTENT_CHUNK);
     ocrPolicyDomain_t * base = (ocrPolicyDomain_t *) derived;
 
     ASSERT(base);
@@ -615,7 +615,7 @@ static void destructPolicyDomainFactoryXe(ocrPolicyDomainFactory_t * factory) {
 }
 
 ocrPolicyDomainFactory_t * newPolicyDomainFactoryXe(ocrParamList_t *perType) {
-    ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryXe_t), (void *)1);
+    ocrPolicyDomainFactory_t* base = (ocrPolicyDomainFactory_t*) runtimeChunkAlloc(sizeof(ocrPolicyDomainFactoryXe_t), NONPERSISTENT_CHUNK);
 
     ASSERT(base); // Check allocation
 
