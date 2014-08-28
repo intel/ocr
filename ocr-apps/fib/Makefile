@@ -22,3 +22,6 @@ run:
 
 clean:
 	@$(MAKE) -f Makefile.$(ARCH) $@
+
+uninstall:
+	@$(MAKE) -f Makefile.$(ARCH) $@

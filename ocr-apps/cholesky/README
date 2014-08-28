@@ -5,6 +5,6 @@ make -f Makefile.<ARCH> run <input_size> <tile_size> <input_file_name_in_absolut
 NOTE: Whenever any of the arguments to the app change, do a "make -f Makefile.whole-fsim clean" before the next rerun
 
 For e.g., try
-make -f Makefile.whole-fsim run 50 10 ${PWD}/m_50.in
+make -f Makefile.whole-fsim run 50 10 ${PWD}/../../../apps/cholesky/datasets/m_50.in
 Look for the output matrix under
 install/whole-fsim/logs/ocr-cholesky.log.brd00.dram00.app_output

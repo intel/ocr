@@ -2,6 +2,10 @@
 # and cannot be distributed without it. This notice cannot be
 # removed or modified.
 
+# APPS
+APPS_ROOT       ?= ../../../apps
+APPS_LIBS_ROOT  ?= ../../../apps/libs/tg
+
 # ARCH
 ARCH        ?= whole-fsim
 
@@ -32,13 +36,15 @@ RUN_JENKINS ?= no
 
 ## END of variables coming from user/environment
 
-VALIDGOALS := all debug install run
+VALIDGOALS := all debug install run clean uninstall
 
 WORKLOAD_ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
 WORKLOAD_NEW_ARGS := $(wordlist 1,2,$(WORKLOAD_ARGS))
 WORKLOAD_NEW_ARGS += cholesky_out.bin
 
 TARGET = cholesky
+
+REQ_LIBS = libc
 
 SRCS := cholesky.c
 
@@ -62,4 +68,4 @@ $(WORKLOAD_BUILD_ROOT)/$(ARCH)/convertData.exe: convertData.c
 	mkdir -p $(WORKLOAD_BUILD_ROOT)/$(ARCH)
 	gcc -m64 -o $@ $^
 
-include ${WORKLOAD_SRC}/../make-fsim.inc
+include ${APPS_ROOT}/makefiles/make-fsim.inc

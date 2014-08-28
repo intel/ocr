@@ -2,6 +2,10 @@
 # and cannot be distributed without it. This notice cannot be
 # removed or modified.
 
+# APPS
+APPS_ROOT       ?= ../../../apps
+APPS_LIBS_ROOT  ?= ../../../apps/libs/x86
+
 # ARCH
 ARCH        ?= x86-pthread-x86
 # OCR
@@ -34,6 +38,8 @@ debug:	default
 
 install: all
 
-VALIDGOALS := all debug install
+VALIDGOALS := all debug install run clean uninstall
 
-include ${WORKLOAD_SRC}/../make-regular.inc
+prerun:
+
+include ${APPS_ROOT}/makefiles/make-regular.inc

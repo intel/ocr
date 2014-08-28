@@ -13,6 +13,7 @@ jobtype_ocr_build_kernel = {
     'sandbox': ('local', 'shared', 'shareOK'),
     'env-vars': { 'TG_INSTALL': '${JJOB_ENVDIR}',
                   'TG_SRC': '${JJOB_INITDIR}/ss',
+                  'APPS_ROOT': '${JJOB_INITDIR}/apps',
                   'OCR_SRC': '${JJOB_PRIVATE_HOME}/ocr',
                   'OCR_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/install',
                   'OCR_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/build'}
@@ -27,6 +28,7 @@ jobtype_ocr_run_kernel_local = {
     'timeout': 300,
     'sandbox': ('shared', 'shareOK'),
     'env-vars': { 'TG_INSTALL': '${JJOB_ENVDIR}',
+                  'APPS_ROOT': '${JJOB_INITDIR}/apps',
                   'OCR_BUILD_ROOT': '${JJOB_PARENT_PRIVATE_HOME_0}/ocr/build',
                   'OCR_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/install'}
 }
@@ -42,6 +44,7 @@ jobtype_ocr_run_kernel_remote = {
     'timeout': 300,
     'sandbox': ('shared', 'shareOK'),
     'env-vars': { 'TG_INSTALL': '${JJOB_ENVDIR}',
+                  'APPS_ROOT': '${JJOB_INITDIR}/apps',
                   'OCR_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/install'}
 }
 
@@ -75,7 +78,8 @@ job_ocr_build_kernel_fib_x86 = {
     'jobtype': 'ocr-build-kernel',
     'run-args': 'fib x86-pthread-x86',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
+                  'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
                   'WORKLOAD_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/ocr-apps/fib/build',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install'}
 }
@@ -86,7 +90,8 @@ job_ocr_run_kernel_fib_x86 = {
     'jobtype': 'ocr-run-kernel-local',
     'run-args': 'fib x86-pthread-x86',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
+                  'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install' }
 }
 
@@ -105,7 +110,8 @@ job_ocr_build_kernel_fib_tgemul = {
     'jobtype': 'ocr-build-kernel',
     'run-args': 'fib x86-pthread-fsim',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
+                  'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
                   'WORKLOAD_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/ocr-apps/fib/build',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install'}
 }
@@ -116,7 +122,8 @@ job_ocr_run_kernel_fib_tgemul = {
     'jobtype': 'ocr-run-kernel-local',
     'run-args': 'fib x86-pthread-fsim',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
+                  'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install'}
 }
 
@@ -136,7 +143,8 @@ job_ocr_build_kernel_fib_fsim = {
     'jobtype': 'ocr-build-kernel',
     'run-args': 'fib whole-fsim',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/tg',
+                  'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
                   'WORKLOAD_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/ocr-apps/fib/build',
                   'WORKLOAD_ARGS': '9',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install'}
@@ -149,7 +157,8 @@ job_ocr_run_kernel_fib_fsim = {
     'run-args': 'fib whole-fsim',
     'param-args': '-c ${WORKLOAD_INSTALL_ROOT}/whole-fsim/config.cfg',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install'}
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/tg',
+                  'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install'}
 }
 
 job_ocr_verify_kernel_fib_fsim = {
@@ -169,7 +178,8 @@ job_ocr_build_kernel_fft_x86 = {
     'jobtype': 'ocr-build-kernel',
     'run-args': 'fft x86-pthread-x86',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
+                  'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
                   'WORKLOAD_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/ocr-apps/fft/build',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install'}
 }
@@ -180,7 +190,8 @@ job_ocr_run_kernel_fft_x86 = {
     'jobtype': 'ocr-run-kernel-local',
     'run-args': 'fft x86-pthread-x86',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
+                  'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install' }
 }
 
@@ -199,7 +210,8 @@ job_ocr_build_kernel_fft_tgemul = {
     'jobtype': 'ocr-build-kernel',
     'run-args': 'fft x86-pthread-fsim',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
+                  'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
                   'WORKLOAD_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/ocr-apps/fft/build',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install'}
 }
@@ -210,7 +222,8 @@ job_ocr_run_kernel_fft_tgemul = {
     'jobtype': 'ocr-run-kernel-local',
     'run-args': 'fft x86-pthread-fsim',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
+                  'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install'}
 }
 
@@ -230,7 +243,8 @@ job_ocr_build_kernel_fft_fsim = {
     'jobtype': 'ocr-build-kernel',
     'run-args': 'fft whole-fsim',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/tg',
+                  'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
                   'WORKLOAD_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/ocr-apps/fft/build',
                   'WORKLOAD_ARGS': '9',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install'}
@@ -243,7 +257,8 @@ job_ocr_run_kernel_fft_fsim = {
     'run-args': 'fft whole-fsim',
     'param-args': '-c ${WORKLOAD_INSTALL_ROOT}/whole-fsim/config.cfg',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install'}
+    'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/tg',
+                  'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install'}
 }
 
 job_ocr_verify_kernel_fft_fsim = {
