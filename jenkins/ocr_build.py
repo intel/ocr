@@ -20,8 +20,8 @@ jobtype_ocr_build = {
     'keywords': ('ocr', 'percommit'),
     'timeout': 120,
     'sandbox': ('local', 'shared', 'shareOK'),
-    'env-vars': {'RMD_INSTALL': '${JJOB_ENVDIR}',
-                 'RMD_SRC': '${JJOB_PRIVATE_HOME}/ss',
+    'env-vars': {'TG_INSTALL': '${JJOB_ENVDIR}',
+                 'TG_SRC': '${JJOB_PRIVATE_HOME}/ss',
                  'OCR_SRC': '${JJOB_PRIVATE_HOME}/ocr',
                  'OCR_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/build',
                  'OCR_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/install'}

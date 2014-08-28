@@ -17,10 +17,10 @@ endif
 # Tool-chain to be used for the build
 #
 
-RMD_INSTALL ?= ../../../ss/install
+TG_INSTALL ?= ../../../ss/install
 
 CC      := gcc
-CFLAGS  := -fno-builtin -fno-stack-protector -Wno-unused-local-typedefs -I ${RMD_INSTALL}/include
+CFLAGS  := -fno-builtin -fno-stack-protector -Wno-unused-local-typedefs -I ${TG_INSTALL}/include
 
 RM      := rm
 RMFLAGS := -rf

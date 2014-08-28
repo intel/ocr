@@ -5,9 +5,9 @@
 # ARCH
 ARCH        ?= whole-fsim
 
-# RMD
-RMD_INSTALL ?= ../../../ss/install
-RMD_SRC     ?= ../../../ss
+# TG
+TG_INSTALL ?= ../../../ss/install
+TG_SRC     ?= ../../../ss
 
 # OCR
 XE_TARGET   ?= fsim-null-fsim-xe

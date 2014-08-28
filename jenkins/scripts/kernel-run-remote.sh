@@ -12,7 +12,7 @@ WORKLOAD_EXEC=${WORKLOAD_INSTALL}
 mkdir -p ${WORKLOAD_EXEC}/logs
 rm -rf ${WORKLOAD_EXEC}/logs/*
 cd ${WORKLOAD_EXEC}
-WORKLOAD_EXEC=${WORKLOAD_EXEC} ${RMD_INSTALL}/bin/fsim-scripts/fsim-torque.sh -s -c ${WORKLOAD_INSTALL}/config.cfg
+WORKLOAD_EXEC=${WORKLOAD_EXEC} ${TG_INSTALL}/bin/fsim-scripts/fsim-torque.sh -s -c ${WORKLOAD_INSTALL}/config.cfg
 RETURN_CODE=$?
 
 if [ $RETURN_CODE -eq 0 ]; then

@@ -17,14 +17,14 @@ endif
 # Tool-chain to be used for the build
 #
 
-RMD_INSTALL ?= ../../../ss/install
+TG_INSTALL ?= ../../../ss/install
 
 #DEFAULT_CONFIG = ce-default.cfg      #Switch to this configuration file to go back to a single 256K memory allocator.
 DEFAULT_CONFIG = ce-multialloc-default.cfg
 
 
 CC      := gcc
-CFLAGS  := -fno-builtin -fno-stack-protector -Wno-unused-local-typedefs -I $(RMD_INSTALL)/include
+CFLAGS  := -fno-builtin -fno-stack-protector -Wno-unused-local-typedefs -I $(TG_INSTALL)/include
 
 RM      := rm
 RMFLAGS := -rf

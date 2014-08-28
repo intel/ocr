@@ -11,8 +11,8 @@ jobtype_ocr_build_kernel = {
     'keywords': ('ocr', 'percommit'),
     'timeout': 300,
     'sandbox': ('local', 'shared', 'shareOK'),
-    'env-vars': { 'RMD_INSTALL': '${JJOB_ENVDIR}',
-                  'RMD_SRC': '${JJOB_INITDIR}/ss',
+    'env-vars': { 'TG_INSTALL': '${JJOB_ENVDIR}',
+                  'TG_SRC': '${JJOB_INITDIR}/ss',
                   'OCR_SRC': '${JJOB_PRIVATE_HOME}/ocr',
                   'OCR_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/install',
                   'OCR_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/build'}
@@ -26,7 +26,7 @@ jobtype_ocr_run_kernel_local = {
     'keywords': ('ocr', 'percommit'),
     'timeout': 300,
     'sandbox': ('shared', 'shareOK'),
-    'env-vars': { 'RMD_INSTALL': '${JJOB_ENVDIR}',
+    'env-vars': { 'TG_INSTALL': '${JJOB_ENVDIR}',
                   'OCR_BUILD_ROOT': '${JJOB_PARENT_PRIVATE_HOME_0}/ocr/build',
                   'OCR_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/install'}
 }
@@ -41,7 +41,7 @@ jobtype_ocr_run_kernel_remote = {
     'keywords': ('ocr', 'percommit'),
     'timeout': 300,
     'sandbox': ('shared', 'shareOK'),
-    'env-vars': { 'RMD_INSTALL': '${JJOB_ENVDIR}',
+    'env-vars': { 'TG_INSTALL': '${JJOB_ENVDIR}',
                   'OCR_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/install'}
 }
 
