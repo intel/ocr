@@ -206,27 +206,33 @@ u8 hcSchedulerTake (ocrScheduler_t *self, u32 *count, ocrFatGuid_t *edts) {
     ocrWorkerHc_t *hcWorker = NULL;
     getCurrentEnv(NULL, &worker, NULL, NULL);
     hcWorker = (ocrWorkerHc_t*)worker;
+    ocrFatGuid_t popped;
+    u64 workerId;
 
     if(*count == 0) return 1; // No room to put anything
 
     ASSERT(edts != NULL); // Array should be allocated at least
 
-    u64 workerId = hcWorker->id;
-    // First try to pop
-    ocrWorkpile_t * wpToPop = popMappingOneToOne(self, workerId);
-    // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
-    // TODO: Add cost again
-    ocrFatGuid_t popped = wpToPop->fcts.pop(wpToPop, POP_WORKPOPTYPE, NULL);
+    {
+        START_PROFILE(sched_hc_Pop);
+        workerId = hcWorker->id;
+        // First try to pop
+        ocrWorkpile_t * wpToPop = popMappingOneToOne(self, workerId);
+        popped = wpToPop->fcts.pop(wpToPop, POP_WORKPOPTYPE, NULL);
+        EXIT_PROFILE;
+    }
+
+    START_PROFILE(sched_hc_Steal);
     if(NULL_GUID == popped.guid) {
         // If popping failed, try to steal
         hcWorkpileIterator_t* it = stealMappingOneToAllButSelf(self, workerId);
         while(workpileIteratorHasNext(it) && (NULL_GUID == popped.guid)) {
             ocrWorkpile_t * next = workpileIteratorNext(it);
-            // TODO sagnak, just to get it to compile, I am trickling down the 'cost' though it most probably is not the same
-            // TODO: Add cost again
             popped = next->fcts.pop(next, STEAL_WORKPOPTYPE, NULL);
         }
     }
+    EXIT_PROFILE;
+
     // In this implementation we expect the caller to have
     // allocated memory for us since we can return at most one
     // guid (most likely store using the address of a local)
