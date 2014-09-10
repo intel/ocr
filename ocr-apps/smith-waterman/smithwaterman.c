@@ -293,23 +293,15 @@ static void initialize_border_values( Tile_t** tile_matrix, s32 n_tiles_width, s
 }
 
 static u32 __attribute__ ((noinline)) ioHandling ( void* marshalled, s32* p_n_tiles_height, s32* p_n_tiles_width, s32* p_tile_width, s32* p_tile_height, s8** p_string_1, s8** p_string_2) {
-    u64 argc = ((u64*) marshalled)[0];
+    u64 argc = getArgc(marshalled);
 
     if(argc < 5) {
 #ifdef TG_ARCH
-        PRINTF("Usage: %s tileWidth tileHeight string1Length string2Length\n", ((char*)(marshalled+((u64*) marshalled)[1]))/*argv[0]*/);
+        PRINTF("Usage: %s tileWidth tileHeight string1Length string2Length\n", getArgv(marshalled, 0)/*argv[0]*/);
 #else
-        PRINTF("Usage: %s fileName1 fileName2 tileWidth tileHeight\n", ((char*)(marshalled+((u64*) marshalled)[1]))/*argv[0]*/);
+        PRINTF("Usage: %s tileWidth tileHeight fileName1 fileName2\n", getArgv(marshalled, 0)/*argv[0]*/);
 #endif
         return 1;
-    }
-
-    u32 i;
-    char *dbAsChar = (char *)(marshalled);
-    u64* dbAsU64 = (u64*)(marshalled);
-    u64 offsets[6];
-    for (i = 0; i < argc; i++) {
-        offsets[i] = dbAsU64[i+1];
     }
 
     u32 n_char_in_file_1 = 0;
@@ -318,17 +310,17 @@ static u32 __attribute__ ((noinline)) ioHandling ( void* marshalled, s32* p_n_ti
     s8 *file_name_2;
 
 #ifdef TG_ARCH
-    *p_tile_width = (s32) atoi(dbAsChar+offsets[1]);
-    *p_tile_height = (s32) atoi(dbAsChar+offsets[2]);
-    n_char_in_file_1 = (s32) atoi(dbAsChar+offsets[3]);
-    n_char_in_file_2 = (s32) atoi(dbAsChar+offsets[4]);
+    *p_tile_width = (s32) atoi(getArgv(marshalled, 1));
+    *p_tile_height = (s32) atoi(getArgv(marshalled, 2));
+    n_char_in_file_1 = (s32) atoi(getArgv(marshalled, 3));
+    n_char_in_file_2 = (s32) atoi(getArgv(marshalled, 4));
     file_name_1 = NULL; // Doesn't matter anyway
     file_name_2 = NULL; // since the filename is immaterial
 #else
-    file_name_1 = dbAsChar+offsets[1];
-    file_name_2 = dbAsChar+offsets[2];
-    *p_tile_width = (s32) atoi(dbAsChar+offsets[3]);
-    *p_tile_height = (s32) atoi(dbAsChar+offsets[4]);
+    *p_tile_width = (s32) atoi(getArgv(marshalled, 1));
+    *p_tile_height = (s32) atoi(getArgv(marshalled, 2));
+    file_name_1 = getArgv(marshalled, 3);
+    file_name_2 = getArgv(marshalled, 4);
 #endif
 
     *p_string_1 = read_file(file_name_1, &n_char_in_file_1);

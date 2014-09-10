@@ -22,13 +22,28 @@ OCR_INSTALL_ROOT ?= ../../install
 OCR_SRC     ?= ../..
 OCR_BUILD_ROOT   ?= ../../build/
 
-# Application
+# APPLICATION
 WORKLOAD_SRC          ?= .
 WORKLOAD_BUILD_ROOT   ?= ./build
 WORKLOAD_INSTALL_ROOT ?= ./install
 
-# Run mode
+# If 0, the workload has no input file
+# If 1+, this is the index in the argument
+# list after which everything is considered an
+# input file. Note that the index STARTS AT 1
+WORKLOAD_INPUT_FILE_IDX := 0
 
+# You can specify default arguments here. These
+# will be overriden by (in order):
+#   - the WORKLOAD_ARGS environment variable
+#   - the arguments passed to 'make run'
+# To restate, the arguments passed to make run have
+# the highest priority and will override both the
+# default arguments here and the ones passed through
+# an environment variable
+WORKLOAD_ARGS ?= 0
+
+# Run mode (not fully supported)
 # Set to "yes" if running with torque
 RUN_TORQUE ?= no
 # Set to "yes" if Jenkins is running this job as an automated test
@@ -36,20 +51,23 @@ RUN_JENKINS ?= no
 
 ## END of variables coming from user/environment
 
-VALIDGOALS := all debug install run clean uninstall
+include ${APPS_ROOT}/makefiles/make-pre.inc
 
-WORKLOAD_ARGS := $(filter-out $(VALIDGOALS),$(MAKECMDGOALS))
-WORKLOAD_NEW_ARGS := $(lastword $(WORKLOAD_ARGS))
-
+# Name of the application to build
 TARGET = fft
 
-SRCS := fft.c verify.c
-
-CFLAGS :=
-LDFLAGS :=
-
+# Space separated list of directory names in apps/libs/src
+# that need to be built. These will be built for ARCH
 REQ_LIBS := libc
 
+# Space separated list of source files
+SRCS := fft.c verify.c
+
+# Targets:
+#   - all:     Build the application.
+#   - debug:   Build the debug version of the application
+#   - install: Build and install
+#   - run:     Run the application
 all:	CFLAGS += -O2
 all:	TARGETS := all
 all:	default
@@ -58,9 +76,42 @@ debug:	CFLAGS += -O0
 debug:	TARGETS := debug
 debug:	default
 
-prerun:
-
 install: all
 
+# This rule will be executed prior to execution:
+#  - For the FSim target, this happens when the binary is built
+#  - For all other targets this happens prior to running the
+#    executable
+# WORKLOAD_ARGS and WORKLOAD_INPUTS are available
+# to you and contain, respectively, the non file
+# arguments and the file arguments. They will be
+# passed directly to the application unless you
+# modify them. You can use the following
+# syntax to do so:
+# $(eval WORKLOAD_INPUTS := something) or
+# $(eval WORKLOAD_INPUTS := $(shell <script>))
+# The second syntax will execute <script> and assign
+# its output to WORKLOAD_INPUTS
+#
+# You may also want to assign a value to WORKLOAD_OUTS
+# which should contain the list of output files produced
+# by the application (to be passed to postrun). This is
+# taken-care of for you on FSim but not on any of the
+# other platforms.
+# 'prerun: ;' is an empty rule (the rule is required)
+.PHONY: prerun
+prerun: ;
+
+# This rule will be executed after execution
+# The variable ${WORKLOAD_OUTS} contains a space separated
+# list of output files
+# 'postrun: ;' is an empty rule (the rule is required)
+.PHONY: postrun
+postrun: ;
+
+# Any additional rules required can go here
+
+# Include common part
 include ${APPS_ROOT}/makefiles/make-fsim.inc
+
 

@@ -1,10 +1,8 @@
 Running:
 
-make -f Makefile.<ARCH> run <string1_file> <string2_file> <tile_width> <tile_height>
-
-NOTE: Whenever any of the arguments to the app change, do a "make -f Makefile.whole-fsim clean" before the next rerun
+make -f Makefile.<ARCH> run <tile_width> <tile_height> <string1_file> <string2_file>
 
 For e.g., try
-make -f Makefile.whole-fsim run ${PWD}/../../../apps/smithwaterman/datasets/string1-medium.txt ${PWD}/../../../apps/smithwaterman/datasets/string2-medium.txt 10 10
+make -f Makefile.whole-fsim run 10 10 ${PWD}/../../../apps/smithwaterman/datasets/string1-medium.txt ${PWD}/../../../apps/smithwaterman/datasets/string2-medium.txt
 look for the CONSOLE output by doing
 grep CONSOLE install/whole-fsim/logs/ocr-smithwaterman.log.brd00.chp00.unt00.blk00.CE.00

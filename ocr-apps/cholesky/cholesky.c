@@ -400,11 +400,9 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     u32 i, j, k;
     double **matrix, ** temp;
     u64 argc;
-    u64 offsets[4];
 
     void *programArg = depv[0].ptr;
-    u64* dbAsU64 = (u64*)programArg;
-    argc = dbAsU64[0];
+    argc = getArgc(programArg);
 
     if ( argc !=  4 ) {
         PRINTF("Usage: ./cholesky matrixSize tileSize fileName (found %lld args)\n", argc);
@@ -412,13 +410,8 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
         return 1;
     }
 
-    for (i=0; i< argc; i++) {
-        offsets[i] = dbAsU64[i+1];
-    }
-    char *dbAsChar = (char*)programArg;
-
-    matrixSize = atoi(dbAsChar+offsets[1]);
-    tileSize = atoi(dbAsChar+offsets[2]);
+    matrixSize = atoi(getArgv(programArg, 1));
+    tileSize = atoi(getArgv(programArg, 2));
 
     if ( matrixSize % tileSize != 0 ) {
         PRINTF("Incorrect tile size %d for the matrix of size %d \n", tileSize, matrixSize);
@@ -429,9 +422,9 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 #ifndef TG_ARCH
     FILE *in;
-    in = fopen(dbAsChar+offsets[3], "r");
+    in = fopen(getArgv(programArg, 3), "r");
     if( !in ) {
-        PRINTF("Cannot find file: %s\n", dbAsChar+offsets[3]);
+        PRINTF("Cannot find file: %s\n", getArgv(programArg, 3));
         ocrShutdown();
         return NULL_GUID;
     }
