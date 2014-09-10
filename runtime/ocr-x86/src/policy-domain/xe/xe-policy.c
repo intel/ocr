@@ -281,14 +281,6 @@ static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
     }
 }
 
-static ocrFatGuid_t * getTaskGuidBuffer(ocrPolicyDomain_t *self, u32 count) {
-    ocrPolicyDomainXe_t * derived = (ocrPolicyDomainXe_t *)self;
-    ASSERT(derived->taskCounter < MAX_XE_TASK);
-    ocrFatGuid_t * bufPtr = &(derived->fguidPool[derived->taskCounter]);
-    derived->taskCounter += count;
-    return bufPtr;
-}
-
 static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
     u8 returnCode = 0;
     u32 type = ((*msg)->type & PD_MSG_TYPE_ONLY);
@@ -342,7 +334,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     case PD_MSG_EDTTEMP_CREATE: case PD_MSG_EDTTEMP_DESTROY:
     case PD_MSG_EVT_CREATE: case PD_MSG_EVT_DESTROY: case PD_MSG_EVT_GET:
     case PD_MSG_GUID_CREATE: case PD_MSG_GUID_INFO: case PD_MSG_GUID_DESTROY:
-    case PD_MSG_COMM_TAKE: case PD_MSG_COMM_GIVE:
+    case PD_MSG_COMM_TAKE:
     case PD_MSG_DEP_ADD: case PD_MSG_DEP_REGSIGNALER: case PD_MSG_DEP_REGWAITER:
     case PD_MSG_DEP_SATISFY: {
         START_PROFILE(pd_xe_OffloadtoCE);
@@ -355,21 +347,6 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                 ocrTaskTemplate_t *template = PD_MSG_FIELD(templateGuid).metaDataPtr;
                 PD_MSG_FIELD(paramc) = template->paramc;
             }
-#undef PD_MSG
-#undef PD_TYPE
-            EXIT_PROFILE;
-        }
-
-        if((msg->type & PD_MSG_TYPE_ONLY) == PD_MSG_COMM_GIVE) {
-            START_PROFILE(pd_xe_Give);
-#define PD_MSG msg
-#define PD_TYPE PD_MSG_COMM_GIVE
-            ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
-            ocrFatGuid_t * guidBuf = getTaskGuidBuffer(self, PD_MSG_FIELD(guidCount));
-            u32 i;
-            for (i = 0; i < PD_MSG_FIELD(guidCount); i++)
-                guidBuf[i] = PD_MSG_FIELD(guids)[i];
-            PD_MSG_FIELD(guids) = guidBuf;
 #undef PD_MSG
 #undef PD_TYPE
             EXIT_PROFILE;
@@ -402,6 +379,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     }
 
     // Messages are not handled at all
+    case PD_MSG_COMM_GIVE: // Give should only be triggered from the CE
     case PD_MSG_WORK_EXECUTE: case PD_MSG_DEP_UNREGSIGNALER:
     case PD_MSG_DEP_UNREGWAITER: case PD_MSG_SAL_PRINT:
     case PD_MSG_SAL_READ: case PD_MSG_SAL_WRITE:

@@ -13,8 +13,6 @@
 #include "ocr-policy-domain.h"
 #include "utils/ocr-utils.h"
 
-#define MAX_XE_TASK 16
-
 /******************************************************/
 /* OCR-XE POLICY DOMAIN                               */
 /******************************************************/
@@ -27,8 +25,6 @@ typedef struct {
     ocrPolicyDomain_t base;
     void *packedArgsLocation;  // Keep this here.  If moved around, might make mismatch in
                                // .../ss/rmdkrnl/inc/rmd-bin-file.h, "magic" number XE_PDARGS_OFFSET.
-    ocrFatGuid_t fguidPool[MAX_XE_TASK]; // Hacky task pool; needs to replaced by real task pool
-    u32 taskCounter;
 } ocrPolicyDomainXe_t;
 
 ocrPolicyDomainFactory_t *newPolicyDomainFactoryXe(ocrParamList_t *perType);
