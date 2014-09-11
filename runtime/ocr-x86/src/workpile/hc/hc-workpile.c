@@ -21,7 +21,6 @@
 void hcWorkpileDestruct ( ocrWorkpile_t * base ) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*) base;
     derived->deque->destruct(base->pd, derived->deque);
-    base->pd->fcts.pdFree(base->pd, derived->deque);
     runtimeChunkFree((u64)base, NULL);
 }
 
@@ -34,6 +33,8 @@ void hcWorkpileStart(ocrWorkpile_t *base, ocrPolicyDomain_t *PD) {
     ocrWorkpileHc_t* derived = (ocrWorkpileHc_t*)base;
     base->pd = PD;
     derived->deque = newWorkStealingDeque(base->pd, (void *) NULL_GUID);
+    // Can switch to locked implementation for debugging purpose
+    // derived->deque = newLockedQueue(base->pd, (void *) NULL_GUID);
 }
 
 void hcWorkpileStop(ocrWorkpile_t *base) {

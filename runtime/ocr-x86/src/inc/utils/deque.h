@@ -12,7 +12,8 @@
 #include "ocr-policy-domain.h"
 
 #ifndef INIT_DEQUE_CAPACITY
-#define INIT_DEQUE_CAPACITY 128 /*32768*/
+// Set by configure
+#define INIT_DEQUE_CAPACITY 32768
 #endif
 
 /****************************************************/
@@ -21,13 +22,18 @@
 
 /**
  * @brief Type of deques
- *
  */
 typedef enum {
-    BASE_DEQUETYPE           = 0x1, // Basic deque
-    SINGLE_LOCKED_DEQUETYPE  = 0x2, // deque with single lock
-    DUAL_LOCKED_DEQUETYPE    = 0x3, // deque with dual lock
-    MAX_DEQUETYPE            = 0x4
+    // Virtual implementations
+    NO_LOCK_BASE_DEQUE       = 0x1,
+    SINGLE_LOCK_BASE_DEQUE   = 0x2,
+    DUAL_LOCK_BASE_DEQUE     = 0x3,
+    // Concrete implementations
+    WORK_STEALING_DEQUE      = 0x4,
+    NON_CONCURRENT_DEQUE     = 0x5,
+    SEMI_CONCURRENT_DEQUE    = 0x6,
+    LOCKED_DEQUE             = 0x7,
+    MAX_DEQUETYPE            = 0x8
 } ocrDequeType_t;
 
 /****************************************************/
@@ -38,13 +44,7 @@ typedef enum {
  * @brief Deques are double ended queues. They have a head and a tail.
  * In a typical queue, new elements are pushed at the
  * tail, while being popped from the head of the queue.
- * Many variations exist, one being the workstealing deque. The
- * workstealing deque is a concurrent deque that supports push
- * at the tail, and pop from either tail or head. Popping from the
- * head is usually called a steal.
- *
  */
-
 typedef struct _ocrDeque_t {
     ocrDequeType_t type;
     volatile s32 head;
@@ -76,6 +76,7 @@ typedef struct _ocrDeque_t {
 /* SINGLE LOCKED DEQUE                              */
 /****************************************************/
 
+// deque with single lock
 typedef struct _ocrDequeSingleLocked_t {
     deque_t base;
     volatile u32 lock;
@@ -85,6 +86,7 @@ typedef struct _ocrDequeSingleLocked_t {
 /* DUAL LOCKED DEQUE                                */
 /****************************************************/
 
+// deque with dual lock
 typedef struct _ocrDequeDualLocked_t {
     deque_t base;
     volatile u32 lockH;
@@ -94,8 +96,10 @@ typedef struct _ocrDequeDualLocked_t {
 /****************************************************/
 /* DEQUE API                                        */
 /****************************************************/
+
 deque_t* newWorkStealingDeque(ocrPolicyDomain_t *pd, void * initValue);
 deque_t* newNonConcurrentQueue(ocrPolicyDomain_t *pd, void * initValue);
 deque_t* newSemiConcurrentQueue(ocrPolicyDomain_t *pd, void * initValue);
+deque_t* newLockedQueue(ocrPolicyDomain_t *pd, void * initValue);
 
 #endif /* DEQUE_H_ */
