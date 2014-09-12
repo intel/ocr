@@ -1,7 +1,5 @@
 Running:
 
-make -f Makefile.<ARCH> run <fib_num>
-
-NOTE: Whenever any of the arguments to the app change, do a "make -f Makefile.whole-fsim clean" before the next rerun
+make -f Makefile.<OCR_TYPE> run <fib_num>
 
 where fib_num is the optional number you want to run fibonacci for; default 10

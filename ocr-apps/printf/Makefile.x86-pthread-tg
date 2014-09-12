@@ -6,14 +6,14 @@
 APPS_ROOT       ?= ../../../apps
 APPS_LIBS_ROOT  ?= ../../../apps/libs/x86
 
-# ARCH
-ARCH        ?= x86-pthread-fsim
+# OCR_TYPE
+OCR_TYPE        ?= x86-pthread-tg
 
 # OCR
-OCR_TARGET   ?= x86-pthread-fsim
-OCR_INSTALL_ROOT ?= ../../install
-OCR_SRC     ?= ../..
-OCR_BUILD_ROOT   ?= ../../build/
+OCR_TARGET   ?= x86-pthread-tg
+OCR_INSTALL_ROOT ?= ../../../ocr/install
+OCR_SRC     ?= ../../../ocr
+OCR_BUILD_ROOT   ?= ../../../ocr/build
 
 # APPLICATION
 WORKLOAD_SRC          ?= .
@@ -34,7 +34,7 @@ WORKLOAD_INPUT_FILE_IDX := 0
 # the highest priority and will override both the
 # default arguments here and the ones passed through
 # an environment variable
-WORKLOAD_ARGS ?= 0
+#WORKLOAD_ARGS ?=
 
 # Run mode (not fully supported)
 # Set to "yes" if running with torque
@@ -47,14 +47,14 @@ RUN_JENKINS ?= no
 include ${APPS_ROOT}/makefiles/make-pre.inc
 
 # Name of the application to build
-TARGET := fft
+TARGET := printf
 
 # Space separated list of directory names in apps/libs/src
 # that need to be built. These will be built for ARCH
 REQ_LIBS :=
 
 # Space separated list of source files
-SRCS := fft.c verify.c
+SRCS := printf.c
 
 # Additional CFLAGS. By default, it includes
 # all OCR required includes and apps/libs/<target>/include
@@ -64,7 +64,7 @@ CFLAGS :=
 # the required OCR library path and apps/libs/<target/lib
 # Note that none of the specific libraries specified in
 # REQ_LIBS are included.
-LDFLAGS := -lpthread -lm
+LDFLAGS := -lpthread
 
 # Targets:
 #   - all:     Build the application.

@@ -106,9 +106,9 @@ job_ocr_verify_kernel_fib_x86 = {
 
 job_ocr_build_kernel_fib_tgemul = {
     'name': 'ocr-build-kernel-fib-tgemul',
-    'depends': ('ocr-build-x86-pthread-fsim',),
+    'depends': ('ocr-build-x86-pthread-tg',),
     'jobtype': 'ocr-build-kernel',
-    'run-args': 'fib x86-pthread-fsim',
+    'run-args': 'fib x86-pthread-tg',
     'sandbox': ('inherit0',),
     'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
                   'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
@@ -120,7 +120,7 @@ job_ocr_run_kernel_fib_tgemul = {
     'name': 'ocr-run-kernel-fib-tgemul',
     'depends': ('ocr-build-kernel-fib-tgemul',),
     'jobtype': 'ocr-run-kernel-local',
-    'run-args': 'fib x86-pthread-fsim',
+    'run-args': 'fib x86-pthread-tg',
     'sandbox': ('inherit0',),
     'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
                   'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
@@ -133,15 +133,15 @@ job_ocr_verify_kernel_fib_tgemul = {
     'jobtype': 'ocr-verify-kernel-local',
     'run-args': '-w -c 1',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_EXEC': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install/x86-pthread-fsim'}
+    'env-vars': { 'WORKLOAD_EXEC': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install/x86-pthread-tg'}
 }
 
-job_ocr_build_kernel_fib_fsim = {
-    'name': 'ocr-build-kernel-fib-fsim',
-    'depends': ('ocr-build-x86-builder-fsim-ce', 'ocr-build-x86-builder-fsim-xe',
-                'ocr-build-fsim-null-fsim-ce', 'ocr-build-fsim-null-fsim-xe'),
+job_ocr_build_kernel_fib_tg = {
+    'name': 'ocr-build-kernel-fib-tg',
+    'depends': ('ocr-build-x86-builder-tg-ce', 'ocr-build-x86-builder-tg-xe',
+                'ocr-build-tg-null-tg-ce', 'ocr-build-tg-null-tg-xe'),
     'jobtype': 'ocr-build-kernel',
-    'run-args': 'fib whole-fsim',
+    'run-args': 'fib tg',
     'sandbox': ('inherit0',),
     'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/tg',
                   'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fib',
@@ -150,24 +150,24 @@ job_ocr_build_kernel_fib_fsim = {
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install'}
 }
 
-job_ocr_run_kernel_fib_fsim = {
-    'name': 'ocr-run-kernel-fib-fsim',
-    'depends': ('ocr-build-kernel-fib-fsim',),
+job_ocr_run_kernel_fib_tg = {
+    'name': 'ocr-run-kernel-fib-tg',
+    'depends': ('ocr-build-kernel-fib-tg',),
     'jobtype': 'ocr-run-kernel-remote',
-    'run-args': 'fib whole-fsim',
-    'param-args': '-c ${WORKLOAD_INSTALL_ROOT}/whole-fsim/config.cfg',
+    'run-args': 'fib tg',
+    'param-args': '-c ${WORKLOAD_INSTALL_ROOT}/tg/config.cfg',
     'sandbox': ('inherit0',),
     'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/tg',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install'}
 }
 
-job_ocr_verify_kernel_fib_fsim = {
-    'name': 'ocr-verify-kernel-fib-fsim',
-    'depends': ('ocr-run-kernel-fib-fsim',),
+job_ocr_verify_kernel_fib_tg = {
+    'name': 'ocr-verify-kernel-fib-tg',
+    'depends': ('ocr-run-kernel-fib-tg',),
     'jobtype': 'ocr-verify-kernel-remote',
     'run-args': '-w -c 1',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_EXEC': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install/whole-fsim'}
+    'env-vars': { 'WORKLOAD_EXEC': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fib/install/tg'}
 }
 
 # FFT
@@ -206,9 +206,9 @@ job_ocr_verify_kernel_fft_x86 = {
 
 job_ocr_build_kernel_fft_tgemul = {
     'name': 'ocr-build-kernel-fft-tgemul',
-    'depends': ('ocr-build-x86-pthread-fsim',),
+    'depends': ('ocr-build-x86-pthread-tg',),
     'jobtype': 'ocr-build-kernel',
-    'run-args': 'fft x86-pthread-fsim',
+    'run-args': 'fft x86-pthread-tg',
     'sandbox': ('inherit0',),
     'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
                   'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
@@ -220,7 +220,7 @@ job_ocr_run_kernel_fft_tgemul = {
     'name': 'ocr-run-kernel-fft-tgemul',
     'depends': ('ocr-build-kernel-fft-tgemul',),
     'jobtype': 'ocr-run-kernel-local',
-    'run-args': 'fft x86-pthread-fsim',
+    'run-args': 'fft x86-pthread-tg',
     'sandbox': ('inherit0',),
     'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/x86',
                   'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
@@ -233,15 +233,15 @@ job_ocr_verify_kernel_fft_tgemul = {
     'jobtype': 'ocr-verify-kernel-local',
     'run-args': '-w -c 1',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_EXEC': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install/x86-pthread-fsim'}
+    'env-vars': { 'WORKLOAD_EXEC': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install/x86-pthread-tg'}
 }
 
-job_ocr_build_kernel_fft_fsim = {
-    'name': 'ocr-build-kernel-fft-fsim',
-    'depends': ('ocr-build-x86-builder-fsim-ce', 'ocr-build-x86-builder-fsim-xe',
-                'ocr-build-fsim-null-fsim-ce', 'ocr-build-fsim-null-fsim-xe'),
+job_ocr_build_kernel_fft_tg = {
+    'name': 'ocr-build-kernel-fft-tg',
+    'depends': ('ocr-build-x86-builder-tg-ce', 'ocr-build-x86-builder-tg-xe',
+                'ocr-build-tg-null-tg-ce', 'ocr-build-tg-null-tg-xe'),
     'jobtype': 'ocr-build-kernel',
-    'run-args': 'fft whole-fsim',
+    'run-args': 'fft tg',
     'sandbox': ('inherit0',),
     'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/tg',
                   'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/fft',
@@ -250,22 +250,22 @@ job_ocr_build_kernel_fft_fsim = {
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install'}
 }
 
-job_ocr_run_kernel_fft_fsim = {
-    'name': 'ocr-run-kernel-fft-fsim',
-    'depends': ('ocr-build-kernel-fft-fsim',),
+job_ocr_run_kernel_fft_tg = {
+    'name': 'ocr-run-kernel-fft-tg',
+    'depends': ('ocr-build-kernel-fft-tg',),
     'jobtype': 'ocr-run-kernel-remote',
-    'run-args': 'fft whole-fsim',
-    'param-args': '-c ${WORKLOAD_INSTALL_ROOT}/whole-fsim/config.cfg',
+    'run-args': 'fft tg',
+    'param-args': '-c ${WORKLOAD_INSTALL_ROOT}/tg/config.cfg',
     'sandbox': ('inherit0',),
     'env-vars': { 'APPS_LIBS_ROOT': '${APPS_ROOT}/libs/tg',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install'}
 }
 
-job_ocr_verify_kernel_fft_fsim = {
-    'name': 'ocr-verify-kernel-fft-fsim',
-    'depends': ('ocr-run-kernel-fft-fsim',),
+job_ocr_verify_kernel_fft_tg = {
+    'name': 'ocr-verify-kernel-fft-tg',
+    'depends': ('ocr-run-kernel-fft-tg',),
     'jobtype': 'ocr-verify-kernel-remote',
     'run-args': '-w -c 1',
     'sandbox': ('inherit0',),
-    'env-vars': { 'WORKLOAD_EXEC': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install/whole-fsim'}
+    'env-vars': { 'WORKLOAD_EXEC': '${JJOB_SHARED_HOME}/ocr/ocr-apps/fft/install/tg'}
 }

@@ -4,16 +4,23 @@
 
 # APPS
 APPS_ROOT       ?= ../../../apps
-APPS_LIBS_ROOT  ?= ../../../apps/libs/x86
+APPS_LIBS_ROOT  ?= ../../../apps/libs/tg
 
-# ARCH
-ARCH        ?= x86-pthread-fsim
+# OCR_TYPE
+OCR_TYPE        ?= tg
+
+# TG
+TG_INSTALL ?= ../../../ss/install
+TG_SRC     ?= ../../../ss
 
 # OCR
-OCR_TARGET   ?= x86-pthread-fsim
-OCR_INSTALL_ROOT ?= ../../install
-OCR_SRC     ?= ../..
-OCR_BUILD_ROOT   ?= ../../build/
+XE_TARGET   ?= tg-null-tg-xe
+XE_BUILDER  ?= x86-builder-tg-xe
+CE_TARGET   ?= tg-null-tg-ce
+CE_BUILDER  ?= x86-builder-tg-ce
+OCR_INSTALL_ROOT ?= ../../../ocr/install
+OCR_SRC     ?= ../../../ocr
+OCR_BUILD_ROOT   ?= ../../../ocr/build/
 
 # APPLICATION
 WORKLOAD_SRC          ?= .
@@ -51,7 +58,7 @@ TARGET := cholesky
 
 # Space separated list of directory names in apps/libs/src
 # that need to be built. These will be built for ARCH
-REQ_LIBS :=
+REQ_LIBS := libc
 
 # Space separated list of source files
 SRCS := cholesky.c
@@ -64,7 +71,7 @@ CFLAGS :=
 # the required OCR library path and apps/libs/<target/lib
 # Note that none of the specific libraries specified in
 # REQ_LIBS are included.
-LDFLAGS := -lpthread -lm
+LDFLAGS :=
 
 # Targets:
 #   - all:     Build the application.
@@ -103,16 +110,22 @@ install: all
 # other platforms.
 # 'prerun: ;' is an empty rule (the rule is required)
 .PHONY: prerun
-prerun: ;
+prerun: $(WORKLOAD_BUILD_ROOT)/$(OCR_TYPE)/convertData.exe
+	./$^ $(WORKLOAD_ARGS) $(WORKLOAD_INPUTS)
+	$(eval WORKLOAD_INPUTS := cholesky_out.bin)
 
 # This rule will be executed after execution
 # The variable ${WORKLOAD_OUTS} contains a space separated
 # list of output files
-# 'postrun: ;' is an empty rule (the rule is required
-# to be present though)
+# 'postrun: ;' is an empty rule (the rule is required)
 .PHONY: postrun
 postrun: ;
 
-# Include common part
-include ${APPS_ROOT}/makefiles/make-regular.inc
+# Any additional rules required can go here
 
+$(WORKLOAD_BUILD_ROOT)/$(OCR_TYPE)/convertData.exe: convertData.c
+	mkdir -p $(WORKLOAD_BUILD_ROOT)/$(OCR_TYPE)
+	gcc -m64 -o $@ $^
+
+# Include common part
+include ${APPS_ROOT}/makefiles/make-tg.inc

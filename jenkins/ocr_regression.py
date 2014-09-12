@@ -22,11 +22,11 @@ job_ocr_regression_x86_pthread_x86 = {
     'sandbox': ('inherit0',)
 }
 
-job_ocr_regression_x86_pthread_fsim = {
-    'name': 'ocr-regression-x86-pthread-fsim',
-    'depends': ('ocr-build-x86-pthread-fsim',),
+job_ocr_regression_x86_pthread_tg = {
+    'name': 'ocr-regression-x86-pthread-tg',
+    'depends': ('ocr-build-x86-pthread-tg',),
     'jobtype': 'ocr-regression',
-    'run-args': 'x86-pthread-fsim',
+    'run-args': 'x86-pthread-tg',
     'sandbox': ('inherit0',)
 }
 

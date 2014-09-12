@@ -4,24 +4,24 @@
 
 MAKE := make
 
-ifndef ARCH
-  $(error Need to specify ARCH!)
+ifndef OCR_TYPE
+  $(error Need to specify OCR_TYPE!)
 endif
 
 all:
-	@$(MAKE) -f Makefile.$(ARCH) $@
+	@$(MAKE) -f Makefile.$(OCR_TYPE) $@
 
 debug:
-	@$(MAKE) -f Makefile.$(ARCH) $@
+	@$(MAKE) -f Makefile.$(OCR_TYPE) $@
 
 install:
-	@$(MAKE) -f Makefile.$(ARCH) $@
+	@$(MAKE) -f Makefile.$(OCR_TYPE) $@
 
 run:
-	@$(MAKE) -f Makefile.$(ARCH) $@
+	@$(MAKE) -f Makefile.$(OCR_TYPE) $@
 
 clean:
-	@$(MAKE) -f Makefile.$(ARCH) $@
+	@$(MAKE) -f Makefile.$(OCR_TYPE) $@
 
 uninstall:
-	@$(MAKE) -f Makefile.$(ARCH) $@
+	@$(MAKE) -f Makefile.$(OCR_TYPE) $@

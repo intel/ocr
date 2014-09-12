@@ -6,14 +6,14 @@
 APPS_ROOT       ?= ../../../apps
 APPS_LIBS_ROOT  ?= ../../../apps/libs/x86
 
-# ARCH
-ARCH        ?= x86-pthread-x86
+# OCR_TYPE
+OCR_TYPE        ?= x86-pthread-x86
 
 # OCR
 OCR_TARGET   ?= x86-pthread-x86
-OCR_INSTALL_ROOT ?= ../../install
-OCR_SRC     ?= ../..
-OCR_BUILD_ROOT   ?= ../../build/
+OCR_INSTALL_ROOT ?= ../../../ocr/install
+OCR_SRC     ?= ../../../ocr
+OCR_BUILD_ROOT   ?= ../../../ocr/build
 
 # APPLICATION
 WORKLOAD_SRC          ?= .

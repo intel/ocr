@@ -8,18 +8,18 @@
 
 .PHONY: default
 default:
-	@echo "Must specify an arch and a target, e.g.:"
+	@echo "Must specify an OCR version/type to build, e.g.:"
 	@echo ""
-	@echo "   ARCH=x86-pthread-x86 make all"
+	@echo "   OCR_TYPE=x86-pthread-x86 make all"
 	@echo ""
-	@echo "Valid architectures are:"
+	@echo "Valid version are:"
 	@echo ""
 	@echo "   x86-pthread-x86     -- OCR for X86 Linux machines"
-	@echo "   x86-pthread-fsim    -- OCR for Traleika Glacier FSIM but emulated on X86"
-	@echo "   fsim-null-fsim-ce   -- CE parts of OCR for Traleika Glacier FSIM"
-	@echo "   fsim-null-fsim-xe   -- XE parts of OCR for Traleika Glacier FSIM"
-	@echo "   x86-builder-fsim-ce -- CE struct builder for Traleika Glacier FSIM on X86"
-	@echo "   x86-builder-fsim-xe -- XE struct builder for Traleika Glacier FSIM on X86"
+	@echo "   x86-pthread-tg      -- OCR for Traleika Glacier but emulated on X86"
+	@echo "   tg-null-tg-ce       -- CE parts of OCR for Traleika Glacier"
+	@echo "   tg-null-tg-xe       -- XE parts of OCR for Traleika Glacier"
+	@echo "   x86-builder-tg-ce   -- CE struct builder for Traleika Glacier on X86"
+	@echo "   x86-builder-tg-xe   -- XE struct builder for Traleika Glacier on X86"
 	@echo ""
 	@echo "Valid targets are:"
 	@echo ""
@@ -36,41 +36,43 @@ default:
 
 .PHONY: all
 all:
-	@$(MAKE) -C $(ARCH) $@
+	@$(MAKE) -C $(OCR_TYPE) $@
 
 .PHONY: static
 static:
-	@$(MAKE) -C $(ARCH) $@
+	@$(MAKE) -C $(OCR_TYPE) $@
 
 .PHONY: shared
 shared:
-	@$(MAKE) -C $(ARCH) $@
+	@$(MAKE) -C $(OCR_TYPE) $@
 
 .PHONY: debug-static
 debug-static:
-	@$(MAKE) -C $(ARCH) $@
+	@$(MAKE) -C $(OCR_TYPE) $@
 
 .PHONY: debug-shared
 debug-shared:
-	@$(MAKE) -C $(ARCH) $@
+	@$(MAKE) -C $(OCR_TYPE) $@
 
 .PHONY: install
 install:
-	@$(MAKE) -C $(ARCH) $@
+	@$(MAKE) -C $(OCR_TYPE) $@
 
 .PHONY: uninstall
 uninstall:
-	@$(MAKE) -C $(ARCH) $@
+	@$(MAKE) -C $(OCR_TYPE) $@
 
 .PHONY: clean
 clean:
-	@$(MAKE) -C $(ARCH) $@
+	@$(MAKE) -C $(OCR_TYPE) $@
 
 .PHONY: squeaky
 squeaky:
-	ARCH=x86-pthread-x86 $(MAKE) -C x86-pthread-x86 clean uninstall
-	ARCH=x86-pthread-fsim $(MAKE) -C x86-pthread-fsim clean uninstall
-	ARCH=fsim-null-fsim-ce $(MAKE) -C fsim-null-fsim-ce clean uninstall
-	ARCH=fsim-null-fsim-xe $(MAKE) -C fsim-null-fsim-xe clean uninstall
-	ARCH=x86-builder-fsim-ce $(MAKE) -C x86-builder-fsim-ce clean uninstall
-	ARCH=x86-builder-fsim-xe $(MAKE) -C x86-builder-fsim-xe clean uninstall
+	OCR_TYPE=x86-pthread-x86 $(MAKE) -C x86-pthread-x86 clean uninstall
+	OCR_TYPE=x86-pthread-tg $(MAKE) -C x86-pthread-tg clean uninstall
+	OCR_TYPE=tg-null-tg-ce $(MAKE) -C tg-null-tg-ce clean uninstall
+	OCR_TYPE=tg-null-tg-xe $(MAKE) -C tg-null-tg-xe clean uninstall
+	OCR_TYPE=x86-builder-tg-ce $(MAKE) -C x86-builder-tg-ce clean uninstall
+	OCR_TYPE=x86-builder-tg-xe $(MAKE) -C x86-builder-tg-xe clean uninstall
+
+

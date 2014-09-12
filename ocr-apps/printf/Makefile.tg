@@ -6,21 +6,21 @@
 APPS_ROOT       ?= ../../../apps
 APPS_LIBS_ROOT  ?= ../../../apps/libs/tg
 
-# ARCH
-ARCH        ?= whole-fsim
+# OCR_TYPE
+OCR_TYPE        ?= tg
 
 # TG
 TG_INSTALL ?= ../../../ss/install
 TG_SRC     ?= ../../../ss
 
 # OCR
-XE_TARGET   ?= fsim-null-fsim-xe
-XE_BUILDER  ?= x86-builder-fsim-xe
-CE_TARGET   ?= fsim-null-fsim-ce
-CE_BUILDER  ?= x86-builder-fsim-ce
-OCR_INSTALL_ROOT ?= ../../install
-OCR_SRC     ?= ../..
-OCR_BUILD_ROOT   ?= ../../build/
+XE_TARGET   ?= tg-null-tg-xe
+XE_BUILDER  ?= x86-builder-tg-xe
+CE_TARGET   ?= tg-null-tg-ce
+CE_BUILDER  ?= x86-builder-tg-ce
+OCR_INSTALL_ROOT ?= ../../../ocr/install
+OCR_SRC     ?= ../../../ocr
+OCR_BUILD_ROOT   ?= ../../../ocr/build
 
 # APPLICATION
 WORKLOAD_SRC          ?= .
@@ -41,7 +41,7 @@ WORKLOAD_INPUT_FILE_IDX := 0
 # the highest priority and will override both the
 # default arguments here and the ones passed through
 # an environment variable
-WORKLOAD_ARGS ?= 10
+#WORKLOAD_ARGS ?=
 
 # Run mode (not fully supported)
 # Set to "yes" if running with torque
@@ -54,14 +54,14 @@ RUN_JENKINS ?= no
 include ${APPS_ROOT}/makefiles/make-pre.inc
 
 # Name of the application to build
-TARGET := fib
+TARGET := printf
 
 # Space separated list of directory names in apps/libs/src
 # that need to be built. These will be built for ARCH
 REQ_LIBS := libc
 
 # Space separated list of source files
-SRCS := fib.c
+SRCS := printf.c
 
 # Additional CFLAGS. By default, it includes
 # all OCR required includes and apps/libs/<target>/include
@@ -122,5 +122,5 @@ postrun: ;
 # Any additional rules required can go here
 
 # Include common part
-include ${APPS_ROOT}/makefiles/make-fsim.inc
+include ${APPS_ROOT}/makefiles/make-tg.inc
 

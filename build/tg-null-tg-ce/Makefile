@@ -6,24 +6,25 @@
 # Author: Ivan Ganev <ivan.b.ganev@intel.com>
 #
 
-ifndef ARCH
-ARCH=fsim-null-fsim-xe
+ifndef OCR_TYPE
+OCR_TYPE=tg-null-tg-ce
 else
-ifneq (${ARCH}, fsim-null-fsim-xe)
-$(error ARCH is set to ${ARCH} but expected fsim-null-fsim-xe)
+ifneq (${OCR_TYPE}, tg-null-tg-ce)
+$(error OCR_TYPE is set to ${OCR_TYPE} but expected tg-null-tg-ce)
 endif
 endif
 #
 # Tool-chain to be used for the build
 #
 
-DEFAULT_CONFIG = xe-default.cfg
-
 TG_INSTALL ?= ../../../ss/install
 
-PREFIX  := ${TG_INSTALL}/bin/rmd-linux-elf-
-CC      := $(PREFIX)clang
-CFLAGS  := -frmd-extensions -fno-builtin -I ${TG_INSTALL}/include
+#DEFAULT_CONFIG = ce-default.cfg      #Switch to this configuration file to go back to a single 256K memory allocator.
+DEFAULT_CONFIG = ce-multialloc-default.cfg
+
+
+CC      := gcc
+CFLAGS  := -fno-builtin -fno-stack-protector -Wno-unused-local-typedefs -I $(TG_INSTALL)/include
 
 RM      := rm
 RMFLAGS := -rf
@@ -42,10 +43,10 @@ CFLAGS_SHARED :=
 # Static libraries specific builds
 # Same as for CFLAGS_SHARED
 CFLAGS_STATIC :=
-AR := $(PREFIX)ar
+AR := ar
 ARFLAGS := cru
 
-RANLIB := $(PREFIX)ranlib
+RANLIB := ranlib
 
 # Library supported
 SUPPORTS_SHARED=no

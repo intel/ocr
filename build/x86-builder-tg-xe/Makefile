@@ -6,11 +6,11 @@
 # Author: Ivan Ganev <ivan.b.ganev@intel.com>
 #
 
-ifndef ARCH
-ARCH=x86-builder-fsim-xe
+ifndef OCR_TYPE
+OCR_TYPE=x86-builder-tg-xe
 else
-ifneq (${ARCH}, x86-builder-fsim-xe)
-$(error ARCH is set to ${ARCH} but expected x86-builder-fsim-xe)
+ifneq (${OCR_TYPE}, x86-builder-tg-xe)
+$(error OCR_TYPE is set to ${OCR_TYPE} but expected x86-builder-tg-xe)
 endif
 endif
 #

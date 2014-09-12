@@ -1,7 +1,5 @@
 Running:
 
-make -f Makefile.<ARCH> run <fft_size_in_power_of_2>
-
-NOTE: Whenever any of the arguments to the app change, do a "make -f Makefile.whole-fsim clean" before the next rerun
+make -f Makefile.<OCR_TYPE> run <fft_size_in_power_of_2>
 
 where fft_size_in_power_of_2 is the optional input data size for performing FFT on; default 0

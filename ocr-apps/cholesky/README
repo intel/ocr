@@ -1,10 +1,8 @@
 Running:
 
-make -f Makefile.<ARCH> run <input_size> <tile_size> <input_file_name_in_absolute_path>
-
-NOTE: Whenever any of the arguments to the app change, do a "make -f Makefile.whole-fsim clean" before the next rerun
+make -f Makefile.<OCR_TYPE> run <input_size> <tile_size> <input_file_name_in_absolute_path>
 
 For e.g., try
-make -f Makefile.whole-fsim run 50 10 ${PWD}/../../../apps/cholesky/datasets/m_50.in
+make -f Makefile.tg run 50 10 ${PWD}/../../../apps/cholesky/datasets/m_50.in
 Look for the output matrix under
-install/whole-fsim/logs/ocr-cholesky.log.brd00.dram00.app_output
+install/tg/logs/ocr-cholesky.log.brd00.dram00.app_output

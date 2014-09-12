@@ -403,12 +403,19 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 
     void *programArg = depv[0].ptr;
     argc = getArgc(programArg);
-
+#ifndef TG_ARCH
     if ( argc !=  4 ) {
         PRINTF("Usage: ./cholesky matrixSize tileSize fileName (found %lld args)\n", argc);
         ocrShutdown();
         return 1;
     }
+#else
+    if ( argc != 3 ) {
+        PRINTF("Usage: ./cholesky matrixSize tileSize (found %lld args)\n", argc);
+        ocrShutdown();
+        return 1;
+    }
+#endif
 
     matrixSize = atoi(getArgv(programArg, 1));
     tileSize = atoi(getArgv(programArg, 2));

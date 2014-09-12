@@ -4,23 +4,16 @@
 
 # APPS
 APPS_ROOT       ?= ../../../apps
-APPS_LIBS_ROOT  ?= ../../../apps/libs/tg
+APPS_LIBS_ROOT  ?= ../../../apps/libs/x86
 
-# ARCH
-ARCH        ?= whole-fsim
-
-# TG
-TG_INSTALL ?= ../../../ss/install
-TG_SRC     ?= ../../../ss
+# OCR_TYPE
+OCR_TYPE        ?= x86-pthread-tg
 
 # OCR
-XE_TARGET   ?= fsim-null-fsim-xe
-XE_BUILDER  ?= x86-builder-fsim-xe
-CE_TARGET   ?= fsim-null-fsim-ce
-CE_BUILDER  ?= x86-builder-fsim-ce
-OCR_INSTALL_ROOT ?= ../../install
-OCR_SRC     ?= ../..
-OCR_BUILD_ROOT   ?= ../../build/
+OCR_TARGET   ?= x86-pthread-tg
+OCR_INSTALL_ROOT ?= ../../../ocr/install
+OCR_SRC     ?= ../../../ocr
+OCR_BUILD_ROOT   ?= ../../../ocr/build/
 
 # APPLICATION
 WORKLOAD_SRC          ?= .
@@ -31,7 +24,7 @@ WORKLOAD_INSTALL_ROOT ?= ./install
 # If 1+, this is the index in the argument
 # list after which everything is considered an
 # input file. Note that the index STARTS AT 1
-WORKLOAD_INPUT_FILE_IDX := 0
+WORKLOAD_INPUT_FILE_IDX := 3
 
 # You can specify default arguments here. These
 # will be overriden by (in order):
@@ -41,7 +34,7 @@ WORKLOAD_INPUT_FILE_IDX := 0
 # the highest priority and will override both the
 # default arguments here and the ones passed through
 # an environment variable
-WORKLOAD_ARGS ?= 0
+#WORKLOAD_ARGS ?=
 
 # Run mode (not fully supported)
 # Set to "yes" if running with torque
@@ -54,14 +47,24 @@ RUN_JENKINS ?= no
 include ${APPS_ROOT}/makefiles/make-pre.inc
 
 # Name of the application to build
-TARGET = fft
+TARGET := cholesky
 
 # Space separated list of directory names in apps/libs/src
 # that need to be built. These will be built for ARCH
-REQ_LIBS := libc
+REQ_LIBS :=
 
 # Space separated list of source files
-SRCS := fft.c verify.c
+SRCS := cholesky.c
+
+# Additional CFLAGS. By default, it includes
+# all OCR required includes and apps/libs/<target>/include
+# TG_ARCH is also defined for Fsim
+CFLAGS :=
+# Additional LDFLAGS. By default, it includes
+# the required OCR library path and apps/libs/<target/lib
+# Note that none of the specific libraries specified in
+# REQ_LIBS are included.
+LDFLAGS := -lpthread -lm
 
 # Targets:
 #   - all:     Build the application.
@@ -105,13 +108,11 @@ prerun: ;
 # This rule will be executed after execution
 # The variable ${WORKLOAD_OUTS} contains a space separated
 # list of output files
-# 'postrun: ;' is an empty rule (the rule is required)
+# 'postrun: ;' is an empty rule (the rule is required
+# to be present though)
 .PHONY: postrun
 postrun: ;
 
-# Any additional rules required can go here
-
 # Include common part
-include ${APPS_ROOT}/makefiles/make-fsim.inc
-
+include ${APPS_ROOT}/makefiles/make-regular.inc
 

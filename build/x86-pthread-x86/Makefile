@@ -6,11 +6,11 @@
 # Author: Ivan Ganev <ivan.b.ganev@intel.com>
 #
 
-ifndef ARCH
-ARCH=x86-pthread-x86
+ifndef OCR_TYPE
+OCR_TYPE=x86-pthread-x86
 else
-ifneq (${ARCH}, x86-pthread-x86)
-$(error ARCH is set to ${ARCH} but expected x86-pthread-x86)
+ifneq (${OCR_TYPE}, x86-pthread-x86)
+$(error OCR_TYPE is set to ${OCR_TYPE} but expected x86-pthread-x86)
 endif
 endif
 

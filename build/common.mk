@@ -2,7 +2,6 @@
 # OCR top level directory
 #
 OCR_SRC ?= ../..
-RMDKRNL_INC ?= ../../../ss/rmdkrnl/inc
 OCR_INSTALL_ROOT ?= ../../install
 
 OCR_BUILD := .
@@ -11,11 +10,10 @@ OCR_BUILD := .
 # Make sure we have absolute paths
 #
 OCR_SRC := $(shell cd "${OCR_SRC}" && pwd)
-RMDKRNL_INC := $(shell cd "${RMDKRNL_INC}" && pwd)
 OCR_INSTALL_ROOT := $(shell mkdir -p "${OCR_INSTALL_ROOT}" && cd "${OCR_INSTALL_ROOT}" && pwd)
 OCR_BUILD := $(shell cd "${OCR_BUILD}" && pwd)
 
-OCR_INSTALL := $(OCR_INSTALL_ROOT)/$(ARCH)
+OCR_INSTALL := $(OCR_INSTALL_ROOT)/$(OCR_TYPE)
 
 #
 # Object & dependence file subdirectory
@@ -108,23 +106,23 @@ OBJS_EXEC     := $(addprefix $(OBJDIR)/exec/, $(addsuffix .o, $(basename $(notdi
 
 
 # Update include paths
-CFLAGS := -I . -I $(OCR_SRC)/inc -I $(OCR_SRC)/src -I $(OCR_SRC)/src/inc -I$(RMDKRNL_INC) $(CFLAGS)
+CFLAGS := -I . -I $(OCR_SRC)/inc -I $(OCR_SRC)/src -I $(OCR_SRC)/src/inc $(CFLAGS)
 
-# Static library name (only set if not set in ARCH specific file)
+# Static library name (only set if not set in OCR_TYPE specific file)
 ifeq (${SUPPORTS_STATIC}, yes)
 OCRSTATIC ?= libocr.a
 OCRSTATIC := $(OCR_BUILD)/$(OCRSTATIC)
 CFLAGS_STATIC ?=
 CFLAGS_STATIC := ${CFLAGS} ${CFLAGS_STATIC}
 endif
-# Shared library name (only set if not set in ARCH specific file)
+# Shared library name (only set if not set in OCR_TYPE specific file)
 ifeq (${SUPPORTS_SHARED}, yes)
 CFLAGS_SHARED ?=
 CFLAGS_SHARED := ${CFLAGS} ${CFLAGS_SHARED}
 OCRSHARED ?= libocr.so
 OCRSHARED := $(OCR_BUILD)/$(OCRSHARED)
 endif
-# Executable name (only set if not set in ARCH specific file)
+# Executable name (only set if not set in OCR_TYPE specific file)
 ifeq (${SUPPORTS_EXEC}, yes)
 CFLAGS_EXEC ?=
 CFLAGS_EXEC := ${CFLAGS} ${CFLAGS_EXEC}
@@ -170,7 +168,7 @@ $(OCR_BUILD)/src:
 .PHONY: supports-static
 supports-static:
 ifneq (${SUPPORTS_STATIC}, yes)
-	$(error Architecture ${ARCH} does not support static library building)
+	$(error OCR type ${OCR_TYPE} does not support static library building)
 endif
 
 ${OBJDIR}/static:
@@ -192,7 +190,7 @@ $(OCRSTATIC): $(OBJS_STATIC)
 .PHONY: supports-shared
 supports-shared:
 ifneq (${SUPPORTS_SHARED}, yes)
-	$(error Architecture ${ARCH} does not support shared library building)
+	$(error OCR type ${OCR_TYPE} does not support shared library building)
 endif
 
 ${OBJDIR}/shared:
@@ -212,7 +210,7 @@ $(OCRSHARED): $(OBJS_SHARED)
 .PHONY: supports-exec
 supports-exec:
 ifneq (${SUPPORTS_EXEC}, yes)
-	$(error Architecture ${ARCH} does not support executable binary building)
+	$(error OCR type ${OCR_TYPE} does not support executable binary building)
 endif
 
 ${OBJDIR}/exec:
@@ -301,9 +299,9 @@ install: ${INSTALL_TARGETS}
 	fi
 	@$(MKDIR) -p $(OCR_INSTALL)/include
 	@$(CP) -r $(OCR_SRC)/inc/* $(OCR_INSTALL)/include
-	@if [ -d $(OCR_SRC)/machine-configs/$(ARCH) ]; then \
+	@if [ -d $(OCR_SRC)/machine-configs/$(OCR_TYPE) ]; then \
 		$(MKDIR) -p $(OCR_INSTALL)/config; \
-		$(CP) -r $(OCR_SRC)/machine-configs/$(ARCH)/* $(OCR_INSTALL)/config; \
+		$(CP) -r $(OCR_SRC)/machine-configs/$(OCR_TYPE)/* $(OCR_INSTALL)/config; \
 		$(LN) -fs ./$(DEFAULT_CONFIG) $(OCR_INSTALL)/config/default.cfg; \
 	fi
 

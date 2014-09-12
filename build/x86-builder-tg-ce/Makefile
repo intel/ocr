@@ -6,11 +6,11 @@
 # Author: Ivan Ganev <ivan.b.ganev@intel.com>
 #
 
-ifndef ARCH
-ARCH=fsim-null-fsim-ce
+ifndef OCR_TYPE
+OCR_TYPE=x86-builder-tg-ce
 else
-ifneq (${ARCH}, fsim-null-fsim-ce)
-$(error ARCH is set to ${ARCH} but expected fsim-null-fsim-ce)
+ifneq (${OCR_TYPE}, x86-builder-tg-ce)
+$(error OCR_TYPE is set to ${OCR_TYPE} but expected x86-builder-tg-ce)
 endif
 endif
 #
@@ -19,12 +19,8 @@ endif
 
 TG_INSTALL ?= ../../../ss/install
 
-#DEFAULT_CONFIG = ce-default.cfg      #Switch to this configuration file to go back to a single 256K memory allocator.
-DEFAULT_CONFIG = ce-multialloc-default.cfg
-
-
 CC      := gcc
-CFLAGS  := -fno-builtin -fno-stack-protector -Wno-unused-local-typedefs -I $(TG_INSTALL)/include
+CFLAGS  := -fno-builtin -fno-stack-protector -Wno-unused-local-typedefs -I ${TG_INSTALL}/include
 
 RM      := rm
 RMFLAGS := -rf
@@ -33,12 +29,14 @@ CP      := cp
 MKDIR   := mkdir
 LN      := ln
 
+EXEFLAGS := -lelf -lpthread
+
 # Shared libraries specific builds
-LDFLAGS :=
+LDFLAGS := -shared -fpic
 
 # CFLAGS_SHARED will be concatenated with any
 # common CFLAGS options
-CFLAGS_SHARED :=
+CFLAGS_SHARED := -fpic
 
 # Static libraries specific builds
 # Same as for CFLAGS_SHARED
@@ -46,16 +44,24 @@ CFLAGS_STATIC :=
 AR := ar
 ARFLAGS := cru
 
+CFLAGS_EXEC :=
+
 RANLIB := ranlib
 
 # Library supported
 SUPPORTS_SHARED=no
-SUPPORTS_STATIC=yes
+SUPPORTS_STATIC=no
+SUPPORTS_EXEC=yes
+
+
+# For Valgrind, uncomment this line
+#CFLAGS += -I/usr/include -DENABLE_VALGRIND
+
 
 .PHONY: all
-all: static
+all: exec
 
 .PHONY: debug
-debug: debug-static
+debug: debug-exec
 
 include ../common.mk

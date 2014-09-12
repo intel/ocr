@@ -19,7 +19,10 @@
 #endif
 
 #include "policy-domain/xe/xe-policy.h"
+
+#ifdef ENABLE_SYSBOOT_FSIM
 #include "rmd-bin-files.h"
+#endif
 
 #include "utils/profiler/profiler.h"
 
@@ -32,11 +35,13 @@ extern void ocrShutdown(void);
 
 void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     DPRINTF(DEBUG_LVL_VVERB, "xePolicyDomainBegin called on policy at 0x%lx\n", (u64) policy);
+#ifdef ENABLE_SYSBOOT_FSIM
     if (XE_PDARGS_OFFSET != offsetof(ocrPolicyDomainXe_t, packedArgsLocation)) {
         DPRINTF(DEBUG_LVL_WARN, "XE_PDARGS_OFFSET (in .../ss/rmdkrnl/inc/rmd-bin-files.h) is 0x%lx.  Should be 0x%lx\n",
             (u64) XE_PDARGS_OFFSET, (u64) offsetof(ocrPolicyDomainXe_t, packedArgsLocation));
         ASSERT (0);
     }
+#endif
     // The PD should have been brought up by now and everything instantiated
 
     u64 i = 0;

@@ -44,42 +44,42 @@ job_ocr_build_x86_pthread_x86 = {
     'sandbox': ('inherit0',)
 }
 
-job_ocr_build_x86_pthread_fsim = {
-    'name': 'ocr-build-x86-pthread-fsim',
+job_ocr_build_x86_pthread_tg = {
+    'name': 'ocr-build-x86-pthread-tg',
     'depends': ('ocr-init-job',),
     'jobtype': 'ocr-build',
-    'run-args': 'x86-pthread-fsim',
+    'run-args': 'x86-pthread-tg',
     'sandbox': ('inherit0',)
 }
 
-job_ocr_build_x86_builder_fsim_ce = {
-    'name': 'ocr-build-x86-builder-fsim-ce',
+job_ocr_build_x86_builder_tg_ce = {
+    'name': 'ocr-build-x86-builder-tg-ce',
     'depends': ('ocr-init-job',),
     'jobtype': 'ocr-build',
-    'run-args': 'x86-builder-fsim-ce',
+    'run-args': 'x86-builder-tg-ce',
     'sandbox': ('inherit0',)
 }
 
-job_ocr_build_x86_builder_fsim_xe = {
-    'name': 'ocr-build-x86-builder-fsim-xe',
+job_ocr_build_x86_builder_tg_xe = {
+    'name': 'ocr-build-x86-builder-tg-xe',
     'depends': ('ocr-init-job',),
     'jobtype': 'ocr-build',
-    'run-args': 'x86-builder-fsim-xe',
+    'run-args': 'x86-builder-tg-xe',
     'sandbox': ('inherit0',)
 }
 
-job_ocr_build_fsim_null_fsim_ce = {
-    'name': 'ocr-build-fsim-null-fsim-ce',
+job_ocr_build_tg_null_tg_ce = {
+    'name': 'ocr-build-tg-null-tg-ce',
     'depends': ('ocr-init-job',),
     'jobtype': 'ocr-build',
-    'run-args': 'fsim-null-fsim-ce',
+    'run-args': 'tg-null-tg-ce',
     'sandbox': ('inherit0',)
 }
 
-job_ocr_build_fsim_null_fsim_xe = {
-    'name': 'ocr-build-fsim-null-fsim-xe',
+job_ocr_build_tg_null_tg_xe = {
+    'name': 'ocr-build-tg-null-tg-xe',
     'depends': ('ocr-init-job',),
     'jobtype': 'ocr-build',
-    'run-args': 'fsim-null-fsim-xe',
+    'run-args': 'tg-null-tg-xe',
     'sandbox': ('inherit0',)
 }

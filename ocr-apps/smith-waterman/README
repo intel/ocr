@@ -1,8 +1,8 @@
 Running:
 
-make -f Makefile.<ARCH> run <tile_width> <tile_height> <string1_file> <string2_file>
+make -f Makefile.<OCR_TYPE> run <tile_width> <tile_height> <string1_file> <string2_file>
 
 For e.g., try
-make -f Makefile.whole-fsim run 10 10 ${PWD}/../../../apps/smithwaterman/datasets/string1-medium.txt ${PWD}/../../../apps/smithwaterman/datasets/string2-medium.txt
+make -f Makefile.tg run 10 10 ${PWD}/../../../apps/smithwaterman/datasets/string1-medium.txt ${PWD}/../../../apps/smithwaterman/datasets/string2-medium.txt
 look for the CONSOLE output by doing
-grep CONSOLE install/whole-fsim/logs/ocr-smithwaterman.log.brd00.chp00.unt00.blk00.CE.00
+grep CONSOLE install/tg/logs/ocr-smithwaterman.log.brd00.chp00.unt00.blk00.CE.00
