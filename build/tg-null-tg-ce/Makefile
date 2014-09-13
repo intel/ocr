@@ -42,7 +42,7 @@ CFLAGS_SHARED :=
 
 # Static libraries specific builds
 # Same as for CFLAGS_SHARED
-CFLAGS_STATIC :=
+CFLAGS_STATIC := ${CFLAGS}
 AR := ar
 ARFLAGS := cru
 

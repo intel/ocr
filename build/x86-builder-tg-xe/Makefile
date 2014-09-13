@@ -44,7 +44,7 @@ CFLAGS_STATIC :=
 AR := ar
 ARFLAGS := cru
 
-CFLAGS_EXEC :=
+CFLAGS_EXEC := $(CFLAGS)
 
 RANLIB := ranlib
 
