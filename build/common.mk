@@ -285,34 +285,51 @@ INSTALL_TARGETS += exec
 INSTALL_EXES += $(OCREXEC)
 endif
 
+MACHINE_CONFIGS   := $(notdir $(wildcard $(OCR_SRC)/machine-configs/$(OCR_TYPE)/*))
+INC_FILES         := $(addprefix extensions/, $(notdir $(wildcard $(OCR_SRC)/inc/extensions/*))) \
+                     $(notdir $(wildcard $(OCR_SRC)/inc/*))
+
+INSTALLED_LIBS    := $(addprefix $(OCR_INSTALL)/lib/, $(notdir $(INSTALL_LIBS)))
+BASE_LIBS         := $(firstword $(dir $(INSTALL_LIBS)))
+INSTALLED_EXES    := $(addprefix $(OCR_INSTALL)/bin/, $(notdir $(INSTALL_EXES)))
+BASE_EXES         := $(firstword $(dir $(INSTALL_EXES)))
+INSTALLED_CONFIGS := $(addprefix $(OCR_INSTALL)/config/, $(MACHINE_CONFIGS))
+INSTALLED_INCS    := $(addprefix $(OCR_INSTALL)/include/, $(INC_FILES))
+
+$(OCR_INSTALL)/lib/%: $(BASE_LIBS)% | $(OCR_INSTALL)/lib
+	@$(RM) -f $@
+	@$(CP) $< $@
+
+$(OCR_INSTALL)/bin/%: $(BASE_EXES)% | $(OCR_INSTALL)/bin
+	@$(RM) -f $@
+	@$(CP) $< $@
+
+$(OCR_INSTALL)/config/%: $(OCR_SRC)/machine-configs/$(OCR_TYPE)/% | $(OCR_INSTALL)/config
+	@$(RM) -f $@
+	@$(CP) $< $@
+
+$(OCR_INSTALL)/include/%: $(OCR_SRC)/inc/% | $(OCR_INSTALL)/include $(OCR_INSTALL)/include/extensions
+	@$(RM) -f $@
+	@$(CP) $< $@
+
+$(OCR_INSTALL)/lib $(OCR_INSTALL)/bin $(OCR_INSTALL)/config $(OCR_INSTALL)/include \
+$(OCR_INSTALL)/include/extensions :
+	@$(MKDIR) -p $@
+
 .PHONY: install
 .ONESHELL:
-install: ${INSTALL_TARGETS}
-	@printf "\033[32m Installing '$(INSTALL_LIBS) $(INSTALL_EXES)' into '$(OCR_INSTALL)'\033[0m\n"
-	@if [ -n "${INSTALL_LIBS}" ]; then \
-		$(MKDIR) -p $(OCR_INSTALL)/lib ; \
-		$(CP) ${INSTALL_LIBS} $(OCR_INSTALL)/lib ; \
-	fi
-	@if [ -n "$(INSTALL_EXES)" ]; then \
-		$(MKDIR) -p $(OCR_INSTALL)/bin ; \
-		$(CP) $(INSTALL_EXES) $(OCR_INSTALL)/bin ; \
-	fi
-	@$(MKDIR) -p $(OCR_INSTALL)/include
-	@$(CP) -r $(OCR_SRC)/inc/* $(OCR_INSTALL)/include
+install: ${INSTALL_TARGETS} ${INSTALLED_LIBS} ${INSTALLED_EXES} ${INSTALLED_CONFIGS} ${INSTALLED_INCS}
+	@printf "\033[32m Installed '$(INSTALL_LIBS) $(INSTALL_EXES)' into '$(OCR_INSTALL)'\033[0m\n"
 	@if [ -d $(OCR_SRC)/machine-configs/$(OCR_TYPE) ]; then \
-		$(MKDIR) -p $(OCR_INSTALL)/config; \
-		$(CP) -r $(OCR_SRC)/machine-configs/$(OCR_TYPE)/* $(OCR_INSTALL)/config; \
 		$(LN) -fs ./$(DEFAULT_CONFIG) $(OCR_INSTALL)/config/default.cfg; \
 	fi
 
 .PHONY: uninstall
 .ONESHELL:
 uninstall:
-	-$(RM) $(RMFLAGS) $(OCR_INSTALL)/bin/*
-	-$(RM) $(RMFLAGS) $(OCR_INSTALL)/lib/*
-	-$(RM) $(RMFLAGS) $(OCR_INSTALL)/include/*
-	-$(RM) $(RMFLAGS) $(OCR_INSTALL)/config/*
+	-$(RM) $(RMFLAGS) $(OCR_INSTALL)/*
 
 .PHONY:clean
 clean:
 	-$(RM) $(RMFLAGS) $(OBJDIR)/* $(OCRSHARED) $(OCRSTATIC) $(OCREXEC) src/*
+
