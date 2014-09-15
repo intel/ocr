@@ -4,9 +4,9 @@
  * removed or modified.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
+
+
+
 
 #include "ocr.h"
 
@@ -18,13 +18,13 @@
 
 // This edt is triggered when the output event of the other edt is satisfied by the runtime
 ocrGuid_t terminateEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    printf("Terminate\n");
+    PRINTF("Terminate\n");
     ocrShutdown(); // This is the last EDT to execute, terminate
     return NULL_GUID;
 }
 
 ocrGuid_t userEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    printf("Running User EDT\n");
+    PRINTF("Running User EDT\n");
     return NULL_GUID;
 }
 
@@ -43,7 +43,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtCreate(&userEdtGuid, userEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
                  /*properties=*/EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/&outputEventGuid);
 
-    printf("Add dependence\n");
+    PRINTF("Add dependence\n");
     ocrAddDependence(outputEventGuid, terminateEdtGuid, 0, DB_MODE_RO);
 
     // Now we start the userEdt (we start *after* adding the dependence)

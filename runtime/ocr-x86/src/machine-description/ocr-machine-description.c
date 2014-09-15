@@ -279,7 +279,7 @@ ocrCommApiFactory_t *create_factory_commapi (char *name, ocrParamList_t *paramli
     TO_ENUM (mytype, name, commApiType_t, commapi_types, commApiMax_id);
 
     if (mytype == commApiMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a commapi factory of type %d\n", mytype);
@@ -292,7 +292,7 @@ ocrCommPlatformFactory_t *create_factory_commplatform (char *name, ocrParamList_
     TO_ENUM (mytype, name, commPlatformType_t, commplatform_types, commPlatformMax_id);
 
     if (mytype == commPlatformMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a commplatform factory of type %d\n", mytype);
@@ -304,7 +304,7 @@ ocrCompPlatformFactory_t *create_factory_compplatform (char *name, ocrParamList_
     compPlatformType_t mytype = compPlatformMax_id;
     TO_ENUM (mytype, name, compPlatformType_t, compplatform_types, compPlatformMax_id);
     if (mytype == compPlatformMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a compplatform factory of type %d\n", mytype);
@@ -317,7 +317,7 @@ ocrMemPlatformFactory_t *create_factory_memplatform (char *name, ocrParamList_t 
     TO_ENUM (mytype, name, memPlatformType_t, memplatform_types, memPlatformMax_id);
 
     if (mytype == memPlatformMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a memplatform factory of type %d\n", mytype);
@@ -329,7 +329,7 @@ ocrMemPlatformFactory_t *create_factory_memtarget(char *name, ocrParamList_t *pa
     memTargetType_t mytype = memTargetMax_id;
     TO_ENUM (mytype, name, memTargetType_t, memtarget_types, memTargetMax_id);
     if (mytype == memTargetMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a memtarget factory of type %d\n", mytype);
@@ -341,7 +341,7 @@ ocrAllocatorFactory_t *create_factory_allocator(char *name, ocrParamList_t *para
     allocatorType_t mytype = allocatorMax_id;
     TO_ENUM (mytype, name, allocatorType_t, allocator_types, allocatorMax_id);
     if (mytype == allocatorMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating an allocator factory of type %d\n", mytype);
@@ -353,7 +353,7 @@ ocrCompTargetFactory_t *create_factory_comptarget(char *name, ocrParamList_t *pa
     compTargetType_t mytype = compTargetMax_id;
     TO_ENUM (mytype, name, compTargetType_t, comptarget_types, compTargetMax_id);
     if (mytype == compTargetMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a comptarget factory of type %d\n", mytype);
@@ -365,7 +365,7 @@ ocrWorkpileFactory_t *create_factory_workpile(char *name, ocrParamList_t *paraml
     workpileType_t mytype = workpileMax_id;
     TO_ENUM (mytype, name, workpileType_t, workpile_types, workpileMax_id);
     if (mytype == workpileMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a workpile factory of type %d\n", mytype);
@@ -377,7 +377,7 @@ ocrWorkerFactory_t *create_factory_worker(char *name, ocrParamList_t *paramlist)
     workerType_t mytype = workerMax_id;
     TO_ENUM (mytype, name, workerType_t, worker_types, workerMax_id);
     if (mytype == workerMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a worker factory of type %d\n", mytype);
@@ -389,7 +389,7 @@ ocrSchedulerFactory_t *create_factory_scheduler(char *name, ocrParamList_t *para
     schedulerType_t mytype = schedulerMax_id;
     TO_ENUM (mytype, name, schedulerType_t, scheduler_types, schedulerMax_id);
     if (mytype == schedulerMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a scheduler factory of type %d\n", mytype);
@@ -401,7 +401,7 @@ ocrPolicyDomainFactory_t *create_factory_policydomain(char *name, ocrParamList_t
     policyDomainType_t mytype = policyDomainMax_id;
     TO_ENUM (mytype, name, policyDomainType_t, policyDomain_types, policyDomainMax_id);
     if (mytype == policyDomainMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a worker factory of type %d\n", mytype);
@@ -413,7 +413,7 @@ ocrTaskFactory_t *create_factory_task(char *name, ocrParamList_t *paramlist) {
     taskType_t mytype = taskMax_id;
     TO_ENUM (mytype, name, taskType_t, task_types, taskMax_id);
     if (mytype == taskMax_id) {
-        DPRINTF(DEBUG_LVL_INFO, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_INFO, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a task factory of type %d\n", mytype);
@@ -425,7 +425,7 @@ ocrTaskTemplateFactory_t *create_factory_tasktemplate(char *name, ocrParamList_t
     taskTemplateType_t mytype = taskTemplateMax_id;
     TO_ENUM (mytype, name, taskTemplateType_t, taskTemplate_types, taskTemplateMax_id);
     if (mytype == taskTemplateMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a task template factory of type %d\n", mytype);
@@ -437,7 +437,7 @@ ocrDataBlockFactory_t *create_factory_datablock(char *name, ocrParamList_t *para
     dataBlockType_t mytype = dataBlockMax_id;
     TO_ENUM (mytype, name, dataBlockType_t, dataBlock_types, dataBlockMax_id);
     if (mytype == dataBlockMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a datablock factory of type %d\n", mytype);
@@ -449,7 +449,7 @@ ocrEventFactory_t *create_factory_event(char *name, ocrParamList_t *paramlist) {
     eventType_t mytype = eventMax_id;
     TO_ENUM (mytype, name, eventType_t, event_types, eventMax_id);
     if (mytype == eventMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating an event factory of type %d\n", mytype);
@@ -461,7 +461,7 @@ ocrGuidProviderFactory_t *create_factory_guid(char *name, ocrParamList_t *paraml
     guidType_t mytype = guidMax_id;
     TO_ENUM (mytype, name, guidType_t, guid_types, guidMax_id);
     if (mytype == guidMax_id) {
-        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s\n", name);
+        DPRINTF(DEBUG_LVL_WARN, "Unrecognized type %s. Check name and ocr-config header\n", name);
         return NULL;
     } else {
         DPRINTF(DEBUG_LVL_INFO, "Creating a guid factory of type %d\n", mytype);
@@ -730,22 +730,23 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             workerType_t mytype = -1;
             TO_ENUM (mytype, inststr, workerType_t, worker_types, workerMax_id);
             switch (mytype) {
-#ifdef ENABLE_WORKER_HC
-            case workerHc_id: {
-                char *workerstr;
-                char workertypekey[MAX_KEY_SZ];
-                ocrWorkerType_t workertype = MAX_WORKERTYPE;
+#if defined(ENABLE_WORKER_HC) || defined(ENABLE_WORKER_HC_COMM)
+                case workerHc_id:
+                case workerHcComm_id: {
+                    char *workerstr;
+                    char workertypekey[MAX_KEY_SZ];
+                    ocrWorkerType_t workertype = MAX_WORKERTYPE;
 
-                snprintf(workertypekey, MAX_KEY_SZ, "%s:%s", secname, "workertype");
-                INI_GET_STR (workertypekey, workerstr, "");
-                TO_ENUM (workertype, workerstr, ocrWorkerType_t, ocrWorkerType_types, MAX_WORKERTYPE-1);
-                workertype += 1;  // because workertype is 1-indexed, not 0-indexed
-                if (workertype == MAX_WORKERTYPE) workertype = SLAVE_WORKERTYPE; // TODO: is this a reasonable default?
-                ALLOC_PARAM_LIST(inst_param[j], paramListWorkerHcInst_t);
-                ((paramListWorkerHcInst_t *)inst_param[j])->workerType = workertype;
-                ((paramListWorkerHcInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
-            }
-            break;
+                    snprintf(workertypekey, MAX_KEY_SZ, "%s:%s", secname, "workertype");
+                    INI_GET_STR (workertypekey, workerstr, "");
+                    TO_ENUM (workertype, workerstr, ocrWorkerType_t, ocrWorkerType_types, MAX_WORKERTYPE-1);
+                    workertype += 1;  // because workertype is 1-indexed, not 0-indexed
+                    if (workertype == MAX_WORKERTYPE) workertype = SLAVE_WORKERTYPE; // TODO: is this a reasonable default?
+                    ALLOC_PARAM_LIST(inst_param[j], paramListWorkerHcInst_t);
+                    ((paramListWorkerHcInst_t *)inst_param[j])->workerType = workertype;
+                    ((paramListWorkerHcInst_t *)inst_param[j])->workerId = j; // using "id" for now; TODO: decide if a separate key is needed
+                }
+                break;
 #endif
 #ifdef ENABLE_WORKER_CE
             case workerCe_id: {
@@ -797,8 +798,9 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
             schedulerType_t mytype = -1;
             TO_ENUM (mytype, inststr, schedulerType_t, scheduler_types, schedulerMax_id);
             switch (mytype) {
-#ifdef ENABLE_SCHEDULER_HC
-            case schedulerHc_id: {
+#if defined(ENABLE_SCHEDULER_HC) || defined(ENABLE_SCHEDULER_HC_COMM_DELEGATE)
+            case schedulerHc_id:
+            case schedulerHcCommDelegate_id: {
                 ALLOC_PARAM_LIST(inst_param[j], paramListSchedulerHcInst_t);
                 snprintf(key, MAX_KEY_SZ, "%s:%s", secname, "workeridfirst");
                 INI_GET_INT (key, value, -1);

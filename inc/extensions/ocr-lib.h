@@ -12,6 +12,8 @@
 
 #ifndef __OCR_LIB_H__
 #define __OCR_LIB_H__
+
+#warning Using ocr-lib.h may not be supported on all platforms
 #ifdef __cplusplus
 extern "C" {
 #endif

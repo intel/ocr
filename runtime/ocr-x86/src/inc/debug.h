@@ -17,6 +17,7 @@
 #include "ocr-task.h"
 #include "ocr-worker.h"
 
+typedef struct _ocrPolicyDomain_t ocrPolicyDomain_t;
 #ifdef OCR_DEBUG
 /**
  * @brief No debugging messages are printed
@@ -307,17 +308,29 @@
 #define DPRINTF_TYPE(type, level, format, ...)   do {                   \
     if(OCR_DEBUG_##type && level <= DEBUG_LVL_##type) {                 \
         ocrTask_t *_task = NULL; ocrWorker_t *_worker = NULL;           \
-        getCurrentEnv(NULL, &_worker, &_task, NULL);                    \
+        ocrPolicyDomain_t *_pd = NULL;                                  \
+        getCurrentEnv(&_pd, &_worker, &_task, NULL);                    \
         PRINTF(OCR_DEBUG_##type##_STR "(" OCR_DEBUG_##level##_STR       \
-               ") [W:0x%lx EDT:0x%lx] " format,                         \
+               ") [PD:0x%lx W:0x%lx EDT:0x%lx] " format,                \
+               _pd?(u64)_pd->myLocation:0,                              \
                _worker?(u64)_worker->location:0,                        \
                _task?_task->guid:0, ## __VA_ARGS__);                    \
     } } while(0)
+
+#define DPRINTF_TYPE_COND_LVL(type, cond, levelT, levelF, format, ...)  \
+    do {                                                                \
+        if(cond) {                                                      \
+            DPRINTF_TYPE(type, levelT, format, ## __VA_ARGS__);         \
+        } else {                                                        \
+            DPRINTF_TYPE(type, levelF, format, ## __VA_ARGS__);         \
+        }                                                               \
+    } while(0)
 
 #else
 #define DO_DEBUG_TYPE(level) if(0) {
 #define DEBUG(format, ...)
 #define DPRINTF_TYPE(type, level, format, ...)
+#define DPRINTF_TYPE_COND_LVL(type, cond, levelT, levelF, format, ...)
 #endif /* OCR_DEBUG */
 
 #define DO_DEBUG_TYPE_INT(type, level) DO_DEBUG_TYPE(type, level)
@@ -325,6 +338,8 @@
 
 #define DPRINTF_TYPE_INT(type, level, format, ...) DPRINTF_TYPE(type, level, format, ## __VA_ARGS__)
 #define DPRINTF(level, format, ...) DPRINTF_TYPE_INT(DEBUG_TYPE, level, format, ## __VA_ARGS__)
+#define DPRINTF_COND_LVL(cond, levelT, levelF, format, ...) \
+    DPRINTF_TYPE_COND_LVL(DEBUG_TYPE, cond, levelT, levelF, format, ## __VA_ARGS__)
 
 #define END_DEBUG }
 
@@ -348,4 +363,10 @@
         }                                                               \
     } while(0);
 #endif
+
+// Include this to get the DPRINTF thing to work properly
+#ifndef OCR_POLICY_DOMAIN_H_
+#include "ocr-policy-domain.h"
+#endif
+
 #endif /* __DEBUG_H__ */

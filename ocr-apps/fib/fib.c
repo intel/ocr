@@ -117,8 +117,8 @@ ocrGuid_t absFinal(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     u32 ans;
     ans = *(u32*)depv[0].ptr;
     VERIFY(ans == (u32)paramv[0], "Totally done: answer is %d\n", ans);
-    ocrShutdown();
     ocrDbDestroy(depv[0].guid);
+    ocrShutdown();
 
     return NULL_GUID;
 }

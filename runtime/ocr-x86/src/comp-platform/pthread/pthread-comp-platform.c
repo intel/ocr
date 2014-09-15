@@ -230,6 +230,8 @@ void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
         //By default set src and dest location to current location.
         msg->srcLocation = vals->pd->myLocation;
         msg->destLocation = msg->srcLocation;
+        //TODO enable the following
+        // msg->size = sizeof(ocrPolicyMsg_t); //Safe and conservative
     }
     RETURN_PROFILE();
 }

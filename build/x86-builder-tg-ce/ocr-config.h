@@ -83,7 +83,7 @@
 #define ENABLE_WORKPILE_CE
 
 // Build the OCR-lib support
-#define ENABLE_OCR_LIB
+#define ENABLE_EXTENSION_LIB
 #endif /* __OCR_CONFIG_H__ */
 
 

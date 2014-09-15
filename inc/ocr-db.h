@@ -40,11 +40,6 @@ extern "C" {
  * @{
  **/
 
-#define DB_PROP_NONE       ((u16)0x0) /**< Property for a data-block indicating no special behavior */
-#define DB_PROP_NO_ACQUIRE ((u16)0x1) /**< Property for a data-block indicating that the data-block
-                                       *   is just being created but does not need to be acquired
-                                       *   at the same time (creation for another EDT)
-                                       */
 
 /**
  * @brief Request the creation of a data-block

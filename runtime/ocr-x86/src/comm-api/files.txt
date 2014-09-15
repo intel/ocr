@@ -1,1 +1,4 @@
-handleless - simple communication that only allows polling on ANY message and waiting on last message sent
+delegate         - communication API that delegates send/receive to the scheduler
+handleless       - communication that only allows polling on ANY message
+                   and waiting on last message sent (does not handle handles)
+simple           - simple communication layer that deals with handles properly

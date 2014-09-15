@@ -16,6 +16,7 @@
 typedef struct _regNode_t {
     ocrGuid_t guid;
     u32 slot;
+    ocrDbAccessMode_t mode;
 } regNode_t;
 
 #endif /* HC_H_ */

@@ -4,9 +4,9 @@
  * removed or modified.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
+
+
+
 
 #include "ocr.h"
 
@@ -22,7 +22,7 @@ void someUserFunction() {
     // ocrGuid_t els_data_guid = ocrElsGet(ELS_OFFSET);
     // void * datum;
     // ocrDbAcquire(els_data_guid, &datum, 0);
-    // assert(*((int *)datum) == 42);
+    // ASSERT(*((int *)datum) == 42);
     // ocrDbRelease(els_data_guid);
 }
 

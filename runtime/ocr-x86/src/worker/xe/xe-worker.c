@@ -163,7 +163,7 @@ void* xeRunWorker(ocrWorker_t * worker) {
         void * packedUserArgv;
 #if defined(SAL_FSIM_XE)
         packedUserArgv = ((ocrPolicyDomainXe_t *) pd)->packedArgsLocation;
-extern ocrGuid_t mainEdt( u32, u64 *, u32, ocrEdtDep_t * );
+        extern ocrGuid_t mainEdt( u32, u64 *, u32, ocrEdtDep_t * );
 #else
         packedUserArgv = userArgsGet();
         ocrEdt_t mainEdt = mainEdtGet();
@@ -175,22 +175,42 @@ extern ocrGuid_t mainEdt( u32, u64 *, u32, ocrEdtDep_t * );
         ocrGuid_t dbGuid;
         void* dbPtr;
         ocrDbCreate(&dbGuid, &dbPtr, totalLength,
-                    DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+                    DB_PROP_IGNORE_WARN, NULL_GUID, NO_ALLOC);
 
         // copy packed args to DB
         hal_memCopy(dbPtr, packedUserArgv, totalLength, 0);
+        // Release the DB so that mainEdt can acquire it.
+        // Do not invoke ocrDbRelease to avoid the warning there.
+        ocrPolicyMsg_t msg;
+        getCurrentEnv(NULL, NULL, NULL, &msg);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_DB_RELEASE
+        msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+        PD_MSG_FIELD(guid.guid) = dbGuid;
+        PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+        PD_MSG_FIELD(edt.guid) = NULL_GUID;
+        PD_MSG_FIELD(edt.metaDataPtr) = NULL;
+        PD_MSG_FIELD(properties) = 0;
+        PD_MSG_FIELD(returnDetail) = 0;
+        RESULT_ASSERT(pd->fcts.processMessage(pd, &msg, true), ==, 0);
+#undef PD_MSG
+#undef PD_TYPE
 
-        // Create the depv
-        ocrEdtDep_t depv;
-        depv.guid = dbGuid;
-        depv.ptr = dbPtr;
-
-        // Call into mainEdt
-        mainEdt(0, NULL, 1, &depv);
+        // Create mainEDT and then allow it to be scheduled
+        // This gives mainEDT a GUID which is useful for some book-keeping business
+        ocrGuid_t edtTemplateGuid, edtGuid;
+        ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 1);
+        ocrEdtCreate(&edtGuid, edtTemplateGuid, EDT_PARAM_DEF, /* paramv=*/ NULL,
+                     EDT_PARAM_DEF, /* depv=*/&dbGuid, EDT_PROP_NONE, NULL_GUID, NULL);
     }
 
     DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
     workerLoop(worker);
+    return NULL;
+}
+
+void* xeWorkShift(ocrWorker_t* worker) {
+    ASSERT(0); // Not supported
     return NULL;
 }
 
@@ -259,6 +279,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryXe(ocrParamList_t * perType) {
     base->workerFcts.begin = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), xeBeginWorker);
     base->workerFcts.start = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), xeStartWorker);
     base->workerFcts.run = FUNC_ADDR(void* (*)(ocrWorker_t*), xeRunWorker);
+    base->workerFcts.workShift = FUNC_ADDR(void* (*)(ocrWorker_t*), xeWorkShift);
     base->workerFcts.stop = FUNC_ADDR(void (*)(ocrWorker_t*), xeStopWorker);
     base->workerFcts.finish = FUNC_ADDR(void (*)(ocrWorker_t*), xeFinishWorker);
     base->workerFcts.isRunning = FUNC_ADDR(bool (*)(ocrWorker_t*), xeIsRunningWorker);

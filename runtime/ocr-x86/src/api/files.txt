@@ -1,5 +1,5 @@
+extensions/     - files containing the "extended/experimental" public APIs
 ocr.c           - shutdown & argc management
 ocr-db.c        - public DB API
 ocr-edt.c       - public EDT API
-ocr-lib.c       - intialization helper functions
-ocr-rt-itf.c    - runtime implementors support functions
+ocr-tuning.c    - public tuning/hints API

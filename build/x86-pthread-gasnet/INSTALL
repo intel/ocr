@@ -1,0 +1,16 @@
+OCR GASNet implementation relies on the following environment variables
+
+- Mandatory build flags
+
+GASNET_ROOT         Path to the gasnet installation
+GASNET_CONDUIT      Name of GASNet conduit to use
+GASNET_TYPE         (seq|par)
+
+- Optional build flags
+
+GASNET_CFLAGS       Additional cflags to use when compiling the OCR GASNet comm-platform
+
+- Mandatory run flags
+
+PATH:               Environment PATH including ${GASNET_ROOT}/bin to use GASNet launchers
+OCR_LDFLAGS:        Linking flags for OCR applications to link with GASNet libraries

@@ -1,0 +1,3 @@
+ocr-affinity.c  - public affinity API
+ocr-lib.c       - initialization helper functions (if using OCR as a pure library)
+ocr-rt-itf.c    - public API for runtime implementations on top of OCR

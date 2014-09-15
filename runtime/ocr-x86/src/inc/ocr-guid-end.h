@@ -16,9 +16,34 @@
 #error "Do not include ocr-guid-end.h yourself"
 #endif
 
+#include "debug.h"
 #include "ocr-event.h"
 #include "ocr-policy-domain.h"
 
+/**
+ *@brief utility function to get the location of a GUID
+ */
+static inline u8 guidLocation(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t guid,
+                              ocrLocation_t* locationRes) {
+
+    u8 returnCode = 0;
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(&pd, NULL, NULL, &msg);
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_GUID_INFO
+
+    msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+    PD_MSG_FIELD(guid) = guid;
+    PD_MSG_FIELD(properties) = LOCATION_GUIDPROP;
+    returnCode = pd->fcts.processMessage(pd, &msg, true);
+
+    if(returnCode == 0)
+        *locationRes = PD_MSG_FIELD(location);
+
+    return returnCode;
+#undef PD_MSG
+#undef PD_TYPE
+}
 
 static inline u8 guidKind(struct _ocrPolicyDomain_t * pd, ocrFatGuid_t guid,
                           ocrGuidKind* kindRes) {
@@ -126,7 +151,7 @@ static inline bool isEventGuid(ocrPolicyDomain_t *pd, ocrFatGuid_t guid) {
 
     ocrGuidKind kind = OCR_GUID_NONE;
     if(guidKind(pd, guid, &kind) == 0)
-        return kind == OCR_GUID_EVENT;
+        return (kind & OCR_GUID_EVENT);
     return false;
 }
 

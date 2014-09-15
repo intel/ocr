@@ -35,6 +35,26 @@
     do { __sync_synchronize(); } while(0);
 
 /**
+ * @brief Memory move from source to destination
+ *
+ * @param destination[in]    A u64 pointing to where the data is to be copied
+ *                           to
+ * @param source[in]         A u64 pointing to where the data is to be copied
+ *                           from
+ * @param size[in]           A u64 indicating the number of bytes to be copied
+ * @param isBackground[in]   A u8: A zero value indicates that the call will
+ *                           return only once the copy is fully complete and a
+ *                           non-zero value indicates the copy may proceed
+ *                           in the background. A fence will then be
+ *                           required to ensure completion of the copy
+ * @todo Define what behavior we want for overlapping
+ * source and destination
+ */
+#define hal_memMove(destination, source, size, isBackground) \
+    do { memmove((void*)(destination), (const void*)(source), (size)); } while(0)
+
+
+/**
  * @brief Memory copy from source to destination
  *
  * @param destination[in]    A u64 pointing to where the data is to be copied

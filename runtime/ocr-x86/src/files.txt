@@ -8,6 +8,7 @@ datablock            - datablock (DB) management functions
 defunct              - deprecated stuff, to be disregarded
 driver               - OCR initialization and start up
 event                - event management functions
+experimental         - files implementing experimental/temporary features
 external             - files that provide utilities that are external to our LICENSE
 guid                 - guid management functions
 hal                  - hardware architecture specific functions (locks, atomics, etc.)

@@ -9,10 +9,9 @@
 
 const char * scheduler_types[] = {
     "HC",
+    "HC_COMM_DELEGATE",
     "XE",
     "CE",
-    "HC_Placed",
-    "null",
     NULL
 };
 
@@ -22,6 +21,10 @@ ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrParamList_t
     case schedulerHc_id:
         return newOcrSchedulerFactoryHc(perType);
 #endif
+#ifdef ENABLE_SCHEDULER_HC_COMM_DELEGATE
+    case schedulerHcCommDelegate_id:
+        return newOcrSchedulerFactoryHcCommDelegate(perType);
+#endif
 #ifdef ENABLE_SCHEDULER_CE
     case schedulerCe_id:
         return newOcrSchedulerFactoryCe(perType);
@@ -30,7 +33,6 @@ ocrSchedulerFactory_t * newSchedulerFactory(schedulerType_t type, ocrParamList_t
     case schedulerXe_id:
         return newOcrSchedulerFactoryXe(perType);
 #endif
-    case schedulerHcPlaced_id:
     default:
         ASSERT(0);
     }

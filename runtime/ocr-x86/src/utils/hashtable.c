@@ -259,7 +259,7 @@ bool hashtableConcPut(hashtable_t * hashtable, void * key, void * value) {
  * Returns true if entry has been found and removed.
  */
 bool hashtableConcRemove(hashtable_t * hashtable, void * key, void ** value) {
-    //DIST-TODO implement concurrent removal
+    //TODO implement concurrent removal
     return false;
 }
 

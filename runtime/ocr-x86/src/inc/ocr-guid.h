@@ -133,6 +133,35 @@ typedef struct _ocrGuidProviderFcts_t {
     u8 (*getKind)(struct _ocrGuidProvider_t* self, ocrGuid_t guid, ocrGuidKind* kind);
 
     /**
+     * @brief Resolve the location of a GUID
+     *
+     * TODO: any property regarding location ?
+     *  - Is it where guid has been created ?
+     *  - Is it where the value is ?
+     *  - Can we get different location across calls if associated value is replicated ?
+     *
+     * \param[in] self          Pointer to this GUID provider
+     * \param[in] guid          GUID to get the location of
+     * \param[out] location     Parameter-result for the GUID's location
+     * @return 0 on success or an error code
+     */
+    u8 (*getLocation)(struct _ocrGuidProvider_t* self, ocrGuid_t guid, ocrLocation_t* location);
+
+    /**
+     * @brief Register a GUID with the GUID provider.
+     *
+     * This function is meant to register GUIDs created by other providers of the
+     * same type 'self' is. Implementers must make sure GUID are generated coherently
+     * across provider instances.
+     *
+     * \param[in] self          Pointer to this GUID provider
+     * \param[in] guid          GUID to register
+     * \param[in] val           The GUID's associated value
+     * @return 0 on success or an error code
+     */
+    u8 (*registerGuid)(struct _ocrGuidProvider_t* self, ocrGuid_t guid, u64 val);
+
+    /**
      * @brief Releases the GUID
      *
      * Whether the GUID provider will re-issue this same GUID for a different

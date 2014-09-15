@@ -1,3 +1,5 @@
-ce - the minimal CE scheduler
-xe - the (non-existent) XE scheduler
-hc - work-stealing based HCLib scheduler
+ce                  - the minimal CE scheduler
+hc                  - work-stealing based HCLib scheduler
+hc-comm-delegate    - extensions to HC scheduler allowing for delegation
+                      of communication tasks (to support delegate comm-api)
+xe                  - the (non-existent) XE scheduler

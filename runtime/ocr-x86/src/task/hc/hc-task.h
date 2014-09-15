@@ -11,6 +11,10 @@
 #include "ocr-config.h"
 #if defined(ENABLE_TASK_HC) || defined(ENABLE_TASKTEMPLATE_HC)
 
+#ifndef OCR_MAX_MULTI_SLOT
+#define OCR_MAX_MULTI_SLOT 1
+#endif
+
 #include "hc/hc.h"
 #include "ocr-task.h"
 #include "utils/ocr-utils.h"
@@ -43,7 +47,12 @@ typedef struct {
                                   This excludes once events */
     volatile u32 slotSatisfiedCount; /**< Number of slots satisfied */
     volatile u32 lock; /**< TODO: We can probably do with just atomics on frontierSlot and slotSatisfiedCount */
+    ocrEdtDep_t * resolvedDeps; /**< List of satisfied dependences */
+    u64 doNotReleaseSlots[OCR_MAX_MULTI_SLOT];
 } ocrTaskHc_t;
+
+#define HC_TASK_PARAMV_PTR(edt) ((u64*)(((u64)edt) + sizeof(ocrTaskHc_t)))
+#define HC_TASK_DEPV_PTR(edt)   ((regNode_t*)(((u64)edt) + sizeof(ocrTaskHc_t) + (((ocrTask_t *) edt)->paramc)*sizeof(u64)))
 
 typedef struct {
     ocrTaskFactory_t baseFactory;

@@ -143,6 +143,11 @@ void* ceRunWorker(ocrWorker_t * worker) {
     return NULL;
 }
 
+void* ceWorkShift(ocrWorker_t * worker) {
+    ASSERT(0); // Not supported
+    return NULL;
+}
+
 void ceFinishWorker(ocrWorker_t * base) {
     DPRINTF(DEBUG_LVL_INFO, "Finishing worker routine %ld\n", getWorkerId(base));
     ASSERT(base->computeCount == 1);
@@ -208,6 +213,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryCe(ocrParamList_t * perType) {
     base->workerFcts.begin = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), ceBeginWorker);
     base->workerFcts.start = FUNC_ADDR(void (*)(ocrWorker_t*, ocrPolicyDomain_t*), ceStartWorker);
     base->workerFcts.run = FUNC_ADDR(void* (*)(ocrWorker_t*), ceRunWorker);
+    base->workerFcts.workShift = FUNC_ADDR(void* (*)(ocrWorker_t*), ceWorkShift);
     base->workerFcts.stop = FUNC_ADDR(void (*)(ocrWorker_t*), ceStopWorker);
     base->workerFcts.finish = FUNC_ADDR(void (*)(ocrWorker_t*), ceFinishWorker);
     base->workerFcts.isRunning = FUNC_ADDR(bool (*)(ocrWorker_t*), ceIsRunningWorker);

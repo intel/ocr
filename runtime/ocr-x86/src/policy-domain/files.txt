@@ -1,3 +1,5 @@
-ce - policy domain encapsulating all functions needed to manage a single CE
-xe - policy domain encapsulating all functions needed to manage a single XE
-hc - policy domain encapsulating all functions needed to manage a single HCLib process
+ce      - policy domain encapsulating all functions needed to manage a single CE
+xe      - policy domain encapsulating all functions needed to manage a single XE
+hc      - policy domain encapsulating all functions needed to manage a single process
+          (shared memory with potentially multiple workers)
+hc-dist - policy domain handling multiple address spaces (distributed). Relies on hc

@@ -52,6 +52,7 @@ typedef struct _paramListCompTargetInst_t {
  */
 struct _ocrCompTarget_t;
 struct _ocrPolicyMsg_t;
+struct _ocrMsgHandle_t;
 
 /**
  * @brief comp-target function pointers

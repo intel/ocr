@@ -39,6 +39,7 @@
 
 // Datablock
 #define ENABLE_DATABLOCK_REGULAR
+#define ENABLE_DATABLOCK_LOCKABLE
 
 // Event
 #define ENABLE_EVENT_HC
@@ -87,7 +88,10 @@
 #define ENABLE_WORKPILE_CE
 #define ENABLE_WORKPILE_XE
 
-#define ENABLE_OCR_LIB
+// Extensions
+#define ENABLE_EXTENSION_AFFINITY
+#define ENABLE_EXTENSION_LIB
+
 
 #endif /* __OCR_CONFIG_H__ */
 

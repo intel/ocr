@@ -33,6 +33,8 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
                ocrGuid_t affinity, ocrInDbAllocator_t allocator) {
 
     START_PROFILE(api_DbCreate);
+    DPRINTF(DEBUG_LVL_INFO, "ENTER ocrDbCreate(*guid=0x%lx, len=%lu, flags=%u"
+            ", aff=0x%lx, alloc=%u)\n", *db, len, (u32)flags, affinity, (u32)allocator);
     // TODO: Currently location and allocator are ignored
     // ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_DEFAULT);
     // ocrDataBlock_t *createdDb = newDataBlock(OCR_DATABLOCK_PLACED);
@@ -56,7 +58,8 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     PD_MSG_FIELD(size) = len;
     PD_MSG_FIELD(affinity.guid) = affinity;
     PD_MSG_FIELD(affinity.metaDataPtr) = NULL;
-    PD_MSG_FIELD(properties) = (u32)flags;
+    PD_MSG_FIELD(properties) = (u32) flags;
+    PD_MSG_FIELD(returnDetail) = 0;
     PD_MSG_FIELD(dbType) = USER_DBTYPE;
     PD_MSG_FIELD(allocator) = allocator;
 
@@ -68,6 +71,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
         *addr = NULL;
     }
     if(*addr == NULL) {
+        DPRINTF(DEBUG_LVL_WARN, "EXIT ocrDbCreate -> %u; GUID: INVAL; ADDR: NULL\n", OCR_ENOMEM);
         RETURN_PROFILE(OCR_ENOMEM);
     }
 #undef PD_MSG
@@ -91,15 +95,19 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
 #undef PD_MSG
 #undef PD_TYPE
     } else {
-        DPRINTF(DEBUG_LVL_WARN, "Acquiring DB (GUID: 0x%lx) from outside an EDT ... auto-release will fail\n",
-                *db);
+        if(!(flags & DB_PROP_IGNORE_WARN)) {
+            DPRINTF(DEBUG_LVL_WARN, "Acquiring DB (GUID: 0x%lx) from outside an EDT ... auto-release will fail\n",
+                    *db);
+        }
     }
+    DPRINTF(DEBUG_LVL_INFO, "EXIT ocrDbCreate -> 0; GUID: 0x%lx; ADDR: 0x%lx\n", *db, *addr);
     RETURN_PROFILE(0);
 }
 
 u8 ocrDbDestroy(ocrGuid_t db) {
 
     START_PROFILE(api_DbDestroy);
+    DPRINTF(DEBUG_LVL_INFO, "ENTER ocrDbDestroy(guid=0x%lx)\n", db);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
@@ -112,11 +120,9 @@ u8 ocrDbDestroy(ocrGuid_t db) {
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(edt.guid) = task?task->guid:NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = task;
-    PD_MSG_FIELD(properties) = 0;
-
-    u8 returnCode =  policy->fcts.processMessage(policy, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
+    u8 returnCode = policy->fcts.processMessage(policy, &msg, false);
 
     if(task) {
         // Here we inform the task that we destroyed (and therefore released) a DB
@@ -139,12 +145,15 @@ u8 ocrDbDestroy(ocrGuid_t db) {
         DPRINTF(DEBUG_LVL_WARN, "Destroying DB (GUID: 0x%lx) from outside an EDT ... auto-release will fail\n",
                 db);
     }
+    DPRINTF_COND_LVL(returnCode, DEBUG_LVL_WARN, DEBUG_LVL_INFO,
+                     "EXIT ocrDbDestroy(guid=0x%lx) -> %u\n", db, returnCode);
     RETURN_PROFILE(returnCode);
 }
 
 u8 ocrDbRelease(ocrGuid_t db) {
 
     START_PROFILE(api_DbRelease);
+    DPRINTF(DEBUG_LVL_INFO, "ENTER ocrDbRelease(guid=0x%lx)\n", db);
     ocrPolicyMsg_t msg;
     ocrPolicyDomain_t *policy = NULL;
     ocrTask_t *task = NULL;
@@ -152,14 +161,15 @@ u8 ocrDbRelease(ocrGuid_t db) {
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_DB_RELEASE
-    msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST;
+    msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(guid.guid) = db;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(edt.guid) = task?task->guid:NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = task;
     PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD(returnDetail) = 0;
 
-    u8 returnCode = policy->fcts.processMessage(policy, &msg, false);
+    u8 returnCode = policy->fcts.processMessage(policy, &msg, true);
 #undef PD_MSG
 #undef PD_TYPE
 
@@ -184,6 +194,8 @@ u8 ocrDbRelease(ocrGuid_t db) {
         DPRINTF(DEBUG_LVL_WARN, "Releasing DB (GUID: 0x%lx) from outside an EDT ... auto-release will fail\n",
                 db);
     }
+    DPRINTF_COND_LVL(returnCode, DEBUG_LVL_WARN, DEBUG_LVL_INFO,
+                     "EXIT ocrDbRelease(guid=0x%lx) -> %u\n", db, returnCode);
     RETURN_PROFILE(returnCode);
 }
 

@@ -77,12 +77,13 @@ typedef struct _ocrEventFcts_t {
      * @param[in] self          Pointer to this event
      * @param[in] signaler      GUID of the source (signaler)
      * @param[in] slot          Slot on self that will be satisfied by the signaler
+     * @param[in] mode          The access mode for the dependence's data
      * @param[in] isDepAdd      True if this call is part of adding a dependence. False
      *                          if due to a standalone call
      * @return 0 on success and a non-zero value on failure
      */
     u8 (*registerSignaler)(struct _ocrEvent_t *self, ocrFatGuid_t signaler, u32 slot,
-                           bool isDepAdd);
+                           ocrDbAccessMode_t mode, bool isDepAdd);
 
     /**
      * @brief Oppositor of registerSignaler()

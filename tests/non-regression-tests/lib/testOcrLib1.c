@@ -4,8 +4,8 @@
  * removed or modified.
  */
 
-#include <stdio.h>
-#include <assert.h>
+
+
 
 #include "ocr.h"
 
@@ -19,7 +19,7 @@
  */
 
 ocrGuid_t rootEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    printf("Running rootEdt\n");
+    PRINTF("Running rootEdt\n");
     ocrShutdown();
     return NULL_GUID;
 }

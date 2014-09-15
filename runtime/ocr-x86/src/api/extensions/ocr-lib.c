@@ -5,7 +5,8 @@
  */
 
 #include "ocr-config.h"
-#ifdef ENABLE_OCR_LIB
+#ifdef ENABLE_EXTENSION_LIB
+
 #include "debug.h"
 #include "machine-description/ocr-machine.h"
 #include "extensions/ocr-lib.h"
@@ -16,6 +17,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+
+#warning Experimental OCR library support enabled
 
 #define __USE_GNU
 #include <pthread.h>
@@ -146,7 +149,7 @@ static void ocrConfigInit(ocrConfig_t * ocrConfig) {
 
 // All these externs are in ocr-driver.c.
 extern void bringUpRuntime(const char *inifile);
-extern void freeUpRuntime();
+extern void freeUpRuntime(void);
 extern void stopAllPD(ocrPolicyDomain_t *pd);
 
 /**!
@@ -232,7 +235,7 @@ ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
     PD_MSG_FIELD(guid.guid) = eventToYieldForGuid;
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(properties) = KIND_GUIDPROP | RMETA_GUIDPROP;
-    RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, false), ERROR_GUID);
+    RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), ERROR_GUID);
     eventToYieldFor = (ocrEvent_t *)PD_MSG_FIELD(guid.metaDataPtr);
 #undef PD_MSG
 #undef PD_TYPE
@@ -249,4 +252,4 @@ ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
     return result.guid;
 }
 
-#endif /* ENABLE_OCR_LIB */
+#endif /* ENABLE_EXTENSION_LIB */

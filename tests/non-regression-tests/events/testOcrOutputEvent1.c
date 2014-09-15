@@ -4,9 +4,9 @@
  * removed or modified.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
+
+
+
 
 #include "ocr.h"
 
@@ -17,7 +17,7 @@
 // This edt is triggered when the output event of the other edt is satisfied by the runtime
 ocrGuid_t chainedEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     int * val = (int *) depv[0].ptr;
-    assert((*val) == 42);
+    ASSERT((*val) == 42);
     ocrShutdown(); // This is the last EDT to execute, terminate
     return NULL_GUID;
 }

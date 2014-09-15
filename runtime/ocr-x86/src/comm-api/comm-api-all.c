@@ -8,15 +8,25 @@
 #include "debug.h"
 
 const char * commapi_types[] = {
+    "Delegate",
     "Handleless",
+    "Simple",
     NULL
 };
 
 ocrCommApiFactory_t *newCommApiFactory(commApiType_t type, ocrParamList_t *typeArg) {
     switch(type) {
+#ifdef ENABLE_COMM_API_DELEGATE
+    case commApiDelegate_id:
+        return newCommApiFactoryDelegate(typeArg);
+#endif
 #ifdef ENABLE_COMM_API_HANDLELESS
     case commApiHandleless_id:
         return newCommApiFactoryHandleless(typeArg);
+#endif
+#ifdef ENABLE_COMM_API_SIMPLE
+    case commApiSimple_id:
+        return newCommApiFactorySimple(typeArg);
 #endif
     default:
         ASSERT(0);

@@ -9,13 +9,16 @@
 
 #include "debug.h"
 #include "ocr-comp-platform.h"
+#include "ocr-db.h"
 #include "ocr-policy-domain.h"
 #include "ocr-runtime-types.h"
 #include "ocr-sysboot.h"
 #include "ocr-types.h"
 #include "ocr-worker.h"
-#include "ocr-db.h"
 #include "worker/hc/hc-worker.h"
+
+#include "experimental/ocr-placer.h"
+#include "extensions/ocr-affinity.h"
 
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
@@ -38,47 +41,53 @@ static inline u64 getWorkerId(ocrWorker_t * worker) {
     return hcWorker->id;
 }
 
+static void hcWorkShift(ocrWorker_t * worker) {
+    ocrPolicyDomain_t * pd;
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(&pd, NULL, NULL, &msg);
+    ocrFatGuid_t taskGuid = {.guid = NULL_GUID, .metaDataPtr = NULL};
+    u32 count = 1;
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_COMM_TAKE
+    msg.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+    PD_MSG_FIELD(guids) = &taskGuid;
+    PD_MSG_FIELD(guidCount) = count;
+    PD_MSG_FIELD(properties) = 0;
+    PD_MSG_FIELD(type) = OCR_GUID_EDT;
+    // TODO: In the future, potentially take more than one)
+    if(pd->fcts.processMessage(pd, &msg, true) == 0) {
+        // We got a response
+        count = PD_MSG_FIELD(guidCount);
+        if(count == 1) {
+            ASSERT(taskGuid.guid != NULL_GUID && taskGuid.metaDataPtr != NULL);
+            worker->curTask = (ocrTask_t*)taskGuid.metaDataPtr;
+            DPRINTF(DEBUG_LVL_VERB, "Worker shifting to execute EDT GUID 0x%lx\n", taskGuid.guid);
+            u8 (*executeFunc)(ocrTask_t *) = (u8 (*)(ocrTask_t*))PD_MSG_FIELD(extra); // Execute is stored in extra
+            executeFunc(worker->curTask);
+            worker->curTask = NULL;
+            // Destroy the work
+#undef PD_TYPE
+
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_WORK_DESTROY
+            msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
+            PD_MSG_FIELD(guid) = taskGuid;
+            PD_MSG_FIELD(properties) = 0;
+            // Ignore failures, we may be shutting down
+            pd->fcts.processMessage(pd, &msg, false);
+#undef PD_MSG
+#undef PD_TYPE
+        }
+    }
+}
+
 /**
  * The computation worker routine that asks work to the scheduler
  */
 static void workerLoop(ocrWorker_t * worker) {
-    ocrPolicyDomain_t *pd = worker->pd;
-    ocrPolicyMsg_t msg;
-    getCurrentEnv(NULL, NULL, NULL, &msg);
     while(worker->fcts.isRunning(worker)) {
         START_PROFILE(wo_hc_workerLoop);
-        ocrFatGuid_t taskGuid = {.guid = NULL_GUID, .metaDataPtr = NULL};
-        u32 count = 1;
-#define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_COMM_TAKE
-        msg.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-        PD_MSG_FIELD(guids) = &taskGuid;
-        PD_MSG_FIELD(guidCount) = count;
-        PD_MSG_FIELD(properties) = 0;
-        PD_MSG_FIELD(type) = OCR_GUID_EDT;
-        // TODO: In the future, potentially take more than one)
-        if(pd->fcts.processMessage(pd, &msg, true) == 0) {
-            // We got a response
-            count = PD_MSG_FIELD(guidCount);
-            if(count == 1) {
-                ASSERT(taskGuid.guid != NULL_GUID && taskGuid.metaDataPtr != NULL);
-                worker->curTask = (ocrTask_t*)taskGuid.metaDataPtr;
-                u8 (*executeFunc)(ocrTask_t *) = (u8 (*)(ocrTask_t*))PD_MSG_FIELD(extra); // Execute is stored in extra
-                executeFunc(worker->curTask);
-                worker->curTask = NULL;
-                // Destroy the work
-#undef PD_TYPE
-#define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_WORK_DESTROY
-                msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
-                PD_MSG_FIELD(guid) = taskGuid;
-                PD_MSG_FIELD(properties) = 0;
-                // Ignore failures, we may be shutting down
-                pd->fcts.processMessage(pd, &msg, false);
-#undef PD_MSG
-#undef PD_TYPE
-            }
-        }
+        worker->fcts.workShift(worker);
         EXIT_PROFILE;
     } /* End of while loop */
 }
@@ -120,19 +129,19 @@ void hcBeginWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
 
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
-    if(base->type == MASTER_WORKERTYPE) {
-        if(!hcWorker->secondStart) {
-            hcWorker->secondStart = true;
+
+    if(!hcWorker->secondStart) {
+        // Get a GUID
+        guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
+        base->pd = policy;
+        hcWorker->running = true;
+        if(base->type == MASTER_WORKERTYPE) {
+            hcWorker->secondStart = true; // Only relevant for MASTER_WORKERTYPE
             return; // Don't start right away
         }
     }
 
-    // Get a GUID
-    guidify(policy, (u64)base, &(base->fguid), OCR_GUID_WORKER);
-    base->pd = policy;
-
     ASSERT(base->type != MASTER_WORKERTYPE || hcWorker->secondStart);
-    hcWorker->running = true;
 
     // Starts everybody, the first comp-platform has specific
     // code to represent the master thread.
@@ -149,27 +158,38 @@ void hcStartWorker(ocrWorker_t * base, ocrPolicyDomain_t * policy) {
     // Otherwise, it is highly likely that we are shutting down
 }
 
+static bool isMainEdtForker(ocrWorker_t * worker, ocrGuid_t * affinityMasterPD) {
+    // Determine if current worker is the master worker of this PD
+    bool blessedWorker = (worker->type == MASTER_WORKERTYPE);
+    // When OCR is used in library mode, there's no mainEdt
+    blessedWorker &= (mainEdtGet() != NULL);
+    if (blessedWorker) {
+        // Determine if current master worker is part of master PD
+        u64 count = 0;
+        // There should be a single master PD
+        ASSERT(!ocrAffinityCount(AFFINITY_PD_MASTER, &count) && (count == 1));
+        ocrAffinityGet(AFFINITY_PD_MASTER, &count, affinityMasterPD);
+        ASSERT(count == 1);
+        blessedWorker &= (worker->pd->myLocation == affinityToLocation(*affinityMasterPD));
+    }
+    return blessedWorker;
+}
+
 void* hcRunWorker(ocrWorker_t * worker) {
-    if (worker->type != MASTER_WORKERTYPE) {
-        // Set who we are
-        ocrPolicyDomain_t *pd = worker->pd;
-        u32 i;
-        for(i = 0; i < worker->computeCount; ++i) {
-            worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
-        }
-    } else {
+    ocrGuid_t affinityMasterPD;
+    bool forkMain = isMainEdtForker(worker, &affinityMasterPD);
+    if (forkMain) {
         // This is all part of the mainEdt setup
         // and should be executed by the "blessed" worker.
         void * packedUserArgv = userArgsGet();
         ocrEdt_t mainEdt = mainEdtGet();
-
         u64 totalLength = ((u64*) packedUserArgv)[0]; // already exclude this first arg
         // strip off the 'totalLength first argument'
         packedUserArgv = (void *) (((u64)packedUserArgv) + sizeof(u64)); // skip first totalLength argument
         ocrGuid_t dbGuid;
         void* dbPtr;
         ocrDbCreate(&dbGuid, &dbPtr, totalLength,
-                    DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+                    DB_PROP_IGNORE_WARN, affinityMasterPD, NO_ALLOC);
 
         // copy packed args to DB
         hal_memCopy(dbPtr, packedUserArgv, totalLength, 0);
@@ -179,7 +199,14 @@ void* hcRunWorker(ocrWorker_t * worker) {
         ocrEdtTemplateCreate(&edtTemplateGuid, mainEdt, 0, 1);
         ocrEdtCreate(&edtGuid, edtTemplateGuid, EDT_PARAM_DEF, /* paramv = */ NULL,
                      /* depc = */ EDT_PARAM_DEF, /* depv = */ &dbGuid,
-                     EDT_PROP_NONE, NULL_GUID, NULL);
+                     EDT_PROP_NONE, affinityMasterPD, NULL);
+    } else {
+        // Set who we are
+        ocrPolicyDomain_t *pd = worker->pd;
+        u32 i;
+        for(i = 0; i < worker->computeCount; ++i) {
+            worker->computes[i]->fcts.setCurrentEnv(worker->computes[i], pd, worker);
+        }
     }
 
     DPRINTF(DEBUG_LVL_INFO, "Starting scheduler routine of worker %ld\n", getWorkerId(worker));
@@ -198,8 +225,9 @@ void hcFinishWorker(ocrWorker_t * base) {
 
 void hcStopWorker(ocrWorker_t * base) {
     ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) base;
+    // Makes worker threads to exit their routine.
     hcWorker->running = false;
-
+    ASSERT(base->pd != NULL);
     u64 computeCount = base->computeCount;
     u64 i = 0;
     for(i = 0; i < computeCount; i++) {
@@ -221,6 +249,7 @@ void hcStopWorker(ocrWorker_t * base) {
     msg.type = PD_MSG_GUID_DESTROY | PD_MSG_REQUEST;
     PD_MSG_FIELD(guid) = base->fguid;
     PD_MSG_FIELD(properties) = 0;
+    ASSERT(base->pd != NULL);
     // Ignore failure here, we are most likely shutting down
     base->pd->fcts.processMessage(base->pd, &msg, false);
 #undef PD_MSG
@@ -247,7 +276,6 @@ ocrWorker_t* newWorkerHc(ocrWorkerFactory_t * factory, ocrParamList_t * perInsta
  */
 void initializeWorkerHc(ocrWorkerFactory_t * factory, ocrWorker_t* self, ocrParamList_t * perInstance) {
     initializeWorkerOcr(factory, self, perInstance);
-
     self->type = ((paramListWorkerHcInst_t*)perInstance)->workerType;
     u64 workerId = ((paramListWorkerHcInst_t*)perInstance)->workerId;;
     ASSERT((workerId && self->type == SLAVE_WORKERTYPE) ||
@@ -257,6 +285,7 @@ void initializeWorkerHc(ocrWorkerFactory_t * factory, ocrWorker_t* self, ocrPara
     workerHc->id = workerId;
     workerHc->running = false;
     workerHc->secondStart = false;
+    workerHc->hcType = HC_WORKER_COMP;
 }
 
 /******************************************************/
@@ -278,6 +307,7 @@ ocrWorkerFactory_t * newOcrWorkerFactoryHc(ocrParamList_t * perType) {
     base->workerFcts.begin = FUNC_ADDR(void (*) (ocrWorker_t *, ocrPolicyDomain_t *), hcBeginWorker);
     base->workerFcts.start = FUNC_ADDR(void (*) (ocrWorker_t *, ocrPolicyDomain_t *), hcStartWorker);
     base->workerFcts.run = FUNC_ADDR(void* (*) (ocrWorker_t *), hcRunWorker);
+    base->workerFcts.workShift = FUNC_ADDR(void* (*) (ocrWorker_t *), hcWorkShift);
     base->workerFcts.stop = FUNC_ADDR(void (*) (ocrWorker_t *), hcStopWorker);
     base->workerFcts.finish = FUNC_ADDR(void (*) (ocrWorker_t *), hcFinishWorker);
     base->workerFcts.isRunning = FUNC_ADDR(bool (*) (ocrWorker_t *), hcIsRunningWorker);

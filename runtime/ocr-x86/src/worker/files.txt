@@ -1,3 +1,5 @@
-ce - a CE worker that just loops to handle requests from XEs
-xe - an XE worker that loops to pull available work from CE and executes them (TODO: check accuracy)
-hc - TODO: add description
+ce      - a CE worker that just loops to handle requests from XEs
+hc      - Work-stealing worker
+hc-comm - Communication worker (used to communicate between address spaces
+          in distributed implementations
+xe      - an XE worker that loops to pull available work from CE and executes them

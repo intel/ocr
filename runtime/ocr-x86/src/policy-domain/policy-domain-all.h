@@ -14,18 +14,16 @@
 
 typedef enum _policyDomainType_t {
     policyDomainHc_id,
+    policyDomainHcDist_id,
     policyDomainXe_id,
     policyDomainCe_id,
-    policyDomainFsimMasterCE_id,
-    policyDomainHcPlaced_id,
-    policyDomainHcLeafPlace_id,
-    policyDomainHcMasterLeafPlace_id,
     policyDomainMax_id
 } policyDomainType_t;
 
 extern const char * policyDomain_types [];
 
 #include "policy-domain/hc/hc-policy.h"
+#include "policy-domain/hc-dist/hc-dist-policy.h"
 #include "policy-domain/ce/ce-policy.h"
 #include "policy-domain/xe/xe-policy.h"
 

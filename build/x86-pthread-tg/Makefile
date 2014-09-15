@@ -48,7 +48,7 @@ RANLIB := ranlib
 # Library supported
 SUPPORTS_SHARED=yes
 SUPPORTS_STATIC=yes
-
+OCRRUNNER=ocrrun
 
 # For Valgrind, uncomment this line
 #CFLAGS += -I/usr/include -DENABLE_VALGRIND

@@ -8,10 +8,11 @@
 #include "debug.h"
 
 const char * worker_types[] = {
-    "HC",
-    "XE",
-    "CE",
-    NULL
+   "HC",
+   "HC_COMM",
+   "XE",
+   "CE",
+   NULL
 };
 
 const char * ocrWorkerType_types[] = {
@@ -23,6 +24,14 @@ const char * ocrWorkerType_types[] = {
 
 ocrWorkerFactory_t * newWorkerFactory(workerType_t type, ocrParamList_t *perType) {
     switch(type) {
+#ifdef ENABLE_WORKER_HC
+    case workerHc_id:
+      return newOcrWorkerFactoryHc(perType);
+#endif
+#ifdef ENABLE_WORKER_HC_COMM
+    case workerHcComm_id:
+      return newOcrWorkerFactoryHcComm(perType);
+#endif
 #ifdef ENABLE_WORKER_XE
     case workerXe_id:
         return newOcrWorkerFactoryXe(perType);
@@ -30,10 +39,6 @@ ocrWorkerFactory_t * newWorkerFactory(workerType_t type, ocrParamList_t *perType
 #ifdef ENABLE_WORKER_CE
     case workerCe_id:
         return newOcrWorkerFactoryCe(perType);
-#endif
-#ifdef ENABLE_WORKER_HC
-    case workerHc_id:
-        return newOcrWorkerFactoryHc(perType);
 #endif
     default:
         ASSERT(0);

@@ -67,8 +67,10 @@ typedef struct _ocrDataBlockFcts_t {
      * @param[out] ptr          Returns the pointer to use to access the data
      * @param[in] edt           EDT seeking registration
      *                          Must be fully resolved
+     * @param[in] edtSlot       EDT slot the DB is acquired for (can be EDT_NO_SLOT)
      * @param[in] isInternal    True if this is an acquire implicitly
      *                          done by the runtime at EDT launch
+     * @param[in] properties    Any additional properties for the acquire call
      * @return 0 on success or the following error code:
      *
      *
@@ -76,7 +78,7 @@ typedef struct _ocrDataBlockFcts_t {
      * the DB should only be freed ONCE
      */
     u8 (*acquire)(struct _ocrDataBlock_t *self, void** ptr, ocrFatGuid_t edt,
-                  bool isInternal);
+                  u32 edtSlot, ocrDbAccessMode_t mode, bool isInternal, u32 properties);
 
     /**
      * @brief Releases a data-block previously acquired
@@ -156,10 +158,23 @@ typedef struct _ocrDataBlock_t {
     ocrGuid_t allocatingPD; /**< Policy domain of the creating allocator */
     u64 size;               /**< Size of the data-block */
     void* ptr;              /**< Current location for this data-block */
-    u32 properties;         /**< Properties for the data-block */
+    u32 flags;              /**< flags for the data-block, lower 16 bits are info
+                                 from user, upper 16 bits is for internal bookeeping */
     u32 fctId;              /**< ID determining which functions to use */
 } ocrDataBlock_t;
 
+// User DB properties
+// Mask to extract the db mode when carried through properties
+#define DB_PROP_MODE_MASK 0xE
+
+// Runtime DB properties (upper 16 bits of a u32)
+//Properties
+#define DB_PROP_RT_ACQUIRE     0x1 // DB acquired by runtime
+#define DB_PROP_RT_OBLIVIOUS    0x20 // TODO DBX Runtime acquires local DB, write and do not release
+
+//Runtime Flags (4 bits)
+#define DB_FLAG_RT_FETCH       0x1000
+#define DB_FLAG_RT_WRITE_BACK  0x2000
 
 /****************************************************/
 /* OCR DATABLOCK FACTORY                            */

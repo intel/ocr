@@ -53,6 +53,17 @@ typedef struct _ocrWorkerFcts_t {
      */
     void* (*run)(struct _ocrWorker_t *self);
 
+    /**
+     * @brief Allows the worker to request another EDT/task
+     * to execute
+     *
+     * This is used by some implementations that support/need
+     * context switching during the execution of an EDT
+     * @warning This API is a WIP and should not be relied on at
+     * the moment (see usage in HC's blocking scheduler)
+     */
+    void* (*workShift)(struct _ocrWorker_t *self);
+
     /** @brief Query the worker to finish its work
      */
     void (*finish)(struct _ocrWorker_t *self);
@@ -65,6 +76,7 @@ typedef struct _ocrWorkerFcts_t {
      *  @return true if the Worker is running, false otherwise
      */
     bool (*isRunning)(struct _ocrWorker_t *self);
+
 } ocrWorkerFcts_t;
 
 typedef struct _ocrWorker_t {
@@ -79,7 +91,7 @@ typedef struct _ocrWorker_t {
     ocrCompTarget_t **computes; /**< Compute node(s) associated with this worker */
     u64 computeCount;           /**< Number of compute node(s) associated */
 
-    struct _ocrTask_t *curTask; /**< Currently executing task */
+    struct _ocrTask_t * volatile curTask; /**< Currently executing task */
 
     ocrWorkerFcts_t fcts;
 } ocrWorker_t;
@@ -93,7 +105,6 @@ typedef struct _ocrWorkerFactory_t {
     ocrWorker_t* (*instantiate) (struct _ocrWorkerFactory_t * factory,
                                  ocrParamList_t *perInstance);
     void (*initialize) (struct _ocrWorkerFactory_t * factory, struct _ocrWorker_t * worker, ocrParamList_t *perInstance);
-
     void (*destruct)(struct _ocrWorkerFactory_t * factory);
     ocrWorkerFcts_t workerFcts;
 } ocrWorkerFactory_t;

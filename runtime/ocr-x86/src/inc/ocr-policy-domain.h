@@ -8,26 +8,21 @@
 #ifndef OCR_POLICY_DOMAIN_H_
 #define OCR_POLICY_DOMAIN_H_
 
-//TODO this is a quick fix to fix header include issues when
-//getCurrentEnv is not declared and cause compilation errors
-//down in ocr-guid-end.h
-#include "ocr-sal.h"
-
 #include "ocr-allocator.h"
 #include "ocr-comm-api.h"
 #include "ocr-datablock.h"
 #include "ocr-event.h"
 #include "ocr-guid.h"
 #include "ocr-scheduler.h"
-
 #ifdef OCR_ENABLE_STATISTICS
 #include "ocr-statistics.h"
 #endif
-
 #include "ocr-task.h"
-#include "ocr-tuning.h"
 #include "ocr-types.h"
 #include "ocr-worker.h"
+
+#include "experimental/ocr-placer.h"
+#include "experimental/ocr-tuning.h"
 
 /****************************************************/
 /* PARAMETER LISTS                                  */
@@ -119,10 +114,14 @@ typedef struct _paramListPolicyDomainInst_t {
 
 /**< Gets information about the GUID */
 #define PD_MSG_GUID_INFO        0x2020
+
+/**< Request a copy of the GUID's metadata */
+#define PD_MSG_GUID_METADATA_CLONE  0x3020
+
 /**< Release the GUID (destroy the association between the u64
  * value and the GUID and optionally destroy the associated
  * metadata */
-#define PD_MSG_GUID_DESTROY     0x3020
+#define PD_MSG_GUID_DESTROY     0x4020
 // TODO: Add stuff about GUID reservation
 
 /**< AND with this and if result non-null, GUID distribution related
@@ -207,6 +206,10 @@ typedef struct _paramListPolicyDomainInst_t {
 /**< Opposite of register */
 #define PD_MSG_MGT_UNREGISTER   0x4200
 
+/**< For a worker to request the policy-domain to monitor an operation progress */
+#define PD_MSG_MGT_MONITOR_PROGRESS 0x5200
+
+
 #ifdef OCR_ENABLE_STATISTICS
 // TODO: Add statistics messages
 // The entire statistics framework will have to
@@ -266,15 +269,18 @@ struct _ocrPolicyDomain_t;
  * in this format (even if synchronous)
  */
 typedef struct _ocrPolicyMsg_t {
-    u32 type;                 /**< Type of the message. Also includes if this
-                               * is a request or a response */
-    u32 size;                 /**< Useful size of this message in bytes */
+    u32 type;                   /**< Type of the message. Also includes if this
+                                 * is a request or a response */
+    u32 size;                   /**< Useful size of this message in bytes. This is the number
+                                 * of bytes in this message buffer that are useful to
+                                 * transmit. This can be reset by ocrPolicyMsgGetMsgSize to
+                                 * just the size of the main content of the message. */
     ocrLocation_t srcLocation;  /**< Source of the message
-                                         * (location making the request) */
+                                 * (location making the request) */
     ocrLocation_t destLocation; /**< Destination of the message
-                                         * (location processing the request) */
-    u64 msgId;                /**< Implementation specific ID identifying
-                              * this message (if required) */
+                                 * (location processing the request) */
+    u64 msgId;                  /**< Implementation specific ID identifying
+                                 * this message (if required) */
 
     /* The following rules apply to all fields in the message:
      *     - All ocrFatGuid_t are in/out parameters in the sense
@@ -315,7 +321,9 @@ typedef struct _ocrPolicyMsg_t {
         struct {
             ocrFatGuid_t guid;         /**< In: GUID of the DB to acquire */
             ocrFatGuid_t edt;          /**< In: EDT doing the acquiring */
+            u32 edtSlot;               /**< In: EDT's slot if applicable */
             void* ptr;                 /**< Out: Pointer to the acquired memory */
+            u64 size;                  /**< Out: Size of the acquired memory */
             u32 properties;            /**< In: Properties for acquire. Bit 0: 1 if runtime acquire */
             u32 returnDetail;          /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_ACQUIRE);
@@ -323,6 +331,8 @@ typedef struct _ocrPolicyMsg_t {
         struct {
             ocrFatGuid_t guid;         /**< In: GUID of the DB to release */
             ocrFatGuid_t edt;          /**< In: GUID of the EDT doing the release */
+            void* ptr;                 /**< In: Optionally provide pointer to the released memory */
+            u64 size;                  /**< In: Optionally provide size to the released memory */
             u32 properties;            /**< In: Properties of the release: Bit 0: 1 if runtime release */
             u32 returnDetail;          /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DB_RELEASE);
@@ -368,6 +378,7 @@ typedef struct _ocrPolicyMsg_t {
             u32 paramc;                /**< In/out: Number of parameters; on out returns real number
                                         * in case of EDT_PARAM_DEF as input for example */
             u32 depc;                  /**< In/out: Number of dependence slots; same comment as above */
+            ocrFatGuid_t * depv;       /**< In: Dependences for this EDT */
             u32 properties;            /**< In: properties for the creation */
             u32 returnDetail;          /**< Out: Success or error code */
             ocrWorkType_t workType;    /**< In: Type of work to create */
@@ -447,9 +458,17 @@ typedef struct _ocrPolicyMsg_t {
                                 * whose information is needed
                                 * Out: Fully resolved information */
             ocrGuidKind kind;  /**< Out: Contains the type of the GUID */
+            ocrLocation_t location; /**< Out: Contains the location of the GUID */
             u32 properties;    /**< In: Properties for the info. See ocrGuidInfoProp_t */
             u32 returnDetail;  /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_GUID_INFO);
+
+        struct {
+            ocrFatGuid_t guid; /**< In/Out:
+                                * In: The GUID we request a metadata copy
+                                * Out: The GUID and pointer to the cloned metadata */
+            u64 size;          /**< Out: Size of the metadata that was cloned */
+        } PD_MSG_STRUCT_NAME(PD_MSG_GUID_METADATA_CLONE);
 
         struct {
             ocrFatGuid_t guid; /**< In: GUID to destroy */
@@ -497,10 +516,11 @@ typedef struct _ocrPolicyMsg_t {
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_ADD);
 
         struct {
-            ocrFatGuid_t signaler; /**< In: Signaler to register */
-            ocrFatGuid_t dest;     /**< In: Object to register the signaler on */
-            u32 slot;              /**< In: Slot on dest to register the signaler on */
-            u32 properties;        /**< In: Properties */
+            ocrFatGuid_t signaler;  /**< In: Signaler to register */
+            ocrFatGuid_t dest;      /**< In: Object to register the signaler on */
+            u32 slot;               /**< In: Slot on dest to register the signaler on */
+            ocrDbAccessMode_t mode; /**< In: Access mode for the dependence's datablock */
+            u32 properties;         /**< In: Properties */
             u32 returnDetail;      /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_REGSIGNALER);
 
@@ -553,8 +573,8 @@ typedef struct _ocrPolicyMsg_t {
         } PD_MSG_STRUCT_NAME(PD_MSG_DEP_UNREGWAITER);
 
         struct {
-            const char* buffer;  /**< In: ASCIIZ character string to print */
-            u64 length;          /**< In: Length to print, including NULL termination */
+            const char* buffer;  /**< In: Character string to print (including NULL terminator) */
+            u64 length;          /**< In: Length to print (including NULL terminator) */
             u32 properties;      /**< In: Properties for the print */
             u32 returnDetail;    /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_SAL_PRINT);
@@ -606,6 +626,11 @@ typedef struct _ocrPolicyMsg_t {
             u32 properties;
             u32 returnDetail;       /**< Out: Success or error code */
         } PD_MSG_STRUCT_NAME(PD_MSG_MGT_UNREGISTER);
+
+        struct {
+            void * monitoree;
+            u32 properties; /**< In: first eight bits is type of monitoree */
+        } PD_MSG_STRUCT_NAME(PD_MSG_MGT_MONITOR_PROGRESS);
     } args;
     char _padding[64]; // REC: HACK to be able to fit everything in messages!!
 } ocrPolicyMsg_t;
@@ -618,13 +643,8 @@ typedef struct _ocrPolicyMsg_t {
  * and destroyed by the user (caller of sendMessage, waitMessage...) using
  * the provided 'destruct' function.
  *
- *
- *
  * The response message will always be contained in handle->response.
- * To check whether a message has:
- *    - been sent: check the 'done' field
- *    - a valid response (response in response->msg), check to the
- *      'response->done' field
+ *
  * If 'msg' is non-NULL after a successful poll (handle->status = HDL_RESPONSE_OK),
  * or a wait, this serves as a reminder to the caller that the message
  * was passed in with PERSIST_MESSAGE_PROP (pointer to original message).
@@ -637,7 +657,6 @@ typedef struct _ocrMsgHandle_t {
     ocrPolicyMsg_t * msg;           /**< The message associated with the communication
                                        the handle represents. */
     ocrPolicyMsg_t * response;      /**< The response (if applicable) */
-
     ocrMsgHandleStatus_t status;   /**< Status of this handle. See ocrMsgHandleState */
     void (*destruct)(struct _ocrMsgHandle_t * self); /**< Destructor for this
                                                        * instance of the message
@@ -817,7 +836,7 @@ typedef struct _ocrPolicyDomainFcts_t {
 typedef struct _ocrPolicyDomain_t {
 
 // CAUTION:  FIXME:  Any changes to this struct may cause problems in the symbolic constants inside
-// rmdkrnl/inc/rmd-bin-files.h.  To minimize problems, put factory first.  (The factory in turn
+// ss/common/include/rmd-bin-files.h.  To minimize problems, put factory first.  (The factory in turn
 // contains the pointers to the Begin and Start functions, which are the relevant data for needing
 // careful placement.  See also xe-policy.h for a third magicly placed value, packedArgsLocation).
 
@@ -849,6 +868,7 @@ typedef struct _ocrPolicyDomain_t {
                                                  * data-blocks */
     ocrEventFactory_t ** eventFactories;        /**< Factories to produce events*/
     ocrGuidProvider_t ** guidProviders;         /**< GUID generators */
+    ocrPlacer_t * placer;                       /**< Affinity and placement (work in progress) */
 
     // TODO: What to do about this?
     ocrCost_t *costFunction; /**< Cost function used to determine
@@ -924,6 +944,130 @@ typedef struct _ocrPolicyDomainFactory_t {
 } ocrPolicyDomainFactory_t;
 
 void initializePolicyDomainOcr(ocrPolicyDomainFactory_t * factory, ocrPolicyDomain_t * self, ocrParamList_t *perInstance);
+
+
+/****************************************************/
+/* UTILITY FUNCTIONS                                */
+/****************************************************/
+
+typedef enum {
+    MARSHALL_FULL_COPY,
+    MARSHALL_DUPLICATE,
+    MARSHALL_APPEND,
+    MARSHALL_ADDL
+} ocrMarshallMode_t;
+
+/**
+ * @brief Gets the effective size of the msg that
+ * needs to be sent
+ *
+ * This size includes the actual payload + whatever
+ * additional space is needed to store variable-size
+ * arguments such as GUIDs, funcName etc.
+ *
+ * @param[in] msg               Message to analyze
+ * @param[out] fullSize         Full size of the message (bytes)
+ * @param[out] marshalledSize   Additional data that needs to be
+ *                              fetched/marshalled (included in fullSize) (bytes)
+ *
+ * This call can be used on both a ocrPolicyMsg_t or a buffer
+ * containing a marshalled ocrPolicyMsg_t. This will set the 'size'
+ * field in the ocrPolicyMsg_t to fullSize - marshalledSize.
+ *
+ * @warning The setting of the size field may not be what you want;
+ * for example, if the buffer contains the message AND the
+ * marshalled content (for example if it was a MARSHALL_APPEND), this
+ * will set the size to something SMALLER than what needs to be transmitted.
+ *
+ * @return 0 on success and a non-zero error code
+ */
+u8 ocrPolicyMsgGetMsgSize(struct _ocrPolicyMsg_t* msg, u64 *fullSize,
+                          u64* marshalledSize);
+
+/**
+ * @brief Marshall everything needed to send the message over to a PD that
+ * does not share the same address space
+ *
+ * This function performs one of three operations depending on the
+ * mode:
+ *   - MARSHALL_FULL_COPY: Fully copy and marshall msg into buffer. In
+ *                         this case buffer and msg do not overlap. The
+ *                         caller also ensures that buffer is at least
+ *                         big enough to contain fullSize bytes as
+ *                         returned by ocrPolicyMsgGetMsgSize. Assumes
+ *                         that msg->size is properly set to (fullSize - marshalledSize)
+ *   - MARSHALL_DUPLICATE: This is exactly like MARSHALL_FULL_COPY except
+ *                         that the pointers are not encoded as offsets from the
+ *                         start of the message. In other words, this mode
+ *                         allows you to duplicate an ocrPolicyMsg_t fully
+ *                         including the first level of pointers. This mode
+ *                         is usually not used with an un-marshall.
+ *   - MARSHALL_APPEND:    In this case (u64)buffer == (u64)msg and
+ *                         marshalled values will be appended to the
+ *                         end of the useful portion of msg. The caller
+ *                         ensures that buffer is at least big enough to
+ *                         contain fullSize bytes as returned by
+ *                         ocrPolicyMsgGetMsgSize
+ *   - MARSHALL_ADDL:      Marshall only neede portions (not already in msg)
+ *                         into buffer. The caller ensures that buffer is
+ *                         at least big enough to contain marshalledSize
+ *                         as returned by ocrPolicyMsgGetMsgSize
+ *
+ * Note that in the case of MARSHALL_APPEND and MARSHALL_ADDL, the
+ * msg itself is modified to encode offsets and positions for the marshalled
+ * values so that it can be unmarshalled by ocrPolicyMsgUnMarshallMsg. In
+ * all cases, size is set to what actually needs to be sent over:
+ *   - For FULL_COPY, DUPLICATE or APPEND to fullSize
+ *   - For ADDL to (fullSize - marshalledSize) since the additional information
+ *     to transmit is in buffer and not in msg
+ *
+ * @param[in/out] msg      Message to marshall from
+ * @param[in/out] buffer   Buffer to marshall to
+ * @param[in] mode         One of MARSHALL_FULL_COPY, MARSHALL_APPEND, MARSHALL_ADDL
+ * @return 0 on success and a non-zero error code
+ */
+u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u8* buffer, ocrMarshallMode_t mode);
+
+/**
+ * @brief Performs the opposite operation to ocrPolicyMsgMarshallMsg
+ *
+ * The inputs are the mainBuffer (containing the header of the messsage and
+ * an optional additional buffer (obtained using the MARSHALL_ADDL mode).
+ *
+ * The significance of the modes here are:
+ *   - MARSHALL_FULL_COPY: In this case, none of the buffers (mainBuffer,
+ *                         addlBuffer, msg) overlap. The entire content
+ *                         of the message and any additional structure
+ *                         will be put in msg. The caller ensures that
+ *                         the actual allocated size of msg is at least
+ *                         fullSize bytes (as returned by ocrPolicyMsgGetMsgSize)
+ *   - MARSHALL_APPEND:    In this case, (u64)msg == (u64)mainBuffer. In
+ *                         most cases, this will only fix-up pointers but
+ *                         may copy from addlBuffer into mainBuffer. For
+ *                         example, the mashalling could have been
+ *                         done using MARSHALL_ADDL and unmarshalling is
+ *                         done with MARSHALL_APPEND.
+ *                         The caller ensures that the actual allocated
+ *                         size of msg is at least fullSize bytes (as
+ *                         returned by ocrPolicyMsgGetMsgSize)
+ *   - MARSHALL_ADDL:      Marshall the common part of the message into msg
+ *                         and use pdMalloc for marshalledSize bytes (one
+ *                         or more chunks totalling marshalledSize bytes as
+ *                         returned by ocrPolicyMsgGetMsgSize)
+ *
+ * @param[in] mainBuffer   Buffer containing the common part of the message
+ * @param[in] addlBuffer   Optional addtional buffer (if message was marshalled
+ *                         using MARSHALL_ADDL). NULL otherwise (do not pass in
+ *                         garbage!). It is assumed to have marshalledSize of useful
+ *                         content
+ * @param[out] msg         Message to create from mainBuffer and addlBuffer
+ * @param[in] mode         One of MARSHALL_FULL_COPY, MARSHALL_APPEND, MARSHALL_ADDL
+ *
+ * @return 0 on success and a non-zero error code
+ */
+u8 ocrPolicyMsgUnMarshallMsg(u8* mainBuffer, u8* addlBuffer,
+                             struct _ocrPolicyMsg_t* msg, ocrMarshallMode_t mode);
+
 
 #define __GUID_END_MARKER__
 #include "ocr-guid-end.h"

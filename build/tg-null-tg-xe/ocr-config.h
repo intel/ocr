@@ -17,6 +17,14 @@
 // that does not contribute to building the policy domain
 //#define ENABLE_BUILDER_ONLY
 
+// FIXME: HACK!!! HACK!!! HACK!!!
+// This is here temporarily so we can specialize common OCR code for
+// when it's built for FSIM, because there's no other way to get
+// needed behavior. This SHOULD be resolved "soon" and the code
+// removed, hence the ugliness of this symbol -- so it'll be so ugly
+// as to force us to fix and remove it.
+#define TEMPORARY_FSIM_HACK_TILL_WE_FIGURE_OCR_START_STOP_HANDSHAKES
+
 // Allocator
 #define ENABLE_ALLOCATOR_NULL
 

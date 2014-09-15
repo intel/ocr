@@ -1,0 +1,23 @@
+
+** About failing tests
+
+Depending on your build of OCR and the configuration file used
+some non-regression tests may fail. The reason for tests failing
+may be an actual bug or the manifestation of a runtime limitation.
+
+The 'unstable.*' files located in this folder allows to exclude
+a set of non-regression test from the test run. Tests declared in
+unstable files are either limitations or known issues being worked
+on.
+
+The following runs all the tests with the exclusion of all test-cases
+mentioned in the 'unstable.x86-pthread-mpi-lockableDB' file
+
+    ./ocrTest -unstablefile unstable.x86-pthread-mpi-lockableDB
+
+The current naming convention is for unstable file is:
+
+    unstable.ARCHITECTURE-DBTYPE
+
+where 'ARCHITECTURE' is one of the names under ocr/build/ and
+'DBTYPE' is 'regularDB' or 'lockableDB'

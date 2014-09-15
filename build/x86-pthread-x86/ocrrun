@@ -1,0 +1,48 @@
+#!/bin/bash
+
+
+# User-provided or generated
+OCR_CONFIG=
+PROGRAM_BIN=
+
+#
+# Handling options
+#
+
+while [ $# -gt 0 ]; do
+    if [[ "$1" = "-ocr:cfg" && $# -ge 2 ]]; then
+        shift
+        OCR_CONFIG=("$@")
+        shift
+   else
+        # stacking unknown arguments
+        ARGS="${ARGS} $1"
+        shift
+    fi
+done
+
+NB_ARGS=`echo $ARGS | wc -w`
+
+if [ ${NB_ARGS} -eq 0 ]; then
+    echo "error: missing program name argument"
+    exit 1
+elif [ ${NB_ARGS} -lt 1 ]; then
+    echo "error: unexpected number of arguments"
+    exit 2
+else
+    PROGRAM_BIN=${ARGS}
+fi
+
+if [ "${OCR_CONFIG}" = "" ]; then
+    #Call the config generator
+    perl ${OCR_ROOT}/bin/config-generator.py
+    #TODO this only works with default CFG filename
+    OCR_CONFIG=${PWD}/default.cfg
+fi
+
+# Default is regular X86-backend
+${PROGRAM_BIN} -ocr:cfg ${OCR_CONFIG}
+RET_CODE=$?
+exit ${RET_CODE}
+
+

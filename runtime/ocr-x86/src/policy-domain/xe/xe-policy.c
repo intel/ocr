@@ -37,7 +37,7 @@ void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     DPRINTF(DEBUG_LVL_VVERB, "xePolicyDomainBegin called on policy at 0x%lx\n", (u64) policy);
 #ifdef ENABLE_SYSBOOT_FSIM
     if (XE_PDARGS_OFFSET != offsetof(ocrPolicyDomainXe_t, packedArgsLocation)) {
-        DPRINTF(DEBUG_LVL_WARN, "XE_PDARGS_OFFSET (in .../ss/rmdkrnl/inc/rmd-bin-files.h) is 0x%lx.  Should be 0x%lx\n",
+        DPRINTF(DEBUG_LVL_WARN, "XE_PDARGS_OFFSET (in .../ss/common/include/rmd-bin-files.h) is 0x%lx.  Should be 0x%lx\n",
             (u64) XE_PDARGS_OFFSET, (u64) offsetof(ocrPolicyDomainXe_t, packedArgsLocation));
         ASSERT (0);
     }
@@ -46,6 +46,8 @@ void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
 
     u64 i = 0;
     u64 maxCount = 0;
+
+    ((ocrPolicyDomainXe_t*)policy)->shutdownInitiated = 0;
 
     maxCount = policy->guidProviderCount;
     for(i = 0; i < maxCount; ++i) {
@@ -66,6 +68,7 @@ void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; i++) {
         policy->commApis[i]->fcts.begin(policy->commApis[i], policy);
     }
+    policy->placer = NULL;
 
     // REC: Moved all workers to start here.
     // Note: it's important to first logically start all workers.
@@ -78,6 +81,10 @@ void xePolicyDomainBegin(ocrPolicyDomain_t * policy) {
 
 #if defined(SAL_FSIM_XE) // If running on FSim XE
     xePolicyDomainStart(policy);
+    hal_exit(0);
+#endif
+
+#ifdef TEMPORARY_FSIM_HACK_TILL_WE_FIGURE_OCR_START_STOP_HANDSHAKES
     hal_exit(0);
 #endif
 }
@@ -289,6 +296,7 @@ static void localDeguidify(ocrPolicyDomain_t *self, ocrFatGuid_t *guid) {
 static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
     u8 returnCode = 0;
     u32 type = ((*msg)->type & PD_MSG_TYPE_ONLY);
+    ocrPolicyDomainXe_t *rself = (ocrPolicyDomainXe_t*)self;
     ASSERT((*msg)->type & PD_MSG_REQUEST);
     if ((*msg)->type & PD_MSG_REQ_RESPONSE) {
         ocrMsgHandle_t *handle = NULL;
@@ -305,7 +313,12 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
             if((handle->response->type & PD_MSG_TYPE_ONLY) != type) {
                 // Special case: shutdown in progress, cancel this message
                 // The handle is destroyed by the caller for this case
-                ocrShutdown();
+                if(!rself->shutdownInitiated)
+                    ocrShutdown();
+                else {
+                    // We destroy the handle here (which frees the buffer)
+                    handle->destruct(handle);
+                }
                 return OCR_ECANCELED;
             }
             ASSERT((handle->response->type & PD_MSG_TYPE_ONLY) == type);
@@ -313,7 +326,12 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
                 // We need to copy things back into *msg
                 // TODO: FIXME when issue #68 is fully implemented by checking
                 // sizes
-                hal_memCopy(*msg, handle->response, sizeof(ocrPolicyMsg_t), false);
+                // We use the marshalling function to "copy" this message
+                u64 fullSize = 0, marshalledSize = 0;
+                ocrPolicyMsgGetMsgSize(handle->response, &fullSize, &marshalledSize);
+                // For now, it must fit in a single message
+                ASSERT(fullSize <= sizeof(ocrPolicyMsg_t));
+                ocrPolicyMsgMarshallMsg(handle->response, (u8*)*msg, MARSHALL_DUPLICATE);
             }
             handle->destruct(handle);
         }
@@ -390,6 +408,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     case PD_MSG_SAL_READ: case PD_MSG_SAL_WRITE:
     case PD_MSG_MGT_REGISTER: case PD_MSG_MGT_UNREGISTER:
     case PD_MSG_SAL_TERMINATE:
+    case PD_MSG_GUID_METADATA_CLONE: case PD_MSG_MGT_MONITOR_PROGRESS:
     {
         DPRINTF(DEBUG_LVL_WARN, "XE PD does not handle call of type 0x%x\n",
                 (u32)(msg->type & PD_MSG_TYPE_ONLY));
@@ -442,11 +461,16 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
     }
     case PD_MSG_MGT_SHUTDOWN: {
         START_PROFILE(pd_xe_Shutdown);
+        ocrPolicyDomainXe_t *rself = (ocrPolicyDomainXe_t*)self;
+        rself->shutdownInitiated = 1;
         self->fcts.stop(self);
         if(msg->srcLocation == self->myLocation) {
             DPRINTF(DEBUG_LVL_VVERB, "MGT_SHUTDOWN initiation from 0x%lx\n",
                     msg->srcLocation);
             returnCode = xeProcessCeRequest(self, &msg);
+            // HACK: We force the return code to be 0 here
+            // because otherwise something will complain
+            returnCode = 0;
         } else {
             //FIXME: We never exercise this code path.
             //Keeping it for now until we fix the shutdown protocol
@@ -485,6 +509,7 @@ u8 xePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
 u8 xePdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t *message,
                    ocrMsgHandle_t **handle, u32 properties) {
+    ocrPolicyDomainXe_t *rself = (ocrPolicyDomainXe_t*)self;
     ASSERT(target == self->parentLocation);
     // Set the header of this message
     message->srcLocation  = self->myLocation;
@@ -502,7 +527,9 @@ u8 xePdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t
         //but rather handled on a per message basis. Once we have a proper
         //shutdown protocol this should go away.
         //Bug #134
-        if(returnCode==OCR_ECANCELED) ocrShutdown();
+        // We do not do a shutdown if we already have a shutdown initiated
+        if(returnCode==OCR_ECANCELED && !rself->shutdownInitiated)
+            ocrShutdown();
         break;
     case OCR_EBUSY:
         if(*handle)

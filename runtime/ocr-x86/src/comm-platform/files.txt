@@ -1,3 +1,7 @@
-null       - an empty communication framework (where communication is not required)
-xe-pthread - communications based on shared memory for x86 emulation of XE
-ce-pthread - communications based on shared memory for x86 emulation of CE
+ce               - communications for TG's CE
+ce-pthread       - communications based on shared memory for x86 emulation of CE
+gasnet           - communications layer based on gasnet
+mpi              - communications layer based on MPI
+null             - an empty communication framework (where communication is not required)
+xe               - communications for TG's XE
+xe-pthread       - communications based on shared memory for x86 emulation of XE

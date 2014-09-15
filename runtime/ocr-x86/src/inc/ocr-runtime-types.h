@@ -54,13 +54,14 @@ typedef enum {
  * after the call
  */
 typedef enum {
-    TWOWAY_MSG_PROP          = 0x1, /**< A "response" is expected for
-                                     * this message */
-    PERSIST_MSG_PROP         = 0x2, /**< The input message is guaranteed to be
-                                     * valid until *after* a successful poll/wait */
-    PENDING_MSG_PROP         = 0x4,  /*message not processed yet*/
+    TWOWAY_MSG_PROP          = 0x1,   /**< A "response" is expected for
+                                       * this message */
+    PERSIST_MSG_PROP         = 0x2,   /**< The input message is guaranteed to be
+                                       * valid until *after* a successful poll/wait */
+    PENDING_MSG_PROP         = 0x4,   /**< Message not processed yet*/
     BLOCKING_SEND_MSG_PROP   = 0x8,   /**< comm-layer will not return until
                                            message is sent successfully */
+    ASYNC_MSG_PROP           = 0x10,  /**< Asynchronous msg processing */
     PRIO1_MSG_PROP           = 0x100, /**< Lowest priority message */
     PRIO2_MSG_PROP           = 0x200, /**< Higher priority message */
     PRIO3_MSG_PROP           = 0x400, /**< Highest priority message */
@@ -118,6 +119,9 @@ typedef enum {
     MAX_DBTYPE      = 0x3
 } ocrDataBlockType_t;
 
+/** @brief Special property that removes the warning
+ * for the acquire/create */
+#define DB_PROP_IGNORE_WARN (u16)(0x7000)
 /**
  * @brief Type of memory allocated/unallocated
  * by MEM_ALLOC and MEM_UNALLOC
@@ -143,17 +147,26 @@ typedef enum {
  * stripped out but it is here in case we need it later
  */
 typedef enum {
-    EDT_WORKTYPE    = 0x1,
-    MAX_WORKTYPE    = 0x2
+    EDT_USER_WORKTYPE    = 0x1,
+    EDT_RT_WORKTYPE = 0x2,
+    MAX_WORKTYPE    = 0x3
 } ocrWorkType_t;
 
 typedef enum {
-    CREATED_EDTSTATE    = 0x1, /**< EDT created; no dependence satisfied */
-    PARTIAL_EDTSTATE    = 0x2, /**< EDT has at least one dependence that is satisfied */
-    READY_EDTSTATE      = 0x3, /**< EDT has all dependences satisfied */
-    RUNNING_EDTSTATE    = 0x4, /**< EDT is executing */
-    REAPING_EDTSTATE    = 0x5  /**< EDT finished executing and is cleaning up */
+    CREATED_EDTSTATE    = 0x1, /**< EDT created */
+    ALLDEPS_EDTSTATE    = 0x2, /**< EDT has all dependences added */
+    PARTIAL_EDTSTATE    = 0x3, /**< EDT has at least one dependence that is satisfied */
+    ALLSAT_EDTSTATE     = 0x4, /**< EDT has all dependences satisfied */
+    ALLACQ_EDTSTATE     = 0x5, /**< EDT has DB dependences acquired */
+    RUNNING_EDTSTATE    = 0x6, /**< EDT is executing */
+    REAPING_EDTSTATE    = 0x7  /**< EDT finished executing and is cleaning up */
 } ocrEdtState_t;
+
+
+/**
+ * @brief Identifier to represent 'none' of an EDT slots
+ */
+#define EDT_SLOT_NONE ((u32)-1)
 
 /**
  * @brief Type of pop from workpiles.
@@ -203,11 +216,12 @@ typedef struct {
 
 typedef enum {
     KIND_GUIDPROP       = 0x1, /**< Request kind of the GUID */
-    WMETA_GUIDPROP      = 0x2, /**< Request the metadata of the GUID in write mode
+    LOCATION_GUIDPROP   = 0x2, /**< Request location of the GUID */
+    WMETA_GUIDPROP      = 0x4, /**< Request the metadata of the GUID in write mode
                                 * Also used when returning the GUID to indicate if
                                 * the returned meta data can be written to */
-    RMETA_GUIDPROP      = 0x4, /**< Request the metadata of the GUID in read mode */
-    CMETA_GUIDPROP      = 0x8, /**< Indicates that the metadata returned is a copy (R/O
+    RMETA_GUIDPROP      = 0x8, /**< Request the metadata of the GUID in read mode */
+    CMETA_GUIDPROP      = 0x10, /**< Indicates that the metadata returned is a copy (R/O
                                 * and should be freed with pdFree) */
 } ocrGuidInfoProp_t;
 
@@ -231,6 +245,12 @@ typedef enum {
 }
 
 #define SET_MODULE_STATE(m, p, s) p->state = MODULE_STATE_##s;
+
+typedef enum { // Coded on 8 bits maximum
+    MONITOR_PROGRESS_COMM  = 0x1, /**< Monitor a communication completion */
+    MONITOR_PROGRESS_EVENT = 0x2, /**< Monitor an event completion */
+    MAX_MONITOR_PROGRESS   = 0x3
+} ocrMonitorProgress_t;
 
 // REC: FIXME
 // This is a placeholder for something that identifies a memory,

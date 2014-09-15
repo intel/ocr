@@ -4,8 +4,8 @@
  * removed or modified.
  */
 
-#include <stdio.h>
-#include <assert.h>
+
+
 
 #include "ocr.h"
 
@@ -22,7 +22,7 @@ int main(int argc, const char * argv[]) {
     ocrConfig_t ocrConfig;
     ocrParseArgs(argc, argv, &ocrConfig);
     ocrInit(&ocrConfig);
-    printf("Running\n");
+    PRINTF("Running\n");
     ocrShutdown();
     ocrFinalize();
     return 0;

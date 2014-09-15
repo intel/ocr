@@ -1,1 +1,2 @@
-ptr - currently the only type of guid functionality implemented
+counted          - Counter based GUID implementation (uses hashtables)
+ptr              - Pointer base GUID implementation (the pointer is the GUID)

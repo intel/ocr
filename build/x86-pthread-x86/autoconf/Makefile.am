@@ -9,9 +9,9 @@ AUX_DIST = \
 	$(ac_aux_dir)/depcomp
 
 library_includedir=$(includedir)
-library_include_HEADERS = $(rootdir)/inc/ocr-db.h $(rootdir)/inc/ocr-edt.h $(rootdir)/inc/ocr-errors.h \
-$(rootdir)/inc/ocr-tuning.h $(rootdir)/inc/ocr-types.h $(rootdir)/inc/ocr.h $(rootdir)/inc/compat.h \
-$(rootdir)/inc/ocr-stathooks.h $(rootdir)/inc/ocr-std.h
+library_include_HEADERS = $(rootdir)/inc/ocr-affinity.h $(rootdir)/inc/ocr-db.h \
+$(rootdir)/inc/ocr-edt-profiling.h $(rootdir)/inc/ocr-edt.h $(rootdir)/inc/ocr-errors.h $(rootdir)/inc/ocr-stathooks.h \
+$(rootdir)/inc/ocr-std.h $(rootdir)/inc/ocr-types.h $(rootdir)/inc/ocr.h
 
 # Distribute runtime interface headers - set by configure
 if INCLUDE_RUNTIME_ITF_HEADERS
@@ -24,7 +24,7 @@ library_include_HEADERS += $(rootdir)/inc/extensions/ocr-lib.h
 endif
 
 configdir = $(prefix)/config
-config_DATA = $(rootdir)/machine-configs/default.cfg
+config_DATA = $(rootdir)/machine-configs/x86-pthread-x86/mach-hc-4w.cfg
 
 MAINTAINERCLEANFILES = Makefile.in \
 	aclocal.m4 \
@@ -47,7 +47,7 @@ CFLAGS = -Wall -g -O0
 # the EDTs.
 # NOTE: The application must also have this flag defined
 # If this is note the case, an ASSERT will happen
-CFLAGS += -DOCR_ENABLE_EDT_NAMING
+#CFLAGS += -DOCR_ENABLE_EDT_NAMING
 
 # Debugging support
 # Enable debug
@@ -107,6 +107,16 @@ libocr_la_CFLAGS = $(AM_CFLAGS)
 ## Allocator
 #
 
+noinst_LTLIBRARIES += libocr_allocator.la
+libocr_la_LIBADD += libocr_allocator.la
+
+libocr_allocator_la_SOURCES = \
+../../../src/allocator/allocator-all.c
+
+libocr_allocator_la_CFLAGS = $(AM_CFLAGS)
+
+## Allocator TLSF
+
 noinst_LTLIBRARIES += libocr_allocator_tlsf.la
 libocr_la_LIBADD += libocr_allocator_tlsf.la
 
@@ -125,17 +135,61 @@ noinst_LTLIBRARIES += libocr_api.la
 libocr_la_LIBADD += libocr_api.la
 
 libocr_api_la_SOURCES = \
-../../../src/api/ocr.c \
+../../../src/api/ocr-affinity.c \
 ../../../src/api/ocr-db.c \
 ../../../src/api/ocr-edt.c \
-../../../src/api/ocr-rt-itf.c \
-../../../src/api/ocr-lib.c
+../../../src/api/ocr.c
 
 libocr_api_la_CFLAGS = $(AM_CFLAGS)
 
 #
+## API Extensions
+#
+
+noinst_LTLIBRARIES += libocr_api_ext.la
+libocr_la_LIBADD += libocr_api_ext.la
+
+libocr_api_ext_la_SOURCES = \
+../../../src/api/extensions/ocr-lib.c \
+../../../src/api/extensions/ocr-rt-itf.c
+
+libocr_api_ext_la_CFLAGS = $(AM_CFLAGS)
+
+#
+## COMM-API
+#
+
+noinst_LTLIBRARIES += libocr_comm_api.la
+libocr_la_LIBADD += libocr_comm_api.la
+
+libocr_comm_api_la_SOURCES = \
+../../../src/comm-api/comm-api-all.c
+
+libocr_comm_api_la_CFLAGS = $(AM_CFLAGS)
+
+## COMM-API HANDLESS
+
+noinst_LTLIBRARIES += libocr_handleless_comm_api.la
+libocr_la_LIBADD += libocr_handleless_comm_api.la
+
+libocr_handleless_comm_api_la_SOURCES = \
+../../../src/comm-api/handleless/handleless-comm-api.c
+
+libocr_handleless_comm_api_la_CFLAGS = $(AM_CFLAGS)
+
+#
 ## COMM-PLATFORM
 #
+
+noinst_LTLIBRARIES += libocr_comm_platform.la
+libocr_la_LIBADD += libocr_comm_platform.la
+
+libocr_comm_platform_la_SOURCES = \
+../../../src/comm-platform/comm-platform-all.c
+
+libocr_comm_platform_la_CFLAGS = $(AM_CFLAGS)
+
+## COMM-PLATFORM NULL
 
 noinst_LTLIBRARIES += libocr_comm_platform_null.la
 libocr_la_LIBADD += libocr_comm_platform_null.la
@@ -146,8 +200,18 @@ libocr_comm_platform_null_la_SOURCES = \
 libocr_comm_platform_null_la_CFLAGS = $(AM_CFLAGS)
 
 #
-## COMP-PLATFORM PTHREAD
+## COMP-PLATFORM
 #
+
+noinst_LTLIBRARIES += libocr_comp_platform.la
+libocr_la_LIBADD += libocr_comp_platform.la
+
+libocr_comp_platform_la_SOURCES = \
+../../../src/comp-platform/comp-platform-all.c
+
+libocr_comp_platform_la_CFLAGS = $(AM_CFLAGS)
+
+## COMP-PLATFORM PTHREAD
 
 noinst_LTLIBRARIES += libocr_comp_platform_pthread.la
 libocr_la_LIBADD += libocr_comp_platform_pthread.la -lpthread
@@ -159,8 +223,18 @@ libocr_comp_platform_pthread_la_SOURCES = \
 libocr_comp_platform_pthread_la_CFLAGS = $(AM_CFLAGS)
 
 #
-## COMP-TARGET HC
+## COMP-TARGET
 #
+
+noinst_LTLIBRARIES += libocr_comp_target.la
+libocr_la_LIBADD += libocr_comp_target.la
+
+libocr_comp_target_la_SOURCES = \
+../../../src/comp-target/comp-target-all.c
+
+libocr_comp_target_la_CFLAGS = $(AM_CFLAGS)
+
+## COMP-TARGET PASSTHROUGH
 
 noinst_LTLIBRARIES += libocr_comp_target_hc.la
 libocr_la_LIBADD += libocr_comp_target_hc.la
@@ -251,6 +325,16 @@ libocr_machine_description_la_CFLAGS =  $(INIPARSER_CFLAGS) $(AM_CFLAGS)
 ## MEM-PLATFORM
 #
 
+noinst_LTLIBRARIES += libocr_mem_platform.la
+libocr_la_LIBADD += libocr_mem_platform.la
+
+libocr_mem_platform_la_SOURCES = \
+../../../src/mem-platform/mem-platform-all.c
+
+libocr_mem_platform_la_CFLAGS = $(AM_CFLAGS)
+
+## MEM-PLATFORM MALLOC
+
 noinst_LTLIBRARIES += libocr_mem_platform_malloc.la
 libocr_la_LIBADD += libocr_mem_platform_malloc.la
 
@@ -262,6 +346,16 @@ libocr_mem_platform_malloc_la_CFLAGS = $(AM_CFLAGS)
 #
 ## MEM-TARGET
 #
+
+noinst_LTLIBRARIES += libocr_mem_target.la
+libocr_la_LIBADD += libocr_mem_target.la
+
+libocr_mem_target_la_SOURCES = \
+../../../src/mem-target/mem-target-all.c
+
+libocr_mem_target_la_CFLAGS = $(AM_CFLAGS)
+
+## MEM-TARGET SHARED
 
 noinst_LTLIBRARIES += libocr_mem_target_shared.la
 libocr_la_LIBADD += libocr_mem_target_shared.la
@@ -278,8 +372,12 @@ libocr_mem_target_shared_la_CFLAGS = $(AM_CFLAGS)
 noinst_LTLIBRARIES += libocr_policy_domain.la
 libocr_la_LIBADD += libocr_policy_domain.la
 
-libocr_policy_domain_la_SOURCES = ../../../src/policy-domain/ocr-policy-domain.c
+libocr_policy_domain_la_SOURCES = \
+../../../src/policy-domain/policy-domain-all.c ../../../src/policy-domain/ocr-policy-domain.c
+
 libocr_policy_domain_la_CFLAGS = $(AM_CFLAGS)
+
+## HC POLICY-DOMAIN
 
 noinst_LTLIBRARIES += libocr_policy_domain_hc.la
 libocr_la_LIBADD += libocr_policy_domain_hc.la
@@ -288,6 +386,16 @@ libocr_policy_domain_hc_la_SOURCES = \
 ../../../src/policy-domain/hc/hc-policy.c
 
 libocr_policy_domain_hc_la_CFLAGS = $(AM_CFLAGS)
+
+#
+## SAL
+#
+
+noinst_LTLIBRARIES += libocr_sal.la
+libocr_la_LIBADD += libocr_sal.la
+
+libocr_sal_la_SOURCES = ../../../src/sal/sal-common.c
+libocr_sal_la_CFLAGS = $(AM_CFLAGS)
 
 #
 ## SCHEDULER
@@ -355,17 +463,6 @@ libocr_statistics_messages_la_SOURCES = \
 libocr_statistics_messages_la_CFLAGS = $(AM_CFLAGS)
 
 #
-## SAL
-#
-
-noinst_LTLIBRARIES += libocr_sal.la
-libocr_la_LIBADD += libocr_sal.la
-
-libocr_sal_la_SOURCES = ../../../src/sal/sal-common.c
-libocr_sal_la_CFLAGS = $(AM_CFLAGS)
-
-
-#
 ## SYSBOOT
 #
 
@@ -398,15 +495,25 @@ libocr_utils_la_SOURCES = \
 ../../../src/utils/deque.c \
 ../../../src/utils/elf-utils.c \
 ../../../src/utils/hashtable.c \
+../../../src/utils/list.c \
 ../../../src/utils/ocr-utils.c \
 ../../../src/utils/rangeTracker.c
-
 
 libocr_utils_la_CFLAGS = $(AM_CFLAGS)
 
 #
-## WORKER HC
+## WORKER
 #
+
+noinst_LTLIBRARIES += libocr_worker.la
+libocr_la_LIBADD += libocr_worker.la
+
+libocr_worker_la_SOURCES = \
+../../../src/worker/worker-all.c
+
+libocr_worker_la_CFLAGS = $(AM_CFLAGS)
+
+## WORKER HC
 
 noinst_LTLIBRARIES += libocr_worker_hc.la
 libocr_la_LIBADD += libocr_worker_hc.la
@@ -415,8 +522,18 @@ libocr_worker_hc_la_SOURCES = ../../../src/worker/hc/hc-worker.c
 libocr_worker_hc_la_CFLAGS = $(AM_CFLAGS)
 
 #
-## WORKPILE HC
+## WORKPILE
 #
+
+noinst_LTLIBRARIES += libocr_workpile.la
+libocr_la_LIBADD += libocr_workpile.la
+
+libocr_workpile_la_SOURCES = \
+../../../src/workpile/workpile-all.c
+
+libocr_workpile_la_CFLAGS = $(AM_CFLAGS)
+
+## WORKPILE HC
 
 noinst_LTLIBRARIES += libocr_workpile_hc.la
 libocr_la_LIBADD += libocr_workpile_hc.la

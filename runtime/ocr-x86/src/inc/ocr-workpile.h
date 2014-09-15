@@ -9,7 +9,7 @@
 #define __OCR_WORKPILE_H_
 
 #include "ocr-runtime-types.h"
-#include "ocr-tuning.h"
+#include "experimental/ocr-tuning.h"
 #include "ocr-types.h"
 #include "utils/ocr-utils.h"
 

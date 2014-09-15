@@ -160,13 +160,25 @@ typedef ocrGuid_t (*ocrEdt_t)(u32 paramc, u64* paramv,
  *       This potentially limites parallelism
  */
 typedef enum {
-    DB_MODE_RO,     /**< Read-only mode */
-    DB_MODE_ITW,    /**< Intent-to-write mode (default mode) */
-    DB_MODE_EW      /**< Exclusive write mode */
-} ocrDbAccessMode_t;
+    DB_MODE_RO   = 0x2,   /**< Read-only mode */
+    DB_MODE_ITW  = 0x4,   /**< Intent-to-write mode (default mode) */
+    DB_MODE_EW   = 0x8,   /**< Exclusive write mode */
+    DB_MODE_NCR  = 0x10   /**< Non-coherent read: like Read-only but the copy may change from under you */
+} ocrDbAccessMode_t; // Warning: only 5 bits starting at bit 1 (leave bit 0 as 0)
 
-#define DB_DEFAULT_MODE (ocrDbAccessMode_t)DB_MODE_ITW
+#define DB_ACCESS_MODE_MASK 0x1E
+#define DB_DEFAULT_MODE ((ocrDbAccessMode_t)DB_MODE_ITW)
 
+#define DB_PROP_NONE       ((u16)0x0) /**< Property for a data-block indicating no special behavior */
+#define DB_PROP_NO_ACQUIRE ((u16)0x10) /**< Property for a data-block indicating that the data-block
+                                       *   is just being created but does not need to be acquired
+                                       *   at the same time (creation for another EDT)
+                                       */
+
+#define DB_PROP_SINGLE_ASSIGNMENT ((u16)0x20) /**< Property for a data-block indicating single-assignment
+                                               *   i.e. The user guarantees the datablock is written once
+                                               *   at creation time.
+                                               */
 #endif /* __OCR_TYPES_H__ */
 
 

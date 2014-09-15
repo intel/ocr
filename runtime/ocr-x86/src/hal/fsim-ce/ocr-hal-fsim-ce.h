@@ -81,6 +81,39 @@
 
 
 /**
+ * @brief Memory move from source to destination. As if overlapping portions
+ * were copied to a temporary array
+ *
+ * @param destination[in]    A u64 pointing to where the data is to be copied
+ *                           to
+ * @param source[in]         A u64 pointing to where the data is to be copied
+ *                           from
+ * @param size[in]           A u64 indicating the number of bytes to be copied
+ * @param isBackground[in]   A u8: A zero value indicates that the call will
+ *                           return only once the copy is fully complete and a
+ *                           non-zero value indicates the copy may proceed
+ *                           in the background. A fence will then be
+ *                           required to ensure completion of the copy
+ * source and destination
+ * @todo This implementation is heavily *NOT* optimized
+ */
+#define hal_memMove(destination, source, size, isBackground) do {\
+    u64 _source = (u64)source;                                          \
+    u64 _destination = (u64)destination;                                \
+    u64 count = 0;                                                      \
+    if(_source != _destination) {                                       \
+        if(_source < _destination) {                                    \
+            for(count = size -1 ; count > 0; --count)                   \
+                ((char*)_destination)[count] = ((char*)_source)[count]; \
+            ((char*)_destination)[0] = ((char*)_source)[0];             \
+        } else {                                                        \
+            for(count = 0; count < size; ++count)                       \
+                ((char*)_destination)[count] = ((char*)_source)[count]; \
+        }                                                               \
+    }                                                                   \
+    } while(0);
+
+/**
  * @brief Atomic swap (64 bit)
  *
  * Atomically swap:

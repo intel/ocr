@@ -37,6 +37,7 @@
 
 // Datablock
 #define ENABLE_DATABLOCK_REGULAR
+#define ENABLE_DATABLOCK_LOCKABLE
 
 // Event
 #define ENABLE_EVENT_HC
@@ -83,6 +84,9 @@
 #define ENABLE_WORKPILE_HC
 
 // Build the OCR-lib support
-#define ENABLE_OCR_LIB
+#define ENABLE_EXTENSION_LIB
+
+// Affinity support
+#define ENABLE_EXTENSION_AFFINITY
 #endif /* __OCR_CONFIG_H__ */
 

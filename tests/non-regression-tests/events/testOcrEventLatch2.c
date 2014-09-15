@@ -4,24 +4,25 @@
  * removed or modified.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
+
+
+
 
 #include "ocr.h"
 
 /**
  * DESC: latch-event simulating a finish-edt + check termination of children
+ * Does not work yet in distributed because of multiple IW on the DB.
  */
 
 #define N 16
 
 ocrGuid_t terminateEDT(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    printf("Call Terminate\n");
+    PRINTF("Call Terminate\n");
     int * array = (int*) depv[1].ptr;
     int i = 0;
     while (i < N) {
-        assert(array[i] == 1);
+        ASSERT(array[i] == 1);
         i++;
     }
     ocrShutdown();
@@ -51,6 +52,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t dbLatchGuid;
     ocrDbCreate(&dbLatchGuid,(void **)&dbLatchPtr, sizeof(ocrGuid_t), 0, NULL_GUID, NO_ALLOC);
     *dbLatchPtr = latchGuid;
+    ocrDbRelease(dbLatchGuid);
 
     // Create an array children can write to so that the sink edt
     // can check each child did a write at their index.

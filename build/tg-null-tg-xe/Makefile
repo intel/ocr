@@ -23,7 +23,7 @@ TG_INSTALL ?= ../../../ss/install
 
 PREFIX  := ${TG_INSTALL}/bin/rmd-linux-elf-
 CC      := $(PREFIX)clang
-CFLAGS  := -frmd-extensions -fno-builtin -I ${TG_INSTALL}/include
+CFLAGS  := -frmd-extensions -fno-builtin -Wno-typedef-redefinition -I ${TG_INSTALL}/include
 
 RM      := rm
 RMFLAGS := -rf

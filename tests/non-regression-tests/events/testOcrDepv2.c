@@ -4,9 +4,9 @@
  * removed or modified.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
+
+
+
 
 #include "ocr.h"
 
@@ -15,7 +15,7 @@
  */
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    assert(depv[0].guid == NULL_GUID);
+    ASSERT(depv[0].guid == NULL_GUID);
     // This is the last EDT to execute, terminate
     ocrShutdown();
     return NULL_GUID;

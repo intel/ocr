@@ -1,0 +1,13 @@
+
+* Specify the MPI distribution to use
+
+By default, the makefile will just use the first 'mpicc'
+found in the environment's PATH variable.
+
+The distribution to be used can be set through the
+MPI_ROOT and MPI_LIB environment variables.
+
+- MPI_ROOT: Defines the path where the MPI distribution is installed.
+
+- MPI_LIB: Defines the name of the MPI library to link with, default is
+"mpi". This may vary from one MPI distribution to another.

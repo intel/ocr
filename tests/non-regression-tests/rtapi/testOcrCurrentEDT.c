@@ -29,9 +29,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
+
+
+
 
 #include "ocr.h"
 
@@ -49,13 +49,13 @@ ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t edtGuid = *((ocrGuid_t*)depv[0].ptr);
     ocrGuid_t currentEdt = currentEdtUserGet();
     // Compare edtGuid passed down and what's returned by the runtime
-    assert(currentEdt == edtGuid);
+    ASSERT(currentEdt == edtGuid);
     ocrShutdown();
     return NULL_GUID;
 }
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    printf("RT API Test\n");
+    PRINTF("RT API Test\n");
     ocrGuid_t eventGuid;
     ocrEventCreate(&eventGuid, OCR_EVENT_STICKY_T, true);
 
@@ -83,7 +83,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 #else
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    printf("No RT API\n");
+    PRINTF("No RT API\n");
     ocrShutdown();
     return NULL_GUID;
 }

@@ -378,7 +378,6 @@ void bringUpRuntime(const char *inifile) {
 #ifdef ENABLE_BUILDER_ONLY
     {
         u64 start_address = (u64)iniparser_getlonglong(dict, START_ADDRESS, 0);
-
         for(i = 0; i < inst_counts[policydomain_type]; i++)
             dumpStructs(all_instances[policydomain_type][i], output_binary, start_address);
         if(args_binary) dumpArgs(args_binary);
@@ -509,11 +508,36 @@ static void * packUserArguments(int argc, char ** argv) {
     return ptr;
 }
 
+/**
+ * @brief Calls platformn specific initialization code.
+ *
+ * Allows to call platform specific initialization code
+ * before OCR is built and started.
+ *
+ * The only concrete use case for this function is to
+ * call MPI_INIT. Implementers should avoid relying on
+ * it as it may be deprecated in near future.
+ */
+void platformSpecificInit(ocrConfig_t * ocrConfig) {
+#ifdef ENABLE_COMM_PLATFORM_MPI
+    extern void platformInitMPIComm(int argc, char ** argv);
+    platformInitMPIComm(ocrConfig->userArgc, ocrConfig->userArgv);
+#endif
+
+#ifdef ENABLE_COMM_PLATFORM_GASNET
+    extern void platformInitGasnetComm(int argc, char ** argv);
+    platformInitGasnetComm(ocrConfig->userArgc, ocrConfig->userArgv);
+#endif
+}
+
 int __attribute__ ((weak)) main(int argc, const char* argv[]) {
     // Parse parameters. The idea is to extract the ones relevant
     // to the runtime and pass all the other ones down to the mainEdt
     ocrConfig_t ocrConfig;
     ocrParseArgs(argc, argv, &ocrConfig);
+
+    // Things that must initialize before OCR is started
+    platformSpecificInit(&ocrConfig);
 
     // Register pointer to the mainEdt
     mainEdtSet(mainEdt);

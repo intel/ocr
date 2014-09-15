@@ -34,7 +34,7 @@ void xePthreadCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD
     ocrPolicyDomain_t * cePD = (ocrPolicyDomain_t *)PD->parentPD;
     ocrCommPlatformCePthread_t * commPlatformCePthread = (ocrCommPlatformCePthread_t *)cePD->commApis[0]->commPlatform;
     commPlatformXePthread->channel = &(commPlatformCePthread->channels[commPlatformCePthread->channelIdx++]);
-    DPRINTF(DEBUG_LVL_VVERB, "XE%lu Setting up channel %p on %lu \n", PD->myLocation, commPlatformXePthread->channel, PD->parentLocation);
+    DPRINTF(DEBUG_LVL_VVERB, "Setting up channel %p on %lu \n", commPlatformXePthread->channel, PD->parentLocation);
     ASSERT(PD->parentLocation == cePD->myLocation);
     return;
 }
@@ -63,8 +63,8 @@ u8 xePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target, ocrPo
     if (!__sync_bool_compare_and_swap ((&(channel->message)), NULL, msg))
         return OCR_EBUSY;
 
-    DPRINTF(DEBUG_LVL_INFO, "[XE%lu] sending message @ %p to %lu of type 0x%x\n",
-            (u64)commPlatformXePthread->base.pd->myLocation, msg, (u64)target, msg->type);
+    DPRINTF(DEBUG_LVL_INFO, "Sending message @ %p to %lu of type 0x%x\n",
+            msg, (u64)target, msg->type);
     hal_fence();
     ++(channel->remoteCounter);
     do {
@@ -72,8 +72,8 @@ u8 xePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target, ocrPo
     } while(channel->remoteCounter > channel->localCounter);
 
     if (channel->msgCancel) {
-        DPRINTF(DEBUG_LVL_INFO, "[XE%lu] message @ %p canceled (type 0x%x)\n",
-                (u64)commPlatformXePthread->base.pd->myLocation, msg, msg->type);
+        DPRINTF(DEBUG_LVL_INFO, "Message @ %p canceled (type 0x%x)\n",
+                msg, msg->type);
         RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->msgCancel)), true, false));
         return OCR_ECANCELED;
     }
@@ -99,8 +99,8 @@ u8 xePthreadCommWaitMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
     RESULT_TRUE(__sync_bool_compare_and_swap((&(channel->message)), (*msg), NULL));
     hal_fence();
     ++(channel->remoteCounter);
-    DPRINTF(DEBUG_LVL_INFO, "[XE%lu] received message @ %p of type 0x%x\n",
-            (u64)commPlatformXePthread->base.pd->myLocation, (*msg), (*msg)->type);
+    DPRINTF(DEBUG_LVL_INFO, "Received message @ %p of type 0x%x\n",
+            (*msg), (*msg)->type);
     return 0;
 }
 

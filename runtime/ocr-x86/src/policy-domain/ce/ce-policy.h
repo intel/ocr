@@ -26,8 +26,8 @@ typedef struct {
 typedef struct {
     ocrPolicyDomain_t base;
     u8 xeCount;                     //number of XE's serviced by this CE
-    u8 shutdownCount;               //dynamic counter to keep track of agents alreadt shutdown
-    u8 shutdownMax;                 //maximum number of agents participating in the shutdown process
+    u32 shutdownCount;              //dynamic counter to keep track of agents alreadt shutdown
+    u32 shutdownMax;                //maximum number of agents participating in the shutdown process
     bool shutdownMode;              //flag indicating shutdown mode
     bool *ceCommTakeActive;         //flag to coordinate the search for work
 } ocrPolicyDomainCe_t;

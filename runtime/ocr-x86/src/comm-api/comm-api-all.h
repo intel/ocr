@@ -13,14 +13,17 @@
 #include "utils/ocr-utils.h"
 
 typedef enum _commApiType_t {
+    commApiDelegate_id,
     commApiHandleless_id,
+    commApiSimple_id,
     commApiMax_id
 } commApiType_t;
 
 extern const char * commapi_types[];
 
+#include "comm-api/delegate/delegate-comm-api.h"
 #include "comm-api/handleless/handleless-comm-api.h"
-
+#include "comm-api/simple/simple-comm-api.h"
 // Add other communication APIs using the same pattern as above
 
 ocrCommApiFactory_t *newCommApiFactory(commApiType_t type, ocrParamList_t *typeArg);

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import os
+
 jobtype_ocr_init = {
     'name': 'ocr-init',
     'isLocal': True,
@@ -42,6 +44,17 @@ job_ocr_build_x86_pthread_x86 = {
     'jobtype': 'ocr-build',
     'run-args': 'x86-pthread-x86',
     'sandbox': ('inherit0',)
+}
+
+#TODO: not sure how to not hardcode MPI_ROOT here
+job_ocr_build_x86_pthread_mpi = {
+    'name': 'ocr-build-x86-pthread-mpi',
+    'depends': ('ocr-init-job',),
+    'jobtype': 'ocr-build',
+    'run-args': 'x86-pthread-mpi',
+    'sandbox': ('inherit0',),
+    'env-vars': {'MPI_ROOT': '/opt/intel/tools/impi/5.0.1.035',
+                 'PATH': '${MPI_ROOT}/bin64:'+os.environ['PATH'],}
 }
 
 job_ocr_build_x86_pthread_tg = {

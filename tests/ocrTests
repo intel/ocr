@@ -37,7 +37,8 @@ export OCR_CFLAGS="${OCR_CFLAGS}"
 #handling options
 #
 while [[ $# -gt 0 ]]; do
-    echo "Processing $1"
+    # for arg processing debug
+    #echo "Processing argument $1"
         if [[ "$1" = "-testdir" && $# -ge 2 ]]; then
                 shift
                 TEST_DIR=("$@")
@@ -76,14 +77,15 @@ fi
 #
 
 export INCLUDES="-I${OCR_INSTALL}/include"
-export CFLAGS=" -Wall -g -Werror -DOCR_ENABLE_EDT_NAMING "
+export CFLAGS=" -Wall -Wno-cpp -g -Werror -DOCR_ENABLE_EDT_NAMING -DOCR_ASSERT"
 if [ -n "${RUNTIME_ITF_EXT}" ]; then
     CFLAGS="$CFLAGS -DRUNTIME_ITF_EXT=1"
 fi
 if [ -n "${OCR_LIBRARY_ITF}" ]; then
     CFLAGS="$CFLAGS -DOCR_LIBRARY_ITF=1"
 fi
-export LDFLAGS="-L${OCR_INSTALL}/lib -locr -lpthread"
+
+export LDFLAGS="-L${OCR_INSTALL}/lib -locr -lpthread ${OCR_LDFLAGS}"
 export OCR_TESTS_BIN_OUTPUT=
 
 if [ -z "${OCR_CONFIG}" ]; then
@@ -100,9 +102,11 @@ export OCR_FLAGS=" -ocr:cfg ${OCR_CONFIG}"
 BIN_DIR=${OCR_INSTALL}/bin
 LIB_DIR=${OCR_INSTALL}/lib
 
-if [ ! -x ${LIB_DIR}/libocr.so ]; then
-        echo "ERROR ocr lib not found in the ${OCR_INSTALL}/lib"
-        exit 1
+if [ -x ${LIB_DIR}/libocr.so -o -e ${LIB_DIR}/libocr.a ]; then
+    echo "OCR library found in ${OCR_INSTALL}/lib"
+else
+    echo "ERROR OCR library not found in ${OCR_INSTALL}/lib"
+    exit 1
 fi
 
 export PATH=${BIN_DIR}:${PATH}
@@ -282,9 +286,8 @@ function run () {
         if [ -f ${TEST_RES_FILE} ]; then
                 TEST_RES=`cat ${TEST_RES_FILE}`
         fi
-
-        echo "${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}"
-        ${RUN_WRAPPER} ${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS} ${TEST_ARGS}
+        echo "ocrrun ${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS}"
+        ocrrun ${RUN_WRAPPER} ${BIN_GEN_DIR}/${NAME} ${OCR_FLAGS} ${TEST_ARGS}
         RES=$?
         if [[ $RES -eq $TEST_RES ]]; then
                 RES=0;
@@ -925,6 +928,11 @@ function runTests () {
                 fi
         fi
 
+        if [ ! -f "${UNSTABLE_FILE}" ]; then
+            echo "Warning: Could not find unstable file ${UNSTABLE_FILE}, continuing..."
+            UNSTABLE_FILE=""
+        fi
+
         # converting to absolute path
         if [ -n "${UNSTABLE_FILE}" ]; then
                 convert_to_absolute ${UNSTABLE_FILE} UNSTABLE_FILE
@@ -1095,7 +1103,6 @@ function runTests () {
                                 if [[ -n "$RUN_UNSTABLE" ]]; then
                                         negate_test_status ${TEST_STATUS} TEST_STATUS
                                 fi
-
                                 print_test_status ${TEST_STATUS} ${OUTPUT}
 
                                 # here it's important to refer to the test name using the TEST_NAME_SWEEP variable

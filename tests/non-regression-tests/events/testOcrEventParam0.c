@@ -4,9 +4,9 @@
  * removed or modified.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
+
+
+
 
 #include "ocr.h"
 
@@ -17,10 +17,10 @@
 #define FLAGS 0xdead
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    printf("In the taskForEdt with value %d\n", (int) paramv[0]);
-    assert(paramc == 1);
-    assert(paramv[0] == 32);
-    assert(*((u64*)depv[0].ptr) == 42);
+    PRINTF("In the taskForEdt with value %d\n", (int) paramv[0]);
+    ASSERT(paramc == 1);
+    ASSERT(paramv[0] == 32);
+    ASSERT(*((u64*)depv[0].ptr) == 42);
     // This is the last EDT to execute, terminate
     ocrShutdown();
     return NULL_GUID;
@@ -33,13 +33,12 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 
     // Creates the EDT
     u32 nparamc = 1;
-    u64 * nparamv = (u64 *) malloc(sizeof(u64));
-    nparamv[0] = 32;
+    u64 nparamv = 32;
 
     ocrGuid_t edtGuid;
     ocrGuid_t taskForEdtTemplateGuid;
     ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, nparamc, 1 /*depc*/);
-    ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF, /*depv=*/NULL,
+    ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, &nparamv, EDT_PARAM_DEF, /*depv=*/NULL,
                  /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
 
     // Register a dependence between an event and an edt

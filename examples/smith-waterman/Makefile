@@ -1,7 +1,7 @@
 PROG=smithwaterman
 SUFFIX=.exe
 OMP_PROG=smith_waterman_tiled_omp
-CFLAGS=-O0 -g
+CFLAGS=-O0 -g -lm
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr
 OCR_INPUT=.
 
@@ -40,7 +40,7 @@ EXPECTED_RESULT=12
 endif
 
 run:
-	./$(PROG)$(SUFFIX) $(OCR_RUN_FLAGS) ${OCR_INPUT}/string1-${SIZE}.txt ${OCR_INPUT}/string2-${SIZE}.txt ${TILE_WIDTH} ${TILE_HEIGHT}
+	ocrrun ./$(PROG)$(SUFFIX) $(OCR_RUN_FLAGS) ${OCR_INPUT}/string1-${SIZE}.txt ${OCR_INPUT}/string2-${SIZE}.txt ${TILE_WIDTH} ${TILE_HEIGHT}
 
 run_omp:
 	./$(OMP_PROG)$(SUFFIX) ${OCR_INPUT}/string1-${SIZE}.txt ${OCR_INPUT}/string2-${SIZE}.txt ${TILE_WIDTH} ${TILE_HEIGHT}

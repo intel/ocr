@@ -4,9 +4,14 @@
  * removed or modified.
  */
 
+#include "ocr-config.h"
+#ifdef ENABLE_EXTENSION_RTITF
+
 #include "debug.h"
 #include "ocr-runtime.h"
 #include "ocr-sal.h"
+
+#warning Experimental OCR RT interface support enabled
 
 /**
    @brief Get @ offset in the currently running edt's local storage
@@ -56,3 +61,13 @@ ocrGuid_t ocrCurrentWorkerGuid() {
     getCurrentEnv(NULL, &worker, NULL, NULL);
     return worker->fguid.guid;
 }
+
+// Inform the OCR runtime the currently executing thread is logically blocked
+u8 ocrInformLegacyCodeBlocking() {
+    // The current default implementation is to execute another EDT to try to make progress
+    ocrPolicyDomain_t * pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL, NULL);
+    return pd->schedulers[0]->fcts.monitorProgress(pd->schedulers[0], MAX_MONITOR_PROGRESS, NULL);
+}
+
+#endif /* ENABLE_EXTENSION_RTITF */
