@@ -90,14 +90,14 @@ u8 hcCommSchedulerTakeComm(ocrScheduler_t *self, u32* count, ocrFatGuid_t * fatH
         u64 outboxesCount = commSched->outboxesCount;
         u32 success = 0;
 
-    #ifdef HYBRID_COMM_COMP_WORKER // Experimental see documentation
+#ifdef HYBRID_COMM_COMP_WORKER // Experimental see documentation
         // Try to pop from own outbox first (support HYBRID_COMM_COMP_WORKER mode)
         ocrMsgHandle_t* handle = outboxes[wid]->popFromTail(outboxes[wid], 1);
         if (handle != NULL) {
             fatHandlers[success].metaDataPtr = handle;
             success++;
         }
-        #endif
+#endif
 
         u64 i = (wid+1); // skip over 'self' outbox
         while ((i < (wid+outboxesCount)) && (success < *count)) {
@@ -111,6 +111,7 @@ u8 hcCommSchedulerTakeComm(ocrScheduler_t *self, u32* count, ocrFatGuid_t * fatH
         }
         *count = success;
     } else {
+        //TODO Should really revisit this implementation. It sounds awfully slow.
         ASSERT(hcWorker->hcType == HC_WORKER_COMP);
         deque_t * inbox = commSched->inboxes[wid];
         u32 curIdx = 0;
@@ -125,8 +126,10 @@ u8 hcCommSchedulerTakeComm(ocrScheduler_t *self, u32* count, ocrFatGuid_t * fatH
                 while (iterator->hasNext(iterator)) {
                     ocrMsgHandle_t * handle = (ocrMsgHandle_t *) iterator->next(iterator);
                     if (handle == *target) {
+                        // found a candidate in the previous steals
                         candidate = handle;
                         iterator->removeCurrent(iterator);
+                        fatHandlers[curIdx].metaDataPtr = candidate;
                         curIdx++;
                         break;
                     }
@@ -156,7 +159,7 @@ u8 hcCommSchedulerTakeComm(ocrScheduler_t *self, u32* count, ocrFatGuid_t * fatH
             }
         }
         u32 i = curIdx;
-        while (i < *count) {
+        while (i < *count) { // nullify remaining handlers
             fatHandlers[i].metaDataPtr = NULL;
             i++;
         }
