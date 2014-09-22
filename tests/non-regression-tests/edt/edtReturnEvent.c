@@ -32,10 +32,18 @@ ocrGuid_t producer2(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t *depv) {
 }
 ocrGuid_t producer1(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t *depv) {
     ocrGuid_t producer_template, producer_edt, producer_done_event;
-    ocrEdtTemplateCreate(&producer_template, producer2, 0, 0);
-    ocrEdtCreate(&producer_edt, producer_template, 0, NULL, 0, NULL,
+    ocrEdtTemplateCreate(&producer_template, producer2, 0, 1);
+    // Here we create a sticky event to bridge the once event
+    // of producer being satisfied and destroyed before we
+    // could have returned its guid.
+    ocrGuid_t complete_event;
+    ocrEventCreate(&complete_event, OCR_EVENT_STICKY_T, false);
+    ocrEdtCreate(&producer_edt, producer_template, 0, NULL, 1, NULL,
                  EDT_PROP_NONE, NULL_GUID, &producer_done_event);
-    return producer_done_event;
+    ocrAddDependence(producer_done_event, complete_event, 0, DB_MODE_RO);
+    ocrAddDependence(NULL_GUID, producer_edt, 0, DB_MODE_RO);
+    return complete_event;
+    // return producer_done_event; // WRONG: race condition !
 }
 ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t *depv) {
     ocrGuid_t producer_template, consumer_template;

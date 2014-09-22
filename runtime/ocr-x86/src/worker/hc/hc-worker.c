@@ -64,7 +64,10 @@ static void hcWorkShift(ocrWorker_t * worker) {
             DPRINTF(DEBUG_LVL_VERB, "Worker shifting to execute EDT GUID 0x%lx\n", taskGuid.guid);
             u8 (*executeFunc)(ocrTask_t *) = (u8 (*)(ocrTask_t*))PD_MSG_FIELD(extra); // Execute is stored in extra
             executeFunc(worker->curTask);
-            worker->curTask = NULL;
+            // Mark the task. Allows the PD to check the state of workers
+            // and detect quiescence, without weird behavior because curTask
+            // is being deallocated in parallel
+            worker->curTask = (ocrTask_t*)0x1;
             // Destroy the work
 #undef PD_TYPE
 
@@ -77,6 +80,8 @@ static void hcWorkShift(ocrWorker_t * worker) {
             pd->fcts.processMessage(pd, &msg, false);
 #undef PD_MSG
 #undef PD_TYPE
+            // Important for this to be the last
+            worker->curTask = NULL;
         }
     }
 }

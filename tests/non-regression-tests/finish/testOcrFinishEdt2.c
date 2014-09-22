@@ -8,10 +8,10 @@
 
 #include "ocr.h"
 
-#define N 16
+#define N 64
 
 /**
- * DESC: Creates a top-level finish-edt which forks 16 edts. No correctness check done.
+ * DESC: Creates a top-level finish-edt which forks 64 edts. No correctness check done.
  */
 
 // This edt is triggered when the output event of the other edt is satisfied by the runtime
@@ -21,7 +21,7 @@ ocrGuid_t terminateEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 }
 
 ocrGuid_t updaterEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    PRINTF("Run updaterEdt %d\n", (int)paramv[0]);
+    // PRINTF("Run updaterEdt %d\n", (int)paramv[0]);
     return NULL_GUID;
 }
 
@@ -42,7 +42,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t finishEdtOutputEventGuid;
     ocrGuid_t computeEdtGuid;
     ocrGuid_t computeEdtTemplateGuid;
-    ocrEdtTemplateCreate(&computeEdtTemplateGuid, computeEdt, 0 /*paramc*/, 0 /*depc*/);
+    ocrEdtTemplateCreate(&computeEdtTemplateGuid, computeEdt, 0 /*paramc*/, 1 /*depc*/);
     ocrEdtCreate(&computeEdtGuid, computeEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
                  /*properties=*/ EDT_PROP_FINISH, NULL_GUID, /*outEvent=*/&finishEdtOutputEventGuid);
 
@@ -52,6 +52,8 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtCreate(&terminateEdtGuid, terminateEdtTemplateGuid, EDT_PARAM_DEF, /*paramv=*/NULL, EDT_PARAM_DEF, /*depv=*/NULL,
                  /*properties=*/0, NULL_GUID, /*outEvent=*/NULL);
     ocrAddDependence(finishEdtOutputEventGuid, terminateEdtGuid, 0, DB_MODE_RO);
+    // Triggers the finish EDT
+    ocrAddDependence(NULL_GUID, computeEdtGuid, 0, DB_MODE_RO);
 
     return NULL_GUID;
 }

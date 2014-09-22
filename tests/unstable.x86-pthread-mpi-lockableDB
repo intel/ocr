@@ -1,1 +1,3 @@
-testDb64Users.c
+# This test pass/fail depending on memory model (fail for now).
+edtForkBomb.c
+

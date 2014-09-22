@@ -26,6 +26,11 @@ typedef struct {
                          u8 isBlocking);
     void (*baseStart)(struct _ocrPolicyDomain_t *self);
     void (*baseStop)(struct _ocrPolicyDomain_t *self);
+    bool shutdownSent;
+    u64 shutdownAckCount;
+    volatile u64 piledWorkerCtx;
+    volatile u32 piledWorkerCtxLock;
+
 } ocrPolicyDomainHcDist_t;
 
 typedef struct {

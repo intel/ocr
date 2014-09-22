@@ -552,79 +552,36 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
     }
     case PD_MSG_MGT_SHUTDOWN:
     {
-        ocrWorker_t *worker = NULL;
-        msg->type |= PD_MSG_REQ_RESPONSE;
-        getCurrentEnv(NULL, &worker, NULL, NULL);
         if ((msg->srcLocation == curLoc) && (msg->destLocation == curLoc)) {
-            ASSERT(msg->destLocation == curLoc);
-#define PD_MSG (msg)
-#define PD_TYPE PD_MSG_MGT_SHUTDOWN
+            ocrPolicyDomainHcDist_t * rself = ((ocrPolicyDomainHcDist_t*)self);
+            DPRINTF(DEBUG_LVL_VERB,"MGT_SHUTDOWN: ocrShutdown invoked\n");
+        #define PD_MSG (msg)
+        #define PD_TYPE PD_MSG_MGT_SHUTDOWN
             self->shutdownCode = PD_MSG_FIELD(errorCode);
-#undef PD_MSG
-#undef PD_TYPE
-            u32 i = 0;
-            //DIST-TODO These should be sent in parallel
-            while(i < self->neighborCount) {
-                DPRINTF(DEBUG_LVL_VVERB,"MGT_SHUTDOWN: loop shutdown neighbors[%d] is %d\n", i, (int) self->neighbors[i]);
-                ocrPolicyMsg_t msgShutdown;
-                getCurrentEnv(NULL, NULL, NULL, &msgShutdown);
-#define PD_MSG (&msgShutdown)
-#define PD_TYPE PD_MSG_MGT_SHUTDOWN
-                msgShutdown.destLocation = self->neighbors[i];
-                PD_MSG_FIELD(errorCode) = self->shutdownCode;
-                DPRINTF(DEBUG_LVL_VERB,"MGT_SHUTDOWN: send shutdown msg to %d\n", (int) msgShutdown.destLocation);
-                // Shutdown is a two-way message. It gives the target the opportunity to drain and
-                // finalize some of its pending communication (think dbRelease called after the EDT
-                // that triggered shutdown on another node)
-                msgShutdown.type = PD_MSG_MGT_SHUTDOWN | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-                u8 returnCode = self->fcts.processMessage(self, &msgShutdown, true);
-                ASSERT(returnCode == 0);
-#undef PD_MSG
-#undef PD_TYPE
-                i++;
-            }
-            //NOTE: We shutdown here otherwise we need to change the state
-            //to spin on from 18 to 34 in hcPolicyDomainStop because the double
-            //acquisition caused by calling the base impl.
-            //Shutdown are one way messages in distributed. Avoids having to
-            //send a response when the comms are shutting down.
-            self->fcts.stop(self);
-            msg->type &= ~PD_MSG_REQUEST;
-            msg->type |= PD_MSG_RESPONSE;
+        #undef PD_MSG
+        #undef PD_TYPE
+            rself->shutdownAckCount++; // Allow quiescence detection code in 'take'
+            // return right away
             hcDistReleasePd((ocrPolicyDomainHc_t*)self);
             return 0;
         } else if ((msg->srcLocation != curLoc) && (msg->destLocation == curLoc)) {
-            // Local processing
-            // Same issues as above regarding the pd's state
-            u64 maxCount = self->workerCount;
-            // When a sink EDT depends on a bunch of events. As soon as the events are
-            // satisfied and sent out, the shutdown process may begin.
-            // Here we wait for computation workers to wrap up the EDT they were executing.
-            u64 i;
-            for(i = 0; i < maxCount; i++) {
-                //DIST-TODO stop: see if that would go in a computation worker stop runlevel
-                ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) self->workers[i];
-                if ((worker != ((ocrWorker_t *)hcWorker)) && (hcWorker->hcType == HC_WORKER_COMP)) {
-                    DPRINTF(DEBUG_LVL_VVERB,"MGT_SHUTDOWN: wait for comp-worker to wrap-up before shutdown %d\n");
-                    while(self->workers[i]->curTask != NULL);
-                }
+            // Incoming shutdown message from another PD
+            ocrPolicyDomainHcDist_t * rself = ((ocrPolicyDomainHcDist_t*)self);
+            DPRINTF(DEBUG_LVL_VERB,"MGT_SHUTDOWN: incoming shutdown message: ackCount=%lu\n",rself->shutdownAckCount);
+
+            if (rself->shutdownAckCount == 0) {
+            #define PD_MSG (msg)
+            #define PD_TYPE PD_MSG_MGT_SHUTDOWN
+                self->shutdownCode = PD_MSG_FIELD(errorCode);
+            #undef PD_MSG
+            #undef PD_TYPE
+                // If we get a shutdown msg and the current PD count is zero it
+                // means it's another PD that got to execute ocrShutdown.
+                // Hence incr, to allow quiescence detection code in 'take'
+                rself->shutdownAckCount++;
             }
-#define PD_MSG (msg)
-#define PD_TYPE PD_MSG_MGT_SHUTDOWN
-            self->shutdownCode = PD_MSG_FIELD(errorCode);
-#undef PD_MSG
-#undef PD_TYPE
-            // Notify we're ready to shutdown
-            // Important to send this message here and then call the PD's stop. The implementation
-            // will make sure the outgoing messages are sent before terminating.
-            ocrPolicyMsg_t shutdownReply;
-            shutdownReply = *msg;
-            shutdownReply.destLocation = msg->srcLocation;
-            shutdownReply.srcLocation = curLoc;
-            shutdownReply.type &= ~PD_MSG_REQUEST;
-            shutdownReply.type |= PD_MSG_RESPONSE;
-            self->fcts.sendMessage(self, shutdownReply.destLocation, &shutdownReply, NULL, 0);
-            self->fcts.stop(self);
+            rself->shutdownAckCount++;
+            // let worker '1' do the stop
             hcDistReleasePd((ocrPolicyDomainHc_t*)self);
             return 0;
         }
@@ -831,6 +788,97 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
 #undef PD_TYPE
         break;
     }
+    case PD_MSG_COMM_TAKE: {
+        ocrPolicyDomainHcDist_t* rself = (ocrPolicyDomainHcDist_t*)self;
+        if (rself->shutdownAckCount > 0) {
+            ocrWorker_t * worker;
+            getCurrentEnv(NULL, &worker, NULL, NULL);
+            //DIST-TODO sep-concern: The PD should not know about underlying worker impl
+            ocrWorkerHc_t * hcWorker = (ocrWorkerHc_t *) worker;
+            int wid = hcWorker->id;
+            if ((wid == 1) && (rself->piledWorkerCtx == 0)) {
+                // Shutdown was called and there's no helper-mode in progress
+                // Check if other comp-workers are busy
+                DPRINTF(DEBUG_LVL_VVERB,"MGT_SHUTDOWN: wait for comp-worker to wrap-up before shutdown %d\n");
+                u32 i = 0;
+                while(i < self->workerCount) {
+                    if ((hcWorker->hcType == HC_WORKER_COMP) && (self->workers[i]->curTask != NULL)) {
+                        break; // still some busy worker, will fall-through to do the regular take.
+                    }
+                    i++;
+                }
+                //Note: there's still a potential race when a RT EDT is in the deque but we failed to see it
+                if ((i == self->workerCount) && (!rself->shutdownSent)) {
+                    // Everybody was quiet, there might be in-flight wrap up messages (dbRelease and so in epilogue EDTs)
+                    // still attempt to notify all other PDs, they should be denied PD access thanks to grabLock
+                    //DIST-TODO These should be sent in parallel
+                    i = 0;
+                    while(i < self->neighborCount) {
+                        DPRINTF(DEBUG_LVL_VVERB,"MGT_SHUTDOWN: loop shutdown neighbors[%d] is %d\n", i, (int) self->neighbors[i]);
+                        ocrPolicyMsg_t msgShutdown;
+                        getCurrentEnv(NULL, NULL, NULL, &msgShutdown);
+                    #define PD_MSG (&msgShutdown)
+                    #define PD_TYPE PD_MSG_MGT_SHUTDOWN
+                        msgShutdown.destLocation = self->neighbors[i];
+                        PD_MSG_FIELD(errorCode) = self->shutdownCode;
+                        DPRINTF(DEBUG_LVL_VERB,"MGT_SHUTDOWN: send shutdown msg to %d\n", (int) msgShutdown.destLocation);
+                        // Shutdown is a two-way message. It gives the target the opportunity to drain and
+                        // finalize some of its pending communication (think dbRelease called after the EDT
+                        // that triggered shutdown on another node)
+                        msgShutdown.type = PD_MSG_MGT_SHUTDOWN | PD_MSG_REQUEST;
+                        u8 returnCode = self->fcts.processMessage(self, &msgShutdown, true);
+                        ASSERT(returnCode == 0);
+                    #undef PD_MSG
+                    #undef PD_TYPE
+                        i++;
+                    }
+                    rself->shutdownSent = true;
+                }
+                if (rself->shutdownSent && (rself->shutdownAckCount == (self->neighborCount+1))) {
+                    //Note: there's still a potential race when a RT EDT is in the deque but we failed to see it
+                    // We need to do this again because when we receive shutdown ack as soon as shutdownAckCount
+                    // is incremented we can come here although the EDT that did the increment is still running
+                    i = 0;
+                    while(i < self->workerCount) {
+                        if ((hcWorker->hcType == HC_WORKER_COMP) && (self->workers[i]->curTask != NULL)) {
+                            break; // still some busy worker, will fall-through to do the regular take.
+                        }
+                        i++;
+                    }
+                    if (i == self->workerCount) {
+                        DPRINTF(DEBUG_LVL_VERB,"MGT_SHUTDOWN: received all shutdown\n");
+                    #define PD_MSG (msg)
+                    #define PD_TYPE PD_MSG_COMM_TAKE
+                        PD_MSG_FIELD(guidCount) = 0;
+                        msg->type &= ~PD_MSG_REQUEST;
+                        msg->type |= PD_MSG_RESPONSE;
+                    #undef PD_MSG
+                    #undef PD_TYPE
+                        // Received all the shutdown, we stop
+                        //NOTE: We shutdown here otherwise we need to change the state
+                        //to spin on from 18 to 34 in hcPolicyDomainStop because the double
+                        //acquisition caused by calling the base impl.
+                        //Shutdown are one way messages in distributed. Avoids having to
+                        //send a response when the comms are shutting down.
+                        self->fcts.stop(self);
+                        hcDistReleasePd((ocrPolicyDomainHc_t*)self);
+                        return 0;
+                    } // else should only go for another round until the EDT that did the ack increment is alive
+               }
+            }
+        } // fall-through and do regular take
+        break;
+    }
+    case PD_MSG_MGT_MONITOR_PROGRESS:
+    {
+        msg->destLocation = curLoc;
+        // This is to temporarily help with the shutdown process see issue #200
+        hal_lock32(&((ocrPolicyDomainHcDist_t*)self)->piledWorkerCtxLock);
+        ((ocrPolicyDomainHcDist_t*)self)->piledWorkerCtx++;
+        hal_unlock32(&((ocrPolicyDomainHcDist_t*)self)->piledWorkerCtxLock);
+        // fall-through and let local PD to process
+        break;
+    }
     // filter out local messages
     case PD_MSG_DEP_ADD:
     case PD_MSG_MEM_OP:
@@ -841,7 +889,6 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
     case PD_MSG_EVT_CREATE:
     case PD_MSG_EVT_GET:
     case PD_MSG_GUID_CREATE:
-    case PD_MSG_COMM_TAKE:
     case PD_MSG_COMM_GIVE:
     case PD_MSG_DEP_UNREGSIGNALER:
         //DIST-TODO not-supported: I don't think PD_MSG_DEP_UNREGSIGNALER is supported yet even in shared-memory
@@ -856,10 +903,9 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
     case PD_MSG_MGT_FINISH:
     case PD_MSG_MGT_REGISTER:
     case PD_MSG_MGT_UNREGISTER:
-    case PD_MSG_MGT_MONITOR_PROGRESS:
     {
         msg->destLocation = curLoc;
-        // fall-through and let local PD to process
+        // for all local messages, fall-through and let local PD to process
         break;
     }
     default:
@@ -1056,6 +1102,7 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
             u32 sendProp = PERSIST_MSG_PROP;
             DPRINTF(DEBUG_LVL_VVERB,"Send response to %d after local processing of msg\n", msg->destLocation);
             ASSERT(msg->type & PD_MSG_RESPONSE);
+            ASSERT((msg->type & PD_MSG_TYPE_ONLY) != PD_MSG_MGT_MONITOR_PROGRESS);
             switch(msg->type & PD_MSG_TYPE_ONLY) {
             case PD_MSG_DB_ACQUIRE:
             {
@@ -1092,6 +1139,14 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
             default: { }
             }
             self->fcts.sendMessage(self, msg->destLocation, msg, NULL, sendProp);
+        } else {
+            // local post-processing
+            if ((msg->type & PD_MSG_TYPE_ONLY) == PD_MSG_MGT_MONITOR_PROGRESS) {
+                // This is to temporarily help with the shutdown process see issue #200
+                hal_lock32(&((ocrPolicyDomainHcDist_t*)self)->piledWorkerCtxLock);
+                ((ocrPolicyDomainHcDist_t*)self)->piledWorkerCtx--;
+                hal_unlock32(&((ocrPolicyDomainHcDist_t*)self)->piledWorkerCtxLock);
+            }
         }
     }
     hcDistReleasePd((ocrPolicyDomainHc_t*)self);
@@ -1209,6 +1264,11 @@ void initializePolicyDomainHcDist(ocrPolicyDomainFactory_t * factory,
     hcDistPd->baseProcessMessage = derivedFactory->baseProcessMessage;
     hcDistPd->baseStart = derivedFactory->baseStart;
     hcDistPd->baseStop = derivedFactory->baseStop;
+    hcDistPd->proxyLock = 0;
+    hcDistPd->shutdownSent = false;
+    hcDistPd->shutdownAckCount = 0;
+    hcDistPd->piledWorkerCtx = 0;
+    hcDistPd->piledWorkerCtxLock = 0;
 }
 
 static void destructPolicyDomainFactoryHcDist(ocrPolicyDomainFactory_t * factory) {
