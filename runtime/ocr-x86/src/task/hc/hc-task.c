@@ -7,6 +7,7 @@
 #include "ocr-config.h"
 #if defined(ENABLE_TASK_HC) || defined(ENABLE_TASKTEMPLATE_HC)
 
+
 #include "debug.h"
 #include "event/hc/hc-event.h"
 #include "ocr-datablock.h"
@@ -112,24 +113,24 @@ ocrTaskTemplate_t * newTaskTemplateHc(ocrTaskTemplateFactory_t* factory, ocrEdt_
     if(gProfilingTable) {
       int i;
       for(i = 0; ; i++) {
-	if(gProfilingTable[i].fname == NULL) break;
-	if(!ocrStrcmp((u8*)fctName, gProfilingTable[i].fname)) {
-	  base->profileData = &(gProfilingTable[i]);
-	  break;
-	}
-      }
+        if(gProfilingTable[i].fname == NULL) break;
+            if(!ocrStrcmp((u8*)fctName, gProfilingTable[i].fname)) {
+              base->profileData = &(gProfilingTable[i]);
+              break;
+            }
+          }
     }
 
     base->dbWeights = NULL;
     if(gDbWeights) {
       int i;
       for(i = 0; ; i++) {
-	if(gDbWeights[i].fname == NULL) break;
-	if(!ocrStrcmp((u8*)fctName, gDbWeights[i].fname)) {
-	  base->dbWeights = &(gDbWeights[i]);
-	  break;
-	}
-      }
+        if(gDbWeights[i].fname == NULL) break;
+            if(!ocrStrcmp((u8*)fctName, gDbWeights[i].fname)) {
+              base->dbWeights = &(gDbWeights[i]);
+              break;
+            }
+          }
     }
 #endif
 
@@ -186,25 +187,25 @@ static u8 finishLatchCheckin(ocrPolicyDomain_t *pd, ocrPolicyMsg_t *msg,
 /******************************************************/
 /* Random helper functions                            */
 /******************************************************/
+
 static inline bool hasProperty(u32 properties, u32 property) {
     return properties & property;
 }
 
-static u8 registerOnFrontier(ocrTaskHc_t *self, ocrPolicyDomain_t *pd, u32 slot) {
-    ocrPolicyMsg_t msg;
-    getCurrentEnv(NULL, NULL, NULL, &msg);
-#define PD_MSG (&msg)
+static u8 registerOnFrontier(ocrTaskHc_t *self, ocrPolicyDomain_t *pd,
+                             ocrPolicyMsg_t *msg, u32 slot) {
+#define PD_MSG (msg)
 #define PD_TYPE PD_MSG_DEP_REGWAITER
-    msg.type = PD_MSG_DEP_REGWAITER | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+    msg->type = PD_MSG_DEP_REGWAITER | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD(waiter.guid) = self->base.guid;
     PD_MSG_FIELD(waiter.metaDataPtr) = self;
     PD_MSG_FIELD(dest.guid) = self->signalers[slot].guid;
     PD_MSG_FIELD(dest.metaDataPtr) = NULL;
     PD_MSG_FIELD(slot) = self->signalers[slot].slot;
     PD_MSG_FIELD(properties) = false; // not called from add-dependence
+    RESULT_PROPAGATE(pd->fcts.processMessage(pd, msg, true));
 #undef PD_MSG
 #undef PD_TYPE
-    RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, true));
     return 0;
 }
 /******************************************************/
@@ -354,6 +355,7 @@ static u8 iterateDbFrontier(ocrTask_t *self) {
 /**
  * @brief Give the task to the scheduler
  * Warning: The caller must ensure all dependencies have been satisfied
+ * Note: static function only meant to factorize code.
  */
 static u8 scheduleTask(ocrTask_t *self) {
     DPRINTF(DEBUG_LVL_INFO, "Schedule 0x%lx\n", self->guid);
@@ -388,13 +390,12 @@ static u8 taskAllDepvSatisfied(ocrTask_t *self) {
     DPRINTF(DEBUG_LVL_INFO, "All dependences satisfied for task 0x%lx\n", self->guid);
     // Now check if there's anything to do before scheduling
     // In this implementation we want to acquire locks for DBs in EW mode
-    ocrTaskHc_t * hcTask = ((ocrTaskHc_t *) self);
-    hcTask->frontierSlot = 0;
+    ocrTaskHc_t * rself = (ocrTaskHc_t *) self;
+    rself->slotSatisfiedCount++; // Mark the slotSatisfiedCount as being all satisfied
     if (self->depc > 0) {
         ocrPolicyDomain_t * pd = NULL;
         getCurrentEnv(&pd, NULL, NULL, NULL);
         // Initialize the dependence list to be transmitted to the EDT's user code.
-        ocrTaskHc_t * rself = (ocrTaskHc_t *) self;
         u32 depc = self->depc;
         ocrEdtDep_t * resolvedDeps = pd->fcts.pdMalloc(pd, sizeof(ocrEdtDep_t)* depc);
         rself->resolvedDeps = resolvedDeps;
@@ -423,10 +424,20 @@ static u8 taskAllDepvSatisfied(ocrTask_t *self) {
 /* OCR-HC Task Implementation                         */
 /******************************************************/
 
+
+// Special sentinel values used to mark slots state
+
+// A slot that contained an event has been satisfied
+#define SLOT_SATISFIED_EVT              ((u32) -1)
+// An ephemeral event has been registered on the slot
+#define SLOT_REGISTERED_EPHEMERAL_EVT   ((u32) -2)
+// A slot has been satisfied with a DB
+#define SLOT_SATISFIED_DB               ((u32) -3)
+
 u8 destructTaskHc(ocrTask_t* base) {
     DO_DEBUG_TYPE(TASK, DEBUG_LVL_INFO)
     PRINTF("EDT(INFO) [PD:0x0 W:0x0 EDT:0x0] Destroy 0x%lx\n", base->guid);
-    }
+    END_DEBUG
     // FIXME: The above hack was added because the below causes a coredump. [Trac #219]
     //DPRINTF(DEBUG_LVL_INFO, "Destroy 0x%lx\n", base->guid);
     ocrPolicyDomain_t *pd = NULL;
@@ -466,9 +477,6 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
 
     getCurrentEnv(&pd, NULL, NULL, &msg);
 
-    // DIST-TODO: For now, we remove the latch completely.
-    // There is an issue where the "parent" EDT is not transmitted
-    // properly (need to implement meta-data cloning)
     ocrFatGuid_t outputEvent = {.guid = NULL_GUID, .metaDataPtr = NULL};
     // We need an output event for the EDT if either:
     //  - the user requested one (outputEventPtr is non NULL)
@@ -513,11 +521,10 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     base->templateGuid = edtTemplate.guid;
     ASSERT(edtTemplate.metaDataPtr); // For now we just assume it is passed whole
     base->funcPtr = ((ocrTaskTemplate_t*)(edtTemplate.metaDataPtr))->executePtr;
-    base->paramv = (u64*)((u64)base + sizeof(ocrTaskHc_t));
+    base->paramv = (paramc > 0) ? ((u64*)((u64)base + sizeof(ocrTaskHc_t))) : NULL;
 #ifdef OCR_ENABLE_EDT_NAMING
     base->name = ((ocrTaskTemplate_t*)(edtTemplate.metaDataPtr))->name;
 #endif
-
     base->outputEvent = outputEvent.guid;
     base->finishLatch = NULL_GUID;
     base->parentLatch = parentLatch.guid;
@@ -537,7 +544,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     for(i = 0; i < depc; ++i) {
         edt->signalers[i].guid = UNINITIALIZED_GUID;
         edt->signalers[i].slot = i;
-        edt->signalers[i].mode = DB_DEFAULT_MODE;
+        edt->signalers[i].mode = -1; //Systematically set when adding dependence
     }
 
     // Set up HC specific stuff
@@ -609,72 +616,85 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     //  - it can be from the frontier (we registered on it)
     //  - it can be a ONCE event
     //  - it can be a data-block being added (causing an immediate satisfy)
-    // Could be moved a little later if the ASSERT was not here
-    // Should not make a huge difference
+
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
-    hal_lock32(&(self->lock));
-    ASSERT(self->slotSatisfiedCount < (base->depc+1));
-    // // EDT already has all its dependences satisfied, now we're getting acquire notifications
-    // if(self->slotSatisfiedCount == (base->depc+1)) {
-    //     // should only happen on RT event slot to manage DB acquire
-    //     ASSERT(slot == (base->depc+1));
-    //     // Implementation acquires DB sequentially, so the DB's GUID
-    //     // must match the frontier's DB
-    //     ASSERT(data.guid == self->signalers[self->frontierSlot-1].guid);
-    //     self->resolvedDeps[self->signalers[self->frontierSlot-1].slot].ptr = data.metaDataPtr;
-    //     data.metaDataPtr = NULL; // just to be safe with the hack
-    //     if (!iterateDbFrontier(base)) {
-    //         scheduleTask(base);
-    //     }
-    //     hal_unlock32(&(self->lock));
-    //     return 0;
-    // }
+    ocrPolicyDomain_t *pd = NULL;
+    ocrPolicyMsg_t msg;
+    ocrTask_t * taskPut = NULL;
+    ocrWorker_t * worker = NULL;
+    getCurrentEnv(&pd, &worker, &taskPut, &msg);
 
     // Replace the signaler's guid by the data guid, this is to avoid
     // further references to the event's guid, which is good in general
     // and crucial for once-event since they are being destroyed on satisfy.
 
-    ASSERT(self->signalers[slot].slot != (u32)-1); // Check to see if not already satisfied
-    ASSERT((self->signalers[slot].slot == slot && (self->signalers[slot].slot == self->frontierSlot)) ||
-           (self->signalers[slot].slot == (u32)-2) || /* Checks if ONCE/LATCH event satisfaction */
-           (slot > self->frontierSlot)); /* A DB or NULL_GUID being added as ocrAddDependence */
+    // Could be moved a little later if the ASSERT was not here
+    // Should not make a huge difference
+    hal_lock32(&(self->lock));
 
+    DPRINTF(DEBUG_LVL_VERB, "Satisfy on task 0x%lx slot %d\n", self->base.guid, slot);
+
+    // Check to see if not already satisfied
+    ASSERT_BLOCK_BEGIN(self->signalers[slot].slot != SLOT_SATISFIED_EVT)
+    DPRINTF(DEBUG_LVL_WARN, "detected double satisfy on sticky for task 0x%lx on slot %d by 0x%lx\n", base->guid, slot, taskPut->guid);
+    ASSERT_BLOCK_END
+    ASSERT(self->slotSatisfiedCount < base->depc);
+
+    self->slotSatisfiedCount++;
     self->signalers[slot].guid = data.guid;
-    self->signalers[slot].slot = (u32)-1; // Say that it is satisfied
-    if(++self->slotSatisfiedCount == base->depc) {
-        ++(self->slotSatisfiedCount); // So others don't catch the satisfaction
+
+    if(self->slotSatisfiedCount == base->depc) { // We're done
         hal_unlock32(&(self->lock));
         // All dependences have been satisfied, schedule the edt
-        DPRINTF(DEBUG_LVL_VERB, "Scheduling task 0x%lx due to last satisfied dependence\n",
-                self->base.guid);
+        DPRINTF(DEBUG_LVL_VERB, "Scheduling task 0x%lx, satisfied dependences %d/%d\n",
+                self->base.guid, self->slotSatisfiedCount , base->depc);
         RESULT_PROPAGATE(taskAllDepvSatisfied(base));
-    } else if(self->frontierSlot == slot) {
-        // We need to go register to the next non-once dependence
-        while(++self->frontierSlot < base->depc &&
-                self->signalers[self->frontierSlot].slot != ++slot) ;
-        // We found a slot that is == to slot (so unsatisfied and not once)
-        //TODO There's a race here where we find at a free slot, check it is
-        // not initialized and call register frontier.
-        if(self->frontierSlot < base->depc &&
-                self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
-            u32 tslot = self->frontierSlot;
-            hal_unlock32(&(self->lock));
-            ocrPolicyDomain_t *pd = NULL;
-            getCurrentEnv(&pd, NULL, NULL, NULL);
-            //TODO There seems to be a race here between registerSignalerTaskHc that
-            //gets a db signaler on slot 'n', set the guid to db's buid, then get stalled
-            //before setting up slot to -1. Then a satisfy on n-1 happens and lead us here
-            // because slot[n] is still n. registerOnFrontier would then crash because we
-            // cannot register on a db.
-            RESULT_PROPAGATE(registerOnFrontier(self, pd, tslot));
-        } else {
-            // If the slot's guid is UNITIALIZED_GUID it means add-dependence
-            // hasn't happened yet for this slot.
+    } else {
+        self->signalers[slot].slot = SLOT_SATISFIED_EVT;
+        // Check frontier status
+        if (slot == self->frontierSlot) { // we are on the frontier slot
+            // Try to advance the frontier over all consecutive satisfied events
+            // and DB dependence that may be in flight (we're safe because we have the lock)
+            u32 fsSlot = 0;
+            do {
+                self->frontierSlot++;
+                fsSlot = self->signalers[self->frontierSlot].slot;
+            } while((fsSlot == SLOT_SATISFIED_EVT) || (fsSlot == SLOT_SATISFIED_DB));
+            // There must be at least one, slotSatisfiedCount != depc
+            ASSERT(self->frontierSlot < base->depc);
+            // The slot we found is either:
+            // 1- not known: addDependence hasn't occured yet (UNINITIALIZED_GUID)
+            // 2- known: but the edt hasn't registered on it yet
+            // 3- a once event not yet satisfied: (.slot == SLOT_REGISTERED_EPHEMERAL_EVT, registered but not yet satisfied)
+            if ((self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) &&
+                (self->signalers[self->frontierSlot].slot != SLOT_REGISTERED_EPHEMERAL_EVT)) {
+                // Just for debugging purpose
+                ocrFatGuid_t signalerGuid;
+                signalerGuid.guid = self->signalers[self->frontierSlot].guid;
+                // Warning double check if that works for regular implementation
+                signalerGuid.metaDataPtr = NULL; // should be ok because guid encodes the kind in distributed
+                ocrGuidKind signalerKind = OCR_GUID_NONE;
+                deguidify(pd, &signalerGuid, &signalerKind);
+                ASSERT((signalerKind == OCR_GUID_EVENT_STICKY) || (signalerKind == OCR_GUID_EVENT_IDEM));
+                hal_unlock32(&(self->lock));
+                // Case 2: A sticky, the EDT registers as a lazy waiter
+                ocrPolicyDomain_t *pd = NULL;
+                ocrPolicyMsg_t msg;
+                getCurrentEnv(&pd, NULL, NULL, &msg);
+                RESULT_PROPAGATE(registerOnFrontier(self, pd, &msg, self->frontierSlot));
+            } else {
+                // else case 1, registerSignaler will do the registration
+                // else case 3, just have to wait for the satisfy on the once event to happen.
+                hal_unlock32(&(self->lock));
+            }
+        } else {// not on frontier slot, nothing to do
+            // The slot has just been marked as satisfied but the frontier
+            // hasn't reached that slot yet. Most likely the satisfy is on
+            // an ephemeral event or directly with a db. The frontier will
+            // eventually reach this slot at a later point.
+            ASSERT(self->frontierSlot < slot);
             hal_unlock32(&(self->lock));
         }
-    } else {
-        //DIST-TODO: The slot can not be the frontierSlot only because of once-event I think
-        hal_unlock32(&(self->lock));
     }
     return 0;
 }
@@ -687,84 +707,69 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
     ASSERT(isDepAdd); // This should only be called when adding a dependence
 
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
-    regNode_t * node = &(self->signalers[slot]);
-
     ocrPolicyDomain_t *pd = NULL;
-    getCurrentEnv(&pd, NULL, NULL, NULL);
+    ocrPolicyMsg_t msg;
+    getCurrentEnv(&pd, NULL, NULL, &msg);
     ocrGuidKind signalerKind = OCR_GUID_NONE;
     deguidify(pd, &signalerGuid, &signalerKind);
+    regNode_t * node = &(self->signalers[slot]);
     node->mode = mode;
-
+    ASSERT(node->slot == slot); // assumption from initialization
+    ASSERT(signalerGuid.guid != NULL_GUID); // This should have been caught earlier on
+    hal_lock32(&(self->lock));
+    node->guid = signalerGuid.guid;
     //DIST-TODO this is the reason why we need to introduce new kinds of guid
     //because we don't have support for cloning metadata around yet
     if(signalerKind & OCR_GUID_EVENT) {
-        //DIST-TODO: slot is already initialized
-        node->slot = slot;
-        if((signalerKind == OCR_GUID_EVENT_ONCE) || //TODO why once OR latch ??
+        if((signalerKind == OCR_GUID_EVENT_ONCE) ||
                 (signalerKind == OCR_GUID_EVENT_LATCH)) {
-            node->slot = (u32)-2; // To record this slot is for a once event
-
-            // We need to move the frontier slot over
-            hal_lock32(&(self->lock));
-            node->guid = signalerGuid.guid;
-            while(self->frontierSlot < base->depc &&
-                  self->signalers[self->frontierSlot].slot != self->frontierSlot)
-                  self->frontierSlot++;
-
-            // We found a slot that is == to slot (so unsatisfied and not once)
-            if(self->frontierSlot < base->depc &&
-                    self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) {
-                u32 tslot = self->frontierSlot;
-                hal_unlock32(&(self->lock));
-                RESULT_PROPAGATE(registerOnFrontier(self, pd, tslot));
-                // If we are UNITIALIZED_GUID, we will do the REGWAITER
-                // when we add the dependence (just below)
-            } else {
-                hal_unlock32(&(self->lock));
-            }
+            node->slot = SLOT_REGISTERED_EPHEMERAL_EVT; // To record this slot is for a once event
+            hal_unlock32(&(self->lock));
         } else {
-            // By setting node->guid inside the lock, we order registerSignaler
-            // and satisfy concurrent execution. The later updates the frontierSlot
-            // but cannot proceed with registerOnFrontier since the guid is still
-            // UNINITIALIZED
-            hal_lock32(&(self->lock));
-            node->guid = signalerGuid.guid;
+            // Must be a sticky event
+            // In this implementation, there cannot be a satisfy to a slot that's
+            // before the frontierSlot (FS). If we are on the FS, then no calls
+            // but the satisfy on 'slot' can advance the frontier, safe to unlock here.
+            hal_unlock32(&(self->lock));
             if(slot == self->frontierSlot) {
-                hal_unlock32(&(self->lock));
-                // We actually need to register ourself as a waiter here
-                RESULT_PROPAGATE(registerOnFrontier(self, pd, slot));
-            } else {
-                hal_unlock32(&(self->lock));
+                // The EDT registers itself as a waiter here
+                ocrPolicyDomain_t *pd = NULL;
+                ocrPolicyMsg_t msg;
+                getCurrentEnv(&pd, NULL, NULL, &msg);
+                RESULT_PROPAGATE(registerOnFrontier(self, pd, &msg, slot));
             }
             // else The edt will lazily register on the signalerGuid when
             // the frontier reaches the signaler's slot.
         }
     } else {
-        if(signalerKind == OCR_GUID_DB) {
-            //Convert to a satisfy now that we've recorded the mode
-            //NOTE: Could improve implementation by figuring out how
-            //to properly iterate the frontier when adding the DB
-            //potentially concurrently with satifies.
-            ocrPolicyMsg_t registerMsg;
-            getCurrentEnv(NULL, NULL, NULL, &registerMsg);
-        #define PD_MSG (&registerMsg)
-        #define PD_TYPE PD_MSG_DEP_SATISFY
-            registerMsg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
-            PD_MSG_FIELD(guid.guid) = base->guid;
-            PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-            PD_MSG_FIELD(payload.guid) = signalerGuid.guid;
-            PD_MSG_FIELD(payload.metaDataPtr) = NULL;
-            PD_MSG_FIELD(slot) = slot;
-            PD_MSG_FIELD(properties) = 0;
-            RESULT_PROPAGATE(pd->fcts.processMessage(pd, &registerMsg, true));
-        #undef PD_MSG
-        #undef PD_TYPE
-        } else {
-            ASSERT(0);
-        }
+        ASSERT(signalerKind == OCR_GUID_DB);
+        // Here we could use SLOT_SATISFIED_EVT directly, but if we do, when
+        // satisfy is called we won't be able to figure out if the value
+        // was set for a DB here, or by a previous satisfy.
+        node->slot = SLOT_SATISFIED_DB;
+        hal_unlock32(&(self->lock));
+        //Convert to a satisfy now that we've recorded the mode
+        //NOTE: Could improve implementation by figuring out how
+        //to properly iterate the frontier when adding the DB
+        //potentially concurrently with satifies.
+        ocrPolicyMsg_t registerMsg;
+        getCurrentEnv(NULL, NULL, NULL, &registerMsg);
+    #define PD_MSG (&registerMsg)
+    #define PD_TYPE PD_MSG_DEP_SATISFY
+        registerMsg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
+        PD_MSG_FIELD(guid.guid) = base->guid;
+        PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+        PD_MSG_FIELD(payload.guid) = signalerGuid.guid;
+        PD_MSG_FIELD(payload.metaDataPtr) = NULL;
+        PD_MSG_FIELD(slot) = slot;
+        PD_MSG_FIELD(properties) = 0;
+        RESULT_PROPAGATE(pd->fcts.processMessage(pd, &registerMsg, true));
+    #undef PD_MSG
+    #undef PD_TYPE
     }
 
-    DPRINTF(DEBUG_LVL_INFO, "AddDependence from 0x%lx to 0x%lx slot %d\n", signalerGuid.guid, base->guid, slot);
+    DPRINTF(DEBUG_LVL_INFO, "AddDependence from 0x%lx to 0x%lx slot %d\n",
+        signalerGuid.guid, base->guid, slot);
     return 0;
 }
 
@@ -844,7 +849,7 @@ u8 notifyDbReleaseTaskHc(ocrTask_t *base, ocrFatGuid_t db) {
 }
 
 u8 taskExecute(ocrTask_t* base) {
-    DPRINTF(DEBUG_LVL_INFO, "Execute 0x%lx\n", base->guid);
+    DPRINTF(DEBUG_LVL_INFO, "Execute 0x%lx paramc:%d depc:%d\n", base->guid, base->paramc, base->depc);
     ocrTaskHc_t* derived = (ocrTaskHc_t*)base;
     // In this implementation each time a signaler has been satisfied, its guid
     // has been replaced by the db guid it has been satisfied with.
@@ -854,85 +859,6 @@ u8 taskExecute(ocrTask_t* base) {
     ocrPolicyDomain_t *pd = NULL;
     ocrEdtDep_t * depv = derived->resolvedDeps;
     ocrPolicyMsg_t msg;
-    /* OLD WAY OF ACQUIRING */
-    // getCurrentEnv(&pd, NULL, NULL, &msg);
-
-//     ocrEdtDep_t * depv = NULL;
-//     /* Used to support an EDT acquiring the same DB
-//      * multiple times. By default tracks up to 64 slots
-//      * NOTE: An EDT can have as many DBs as it wants
-//      * but if it wants to pass the same one on multiple
-//      * slots, it needs to have fewer than whatever this
-//      * can keep track of (in general)
-//      */
-//     u64 doNotReleaseSlots[OCR_MAX_MULTI_SLOT];
-//     u32 i;
-
-//     for(i=0; i < OCR_MAX_MULTI_SLOT; ++i) {
-//         doNotReleaseSlots[i] = 0ULL;
-//     }
-
-
-//     // If any dependencies, acquire their data-blocks
-//     u32 maxAcquiredDb = 0;
-
-//     ASSERT(derived->unkDbs == NULL); // Should be no dynamically acquired DBs before running
-
-//     if (depc != 0) {
-//         START_PROFILE(ta_hc_dbAcq);
-//         //TODO would be nice to resolve regNode into guids before
-//         depv = pd->fcts.pdMalloc(pd, sizeof(ocrEdtDep_t)*depc);
-//         // Double-check we're not rescheduling an already executed edt
-//         ASSERT(derived->signalers != END_OF_LIST);
-//         // Make sure the task was actually fully satisfied
-//         ASSERT(derived->slotSatisfiedCount == depc+1);
-//         while( maxAcquiredDb < depc ) {
-//             //TODO would be nice to standardize that on satisfy
-//             depv[maxAcquiredDb].guid = derived->signalers[maxAcquiredDb].guid;
-//             if(depv[maxAcquiredDb].guid != NULL_GUID) {
-//                 // We send a message that we want to acquire the DB
-// #define PD_MSG (&msg)
-// #define PD_TYPE PD_MSG_DB_ACQUIRE
-//                 msg.type = PD_MSG_DB_ACQUIRE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-//                 PD_MSG_FIELD(guid.guid) = depv[maxAcquiredDb].guid;
-//                 PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-//                 PD_MSG_FIELD(edt.guid) = base->guid;
-//                 PD_MSG_FIELD(edt.metaDataPtr) = base;
-//                 PD_MSG_FIELD(properties) = 1; // Runtime acquire
-//                 // This call may fail if the policy domain goes down
-//                 // while we are staring to execute
-
-//                 if(pd->fcts.processMessage(pd, &msg, true)) {
-//                     // We are not going to launch the EDT
-//                     break;
-//                 }
-//                 switch(PD_MSG_FIELD(returnDetail)) {
-//                 case 0:
-//                     ASSERT(PD_MSG_FIELD(ptr));
-//                     break; // Everything went fine
-//                 case OCR_EACQ:
-//                     // The EDT was already acquired
-//                     ASSERT(PD_MSG_FIELD(ptr));
-//                     ASSERT(maxAcquiredDb < 64*OCR_MAX_MULTI_SLOT);
-//                     DPRINTF(DEBUG_LVL_VERB, "EDT (GUID: 0x%lx) acquiring DB (GUID: 0x%lx) multiple times. Ignoring acquire on slot %d\n",
-//                             base->guid, depv[maxAcquiredDb].guid, maxAcquiredDb);
-//                     i = maxAcquiredDb / 64;
-//                     doNotReleaseSlots[i] |= (1ULL << (maxAcquiredDb % 64));
-//                     break;
-//                 default:
-//                     ASSERT(0);
-//                 }
-//                 depv[maxAcquiredDb].ptr = PD_MSG_FIELD(ptr);
-// #undef PD_MSG
-// #undef PD_TYPE
-//             } else {
-//                 depv[maxAcquiredDb].ptr = NULL;
-//             }
-//             ++maxAcquiredDb;
-//         }
-//         derived->signalers = END_OF_LIST;
-//         EXIT_PROFILE;
-//     }
     ASSERT(derived->unkDbs == NULL); // Should be no dynamically acquired DBs before running
     getCurrentEnv(&pd, NULL, NULL, NULL);
 
@@ -1068,7 +994,6 @@ u8 taskExecute(ocrTask_t* base) {
     }
     return 0;
 }
-
 
 void destructTaskFactoryHc(ocrTaskFactory_t* base) {
     runtimeChunkFree((u64)base, NULL);
