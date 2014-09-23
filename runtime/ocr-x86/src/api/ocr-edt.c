@@ -205,6 +205,8 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
     PD_MSG_FIELD(workType) = EDT_USER_WORKTYPE;
     PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
     PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
+    PD_MSG_FIELD(parentLatch.guid) = curEdt ? ((curEdt->finishLatch != NULL_GUID) ? curEdt->finishLatch : curEdt->parentLatch) : NULL_GUID;
+    PD_MSG_FIELD(parentLatch.metaDataPtr) = NULL;
 
     returnCode = pd->fcts.processMessage(pd, &msg, true);
     if(returnCode) {
@@ -306,7 +308,7 @@ u8 ocrAddDependence(ocrGuid_t source, ocrGuid_t destination, u32 slot,
 #undef PD_MSG
 #undef PD_TYPE
     }
-    u8 toReturn = pd->fcts.processMessage(pd, &msg, false);
+    u8 toReturn = pd->fcts.processMessage(pd, &msg, true);
     DPRINTF_COND_LVL(toReturn, DEBUG_LVL_WARN, DEBUG_LVL_INFO,
                      "EXIT ocrAddDependence(src=0x%lx, dest=0x%lx) -> %u\n", source, destination, toReturn);
     RETURN_PROFILE(toReturn);

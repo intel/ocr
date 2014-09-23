@@ -24,6 +24,7 @@
 
 //DIST-TODO cloning: hack to support edt templates
 #include "task/hc/hc-task.h"
+#include "event/hc/hc-event.h"
 
 #define DEBUG_TYPE POLICY
 
@@ -424,7 +425,8 @@ static u8 hcMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
 static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
                       ocrFatGuid_t  edtTemplate, u32 *paramc, u64* paramv,
                       u32 *depc, u32 properties, ocrFatGuid_t affinity,
-                      ocrFatGuid_t * outputEvent, ocrTask_t * currentEdt) {
+                      ocrFatGuid_t * outputEvent, ocrTask_t * currentEdt,
+                      ocrFatGuid_t parentLatch) {
 
 
     ocrTaskTemplate_t *taskTemplate = (ocrTaskTemplate_t*)edtTemplate.metaDataPtr;
@@ -452,7 +454,8 @@ static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
 
     ocrTask_t * base = self->taskFactories[0]->instantiate(
                            self->taskFactories[0], edtTemplate, *paramc, paramv,
-                           *depc, properties, affinity, outputEvent, currentEdt, NULL);
+                           *depc, properties, affinity, outputEvent, currentEdt,
+                           parentLatch, NULL);
 
     (*guid).guid = base->guid;
     (*guid).metaDataPtr = base;
@@ -731,6 +734,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ASSERT(PD_MSG_FIELD(templateGuid.metaDataPtr) != NULL);
         localDeguidify(self, &(PD_MSG_FIELD(affinity)));
         localDeguidify(self, &(PD_MSG_FIELD(currentEdt)));
+        localDeguidify(self, &(PD_MSG_FIELD(parentLatch)));
         ocrFatGuid_t *outputEvent = NULL;
         if(PD_MSG_FIELD(outputEvent.guid) == UNINITIALIZED_GUID) {
             outputEvent = &(PD_MSG_FIELD(outputEvent));
@@ -740,7 +744,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                 self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(templateGuid),
                 &(PD_MSG_FIELD(paramc)), PD_MSG_FIELD(paramv), &(PD_MSG_FIELD(depc)),
                 PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity), outputEvent,
-                (ocrTask_t*)(PD_MSG_FIELD(currentEdt).metaDataPtr));
+                (ocrTask_t*)(PD_MSG_FIELD(currentEdt).metaDataPtr), PD_MSG_FIELD(parentLatch));
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
 #undef PD_MSG
@@ -929,7 +933,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                 PD_MSG_FIELD(size) = sizeof(ocrAffinity_t);
                 break;
             default:
-                ASSERT("Unsupported GUID kind cloning");
+                ASSERT(false && "Unsupported GUID kind cloning");
         }
 #undef PD_MSG
 #undef PD_TYPE

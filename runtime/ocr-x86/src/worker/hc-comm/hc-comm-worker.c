@@ -173,6 +173,8 @@ static u8 createProcessRequestEdt(ocrPolicyDomain_t * pd, ocrGuid_t templateGuid
     // This is a "fake" EDT so it has no "parent"
     PD_MSG_FIELD(currentEdt.guid) = NULL_GUID;
     PD_MSG_FIELD(currentEdt.metaDataPtr) = NULL;
+    PD_MSG_FIELD(parentLatch.guid) = NULL_GUID;
+    PD_MSG_FIELD(parentLatch.metaDataPtr) = NULL;
     returnCode = pd->fcts.processMessage(pd, &msg, true);
     if(returnCode) {
         edtGuid = PD_MSG_FIELD(guid.guid);

@@ -383,6 +383,7 @@ typedef struct _ocrPolicyMsg_t {
             u32 returnDetail;          /**< Out: Success or error code */
             ocrWorkType_t workType;    /**< In: Type of work to create */
             ocrFatGuid_t currentEdt;   /**< In: EDT that is creating work */
+            ocrFatGuid_t parentLatch;  /**< In: Parent latch for EDT */
         } PD_MSG_STRUCT_NAME(PD_MSG_WORK_CREATE);
 
         struct {

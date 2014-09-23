@@ -159,17 +159,6 @@ ocrTaskTemplateFactory_t * newTaskTemplateFactoryHc(ocrParamList_t* perType, u32
 /* OCR HC latch utilities                             */
 /******************************************************/
 
-//static ocrFatGuid_t getFinishLatch(ocrTask_t * edt) {
-//    ocrFatGuid_t result = {.guid = NULL_GUID, .metaDataPtr = NULL};
-//    if (edt != NULL) { //  NULL happens in main when there's no edt yet
-//        if(edt->finishLatch)
-//            result.guid = edt->finishLatch;
-//        else
-//            result.guid = edt->parentLatch;
-//    }
-//    return result;
-//}
-
 // satisfies the incr slot of a finish latch event
 static u8 finishLatchCheckin(ocrPolicyDomain_t *pd, ocrPolicyMsg_t *msg,
                              ocrFatGuid_t sourceEvent, ocrFatGuid_t latchEvent) {
@@ -465,7 +454,8 @@ u8 destructTaskHc(ocrTask_t* base) {
 ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
                       u32 paramc, u64* paramv, u32 depc, u32 properties,
                       ocrFatGuid_t affinity, ocrFatGuid_t * outputEventPtr,
-                      ocrTask_t *curEdt, ocrParamList_t *perInstance) {
+                      ocrTask_t *curEdt, ocrFatGuid_t parentLatch,
+                      ocrParamList_t *perInstance) {
 
     // Get the current environment
     ocrPolicyDomain_t *pd = NULL;
@@ -477,8 +467,6 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     // DIST-TODO: For now, we remove the latch completely.
     // There is an issue where the "parent" EDT is not transmitted
     // properly (need to implement meta-data cloning)
-    //ocrFatGuid_t parentLatch = getFinishLatch(curEdt);
-    ocrFatGuid_t parentLatch = { .guid = NULL_GUID, .metaDataPtr = NULL };
     ocrFatGuid_t outputEvent = {.guid = NULL_GUID, .metaDataPtr = NULL};
     // We need an output event for the EDT if either:
     //  - the user requested one (outputEventPtr is non NULL)
@@ -1073,7 +1061,7 @@ void destructTaskFactoryHc(ocrTaskFactory_t* base) {
 ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance, u32 factoryId) {
     ocrTaskFactory_t* base = (ocrTaskFactory_t*)runtimeChunkAlloc(sizeof(ocrTaskFactoryHc_t), NULL);
 
-    base->instantiate = FUNC_ADDR(ocrTask_t* (*) (ocrTaskFactory_t*, ocrFatGuid_t, u32, u64*, u32, u32, ocrFatGuid_t, ocrFatGuid_t*, ocrTask_t *curEdt, ocrParamList_t*), newTaskHc);
+    base->instantiate = FUNC_ADDR(ocrTask_t* (*) (ocrTaskFactory_t*, ocrFatGuid_t, u32, u64*, u32, u32, ocrFatGuid_t, ocrFatGuid_t*, ocrTask_t *, ocrFatGuid_t, ocrParamList_t*), newTaskHc);
     base->destruct =  FUNC_ADDR(void (*) (ocrTaskFactory_t*), destructTaskFactoryHc);
     base->factoryId = factoryId;
 

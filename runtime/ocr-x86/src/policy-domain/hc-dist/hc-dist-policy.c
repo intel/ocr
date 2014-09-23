@@ -26,6 +26,7 @@
 #include "worker/hc/hc-worker.h"
 //DIST-TODO cloning: sep-concern: need to know end type to support edt templates cloning
 #include "task/hc/hc-task.h"
+#include "event/hc/hc-event.h"
 
 #define DEBUG_TYPE POLICY
 
@@ -358,23 +359,92 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
             DPRINTF(DEBUG_LVL_WARN, "Paramc is non-zero but no paramv was given\n");
             return OCR_EINVAL;
         }
-        // The placer may have altered msg->destLocation
-        if (msg->destLocation != curLoc) {
-            // Check for implementation limitations
-            ocrTask_t *task = NULL;
-            getCurrentEnv(NULL, NULL, &task, NULL);
-            ASSERT((task->finishLatch == NULL_GUID) && "LIMITATION: distributed finish-EDT not supported");
+        ocrFatGuid_t currentEdt = PD_MSG_FIELD(currentEdt);
+        ocrFatGuid_t parentLatch = PD_MSG_FIELD(parentLatch);
 
-            DPRINTF(DEBUG_LVL_VVERB,"WORK_CREATE: remote EDT creation at %d for template GUID 0x%lx\n", msg->destLocation, PD_MSG_FIELD(templateGuid.guid));
-        } else {
+        // The placer may have altered msg->destLocation
+        if (msg->destLocation == curLoc) {
             DPRINTF(DEBUG_LVL_VVERB,"WORK_CREATE: local EDT creation for template GUID 0x%lx\n", PD_MSG_FIELD(templateGuid.guid));
-        }
+        } else {
+            // Outgoing EDT create message
+            DPRINTF(DEBUG_LVL_VVERB,"WORK_CREATE: remote EDT creation at %lu for template GUID 0x%lx\n", (u64)msg->destLocation, PD_MSG_FIELD(templateGuid.guid));
 #undef PD_MSG
 #undef PD_TYPE
+            /* The support for finish EDT and latch in distributed OCR
+             * has the following implementation currently:
+             * Whenever an EDT needs to be created on a remote node,
+             * then a proxy latch is created on the remote node if
+             * there is a parent latch to report to on the source node.
+             * So, when an parent EDT creates a child EDT on a remote node,
+             * the local latch is first incremented on the source node.
+             * This latch will eventually be decremented through the proxy
+             * latch on the remote node.
+             */
+            if (parentLatch.guid != NULL_GUID) {
+                ocrLocation_t parentLatchLoc;
+                RETRIEVE_LOCATION_FROM_GUID(self, parentLatchLoc, parentLatch.guid);
+                if (parentLatchLoc == curLoc) {
+                    //Check in to parent latch
+                    ocrPolicyMsg_t msg2;
+                    getCurrentEnv(NULL, NULL, NULL, &msg2);
+#define PD_MSG (&msg2)
+#define PD_TYPE PD_MSG_DEP_SATISFY
+                    // This message MUST be fully processed (i.e. parentLatch satisfied)
+                    // before we return. Otherwise there's a race between this registration
+                    // and the current EDT finishing.
+                    msg2.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
+                    PD_MSG_FIELD(guid) = parentLatch;
+                    PD_MSG_FIELD(payload.guid) = NULL_GUID;
+                    PD_MSG_FIELD(payload.metaDataPtr) = NULL;
+                    PD_MSG_FIELD(currentEdt) = currentEdt;
+                    PD_MSG_FIELD(slot) = OCR_EVENT_LATCH_INCR_SLOT;
+                    PD_MSG_FIELD(properties) = 0;
+                    RESULT_PROPAGATE(self->fcts.processMessage(self, &msg2, true));
+#undef PD_MSG
+#undef PD_TYPE
+                } // else, will create a proxy event at current location
+            }
+        }
 
         if ((msg->srcLocation != curLoc) && (msg->destLocation == curLoc)) {
             // we're receiving a message
             DPRINTF(DEBUG_LVL_VVERB, "WORK_CREATE: received request from %d\n", msg->srcLocation);
+            if (parentLatch.guid != NULL_GUID) {
+                //Create a proxy latch in current node
+                /* On the remote side, a proxy latch is first created and a dep
+                 * is added to the source latch. Within the remote node, this
+                 * proxy latch becomes the new parent latch for the EDT to be
+                 * created inside the remote node.
+                 */
+                ocrPolicyMsg_t msg2;
+                getCurrentEnv(NULL, NULL, NULL, &msg2);
+#define PD_MSG (&msg2)
+#define PD_TYPE PD_MSG_EVT_CREATE
+                msg2.type = PD_MSG_EVT_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+                PD_MSG_FIELD(guid.guid) = NULL_GUID;
+                PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+                PD_MSG_FIELD(type) = OCR_EVENT_LATCH_T;
+                PD_MSG_FIELD(properties) = 0;
+                RESULT_PROPAGATE(self->fcts.processMessage(self, &msg2, true));
+
+                ocrFatGuid_t latchFGuid = PD_MSG_FIELD(guid);
+#undef PD_TYPE
+#define PD_TYPE PD_MSG_DEP_ADD
+                msg2.type = PD_MSG_DEP_ADD | PD_MSG_REQUEST;
+                PD_MSG_FIELD(source) = latchFGuid;
+                PD_MSG_FIELD(dest) = parentLatch;
+                PD_MSG_FIELD(slot) = OCR_EVENT_LATCH_DECR_SLOT;
+                PD_MSG_FIELD(properties) = false; // not called from add-dependence
+                RESULT_PROPAGATE(self->fcts.processMessage(self, &msg2, true));
+#undef PD_MSG
+#undef PD_TYPE
+
+#define PD_MSG msg
+#define PD_TYPE PD_MSG_WORK_CREATE
+                PD_MSG_FIELD(parentLatch) = latchFGuid;
+#undef PD_MSG
+#undef PD_TYPE
+            }
         }
         break;
     }

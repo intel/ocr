@@ -440,7 +440,8 @@ static u8 ceMemUnalloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
 static u8 ceCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
                       ocrFatGuid_t  edtTemplate, u32 *paramc, u64* paramv,
                       u32 *depc, u32 properties, ocrFatGuid_t affinity,
-                      ocrFatGuid_t * outputEvent, ocrTask_t * currentEdt) {
+                      ocrFatGuid_t * outputEvent, ocrTask_t * currentEdt,
+                      ocrFatGuid_t parentLatch) {
 
 
     ocrTaskTemplate_t *taskTemplate = (ocrTaskTemplate_t*)edtTemplate.metaDataPtr;
@@ -467,7 +468,7 @@ static u8 ceCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
 
     ocrTask_t * base = self->taskFactories[0]->instantiate(
         self->taskFactories[0], edtTemplate, *paramc, paramv,
-        *depc, properties, affinity, outputEvent, currentEdt, NULL);
+        *depc, properties, affinity, outputEvent, currentEdt, parentLatch, NULL);
 
     (*guid).guid = base->guid;
     (*guid).metaDataPtr = base;
@@ -733,6 +734,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         localDeguidify(self, &(PD_MSG_FIELD(templateGuid)));
         localDeguidify(self, &(PD_MSG_FIELD(affinity)));
         localDeguidify(self, &(PD_MSG_FIELD(currentEdt)));
+        localDeguidify(self, &(PD_MSG_FIELD(parentLatch)));
         ocrFatGuid_t *outputEvent = NULL;
         if(PD_MSG_FIELD(outputEvent.guid) == UNINITIALIZED_GUID) {
             outputEvent = &(PD_MSG_FIELD(outputEvent));
@@ -744,7 +746,7 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(templateGuid),
             &PD_MSG_FIELD(paramc), PD_MSG_FIELD(paramv), &PD_MSG_FIELD(depc),
             PD_MSG_FIELD(properties), PD_MSG_FIELD(affinity), outputEvent,
-            (ocrTask_t*)(PD_MSG_FIELD(currentEdt).metaDataPtr));
+            (ocrTask_t*)(PD_MSG_FIELD(currentEdt).metaDataPtr), PD_MSG_FIELD(parentLatch));
         DPRINTF(DEBUG_LVL_VVERB, "WORK_CREATE response: GUID: 0x%lx\n",
                 PD_MSG_FIELD(guid.guid));
         returnCode = ceProcessResponse(self, msg, 0);
