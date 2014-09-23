@@ -10,7 +10,6 @@
 
 #include "ocr.h"
 
-#define FLAGS 0xdead
 
 /**
  * DESC: Chain an edt to another edt's output event.
@@ -64,7 +63,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // Build input db for the chained edt
     ocrGuid_t * guid_ref;
     ocrGuid_t db_guid;
-    ocrDbCreate(&db_guid,(void **) &guid_ref, sizeof(ocrGuid_t), /*flags=*/FLAGS, /*loc=*/NULL_GUID, NO_ALLOC);
+    ocrDbCreate(&db_guid,(void **) &guid_ref, sizeof(ocrGuid_t), /*flags=*/DB_PROP_NONE, /*loc=*/NULL_GUID, NO_ALLOC);
     *guid_ref = edtGuid;
     // Satisfy the input slot of the chained edt
     ocrEventSatisfy(input_event_guid, db_guid);

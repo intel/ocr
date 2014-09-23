@@ -10,7 +10,6 @@
 
 #include "ocr.h"
 
-#define FLAGS 0xdead
 #define N 100
 /**
  * DESC:

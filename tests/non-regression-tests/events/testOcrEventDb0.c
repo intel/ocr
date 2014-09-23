@@ -14,7 +14,6 @@
  * DESC: Test satisfy event with db
  */
 
-#define FLAGS 0xdead
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     int* res = (int*)depv[0].ptr;
@@ -43,7 +42,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     int *k;
     ocrGuid_t db_guid;
     ocrDbCreate(&db_guid,(void **) &k,
-                sizeof(int), /*flags=*/FLAGS,
+                sizeof(int), /*flags=*/DB_PROP_NONE,
                 /*location=*/NULL_GUID,
                 NO_ALLOC);
     *k = 42;

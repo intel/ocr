@@ -10,7 +10,6 @@
 
 #include "ocr.h"
 
-#define FLAGS 0xdead
 #define N 16
 
 /**
@@ -70,7 +69,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     // Build a data-block to be shared with sub-edts
     u64 * array;
     ocrGuid_t dbGuid;
-    ocrDbCreate(&dbGuid,(void **) &array, sizeof(u64)*N, FLAGS, NULL_GUID, NO_ALLOC);
+    ocrDbCreate(&dbGuid,(void **) &array, sizeof(u64)*N, DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 
     ocrGuid_t terminateEdtGuid;
     ocrGuid_t terminateEdtTemplateGuid;

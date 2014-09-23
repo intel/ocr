@@ -14,7 +14,6 @@
  * DESC: Test passing paramv to ocrEdtCreate
  */
 
-#define FLAGS 0xdead
 
 ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     PRINTF("In the taskForEdt with value %d\n", (int) paramv[0]);
@@ -47,7 +46,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     u64 *k;
     ocrGuid_t dbGuid;
     ocrDbCreate(&dbGuid,(void **) &k,
-                sizeof(u64), /*flags=*/FLAGS,
+                sizeof(u64), /*flags=*/DB_PROP_NONE,
                 /*location=*/NULL_GUID,
                 NO_ALLOC);
     *k = 42;
