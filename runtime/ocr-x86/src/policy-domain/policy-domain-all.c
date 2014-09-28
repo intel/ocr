@@ -67,8 +67,11 @@ u8 ocrPolicyMsgGetMsgSize(ocrPolicyMsg_t *msg, u64 *fullSize,
 #include "ocr-policy-msg-list.h"
 #undef PER_TYPE
     default:
-        DPRINTF(DEBUG_LVL_WARN, "Type 0x%x not handled in getMsgSize!!\n", msg->type & PD_MSG_TYPE_ONLY);
-        ASSERT(0);
+        DPRINTF(DEBUG_LVL_INFO, "Type 0x%x not handled in getMsgSize; ID %lx %lx->%lx!!\n", msg->type & PD_MSG_TYPE_ONLY, msg->msgId, msg->srcLocation, msg->destLocation);
+        msg->type = PD_MSG_REQUEST | PD_CE_CE_MESSAGE | PD_MSG_MGT_SHUTDOWN;
+        *fullSize = PD_MSG_SIZE_FULL(PD_MSG_MGT_SHUTDOWN);
+        // This can typically happen during shutdown when comms is closed, to be fixed in #134
+        return 0;
     }
 
     msg->size = *fullSize;

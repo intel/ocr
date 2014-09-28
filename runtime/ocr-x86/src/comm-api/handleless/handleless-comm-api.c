@@ -78,8 +78,29 @@ u8 handlelessCommSendMessage(ocrCommApi_t *self, ocrLocation_t target, ocrPolicy
 }
 
 u8 handlelessCommPollMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
-    ASSERT(0); //TODO
-    return OCR_ENOTSUP;
+    u8 retval;
+    ASSERT(handle);
+    ocrCommApiHandleless_t * commApiHandleless = (ocrCommApiHandleless_t*)self;
+    u64 bufferSize = (u32)(sizeof(ocrPolicyMsg_t)) | (sizeof(ocrPolicyMsg_t) << 32);
+    if (!(*handle)) {
+        *handle = &(commApiHandleless->handle);
+        (*handle)->status = HDL_NORMAL;
+    } else {
+        ASSERT((*handle)->msg);
+    }
+    // Pass a "hint" saying that the the buffer is available
+    (*handle)->response = (*handle)->msg;
+    retval = self->commPlatform->fcts.pollMessage(
+                      self->commPlatform, &((*handle)->response), &bufferSize, PD_CE_CE_MESSAGE,
+                      NULL);
+    if((*handle)->response == (*handle)->msg) {
+        // This means that the comm platform did *not* allocate the buffer itself
+        (*handle)->properties = 0; // Indicates "do not free"
+    } else {
+        // This means that the comm platform did allocate the buffer itself
+        (*handle)->properties = 1; // Indicates "do free"
+    }
+    return retval;
 }
 
 u8 handlelessCommWaitMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {

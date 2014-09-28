@@ -348,7 +348,8 @@ void bringUpRuntime(const char *inifile) {
                 ASSERT(count == 1 && low == high);
                 ocrPolicyDomain_t *pd = (ocrPolicyDomain_t*)all_instances[policydomain_type][low];
                 ASSERT(neighbors_count == pd->neighborCount);
-                pd->neighbors = (ocrLocation_t*)runtimeChunkAlloc(sizeof(ocrLocation_t) * neighbors_count, (void *)1);
+                pd->neighbors = (ocrLocation_t*)runtimeChunkAlloc(sizeof(ocrLocation_t) * neighbors_count, PERSISTENT_CHUNK);
+#ifndef ENABLE_BUILDER_ONLY
                 pd->neighborPDs = (ocrPolicyDomain_t**)runtimeChunkAlloc(sizeof(ocrPolicyDomain_t*) * neighbors_count, (void *)1);
                 int idx = 0;
                 DPRINTF(DEBUG_LVL_VERB, "PD%lu neighbors (%d): ", (u64)pd->myLocation, neighbors_count);
@@ -361,6 +362,7 @@ void bringUpRuntime(const char *inifile) {
                     }
                 }
                 DPRINTF(DEBUG_LVL_VERB, "\n");
+#endif
             }
           }
         }

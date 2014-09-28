@@ -232,6 +232,9 @@ typedef struct _paramListPolicyDomainInst_t {
 /**< Defines if the message requires a return message */
 #define PD_MSG_REQ_RESPONSE     0x400000ULL
 
+/**< Defines if the message is marked a CE-CE message */
+#define PD_CE_CE_MESSAGE        0x1000000ULL
+
 
 #define PD_MSG_ARG_NAME_SUB(ID) _data_##ID
 #define PD_MSG_STRUCT_NAME(ID) PD_MSG_ARG_NAME_SUB(ID)

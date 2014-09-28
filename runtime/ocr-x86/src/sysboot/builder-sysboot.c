@@ -26,7 +26,6 @@ u64  args_pointer = 0;               // The pointer to free area of args pool
 #define DEBUG_TYPE SYSBOOT
 
 static void * packedUserArgs = NULL;
-static ocrEdt_t mainEdt = NULL;
 
 u64 FsimRuntimeChunkAlloc(u64 size, u64 *extra) {
     void* returnValue = NULL;

@@ -25,8 +25,13 @@
 #include "ocr-statistics.h"
 #endif
 
+#include "ocr-comm-platform.h"
 #include "policy-domain/ce/ce-policy.h"
 #include "allocator/allocator-all.h"
+
+#ifdef HAL_FSIM_CE
+#include "rmd-map.h"
+#endif
 
 #define DEBUG_TYPE POLICY
 
@@ -38,6 +43,11 @@ void cePolicyDomainBegin(ocrPolicyDomain_t * policy) {
 
     u64 i = 0;
     u64 maxCount = 0;
+
+    maxCount = policy->commApiCount;
+    for(i = 0; i < maxCount; i++) {
+        policy->commApis[i]->fcts.begin(policy->commApis[i], policy);
+    }
 
     maxCount = policy->guidProviderCount;
     for(i = 0; i < maxCount; ++i) {
@@ -54,10 +64,6 @@ void cePolicyDomainBegin(ocrPolicyDomain_t * policy) {
         policy->schedulers[i]->fcts.begin(policy->schedulers[i], policy);
     }
 
-    maxCount = policy->commApiCount;
-    for(i = 0; i < maxCount; i++) {
-        policy->commApis[i]->fcts.begin(policy->commApis[i], policy);
-    }
     policy->placer = NULL;
 
     // REC: Moved all workers to start here.
@@ -68,6 +74,18 @@ void cePolicyDomainBegin(ocrPolicyDomain_t * policy) {
     for(i = 0; i < maxCount; i++) {
         policy->workers[i]->fcts.begin(policy->workers[i], policy);
     }
+
+#ifdef HAL_FSIM_CE
+    // Neighbor discovery
+    // FIXME: Severely restrictive, only valid within a unit. Extend: trac #231
+    u32 ncount = 0;
+    for(i = 0; i < MAX_NUM_BLOCK && ncount < policy->neighborCount; i++) {
+        // Enumerate CEs
+        if(policy->myLocation != MAKE_CORE_ID(0, 0, 0, 0, i, ID_AGENT_CE))
+            // If I'm not the enumerated CE, add as my neighbor
+            policy->neighbors[ncount++] = MAKE_CORE_ID(0, 0, 0, 0, i, ID_AGENT_CE);
+    }
+#endif
 
     ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t*)policy;
     //FIXME: This is a hack to get the shutdown reportees.
@@ -373,6 +391,21 @@ static void* allocateDatablock (ocrPolicyDomain_t *self,
         result = self->allocators[allocatorIndex]->fcts.allocate(self->allocators[allocatorIndex], size, allocatorHints);
 
         if (result) {
+#ifdef HAL_FSIM_CE
+            if((u64)result <= CE_MSR_BASE && (u64)result >= BR_CE_BASE) {
+                result = (void *)DR_CE_BASE(CHIP_FROM_ID(self->myLocation),
+                                            UNIT_FROM_ID(self->myLocation),
+                                            BLOCK_FROM_ID(self->myLocation))
+                                            + (u64)(result - BR_CE_BASE);
+                u64 check = MAKE_CORE_ID(0,
+                                         0,
+                                         ((((u64)result >> MAP_CHIP_SHIFT) & ((1ULL<<MAP_CHIP_LEN) - 1)) - 1),
+                                         ((((u64)result >> MAP_UNIT_SHIFT) & ((1ULL<<MAP_UNIT_LEN) - 1)) - 2),
+                                         ((((u64)result >> MAP_BLOCK_SHIFT) & ((1ULL<<MAP_BLOCK_LEN) - 1)) - 2),
+                                         ID_AGENT_CE);
+                ASSERT(check==self->myLocation);
+            }
+#endif
             DPRINTF (DEBUG_LVL_VVERB, "Success allocationg %5ld-byte block to allocator %ld (level %ld) for engine %ld (%2ld) -- 0x%lx\n",
             (u64) size, (u64) allocatorIndex, (u64) levelIndex, (u64) engineIndex, (u64) self->myLocation, (u64) (((u64*) result)[-1]));
             *allocatorIndexReturn = allocatorIndex;
@@ -433,7 +466,41 @@ static u8 ceMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
 
 static u8 ceMemUnalloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
                        void* ptr, ocrMemType_t memType) {
+#ifdef HAL_FSIM_CE
+    u64 base = DR_CE_BASE(CHIP_FROM_ID(self->myLocation),
+                          UNIT_FROM_ID(self->myLocation),
+                          BLOCK_FROM_ID(self->myLocation));
+#define LOCAL_MASK 0xFFFFFULL  // trac #222
+    if(((u64)ptr < CE_MSR_BASE) || ((~LOCAL_MASK & (u64)ptr) == base)) {
+        allocatorFreeFunction(ptr); // CE's spad
+    } else {
+        ocrPolicyMsg_t msg;
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_MEM_UNALLOC
+        msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST;
+        msg.destLocation = MAKE_CORE_ID(0,
+                                        0,
+                                        ((((u64)ptr >> MAP_CHIP_SHIFT) & ((1ULL<<MAP_CHIP_LEN) - 1)) - 1),
+                                        ((((u64)ptr >> MAP_UNIT_SHIFT) & ((1ULL<<MAP_UNIT_LEN) - 1)) - 2),
+                                        ((((u64)ptr >> MAP_BLOCK_SHIFT) & ((1ULL<<MAP_BLOCK_LEN) - 1)) - 2),
+                                        ID_AGENT_CE);
+        msg.srcLocation = self->myLocation;
+        PD_MSG_FIELD(ptr) = ((void *) ptr);
+        PD_MSG_FIELD(type) = memType;
+        while(self->fcts.sendMessage(self, msg.destLocation, &msg, NULL, 0)) {
+           ocrPolicyMsg_t myMsg;
+           ocrMsgHandle_t myHandle;
+           myHandle.msg = &myMsg;
+           ocrMsgHandle_t *handle = &myHandle;
+           while(!self->fcts.pollMessage(self, &handle))
+               RESULT_ASSERT(self->fcts.processMessage(self, handle->response, true), ==, 0);
+        }
+#undef PD_MSG
+#undef PD_TYPE
+    }
+#else
     allocatorFreeFunction(ptr);
+#endif
     return 0;
 }
 
@@ -527,17 +594,45 @@ static u8 ceProcessResponse(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u32 pr
     } else {
         msg->destLocation = msg->srcLocation;
         msg->srcLocation = self->myLocation;
+        if((msg->type & PD_CE_CE_MESSAGE) && (msg->type & PD_MSG_REQUEST)) {
+             // FIXME: Ugly, but no other way to destruct the message
+             self->commApis[0]->commPlatform->fcts.destructMessage(self->commApis[0]->commPlatform, msg);
+        }
 
         if((((ocrPolicyDomainCe_t*)self)->shutdownMode) &&
            (msg->type != PD_MSG_MGT_SHUTDOWN)) {
             msg->type &= ~PD_MSG_TYPE_ONLY;
             msg->type |= PD_MSG_MGT_SHUTDOWN;
+            properties |= BLOCKING_SEND_MSG_PROP;
         }
 
         if (msg->type & PD_MSG_REQ_RESPONSE) {
             msg->type &= ~PD_MSG_REQUEST;
             msg->type |=  PD_MSG_RESPONSE;
+#ifdef HAL_FSIM_CE
+            if((msg->destLocation & ID_AGENT_CE) == ID_AGENT_CE) {
+                // This is a CE->CE message
+                ocrPolicyMsg_t toSend;
+                u64 fullMsgSize = 0, marshalledSize = 0;
+                ocrPolicyMsgGetMsgSize(msg, &fullMsgSize, &marshalledSize);
+                msg->size = fullMsgSize;
+                ocrPolicyMsgMarshallMsg(msg, (u8 *)&toSend, MARSHALL_DUPLICATE);
+
+                while(self->fcts.sendMessage(self, toSend.destLocation, &toSend, NULL, properties)) {
+                    ocrPolicyMsg_t myMsg;
+                    ocrMsgHandle_t myHandle;
+                    myHandle.msg = &myMsg;
+                    ocrMsgHandle_t *handle = &myHandle;
+                    while(!self->fcts.pollMessage(self, &handle))
+                        RESULT_ASSERT(self->fcts.processMessage(self, handle->response, true), ==, 0);
+                }
+            } else {
+                // This is a CE->XE message
+                RESULT_ASSERT(self->fcts.sendMessage(self, msg->destLocation, msg, NULL, properties), ==, 0);
+            }
+#else
             RESULT_ASSERT(self->fcts.sendMessage(self, msg->destLocation, msg, NULL, properties), ==, 0);
+#endif
         }
     }
     return 0;
@@ -978,26 +1073,29 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             //If my scheduler does not have work, (i.e guidCount == 0)
             //then we need to start looking for work on other CE's.
             ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t*)self;
-            if (PD_MSG_FIELD(guidCount) == 0 && cePolicy->shutdownMode == false) {
+            static s32 throttlecount = 1;
+            // FIXME: very basic self-throttling mechanism
+            if ((PD_MSG_FIELD(guidCount) == 0) && (cePolicy->shutdownMode == false) && (--throttlecount <= 0)) {
+                throttlecount = 200*(self->neighborCount-1);
                 //Try other CE's
                 u32 i;
                 for (i = 0; i < self->neighborCount; i++) {
                     //Check if I already have an active work request pending on a CE
                     //If not, then we post one
-                    if (cePolicy->ceCommTakeActive[i] == 0 && msg->srcLocation != self->neighbors[i]) {
+                    if ((cePolicy->ceCommTakeActive[i] == 0) && (msg->srcLocation != self->neighbors[i])) {
 #undef PD_MSG
 #define PD_MSG (&ceMsg)
                         ocrPolicyMsg_t ceMsg;
                         getCurrentEnv(NULL, NULL, NULL, &ceMsg);
-                        ocrFatGuid_t fguid[CE_TAKE_CHUNK_SIZE];
+                        ocrFatGuid_t fguid[CE_TAKE_CHUNK_SIZE] = {{0}};
                         ceMsg.destLocation = self->neighbors[i];
-                        ceMsg.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+                        ceMsg.type = PD_MSG_COMM_TAKE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE | PD_CE_CE_MESSAGE;
                         PD_MSG_FIELD(guids) = &(fguid[0]);
                         PD_MSG_FIELD(guidCount) = CE_TAKE_CHUNK_SIZE;
                         PD_MSG_FIELD(properties) = 0;
                         PD_MSG_FIELD(type) = OCR_GUID_EDT;
-                        RESULT_ASSERT(self->fcts.sendMessage(self, ceMsg.destLocation, &ceMsg, NULL, 0), ==, 0);
-                        cePolicy->ceCommTakeActive[i] = 1;
+                        if(self->fcts.sendMessage(self, ceMsg.destLocation, &ceMsg, NULL, 0) == 0)
+                            cePolicy->ceCommTakeActive[i] = 1;
 #undef PD_MSG
 #define PD_MSG msg
                     }
@@ -1007,8 +1105,10 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             // Respond to the requester
             // If my own scheduler had extra work, we respond with work
             // If not, then we respond with no work (but we've already put out work requests by now)
-            DPRINTF(DEBUG_LVL_VVERB, "COMM_TAKE response: GUID: 0x%lx (@ 0x%lx, base @ 0x%lx)\n",
-                    (PD_MSG_FIELD(guids))->guid, &(PD_MSG_FIELD(guids[0].guid)), msg);
+            if(PD_MSG_FIELD(guidCount)) {
+                  if(PD_MSG_FIELD(guids[0]).metaDataPtr == NULL)
+                      localDeguidify(self, &(PD_MSG_FIELD(guids[0])));
+            }
             returnCode = ceProcessResponse(self, msg, PD_MSG_FIELD(properties));
         } else { // A TAKE response has to be from another CE responding to my own request
             ASSERT(msg->type & PD_MSG_RESPONSE);
@@ -1022,12 +1122,14 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                         //then we store it in our own scheduler
                         ASSERT(PD_MSG_FIELD(type) == OCR_GUID_EDT);
                         ocrFatGuid_t *fEdtGuids = PD_MSG_FIELD(guids);
+
                         DPRINTF(DEBUG_LVL_INFO, "Received %lu Edt(s) from 0x%lx: ",
                                 PD_MSG_FIELD(guidCount), (u64)msg->srcLocation);
                         for (j = 0; j < PD_MSG_FIELD(guidCount); j++) {
                             DPRINTF(DEBUG_LVL_INFO, "(guid:0x%lx metadata: %p) ", fEdtGuids[j].guid, fEdtGuids[j].metaDataPtr);
                         }
                         DPRINTF(DEBUG_LVL_INFO, "\n");
+
                         PD_MSG_FIELD(returnDetail) = self->schedulers[0]->fcts.giveEdt(
                             self->schedulers[0], &(PD_MSG_FIELD(guidCount)), fEdtGuids);
                     }
@@ -1266,14 +1368,16 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         break;
     }
 
+    case 0: // FIXME: Treat null messages as shutdown, till #134 is fixed
     case PD_MSG_MGT_SHUTDOWN: {
         START_PROFILE(pd_ce_Shutdown);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_MGT_SHUTDOWN
         //u32 neighborCount = self->neighborCount;
         ocrPolicyDomainCe_t * cePolicy = (ocrPolicyDomainCe_t *)self;
-        if (cePolicy->shutdownMode == false)
+        if (cePolicy->shutdownMode == false) {
             cePolicy->shutdownMode = true;
+        }
         if (msg->srcLocation == self->myLocation && self->myLocation != self->parentLocation) {
             msg->destLocation = self->parentLocation;
             RESULT_ASSERT(self->fcts.sendMessage(self, msg->destLocation, msg, NULL, BLOCKING_SEND_MSG_PROP), ==, 0);
@@ -1285,11 +1389,11 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                 if (self->shutdownCode == 0)
                     self->shutdownCode = PD_MSG_FIELD(errorCode);
                 cePolicy->shutdownCount++;
-                DPRINTF (DEBUG_LVL_VVERB, "MSG_SHUTDOWN REQ from Agent 0x%lx; shutdown %u/%u\n",
+                DPRINTF (DEBUG_LVL_VERB, "MSG_SHUTDOWN REQ from Agent 0x%lx; shutdown %u/%u\n",
                     msg->srcLocation, cePolicy->shutdownCount, cePolicy->shutdownMax);
             } else {
                 ASSERT(msg->type & PD_MSG_RESPONSE);
-                DPRINTF (DEBUG_LVL_VVERB, "MSG_SHUTDOWN RESP from Agent 0x%lx; shutdown %u/%u\n",
+                DPRINTF (DEBUG_LVL_VERB, "MSG_SHUTDOWN RESP from Agent 0x%lx; shutdown %u/%u\n",
                     msg->srcLocation, cePolicy->shutdownCount, cePolicy->shutdownMax);
             }
 
@@ -1329,8 +1433,8 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
     default:
         // Not handled
-        DPRINTF(DEBUG_LVL_WARN, "Unknown message type 0x%x, 0x%x\n",
-                msg->type & PD_MSG_TYPE_ONLY, PD_MSG_EDTTEMP_DESTROY);
+        DPRINTF(DEBUG_LVL_WARN, "Unknown message type 0x%x\n",
+                msg->type & PD_MSG_TYPE_ONLY);
         ASSERT(0);
     }
     return returnCode;
@@ -1338,7 +1442,6 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 
 u8 cePdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t *message,
                    ocrMsgHandle_t **handle, u32 properties) {
-    DPRINTF(DEBUG_LVL_VERB, "CE sending message type 0x%x (0x%lx:0x%lx)\n", message->type, (u64)message->srcLocation, (u64)message->destLocation);
     return self->commApis[0]->fcts.sendMessage(self->commApis[0], target, message, handle, properties);
 }
 
@@ -1370,6 +1473,24 @@ void* cePdMalloc(ocrPolicyDomain_t *self, u64 size) {
             (allocatorIndex >= self->allocatorCount) ||
             (self->allocators[allocatorIndex] == NULL)) continue;  // Skip this allocator if it doesn't exist.
         result = self->allocators[allocatorIndex]->fcts.allocate(self->allocators[allocatorIndex], size, allocatorHints);
+#ifdef HAL_FSIM_CE
+        if (result) {
+            if((u64)result <= CE_MSR_BASE && (u64)result >= BR_CE_BASE) {
+                result = (void *)DR_CE_BASE(CHIP_FROM_ID(self->myLocation),
+                                            UNIT_FROM_ID(self->myLocation),
+                                            BLOCK_FROM_ID(self->myLocation)) +
+                                            (u64)(result - BR_CE_BASE);
+                u64 check = MAKE_CORE_ID(0,
+                                         0,
+                                         ((((u64)result >> MAP_CHIP_SHIFT) & ((1ULL<<MAP_CHIP_LEN) - 1)) - 1),
+                                         ((((u64)result >> MAP_UNIT_SHIFT) & ((1ULL<<MAP_UNIT_LEN) - 1)) - 2),
+                                         ((((u64)result >> MAP_BLOCK_SHIFT) & ((1ULL<<MAP_BLOCK_LEN) - 1)) - 2),
+                                         ID_AGENT_CE);
+                ASSERT(check==self->myLocation);
+            }
+            return result;
+        }
+#endif
         if (result) return result;
     } while (prescription != 0);
 
@@ -1378,7 +1499,40 @@ void* cePdMalloc(ocrPolicyDomain_t *self, u64 size) {
 }
 
 void cePdFree(ocrPolicyDomain_t *self, void* addr) {
+#ifdef HAL_FSIM_CE
+    u64 base = DR_CE_BASE(CHIP_FROM_ID(self->myLocation),
+                          UNIT_FROM_ID(self->myLocation),
+                          BLOCK_FROM_ID(self->myLocation));
+    if(((u64)addr < CE_MSR_BASE) || ((base & (u64)addr) == base)) {  // trac #222
+        allocatorFreeFunction(addr);
+    } else {
+        ocrPolicyMsg_t msg;
+#define PD_MSG (&msg)
+#define PD_TYPE PD_MSG_MEM_UNALLOC
+        msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST;
+        msg.destLocation = MAKE_CORE_ID(0,
+                                        0,
+                                        ((((u64)addr >> MAP_CHIP_SHIFT) & ((1ULL<<MAP_CHIP_LEN) - 1)) - 1),
+                                        ((((u64)addr >> MAP_UNIT_SHIFT) & ((1ULL<<MAP_UNIT_LEN) - 1)) - 2),
+                                        ((((u64)addr >> MAP_BLOCK_SHIFT) & ((1ULL<<MAP_BLOCK_LEN) - 1)) - 2),
+                                        ID_AGENT_CE);
+        msg.srcLocation = self->myLocation;
+        PD_MSG_FIELD(ptr) = ((void *) addr);
+        PD_MSG_FIELD(type) = 0;
+        while(self->fcts.sendMessage(self, msg.destLocation, &msg, NULL, 0)) {
+           ocrPolicyMsg_t myMsg;
+           ocrMsgHandle_t myHandle;
+           myHandle.msg = &myMsg;
+           ocrMsgHandle_t *handle = &myHandle;
+           while(!self->fcts.pollMessage(self, &handle))
+               RESULT_ASSERT(self->fcts.processMessage(self, handle->response, true), ==, 0);
+        }
+#undef PD_MSG
+#undef PD_TYPE
+    }
+#else
     allocatorFreeFunction(addr);
+#endif
 }
 
 ocrPolicyDomain_t * newPolicyDomainCe(ocrPolicyDomainFactory_t * factory,

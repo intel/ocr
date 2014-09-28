@@ -596,7 +596,12 @@ static inline blkPayload_t * payloadAddressForBlock(blkHdr_t * pBlk) {    // Ret
 }
 
 static inline blkHdr_t * mapPayloadAddrToBlockAddr(blkPayload_t * payload) {  // Return address of block's header, given address of payload.
-    return ((blkHdr_t *) (((u64) payload) - sizeof(blkHdr_t)));
+#ifdef HAL_FSIM_CE
+    blkPayload_t *ptr = (blkPayload_t *)(((u64)payload) & 0xFFFFFFLL); // FIXME: Is this a sufficient check? trac #222
+#else
+    blkPayload_t *ptr = payload;
+#endif
+    return ((blkHdr_t *) (((u64) ptr) - sizeof(blkHdr_t)));
 }
 
 static inline blkHdr_t * getPrevNbrBlock(blkHdr_t * pCurrBlk) {

@@ -53,7 +53,6 @@ ocrGuid_t sequential_cholesky_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDe
     for( kB = 0 ; kB < tileSize ; ++kB ) {
         if( aBlock[kB*tileSize+kB] <= 0 ) {
             PRINTF("Not a symmetric positive definite (SPD) matrix, got %f for %d\n", aBlock[kB*tileSize+kB], kB);
-            ASSERT(0);
             ocrShutdown();
             return NULL_GUID;
         } else {

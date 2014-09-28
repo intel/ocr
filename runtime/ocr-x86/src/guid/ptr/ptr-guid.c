@@ -19,6 +19,10 @@
 
 #define DEBUG_TYPE GUID
 
+#ifdef HAL_FSIM_CE
+#include "rmd-map.h"
+#endif
+
 typedef struct {
     ocrGuid_t guid;
     ocrGuidKind kind;
@@ -81,9 +85,18 @@ u8 ptrCreateGuid(ocrGuidProvider_t* self, ocrFatGuid_t *fguid, u64 size, ocrGuid
     RESULT_PROPAGATE(policy->fcts.processMessage (policy, &msg, true));
 
     ocrGuidImpl_t * guidInst = (ocrGuidImpl_t *)PD_MSG_FIELD(ptr);
+#ifdef HAL_FSIM_CE
+    if((u64)PD_MSG_FIELD(ptr) < CE_MSR_BASE) // FIXME: do this check properly, trac #222
+        guidInst = (ocrGuidImpl_t *) DR_CE_BASE(CHIP_FROM_ID(policy->myLocation),
+                                                UNIT_FROM_ID(policy->myLocation),
+                                                BLOCK_FROM_ID(policy->myLocation))
+                                     + (u64)(PD_MSG_FIELD(ptr) - BR_CE_BASE);
+#endif
+
     guidInst->guid = (ocrGuid_t)((u64)guidInst + sizeof(ocrGuidImpl_t));
     guidInst->kind = kind;
     guidInst->location = self->pd->myLocation;
+
     fguid->guid = (ocrGuid_t)guidInst;
     fguid->metaDataPtr = (void*)((u64)guidInst + sizeof(ocrGuidImpl_t));
 #undef PD_MSG
