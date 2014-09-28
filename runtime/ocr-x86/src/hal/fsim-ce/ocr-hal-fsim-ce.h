@@ -310,6 +310,18 @@
 #define hal_exit(arg)                           \
     __asm__ __volatile__("int $0xFE\n\t")
 
+/**
+ * @brief Pause execution
+ *
+ * This is used to support a primitive version of ocrWait
+ * and may be deprecated in the future
+ */
+#define hal_pause() do {                                        \
+        __asm__ __volatile__("cli");                            \
+        /* Works because there is a periodic timer interupt */  \
+        __asm__ __volatile__("sti;hlt;");                       \
+    } while(0);
+
 // Support for abstract load and store macros
 #define MAP_AGENT_SIZE_LOG2 (21)
 #define IS_REMOTE(addr) (((u64)(addr)) >= (1LL << MAP_AGENT_SIZE_LOG2))

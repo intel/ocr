@@ -91,7 +91,7 @@
 // Extensions
 #define ENABLE_EXTENSION_AFFINITY
 #define ENABLE_EXTENSION_LIB
-
+#define ENABLE_EXTENSION_LEGACY
 
 #endif /* __OCR_CONFIG_H__ */
 

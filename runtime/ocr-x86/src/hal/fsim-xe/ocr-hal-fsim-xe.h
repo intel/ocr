@@ -309,6 +309,17 @@
 #define hal_exit(arg)                           \
     __asm__ __volatile__("alarm %0\n\t" : : "L" (XE_TERMINATE))
 
+/**
+ * @brief Pause execution
+ *
+ * This is used to support a primitive version of ocrWait
+ * and may be deprecated in the future
+ */
+#define hal_pause() do {                        \
+        u32 _i = 1000;                          \
+        while(_i > 0) --_i;                     \
+    } while(0);
+
 // Abstraction to do a load operation from any level of the memory hierarchy
 #define GET8(temp, addr)   ((temp) = *((u8*)(addr)))
 #define GET16(temp, addr)  ((temp) = *((u16*)(addr)))

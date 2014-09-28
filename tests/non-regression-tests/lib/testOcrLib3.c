@@ -12,7 +12,7 @@
 
 
 
-#include "extensions/ocr-lib.h"
+#include "extensions/ocr-legacy.h"
 
 /**
  * DESC: OCR-library, init, edt-finish, finalize

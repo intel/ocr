@@ -86,6 +86,9 @@
 // Build the OCR-lib support
 #define ENABLE_EXTENSION_LIB
 
+// Legacy support
+#define ENABLE_EXTENSION_LEGACY
+
 // Affinity support
 #define ENABLE_EXTENSION_AFFINITY
 #endif /* __OCR_CONFIG_H__ */

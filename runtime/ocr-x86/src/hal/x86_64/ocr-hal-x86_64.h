@@ -18,6 +18,9 @@
 #include "ocr-types.h"
 #include <string.h>
 #include <stdlib.h>
+#define _GNU_SOURCE
+#define __USE_GNU
+#include <sched.h>
 
 
 /****************************************************/
@@ -228,6 +231,14 @@
  * This will exit the runtime more cleanly than abort
  */
 #define hal_exit(arg) exit(arg)
+
+/**
+ * @brief Pause execution
+ *
+ * This is used to support a primitive version of ocrWait
+ * and may be deprecated in the future
+ */
+#define hal_pause() sched_yield()
 
 // Abstraction to do a load operation from any level of the memory hierarchy
 #define GET8(temp, addr)   ((temp) = *((u8*)(addr)))

@@ -20,9 +20,6 @@
 
 #warning Experimental OCR library support enabled
 
-#define __USE_GNU
-#include <pthread.h>
-
 enum {
     OPT_NONE, OPT_CONFIG, OPT_VERSION, OPT_HELP
 };
@@ -63,13 +60,13 @@ static void printHelp(void) {
 }
 
 static void printVersion(void) {
-    fprintf(stderr, "Open Community Runtime (OCR) %s%s\n", "0.8", "");
+    fprintf(stderr, "Open Community Runtime (OCR) %s%s\n", "0.9", "");
 }
 
 static void setIniFile(ocrConfig_t * ocrConfig, const char * value) {
     struct stat st;
     if (stat(value, &st) != 0) {
-        fprintf(stderr, "error: cannot find runtime configuration file: %s\n", value);
+        fprintf(stderr, "ERROR: cannot find runtime configuration file: %s\n", value);
         exit(1);
     }
     ocrConfig->iniFile = value;
@@ -77,14 +74,14 @@ static void setIniFile(ocrConfig_t * ocrConfig, const char * value) {
 
 static inline void checkNextArgExists(s32 i, s32 argc, char * option) {
     if (i == argc) {
-        printf("No argument for OCR option %s\n", option);
-        ASSERT(false);
+        fprintf(stderr, "ERROR: No argument for OCR option %s\n", option);
+        exit(1);
     }
 }
 
 static void checkOcrOption(ocrConfig_t * ocrConfig) {
     if (ocrConfig->iniFile == NULL) {
-        fprintf(stderr, "error: no runtime configuration file provided\n");
+        fprintf(stderr, "ERROR: no runtime configuration file provided\n");
         exit(1);
     }
 }
@@ -216,40 +213,6 @@ u8 ocrFinalize() {
 //     GocrFilterAggregator->destruct(GocrFilterAggregator);
 // #endif
    return returnCode;
-}
-
-
-// TODO: Relying on pthread_yield() below is a hack and needs to go away
-// WARNING: The event MUST be sticky. DO NOT WAIT ON A LATCH EVENT!!!
-ocrGuid_t ocrWait(ocrGuid_t eventToYieldForGuid) {
-    ocrPolicyDomain_t *pd = NULL;
-    ocrPolicyMsg_t msg;
-    ocrEvent_t *eventToYieldFor = NULL;
-    ocrFatGuid_t result;
-
-    getCurrentEnv(&pd, NULL, NULL, &msg);
-
-#define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_GUID_INFO
-    msg.type = PD_MSG_GUID_INFO | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.guid) = eventToYieldForGuid;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(properties) = KIND_GUIDPROP | RMETA_GUIDPROP;
-    RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), ERROR_GUID);
-    eventToYieldFor = (ocrEvent_t *)PD_MSG_FIELD(guid.metaDataPtr);
-#undef PD_MSG
-#undef PD_TYPE
-
-    ASSERT(eventToYieldFor->kind == OCR_EVENT_STICKY_T ||
-           eventToYieldFor->kind == OCR_EVENT_IDEM_T);
-
-    do {
-        pthread_yield();
-        result.guid = ERROR_GUID;
-        result = pd->eventFactories[0]->fcts[eventToYieldFor->kind].get(eventToYieldFor);
-    } while(result.guid == ERROR_GUID);
-
-    return result.guid;
 }
 
 #endif /* ENABLE_EXTENSION_LIB */
