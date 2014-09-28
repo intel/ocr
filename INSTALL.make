@@ -14,17 +14,17 @@ Build requirements:
 
 1) Go to the build directory
 
-2) Run the command: ARCH=x86-pthread-x86 make install
-    
+2) Run the command: OCR_TYPE=x86-pthread-x86 make install
+
 3) Go back to the main OCR directory and Set environment variable 
 
     export OCR_INSTALL=${PWD}/install/x86-pthread-x86/
     export LD_LIBRARY_PATH=${OCR_INSTALL}/lib:${LD_LIBRARY_PATH}
 
-3) Run helloworld
+3) Run printf
 
-    cd examples/hello
-    make
+    cd ocr-apps/printf
+    make -f Makefile.<OCR_TYPE> run
 
 
 ** Installation information
@@ -42,6 +42,6 @@ are supported on all targets):
     - debug-shared:   Builds a shared library object with debugging symbols
     - debug-static:   Builds a static library object with debugging symbols
     - debug-exec:     Builds a policy domain builder with debugging symbols
-    - install:        Installs libraries, etc. in install/${ARCH}
+    - install:        Installs libraries, etc. in install/${OCR_TYPE}
     - clean:          Removes build products (.o etc.)
     - uninstall:      Removes installed libraries, etc.

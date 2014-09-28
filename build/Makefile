@@ -74,5 +74,7 @@ squeaky:
 	OCR_TYPE=tg-null-tg-xe $(MAKE) -C tg-null-tg-xe clean uninstall
 	OCR_TYPE=x86-builder-tg-ce $(MAKE) -C x86-builder-tg-ce clean uninstall
 	OCR_TYPE=x86-builder-tg-xe $(MAKE) -C x86-builder-tg-xe clean uninstall
+	OCR_TYPE=x86-pthread-mpi $(MAKE) -C x86-pthread-mpi clean uninstall
+#	OCR_TYPE=x86-pthread-gasnet $(MAKE) -C x86-pthread-gasnet clean uninstall
 
 

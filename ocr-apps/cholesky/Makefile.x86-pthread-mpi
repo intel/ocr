@@ -6,7 +6,7 @@ COMM_LAYER=mpi
 
 # APPS
 APPS_ROOT       ?= ../../../apps
-APPS_LIBS_ROOT  ?= ../../../apps/libs/mpi
+APPS_LIBS_ROOT  ?= ../../../apps/libs/x86
 
 # OCR_TYPE
 OCR_TYPE        ?= x86-pthread-${COMM_LAYER}

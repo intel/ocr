@@ -8,11 +8,13 @@
 *************************
 
     - examples/
-        helloworld and alike.
+        (deprecated)
     - inc/
         user-level ocr api header files
+    - ocr-apps/
+        example applications written in OCR
     - src/
-        ocr implementation source code
+        OCR implementation source code
     - tests/
         Non-regression tests
 
@@ -25,7 +27,7 @@ See the 'INSTALL' file
 
 
 ******************************
-** Using OCR     		    **
+** Using OCR                **
 ******************************
 
 This section's instructions requires you have set the 
@@ -81,22 +83,16 @@ Using command line options:
 *** Non-regression tests
 
 The 'tests' folder contains a collection of non-regression tests.
-After installing and setting OCR environment variables, one can
+After installing and setting the OCR_INSTALL environment variable, one can
 run non-regression tests running the 'ocrTests' script.
 
-*** examples
-
-After installing and setting OCR environment variables, examples 
-located under the 'examples' folder can be tested for regressions 
-using the 'ocrTestsExamples' script. 
- 
 
 ***********************
 ** Known Limitations **
 ***********************
 
 - The deque-based workpile does not resize automatically
-    - the macro INC_DEQUE_CAPACITY defined in deque.h can be customized
+    - the macro INIT_DEQUE_CAPACITY defined in deque.h can be customized through CFLAGS
 
 *******************
 ** Documentation **

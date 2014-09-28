@@ -6,11 +6,11 @@
 # Author: Ivan Ganev <ivan.b.ganev@intel.com>
 #
 
-ifndef ARCH
-ARCH=x86-pthread-gasnet
+ifndef OCR_TYPE
+OCR_TYPE=x86-pthread-gasnet
 else
-ifneq (${ARCH}, x86-pthread-gasnet)
-$(error ARCH is set to ${ARCH} but expected x86-pthread-gasnet)
+ifneq (${OCR_TYPE}, x86-pthread-gasnet)
+$(error OCR_TYPE is set to ${OCR_TYPE} but expected x86-pthread-gasnet)
 endif
 endif
 #
@@ -70,4 +70,3 @@ CFLAGS += ${GASNET_CFLAGS} -I${GASNET_ROOT}/include -I${GASNET_ROOT}/include/${G
 all: static
 
 include ../common.mk
-

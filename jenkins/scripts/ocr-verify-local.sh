@@ -34,7 +34,7 @@ trap err_handler ERR
 cd ${WORKLOAD_EXEC}
 
 TMP_OUTPUT=runlog
-COUNT=$(grep -c "WARN" ${TMP_OUTPUT}) || $(echo "")
+COUNT=$(grep -c "(WARN)" ${TMP_OUTPUT}) || $(echo "")
 if [ $COUNT -ne 0 ]; then
     if [ "$WARN_ERROR" -eq "1" ]; then
         echo "Found ${COUNT} instance(s) of WARN... this is an error!"

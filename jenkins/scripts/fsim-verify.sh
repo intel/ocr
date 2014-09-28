@@ -43,7 +43,7 @@ cd ${WORKLOAD_EXEC}/logs
 # would definitely not find a PASSED statement if we
 # have no CONSOLE lines
 grep "CONSOLE" *.CE.* > ${TMP_OUTPUT}
-COUNT=$(grep -c "WARN" ${TMP_OUTPUT}) || $(echo "")
+COUNT=$(grep -c "(WARN)" ${TMP_OUTPUT}) || $(echo "")
 if [ $COUNT -ne 0 ]; then
     if [ "$WARN_ERROR" -eq "1" ]; then
         echo "Found ${COUNT} instance(s) of WARN... this is an error!"
