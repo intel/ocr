@@ -21,6 +21,7 @@ struct _ocr_hashtable_entry_struct;
 typedef u32 (*hashFct)(void * key, u32 nbBuckets);
 
 typedef struct _hashtable {
+    ocrPolicyDomain_t * pd;
     u32 nbBuckets;
     struct _ocr_hashtable_entry_struct ** table;
     /** @brief hashing function to determine bucket. */
@@ -32,14 +33,22 @@ bool hashtableConcPut(hashtable_t * hashtable, void * key, void * value);
 void * hashtableConcTryPut(hashtable_t * hashtable, void * key, void * value);
 bool hashtableConcRemove(hashtable_t * hashtable, void * key, void ** value);
 
-
 void * hashtableNonConcGet(hashtable_t * hashtable, void * key);
 bool hashtableNonConcPut(hashtable_t * hashtable, void * key, void * value);
 void * hashtableNonConcTryPut(hashtable_t * hashtable, void * key, void * value);
 bool hashtableNonConcRemove(hashtable_t * hashtable, void * key, void ** value);
 
+
+void * hashtableConcBucketLockedGet(hashtable_t * hashtable, void * key);
+bool hashtableConcBucketLockedPut(hashtable_t * hashtable, void * key, void * value);
+void * hashtableConcBucketLockedTryPut(hashtable_t * hashtable, void * key, void * value);
+bool hashtableConcBucketLockedRemove(hashtable_t * hashtable, void * key, void ** value);
+
 hashtable_t * newHashtable(ocrPolicyDomain_t * pd, u32 nbBuckets, hashFct hashing);
 void destructHashtable(hashtable_t * hashtable);
+
+hashtable_t * newHashtableBucketLocked(ocrPolicyDomain_t * pd, u32 nbBuckets, hashFct hashing);
+void destructHashtableBucketLocked(hashtable_t * hashtable);
 
 
 //
@@ -50,5 +59,11 @@ void destructHashtable(hashtable_t * hashtable);
  * @brief A hashtable implementation relying on a simple nbBuckets' modulo for hashing
  */
 hashtable_t * newHashtableModulo(ocrPolicyDomain_t * pd, u32 nbBuckets);
+
+/*
+ * @brief A hashtable bucket locked implementation relying on a simple nbBuckets' modulo for hashing
+ */
+hashtable_t * newHashtableBucketLockedModulo(ocrPolicyDomain_t * pd, u32 nbBuckets);
+
 
 #endif /* HASHTABLE_H_ */

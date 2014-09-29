@@ -14,7 +14,7 @@
 
 // Default hashtable's number of buckets
 //PERF: This parameter heavily impacts the GUID provider scalability !
-#define DEFAULT_NB_BUCKETS 40
+#define DEFAULT_NB_BUCKETS 1000
 
 // Guid is composed of : (LOCID KIND COUNTER)
 #define GUID_BIT_SIZE 64
@@ -48,7 +48,7 @@ void countedMapStart(ocrGuidProvider_t *self, ocrPolicyDomain_t *pd) {
     self->pd = pd;
     //Initialize the map now that we have an assigned policy domain
     ocrGuidProviderCountedMap_t * derived = (ocrGuidProviderCountedMap_t *) self;
-    derived->guidImplTable = newHashtableModulo(pd, DEFAULT_NB_BUCKETS);
+    derived->guidImplTable = newHashtableBucketLockedModulo(pd, DEFAULT_NB_BUCKETS);
 }
 
 void countedMapStop(ocrGuidProvider_t *self) {
@@ -110,7 +110,7 @@ static u64 generateNextGuid(ocrGuidProvider_t* self, ocrGuidKind kind) {
 static u8 countedMapGetGuid(ocrGuidProvider_t* self, ocrGuid_t* guid, u64 val, ocrGuidKind kind) {
     // Here no need to allocate
     u64 newGuid = generateNextGuid(self, kind);
-    hashtableConcPut(((ocrGuidProviderCountedMap_t *) self)->guidImplTable, (void *) newGuid, (void *) val);
+    hashtableConcBucketLockedPut(((ocrGuidProviderCountedMap_t *) self)->guidImplTable, (void *) newGuid, (void *) val);
     *guid = (ocrGuid_t) newGuid;
     return 0;
 }
@@ -148,7 +148,7 @@ u8 countedMapCreateGuid(ocrGuidProvider_t* self, ocrFatGuid_t *fguid, u64 size, 
  * @brief Returns the value associated with a guid and its kind if requested.
  */
 static u8 countedMapGetVal(ocrGuidProvider_t* self, ocrGuid_t guid, u64* val, ocrGuidKind* kind) {
-    *val = (u64) hashtableConcGet(((ocrGuidProviderCountedMap_t *) self)->guidImplTable, (void *) guid);
+    *val = (u64) hashtableConcBucketLockedGet(((ocrGuidProviderCountedMap_t *) self)->guidImplTable, (void *) guid);
     if(kind) {
         *kind = getKindFromGuid(guid);
     }
@@ -178,7 +178,7 @@ u8 countedMapGetLocation(ocrGuidProvider_t* self, ocrGuid_t guid, ocrLocation_t*
  * a local metadata represent for a foreign GUID.
  */
 u8 countedMapRegisterGuid(ocrGuidProvider_t* self, ocrGuid_t guid, u64 val) {
-    hashtableConcPut(((ocrGuidProviderCountedMap_t *) self)->guidImplTable, (void *) guid, (void *) val);
+    hashtableConcBucketLockedPut(((ocrGuidProviderCountedMap_t *) self)->guidImplTable, (void *) guid, (void *) val);
     return 0;
 }
 
@@ -200,7 +200,7 @@ u8 countedMapReleaseGuid(ocrGuidProvider_t *self, ocrFatGuid_t fatGuid, bool rel
     }
     // In any case, we need to recycle the guid
     ocrGuidProviderCountedMap_t * derived = (ocrGuidProviderCountedMap_t *) self;
-    hashtableConcRemove(derived->guidImplTable, (void *)guid, NULL);
+    hashtableConcBucketLockedRemove(derived->guidImplTable, (void *)guid, NULL);
     return 0;
 }
 

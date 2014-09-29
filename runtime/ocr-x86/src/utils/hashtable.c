@@ -19,6 +19,14 @@ typedef struct _ocr_hashtable_entry_struct {
     struct _ocr_hashtable_entry_struct * nxt; /* the next bucket in the hashtable */
 } ocr_hashtable_entry;
 
+/******************************************************/
+/* CONCURRENT BUCKET LOCKED HASHTABLE                 */
+/******************************************************/
+
+typedef struct _hashtableBucketLocked_t {
+    hashtable_t base;
+    u32 * bucketLock;
+} hashtableBucketLocked_t;
 
 /******************************************************/
 /* HASHTABLE COMMON FUNCTIONS                         */
@@ -58,6 +66,7 @@ static ocr_hashtable_entry* hashtableFindEntry(hashtable_t * hashtable, void * k
  * @brief Initialize the hashtable.
  */
 static void hashtableInit(ocrPolicyDomain_t * pd, hashtable_t * hashtable, u32 nbBuckets, hashFct hashing) {
+    hashtable->pd = pd;
     ocr_hashtable_entry ** table = pd->fcts.pdMalloc(pd, nbBuckets*sizeof(ocr_hashtable_entry*));
     u32 i;
     for (i=0; i < nbBuckets; i++) {
@@ -81,8 +90,7 @@ hashtable_t * newHashtable(ocrPolicyDomain_t * pd, u32 nbBuckets, hashFct hashin
  * @brief Destruct the hashtable and all its entries (do not deallocate keys and values pointers).
  */
 void destructHashtable(hashtable_t * hashtable) {
-    ocrPolicyDomain_t * pd;
-    getCurrentEnv(&pd, NULL, NULL, NULL);
+    ocrPolicyDomain_t * pd = hashtable->pd;
     // go over each bucket and deallocate entries
     u32 i = 0;
     while(i < hashtable->nbBuckets) {
@@ -97,6 +105,41 @@ void destructHashtable(hashtable_t * hashtable) {
     pd->fcts.pdFree(pd, hashtable);
 }
 
+/**
+ * @brief Create a new hashtable bucket locked instance that uses the specified hashing function.
+ */
+hashtable_t * newHashtableBucketLocked(ocrPolicyDomain_t * pd, u32 nbBuckets, hashFct hashing) {
+    hashtable_t * hashtable = pd->fcts.pdMalloc(pd, sizeof(hashtableBucketLocked_t));
+    hashtableInit(pd, hashtable, nbBuckets, hashing);
+    hashtableBucketLocked_t * rhashtable = (hashtableBucketLocked_t *) hashtable;
+    u32 i;
+    u32 * bucketLock = pd->fcts.pdMalloc(pd, nbBuckets*sizeof(u32));
+    for (i=0; i < nbBuckets; i++) {
+        bucketLock[i] = 0;
+    }
+    rhashtable->bucketLock = bucketLock;
+    return hashtable;
+}
+/**
+ * @brief Destruct the hashtable and all its entries (do not deallocate keys and values pointers).
+ */
+void destructHashtableBucketLocked(hashtable_t * hashtable) {
+    ocrPolicyDomain_t * pd = hashtable->pd;
+    // go over each bucket and deallocate entries
+    u32 i = 0;
+    while(i < hashtable->nbBuckets) {
+        struct _ocr_hashtable_entry_struct * bucketHead = hashtable->table[i];
+        while (bucketHead != NULL) {
+            struct _ocr_hashtable_entry_struct * next = bucketHead->nxt;
+            pd->fcts.pdFree(pd, bucketHead);
+            bucketHead = next;
+        }
+        i++;
+    }
+    hashtableBucketLocked_t * rhashtable = (hashtableBucketLocked_t *) hashtable;
+    pd->fcts.pdFree(pd, rhashtable->bucketLock);
+    pd->fcts.pdFree(pd, hashtable);
+}
 
 /******************************************************/
 /* NON-CONCURRENT HASHTABLE                           */
@@ -131,8 +174,7 @@ void * hashtableNonConcTryPut(hashtable_t * hashtable, void * key, void * value)
  */
 bool hashtableNonConcPut(hashtable_t * hashtable, void * key, void * value) {
     u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
-    ocrPolicyDomain_t * pd;
-    getCurrentEnv(&pd, NULL, NULL, NULL);
+    ocrPolicyDomain_t * pd = hashtable->pd;
     ocr_hashtable_entry * newHead = pd->fcts.pdMalloc(pd, sizeof(ocr_hashtable_entry));
     newHead->key = key;
     newHead->value = value;
@@ -164,9 +206,7 @@ bool hashtableNonConcRemove(hashtable_t * hashtable, void * key, void ** value) 
         if (value != NULL) {
             *value = entry->value;
         }
-        ocrPolicyDomain_t * pd;
-        getCurrentEnv(&pd, NULL, NULL, NULL);
-        pd->fcts.pdFree(pd, entry);
+        hashtable->pd->fcts.pdFree(hashtable->pd, entry);
         return true;
     }
     return false;
@@ -196,7 +236,7 @@ void * hashtableConcTryPut(hashtable_t * hashtable, void * key, void * value) {
     u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
     ocr_hashtable_entry * newHead = NULL;
     bool tryPut = true;
-    ocrPolicyDomain_t * pd = NULL;
+    ocrPolicyDomain_t * pd = hashtable->pd;
     while(tryPut) {
         // Lookup for the key
         ocr_hashtable_entry * oldHead = hashtable->table[bucket];
@@ -207,7 +247,6 @@ void * hashtableConcTryPut(hashtable_t * hashtable, void * key, void * value) {
         if (entry == NULL) {
             // key is not there, try to CAS the head to insert it
             if (newHead == NULL) {
-                getCurrentEnv(&pd, NULL, NULL, NULL);
                 newHead = pd->fcts.pdMalloc(pd, sizeof(ocr_hashtable_entry));
                 newHead->key = key;
                 newHead->value = value;
@@ -238,8 +277,7 @@ void * hashtableConcTryPut(hashtable_t * hashtable, void * key, void * value) {
 bool hashtableConcPut(hashtable_t * hashtable, void * key, void * value) {
     // Compete with other potential put
     u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
-    ocrPolicyDomain_t * pd;
-    getCurrentEnv(&pd, NULL, NULL, NULL);
+    ocrPolicyDomain_t * pd = hashtable->pd;
     ocr_hashtable_entry * newHead = pd->fcts.pdMalloc(pd, sizeof(ocr_hashtable_entry));
     newHead->key = key;
     newHead->value = value;
@@ -260,8 +298,62 @@ bool hashtableConcPut(hashtable_t * hashtable, void * key, void * value) {
  */
 bool hashtableConcRemove(hashtable_t * hashtable, void * key, void ** value) {
     //TODO implement concurrent removal
+    ASSERT(false);
     return false;
 }
+
+
+/******************************************************/
+/* CONCURRENT BUCKET LOCKED HASHTABLE                 */
+/******************************************************/
+
+void * hashtableConcBucketLockedGet(hashtable_t * hashtable, void * key) {
+    u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
+    hashtableBucketLocked_t * rhashtable = (hashtableBucketLocked_t *) hashtable;
+    hal_lock32(&(rhashtable->bucketLock[bucket]));
+    ocr_hashtable_entry * entry = hashtableFindEntry(hashtable, key);
+    hal_unlock32(&(rhashtable->bucketLock[bucket]));
+    return (entry == NULL) ? NULL_GUID : entry->value;
+}
+
+bool hashtableConcBucketLockedPut(hashtable_t * hashtable, void * key, void * value) {
+    u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
+    hashtableBucketLocked_t * rhashtable = (hashtableBucketLocked_t *) hashtable;
+    ocr_hashtable_entry * newHead = hashtable->pd->fcts.pdMalloc(hashtable->pd, sizeof(ocr_hashtable_entry));
+    newHead->key = key;
+    newHead->value = value;
+    hal_lock32(&(rhashtable->bucketLock[bucket]));
+    ocr_hashtable_entry * oldHead = hashtable->table[bucket];
+    newHead->nxt = oldHead;
+    hashtable->table[bucket] = newHead;
+    hal_unlock32(&(rhashtable->bucketLock[bucket]));
+    return true;
+}
+
+void * hashtableConcBucketLockedTryPut(hashtable_t * hashtable, void * key, void * value) {
+    u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
+    hashtableBucketLocked_t * rhashtable = (hashtableBucketLocked_t *) hashtable;
+    hal_lock32(&(rhashtable->bucketLock[bucket]));
+    ocr_hashtable_entry * entry = hashtableFindEntry(hashtable, key);
+    if (entry == NULL) {
+        hashtableNonConcPut(hashtable, key, value); // we already own the lock
+        hal_unlock32(&(rhashtable->bucketLock[bucket]));
+        return value;
+    } else {
+        hal_unlock32(&(rhashtable->bucketLock[bucket]));
+        return entry->value;
+    }
+}
+
+bool hashtableConcBucketLockedRemove(hashtable_t * hashtable, void * key, void ** value) {
+    hashtableBucketLocked_t * rhashtable = (hashtableBucketLocked_t *) hashtable;
+    u32 bucket = hashtable->hashing(key, hashtable->nbBuckets);
+    hal_lock32(&(rhashtable->bucketLock[bucket]));
+    bool res = hashtableNonConcRemove(hashtable, key, value);
+    hal_unlock32(&(rhashtable->bucketLock[bucket]));
+    return res;
+}
+
 
 //
 // Variants of the generic hashtable through hashing function specialization
@@ -277,4 +369,8 @@ static u32 hashModulo(void * ptr, u32 nbBuckets) {
 
 hashtable_t * newHashtableModulo(ocrPolicyDomain_t * pd, u32 nbBuckets) {
     return newHashtable(pd, nbBuckets, hashModulo);
+}
+
+hashtable_t * newHashtableBucketLockedModulo(ocrPolicyDomain_t * pd, u32 nbBuckets) {
+    return newHashtableBucketLocked(pd, nbBuckets, hashModulo);
 }
