@@ -18,7 +18,11 @@ extern "C" {
 #endif
 
 /**
- * @defgroup OCRLegacy OCR used from legacy code
+ * @ingroup OCRExt
+ * @{
+ */
+/**
+ * @defgroup OCRExtLegacy OCR used from legacy code
  * @brief API to use OCR from legacy programming models
  *
  *
@@ -26,19 +30,24 @@ extern "C" {
  **/
 
 /**
- * @brief OCR legacy mode - Waits for an output event to be satisfied
+ * @brief Waits on the satisfaction of an event
  *
- * @warning This call is meant to be called from sequential C code
- * and is *NOT* supported optimally on all implementations of OCR.
- * This call runs contrary to the 'non-blocking EDT'
- * philosophy so use with care
+ * @warning The event waited on must be a persistent event (in other
+ * words, not a LATCH or ONCE event).
  *
- * @param outputEvent       Event to wait on. Must be a STICKY or IDEM event
- * @return A GUID to the data-block that was used to satisfy the event
+ * @warning This call may be slow and inefficient. It is meant
+ * only to call OCR from sequential code and should be avoided in a
+ * pure OCR program
+ *
+ * @param[in] outputEvent   GUID of the event to wait on
+ *
+ * @return The GUID of the data block on the post-slot of the
+ * waited-on event
  */
 ocrGuid_t ocrWait(ocrGuid_t outputEvent);
 
 /**
+ * @}
  * @}
  */
 #ifdef __cplusplus

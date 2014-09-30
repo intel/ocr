@@ -1,3 +1,8 @@
+/**
+ * @cond IGNORED_FILES
+ *
+ * This file is ignored by doxygen
+ */
 /*
  * This file is subject to the license agreement located in the file LICENSE
  * and cannot be distributed without it. This notice cannot be
@@ -28,3 +33,6 @@ extern void PROFILER_ocrStatsStoreCallback(void* addr, u64 size, u64 instrCount)
 
 #endif /* OCR_ENABLE_PROFILING_STATISTICS */
 #endif /* OCR_ENABLE_STATISTICS */
+/**
+ * @endcond
+ */

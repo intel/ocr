@@ -1,7 +1,10 @@
 /**
- * @brief Top level OCR library file. Include this file in any
- * program making use of OCR. You do not need to include any other
- * files.
+ * @brief OCR APIs to use OCR in a library mode
+ *
+ * OCR is designed to be used in a standalone manner (using
+ * mainEdt) but can also be called from a traditional main function.
+ * These functions enable the programmer to startup and shutdown the
+ * OCR runtime
  **/
 
 /*
@@ -19,65 +22,77 @@ extern "C" {
 #endif
 #include "ocr-db.h"
 
-
 /**
- * @defgroup OCRLibrary OCR used as a Library
+ * @ingroup OCRExt
+ * @{
+ */
+/**
+ * @defgroup OCRExtLib OCR used as a library extension
  * @brief Describes the OCR as library API
  *
  * When OCR is used as a library, the user need to
- * explicitly bring up and tear down the runtime.
+ * explicitly bring up and tear down the runtime using
+ * the APIs provided here.
  *
  * @{
  **/
 
 /**
- * @brief Data-structure holding configuration elements for the runtime
+ * @brief Data-structure containing the configuration
+ * parameters for the runtime
  *
- * Members of the struct can be filed by calling ocrParseArgs or be manually set.
+ * The contents of this struct can be filled in by calling
+ * ocrParseArgs() or by setting them manually. The former
+ * method is strongly recommended.
+ *
  */
 typedef struct _ocrConfig_t {
-    int userArgc;
-    char ** userArgv;
-    const char * iniFile;
+    int userArgc; /**< Application argc (after having stripped the OCR arguments) */
+    char ** userArgv; /**< Application argv (after having stripped the OCR arguments) */
+    const char * iniFile; /**< INI configuration file for the runtime */
 } ocrConfig_t;
 
 /**
- * @brief OCR library mode - Initialize OCR
- * @param ocrConfig The configuration to use to bring this OCR instance up.
+ * @brief Bring up the OCR runtime
+ *
+ * This function needs to be called to bring up the runtime. It
+ * should be called once for each runtime that needs to be brought
+ * up.
+ *
+ * @param[in] ocrConfig  Configuration parameters to bring up the
+ *                       runtime
  */
 void ocrInit(ocrConfig_t * ocrConfig);
 
 /**
- * @brief OCR library mode - Parse arguments and extract OCR options
- * @param argc The number of elements in argv.
- * @param argv Array of char * argumetns.
- * @param ocrConfig Pointer to an ocrConfig ocrParseArgs will populate.
- * Warning: Removes OCR parameters from argv and pack elements.
+ * @brief Parses the arguments passed to main and extracts the
+ * relevant information to initialize OCR
+ *
+ * This should be called prior to ocrInit() to populate the
+ * #ocrConfig_t variable needed by ocrInit().
+ *
+ * @param[in] argc           The number of elements in argv
+ * @param[in] argv           Array of char * argumetns.
+ * @param[in,out] ocrConfig  Pointer to an ocrConfig ocrParseArgs will populate. ocrConfig
+ *                           needs to have already been allocated
  */
 void ocrParseArgs(int argc, const char* argv[], ocrConfig_t * ocrConfig);
 
 /**
- * @brief OCR library mode - Terminates OCR execution
- * This call bring down the runtime after ocrShutdown has been called by an EDT.
- * @return Error code provided by user
- *         0 : clean shutdown, no errors
- *         non-0: user provided error code to ocrAbort
+ * @brief Prepares to tear down the OCR runtime
+ *
+ * This call prepares the runtime to be torn-down. This call
+ * will only return after the OCR program completes (ie: after
+ * the program calls ocrShutdown()).
+ *
+ * @return the status code of the OCR program:
+ *      - 0: clean shutdown, no errors
+ *      - non-zero: user provided error code to ocrAbort()
  */
 u8 ocrFinalize();
 
 /**
- * @brief OCR library mode - Waits for an output event to be satisfied
- *
- * @warning This call is meant to be called from sequential C code
- * and is *NOT* supported on all implementations of OCR. This call runs
- * contrary to the 'non-blocking EDT' philosophy so use with care
- *
- * @param outputEvent       Event to wait on
- * @return A GUID to the data-block that was used to satisfy the event
- */
-ocrGuid_t ocrWait(ocrGuid_t outputEvent);
-
-/**
+ * @}
  * @}
  */
 #ifdef __cplusplus

@@ -1,4 +1,10 @@
 /**
+ * @cond IGNORED_FILES
+ *
+ * This file is ignored by Doxygen
+ */
+
+/**
  * @brief Profiling support
  **/
 
@@ -38,3 +44,6 @@ struct _dbWeightStruct {
 } dbWeightStruct;
 
 #endif /* __OCR_EDT_PROFILING_H__ */
+/**
+ * @endcond
+ */
