@@ -10,10 +10,10 @@ APPS_LIBS_ROOT  ?= ../../../apps/libs/x86
 OCR_TYPE        ?= x86-pthread-tg
 
 # OCR
-OCR_TARGET   ?= x86-pthread-tg
-OCR_INSTALL_ROOT ?= ../../../ocr/install
-OCR_SRC     ?= ../../../ocr
+OCR_TARGET       ?= x86-pthread-tg
+OCR_SRC          ?= ../../../ocr
 OCR_BUILD_ROOT   ?= ../../../ocr/build
+OCR_INSTALL_ROOT ?= ../../../ocr/install
 
 # APPLICATION
 WORKLOAD_SRC          ?= .

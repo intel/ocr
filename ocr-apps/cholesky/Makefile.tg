@@ -3,24 +3,24 @@
 # removed or modified.
 
 # APPS
-APPS_ROOT       ?= ../../../apps
-APPS_LIBS_ROOT  ?= ../../../apps/libs/tg
+APPS_ROOT        ?= ../../../apps
+APPS_LIBS_ROOT   ?= ../../../apps/libs/tg
 
 # OCR_TYPE
 OCR_TYPE        ?= tg
 
 # TG
-TG_INSTALL ?= ../../../ss/install
-TG_SRC     ?= ../../../ss
+TG_SRC           ?= ../../../ss
+TG_INSTALL       ?= ../../../ss/install
 
 # OCR
 XE_TARGET   ?= tg-null-tg-xe
 XE_BUILDER  ?= x86-builder-tg-xe
 CE_TARGET   ?= tg-null-tg-ce
 CE_BUILDER  ?= x86-builder-tg-ce
-OCR_INSTALL_ROOT ?= ../../../ocr/install
-OCR_SRC     ?= ../../../ocr
+OCR_SRC          ?= ../../../ocr
 OCR_BUILD_ROOT   ?= ../../../ocr/build/
+OCR_INSTALL_ROOT ?= ../../../ocr/install
 
 # APPLICATION
 WORKLOAD_SRC          ?= .
