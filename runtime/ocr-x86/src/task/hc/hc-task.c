@@ -426,7 +426,11 @@ static u8 taskAllDepvSatisfied(ocrTask_t *self) {
 /******************************************************/
 
 u8 destructTaskHc(ocrTask_t* base) {
-    DPRINTF(DEBUG_LVL_INFO, "Destroy 0x%lx\n", base->guid);
+    DO_DEBUG_TYPE(TASK, DEBUG_LVL_INFO)
+    PRINTF("EDT(INFO) [PD:0x0 W:0x0 EDT:0x0] Destroy 0x%lx\n", base->guid);
+    }
+    // FIXME: The above hack was added because the below causes a coredump. [Trac #219]
+    //DPRINTF(DEBUG_LVL_INFO, "Destroy 0x%lx\n", base->guid);
     ocrPolicyDomain_t *pd = NULL;
     ocrPolicyMsg_t msg;
     getCurrentEnv(&pd, NULL, NULL, &msg);
@@ -958,6 +962,7 @@ u8 taskExecute(ocrTask_t* base) {
     // We now say that the worker is done executing the EDT
     statsEDT_END(pd, ctx->sourceObj, curWorker, base->guid, base);
 #endif /* OCR_ENABLE_STATISTICS */
+    DPRINTF(DEBUG_LVL_INFO, "End_Execution 0x%lx\n", base->guid);
 
     // edt user code is done, if any deps, release data-blocks
     if(depc != 0) {

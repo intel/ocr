@@ -235,11 +235,10 @@ u8 ocrEdtCreate(ocrGuid_t* edtGuid, ocrGuid_t templateGuid,
             }
         }
     }
-    DPRINTF(DEBUG_LVL_INFO, "EXIT ocrEdtCreate -> 0; GUID: 0x%lx", *edtGuid);
     if(outputEvent) {
-        DPRINTF(DEBUG_LVL_INFO, "; outEvt: 0x%lx\n", *outputEvent);
+        DPRINTF(DEBUG_LVL_INFO, "EXIT ocrEdtCreate -> 0; GUID: 0x%lx; outEvt: 0x%lx\n", *edtGuid, *outputEvent);
     } else {
-        DPRINTF(DEBUG_LVL_INFO, "\n");
+        DPRINTF(DEBUG_LVL_INFO, "EXIT ocrEdtCreate -> 0; GUID: 0x%lx\n", *edtGuid);
     }
     RETURN_PROFILE(0);
 #undef PD_MSG
