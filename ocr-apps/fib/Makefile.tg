@@ -46,7 +46,7 @@ WORKLOAD_ARGS ?= 10
 # Run mode (not fully supported)
 # Set to "yes" if running with torque
 RUN_TORQUE ?= no
-# Set to "yes" if Jenkins is running this job as an automated test
+# Set to "build" or "run" if Jenkins is running this job as an automated test
 RUN_JENKINS ?= no
 
 ## END of variables coming from user/environment

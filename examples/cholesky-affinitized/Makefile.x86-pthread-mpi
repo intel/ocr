@@ -2,22 +2,17 @@
 # and cannot be distributed without it. This notice cannot be
 # removed or modified.
 
+COMM_LAYER=mpi
+
 # APPS
 APPS_ROOT       ?= ../../../apps
-APPS_LIBS_ROOT  ?= ../../../apps/libs/tg
+APPS_LIBS_ROOT  ?= ../../../apps/libs/x86
 
 # OCR_TYPE
-OCR_TYPE        ?= tg
-
-# TG
-TG_INSTALL ?= ../../../ss/install
-TG_SRC     ?= ../../../ss
+OCR_TYPE        ?= x86-pthread-${COMM_LAYER}
 
 # OCR
-XE_TARGET   ?= tg-null-tg-xe
-XE_BUILDER  ?= x86-builder-tg-xe
-CE_TARGET   ?= tg-null-tg-ce
-CE_BUILDER  ?= x86-builder-tg-ce
+OCR_TARGET   ?= x86-pthread-${COMM_LAYER}
 OCR_INSTALL_ROOT ?= ../../../ocr/install
 OCR_SRC     ?= ../../../ocr
 OCR_BUILD_ROOT   ?= ../../../ocr/build
@@ -31,7 +26,7 @@ WORKLOAD_INSTALL_ROOT ?= ./install
 # If 1+, this is the index in the argument
 # list after which everything is considered an
 # input file. Note that the index STARTS AT 1
-WORKLOAD_INPUT_FILE_IDX := 0
+WORKLOAD_INPUT_FILE_IDX := 3
 
 # You can specify default arguments here. These
 # will be overriden by (in order):
@@ -46,7 +41,7 @@ WORKLOAD_INPUT_FILE_IDX := 0
 # Run mode (not fully supported)
 # Set to "yes" if running with torque
 RUN_TORQUE ?= no
-# Set to "build" or "run" if Jenkins is running this job as an automated test
+# Set to "yes" if Jenkins is running this job as an automated test
 RUN_JENKINS ?= no
 
 ## END of variables coming from user/environment
@@ -54,14 +49,14 @@ RUN_JENKINS ?= no
 include ${APPS_ROOT}/makefiles/make-pre.inc
 
 # Name of the application to build
-TARGET := printf
+TARGET := cholesky-affinitized
 
 # Space separated list of directory names in apps/libs/src
 # that need to be built. These will be built for ARCH
-REQ_LIBS := libc
+REQ_LIBS :=
 
 # Space separated list of source files
-SRCS := printf.c
+SRCS := cholesky-affinitized.c
 
 # Additional CFLAGS. By default, it includes
 # all OCR required includes and apps/libs/<target>/include
@@ -71,20 +66,20 @@ CFLAGS :=
 # the required OCR library path and apps/libs/<target/lib
 # Note that none of the specific libraries specified in
 # REQ_LIBS are included.
-LDFLAGS :=
+LDFLAGS := -lpthread -lm
 
 # Targets:
 #   - all:     Build the application.
 #   - debug:   Build the debug version of the application
 #   - install: Build and install
 #   - run:     Run the application
-all:	CFLAGS += -O2
-all:	TARGETS := all
-all:	default
+all:    CFLAGS += -O2
+all:    TARGETS := all
+all:    default
 
-debug:	CFLAGS += -O0
-debug:	TARGETS := debug
-debug:	default
+debug:  CFLAGS += -O0
+debug:  TARGETS := debug
+debug:  default
 
 install: all
 
@@ -115,12 +110,12 @@ prerun: ;
 # This rule will be executed after execution
 # The variable ${WORKLOAD_OUTS} contains a space separated
 # list of output files
-# 'postrun: ;' is an empty rule (the rule is required)
+# 'postrun: ;' is an empty rule (the rule is required
+# to be present though)
 .PHONY: postrun
 postrun: ;
 
-# Any additional rules required can go here
-
 # Include common part
-include ${APPS_ROOT}/makefiles/make-tg.inc
+include ${APPS_ROOT}/makefiles/make-ocrrun.inc
+
 

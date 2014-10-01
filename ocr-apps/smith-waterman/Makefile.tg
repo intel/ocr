@@ -46,7 +46,7 @@ WORKLOAD_INPUT_FILE_IDX := 3
 # Run mode (not fully supported)
 # Set to "yes" if running with torque
 RUN_TORQUE ?= no
-# Set to "yes" if Jenkins is running this job as an automated test
+# Set to "build" or "run" if Jenkins is running this job as an automated test
 RUN_JENKINS ?= no
 
 ## END of variables coming from user/environment
@@ -110,9 +110,10 @@ install: all
 # other platforms.
 # 'prerun: ;' is an empty rule (the rule is required)
 .PHONY: prerun
-prerun: prepare_inputs.sh
-	$(eval WORKLOAD_ARGS += $(shell ./prepare_inputs.sh $(WORKLOAD_ARGS) $(WORKLOAD_INPUTS)))
-	$(eval WORKLOAD_INPUTS := smithwaterman_output.bin)
+.ONESHELL:
+prerun: $(WORKLOAD_SRC)/prepare_inputs.sh
+	$(eval WORKLOAD_ARGS += $(shell cd $(WORKLOAD_BUILD_ROOT)/$(OCR_TYPE) && $(WORKLOAD_SRC)/prepare_inputs.sh $(WORKLOAD_ARGS) $(WORKLOAD_INPUTS)))
+	$(eval WORKLOAD_INPUTS := $(WORKLOAD_BUILD_ROOT)/$(OCR_TYPE)/smithwaterman_output.bin)
 
 # This rule will be executed after execution
 # The variable ${WORKLOAD_OUTS} contains a space separated

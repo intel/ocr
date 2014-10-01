@@ -8,20 +8,18 @@ ifndef OCR_TYPE
   $(error Need to specify OCR_TYPE!)
 endif
 
-all:
-	@$(MAKE) -f Makefile.$(OCR_TYPE) $@
+ifeq (run,$(firstword $(MAKECMDGOALS)))
+  # use the rest as arguments for "run" (only if there are some)
+  ifneq (1, $(words $(MAKECMDGOALS)))
+    ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+    $(eval UNIQ_ARGS := $(shell echo "${ARGS}" | tr '[:blank:]' '\n' | sort -u | tr '\n' ' '))
+    $(eval .PHONY:${UNIQ_ARGS})
+    $(eval ${UNIQ_ARGS}:;@:)
+  endif
+  ARGS := run $(ARGS)
+else
+  ARGS := $(MAKECMDGOALS)
+endif
 
-debug:
-	@$(MAKE) -f Makefile.$(OCR_TYPE) $@
-
-install:
-	@$(MAKE) -f Makefile.$(OCR_TYPE) $@
-
-run:
-	@$(MAKE) -f Makefile.$(OCR_TYPE) $@
-
-clean:
-	@$(MAKE) -f Makefile.$(OCR_TYPE) $@
-
-uninstall:
-	@$(MAKE) -f Makefile.$(OCR_TYPE) $@
+%::
+	@$(MAKE) -f Makefile.$(OCR_TYPE) $(ARGS)

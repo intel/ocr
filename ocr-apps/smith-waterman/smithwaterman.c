@@ -121,15 +121,14 @@ ocrGuid_t smith_waterman_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t d
     u64* dbparamv = (u64 *) depv[3].ptr;
 
     /* Unbox parameters */
-    s32 i = (s32) dbparamv[0];
-    s32 j = (s32) dbparamv[1];
-    s32 tile_width = (s32) dbparamv[2];
-    s32 tile_height = (s32) dbparamv[3];
-    Tile_t** tile_matrix = (Tile_t**) dbparamv[4];
-    s8* string_1 = (s8* ) dbparamv[5];
-    s8* string_2 = (s8* ) dbparamv[6];
-    s32 n_tiles_height = (s32) dbparamv[7];
-    s32 n_tiles_width = (s32)dbparamv[8];
+    s32 i = (s32) paramv[0];
+    s32 j = (s32) paramv[1];
+    s32 tile_width = (s32) dbparamv[0];
+    s32 tile_height = (s32) dbparamv[1];
+    s32 n_tiles_height = (s32) dbparamv[2];
+    s32 n_tiles_width = (s32) dbparamv[3];
+    s8* string_1 = (s8* ) &dbparamv[dbparamv[4]];
+    s8* string_2 = (s8* ) &dbparamv[dbparamv[5]];
 
     s32  * curr_tile_tmp;
     ocrGuid_t db_curr_tile_tmp, db_curr_tile;
@@ -186,7 +185,7 @@ ocrGuid_t smith_waterman_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t d
     curr_bottom_right[0] = curr_tile[tile_height][tile_width];
 
     ocrDbRelease(db_guid_i_j_br); // For now, no auto-release it seems...
-    ocrEventSatisfy(tile_matrix[i][j].bottom_right_event_guid, db_guid_i_j_br);
+    ocrEventSatisfy((ocrGuid_t) paramv[2], db_guid_i_j_br);
 
     /* Allocate datablock for right column of the local tile */
     ocrGuid_t db_guid_i_j_rc;
@@ -199,7 +198,7 @@ ocrGuid_t smith_waterman_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t d
         curr_right_column[index] = curr_tile[index+1][tile_width];
     }
     ocrDbRelease(db_guid_i_j_rc);
-    ocrEventSatisfy(tile_matrix[i][j].right_column_event_guid, db_guid_i_j_rc);
+    ocrEventSatisfy((ocrGuid_t) paramv[3], db_guid_i_j_rc);
 
     /* Allocate datablock for bottom row of the local tile */
     ocrGuid_t db_guid_i_j_brow;
@@ -212,7 +211,7 @@ ocrGuid_t smith_waterman_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t d
         curr_bottom_row[index] = curr_tile[tile_height][index+1];
     }
     ocrDbRelease(db_guid_i_j_brow);
-    ocrEventSatisfy(tile_matrix[i][j].bottom_row_event_guid, db_guid_i_j_brow);
+    ocrEventSatisfy((ocrGuid_t) paramv[4], db_guid_i_j_brow);
 
     ocrDbDestroy(db_curr_tile);
     ocrDbDestroy(db_curr_tile_tmp);
@@ -378,30 +377,59 @@ ocrGuid_t mainEdt ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     initialize_border_values(tile_matrix, n_tiles_width, n_tiles_height, tile_width, tile_height);
 
     ocrGuid_t smith_waterman_task_template_guid;
-    ocrEdtTemplateCreate(&smith_waterman_task_template_guid, smith_waterman_task, 0 /*paramc*/, 4 /*depc*/);
+    ocrEdtTemplateCreate(&smith_waterman_task_template_guid, smith_waterman_task, 5 /*paramc*/, 4 /*depc*/);
+
+    // Common information to all tasks
+    u64 string1Length = tile_width * n_tiles_width;
+    u64 string2Length = tile_height * n_tiles_height;
+    // Computing size of the strings in u64
+    u64 string1Size = sizeof(s8) * string1Length;
+    string1Size = ((string1Size%(sizeof(u64))) ? (string1Size/sizeof(u64))+1 : (string1Size/sizeof(u64)));
+    u64 string2Size = sizeof(s8) * string2Length;
+    string2Size = ((string2Size%(sizeof(u64))) ? (string2Size/sizeof(u64))+1 : (string2Size/sizeof(u64)));
+    u64 dbHeaderSize = 6;
+    u64 dbSize = (dbHeaderSize + string1Size + string2Size)*sizeof(u64);
+    // Computing DB's offsets for strings in the u64
+    u64 string1Offset = dbHeaderSize;
+    u64 string2Offset = (dbHeaderSize+string1Size);
+    ocrGuid_t dbParamsGuid;
+    u64 *params;
+    ocrDbCreate(&dbParamsGuid, (void **)&params, dbSize, DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+    params[0]=(u64) tile_width;
+    params[1]=(u64) tile_height;
+    params[2]=(u64) n_tiles_height;
+    params[3]=(u64) n_tiles_width;
+    params[4]=string1Offset;
+    params[5]=string2Offset;
+
+    i = 0; // Writing string 1 in DB
+    s8 * string1Ptr = (s8*) &params[string1Offset];
+    while (i < string1Length) {
+        string1Ptr[i] = string_1[i];
+        i++;
+    }
+
+    i = 0; // Writing string 2 in DB
+    s8 * string2Ptr = (s8*) &params[string2Offset];
+    while (i < string2Length) {
+        string2Ptr[i] = string_2[i];
+        i++;
+    }
+
+    ocrDbRelease(dbParamsGuid);
 
     for ( i = 1; i < n_tiles_height+1; ++i ) {
         for ( j = 1; j < n_tiles_width+1; ++j ) {
-            ocrGuid_t db_params;
             /* Box function parameters and put them on the heap for lifetime */
-            u64 *params;
-            ocrDbCreate(&db_params, (void **)&params, 9*sizeof(u64), DB_PROP_NONE, NULL_GUID, NO_ALLOC);
-            params[0]=(u64) i;
-            params[1]=(u64) j;
-            params[2]=(u64) tile_width;
-            params[3]=(u64) tile_height;
-            params[4]=(u64) tile_matrix;
-            params[5]=(u64) string_1;
-            params[6]=(u64) string_2;
-            params[7]=(u64) n_tiles_height;
-            params[8]=(u64) n_tiles_width;
-            ocrDbRelease(db_params);
-
+            u64 indices[5] = {(u64)i,(u64)j,
+                // forcefully pass guids we need to satisfy on completion
+                (u64)tile_matrix[i][j].bottom_right_event_guid,
+                (u64)tile_matrix[i][j].right_column_event_guid,
+                (u64)tile_matrix[i][j].bottom_row_event_guid};
             /* Create an event-driven tasks of smith_waterman tasks */
             ocrGuid_t task_guid;
             ocrEdtCreate(&task_guid, smith_waterman_task_template_guid,
-                        // EDT_PARAM_DEF, NULL /*params*/,
-                        EDT_PARAM_DEF, NULL,
+                        EDT_PARAM_DEF, indices /*paramv*/,
                         EDT_PARAM_DEF, NULL /*depv*/,
                         EDT_PROP_NONE, NULL_GUID /*affinity*/, NULL /*outputEvent*/);
 
@@ -415,7 +443,7 @@ ocrGuid_t mainEdt ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
             ocrAddDependence(tile_matrix[i-1][j-1].bottom_right_event_guid, task_guid, 2, DB_MODE_RO);
 
             /* add dependency to the EDT from the params datablock */
-            ocrAddDependence(db_params, task_guid, 3, DB_MODE_RO);
+            ocrAddDependence(dbParamsGuid, task_guid, 3, DB_MODE_RO);
 
             /* schedule task*/
             // ocrEdtSchedule(task_guid);

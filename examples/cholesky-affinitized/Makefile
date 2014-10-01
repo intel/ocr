@@ -1,9 +1,8 @@
 OCR_INPUT_HOME=../../../apps
-PROG=cholesky-mpi
-SUFFIX=.exe
+PROG=cholesky-affinitized
 CFLAGS= -O2 -g
 OCR_FLAGS=-L${OCR_INSTALL}/lib -I${OCR_INSTALL}/include -locr -lpthread -lm
-OCR_INPUT=${OCR_INPUT_HOME}/cholesky
+OCR_INPUT=${OCR_INPUT_HOME}/cholesky/datasets
 
 ifndef OCR_INSTALL
 $(error OCR_INSTALL not set)
@@ -30,7 +29,7 @@ INPUT_FILE=m_${MATRIX_SIZE}.in
 OUTPUT_FILE=cholesky_out_${MATRIX_SIZE}.txt
 
 compile:
-	gcc -g $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)$(SUFFIX)
+	gcc -g $(CFLAGS) $(OCR_FLAGS) -I. $(PROG).c -o $(PROG)
 
 run:
 	ocrrun ./$(PROG)$(SUFFIX) $(OCR_RUN_FLAGS) ${MATRIX_SIZE} ${TILE_SIZE} ${OCR_INPUT}/${INPUT_FILE}

@@ -1,0 +1,10 @@
+Running:
+
+make -f Makefile.<OCR_TYPE> run <input_size> <tile_size> <input_file_name_in_absolute_path>
+
+Warning: Make sure the OCR CFG file used has a big enough allocator to accomodate the matrix in memory
+
+For e.g., try
+make -f Makefile.x86-pthread-mpi run 1000 40 ${PWD}/../../../apps/cholesky/datasets/m_1000.in
+Look for the output matrix under
+install/tg/logs/ocr-cholesky.log.brd00.dram00.app_output

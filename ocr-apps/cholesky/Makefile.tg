@@ -46,7 +46,7 @@ WORKLOAD_INPUT_FILE_IDX := 3
 # Run mode (not fully supported)
 # Set to "yes" if running with torque
 RUN_TORQUE ?= no
-# Set to "yes" if Jenkins is running this job as an automated test
+# Set to "build" or "run" if Jenkins is running this job as an automated test
 RUN_JENKINS ?= no
 
 ## END of variables coming from user/environment
@@ -87,6 +87,9 @@ debug:	TARGETS := debug
 debug:	default
 
 install: all
+# We make sure to install this during install so Jenkins
+# can run it properly
+install: $(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)/convertOut.exe
 
 # This rule will be executed prior to execution:
 #  - For the FSim target, this happens when the binary is built
@@ -110,22 +113,34 @@ install: all
 # other platforms.
 # 'prerun: ;' is an empty rule (the rule is required)
 .PHONY: prerun
+.ONESHELL:
 prerun: $(WORKLOAD_BUILD_ROOT)/$(OCR_TYPE)/convertData.exe
-	./$^ $(WORKLOAD_ARGS) $(WORKLOAD_INPUTS)
-	$(eval WORKLOAD_INPUTS := cholesky_out.bin)
+	@cd $(WORKLOAD_BUILD_ROOT)/$(OCR_TYPE)
+	@./convertData.exe $(WORKLOAD_ARGS) $(WORKLOAD_INPUTS)
+	@$(eval WORKLOAD_INPUTS := $(WORKLOAD_BUILD_ROOT)/$(OCR_TYPE)/cholesky_out.bin)
 
 # This rule will be executed after execution
 # The variable ${WORKLOAD_OUTS} contains a space separated
 # list of output files
 # 'postrun: ;' is an empty rule (the rule is required)
 .PHONY: postrun
-postrun: ;
+.ONESHELL:
+postrun: WORKLOAD_EXEC ?= $(WORKLOAD_INSTALL)
+postrun: $(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)/convertOut.exe
+	@cd $(WORKLOAD_EXEC)
+	@$(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)/convertOut.exe $(WORKLOAD_ARGS) $(WORKLOAD_OUTS) cholesky.out.txt
 
-# Any additional rules required can go here
+# Any additional parts
 
-$(WORKLOAD_BUILD_ROOT)/$(OCR_TYPE)/convertData.exe: convertData.c
+ifneq ($(RUN_JENKINS), run)
+$(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)/convertOut.exe: $(WORKLOAD_SRC)/convertOut.c
+	mkdir -p $(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)
+	gcc -m64 -o $@ $^
+
+$(WORKLOAD_BUILD_ROOT)/$(OCR_TYPE)/convertData.exe: $(WORKLOAD_SRC)/convertData.c
 	mkdir -p $(WORKLOAD_BUILD_ROOT)/$(OCR_TYPE)
 	gcc -m64 -o $@ $^
+endif
 
 # Include common part
 include ${APPS_ROOT}/makefiles/make-tg.inc

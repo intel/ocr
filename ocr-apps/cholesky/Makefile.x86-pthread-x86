@@ -103,7 +103,8 @@ install: all
 # other platforms.
 # 'prerun: ;' is an empty rule (the rule is required)
 .PHONY: prerun
-prerun: ;
+prerun:
+	$(eval WORKLOAD_OUTS := $(WORKLOAD_EXEC)/cholesky.out)
 
 # This rule will be executed after execution
 # The variable ${WORKLOAD_OUTS} contains a space separated
@@ -111,9 +112,15 @@ prerun: ;
 # 'postrun: ;' is an empty rule (the rule is required
 # to be present though)
 .PHONY: postrun
-postrun: ;
+.ONESHELL:
+postrun: WORKLOAD_EXEC ?= $(WORKLOAD_INSTALL)
+postrun: $(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)/convertOut.exe
+	@cd $(WORKLOAD_EXEC)
+	$(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)/convertOut.exe $(WORKLOAD_ARGS) $(WORKLOAD_OUTS) cholesky.out.txt
+
+$(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)/convertOut.exe: $(WORKLOAD_SRC)/convertOut.c
+	mkdir -p $(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)
+	gcc -m64 -o $@ $^
 
 # Include common part
 include ${APPS_ROOT}/makefiles/make-regular.inc
-
-

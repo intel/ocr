@@ -69,7 +69,7 @@ static void task_done(int i, int j, int k, int tileSize, const ocrGuid_t *global
 //    PRINTF("[%d] task_done globals=%p globals_guid=%ld\n", myrank, globals, data_guid);
 
     if(k == j) {
-        PRINTF("[%d] tile %d,%d finalized at version %d\n", myrank, i, j, k+1);
+        // PRINTF("[%d] tile %d,%d finalized at version %d\n", myrank, i, j, k+1);
         /* tile is finalized, post the OUT event */
         ocrEventSatisfy(GLOBAL(globals,i,j,K_EV), data_guid);
         return;
@@ -113,7 +113,7 @@ static ocrGuid_t sequential_cholesky_task ( u32 paramc, u64* paramv, u32 depc, o
     int iB = 0, jB = 0, kB = 0;
     const double* aBlock = (double*) (depv[0].ptr);
     const ocrGuid_t *globals = (ocrGuid_t*)(depv[1].ptr);
-    PRINTF("[%d] RUNNING sequential_cholesky %d\n", myrank, k);
+    // PRINTF("[%d] RUNNING sequential_cholesky %d\n", myrank, k);
 
     ocrGuid_t out_guid;
     double *out;

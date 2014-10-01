@@ -8,11 +8,13 @@ fi
 WORKLOAD_INSTALL=${WORKLOAD_INSTALL_ROOT}/$2
 
 echo "Running kernel '$1' for architecture '$2'"
-WORKLOAD_EXEC=${WORKLOAD_INSTALL}
-mkdir -p ${WORKLOAD_EXEC}/logs
-rm -rf ${WORKLOAD_EXEC}/logs/*
-cd ${WORKLOAD_EXEC}
-WORKLOAD_EXEC=${WORKLOAD_EXEC} ${TG_INSTALL}/bin/fsim-scripts/fsim-torque.sh -s -c ${WORKLOAD_INSTALL}/config.cfg
+#WORKLOAD_EXEC=${WORKLOAD_INSTALL}
+#mkdir -p ${WORKLOAD_EXEC}/logs
+#rm -rf ${WORKLOAD_EXEC}/logs/*
+#cd ${WORKLOAD_EXEC}
+#WORKLOAD_EXEC=${WORKLOAD_EXEC} ${TG_INSTALL}/bin/fsim-scripts/fsim-torque.sh -s -c ${WORKLOAD_INSTALL}/config.cfg
+rm -f ${WORKLOAD_INSTALL}/runlog
+WORKLOAD_EXEC=${WORKLOAD_INSTALL} RUN_JENKINS=run make -f ${WORKLOAD_INSTALL}/Makefile.$2 run 2>&1 > ${WORKLOAD_INSTALL}/runlog
 RETURN_CODE=$?
 
 if [ $RETURN_CODE -eq 0 ]; then
