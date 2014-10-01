@@ -37,6 +37,7 @@
 
 // Datablock
 #define ENABLE_DATABLOCK_REGULAR
+#define ENABLE_DATABLOCK_LOCKABLE
 
 // Event
 #define ENABLE_EVENT_HC
