@@ -284,6 +284,14 @@ static void processDbAcquireResponse(ocrPolicyDomain_t * self, ocrPolicyMsg_t * 
                 dbProxy->ptr, dbProxy->size, dbProxy->flags);
         PD_MSG_FIELD(size) = dbProxy->size;
         PD_MSG_FIELD(ptr) = dbProxy->ptr;
+        // Warning: Need to update the proxy flags as it could be that previously the DB
+        // was owned in RO and we're now acquiring in a mode that requires a write-back.
+        bool doWriteBack = !((PD_MSG_FIELD(properties) & DB_MODE_NCR) || (PD_MSG_FIELD(properties) & DB_MODE_RO) ||
+                             (PD_MSG_FIELD(properties) & DB_PROP_SINGLE_ASSIGNMENT));
+        if (doWriteBack) {
+            DPRINTF(DEBUG_LVL_VVERB,"Update dbProxy WB FLAG for %lx\n", PD_MSG_FIELD(guid.guid));
+            dbProxy->flags |= DB_FLAG_RT_WRITE_BACK;
+        }
     }
 #undef PD_MSG
 #undef PD_TYPE
@@ -725,9 +733,10 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
             DPRINTF(DEBUG_LVL_VVERB,"DB_RELEASE sending request for DB GUID 0x%lx with properties=0x%x and count=%d\n",
                     PD_MSG_FIELD(guid.guid), proxyDb->flags,proxyDb->count);
             ASSERT(proxyDb->count > 0);
-            // Only do the write back when the last EDT has checked-out
-            proxyDb->count--;
-            if (proxyDb->count == 0) {
+            // Only do the write back when the last EDT is checking out
+            if (proxyDb->count == 1) {
+                // Need to make sure the write back is done before we decrement the counter
+                // to zero
                 if (proxyDb->flags & DB_FLAG_RT_WRITE_BACK) {
                     PD_MSG_FIELD(properties) = DB_FLAG_RT_WRITE_BACK;
                     if (proxyDb->flags & DB_PROP_SINGLE_ASSIGNMENT) {
@@ -751,13 +760,18 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
                     hal_memCopy(dbCopyPtr, dbPtr, dbSize, false);
                     msg = newMessage;
                     PD_MSG_FIELD(size) = dbSize;
+                } else {
+                    // destroy the DB proxy
+                    proxyDb->count--;
+                    self->fcts.pdFree(self, proxyDb->ptr);
+                    self->fcts.pdFree(self, proxyDb);
+                    // cleanup guid provider entry to detect racy acquire
+                    self->guidProviders[0]->fcts.registerGuid(self->guidProviders[0], PD_MSG_FIELD(guid.guid), (u64) 0);
                 }
-                // destroy the DB proxy
-                self->fcts.pdFree(self, proxyDb->ptr);
-                self->fcts.pdFree(self, proxyDb);
-                // cleanup guid provider entry to detect racy acquire
-                self->guidProviders[0]->fcts.registerGuid(self->guidProviders[0], PD_MSG_FIELD(guid.guid), (u64) 0);
-            } // else: DB is still in use locally, send release without taking into account the eventual WB flag
+            } else {
+                // else: DB is still in use locally, send release without taking into account the eventual WB flag
+                proxyDb->count--;
+            }
             hal_unlock32(&(typedSelf->proxyLock));
             // All fall-through to send
         }
@@ -986,6 +1000,36 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
                 proxyDb->count = 1; // self
                 self->guidProviders[0]->fcts.registerGuid(self->guidProviders[0], dbGuid, (u64) proxyDb);
                 PD_MSG_FIELD(ptr) = ptr;
+#undef PD_MSG
+#undef PD_TYPE
+            break;
+            }
+            case PD_MSG_DB_RELEASE:
+            {
+#define PD_MSG (response)
+#define PD_TYPE PD_MSG_DB_RELEASE
+                // We need to check if the write-back that occurred is the last use of the DB
+                if (PD_MSG_FIELD(properties) & DB_FLAG_RT_WRITE_BACK) {
+                    ocrPolicyDomainHcDist_t * typedSelf = (ocrPolicyDomainHcDist_t *) self;
+                    hal_lock32(&(typedSelf->proxyLock));
+                    // We did not decrement the proxy counter when we posted the WB,
+                    // so we're still a user of the DB and it cannot have been removed
+                    // from the guidProvider
+                    u64 val;
+                    self->guidProviders[0]->fcts.getVal(self->guidProviders[0], PD_MSG_FIELD(guid.guid), &val, NULL);
+                    ASSERT(val != 0);
+                    ProxyDb_t * proxyDb = (ProxyDb_t *) val;
+                    ASSERT(proxyDb->count > 0);
+                    proxyDb->count--;
+                    DPRINTF(DEBUG_LVL_VVERB,"DB_RELEASE WB post-process on DB GUID 0x%lx with properties=0x%x and count=%d\n",
+                            PD_MSG_FIELD(guid.guid), proxyDb->flags, proxyDb->count);
+                    if (proxyDb->count == 0) { // Did the WB and last user
+                        self->fcts.pdFree(self, proxyDb->ptr);
+                        self->fcts.pdFree(self, proxyDb);
+                        self->guidProviders[0]->fcts.registerGuid(self->guidProviders[0], PD_MSG_FIELD(guid.guid), (u64) 0);
+                    } // else someone else is using this cached version
+                    hal_unlock32(&(typedSelf->proxyLock));
+                }
 #undef PD_MSG
 #undef PD_TYPE
             break;

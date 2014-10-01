@@ -126,8 +126,10 @@ static u8 lockableAcquireInternal(ocrDataBlock_t *self, void** ptr, ocrFatGuid_t
             (u64)self->ptr, rself->base.guid, edt.guid, (u32)isInternal, (int) mode,
             rself->attributes.numUsers, rself->attributes.modeLock);
 
-    if(rself->attributes.freeRequested) {
+    if(rself->attributes.freeRequested && (rself->attributes.numUsers == 0)) {
         // Most likely stemming from an error in the user-code
+        // There's a race between the datablock being freed and having no
+        // users with someone else trying to acquire the DB
         return OCR_EACCES;
     }
 
