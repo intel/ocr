@@ -6,6 +6,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <getopt.h>
+#include <string.h>
 
 static double** readMatrix(int matrixSize, FILE* in) {
     int i,j;
@@ -23,28 +25,92 @@ static double** readMatrix(int matrixSize, FILE* in) {
 }
 
 int main(int argc, const char *argv[]) {
-    if(argc != 4) {
-        printf("Usage: %s matrixSize tileSize fileName\n", argv[0]);
-        return 1;
-    }
 
     FILE *in, *out;
-    int matrixSize = -1;
-    int tileSize = -1;
-    int numTiles = -1;
+    int matrixSize = -1, tileSize = -1, numTiles = -1;
+    int outSelLevel = -1;
+    int c;
 
-    matrixSize = atoi(argv[1]);
-    tileSize = atoi(argv[2]);
+    char *fileNameIn, *fileNameOut = "cholesky_out.bin";
+
+    if ( argc == 1) {
+        printf("Cholesky\n");
+        printf("__________________________________________________________________________________________________\n");
+        printf("Solves an OCR version of a Tiled Cholesky Decomposition with non-MKL math kernels\n\n");
+        printf("Usage:\n");
+        printf("\tcholesky {Arguments}\n\n");
+        printf("Arguments:\n");
+        printf("\t--ds -- Specify the Size of the Input Matrix\n");
+        printf("\t--ts -- Specify the Tile Size\n");
+        printf("\t--fi -- Specify the Input File Name of the Matrix\n");
+
+        return 1;
+    }
+    else
+    {
+        // Reads in 5 arguments, input matrix file name, output matrix filename, datasize, tilesize, and
+        while (1)
+        {
+            static struct option long_options[] =
+                {
+                    {"ds", required_argument, 0, 'a'},
+                    {"ts", required_argument, 0, 'b'},
+                    {"fi", required_argument, 0, 'c'},
+                    {0, 0, 0, 0}
+                };
+
+            int option_index = 0;
+
+            c = getopt_long(argc, argv, "a:b:c", long_options, &option_index);
+
+            if (c == -1) // Detect the end of the options
+                break;
+            switch (c)
+            {
+            case 'a':
+                //printf("Option a: matrixSize with value '%s'\n", optarg);
+                matrixSize = (int) atoi(optarg);
+                break;
+            case 'b':
+                //printf("Option b: tileSize with value '%s'\n", optarg);
+                tileSize = (int) atoi(optarg);
+                break;
+            case 'c':
+                //printf("Option c: fileNameIn with value '%s'\n", optarg);
+                fileNameIn = optarg;
+                break;
+            default:
+                printf("ERROR: Invalid argument switch\n\n");
+                printf("Cholesky\n");
+                printf("__________________________________________________________________________________________________\n");
+                printf("Solves an OCR-only version of a Tiled Cholesky Decomposition with non-MKL math kernels\n\n");
+                printf("Usage:\n");
+                printf("\tcholesky {Arguments}\n\n");
+                printf("Arguments:\n");
+                printf("\t--ds -- Specify the Size of the Input Matrix\n");
+                printf("\t--ts -- Specify the Tile Size\n");
+                printf("\t--fi -- Specify the Input File Name of the Matrix\n");
+
+                return 1;
+            }
+        }
+    }
+
+    if(matrixSize == -1 || tileSize == -1)
+    {
+        printf("Must specify matrix size and tile size\n");
+        return 1;
+    }
+    else if(matrixSize % tileSize != 0)
+    {
+        printf("Incorrect tile size %d for the matrix of size %d \n", tileSize, matrixSize);
+        return 1;
+    }
 
     numTiles = matrixSize/tileSize;
 
-    if(matrixSize % tileSize != 0) {
-        printf("Incorrect tile size %d for matrix of size %d\n", tileSize, matrixSize);
-        return 1;
-    }
-
-    in = fopen(argv[3], "r");
-    out = fopen("cholesky_out.bin", "wb");
+    in = fopen(fileNameIn, "r");
+    out = fopen(fileNameOut, "wb");
     if(!in || !out) {
         printf("Cannot open input or output files.\n");
         return 1;

@@ -1,8 +1,41 @@
-Running:
+Running:OA
 
-make -f Makefile.<OCR_TYPE> run <input_size> <tile_size> <input_file_name_in_absolute_path>
+make -f Makefile.<OCR_TYPE> run WORKLOAD_ARGS="--arg1 val1 --arg2 val2 --arg3 val3"
 
 For e.g., try
-make -f Makefile.tg run 50 10 ${PWD}/../../../apps/cholesky/datasets/m_50.in
-Look for the output matrix under
+
+make -f Makefile.tg run WORKLOAD_ARGS="--ds 100 --ts 25 --fi /path/to/datasets/m_100.in"
+
+For tg, look for the output matrix under
 install/tg/logs/ocr-cholesky.log.brd00.dram00.app_output
+and/or
+install/tg/cholesky.out.txt
+
+
+For non-tg, look for output matrix under
+install/<OCR_TYPE>/cholesky.out.txt
+and timing stats under
+install/<OCR_TYPE>/ocr_cholesky_stats.csv
+
+__________________________________________________________________________________________________
+Solves an OCR version of a Tiled Cholesky Decomposition with non-MKL math kernels
+
+Usage:
+        cholesky {Arguments}
+
+Arguments:
+        TG Compatible Args:
+        --ds -- Specify the Size of the Input Matrix
+        --ts -- Specify the Tile Size
+        --fi -- Specify the Input File Name of the Matrix
+
+        Non-TG Args:
+        --ol -- Output Selection Level:
+                0: Print solution to stdout
+                1: Write solution to text file
+                2: Write solution to binary file (default)
+                3: Write solution to text file and print to stdout
+                4: Write solution to binary file and print to stdout
+                5: Write algorithm timing data to ocr_cholesky_stats.csv and write solution to binary file
+                   Note: If ocr_cholesky_stats.csv does not exist it will be created,
+                         otherwise new stat data will append to new row within the file

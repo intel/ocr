@@ -10,7 +10,13 @@
 #include <stdio.h>
 
 #ifndef TG_ARCH
+#include <getopt.h>
+#include <string.h>
+#include <time.h>
 static double** readMatrix( u32 matrixSize, FILE* in );
+
+#else
+int compare_string(char *, char *);
 #endif
 
 
@@ -182,6 +188,27 @@ ocrGuid_t wrap_up_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) 
     u32 numTiles = (u32) func_args[0];
     u32 tileSize = (u32) func_args[1];
 
+#ifndef TG_ARCH
+    u32 outSelLevel = (u32) func_args[2];
+
+    struct timeval a;
+    if (outSelLevel == 5)
+    {
+        FILE* outCSV = fopen("ocr_cholesky_stats.csv", "a");
+        if (!outCSV)
+        {
+            PRINTF("Cannot find file: %s\n", "ocr_cholesky_stats.csv");
+            ocrShutdown();
+            return NULL_GUID;
+        }
+
+        gettimeofday(&a, 0);
+        fprintf(outCSV, "%f\n", (a.tv_sec * 1000000 + a.tv_usec) * 1.0 / 1000000);
+        fclose(outCSV);
+        outSelLevel = 2;
+    }
+#endif
+
     FILE* out = fopen("cholesky.out", "w");
 
     for ( i = 0; i < numTiles; ++i ) {
@@ -190,14 +217,61 @@ ocrGuid_t wrap_up_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) 
                 temp = (double*) (depv[i*(i+1)/2+j].ptr);
                 if(i != j) {
                     for(j_b = 0; j_b < tileSize; ++j_b) {
+
+                        #ifndef TG_ARCH
+                        switch(outSelLevel)
+                        {
+                        case 0:
+                            printf("%lf ", temp[i_b*tileSize+j_b]);
+                            break;
+                        case 1:
+                            fprintf(out, "%lf ", temp[i_b*tileSize+j_b]);
+                            break;
+                        case 2:
+                            fwrite(&temp[i_b*tileSize+j_b], sizeof(double), 1, out);
+                            break;
+                        case 3:
+                            fprintf(out, "%lf ", temp[i_b*tileSize+j_b]);
+                            printf("%lf ", temp[i_b*tileSize+j_b]);
+                            break;
+                        case 4:
+                            fwrite(&temp[i_b*tileSize+j_b], sizeof(double), 1, out);
+                            printf("%lf ", temp[i_b*tileSize+j_b]);
+                            break;
+                        }
+                        #else
                         fwrite(&temp[i_b*tileSize+j_b], sizeof(double), 1, out);
-                        //fprintf( out, "%lf ", temp[i_b*tileSize+j_b]);
+                        #endif
                     }
                 } else {
                     for(j_b = 0; j_b <= i_b; ++j_b) {
+
+                        #ifndef TG_ARCH
+                        switch(outSelLevel)
+                        {
+                        case 0:
+                            printf("%lf ", temp[i_b*tileSize+j_b]);
+                            break;
+                        case 1:
+                            fprintf(out, "%lf ", temp[i_b*tileSize+j_b]);
+                            break;
+                        case 2:
+                            fwrite(&temp[i_b*tileSize+j_b], sizeof(double), 1, out);
+                            break;
+                        case 3:
+                            fprintf(out, "%lf ", temp[i_b*tileSize+j_b]);
+                            printf("%lf ", temp[i_b*tileSize+j_b]);
+                            break;
+                        case 4:
+                            fwrite(&temp[i_b*tileSize+j_b], sizeof(double), 1, out);
+                            printf("%lf ", temp[i_b*tileSize+j_b]);
+                            break;
+                        }
+                        #else
                         fwrite(&temp[i_b*tileSize+j_b], sizeof(double), 1, out);
-                        //fprintf( out, "%lf ", temp[i_b*tileSize+j_b]);
+                        #endif
                     }
+
                 }
             }
         }
@@ -280,17 +354,18 @@ inline static void update_diagonal_task_prescriber ( ocrGuid_t edtTemp, u32 k, u
     ocrAddDependence(lkji_event_guids[j][k][k+1], update_diagonal_task_guid, 1, DB_MODE_ITW);
 }
 
-inline static void wrap_up_task_prescriber ( ocrGuid_t edtTemp, u32 numTiles, u32 tileSize,
+inline static void wrap_up_task_prescriber ( ocrGuid_t edtTemp, u32 numTiles, u32 tileSize, u32 outSelLevel,
         ocrGuid_t*** lkji_event_guids ) {
     u32 i,j,k;
     ocrGuid_t wrap_up_task_guid;
 
-    u64 func_args[2];
+    u64 func_args[3];
     func_args[0]=(u32)numTiles;
     func_args[1]=(u32)tileSize;
+    func_args[2]=(u32)outSelLevel;
 
     ocrGuid_t affinity = NULL_GUID;
-    ocrEdtCreate(&wrap_up_task_guid, edtTemp, 2, func_args, (numTiles+1)*numTiles/2, NULL, PROPERTIES, affinity, NULL);
+    ocrEdtCreate(&wrap_up_task_guid, edtTemp, 3, func_args, (numTiles+1)*numTiles/2, NULL, PROPERTIES, affinity, NULL);
 
     u32 index = 0;
     for ( i = 0; i < numTiles; ++i ) {
@@ -397,48 +472,226 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     u32 matrixSize = -1;
     u32 tileSize = -1;
     u32 numTiles = -1;
-    u32 i, j, k;
+    u32 i, j, k, c;
+    u32 outSelLevel = 2;
     double **matrix, ** temp;
     u64 argc;
 
     void *programArg = depv[0].ptr;
     argc = getArgc(programArg);
+
+    char *nparamv[argc];
+    char *fileNameIn, *fileNameOut = "cholesky.out";
+
 #ifndef TG_ARCH
-    if ( argc !=  4 ) {
-        PRINTF("Usage: ./cholesky matrixSize tileSize fileName (found %lld args)\n", argc);
-        ocrShutdown();
-        return 1;
-    }
-#else
-    if ( argc != 3 ) {
-        PRINTF("Usage: ./cholesky matrixSize tileSize (found %lld args)\n", argc);
-        ocrShutdown();
-        return 1;
-    }
-#endif
 
-    matrixSize = atoi(getArgv(programArg, 1));
-    tileSize = atoi(getArgv(programArg, 2));
+    for (i=0; i< argc; i++)
+    {
+        nparamv[i] = getArgv(programArg, i);
+    }
 
-    if ( matrixSize % tileSize != 0 ) {
+
+    if ( argc == 1)
+    {
+        PRINTF("Cholesky\n");
+        PRINTF("__________________________________________________________________________________________________\n");
+        PRINTF("Solves an OCR version of a Tiled Cholesky Decomposition with non-MKL math kernels\n\n");
+        PRINTF("Usage:\n");
+        PRINTF("\tcholesky {Arguments}\n\n");
+        PRINTF("Arguments:\n");
+        PRINTF("\t--ds -- Specify the Size of the Input Matrix\n");
+        PRINTF("\t--ts -- Specify the Tile Size\n");
+        PRINTF("\t--fi -- Specify the Input File Name of the Matrix\n");
+//    PRINTF("\t--fo -- Specify an Output File Name (default: ocr_mkl_cholesky.out)\n");
+        PRINTF("\t\t0: Print solution to stdout\n");
+        PRINTF("\t\t1: Write solution to text file\n");
+        PRINTF("\t\t2: Write solution to binary file (default)\n");
+        PRINTF("\t\t3: Write solution to text file and print to stdout\n");
+        PRINTF("\t\t4: Write solution to binary file and print to stdout\n");
+        PRINTF("\t\t5: Write algorithm timing data to ocr_cholesky_stats.csv and write solution to binary file\n");
+
+        ocrShutdown();
+        return NULL_GUID;
+    }
+    else
+    {
+        // Reads in 5 arguments, datasize, tilesize, input matrix file name, and output matrix filename
+        while (1)
+        {
+            static struct option long_options[] =
+                {
+                    {"ds", required_argument, 0, 'a'},
+                    {"ts", required_argument, 0, 'b'},
+                    {"fi", required_argument, 0, 'c'},
+                    {"fo", required_argument, 0, 'd'},
+                    {"ol", required_argument, 0, 'e'},
+                    {0, 0, 0, 0}
+                };
+
+            u32 option_index = 0;
+
+            c = getopt_long(argc, nparamv, "a:b:c:d:e", long_options, &option_index);
+
+            if (c == -1) // Detect the end of the options
+                break;
+            switch (c)
+            {
+            case 'a':
+                //PRINTF("Option a: matrixSize with value '%s'\n", optarg);
+                matrixSize = (u32) atoi(optarg);
+                break;
+            case 'b':
+                //PRINTF("Option b: tileSize with value '%s'\n", optarg);
+                tileSize = (u32) atoi(optarg);
+                break;
+            case 'c':
+                //PRINTF("Option c: fileNameIn with value '%s'\n", optarg);
+                fileNameIn = optarg;
+                break;
+            case 'd':
+                //PRINTF("Option d: fileNameOut with value '%s'\n", optarg);
+                fileNameOut = (char*) realloc(fileNameOut, sizeof(optarg));
+                strcpy(fileNameOut, optarg);
+                break;
+            case 'e':
+                //PRINTF("Option e: outSelLevel with value '%s'\n", optarg);
+                outSelLevel = (u32) atoi(optarg);
+                break;
+            default:
+                PRINTF("ERROR: Invalid argument switch\n\n");
+                PRINTF("Cholesky\n");
+                PRINTF("__________________________________________________________________________________________________\n");
+                PRINTF("Solves an OCR-only version of a Tiled Cholesky Decomposition with non-MKL math kernels\n\n");
+                PRINTF("Usage:\n");
+                PRINTF("\tcholesky {Arguments}\n\n");
+                PRINTF("Arguments:\n");
+                PRINTF("\t--ds -- Specify the Size of the Input Matrix\n");
+                PRINTF("\t--ts -- Specify the Tile Size\n");
+                PRINTF("\t--fi -- Specify the Input File Name of the Matrix\n");
+//        PRINTF("\t--fo -- Specify an Output File Name (default: ocr_mkl_cholesky.out)\n");
+                PRINTF("\t--ol -- Output Selection Level:\n");
+                PRINTF("\t\t0: Print solution to stdout\n");
+                PRINTF("\t\t1: Write solution to text file\n");
+                PRINTF("\t\t2: Write solution to binary file (default)\n");
+                PRINTF("\t\t3: Write solution to text file and print to stdout\n");
+                PRINTF("\t\t4: Write solution to binary file and print to stdout\n");
+                PRINTF("\t\t5: Write algorithm timing data to ocr_cholesky_stats.csv and write solution to binary file\n");
+
+                ocrShutdown();
+                return NULL_GUID;
+            }
+        }
+    }
+
+    if(matrixSize == -1 || tileSize == -1)
+    {
+        PRINTF("Must specify matrix size and tile size\n");
+        ocrShutdown();
+        return NULL_GUID;
+    }
+    else if(matrixSize % tileSize != 0)
+    {
         PRINTF("Incorrect tile size %d for the matrix of size %d \n", tileSize, matrixSize);
         ocrShutdown();
         return NULL_GUID;
     }
-    PRINTF("Matrixsize %d, tileSize %d\n", matrixSize, tileSize);
 
-#ifndef TG_ARCH
+    PRINTF("Matrixsize %d, tileSize %d\n", matrixSize, tileSize);
+    numTiles = matrixSize/tileSize;
+
+    struct timeval a;
+    if(outSelLevel == 5)
+    {
+
+        FILE* outCSV = fopen("ocr_cholesky_stats.csv", "r");
+        if( !outCSV )
+        {
+
+            outCSV = fopen("ocr_cholesky_stats.csv", "w");
+
+            if( !outCSV ) {
+                PRINTF("Cannot find file: %s\n", "ocr_cholesky_stats.csv");
+                ocrShutdown();
+                return NULL_GUID;
+            }
+
+            fprintf(outCSV, "MatrixSize,TileSize,NumTile,PreAllocTime,PreAlgorithmTime,PostAlgorithmTime\n");
+        }
+        else
+        {
+            outCSV = fopen("ocr_cholesky_stats.csv", "a+");
+        }
+
+        fprintf(outCSV, "%d,%d,%d,", matrixSize, tileSize, numTiles);
+        gettimeofday(&a, 0);
+        fprintf(outCSV, "%f,", (a.tv_sec*1000000+a.tv_usec)*1.0/1000000);
+        fclose(outCSV);
+    }
+
     FILE *in;
-    in = fopen(getArgv(programArg, 3), "r");
+    in = fopen(fileNameIn, "r");
     if( !in ) {
-        PRINTF("Cannot find file: %s\n", getArgv(programArg, 3));
+        PRINTF("Cannot find file: %s\n", fileNameIn);
         ocrShutdown();
         return NULL_GUID;
     }
-    matrix = readMatrix( matrixSize, in );
-#endif
 
+    matrix = readMatrix( matrixSize, in );
+
+    if(outSelLevel == 5)
+    {
+        FILE* outCSV = fopen("ocr_cholesky_stats.csv", "a");
+        if( !outCSV ) {
+            PRINTF("Cannot find file: %s\n", "ocr_cholesky_stats.csv");
+            ocrShutdown();
+            return NULL_GUID;
+        }
+        gettimeofday(&a, 0);
+        fprintf(outCSV, "%f,", (a.tv_sec*1000000+a.tv_usec)*1.0/1000000);
+        fclose(outCSV);
+    }
+
+#else
+
+    for (i=0; i < argc; i++)
+    {
+        if (compare_string(getArgv(programArg, i), "--ds")  == 0)
+            matrixSize = (u32) atoi(getArgv(programArg, i+1));
+
+        else if (compare_string(getArgv(programArg, i), "--ts")  == 0)
+            tileSize = (u32) atoi(getArgv(programArg, i+1));
+
+//        else if (compare_string(getArgv(programArg, i), "--ol") == 0)
+//            outSelLevel = (u32) atoi(getArgv(programArg, i+1));
+    }
+
+    if ( matrixSize <= 0 || tileSize <= 0 )
+    {
+        PRINTF("ERROR: Invalid argument switch\n\n");
+        PRINTF("Cholesky\n");
+        PRINTF("__________________________________________________________________________________________________\n");
+        PRINTF("Solves an OCR-only version of a Tiled Cholesky Decomposition with non-MKL math kernels\n\n");
+        PRINTF("Usage:\n");
+        PRINTF("\tcholesky {Arguments}\n\n");
+        PRINTF("Arguments:\n");
+        PRINTF("\t--ds -- Specify the Size of the Input Matrix\n");
+        PRINTF("\t--ts -- Specify the Tile Size\n");
+        PRINTF("\t--fi -- Specify the Input File Name of the Matrix\n");
+
+        ocrShutdown();
+        return NULL_GUID;
+    }
+
+    else if(matrixSize % tileSize != 0)
+    {
+        PRINTF("Incorrect tile size %d for the matrix of size %d \n", tileSize, matrixSize);
+        ocrShutdown();
+        return NULL_GUID;
+    }
+
+    PRINTF("Matrixsize %d, tileSize %d\n", matrixSize, tileSize);
     numTiles = matrixSize/tileSize;
+#endif
 
     ocrGuid_t*** lkji_event_guids = allocateCreateEvents(numTiles);
 
@@ -449,7 +702,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtTemplateCreate(&templateTrisolve, trisolve_task, 4, 2);
     ocrEdtTemplateCreate(&templateUpdateNonDiag, update_nondiagonal_task, 5, 3);
     ocrEdtTemplateCreate(&templateUpdate, update_diagonal_task, 5, 2);
-    ocrEdtTemplateCreate(&templateWrap, wrap_up_task, 2, (numTiles+1)*numTiles/2);
+    ocrEdtTemplateCreate(&templateWrap, wrap_up_task, 3, (numTiles+1)*numTiles/2);
 
     PRINTF("Going to satisfy initial tiles\n");
 #ifdef TG_ARCH
@@ -476,7 +729,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
         }
     }
 
-    wrap_up_task_prescriber ( templateWrap, numTiles, tileSize, lkji_event_guids );
+    wrap_up_task_prescriber ( templateWrap, numTiles, tileSize, outSelLevel, lkji_event_guids );
 
     PRINTF("Wrapping up mainEdt\n");
     return NULL_GUID;
@@ -497,4 +750,22 @@ static double** readMatrix( u32 matrixSize, FILE* in ) {
     }
     return A;
 }
+#else
+int compare_string(char *first, char *second)
+{
+    while(*first==*second)
+   {
+       if ( *first == '\0' || *second == '\0' )
+          break;
+
+       first++;
+       second++;
+    }
+
+    if( *first == '\0' && *second == '\0' )
+       return 0;
+    else
+       return -1;
+}
+
 #endif

@@ -31,7 +31,7 @@ WORKLOAD_INSTALL_ROOT ?= ./install
 # If 1+, this is the index in the argument
 # list after which everything is considered an
 # input file. Note that the index STARTS AT 1
-WORKLOAD_INPUT_FILE_IDX := 3
+WORKLOAD_INPUT_FILE_IDX := 0
 
 # You can specify default arguments here. These
 # will be overriden by (in order):

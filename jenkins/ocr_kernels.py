@@ -461,7 +461,7 @@ job_ocr_run_kernel_cholesky_x86 = {
     'run-args': 'cholesky x86-pthread-x86',
     'sandbox': ('inherit0',),
     'env-vars': { 'APPS_LIBS_ROOT': '${JJOB_SHARED_HOME}/apps/libs/x86',
-                  'WORKLOAD_ARGS': '1000 50 ${JJOB_SHARED_HOME}/apps/cholesky/datasets/m_1000.in',
+                  'WORKLOAD_ARGS': '--ds 1000 --ts 50 --fi ${JJOB_SHARED_HOME}/apps/cholesky/datasets/m_1000.in',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/cholesky/install' }
 }
 
@@ -494,7 +494,7 @@ job_ocr_run_kernel_cholesky_mpi = {
     'sandbox': ('inherit0',),
     'env-vars': { 'PATH': '/opt/intel/tools/impi_latest/bin64:${PATH}',
                   'APPS_LIBS_ROOT': '${JJOB_SHARED_HOME}/apps/libs/x86',
-                  'WORKLOAD_ARGS': '1000 50 ${JJOB_SHARED_HOME}/apps/cholesky/datasets/m_1000.in',
+                  'WORKLOAD_ARGS': '--ds 1000 --ts 50 --fi ${JJOB_SHARED_HOME}/apps/cholesky/datasets/m_1000.in',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/cholesky/install' }
 }
 
@@ -526,7 +526,7 @@ job_ocr_run_kernel_cholesky_tgemul = {
     'run-args': 'cholesky x86-pthread-tg',
     'sandbox': ('inherit0',),
     'env-vars': { 'APPS_LIBS_ROOT': '${JJOB_SHARED_HOME}/apps/libs/x86',
-                  'WORKLOAD_ARGS': '1000 50 ${JJOB_SHARED_HOME}/apps/cholesky/datasets/m_1000.in',
+                  'WORKLOAD_ARGS': '--ds 1000 --ts 50 --fi ${JJOB_SHARED_HOME}/apps/cholesky/datasets/m_1000.in',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/cholesky/install' }
 }
 
@@ -549,7 +549,7 @@ job_ocr_build_kernel_cholesky_tg = {
     'env-vars': { 'APPS_LIBS_ROOT': '${JJOB_SHARED_HOME}/apps/libs/tg',
                   'WORKLOAD_SRC': '${JJOB_INITDIR}/ocr/ocr-apps/cholesky',
                   'WORKLOAD_BUILD_ROOT': '${JJOB_PRIVATE_HOME}/ocr/ocr-apps/cholesky/build',
-                  'WORKLOAD_ARGS': '50 10 ${JJOB_SHARED_HOME}/apps/cholesky/datasets/m_50.in',
+                  'WORKLOAD_ARGS': '--ds 50 --ts 10 --fi ${JJOB_SHARED_HOME}/apps/cholesky/datasets/m_50.in',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/cholesky/install'}
 }
 
@@ -561,7 +561,7 @@ job_ocr_run_kernel_cholesky_tg = {
     'param-args': '-c ${WORKLOAD_INSTALL_ROOT}/tg/config.cfg',
     'sandbox': ('inherit0',),
     'env-vars': { 'APPS_LIBS_ROOT': '${JJOB_SHARED_HOME}/apps/libs/tg',
-                  'WORKLOAD_ARGS': '50 10 ${JJOB_SHARED_HOME}/apps/cholesky/datasets/m_50.in',
+                  'WORKLOAD_ARGS': '--ds 50 --ts 10 --fi ${JJOB_SHARED_HOME}/apps/cholesky/datasets/m_50.in',
                   'WORKLOAD_INSTALL_ROOT': '${JJOB_SHARED_HOME}/ocr/ocr-apps/cholesky/install'}
 }
 
