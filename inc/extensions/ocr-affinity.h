@@ -54,7 +54,8 @@ typedef enum {
     AFFINITY_PD, /**< Affinities of the policy domains. You can then
                   * affinitize EDTs and data blocks to these affinities
                   * in the creation calls */
-    AFFINITY_PD_MASTER /**< Runtime reserved (do not use) */
+    AFFINITY_PD_MASTER, /**< Runtime reserved (do not use) */
+    AFFINITY_GUID /**< Affinities of a GUID */
 } ocrAffinityKind;
 
 /**
@@ -92,6 +93,17 @@ u8 ocrAffinityGet(ocrAffinityKind kind, u64 * count, ocrGuid_t * affinities);
  *      - 0: successful
  */
 u8 ocrAffinityGetCurrent(ocrGuid_t * affinity);
+
+/**
+ * Get affinity GUIDs of a particular GUID currently belongs to.
+ *
+ * @param[in] guid             The GUID to query the affinity
+ * @param[in,out] count        In: Requested number of element, Out: Actual element returned
+ * @param[out] affinities      Affinity guid array, call-site allocated.
+ * @return 0 on success or an error code on failure
+ */
+u8 ocrAffinityQuery(ocrGuid_t guid, u64 * count, ocrGuid_t * affinities);
+
 
 #ifdef __cplusplus
 }

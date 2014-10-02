@@ -34,7 +34,7 @@ u8 ocrAffinityCount(ocrAffinityKind kind, u64 * count) {
         //TODO this is assuming each PD knows about every other PDs
         //Need to revisit that when we have a better idea of what affinities are
         *count = (pd->neighborCount + 1);
-    } else if ((kind == AFFINITY_PD_MASTER) || (kind == AFFINITY_CURRENT)) {
+    } else if ((kind == AFFINITY_PD_MASTER) || (kind == AFFINITY_CURRENT) || (kind == AFFINITY_GUID)) {
         // Change this implementation if 'AFFINITY_CURRENT' cardinality can be > 1
         *count = 1;
     } else {
@@ -42,6 +42,40 @@ u8 ocrAffinityCount(ocrAffinityKind kind, u64 * count) {
     }
     return 0;
 }
+
+u8 ocrAffinityQuery(ocrGuid_t guid, u64 * count, ocrGuid_t * affinities) {
+    ocrPolicyDomain_t * pd = NULL;
+    getCurrentEnv(&pd, NULL, NULL, NULL);
+    ocrLocationPlacer_t * placer = ((ocrLocationPlacer_t*)pd->placer);
+    if(placer == NULL) {
+        if (count != NULL) {
+            ASSERT(*count > 0);
+            *count = 1;
+        }
+        affinities[0] = NULL_GUID;
+        return 0;
+    } else {
+        if (count != NULL) {
+            ASSERT(*count > 0);
+            *count = 1;
+        }
+        if (guid == NULL_GUID) {
+            affinities[0] = placer->pdLocAffinities[placer->current];
+            return 0;
+        }
+        ocrLocation_t loc = 0;
+        ocrFatGuid_t fatGuid = {.guid=guid, .metaDataPtr=NULL};
+        guidLocation(pd, fatGuid, &loc);
+        //Current implementation doesn't store affinities of GUIDs
+        //So we resolve the affinity of the GUID by looking up its
+        //location and use that to index into the affinity array.
+        //NOTE: Shortcoming is that it assumes location are integers.
+        ASSERT(((u32)loc) < placer->pdLocAffinitiesSize);
+        affinities[0] = placer->pdLocAffinities[(u32)loc];
+    }
+    return 0;
+}
+
 
 //TODO This call returns affinities with identical mapping across PDs.
 u8 ocrAffinityGet(ocrAffinityKind kind, u64 * count, ocrGuid_t * affinities) {
