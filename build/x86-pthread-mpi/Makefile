@@ -21,7 +21,6 @@ DEFAULT_CONFIG=mach-hc-dist-mpi-clone-8w-lockable.cfg
 #
 
 CC      := mpicc
-CFLAGS  := -DINIT_DEQUE_CAPACITY=2048
 
 RM      := rm
 RMFLAGS := -rf

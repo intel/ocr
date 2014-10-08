@@ -21,7 +21,7 @@ DEFAULT_CONFIG=mach-2block.cfg
 #
 
 CC      := gcc
-CFLAGS  := -fno-stack-protector -DINIT_DEQUE_CAPACITY=2048
+CFLAGS  := -fno-stack-protector
 
 RM      := rm
 RMFLAGS := -rf

@@ -25,7 +25,45 @@ OBJDIR := $(OCR_BUILD)/objs
 #
 DEFAULT_CONFIG ?= mach-hc-4w.cfg
 
-# Debug flags
+####################################################
+# User Configurable settings
+####################################################
+
+# Number of elements in EDT local storage
+# CFLAGS += -DELS_USER_SIZE=0
+
+# Valgrind compatibility for internal allocators
+# (x86 only, requires valgrind-devel & inclusion of
+# /usr/include in search path)
+# CFLAGS += -DENABLE_VALGRIND
+
+# Static size for deques used to contain EDTs
+CFLAGS += -DINIT_DEQUE_CAPACITY=2048
+
+# Maximum number of function nesting for runtime profiler
+# CFLAGS += -DMAX_PROFILER_LEVEL=512
+
+# Maximum number of characters handled by a single PRINTF
+# CFLAGS += -DPRINTF_MAX=1024
+
+# Maximum number of blocks of 64 slots that an EDT
+# can have IFF it needs to acquire the same DB on
+# multiple slots
+# CFLAGS += -DOCR_MAX_MULTI_SLOT=1
+
+# Enables the collection of runtime profiling (only x86)
+# CFLAGS += -DOCR_RUNTIME_PROFILER
+
+# Enables naming of EDTs for easier debugging
+# CFLAGS += -DOCR_ENABLE_EDT_NAMING
+
+# Enables the collection of EDT R/W statistics
+# (only on x86, requires OCR_ENABLE_EDT_NAMING)
+# CFLAGS += -DOCR_ENABLE_EDT_PROFILING
+
+####################################################
+# Experimental flags
+####################################################
 
 # Enable naming of EDTs
 # This uses the name of the function to name the EDT templates and therefore
@@ -36,6 +74,10 @@ DEFAULT_CONFIG ?= mach-hc-4w.cfg
 
 # Enable profiling data to be used by runtime. This requires EDT_NAMING
 #CFLAGS += -DOCR_ENABLE_EDT_PROFILING -DOCR_ENABLE_EDT_NAMING
+
+####################################################
+# Debug flags
+####################################################
 
 # Debugging support
 # Enable debug
