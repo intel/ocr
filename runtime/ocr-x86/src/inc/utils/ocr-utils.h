@@ -183,6 +183,13 @@ s32 ocrStrcmp(u8 *str1, u8 *str2);
  */
 u64 ocrStrlen(const char* str);
 
+/**
+ * @brief gets CPU timestamp in nanoseconds
+ *
+ * @return the current timestamp in Ns
+ */
+u64 getTimeNs();
+
 /* Not currently used
 typedef struct ocrPlaceTrackerStruct_t {
     u64 existInPlaces;

@@ -7,7 +7,6 @@
 #include "ocr-config.h"
 #if defined(ENABLE_TASK_HC) || defined(ENABLE_TASKTEMPLATE_HC)
 
-
 #include "debug.h"
 #include "event/hc/hc-event.h"
 #include "ocr-datablock.h"
@@ -187,7 +186,6 @@ static u8 finishLatchCheckin(ocrPolicyDomain_t *pd, ocrPolicyMsg_t *msg,
 /******************************************************/
 /* Random helper functions                            */
 /******************************************************/
-
 static inline bool hasProperty(u32 properties, u32 property) {
     return properties & property;
 }
@@ -519,6 +517,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
 #ifdef OCR_ENABLE_EDT_NAMING
     base->name = ((ocrTaskTemplate_t*)(edtTemplate.metaDataPtr))->name;
 #endif
+
     base->outputEvent = outputEvent.guid;
     base->finishLatch = NULL_GUID;
     base->parentLatch = parentLatch.guid;
@@ -954,10 +953,21 @@ u8 taskExecute(ocrTask_t* base) {
 
     ocrGuid_t retGuid = NULL_GUID;
     {
+
+#ifdef OCR_ENABLE_VISUALIZER
+        u64 startTime = getTimeNs();
+#endif
+
         START_PROFILE(userCode);
         retGuid = base->funcPtr(paramc, paramv, depc, depv);
         EXIT_PROFILE;
+
+#ifdef OCR_ENABLE_VISUALIZER
+        u64 endTime = getTimeNs();
+        DPRINTF(DEBUG_LVL_INFO, "Execute 0x%lx FctName: %s Start: %lu End: %lu\n", base->guid, base->name, startTime, endTime);
+#endif
     }
+
 #ifdef OCR_ENABLE_STATISTICS
     // We now say that the worker is done executing the EDT
     statsEDT_END(pd, ctx->sourceObj, curWorker, base->guid, base);
@@ -1058,6 +1068,7 @@ u8 taskExecute(ocrTask_t* base) {
     }
     return 0;
 }
+
 
 void destructTaskFactoryHc(ocrTaskFactory_t* base) {
     runtimeChunkFree((u64)base, NULL);

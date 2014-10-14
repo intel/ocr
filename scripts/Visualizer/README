@@ -1,0 +1,31 @@
+***********************************************************
+Usage Instruction for EDT Exectution Timeline
+***********************************************************
+
+This visualization tool records the timeline for thread
+execution. It currently has a time.h dependency, thus
+it is only supported on x86 architecture.
+
+The following are required pre-execution:
+
+-In ocr/build/common.mk:
+    -Debug option needs to be set at DEBUG_LVL_INFO or higher
+    -DOCR_ENABLE_EDT_NAMING must be set.
+    -DOCR_ENABLE_VISUALIZER must be set.
+
+Script Instructions:
+
+-Navigate to desired application directory
+-Before running an application an environment variable must be set via:
+    export ENABLE_VISUALIZER=yes
+
+-Application logging output must be redirected to
+ to the /ocr/scripts directory as a text file named log.txt
+    The command would look like: make -f Makefile.x86-pthread-x86 run > ../../scripts/Visualizer/log.txt
+
+-Navigate to /ocr/scripts, and run: python timeline.py
+-timeline.py will source stripExcessEvents.sh so the user
+ need not.  The output is an HTML file called timeline.html
+ which will display the visualizer
+
+

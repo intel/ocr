@@ -41,7 +41,8 @@ WORKLOAD_INPUT_FILE_IDX := 3
 RUN_TORQUE ?= no
 # Set to "yes" if Jenkins is running this job as an automated test
 RUN_JENKINS ?= no
-
+# Set to yes if running timeline visualizer
+ENABLE_VISUALIZER ?= no
 ## END of variables coming from user/environment
 
 include ${APPS_ROOT}/makefiles/make-pre.inc

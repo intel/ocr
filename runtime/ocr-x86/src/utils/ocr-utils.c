@@ -7,6 +7,9 @@
  * and cannot be distributed without it. This notice cannot be
  * removed or modified.
  */
+#ifdef OCR_ENABLE_VISUALIZER
+#include <time.h>
+#endif
 
 #include "ocr-hal.h"
 #include "debug.h"
@@ -167,6 +170,16 @@ u64 ocrStrlen(const char* str) {
     while(*str++ != '\0') ++res;
     return res;
 }
+
+#ifdef OCR_ENABLE_VISUALIZER
+u64 getTimeNs()
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
+    return ts.tv_sec * 1000000000UL + (u64) ts.tv_nsec;
+}
+#endif
+
 
 /* This is not currently used. What to do with it?
 void ocrPlaceTrackerAllocate ( ocrPlaceTracker_t** toFill ) {

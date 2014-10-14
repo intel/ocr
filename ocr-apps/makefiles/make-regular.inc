@@ -93,6 +93,7 @@ endif
 .ONESHELL:
 run_internal: WORKLOAD_EXEC ?= $(WORKLOAD_INSTALL)
 run_internal: OCR_CONFIG ?= $(OCR_INSTALL)/config/default.cfg
+
 ifeq ($(RUN_JENKINS), run)
 run_internal: debug_post_prerun
 else
@@ -154,6 +155,11 @@ else
 libocr: $(OCR_BUILD)/Makefile
 	@echo "Checking on libocr.so..."
 	OCR_TYPE=$(OCR_TYPE) OCR_INSTALL=$(OCR_INSTALL) OCR_SRC=$(OCR_SRC) $(MAKE) -C $(OCR_BUILD) $(TARGETS) install
+endif
+
+# If the visualizer is being used, add necessary CFLAGS to application's makefile
+ifeq ($(ENABLE_VISUALIZER), yes)
+CFLAGS += -DOCR_ENABLE_EDT_NAMING -DOCR_ENABLE_VISUALIZER
 endif
 
 .PHONY: clean

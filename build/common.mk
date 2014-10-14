@@ -61,6 +61,10 @@ CFLAGS += -DINIT_DEQUE_CAPACITY=2048
 # (only on x86, requires OCR_ENABLE_EDT_NAMING)
 # CFLAGS += -DOCR_ENABLE_EDT_PROFILING
 
+# Enables data collection for execution timeline visualizer
+# (x86 only.  Requires -DOCR_ENABLE_EDT_NAMING and DEBUG_LVL_INFO)
+# CFLAGS += -DOCR_ENABLE_VISUALIZER -DOCR_ENABLE_EDT_NAMING
+
 ####################################################
 # Experimental flags
 ####################################################
@@ -70,7 +74,7 @@ CFLAGS += -DINIT_DEQUE_CAPACITY=2048
 # the EDTs.
 # NOTE: The application must also have this flag defined
 # If this is note the case, an ASSERT will happen
-#CFLAGS += -DOCR_ENABLE_EDT_NAMING
+# CFLAGS += -DOCR_ENABLE_EDT_NAMING
 
 # Enable profiling data to be used by runtime. This requires EDT_NAMING
 #CFLAGS += -DOCR_ENABLE_EDT_PROFILING -DOCR_ENABLE_EDT_NAMING
@@ -83,8 +87,8 @@ CFLAGS += -DINIT_DEQUE_CAPACITY=2048
 # Enable debug
 CFLAGS += -DOCR_DEBUG
 # Define level
-CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_WARN
-# CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_INFO
+# CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_WARN
+CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_INFO
 # CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_VERB
 # CFLAGS += -DOCR_DEBUG_LVL=DEBUG_LVL_VVERB
 
