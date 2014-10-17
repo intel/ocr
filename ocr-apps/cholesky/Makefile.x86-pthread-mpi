@@ -81,7 +81,9 @@ debug:  CFLAGS += -O0
 debug:  TARGETS := debug
 debug:  default
 
-install: all
+# We make sure to install this during install so Jenkins
+# can run it properly
+install: all $(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)/convertOut.exe
 
 # This rule will be executed prior to execution:
 #  - For the FSim target, this happens when the binary is built
@@ -120,9 +122,11 @@ postrun: $(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)/convertOut.exe
 	cd $(WORKLOAD_EXEC)
 	$(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)/convertOut.exe $(WORKLOAD_ARGS) $(WORKLOAD_OUTS) cholesky.out.txt
 
+ifneq ($(RUN_JENKINS), run)
 $(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)/convertOut.exe: ${WORKLOAD_SRC}/convertOut.c
 	mkdir -p $(WORKLOAD_INSTALL_ROOT)/$(OCR_TYPE)
 	gcc -m64 -o $@ $^
+endif
 
 # Include common part
 include ${APPS_ROOT}/makefiles/make-ocrrun.inc

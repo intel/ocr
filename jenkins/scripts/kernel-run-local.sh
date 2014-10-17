@@ -9,7 +9,7 @@ WORKLOAD_INSTALL=${WORKLOAD_INSTALL_ROOT}/$2
 
 echo "Running kernel '$1' for architecture '$2'"
 rm -f ${WORKLOAD_INSTALL}/runlog
-RUN_JENKINS=run make -f ${WORKLOAD_SRC}/Makefile.$2 run 2>&1 1> ${WORKLOAD_INSTALL}/runlog
+RUN_JENKINS=run make -f ${WORKLOAD_INSTALL}/Makefile.$2 run 2>&1 1> ${WORKLOAD_INSTALL}/runlog
 RETURN_CODE=$?
 
 if [ $RETURN_CODE -eq 0 ]; then

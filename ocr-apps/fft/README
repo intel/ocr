@@ -2,4 +2,4 @@ Running:
 
 make -f Makefile.<OCR_TYPE> run <fft_size_in_power_of_2>
 
-where fft_size_in_power_of_2 is the optional input data size for performing FFT on; default 0
+where fft_size_in_power_of_2 is the optional input data size for performing FFT on; default 10

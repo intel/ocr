@@ -41,7 +41,7 @@ WORKLOAD_INPUT_FILE_IDX := 0
 # the highest priority and will override both the
 # default arguments here and the ones passed through
 # an environment variable
-WORKLOAD_ARGS ?= 0
+WORKLOAD_ARGS ?= 10
 
 # Run mode (not fully supported)
 # Set to "yes" if running with torque
