@@ -21,7 +21,6 @@
 
 typedef struct {
     ocrPolicyDomainHc_t base;
-    u32 proxyLock; /**< Lock for creating proxies for remote DB */
     u8 (*baseProcessMessage)(struct _ocrPolicyDomain_t *self, struct _ocrPolicyMsg_t *msg,
                          u8 isBlocking);
     void (*baseStart)(struct _ocrPolicyDomain_t *self);
@@ -30,7 +29,7 @@ typedef struct {
     u64 shutdownAckCount;
     volatile u64 piledWorkerCtx;
     volatile u32 piledWorkerCtxLock;
-
+    u32 lockDbLookup; /**< Lock for querying proxies for remote DB */
 } ocrPolicyDomainHcDist_t;
 
 typedef struct {

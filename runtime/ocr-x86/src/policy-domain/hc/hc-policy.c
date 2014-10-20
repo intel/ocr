@@ -645,7 +645,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             ocrFatGuid_t dbFGuid = PD_MSG_FIELD(guid);
             u32 edtSlot = PD_MSG_FIELD(edtSlot);
             localDeguidify(self, &edtFGuid);
-            // At this point the edt MUST be local as well as the db data pointer.
+            // At this point the edt MUST be local as well as the acquire's message DB ptr
             ocrTask_t* task = (ocrTask_t*) edtFGuid.metaDataPtr;
             PD_MSG_FIELD(returnDetail) = self->taskFactories[0]->fcts.dependenceResolved(task, dbFGuid.guid, PD_MSG_FIELD(ptr), edtSlot);
         #undef PD_MSG
