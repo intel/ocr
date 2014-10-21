@@ -169,7 +169,7 @@ hihex:
 
 // Quick and dirty FP printer
 // Adapted from Aaron Landwehr's earlier code
-static void ftona(char ** buf, u32 * chars, u32 size, u32 precision, double fp)
+static void ftona(char ** buf, u32 * chars, u32 size, u32 precision, double fp, char c)
 {
     int i, j;
 
@@ -221,7 +221,28 @@ static void ftona(char ** buf, u32 * chars, u32 size, u32 precision, double fp)
     fp += fact;
 
     // Integral part of the number
-    u64 inte = (u64)fp;
+    u64 inte;
+
+    // Count of decimal point moves for %E/%e
+    int promotions = 0;
+
+    // Moves decimal point left/right
+    if(c=='E' || c=='e') {
+        // Don't do if zero
+        if(fp != (0.0+fact))
+            while(fp < 1.0 ) {
+                fp *= 10;
+                promotions--;
+            }
+
+        while(fp >= 10.0 ) {
+            fp /= 10;
+            promotions++;
+        }
+    }
+
+    inte = (u64)fp;
+
     // Fractional part of the number
     double frac = fp - inte;
 
@@ -272,6 +293,37 @@ static void ftona(char ** buf, u32 * chars, u32 size, u32 precision, double fp)
         (*chars)++;
     }
 
+    if(c=='E' || c=='e') {
+        // Size check
+        if((*chars) >= (size - 1 - 1)) goto out;
+        *(*buf)++ = c;
+        (*chars)++;
+
+        // Size check
+        if((*chars) >= (size - 1 - 1)) goto out;
+
+        // Write if exponent is positive or negative
+        if(promotions < 0) {
+            *(*buf)++ = '-';
+            // Flip negative so writing in next step will be correct
+            promotions *= -1;
+        } else {
+            *(*buf)++ = '+';
+        }
+        (*chars)++;
+
+        // Size check
+        if((*chars) >= (size - 1 - 1)) goto out;
+        // Write exponent tens place
+        *(*buf)++ = (char)(((int)'0')+(promotions/10));
+        (*chars)++;
+
+        // Size check
+        if((*chars) >= (size - 1 - 1)) goto out;
+        // Write exponent ones place
+        *(*buf)++ = (char)(((int)'0')+(promotions%10));
+        (*chars)++;
+    }
 out:
 
     // NULL terminate
@@ -408,6 +460,8 @@ static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va
                     done = 0;
                     break;
 
+                case 'e':
+                case 'E':
                 case 'f':
                 case 'F':
                     // Default precision
@@ -415,7 +469,7 @@ static u32 internal_vsnprintf(char *buf, u32 size, const char *fmt, __builtin_va
 
                     // We are always promoted to a double
                     arg_f = (double)__builtin_va_arg(ap, double);
-                    ftona(&buf, &chars, size, precision, arg_f);
+                    ftona(&buf, &chars, size, precision, arg_f, c);
                     break;
 
                 default:
@@ -462,10 +516,10 @@ u32 SNPRINTF(char * buf, u32 size, const char * fmt, ...) {
 //   32-bit integers: %d, %u, %x, %X
 //   64-bit integers: %ld, %lu, %lx, %lX, %lld, %llu, %#llx, %llX
 //   64-bit pointers: %p
-//   floating point:  %f
+//   floating point:  %f %e %E
 //
 // In addition, the # flag is supported for %x, %lx, %llx
-// In addition, precision is supported for %f
+// In addition, precision is supported for %f %e %E
 //
 
 #ifndef PRINTF_MAX
