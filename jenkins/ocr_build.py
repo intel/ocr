@@ -8,7 +8,7 @@ jobtype_ocr_init = {
     'run-cmd': '${JJOB_PRIVATE_HOME}/ocr/jenkins/scripts/init.sh',
     'param-cmd': '${JJOB_PRIVATE_HOME}/jenkins/scripts/empty-cmd.sh',
     'keywords': ('ocr', 'percommit'),
-    'timeout': 20,
+    'timeout': 160,
     'sandbox': ('local', 'shared', 'emptyShared', 'shareOK')
 }
 
