@@ -31,7 +31,6 @@ typedef struct {
     deque_t ** outboxes;
     u64 inboxesCount;
     deque_t ** inboxes;
-    u32 * inboxesLocks;
     // cached base function pointers
     void (*baseStart)(struct _ocrScheduler_t *self, struct _ocrPolicyDomain_t * PD);
     void (*baseStop)(struct _ocrScheduler_t *self);

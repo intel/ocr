@@ -40,17 +40,15 @@
     //Create inbox queues for each worker
     commSched->inboxesCount = boxCount;
     commSched->inboxes = pd->fcts.pdMalloc(pd, sizeof(deque_t *) * boxCount);
-    commSched->inboxesLocks = pd->fcts.pdMalloc(pd, sizeof(u32) * boxCount);
     for(i = 0; i < boxCount; ++i) {
-        commSched->inboxes[i] = newWorkStealingDeque(pd, NULL);
-        commSched->inboxesLocks[i] = 0;
+        commSched->inboxes[i] = newSemiConcurrentQueue(pd, NULL);
     }
 }
 
 void hcCommSchedulerStop(ocrScheduler_t * self) {
+    ocrSchedulerHcCommDelegate_t * commSched = (ocrSchedulerHcCommDelegate_t *) self;
     // deallocate all pdMalloc-ed structures
     ocrPolicyDomain_t * pd = self->pd;
-    ocrSchedulerHcCommDelegate_t * commSched = (ocrSchedulerHcCommDelegate_t *) self;
     u64 i;
     for(i = 0; i < commSched->outboxesCount; ++i) {
         pd->fcts.pdFree(pd, commSched->outboxes[i]);
@@ -60,6 +58,7 @@ void hcCommSchedulerStop(ocrScheduler_t * self) {
     }
     pd->fcts.pdFree(pd, commSched->outboxes);
     pd->fcts.pdFree(pd, commSched->inboxes);
+
     commSched->baseStop(self);
 }
 
@@ -166,17 +165,15 @@ u8 hcCommSchedulerTakeComm(ocrScheduler_t *self, u32* count, ocrFatGuid_t * fatH
         *count = curIdx;
         if (candidateList != NULL) {
             // Put stolen handles for which there's no interest back
-            u32 * inboxLock = &commSched->inboxesLocks[wid];
-            hal_lock32(inboxLock);
             iterator_t * iterator = candidateList->iterator(candidateList);
             while (iterator->hasNext(iterator)) {
                 ocrMsgHandle_t * handle = (ocrMsgHandle_t *) iterator->next(iterator);
+                // Push is concurrent with comm-worker populating the inbox
                 inbox->pushAtTail(inbox, handle, 0);
                 iterator->removeCurrent(iterator);
             }
             iterator->destruct(iterator);
             candidateList->destruct(candidateList);
-            hal_unlock32(inboxLock);
         }
     }
     return 0;
@@ -218,12 +215,9 @@ u8 hcCommSchedulerGiveComm(ocrScheduler_t *self, u32* count, ocrFatGuid_t* fatHa
                 // Comm-worker giving back to a worker's inbox
                 DPRINTF(DEBUG_LVL_VVERB,"[%d] hc-comm-delegate-scheduler:: Comm-worker pushes at tail of box %d\n",
                     (int) self->pd->myLocation, handle->boxId);
-                // The lock is required because the comp-worker can push back handles it took
-                u32 * inboxLock = &commSched->inboxesLocks[handle->boxId];
-                hal_lock32(inboxLock);
+                // Push is concurrent because the comp-worker may pushing/poping from inbox in parallel
                 deque_t * inbox = commSched->inboxes[handle->boxId];
                 inbox->pushAtTail(inbox, (ocrMsgHandle_t *) handle, 0);
-                hal_unlock32(inboxLock);
         #ifdef HYBRID_COMM_COMP_WORKER
             }
         #endif
