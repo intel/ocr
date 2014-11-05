@@ -35,11 +35,12 @@ ocrGuid_t sequential_cholesky_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDe
     u64 *func_args = paramv;
     u32 k = (u32) func_args[0];
     u32 tileSize = (u32) func_args[1];
-    ocrGuid_t out_lkji_kkkp1_event_guid = (ocrGuid_t) func_args[2];
+    u32 printStatOut = (u32) func_args[2];
+    ocrGuid_t out_lkji_kkkp1_event_guid = (ocrGuid_t) func_args[3];
 
     double* aBlock = (double*) (depv[0].ptr);
 
-    PRINTF("RUNNING sequential_cholesky %d with 0x%llx to satisfy\n", k, (u64)(out_lkji_kkkp1_event_guid));
+    if (printStatOut == 1) PRINTF("RUNNING sequential_cholesky %d with 0x%llx to satisfy\n", k, (u64)(out_lkji_kkkp1_event_guid));
 
     void* lBlock_db;
     ocrGuid_t out_lkji_kkkp1_db_guid;
@@ -82,9 +83,10 @@ ocrGuid_t trisolve_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
     u32 k = (u32) func_args[0];
     u32 j = (u32) func_args[1];
     u32 tileSize = (u32) func_args[2];
-    ocrGuid_t out_lkji_jkkp1_event_guid = (ocrGuid_t) func_args[3];
+    u32 printStatOut = (u32) func_args[3];
+    ocrGuid_t out_lkji_jkkp1_event_guid = (ocrGuid_t) func_args[4];
 
-    PRINTF("RUNNING trisolve (%d, %d)\n", k, j);
+    if (printStatOut == 1) PRINTF("RUNNING trisolve (%d, %d)\n", k, j);
 
     double* aBlock = (double*) (depv[0].ptr);
 
@@ -125,9 +127,10 @@ ocrGuid_t update_diagonal_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
     u32 j = (u32) func_args[1];
     u32 i = (u32) func_args[2];
     u32 tileSize = (u32) func_args[3];
-    ocrGuid_t out_lkji_jjkp1_event_guid = (ocrGuid_t) func_args[4];
+    u32 printStatOut = (u32) func_args[4];
+    ocrGuid_t out_lkji_jjkp1_event_guid = (ocrGuid_t) func_args[5];
 
-    PRINTF("RUNNING update_diagonal (%d, %d, %d)\n", k, j, i);
+    if (printStatOut == 1) PRINTF("RUNNING update_diagonal (%d, %d, %d)\n", k, j, i);
 
     double* aBlock = (double*) (depv[0].ptr);
 
@@ -156,9 +159,10 @@ ocrGuid_t update_nondiagonal_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep
     u32 j = (u32) func_args[1];
     u32 i = (u32) func_args[2];
     u32 tileSize = (u32) func_args[3];
-    ocrGuid_t out_lkji_jikp1_event_guid = (ocrGuid_t) func_args[4];
+    u32 printStatOut = (u32) func_args[4];
+    ocrGuid_t out_lkji_jikp1_event_guid = (ocrGuid_t) func_args[5];
 
-    PRINTF("RUNNING update_nondiagonal (%d, %d, %d)\n", k, j, i);
+    if (printStatOut == 1) PRINTF("RUNNING update_nondiagonal (%d, %d, %d)\n", k, j, i);
 
     double* aBlock = (double*) (depv[0].ptr);
 
@@ -282,52 +286,54 @@ ocrGuid_t wrap_up_task ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) 
     return NULL_GUID;
 }
 
-inline static void sequential_cholesky_task_prescriber (ocrGuid_t edtTemp, u32 k,
-        u32 tileSize, ocrGuid_t*** lkji_event_guids) {
+inline static void sequential_cholesky_task_prescriber (ocrGuid_t edtTemp, u32 k, u32 tileSize,
+                                                        u32 printStatOut, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t seq_cholesky_task_guid;
 
-    u64 func_args[3];
+    u64 func_args[4];
     func_args[0] = k;
     func_args[1] = tileSize;
-    func_args[2] = (u64)(lkji_event_guids[k][k][k+1]);
+    func_args[2] = printStatOut;
+    func_args[3] = (u64)(lkji_event_guids[k][k][k+1]);
 
     ocrGuid_t affinity = NULL_GUID;
-    ocrEdtCreate(&seq_cholesky_task_guid, edtTemp, 3, func_args, 1, NULL, PROPERTIES, affinity, NULL);
+    ocrEdtCreate(&seq_cholesky_task_guid, edtTemp, 4, func_args, 1, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[k][k][k], seq_cholesky_task_guid, 0, DB_MODE_ITW);
 }
 
 inline static void trisolve_task_prescriber ( ocrGuid_t edtTemp, u32 k, u32 j, u32 tileSize,
-        ocrGuid_t*** lkji_event_guids) {
+                                              u32 printStatOut, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t trisolve_task_guid;
 
-    u64 func_args[4];
+    u64 func_args[5];
     func_args[0] = k;
     func_args[1] = j;
     func_args[2] = tileSize;
-    func_args[3] = (u64)(lkji_event_guids[j][k][k+1]);
-
+    func_args[3] = printStatOut;
+    func_args[4] = (u64)(lkji_event_guids[j][k][k+1]);
 
     ocrGuid_t affinity = NULL_GUID;
-    ocrEdtCreate(&trisolve_task_guid, edtTemp, 4, func_args, 2, NULL, PROPERTIES, affinity, NULL);
+    ocrEdtCreate(&trisolve_task_guid, edtTemp, 5, func_args, 2, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[j][k][k], trisolve_task_guid, 0, DB_MODE_ITW);
     ocrAddDependence(lkji_event_guids[k][k][k+1], trisolve_task_guid, 1, DB_MODE_ITW);
 }
 
-inline static void update_nondiagonal_task_prescriber ( ocrGuid_t edtTemp, u32 k, u32 j, u32 i,
-        u32 tileSize, ocrGuid_t*** lkji_event_guids) {
+inline static void update_nondiagonal_task_prescriber ( ocrGuid_t edtTemp, u32 k, u32 j, u32 i, u32 tileSize,
+                                                        u32 printStatOut, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t update_nondiagonal_task_guid;
 
-    u64 func_args[5];
+    u64 func_args[6];
     func_args[0] = k;
     func_args[1] = j;
     func_args[2] = i;
     func_args[3] = tileSize;
-    func_args[4] = (u64)(lkji_event_guids[j][i][k+1]);
+    func_args[4] = printStatOut;
+    func_args[5] = (u64)(lkji_event_guids[j][i][k+1]);
 
     ocrGuid_t affinity = NULL_GUID;
-    ocrEdtCreate(&update_nondiagonal_task_guid, edtTemp, 5, func_args, 3, NULL, PROPERTIES, affinity, NULL);
+    ocrEdtCreate(&update_nondiagonal_task_guid, edtTemp, 6, func_args, 3, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[j][i][k], update_nondiagonal_task_guid, 0, DB_MODE_ITW);
     ocrAddDependence(lkji_event_guids[j][k][k+1], update_nondiagonal_task_guid, 1, DB_MODE_ITW);
@@ -335,26 +341,27 @@ inline static void update_nondiagonal_task_prescriber ( ocrGuid_t edtTemp, u32 k
 }
 
 
-inline static void update_diagonal_task_prescriber ( ocrGuid_t edtTemp, u32 k, u32 j, u32 i,
-        u32 tileSize, ocrGuid_t*** lkji_event_guids) {
+inline static void update_diagonal_task_prescriber ( ocrGuid_t edtTemp, u32 k, u32 j, u32 i, u32 tileSize,
+                                                     u32 printStatOut, ocrGuid_t*** lkji_event_guids) {
     ocrGuid_t update_diagonal_task_guid;
 
-    u64 func_args[5];
+    u64 func_args[6];
     func_args[0] = k;
     func_args[1] = j;
     func_args[2] = i;
     func_args[3] = tileSize;
-    func_args[4] = (u64)(lkji_event_guids[j][j][k+1]);
+    func_args[4] = printStatOut;
+    func_args[5] = (u64)(lkji_event_guids[j][j][k+1]);
 
     ocrGuid_t affinity = NULL_GUID;
-    ocrEdtCreate(&update_diagonal_task_guid, edtTemp, 5, func_args, 2, NULL, PROPERTIES, affinity, NULL);
+    ocrEdtCreate(&update_diagonal_task_guid, edtTemp, 6, func_args, 2, NULL, PROPERTIES, affinity, NULL);
 
     ocrAddDependence(lkji_event_guids[j][j][k], update_diagonal_task_guid, 0, DB_MODE_ITW);
     ocrAddDependence(lkji_event_guids[j][k][k+1], update_diagonal_task_guid, 1, DB_MODE_ITW);
 }
 
-inline static void wrap_up_task_prescriber ( ocrGuid_t edtTemp, u32 numTiles, u32 tileSize, u32 outSelLevel,
-        ocrGuid_t*** lkji_event_guids ) {
+inline static void wrap_up_task_prescriber ( ocrGuid_t edtTemp, u32 numTiles, u32 tileSize,
+                                             u32 outSelLevel, ocrGuid_t*** lkji_event_guids ) {
     u32 i,j,k;
     ocrGuid_t wrap_up_task_guid;
 
@@ -473,6 +480,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     u32 numTiles = -1;
     u32 i, j, k, c;
     u32 outSelLevel = 2;
+    u32 printStatOut = 0;
     double **matrix, ** temp;
     u64 argc;
 
@@ -501,7 +509,10 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
         PRINTF("\t--ds -- Specify the Size of the Input Matrix\n");
         PRINTF("\t--ts -- Specify the Tile Size\n");
         PRINTF("\t--fi -- Specify the Input File Name of the Matrix\n");
-//    PRINTF("\t--fo -- Specify an Output File Name (default: ocr_mkl_cholesky.out)\n");
+        PRINTF("\t--ps -- Print status updates on algorithm computation to stdout\n");
+        PRINTF("\t\t0: Disable (default)\n");
+        PRINTF("\t\t1: Enable\n");
+        PRINTF("\t--ol -- Output Selection Level:\n");
         PRINTF("\t\t0: Print solution to stdout\n");
         PRINTF("\t\t1: Write solution to text file\n");
         PRINTF("\t\t2: Write solution to binary file (default)\n");
@@ -522,7 +533,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
                     {"ds", required_argument, 0, 'a'},
                     {"ts", required_argument, 0, 'b'},
                     {"fi", required_argument, 0, 'c'},
-                    {"fo", required_argument, 0, 'd'},
+                    {"ps", required_argument, 0, 'd'},
                     {"ol", required_argument, 0, 'e'},
                     {0, 0, 0, 0}
                 };
@@ -548,9 +559,8 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
                 fileNameIn = optarg;
                 break;
             case 'd':
-                //PRINTF("Option d: fileNameOut with value '%s'\n", optarg);
-                fileNameOut = (char*) realloc(fileNameOut, sizeof(optarg));
-                strcpy(fileNameOut, optarg);
+                //PRINTF("Option d: printStatOut with value '%s'\n", optarg);
+                printStatOut = (u32) atoi(optarg);
                 break;
             case 'e':
                 //PRINTF("Option e: outSelLevel with value '%s'\n", optarg);
@@ -567,7 +577,9 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
                 PRINTF("\t--ds -- Specify the Size of the Input Matrix\n");
                 PRINTF("\t--ts -- Specify the Tile Size\n");
                 PRINTF("\t--fi -- Specify the Input File Name of the Matrix\n");
-//        PRINTF("\t--fo -- Specify an Output File Name (default: ocr_mkl_cholesky.out)\n");
+                PRINTF("\t--ps -- Print status updates on algorithm computation to stdout\n");
+                PRINTF("\t\t0: Disable (default)\n");
+                PRINTF("\t\t1: Enable\n");
                 PRINTF("\t--ol -- Output Selection Level:\n");
                 PRINTF("\t\t0: Print solution to stdout\n");
                 PRINTF("\t\t1: Write solution to text file\n");
@@ -660,6 +672,9 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
         else if (compare_string(getArgv(programArg, i), "--ts")  == 0)
             tileSize = (u32) atoi(getArgv(programArg, i+1));
 
+        else if (compare_string(getArgv(programArg, i), "--ps")  == 0)
+            printStatOut = (u32) atoi(getArgv(programArg, i+1));
+
 //        else if (compare_string(getArgv(programArg, i), "--ol") == 0)
 //            outSelLevel = (u32) atoi(getArgv(programArg, i+1));
     }
@@ -676,6 +691,9 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
         PRINTF("\t--ds -- Specify the Size of the Input Matrix\n");
         PRINTF("\t--ts -- Specify the Tile Size\n");
         PRINTF("\t--fi -- Specify the Input File Name of the Matrix\n");
+        PRINTF("\t--ps -- Print status updates on algorithm computation to stdout\n");
+        PRINTF("\t\t0: Disable (default)\n");
+        PRINTF("\t\t1: Enable\n");
 
         ocrShutdown();
         return NULL_GUID;
@@ -697,13 +715,14 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrGuid_t templateSeq, templateTrisolve,
               templateUpdateNonDiag, templateUpdate, templateWrap;
 
-    ocrEdtTemplateCreate(&templateSeq, sequential_cholesky_task, 3, 1);
-    ocrEdtTemplateCreate(&templateTrisolve, trisolve_task, 4, 2);
-    ocrEdtTemplateCreate(&templateUpdateNonDiag, update_nondiagonal_task, 5, 3);
-    ocrEdtTemplateCreate(&templateUpdate, update_diagonal_task, 5, 2);
+    ocrEdtTemplateCreate(&templateSeq, sequential_cholesky_task, 4, 1);
+    ocrEdtTemplateCreate(&templateTrisolve, trisolve_task, 5, 2);
+    ocrEdtTemplateCreate(&templateUpdateNonDiag, update_nondiagonal_task, 6, 3);
+    ocrEdtTemplateCreate(&templateUpdate, update_diagonal_task, 6, 2);
     ocrEdtTemplateCreate(&templateWrap, wrap_up_task, 3, (numTiles+1)*numTiles/2);
 
-    PRINTF("Going to satisfy initial tiles\n");
+
+    if (printStatOut == 1) PRINTF("Going to satisfy initial tiles\n");
 #ifdef TG_ARCH
     satisfyInitialTiles( numTiles, tileSize, lkji_event_guids);
 #else
@@ -711,26 +730,24 @@ ocrGuid_t mainEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 #endif
 
     for ( k = 0; k < numTiles; ++k ) {
-        PRINTF("Prescribing sequential task %d\n", k);
-        sequential_cholesky_task_prescriber ( templateSeq, k, tileSize,
-                                              lkji_event_guids);
+        if (printStatOut == 1) PRINTF("Prescribing sequential task %d\n", k);
+        sequential_cholesky_task_prescriber ( templateSeq, k, tileSize, printStatOut, lkji_event_guids);
 
         for( j = k + 1 ; j < numTiles ; ++j ) {
-            trisolve_task_prescriber ( templateTrisolve,
-                                       k, j, tileSize, lkji_event_guids);
+            trisolve_task_prescriber ( templateTrisolve, k, j, tileSize, printStatOut, lkji_event_guids);
 
             for( i = k + 1 ; i < j ; ++i ) {
-                update_nondiagonal_task_prescriber ( templateUpdateNonDiag,
-                                                     k, j, i, tileSize, lkji_event_guids);
+                update_nondiagonal_task_prescriber ( templateUpdateNonDiag, k, j, i,
+                                                     tileSize, printStatOut, lkji_event_guids);
             }
-            update_diagonal_task_prescriber ( templateUpdate,
-                                              k, j, i, tileSize, lkji_event_guids);
+            update_diagonal_task_prescriber ( templateUpdate, k, j, i, tileSize,
+                                              printStatOut, lkji_event_guids);
         }
     }
 
     wrap_up_task_prescriber ( templateWrap, numTiles, tileSize, outSelLevel, lkji_event_guids );
 
-    PRINTF("Wrapping up mainEdt\n");
+    if (printStatOut == 1) PRINTF("Wrapping up mainEdt\n");
     return NULL_GUID;
 }
 

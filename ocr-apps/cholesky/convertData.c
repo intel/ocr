@@ -30,6 +30,7 @@ int main(int argc, const char *argv[]) {
     int matrixSize = -1, tileSize = -1, numTiles = -1;
     int outSelLevel = -1;
     int c;
+    int printStatOut = 0;
 
     char *fileNameIn, *fileNameOut = "cholesky_out.bin";
 
@@ -43,6 +44,9 @@ int main(int argc, const char *argv[]) {
         printf("\t--ds -- Specify the Size of the Input Matrix\n");
         printf("\t--ts -- Specify the Tile Size\n");
         printf("\t--fi -- Specify the Input File Name of the Matrix\n");
+        printf("\t--ps -- Print status updates on algorithm computation to stdout\n");
+        printf("\t\t0: Disable (default)\n");
+        printf("\t\t1: Enable\n");
 
         return 1;
     }
@@ -56,12 +60,13 @@ int main(int argc, const char *argv[]) {
                     {"ds", required_argument, 0, 'a'},
                     {"ts", required_argument, 0, 'b'},
                     {"fi", required_argument, 0, 'c'},
+                    {"ps", required_argument, 0, 'd'},
                     {0, 0, 0, 0}
                 };
 
             int option_index = 0;
 
-            c = getopt_long(argc, argv, "a:b:c", long_options, &option_index);
+            c = getopt_long(argc, argv, "a:b:c:d", long_options, &option_index);
 
             if (c == -1) // Detect the end of the options
                 break;
@@ -79,6 +84,10 @@ int main(int argc, const char *argv[]) {
                 //printf("Option c: fileNameIn with value '%s'\n", optarg);
                 fileNameIn = optarg;
                 break;
+            case 'd':
+                //PRINTF("Option d: printStatOut with value '%s'\n", optarg);
+                printStatOut = (int) atoi(optarg);
+                break;
             default:
                 printf("ERROR: Invalid argument switch\n\n");
                 printf("Cholesky\n");
@@ -90,6 +99,9 @@ int main(int argc, const char *argv[]) {
                 printf("\t--ds -- Specify the Size of the Input Matrix\n");
                 printf("\t--ts -- Specify the Tile Size\n");
                 printf("\t--fi -- Specify the Input File Name of the Matrix\n");
+                printf("\t--es -- Print status updates on algorithm computation to stdout\n");
+                printf("\t\t0: Disable (default)\n");
+                printf("\t\t1: Enable\n");
 
                 return 1;
             }

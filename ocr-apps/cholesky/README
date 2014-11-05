@@ -28,6 +28,9 @@ Arguments:
         --ds -- Specify the Size of the Input Matrix
         --ts -- Specify the Tile Size
         --fi -- Specify the Input File Name of the Matrix
+        --ps -- Print status updates on algorithm computation to stdout
+                0: Disable (default)
+                1: Enable
 
         Non-TG Args:
         --ol -- Output Selection Level:
