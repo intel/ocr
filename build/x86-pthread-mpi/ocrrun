@@ -50,13 +50,39 @@ fi
 RES=`grep "MPI" ${OCR_CONFIG}`
 
 if [[ "$RES" != "" ]]; then
-    #Default to 2 nodes for now
+
+    if [[ "${OCR_NODEFILE}" != "" ]]; then
+        # count words since hostnames shouldn't have spaces (-l only counts new lines)
+        NODECOUNT=`more ${OCR_NODEFILE} | wc -w`
+        if [[ "${OCR_NUM_NODES}" != "${NODECOUNT}" ]]; then
+            OLD_VALUE=${OCR_NUM_NODES}
+            OCR_NUM_NODES=${NODECOUNT}
+            if [[ "${OLD_VALUE}" != "" ]]; then
+                echo "Warning: OCR_NUM_NODES differs from number of nodes declared in OCR_NODEFILE (${OLD_VALUE} and ${NODECOUNT})"
+            fi
+        fi
+        OCR_NODEFILE="-machinefile ${OCR_NODEFILE}"
+    fi
+
+    #If nothing has provided default to 2 instances on local node
     #TODO This information should be extracted from the config file
-    if [[ "$OCR_NUM_NODES" == "" ]]; then
+    if [[ "${OCR_NUM_NODES}" == "" ]]; then
         OCR_NUM_NODES=2
     fi
-    # TODO ifdef
-    mpirun -np ${OCR_NUM_NODES} ${PROGRAM_BIN} -ocr:cfg ${OCR_CONFIG}
+
+    if [[ "${OCRRUN_GDB}" == "yes" ]]; then
+        OCR_MPI_OPTS+=" --gdb "
+    fi
+
+    if [[ "${OCRRUN_VALGRIND_OPTS}" != "" ]]; then
+        OCRRUN_VALGRIND="yes";
+    fi
+
+    if [[ "${OCRRUN_VALGRIND}" == "yes" ]]; then
+        PROGRAM_BIN="valgrind ${OCRRUN_VALGRIND_OPTS} ${PROGRAM_BIN}"
+    fi
+
+    mpirun -np ${OCR_NUM_NODES} ${OCR_NODEFILE} ${OCR_MPI_OPTS} ${PROGRAM_BIN} -ocr:cfg ${OCR_CONFIG}
     RET_CODE=$?
     exit ${RET_CODE}
 fi

@@ -61,6 +61,10 @@ SRCS := cholesky-affinitized.c
 # Additional CFLAGS. By default, it includes
 # all OCR required includes and apps/libs/<target>/include
 # TG_ARCH is also defined for Fsim
+
+# to be able to usethe affinity API under extensions/
+CFLAGS_WARN_ERROR := no
+
 CFLAGS :=
 # Additional LDFLAGS. By default, it includes
 # the required OCR library path and apps/libs/<target/lib
