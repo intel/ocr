@@ -187,14 +187,17 @@ u8 MPICommSendMessage(ocrCommPlatform_t * self,
     ASSERT(targetRank > -1);
     MPI_Comm comm = MPI_COMM_WORLD;
 
+    // Setup request's MPI send
+    mpiCommHandle_t * handle = createMpiHandle(self, mpiId, properties, message);
+
     // Setup request's response
     if ((message->type & PD_MSG_REQ_RESPONSE) && !(properties & ASYNC_MSG_PROP)) {
+    #if STRATEGY_PRE_POST_RECV
         // Reuse request message as receive buffer unless indicated otherwise
         ocrPolicyMsg_t * respMsg = message;
         int respTag = mpiId;
         // Prepare a handle for the incoming response
         mpiCommHandle_t * respHandle = createMpiHandle(self, respTag, properties, respMsg);
-    #if STRATEGY_PRE_POST_RECV
         //PERF: (STRATEGY_PRE_POST_RECV) could do better if the response for this message's type is of fixed-length.
         int respCount = mpiComm->maxMsgSize;
         MPI_Request * status = &(respHandle->status);
@@ -207,16 +210,14 @@ u8 MPICommSendMessage(ocrCommPlatform_t * self,
             ASSERT(false);
             return res;
         }
+        mpiComm->incoming->pushFront(mpiComm->incoming, respHandle);
     #endif
     #if STRATEGY_PROBE_RECV
         // In probe mode just record the recipient id to be checked later
-        respHandle->src = targetRank;
+        handle->src = targetRank;
     #endif
-        mpiComm->incoming->pushFront(mpiComm->incoming, respHandle);
     }
 
-    // Setup request's MPI send
-    mpiCommHandle_t * handle = createMpiHandle(self, mpiId, properties, message);
     // If this send is for a response, use message's msgId as tag to
     // match the source recv operation that had been posted on the request send.
     // Note that msgId may be set to zero in the case of asynchronous message
@@ -326,15 +327,18 @@ u8 MPICommPollMessage_RL3(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
             DPRINTF(DEBUG_LVL_VERB,"[MPI %d] successfully sent msgId %ld msg %p type %x\n",
                 mpiRankToLocation(self->pd->myLocation), mpiHandle->msg->msgId, mpiHandle->msg, mpiHandle->msg->type);
             u32 msgProperties = mpiHandle->properties;
-            // By construction, either message are persistent in API's upper levels
+            // By construction, either messages are persistent in API's upper levels
             // or they've been made persistent on the send through a copy.
             ASSERT(msgProperties & PERSIST_MSG_PROP);
-            // delete the message if one-way (request or response).
-            // Otherwise message is used to store the reply
+            // elete the message if one-way (request or response).
+            // Otherwise message might be used to store the response later.
             if (!(msgProperties & TWOWAY_MSG_PROP) || (msgProperties & ASYNC_MSG_PROP)) {
                 pd->fcts.pdFree(pd, mpiHandle->msg);
+                pd->fcts.pdFree(pd, mpiHandle);
+            } else {
+                // The message requires a response, put it in the incoming list
+                mpiComm->incoming->pushFront(mpiComm->incoming, mpiHandle);
             }
-            pd->fcts.pdFree(pd, mpiHandle);
             outgoingIt->removeCurrent(outgoingIt);
         }
     }

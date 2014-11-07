@@ -103,16 +103,16 @@ void linkedListIteratorRemove(iterator_t * iterator) {
     // after rm      NULL | head   | head+2
     // next
     //               head | head+2 | head+3
+    listnode_t * toErase = it->prev;
     if (it->ante == NULL) {
         it->list->head = it->curr;
         it->prev = NULL;
     } else {
-        listnode_t * toErase = it->prev;
         it->ante->next = it->curr;
         it->prev = it->ante;
         it->ante = NULL;
-        iterator->pd->fcts.pdFree(iterator->pd, toErase);
     }
+    iterator->pd->fcts.pdFree(iterator->pd, toErase);
 }
 
 void linkedListIteratorDestruct(iterator_t * iterator) {

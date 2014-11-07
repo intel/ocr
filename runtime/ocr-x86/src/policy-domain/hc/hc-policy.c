@@ -586,6 +586,8 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
             ASSERT(db->fctId == self->dbFactories[0]->factoryId);
             PD_MSG_FIELD(returnDetail) = self->dbFactories[0]->fcts.acquire(
                 db, &(PD_MSG_FIELD(ptr)), PD_MSG_FIELD(edt), EDT_SLOT_NONE, DB_MODE_ITW, false, (u32) DB_MODE_ITW);
+            // Set the default mode in the response message for the caller
+            PD_MSG_FIELD(properties) |= DB_MODE_ITW;
         } else {
             // Cannot acquire
             PD_MSG_FIELD(ptr) = NULL;

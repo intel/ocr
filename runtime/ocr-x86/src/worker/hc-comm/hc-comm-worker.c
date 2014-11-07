@@ -108,10 +108,14 @@ static u8 takeFromSchedulerAndSend(ocrPolicyDomain_t * pd) {
             //If one-way, the comm-layer disposes of the handle when it is not needed anymore
             //=> Sounds like if an ack is expected, caller is responsible for dealloc, else callee
             pd->fcts.sendMessage(pd, outgoingHandle->msg->destLocation, outgoingHandle->msg, sendHandle, properties);
-            // This is contractual for now. It recycles the handler allocated in the delegate-comm
-            // platform that we do not to keep around when the message is flagged ASYNC_MSG_PROP.
-            // It implies the callsite of send message did not ask for the handler to be returned.
-            if (properties & ASYNC_MSG_PROP) {
+
+            // This is contractual for now. It recycles the handler allocated in the delegate-comm-api:
+            // - Sending a request one-way or a response (always non-blocking): The delegate-comm-api
+            //   creates the handle merely to be able to give it to the scheduler. There's no use of the
+            //   handle beyond this point.
+            // - The runtime does not implement blocking one-way. Hence, the callsite of the original
+            //   send message did not ask for a handler to be returned.
+            if (sendHandle == NULL) {
                 outgoingHandle->destruct(outgoingHandle);
             }
 

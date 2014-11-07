@@ -375,25 +375,26 @@ static void * acquireLocalDb(ocrPolicyDomain_t * pd, ocrGuid_t dbGuid, ocrDbAcce
 #undef PD_TYPE
 }
 
-static void releaseLocalDb(ocrPolicyDomain_t * pd, ocrGuid_t dbGuid, u64 size) {
-    ocrTask_t *curTask = NULL;
-    ocrPolicyMsg_t msg;
-    getCurrentEnv(NULL, NULL, &curTask, &msg);
-#define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_DB_RELEASE
-    msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
-    PD_MSG_FIELD(guid.guid) = dbGuid;
-    PD_MSG_FIELD(guid.metaDataPtr) = NULL;
-    PD_MSG_FIELD(edt.guid) = curTask->guid;
-    PD_MSG_FIELD(edt.metaDataPtr) = curTask;
-    PD_MSG_FIELD(size) = size;
-    PD_MSG_FIELD(properties) = DB_PROP_RT_ACQUIRE; // Runtime release
-    PD_MSG_FIELD(returnDetail) = 0;
-    // Ignore failures at this point
-    pd->fcts.processMessage(pd, &msg, true);
-#undef PD_MSG
-#undef PD_TYPE
-}
+// Might be resurrected when we finish NCR DB mode implementation
+// static void releaseLocalDb(ocrPolicyDomain_t * pd, ocrGuid_t dbGuid, u64 size) {
+//     ocrTask_t *curTask = NULL;
+//     ocrPolicyMsg_t msg;
+//     getCurrentEnv(NULL, NULL, &curTask, &msg);
+// #define PD_MSG (&msg)
+// #define PD_TYPE PD_MSG_DB_RELEASE
+//     msg.type = PD_MSG_DB_RELEASE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
+//     PD_MSG_FIELD(guid.guid) = dbGuid;
+//     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
+//     PD_MSG_FIELD(edt.guid) = curTask->guid;
+//     PD_MSG_FIELD(edt.metaDataPtr) = curTask;
+//     PD_MSG_FIELD(size) = size;
+//     PD_MSG_FIELD(properties) = DB_PROP_RT_ACQUIRE; // Runtime release
+//     PD_MSG_FIELD(returnDetail) = 0;
+//     // Ignore failures at this point
+//     pd->fcts.processMessage(pd, &msg, true);
+// #undef PD_MSG
+// #undef PD_TYPE
+// }
 
 static void * findMsgPayload(ocrPolicyMsg_t * msg, u32 * size) {
     u64 msgHeaderSize = sizeof(ocrPolicyMsg_t);
