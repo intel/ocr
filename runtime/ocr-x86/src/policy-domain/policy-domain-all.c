@@ -85,10 +85,12 @@ u8 ocrPolicyMsgGetMsgSize(ocrPolicyMsg_t *msg, u64 *fullSize,
 
     case PD_MSG_EDTTEMP_CREATE:
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
+#ifdef OCR_ENABLE_EDT_NAMING
         *marshalledSize = PD_MSG_FIELD(funcNameLen)*sizeof(char);
         if(*marshalledSize) {
             *marshalledSize += 1*sizeof(char); // Null terminating character
         }
+#endif
         break;
 #undef PD_TYPE
 
@@ -203,6 +205,7 @@ u8 ocrPolicyMsgMarshallMsg(ocrPolicyMsg_t* msg, u8* buffer, ocrMarshallMode_t mo
     case PD_MSG_EDTTEMP_CREATE: {
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
         // First copy things over
+#ifdef OCR_ENABLE_EDT_NAMING
         u64 s = sizeof(char)*(PD_MSG_FIELD(funcNameLen)+1);
         if(s) {
             hal_memCopy(curPtr, PD_MSG_FIELD(funcName), s, false);
@@ -219,6 +222,7 @@ u8 ocrPolicyMsgMarshallMsg(ocrPolicyMsg_t* msg, u8* buffer, ocrMarshallMode_t mo
             // Finally move the curPtr for the next object (none as of now)
             curPtr += s;
         }
+#endif
         break;
 #undef PD_TYPE
     }
@@ -401,12 +405,14 @@ u8 ocrPolicyMsgUnMarshallMsg(u8* mainBuffer, u8* addlBuffer,
 
     case PD_MSG_EDTTEMP_CREATE: {
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
+#ifdef OCR_ENABLE_EDT_NAMING
         if(PD_MSG_FIELD(funcNameLen) > 0) {
             u64 t = (u64)(PD_MSG_FIELD(funcName));
             PD_MSG_FIELD(funcName) = (char*)((t&1?localAddlPtr:localMainPtr) + (t>>1));
             DPRINTF(DEBUG_LVL_VVERB, "Converted field funcName from 0x%lx to 0x%lx\n",
                     t, (u64)PD_MSG_FIELD(funcName));
         }
+#endif
         break;
 #undef PD_TYPE
     }

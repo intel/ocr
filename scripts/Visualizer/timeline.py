@@ -4,32 +4,32 @@ import subprocess
 import os
 from operator import itemgetter
 
-LOG_FILE_PATH = './filtered.txt'
-#TYPE_STRINGS = ('EVT(INFO)', 'EDT(INFO)')
-HTML_FILE_NAME = 'timeline.html'
-
 START_TIME_INDEX = 9
 END_TIME_INDEX = 11
 FCT_NAME_INDEX = 7
 WORKER_ID_INDEX = 2
 NUM_TICKS = 15
+PD_ID_INDEX = 1
 
-#========= Write EDT EXECTUION events to xml file ==========
+MAX_EDTS_PER_PAGE = 1000
+
+#========= Write EDT EXECTUION events to html file ==========
 def postProcessData(inString, outFile, offSet, lastLineFlag):
     words = inString.split()
     workerID = words[WORKER_ID_INDEX][WORKER_ID_INDEX:]
     fctName = words[FCT_NAME_INDEX]
     startTime = (int(words[START_TIME_INDEX]) - offSet)/1000 #Ns to Ms
     endTime = (int(words[END_TIME_INDEX]) - offSet)/1000 #Ns to Ms
+    whichNode = words[PD_ID_INDEX][1:]
 
     if lastLineFlag == True:
-        outFile.write('\t\t[\'Worker: ' + str(workerID) + '\', \'' + str(fctName) + '\', new Date(0,0,0,0,0,0,' + str(startTime) + '), new Date(0,0,0,0,0,0,' + str(endTime) + ') ]]);\n')
+        outFile.write('\t\t[\'Worker: ' + str(workerID) + '\', \'' + str(fctName) + ' on ' + str(whichNode) + '\', new Date(0,0,0,0,0,0,' + str(startTime) + '), new Date(0,0,0,0,0,0,' + str(endTime) + ') ]]);\n')
     else:
-        outFile.write('\t\t[\'Worker: ' + str(workerID) + '\', \'' + str(fctName) + '\', new Date(0,0,0,0,0,0,' + str(startTime) + '), new Date(0,0,0,0,0,0,' + str(endTime) + ') ],\n')
+        outFile.write('\t\t[\'Worker: ' + str(workerID) + '\', \'' + str(fctName) + ' on ' + str(whichNode) + '\', new Date(0,0,0,0,0,0,' + str(startTime) + '), new Date(0,0,0,0,0,0,' + str(endTime) + ') ],\n')
 
 #========== Strip Un-needed events from OCR debug log ========
-def runShellStrip():
-    subprocess.call(['./stripExcessEvents.sh'])
+def runShellStrip(dbgLog):
+    os.system("egrep -w \'EDT\\(INFO\\)|EVT\\(INFO\\)\' " + str(dbgLog) + " | egrep -w \'FctName\' > filtered.txt")
     return 0
 
 #========== Handles variable execution times and writes time periods ========
@@ -110,7 +110,7 @@ def appendPreHTML(outFile, exeTime, numThreads, numEDTs, totalTime, zoom):
     outFile.write('\tdata.addRows([\n')\
 
 #========== Write Common closing HTML tags to output file ========
-def appendPostHTML(outFile, zoom):
+def appendPostHTML(outFile, zoom, flag, pageNum):
 
     outFile.write('\tdashboard.bind(control, chart)\n')
     outFile.write('\tdashboard.draw(data)\n')
@@ -121,6 +121,32 @@ def appendPostHTML(outFile, zoom):
     outFile.write('<div id="dashboard" style="width: 1800px; overflow:scroll;"></div>\n')
     outFile.write('<div id="chart" style="width:1800px; height: ' + str(zoom) + 'px;"></div>\n')
     outFile.write('<div id="control" style="width: 1670px; height: 200px; left: 138px"></div>\n')
+
+    nextPage = pageNum+1
+    prevPage = pageNum-1
+
+    if flag == "first":
+    #Write 'next' button only
+        outFile.write('<form action="./timeline' + str(nextPage) + '.html">\n')
+        outFile.write('\t<input type="submit" value="Next">\n')
+        outFile.write('</form>\n')
+
+    if flag == "mid":
+    #Write 'next' and 'previous' buttons
+        outFile.write('<form action="./timeline' + str(prevPage) + '.html">\n')
+        outFile.write('\t<input type="submit" value="Previous">\n')
+        outFile.write('</form>\n')
+
+        outFile.write('<form action="./timeline' + str(nextPage) + '.html">\n')
+        outFile.write('\t<input type="submit" value="Next">\n')
+        outFile.write('</form>\n')
+
+    if flag == "last":
+    #Write 'previous' button only
+        outFile.write('<form action="./timeline' + str(prevPage) + '.html">\n')
+        outFile.write('\t<input type="submit" value="Previous">\n')
+        outFile.write('</form>\n')
+
     outFile.write('</body>\n')
     outFile.write('</html>\n')
 
@@ -176,22 +202,57 @@ def sortByWorker(sortedLog, uniqWorkers):
 
     return sortedWrkrs
 
+#========= Sets zoom bar height to snap to timeline ==========
+def setZoom(numThreads):
+    zoom = 75 + (numThreads*40)
+    if zoom > 715:
+        #715 in the number of vertical pixels (from top of page to top of zoom bar)
+        #at 16 rows. Inrease this value to show more records.
+        zoom = 715
+    return zoom
+
+#========= Get a partition of records of size MAX_EDTS_PER_PAGE =========
+def getSub(log, flag, pageNum):
+
+    if flag == "single":
+        startIdx = 0
+        endIdx = len(log)
+    elif flag == "first":
+        startIdx = 0
+        endIdx = (pageNum*MAX_EDTS_PER_PAGE)
+    elif flag == "mid":
+        startIdx = ((pageNum-1)*MAX_EDTS_PER_PAGE)
+        endIdx = ((pageNum)*MAX_EDTS_PER_PAGE)
+    elif flag == "last":
+        startIdx = ((pageNum-1)*MAX_EDTS_PER_PAGE)
+        endIdx = len(log)
+
+    sub = []
+    for i in xrange(startIdx, endIdx):
+        sub.append(log[i])
+
+
+    return sub
+
 #======== cleanup temporary files =========
-def cleanup():
-    os.remove('log.txt')
+def cleanup(dbgLog):
+    #os.remove(dbgLog)
     os.remove('filtered.txt')
     return 0
 #=========MAIN==========
 
 def main():
 
-    #Get rid of events we are not interested in seeing
-    runShellStrip()
+    if len(sys.argv) != 2:
+        print "Error.....  Usage: python timeline.py <inputFile>"
+        sys.exit(0)
+    dbgLog = sys.argv[1]
 
-    outFile = open(HTML_FILE_NAME, 'a')
+    #Get rid of events we are not interested in seeing
+    runShellStrip(dbgLog)
 
     #Begin processing log file
-    with open (LOG_FILE_PATH, 'r') as inFile:
+    with open ('filtered.txt', 'r') as inFile:
 
         lines = inFile.readlines()
         sortedLines = sortAscendingStartTime(lines)
@@ -202,22 +263,17 @@ def main():
         numThreads = len(uniqWorkers)
         sortedWrkrs = sortByWorker(sortedLines, uniqWorkers)
         numEDTs = len(sortedLines)
+        numPages = numEDTs/MAX_EDTS_PER_PAGE
+        if numPages == 0:
+            numPages = 1
 
-        #Used to set zoom bar position
-        zoom = 75 + (numThreads*40)
-
-        if zoom > 715:
-            #715 is height of 16 rows.  Past 16 rows the overflow scroll will take over.
-            #increase this value if you want more rows to be displayed in single frame
-            zoom = 715
-
-        #Arrange data
         firstLine = sortedLines[0].split()
         timeOffset = int(firstLine[START_TIME_INDEX])
         lastLine = sortedLines[-1]
         totalTime = int(lastLine.split()[END_TIME_INDEX]) - timeOffset
 
-        appendPreHTML(outFile, exeTime, numThreads, numEDTs, totalTime, zoom)
+        #Used to set zoom bar position
+        zoom = setZoom(numThreads)
 
         #Format Data to be written as HTML
         firstLine = sortedLines[0].split()
@@ -225,14 +281,35 @@ def main():
         lastLine = sortedWrkrs[-1]
         totalTime = int(lastLine.split()[END_TIME_INDEX]) - timeOffset
 
-        for line in sortedWrkrs:
-            lastLineFlag = False
-            if line is lastLine:
-                lastLineFlag = True
-            postProcessData(line, outFile, timeOffset, lastLineFlag)
+        for i in xrange (1, numPages+1):
+            if numPages == 1:
+                flag = "single"
+            elif i == 1:
+                flag = "first"
+            elif i == numPages:
+                flag = "last"
+            else:
+                flag = "mid"
 
-    appendPostHTML(outFile, zoom)
-    cleanup()
+            curPage = getSub(sortedLines, flag, i)
+
+            localUniqWrkrs = getUniqueWorkers(curPage)
+            localSortedWrkrs = sortByWorker(curPage, localUniqWrkrs)
+            localLastLine = localSortedWrkrs[-1]
+
+            pageName = "timeline" + str(i) + ".html"
+            outFile = open(pageName, 'a')
+            appendPreHTML(outFile, exeTime, numThreads,  numEDTs, totalTime, zoom)
+
+            for line in localSortedWrkrs:
+                lastLineFlag = False
+                if line is localLastLine:
+                    lastLineFlag = True
+                postProcessData(line, outFile, timeOffset, lastLineFlag)
+            appendPostHTML(outFile, zoom, flag, i)
+            outFile.close()
+
+    cleanup(dbgLog)
     sys.exit(0)
 
 main();

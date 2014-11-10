@@ -161,6 +161,11 @@ libocr: $(OCR_BUILD)/Makefile
 	OCR_TYPE=$(OCR_TYPE) OCR_INSTALL=$(OCR_INSTALL) OCR_SRC=$(OCR_SRC) $(MAKE) -C $(OCR_BUILD) $(TARGETS) install
 endif
 
+# If the visualizer is being used, add necessary CFLAGS to application's makefile
+ifeq ($(ENABLE_VISUALIZER), yes)
+CFLAGS += -DOCR_ENABLE_EDT_NAMING -DOCR_ENABLE_VISUALIZER
+endif
+
 .PHONY: clean
 clean:
 	-$(RM) -rf $(WORKLOAD_BUILD)

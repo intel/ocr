@@ -124,8 +124,10 @@ u8 ocrEdtTemplateCreate_internal(ocrGuid_t *guid, ocrEdt_t funcPtr, u32 paramc, 
     PD_MSG_FIELD(funcPtr) = funcPtr;
     PD_MSG_FIELD(paramc) = paramc;
     PD_MSG_FIELD(depc) = depc;
+#ifdef OCR_ENABLE_EDT_NAMING
     PD_MSG_FIELD(funcName) = funcName;
     PD_MSG_FIELD(funcNameLen) = ocrStrlen(funcName);
+#endif
     PD_MSG_FIELD(currentEdt.guid) = curEdt ? curEdt->guid : NULL_GUID;
     PD_MSG_FIELD(currentEdt.metaDataPtr) = curEdt;
 

@@ -4,7 +4,9 @@ Usage Instruction for EDT Exectution Timeline
 
 This visualization tool records the timeline for thread
 execution. It currently has a time.h dependency, thus
-it is only supported on x86 architecture.
+supported platforms are restricted to:
+    -x86-pthread-x86
+    -x86-pthread-mpi
 
 The following are required pre-execution:
 
@@ -19,13 +21,19 @@ Script Instructions:
 -Before running an application an environment variable must be set via:
     export ENABLE_VISUALIZER=yes
 
--Application logging output must be redirected to
- to the /ocr/scripts directory as a text file named log.txt
-    The command would look like: make -f Makefile.x86-pthread-x86 run > ../../scripts/Visualizer/log.txt
+-*NOTE: The above env. variable will issue -DOCR_ENABLE_EDT_NAMING and
+  -DOCR_OCR_ENABLE_VISUALIZER to the targeted app only if you are compiling
+  your program with the default Makefile.  If you are using a custom Makefile,
+  you must issue these compiler flags explicitely.
 
--Navigate to /ocr/scripts, and run: python timeline.py
--timeline.py will source stripExcessEvents.sh so the user
- need not.  The output is an HTML file called timeline.html
- which will display the visualizer
+
+-Application logging output must be redirected to
+ to the /ocr/scripts/Visualizer directory as a text file named log.txt
+    The command would look like: make -f Makefile.x86-pthread-x86 run > ../../scripts/Visualizer/<log_ouput_file_name>
+
+-Navigate to /ocr/scripts/Visualizer, and run: python timeline.py <log_ouput_file_name>
+-The output will be HTML file(s) called timeline(#).html which will
+ display the visualizer.  Each HTML file produced will contain 1000
+ EDTs: roughly the amount that the browser's canvas can handle smoothly.
 
 

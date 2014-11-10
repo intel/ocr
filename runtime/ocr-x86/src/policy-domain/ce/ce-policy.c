@@ -875,9 +875,14 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
         DPRINTF(DEBUG_LVL_VVERB, "EDTTEMP_CREATE request from 0x%lx\n",
                 msg->srcLocation);
+#ifdef OCR_ENABLE_EDT_NAMING
+        const char* edtName = PD_MSG_FIELD(funcName);
+#else
+        const char* edtName = "";
+#endif
         PD_MSG_FIELD(returnDetail) = ceCreateEdtTemplate(
             self, &(PD_MSG_FIELD(guid)), PD_MSG_FIELD(funcPtr), PD_MSG_FIELD(paramc),
-            PD_MSG_FIELD(depc), PD_MSG_FIELD(funcName));
+            PD_MSG_FIELD(depc), edtName);
         DPRINTF(DEBUG_LVL_VVERB, "EDTTEMP_CREATE response: GUID: 0x%lx\n",
                 PD_MSG_FIELD(guid.guid));
         returnCode = ceProcessResponse(self, msg, 0);

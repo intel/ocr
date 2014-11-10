@@ -409,8 +409,10 @@ typedef struct _ocrPolicyMsg_t {
             u32 depc;              /**< In: Number of dependences for EDT */
             u32 properties;        /**< In: Properties */
             u32 returnDetail;      /**< Out: Success or error code */
+#ifdef OCR_ENABLE_EDT_NAMING
             const char * funcName; /**< In: Debug help: user identifier */
             u64 funcNameLen;       /**< In: Number of characters (excluding '\0') in funcName */
+#endif
             ocrFatGuid_t currentEdt;   /**< In: EDT that is creating template */
         } PD_MSG_STRUCT_NAME(PD_MSG_EDTTEMP_CREATE);
 

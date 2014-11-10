@@ -779,10 +779,16 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         START_PROFILE(pd_hc_EdtTempCreate);
 #define PD_MSG msg
 #define PD_TYPE PD_MSG_EDTTEMP_CREATE
+#ifdef OCR_ENABLE_EDT_NAMING
+        const char* edtName = PD_MSG_FIELD(funcName);
+#else
+        const char* edtName = "";
+#endif
+
         PD_MSG_FIELD(returnDetail) = hcCreateEdtTemplate(
             self, &(PD_MSG_FIELD(guid)),
             PD_MSG_FIELD(funcPtr), PD_MSG_FIELD(paramc),
-            PD_MSG_FIELD(depc), PD_MSG_FIELD(funcName));
+            PD_MSG_FIELD(depc), edtName);
 
         msg->type &= ~PD_MSG_REQUEST;
         msg->type |= PD_MSG_RESPONSE;
@@ -922,9 +928,6 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
                 //These won't support flat serialization
 #ifdef OCR_ENABLE_STATISTICS
                 ASSERT(false && "no statistics support in distributed edt templates");
-#endif
-#ifdef OCR_ENABLE_EDT_NAMING
-                ASSERT(false && "no serialization of edt template string");
 #endif
                 PD_MSG_FIELD(size) = sizeof(ocrTaskTemplateHc_t);
                 break;
