@@ -5,7 +5,7 @@
 //Size of array to be sorted
 #define ARRAY_SIZE 1000
 //Range of numbers to be sorted.
-#define RANGE 1000
+#define RANGE 1000000
 
 //Pseudo-RNG.  Gets rid of C stdlib dependence
 int getRandNum(int seed){
@@ -36,18 +36,21 @@ int getRandNum(int seed){
 }
 
 //Insertion sort for very small problem sizes that don't need parallelized
+//DSS: fixed error (tracking jmin to swap correct elements)
 void sortSerial(u64 *data, u64 low, u64 high)
 {
-    u64 min, i, j, temp;
+    u64 min, i, j, temp, jmin;
     for(i = low; i <= high-1; i++) {
         min = 0xFFFFFFFFFFFFFFFFUL;
-        for(j = i; j <=high-1; j++)
-            if(data[j] < min)
+        for(j = i; j <=high; j++)
+            if(data[j] < min){
                 min = data[j];
+                jmin = j;
+            }
 
         temp = data[i];
         data[i] = min;
-        data[i+1] = temp;
+        data[jmin] = temp;
     }
 }
 
@@ -57,6 +60,7 @@ void sortSerial(u64 *data, u64 low, u64 high)
 // dep 0: array
 ocrGuid_t qsortTask( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
+    u64 i;
     u64 low = paramv[0];
     u64 high = paramv[1];
     u64 size = high - low + 1;
@@ -66,26 +70,37 @@ ocrGuid_t qsortTask( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
         sortSerial(data, low, high);
     else {
 
-        //Set pivot point. The pivot is randomly selected.
-        //Below: (size/2) is an arbitrary number, as getRandNum requires a seed.
-        u64 pivotIndex = low + getRandNum(size/2) % size;
+//Set pivot point. The pivot is randomly selected.
+//Below: (size/2) is an arbitrary number, as getRandNum requires a seed.
+
+        u64 pivotIndex = low + (getRandNum(size/2))%(high-low);
         u64 pivot = data[pivotIndex];
 
         // partition
-        u64 curIndex, swapIndex = low;
+        u64 curIndex = low, swapIndex = high-1;
         u64 temp;
         data[pivotIndex] = data[high];
         data[high] = pivot;
-        for(curIndex = low; curIndex <= high-1; curIndex++) {
-            if(data[curIndex] <= pivot) {
-                temp = data[swapIndex];
-                data[swapIndex] = data[curIndex];
-                data[curIndex] = temp;
-                swapIndex++;
-            }
+
+//Find something smaller and larger than pivot to swap
+//DSS: modiefied to search from both ends.  Previous was correct but inefficient
+
+        while(1) {
+//look for soemthing bigger
+            while((data[curIndex] <= pivot) && (curIndex < swapIndex)) curIndex++;
+            if(curIndex == swapIndex) break;
+//look for soemthing smaller
+            while((data[swapIndex] >= pivot) && (curIndex < swapIndex)) swapIndex--;
+            if(curIndex == swapIndex) break;
+//swap
+            temp = data[swapIndex];
+            data[swapIndex] = data[curIndex];
+            data[curIndex] = temp;
+            curIndex++;
         }
 
-        //swap and reset pivot index
+
+//swap and reset pivot index
         data[high] = data[swapIndex];
         data[swapIndex] = pivot;
         pivotIndex = swapIndex;
@@ -97,16 +112,17 @@ ocrGuid_t qsortTask( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
         ocrEventCreate(&qsortLowDataEvt, OCR_EVENT_ONCE_T, false);
         ocrEventCreate(&qsortHighDataEvt, OCR_EVENT_ONCE_T, false);
 
-        if(pivotIndex <=1){
-            u64 qsortLowParamv[3] = {low, pivotIndex+1, qsortTemplate};
-            ocrEdtCreate(&qsortLowEdt, qsortTemplate, EDT_PARAM_DEF, qsortLowParamv,
-                 EDT_PARAM_DEF, &qsortLowDataEvt, EDT_PROP_FINISH, NULL_GUID, NULL);
-        }else{
-            u64 qsortLowParamv[3] = {low, pivotIndex-1, qsortTemplate};
-            ocrEdtCreate(&qsortLowEdt, qsortTemplate, EDT_PARAM_DEF, qsortLowParamv,
+//DSS: removed unnecessary if test
+//        if(pivotIndex <=1){
+//            u64 qsortLowParamv[3] = {low, pivotIndex+1, qsortTemplate};
+//            ocrEdtCreate(&qsortLowEdt, qsortTemplate, EDT_PARAM_DEF, qsortLowParamv,
+//                 EDT_PARAM_DEF, &qsortLowDataEvt, EDT_PROP_FINISH, NULL_GUID, NULL);
+//        }else{
+        u64 qsortLowParamv[3] = {low, pivotIndex-1, qsortTemplate};
+        ocrEdtCreate(&qsortLowEdt, qsortTemplate, EDT_PARAM_DEF, qsortLowParamv,
                  EDT_PARAM_DEF, &qsortLowDataEvt, EDT_PROP_FINISH, NULL_GUID, NULL);
 
-        }
+ //       }
         u64 qsortHighParamv[3] = {pivotIndex+1, high, qsortTemplate};
         ocrEdtCreate(&qsortHighEdt, qsortTemplate, EDT_PARAM_DEF, qsortHighParamv,
                  EDT_PARAM_DEF, &qsortHighDataEvt, EDT_PROP_FINISH, NULL_GUID, NULL);
@@ -121,10 +137,10 @@ ocrGuid_t qsortTask( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 //Print validation feedback and quit.
 ocrGuid_t finishTask( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
-    PRINTF("Showing first 100  elements: \n");
+    PRINTF("Showing first 30  elements: \n");
     u64 i;
     u64 *data = depv[0].ptr;
-    for(i = 0; i < 100; i++)
+    for(i = 0; i < 30; i++)
         PRINTF("%lu \n", data[i]);
 
     PRINTF("Sorting Finished.  Shutting Down OCR\n");
