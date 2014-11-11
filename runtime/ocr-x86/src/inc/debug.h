@@ -17,7 +17,6 @@
 #include "ocr-task.h"
 #include "ocr-worker.h"
 
-typedef struct _ocrPolicyDomain_t ocrPolicyDomain_t;
 #ifdef OCR_DEBUG
 /**
  * @brief No debugging messages are printed
@@ -308,7 +307,7 @@ typedef struct _ocrPolicyDomain_t ocrPolicyDomain_t;
 #define DPRINTF_TYPE(type, level, format, ...)   do {                   \
     if(OCR_DEBUG_##type && level <= DEBUG_LVL_##type) {                 \
         ocrTask_t *_task = NULL; ocrWorker_t *_worker = NULL;           \
-        ocrPolicyDomain_t *_pd = NULL;                                  \
+        struct _ocrPolicyDomain_t *_pd = NULL;                          \
         getCurrentEnv(&_pd, &_worker, &_task, NULL);                    \
         PRINTF(OCR_DEBUG_##type##_STR "(" OCR_DEBUG_##level##_STR       \
                ") [PD:0x%lx W:0x%lx EDT:0x%lx] " format,                \

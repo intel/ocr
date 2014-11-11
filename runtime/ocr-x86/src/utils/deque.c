@@ -354,7 +354,7 @@ deque_t* newSemiConcurrentQueue(ocrPolicyDomain_t *pd, void * initValue) {
  * @brief Allows multiple concurrent push and pop. All operations are serialized.
  */
 deque_t* newLockedQueue(ocrPolicyDomain_t *pd, void * initValue) {
-    deque_t* deq = newDeque(pd, initValue, WORK_STEALING_DEQUE);
+    deque_t* deq = newDeque(pd, initValue, LOCKED_DEQUE);
     return deq;
 }
 

@@ -58,6 +58,7 @@ u8 regularAcquire(ocrDataBlock_t *self, void** ptr, ocrFatGuid_t edt, u32 edtSlo
     }
 
     if(idForEdt > 63) {
+        DPRINTF(DEBUG_LVL_WARN, "Warning! DataBlocks of type 'Regular' cannot be acquired by more than 64 EDTs\n");
         hal_unlock32(&(rself->lock));
         return OCR_EAGAIN;
     }

@@ -4,10 +4,6 @@
  * removed or modified.
  */
 
-
-
-
-
 #include "ocr.h"
 
 // Only tested when ocr runtime interface is available
@@ -35,7 +31,6 @@ ocrGuid_t taskForEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 }
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    workpile
     ocrGuid_t eventGuid;
     ocrEventCreate(&eventGuid, OCR_EVENT_STICKY_T, true);
 
@@ -45,7 +40,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtTemplateCreate(&taskForEdtTemplateGuid, taskForEdt, 0 /*paramc*/, 1 /*depc*/);
     ocrEdtCreate(&edtGuid, taskForEdtTemplateGuid, EDT_PARAM_DEF, NULL, EDT_PARAM_DEF, NULL, 0, NULL_GUID, NULL);
     // Register a dependence between an event and an edt
-    ocrAddDependence(eventGuid, edtGuid, 0);
+    ocrAddDependence(eventGuid, edtGuid, 0, DB_MODE_RO);
 
     int *k;
     ocrGuid_t dbGuid;

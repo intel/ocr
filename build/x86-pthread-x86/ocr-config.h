@@ -91,5 +91,9 @@
 
 // Affinity support
 #define ENABLE_EXTENSION_AFFINITY
+
+// Runtime extension support (disabled by default)
+#define ENABLE_EXTENSION_RTITF
+
 #endif /* __OCR_CONFIG_H__ */
 
