@@ -11,6 +11,7 @@
 #include "ocr-policy-domain.h"
 #include "ocr-types.h"
 #include "utils/deque.h"
+#include "worker/hc/hc-worker.h"
 
 #define DEBUG_TYPE UTIL
 
@@ -137,15 +138,14 @@ void * nonConcDequePopHead(deque_t * deq, u8 doTry) {
 void wstDequePushTail(deque_t* deq, void* entry, u8 doTry) {
     s32 head = deq->head;
     s32 tail = deq->tail;
-    DPRINTF(DEBUG_LVL_VERB, "Pushing 0x%lx into conc deque @ 0x%lx\n",
-            (u64)entry, (u64)deq);
     if (tail == INIT_DEQUE_CAPACITY + head) { /* deque looks full */
         /* may not grow the deque if some interleaving steal occur */
         ASSERT("DEQUE full, increase deque's size" && 0);
     }
     s32 n = (deq->tail) % INIT_DEQUE_CAPACITY;
     deq->data[n] = entry;
-
+    DPRINTF(DEBUG_LVL_VERB, "Pushing h:%d t:%d deq[%d] elt:0x%lx into conc deque @ 0x%lx\n",
+            head, deq->tail, n, (u64)entry, (u64)deq);
     hal_fence();
     ++(deq->tail);
 }
@@ -168,8 +168,8 @@ void * wstDequePopTail(deque_t * deq, u8 doTry) {
     void * rt = (void*) deq->data[(tail) % INIT_DEQUE_CAPACITY];
 
     if (tail > head) {
-        DPRINTF(DEBUG_LVL_VERB, "Popping (tail) 0x%lx from conc deque @ 0x%lx\n",
-                (u64)rt, (u64)deq);
+        DPRINTF(DEBUG_LVL_VERB, "Popping (tail) h:%d t:%d deq[%d] elt:0x%lx from conc deque @ 0x%lx\n",
+                head, tail, tail % INIT_DEQUE_CAPACITY, (u64)rt, (u64)deq);
         return rt;
     }
 
@@ -179,8 +179,8 @@ void * wstDequePopTail(deque_t * deq, u8 doTry) {
 
     /* now the deque is empty */
     deq->tail = deq->head;
-    DPRINTF(DEBUG_LVL_VERB, "Popping (tail 2) 0x%lx from conc deque @ 0x%lx\n",
-            (u64)rt, (u64)deq);
+    DPRINTF(DEBUG_LVL_VERB, "Popping (tail 2) h:%d t:%d deq[%d] elt:0x%lx from conc deque @ 0x%lx\n",
+            head, tail, tail % INIT_DEQUE_CAPACITY, (u64)rt, (u64)deq);
     return rt;
 }
 
@@ -190,20 +190,24 @@ void * wstDequePopTail(deque_t * deq, u8 doTry) {
 void * wstDequePopHead(deque_t * deq, u8 doTry) {
     s32 head, tail;
     do {
-        tail = deq->tail;
-        hal_fence();
         head = deq->head;
+        hal_fence();
+        tail = deq->tail;
         if (tail <= head) {
             return NULL;
         }
 
+        // The data must be read here, BEFORE the cas succeeds.
+        // If the tail wraps around the buffer, so that H=x and T=H+N
+        // as soon as the steal has done the cas, a push could happen
+        // at index 'x' and overwrite the value to be stolen.
+
         void * rt = (void *) deq->data[head % INIT_DEQUE_CAPACITY];
 
         /* compete with other thieves and possibly the owner (if the size == 1) */
-
         if (hal_cmpswap32(&deq->head, head, head + 1) == head) { /* competing */
-            DPRINTF(DEBUG_LVL_VERB, "Popping (head) 0x%lx from conc deque @ 0x%lx\n",
-                    (u64)rt, (u64)deq);
+            DPRINTF(DEBUG_LVL_VERB, "Popping (head) h:%d t:%d deq[%d] elt:0x%lx from conc deque @ 0x%lx\n",
+                     head, tail, head % INIT_DEQUE_CAPACITY, (u64)rt, (u64)deq);
             return rt;
         }
     } while (doTry == 0);
