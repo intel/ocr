@@ -172,7 +172,6 @@ u8 satisfyEventHcOnce(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #undef PD_TYPE
         // Call satisfy on all the waiters
 #define PD_TYPE PD_MSG_DEP_SATISFY
-        getCurrentEnv(NULL, NULL, NULL, &msg);
         PD_MSG_FIELD(payload) = db; // Do this once as it may get resolved the first time
         PD_MSG_FIELD(properties) = 0;
         for(i = 0; i < event->waitersCount; ++i) {
@@ -186,6 +185,7 @@ u8 satisfyEventHcOnce(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
             DPRINTF(DEBUG_LVL_INFO, "SatisfyFromEvent %s: 0x%lx with 0x%lx\n", eventTypeToString(base),
             waiters[i].guid, base->guid);
 
+            getCurrentEnv(NULL, NULL, NULL, &msg);
             msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
             PD_MSG_FIELD(guid.guid) = waiters[i].guid;
             PD_MSG_FIELD(guid.metaDataPtr) = NULL;
@@ -267,7 +267,6 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #undef PD_TYPE
         // Call satisfy on all the waiters
 #define PD_TYPE PD_MSG_DEP_SATISFY
-        getCurrentEnv(NULL, NULL, NULL, &msg);
         PD_MSG_FIELD(payload) = db; // Do this once as it may get resolved the first time
         PD_MSG_FIELD(properties) = 0;
         for(i = 0; i < waitersCount; ++i) {
@@ -281,6 +280,7 @@ u8 satisfyEventHcPersist(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
             DPRINTF(DEBUG_LVL_INFO, "SatisfyFromEvent %s: 0x%lx with 0x%lx\n", eventTypeToString(base),
             waiters[i].guid, base->guid);
 
+            getCurrentEnv(NULL, NULL, NULL, &msg);
             msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
             PD_MSG_FIELD(guid.guid) = waiters[i].guid;
             PD_MSG_FIELD(guid.metaDataPtr) = NULL;
@@ -357,7 +357,6 @@ u8 satisfyEventHcLatch(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
 #undef PD_TYPE
         // Call satisfy on all the waiters
 #define PD_TYPE PD_MSG_DEP_SATISFY
-        getCurrentEnv(NULL, NULL, NULL, &msg);
         PD_MSG_FIELD(payload) = db; // Do this once as it may get resolved the first time
         PD_MSG_FIELD(properties) = 0;
         for(i = 0; i < event->base.waitersCount; ++i) {
@@ -371,6 +370,7 @@ u8 satisfyEventHcLatch(ocrEvent_t *base, ocrFatGuid_t db, u32 slot) {
             DPRINTF(DEBUG_LVL_INFO, "SatisfyFromEvent %s: 0x%lx with 0x%lx\n", eventTypeToString(base),
             waiters[i].guid, base->guid);
 
+            getCurrentEnv(NULL, NULL, NULL, &msg);
             msg.type = PD_MSG_DEP_SATISFY | PD_MSG_REQUEST;
             PD_MSG_FIELD(guid.guid) = waiters[i].guid;
             PD_MSG_FIELD(guid.metaDataPtr) = NULL;

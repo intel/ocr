@@ -473,7 +473,7 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
         if((PD_MSG_FIELD(paramv) == NULL) && (PD_MSG_FIELD(paramc) != 0)) {
             // User error, paramc non zero but no parameters
             DPRINTF(DEBUG_LVL_WARN, "Paramc is non-zero but no paramv was given\n");
-            return OCR_EINVAL;
+            PROCESS_MESSAGE_RETURN_NOW(self, OCR_EINVAL);
         }
         ocrFatGuid_t currentEdt = PD_MSG_FIELD(currentEdt);
         ocrFatGuid_t parentLatch = PD_MSG_FIELD(parentLatch);
@@ -678,8 +678,7 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
         #undef PD_TYPE
             rself->shutdownAckCount++; // Allow quiescence detection code in 'take'
             // return right away
-            hcDistReleasePd((ocrPolicyDomainHc_t*)self);
-            return 0;
+            PROCESS_MESSAGE_RETURN_NOW(self, 0);
         } else if ((msg->srcLocation != curLoc) && (msg->destLocation == curLoc)) {
             // Incoming shutdown message from another PD
             ocrPolicyDomainHcDist_t * rself = ((ocrPolicyDomainHcDist_t*)self);
@@ -698,8 +697,7 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
             }
             rself->shutdownAckCount++;
             // let worker '1' do the stop
-            hcDistReleasePd((ocrPolicyDomainHc_t*)self);
-            return 0;
+            PROCESS_MESSAGE_RETURN_NOW(self, 0);
         }
         // Fall-through to send to other PD or local processing.
         break;
@@ -1132,8 +1130,7 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
                         //Shutdown are one way messages in distributed. Avoids having to
                         //send a response when the comms are shutting down.
                         self->fcts.stop(self);
-                        hcDistReleasePd((ocrPolicyDomainHc_t*)self);
-                        return 0;
+                        PROCESS_MESSAGE_RETURN_NOW(self, 0);
                     } // else should only go for another round until the EDT that did the ack increment is alive
                }
             }
@@ -1458,15 +1455,28 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
         // Local PD handles the message. msg's destination is curLoc
         //NOTE: 'msg' may be coming from 'self' or from a remote PD. It can
         // either be a request (that may need a response) or a response.
+
+        bool reqResponse = !!(msg->type & PD_MSG_REQ_RESPONSE); // for correctness check
+        ocrLocation_t orgSrcLocation = msg->srcLocation; // for correctness check
         ocrPolicyDomainHcDist_t * pdSelfDist = (ocrPolicyDomainHcDist_t *) self;
+
+        // NOTE: It is important to ensure the base processMessage call doesn't
+        // store any pointers read from the request message
         ret = pdSelfDist->baseProcessMessage(self, msg, isBlocking);
 
         // Here, 'msg' content has potentially changed if a response was required
         // If msg's destination is not the current location anymore, it means we were
         // processing an incoming request from another PD. Send the response now.
+
         if (msg->destLocation != curLoc) {
-            //IMPL: It also means the message buffer is managed by the runtime
-            // (as opposed to be on the user call stack calling in its PD).
+            ASSERT(reqResponse); // double check not trying to answer when we shouldn't
+            // For now a two-way is always between the same pair of src/dst.
+            // Cannot answer to someone else on behalf of the original sender.
+            ASSERT(msg->destLocation == orgSrcLocation);
+
+            //IMPL: Because we are processing a two-way originating from another PD,
+            // the message buffer is necessarily managed by the runtime (as opposed
+            // to be on the user call stack calling in its PD).
             // Hence, we post the response as a one-way, persistent and no handle.
             // The message will be deallocated on one-way call completion.
             u32 sendProp = PERSIST_MSG_PROP;
@@ -1508,6 +1518,7 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
             }
             default: { }
             }
+            // Send the response message
             self->fcts.sendMessage(self, msg->destLocation, msg, NULL, sendProp);
         } else {
             // local post-processing
@@ -1519,8 +1530,7 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
             }
         }
     }
-    hcDistReleasePd((ocrPolicyDomainHc_t*)self);
-    return ret;
+    PROCESS_MESSAGE_RETURN_NOW(self, ret);
 }
 
 u8 hcDistPdSendMessage(ocrPolicyDomain_t* self, ocrLocation_t target, ocrPolicyMsg_t *message,

@@ -216,8 +216,6 @@ static u8 initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
                              ocrTask_t *curTask, ocrFatGuid_t outputEvent,
                              ocrFatGuid_t parentLatch, u32 properties) {
 
-    ocrPolicyMsg_t msg;
-    getCurrentEnv(NULL, NULL, NULL, &msg);
 
     task->frontierSlot = 0;
     task->slotSatisfiedCount = 0;
@@ -237,6 +235,8 @@ static u8 initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
     }
     // If we are creating a finish-edt
     if (hasProperty(properties, EDT_PROP_FINISH)) {
+        ocrPolicyMsg_t msg;
+        getCurrentEnv(NULL, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_CREATE
         msg.type = PD_MSG_EVT_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -254,12 +254,14 @@ static u8 initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
         if (parentLatch.guid != NULL_GUID) {
             DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on parent flatch 0x%lx\n", task->base.guid, parentLatch.guid);
             // Check in current finish latch
+            getCurrentEnv(NULL, NULL, NULL, &msg);
             RESULT_PROPAGATE(finishLatchCheckin(pd, &msg, latchFGuid, parentLatch));
         }
 
         DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on self flatch 0x%lx\n", task->base.guid, latchFGuid.guid);
         // Check in the new finish scope
         // This will also link outputEvent to latchFGuid
+        getCurrentEnv(NULL, NULL, NULL, &msg);
         RESULT_PROPAGATE(finishLatchCheckin(pd, &msg, outputEvent, latchFGuid));
         // Set edt's ELS to the new latch
         task->base.finishLatch = latchFGuid.guid;
@@ -269,6 +271,8 @@ static u8 initTaskHcInternal(ocrTaskHc_t *task, ocrPolicyDomain_t * pd,
         if(parentLatch.guid != NULL_GUID) {
             DPRINTF(DEBUG_LVL_INFO, "Checkin 0x%lx on current flatch 0x%lx\n", task->base.guid, parentLatch.guid);
             // Check in current finish latch
+            ocrPolicyMsg_t msg;
+            getCurrentEnv(NULL, NULL, NULL, &msg);
             RESULT_PROPAGATE(finishLatchCheckin(pd, &msg, outputEvent, parentLatch));
         }
     }
@@ -472,10 +476,9 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
 
     // Get the current environment
     ocrPolicyDomain_t *pd = NULL;
-    ocrPolicyMsg_t msg;
     u32 i;
+    getCurrentEnv(&pd, NULL, NULL, NULL);
 
-    getCurrentEnv(&pd, NULL, NULL, &msg);
 
     ocrFatGuid_t outputEvent = {.guid = NULL_GUID, .metaDataPtr = NULL};
     // We need an output event for the EDT if either:
@@ -486,6 +489,8 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     //    that latch event)
     if (outputEventPtr != NULL || hasProperty(properties, EDT_PROP_FINISH) ||
             parentLatch.guid != NULL_GUID) {
+        ocrPolicyMsg_t msg;
+        getCurrentEnv(NULL, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_EVT_CREATE
         msg.type = PD_MSG_EVT_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -501,7 +506,9 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
 #undef PD_TYPE
     }
 
+    ocrPolicyMsg_t msg;
     // Create the task itself by getting a GUID
+    getCurrentEnv(NULL, NULL, NULL, &msg);
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_GUID_CREATE
     msg.type = PD_MSG_GUID_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
@@ -618,11 +625,6 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     //  - it can be a data-block being added (causing an immediate satisfy)
 
     ocrTaskHc_t * self = (ocrTaskHc_t *) base;
-    ocrPolicyDomain_t *pd = NULL;
-    ocrPolicyMsg_t msg;
-    ocrTask_t * taskPut = NULL;
-    ocrWorker_t * worker = NULL;
-    getCurrentEnv(&pd, &worker, &taskPut, &msg);
 
     // Replace the signaler's guid by the data guid, this is to avoid
     // further references to the event's guid, which is good in general
@@ -636,6 +638,8 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
 
     // Check to see if not already satisfied
     ASSERT_BLOCK_BEGIN(self->signalers[slot].slot != SLOT_SATISFIED_EVT)
+    ocrTask_t * taskPut = NULL;
+    getCurrentEnv(NULL, NULL, &taskPut, NULL);
     DPRINTF(DEBUG_LVL_WARN, "detected double satisfy on sticky for task 0x%lx on slot %d by 0x%lx\n", base->guid, slot, taskPut->guid);
     ASSERT_BLOCK_END
     ASSERT(self->slotSatisfiedCount < base->depc);
@@ -674,13 +678,13 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
                 // Warning double check if that works for regular implementation
                 signalerGuid.metaDataPtr = NULL; // should be ok because guid encodes the kind in distributed
                 ocrGuidKind signalerKind = OCR_GUID_NONE;
+                ocrPolicyDomain_t *pd = NULL;
+                ocrPolicyMsg_t msg;
+                getCurrentEnv(&pd, NULL, NULL, &msg);
                 deguidify(pd, &signalerGuid, &signalerKind);
                 ASSERT((signalerKind == OCR_GUID_EVENT_STICKY) || (signalerKind == OCR_GUID_EVENT_IDEM));
                 hal_unlock32(&(self->lock));
                 // Case 2: A sticky, the EDT registers as a lazy waiter
-                ocrPolicyDomain_t *pd = NULL;
-                ocrPolicyMsg_t msg;
-                getCurrentEnv(&pd, NULL, NULL, &msg);
                 RESULT_PROPAGATE(registerOnFrontier(self, pd, &msg, self->frontierSlot));
             } else {
                 // else case 1, registerSignaler will do the registration

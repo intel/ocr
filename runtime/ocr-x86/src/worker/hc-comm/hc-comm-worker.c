@@ -48,7 +48,7 @@ ocrGuid_t processRequestEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[
     // have setup a callback and we can free the request message
     if (toBeFreed || (!syncProcess && (res == OCR_EPEND))) {
         // Makes sure the runtime doesn't try to reuse this message
-        // feven though it was not supposed to issue a response.
+        // even though it was not supposed to issue a response.
         // If that's the case, this check is racy
         ASSERT(!(msg->type & PD_MSG_RESPONSE) || processResponse);
         DPRINTF(DEBUG_LVL_VVERB,"hc-comm-worker: Deleted incoming EDT request @ %p of type 0x%x\n", msg, msg->type);

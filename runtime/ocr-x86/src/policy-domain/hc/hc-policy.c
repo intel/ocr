@@ -412,7 +412,7 @@ static u8 hcMemUnAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
         }
         return OCR_EINVAL;
     } else if (memType == GUID_MEMTYPE) {
-        ASSERT (self->allocatorCount >= 0);
+        ASSERT (self->allocatorCount > 0);
         self->allocators[self->allocatorCount-1]->fcts.free(self->allocators[self->allocatorCount-1], ptr);
         return 0;
     } else {
@@ -1397,7 +1397,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // response is issued:
         // flip required response bit
         msg->type &= ~PD_MSG_REQ_RESPONSE;
-	    // flip src and dest locations
+        // flip src and dest locations
         ocrLocation_t src = msg->srcLocation;
         msg->srcLocation = msg->destLocation;
         msg->destLocation = src;

@@ -73,6 +73,7 @@ static void hcWorkShift(ocrWorker_t * worker) {
 
 #define PD_MSG (&msg)
 #define PD_TYPE PD_MSG_WORK_DESTROY
+            getCurrentEnv(NULL, NULL, NULL, &msg);
             msg.type = PD_MSG_WORK_DESTROY | PD_MSG_REQUEST;
             PD_MSG_FIELD(guid) = taskGuid;
             PD_MSG_FIELD(properties) = 0;

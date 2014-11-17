@@ -1035,7 +1035,7 @@ u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u8* buffer, ocrMarshallM
 /**
  * @brief Performs the opposite operation to ocrPolicyMsgMarshallMsg
  *
- * The inputs are the mainBuffer (containing the header of the messsage and
+ * The inputs are the mainBuffer (containing the header of the message and
  * an optional additional buffer (obtained using the MARSHALL_ADDL mode).
  *
  * The significance of the modes here are:
@@ -1053,7 +1053,8 @@ u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u8* buffer, ocrMarshallM
  *                         done with MARSHALL_APPEND.
  *                         The caller ensures that the actual allocated
  *                         size of msg is at least fullSize bytes (as
- *                         returned by ocrPolicyMsgGetMsgSize)
+ *                         returned by ocrPolicyMsgGetMsgSize).
+ *                         This call updates the msg's size to header+payload.
  *   - MARSHALL_ADDL:      Marshall the common part of the message into msg
  *                         and use pdMalloc for marshalledSize bytes (one
  *                         or more chunks totalling marshalledSize bytes as
