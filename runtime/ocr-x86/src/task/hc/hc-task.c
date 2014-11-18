@@ -479,7 +479,6 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     u32 i;
     getCurrentEnv(&pd, NULL, NULL, NULL);
 
-
     ocrFatGuid_t outputEvent = {.guid = NULL_GUID, .metaDataPtr = NULL};
     // We need an output event for the EDT if either:
     //  - the user requested one (outputEventPtr is non NULL)
@@ -630,11 +629,10 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     // further references to the event's guid, which is good in general
     // and crucial for once-event since they are being destroyed on satisfy.
 
-    // Could be moved a little later if the ASSERT was not here
-    // Should not make a huge difference
     hal_lock32(&(self->lock));
 
-    DPRINTF(DEBUG_LVL_VERB, "Satisfy on task 0x%lx slot %d\n", self->base.guid, slot);
+    DPRINTF(DEBUG_LVL_VERB, "Satisfy on task 0x%lx slot %d with 0x%lx slotSatisfiedCount=%u frontierSlot=%u depc=%u\n",
+        self->base.guid, slot, data.guid, self->slotSatisfiedCount, self->frontierSlot, base->depc);
 
     // Check to see if not already satisfied
     ASSERT_BLOCK_BEGIN(self->signalers[slot].slot != SLOT_SATISFIED_EVT)
@@ -647,58 +645,79 @@ u8 satisfyTaskHc(ocrTask_t * base, ocrFatGuid_t data, u32 slot) {
     self->slotSatisfiedCount++;
     self->signalers[slot].guid = data.guid;
 
-    if(self->slotSatisfiedCount == base->depc) { // We're done
-        hal_unlock32(&(self->lock));
-        // All dependences have been satisfied, schedule the edt
+    if(self->slotSatisfiedCount == base->depc) {
         DPRINTF(DEBUG_LVL_VERB, "Scheduling task 0x%lx, satisfied dependences %d/%d\n",
                 self->base.guid, self->slotSatisfiedCount , base->depc);
+        hal_unlock32(&(self->lock));
+        // All dependences have been satisfied, schedule the edt
         RESULT_PROPAGATE(taskAllDepvSatisfied(base));
     } else {
-        self->signalers[slot].slot = SLOT_SATISFIED_EVT;
+        // Decide to keep both SLOT_SATISFIED_DB and SLOT_SATISFIED_EVT to be able to
+        // disambiguate between events and db satisfaction. Not strictly necessary but
+        // nice to have for debug.
+        if (self->signalers[slot].slot != SLOT_SATISFIED_DB) {
+            self->signalers[slot].slot = SLOT_SATISFIED_EVT;
+        }
         // Check frontier status
         if (slot == self->frontierSlot) { // we are on the frontier slot
             // Try to advance the frontier over all consecutive satisfied events
-            // and DB dependence that may be in flight (we're safe because we have the lock)
+            // and DB dependence that may be in flight (safe because we have the lock)
             u32 fsSlot = 0;
             do {
                 self->frontierSlot++;
+                DPRINTF(DEBUG_LVL_VERB, "Slot Increment on task 0x%lx slot %d with 0x%lx slotCount=%u slotFrontier=%u depc=%u\n",
+                    self->base.guid, slot, data.guid, self->slotSatisfiedCount, self->frontierSlot, base->depc);
                 fsSlot = self->signalers[self->frontierSlot].slot;
             } while((fsSlot == SLOT_SATISFIED_EVT) || (fsSlot == SLOT_SATISFIED_DB));
-            // There must be at least one, slotSatisfiedCount != depc
-            ASSERT(self->frontierSlot < base->depc);
-            // The slot we found is either:
-            // 1- not known: addDependence hasn't occured yet (UNINITIALIZED_GUID)
-            // 2- known: but the edt hasn't registered on it yet
-            // 3- a once event not yet satisfied: (.slot == SLOT_REGISTERED_EPHEMERAL_EVT, registered but not yet satisfied)
-            if ((self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) &&
-                (self->signalers[self->frontierSlot].slot != SLOT_REGISTERED_EPHEMERAL_EVT)) {
-                // Just for debugging purpose
-                ocrFatGuid_t signalerGuid;
-                signalerGuid.guid = self->signalers[self->frontierSlot].guid;
-                // Warning double check if that works for regular implementation
-                signalerGuid.metaDataPtr = NULL; // should be ok because guid encodes the kind in distributed
-                ocrGuidKind signalerKind = OCR_GUID_NONE;
-                ocrPolicyDomain_t *pd = NULL;
-                ocrPolicyMsg_t msg;
-                getCurrentEnv(&pd, NULL, NULL, &msg);
-                deguidify(pd, &signalerGuid, &signalerKind);
-                ASSERT((signalerKind == OCR_GUID_EVENT_STICKY) || (signalerKind == OCR_GUID_EVENT_IDEM));
-                hal_unlock32(&(self->lock));
-                // Case 2: A sticky, the EDT registers as a lazy waiter
-                RESULT_PROPAGATE(registerOnFrontier(self, pd, &msg, self->frontierSlot));
-            } else {
-                // else case 1, registerSignaler will do the registration
-                // else case 3, just have to wait for the satisfy on the once event to happen.
-                hal_unlock32(&(self->lock));
+            // If here, there must be at least one satisfy that hasn't happened yet.
+            ASSERT(self->slotSatisfiedCount < base->depc);
+
+            // If we reach the end of the dependences, there's most likely a DB satisfy
+            // in flight. Its .slot has been set, which is why we skipped over its slot
+            // but the corresponding satisfy hasn't been executed yet. When it is,
+            // slotSatisfiedCount equals depc and the task is scheduled.
+            if (self->frontierSlot < base->depc) {
+                // The slot we found is either:
+                // 1- not known: addDependence hasn't occured yet (UNINITIALIZED_GUID)
+                // 2- known: but the edt hasn't registered on it yet
+                // 3- a once event not yet satisfied: (.slot == SLOT_REGISTERED_EPHEMERAL_EVT, registered but not yet satisfied)
+                if ((self->signalers[self->frontierSlot].guid != UNINITIALIZED_GUID) &&
+                    (self->signalers[self->frontierSlot].slot != SLOT_REGISTERED_EPHEMERAL_EVT)) {
+                    // Just for debugging purpose
+                    ocrFatGuid_t signalerGuid;
+                    signalerGuid.guid = self->signalers[self->frontierSlot].guid;
+                    // Warning double check if that works for regular implementation
+                    signalerGuid.metaDataPtr = NULL; // should be ok because guid encodes the kind in distributed
+                    ocrGuidKind signalerKind = OCR_GUID_NONE;
+                    ocrPolicyDomain_t *pd = NULL;
+                    ocrPolicyMsg_t msg;
+                    getCurrentEnv(&pd, NULL, NULL, &msg);
+                    deguidify(pd, &signalerGuid, &signalerKind);
+                    ASSERT((signalerKind == OCR_GUID_EVENT_STICKY) || (signalerKind == OCR_GUID_EVENT_IDEM));
+                    hal_unlock32(&(self->lock));
+                    // Case 2: A sticky, the EDT registers as a lazy waiter
+                    // Here it should be ok to read the frontierSlot since we are on the frontier
+                    // only a satisfy on the event in that slot can advance the frontier and we
+                    // haven't registered on it yet.
+                    u8 res = registerOnFrontier(self, pd, &msg, self->frontierSlot);
+                    return res;
+                }
+                //else:
+                // case 1, registerSignaler will do the registration
+                // case 3, just have to wait for the satisfy on the once event to happen.
             }
-        } else {// not on frontier slot, nothing to do
-            // The slot has just been marked as satisfied but the frontier
-            // hasn't reached that slot yet. Most likely the satisfy is on
-            // an ephemeral event or directly with a db. The frontier will
-            // eventually reach this slot at a later point.
-            ASSERT(self->frontierSlot < slot);
-            hal_unlock32(&(self->lock));
         }
+        //else: not on frontier slot, nothing to do
+        // Two cases:
+        // - The slot has just been marked as satisfied but the frontier
+        //   hasn't reached that slot yet. Most likely the satisfy is on
+        //   an ephemeral event or directly with a db. The frontier will
+        //   eventually reach this slot at a later point.
+        // - There's a race between 'register' setting the .slot to the DB guid
+        //   and a concurrent satisfy incrementing the frontier. i.e. it skips
+        //   over the DB guid because its .slot is 'SLOT_SATISFIED_DB'.
+        //   When the DB satisfy happens it falls-through here.
+        hal_unlock32(&(self->lock));
     }
     return 0;
 }
@@ -730,27 +749,29 @@ u8 registerSignalerTaskHc(ocrTask_t * base, ocrFatGuid_t signalerGuid, u32 slot,
             node->slot = SLOT_REGISTERED_EPHEMERAL_EVT; // To record this slot is for a once event
             hal_unlock32(&(self->lock));
         } else {
-            // Must be a sticky event
-            // In this implementation, there cannot be a satisfy to a slot that's
-            // before the frontierSlot (FS). If we are on the FS, then no calls
-            // but the satisfy on 'slot' can advance the frontier, safe to unlock here.
+            // Must be a sticky event. Read the frontierSlot now that we have the lock.
+            // If 'register' is on the frontier, do the registration. Otherwise the edt
+            // will lazily register on the signalerGuid when the frontier reaches the
+            // signaler's slot.
+            bool doRegister = (slot == self->frontierSlot);
             hal_unlock32(&(self->lock));
-            if(slot == self->frontierSlot) {
+            if(doRegister) {
                 // The EDT registers itself as a waiter here
                 ocrPolicyDomain_t *pd = NULL;
                 ocrPolicyMsg_t msg;
                 getCurrentEnv(&pd, NULL, NULL, &msg);
                 RESULT_PROPAGATE(registerOnFrontier(self, pd, &msg, slot));
             }
-            // else The edt will lazily register on the signalerGuid when
-            // the frontier reaches the signaler's slot.
         }
     } else {
         ASSERT(signalerKind == OCR_GUID_DB);
-        // Here we could use SLOT_SATISFIED_EVT directly, but if we do, when
-        // satisfy is called we won't be able to figure out if the value
-        // was set for a DB here, or by a previous satisfy.
+        // Here we could use SLOT_SATISFIED_EVT directly, but if we do,
+        // when satisfy is called we won't be able to figure out if the
+        // value was set for a DB here, or by a previous satisfy.
         node->slot = SLOT_SATISFIED_DB;
+        // Setting the slot and incrementing the frontier in two steps
+        // introduce a race between the satisfy here after and another
+        // concurrent satisfy advancing the frontier.
         hal_unlock32(&(self->lock));
         //Convert to a satisfy now that we've recorded the mode
         //NOTE: Could improve implementation by figuring out how
