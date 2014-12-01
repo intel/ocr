@@ -177,7 +177,7 @@ static u8 finishLatchCheckin(ocrPolicyDomain_t *pd, ocrPolicyMsg_t *msg,
     PD_MSG_FIELD(source) = sourceEvent;
     PD_MSG_FIELD(dest) = latchEvent;
     PD_MSG_FIELD(slot) = OCR_EVENT_LATCH_DECR_SLOT;
-    PD_MSG_FIELD(properties) = false; // not called from add-dependence
+    PD_MSG_FIELD(properties) = DB_MODE_RO;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, msg, false));
 #undef PD_MSG
 #undef PD_TYPE
@@ -335,6 +335,8 @@ static u8 iterateDbFrontier(ocrTask_t *self) {
                 PD_MSG_FIELD(guid.metaDataPtr) = NULL;
                 PD_MSG_FIELD(edt.guid) = self->guid; // EDT guid
                 PD_MSG_FIELD(edt.metaDataPtr) = self;
+                PD_MSG_FIELD(ptr) = NULL;
+                PD_MSG_FIELD(size) = 0; // avoids auto-serialization on outgoing
                 PD_MSG_FIELD(edtSlot) = self->depc + 1; // RT slot
                 PD_MSG_FIELD(properties) = depv[i].mode | DB_PROP_RT_ACQUIRE;
                 u8 returnCode = pd->fcts.processMessage(pd, &msg, false);
@@ -945,6 +947,8 @@ u8 taskExecute(ocrTask_t* base) {
                 PD_MSG_FIELD(guid.metaDataPtr) = NULL;
                 PD_MSG_FIELD(edt.guid) = base->guid;
                 PD_MSG_FIELD(edt.metaDataPtr) = base;
+                PD_MSG_FIELD(ptr) = NULL;
+                PD_MSG_FIELD(size) = 0; // TODO check that's set properly for release by hc-dist-policy.c
                 PD_MSG_FIELD(properties) = DB_PROP_RT_ACQUIRE; // Runtime release
                 // Ignore failures at this point
                 pd->fcts.processMessage(pd, &msg, true);
@@ -970,6 +974,8 @@ u8 taskExecute(ocrTask_t* base) {
             PD_MSG_FIELD(guid.metaDataPtr) = NULL;
             PD_MSG_FIELD(edt.guid) = base->guid;
             PD_MSG_FIELD(edt.metaDataPtr) = base;
+            PD_MSG_FIELD(ptr) = NULL;
+            PD_MSG_FIELD(size) = 0;
             PD_MSG_FIELD(properties) = 0; // Not a runtime free since it was acquired using DB create
             if(pd->fcts.processMessage(pd, &msg, true)) {
                 DPRINTF(DEBUG_LVL_WARN, "EDT (GUID: 0x%lx) could not release dynamically acquired DB (GUID: 0x%lx)\n",
@@ -995,7 +1001,7 @@ u8 taskExecute(ocrTask_t* base) {
             PD_MSG_FIELD(dest.guid) = base->outputEvent;
             PD_MSG_FIELD(slot) = 0; // Always satisfy on slot 0. This will trickle to
             // the finish latch if needed
-            PD_MSG_FIELD(properties) = 0;
+            PD_MSG_FIELD(properties) = DB_MODE_RO;
             // Ignore failure for now
             // FIXME: Probably need to be a bit more selective
             pd->fcts.processMessage(pd, &msg, false);

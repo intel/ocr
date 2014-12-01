@@ -154,6 +154,12 @@ u8 hcCommSchedulerTakeComm(ocrScheduler_t *self, u32* count, ocrFatGuid_t * fatH
                         fatHandlers[curIdx].metaDataPtr = candidate;
                         curIdx++;
                     }
+                } else {
+                    // Found a handle and none specific was required.
+                    // Don't think we go through this but double check
+                    ASSERT(false && "comp-worker poll for any");
+                    fatHandlers[curIdx].metaDataPtr = candidate;
+                    curIdx++;
                 }
             }
         }

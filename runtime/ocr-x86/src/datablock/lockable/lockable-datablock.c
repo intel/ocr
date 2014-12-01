@@ -122,14 +122,11 @@ static u8 lockableAcquireInternal(ocrDataBlock_t *self, void** ptr, ocrFatGuid_t
                   ocrDbAccessMode_t mode, bool isInternal, u32 properties) {
     ocrDataBlockLockable_t * rself = (ocrDataBlockLockable_t*) self;
 
-    DPRINTF(DEBUG_LVL_VERB, "Acquiring DB @ 0x%lx (GUID: 0x%lx) from EDT (GUID: 0x%lx) (runtime acquire: %d) (mode: %d) (numUsers: %d) (modeLock: %d)\n",
-            (u64)self->ptr, rself->base.guid, edt.guid, (u32)isInternal, (int) mode,
-            rself->attributes.numUsers, rself->attributes.modeLock);
-
     if(rself->attributes.freeRequested && (rself->attributes.numUsers == 0)) {
         // Most likely stemming from an error in the user-code
         // There's a race between the datablock being freed and having no
         // users with someone else trying to acquire the DB
+        ASSERT(false && "OCR_EACCES");
         return OCR_EACCES;
     }
 
@@ -211,8 +208,9 @@ static u8 lockableAcquireInternal(ocrDataBlock_t *self, void** ptr, ocrFatGuid_t
 
     rself->attributes.numUsers += 1;
 
-    DPRINTF(DEBUG_LVL_VERB, "DB (GUID: 0x%lx) added EDT (GUID: 0x%lx). Have %d users (of which %d runtime)\n",
-            self->guid, (u64)edt.guid, rself->attributes.numUsers, rself->attributes.internalUsers);
+    DPRINTF(DEBUG_LVL_VERB, "Acquiring DB @ 0x%lx (GUID: 0x%lx) from EDT (GUID: 0x%lx) (runtime acquire: %d) (mode: %d) (numUsers: %d) (modeLock: %d)\n",
+            (u64)self->ptr, rself->base.guid, edt.guid, (u32)isInternal, (int) mode,
+            rself->attributes.numUsers, rself->attributes.modeLock);
 
 #ifdef OCR_ENABLE_STATISTICS
     {
@@ -225,7 +223,7 @@ static u8 lockableAcquireInternal(ocrDataBlock_t *self, void** ptr, ocrFatGuid_t
 
 
 /**
- * @brief Setup a callback response message and acquire on behalf of the watier
+ * @brief Setup a callback response message and acquire on behalf of the waiter
  **/
 static void processAcquireCallback(ocrDataBlock_t *self, dbWaiter_t * waiter, ocrDbAccessMode_t waiterMode, u32 properties, ocrPolicyMsg_t * msg) {
     getCurrentEnv(NULL, NULL, NULL, msg);
@@ -414,7 +412,7 @@ u8 lockableRelease(ocrDataBlock_t *self, ocrFatGuid_t edt, bool isInternal) {
     }
 #endif /* OCR_ENABLE_STATISTICS */
 
-            // Check if we need to free the block
+    // Check if we need to free the block
     if(rself->attributes.numUsers == 0 &&
         rself->attributes.internalUsers == 0 &&
         rself->attributes.freeRequested == 1) {

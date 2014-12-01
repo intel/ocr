@@ -162,7 +162,7 @@ u8 xeCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
 
     // We marshall things properly
     u64 fullMsgSize = 0, marshalledSize = 0;
-    ocrPolicyMsgGetMsgSize(message, &fullMsgSize, &marshalledSize);
+    ocrPolicyMsgGetMsgSize(message, &fullMsgSize, &marshalledSize, 0);
     // We can only deal with the case where everything fits in the message
     if(fullMsgSize > (bufferSize >> 32)) {
         DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %ld\n",
@@ -206,7 +206,7 @@ u8 xeCommPollMessage(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
     *msg = (ocrPolicyMsg_t *)&lq[1];
     // We fixup pointers
     u64 fullMsgSize = 0, marshalledSize = 0;
-    ocrPolicyMsgGetMsgSize(*msg, &fullMsgSize, &marshalledSize);
+    ocrPolicyMsgGetMsgSize(*msg, &fullMsgSize, &marshalledSize, 0);
     if(fullMsgSize > sizeof(ocrPolicyMsg_t)) {
         DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %ld\n",
                 sizeof(ocrPolicyMsg_t));
@@ -245,7 +245,7 @@ u8 xeCommWaitMessage(ocrCommPlatform_t *self,  ocrPolicyMsg_t **msg,
     *msg = (ocrPolicyMsg_t *)&lq[1];
     // We fixup pointers
     u64 fullMsgSize = 0, marshalledSize = 0;
-    ocrPolicyMsgGetMsgSize(*msg, &fullMsgSize, &marshalledSize);
+    ocrPolicyMsgGetMsgSize(*msg, &fullMsgSize, &marshalledSize, 0);
     if(fullMsgSize > sizeof(ocrPolicyMsg_t)) {
         DPRINTF(DEBUG_LVL_WARN, "Comm platform only handles messages up to size %ld\n",
                 sizeof(ocrPolicyMsg_t));

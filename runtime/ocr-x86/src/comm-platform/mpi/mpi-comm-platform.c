@@ -18,6 +18,9 @@
 #include "mpi-comm-platform.h"
 #include <mpi.h>
 
+//TODO replace this with some INT_MAX from sal header
+#include "limits.h"
+
 #define DEBUG_TYPE COMM_PLATFORM
 
 
@@ -67,6 +70,7 @@ typedef struct {
 #if STRATEGY_PROBE_RECV
     int src;
 #endif
+    u8 deleteSendMsg;
 } mpiCommHandle_t;
 
 static ocrLocation_t mpiRankToLocation(int mpiRank) {
@@ -83,20 +87,19 @@ static int locationToMpiRank(ocrLocation_t location) {
  * @brief Internal use - Returns a new message
  */
 static ocrPolicyMsg_t * allocateNewMessage(ocrCommPlatform_t * self, u32 size) {
-    ocrPolicyDomain_t * pd = self->pd;
-    ocrPolicyMsg_t * message = pd->fcts.pdMalloc(pd, size);
+    ocrPolicyMsg_t * message = self->pd->fcts.pdMalloc(self->pd, size);
     return message;
 }
 
 /**
  * @brief Internal use - Create a mpi handle to represent pending communications
  */
-static mpiCommHandle_t * createMpiHandle(ocrCommPlatform_t * self, u64 id, u32 properties, ocrPolicyMsg_t * msg) {
-    ocrPolicyDomain_t * pd = self->pd;
-    mpiCommHandle_t * handle = pd->fcts.pdMalloc(pd, sizeof(mpiCommHandle_t));
+static mpiCommHandle_t * createMpiHandle(ocrCommPlatform_t * self, u64 id, u32 properties, ocrPolicyMsg_t * msg, u8 deleteSendMsg) {
+    mpiCommHandle_t * handle = self->pd->fcts.pdMalloc(self->pd, sizeof(mpiCommHandle_t));
     handle->msgId = id;
     handle->properties = properties;
     handle->msg = msg;
+    handle->deleteSendMsg = deleteSendMsg;
     return handle;
 }
 
@@ -132,36 +135,8 @@ static void postRecvAny(ocrCommPlatform_t * self) {
 u8 MPICommSendMessage(ocrCommPlatform_t * self,
                       ocrLocation_t target, ocrPolicyMsg_t * message,
                       u64 bufferSize, u64 *id, u32 properties, u32 mask) {
-
+    bufferSize = (u32) bufferSize;
     ocrCommPlatformMPI_t * mpiComm = ((ocrCommPlatformMPI_t *) self);
-
-    u64 fullMsgSize = 0, marshalledSize = 0;
-    ocrPolicyMsgGetMsgSize(message, &fullMsgSize, &marshalledSize);
-    // TODO the copy here is an issue because the caller that has access to the
-    // handle doesn't know the message pointer has changed
-    if (!(properties & PERSIST_MSG_PROP)) {
-        ocrPolicyMsg_t * msgCpy = allocateNewMessage(self, fullMsgSize);
-        hal_memCopy(msgCpy, message, message->size, false);
-        message = msgCpy;
-        properties |= PERSIST_MSG_PROP;
-    } else {
-        // In this case, we are going to use the same message buffer
-        // EXCEPT if the fullMsgSize does not fit and, in this case, we
-        // will create a new message
-        if(fullMsgSize > (bufferSize >> 32)) {
-            ocrPolicyMsg_t *msgCpy = allocateNewMessage(self, fullMsgSize);
-            hal_memCopy(msgCpy, message, message->size, false);
-            // We are done with the original message and it was
-            // persistent so we have to free it
-            self->pd->fcts.pdFree(self->pd, message);
-            message = msgCpy;
-        }
-    }
-
-    // Marshall everything we need in the message. We made sure we have enough size
-    ocrPolicyMsgMarshallMsg(message, (u8*)message, MARSHALL_APPEND);
-    // At this point, the message size will be updated properly to the full size of
-    // the message that needs to be sent
 
     //DIST-TODO: multi-comm-worker: msgId incr only works if a single comm-worker per rank,
     //do we want OCR to provide PD, system level counters ?
@@ -181,6 +156,53 @@ u8 MPICommSendMessage(ocrCommPlatform_t * self,
         // message's msgId the calling PD is waiting on.
     }
 
+    // Handle potential serialization of the message
+    // u64 fullMsgSize = 0, marshalledSize = 0, modSized = (bufferSize >> 32);
+    u64 fullMsgSize = 0, marshalledSize = 0;
+    ocrPolicyMsg_t * messageBuffer = message;
+
+    //TODO-MSGSIZE: this is modifying the message size although
+    // it doesn't need to, especially if we make a copy afterward
+    ocrPolicyMsgGetMsgSize(message, &fullMsgSize, &marshalledSize, MARSHALL_DBPTR | MARSHALL_NSADDR);
+
+    // Check if we need to allocate a new message buffer:
+    //  - Does the serialized message fit in the current message ?
+    //  - Is the message persistent (then need a copy anyway) ?
+    bool deleteSendMsg = false;
+    if ((fullMsgSize > bufferSize) || !(properties & PERSIST_MSG_PROP)) {
+        messageBuffer = allocateNewMessage(self, fullMsgSize);
+        ASSERT(bufferSize == message->size);
+        hal_memCopy(messageBuffer, message, message->size, false);
+        if (properties & PERSIST_MSG_PROP) {
+            // Message was persistent, two cases:
+            if ((properties & TWOWAY_MSG_PROP) && (!(properties & ASYNC_MSG_PROP))) {
+                //  - The message is two-way and is not asynchronous: do not touch the
+                //    message parameter, but record that we indeed made a new copy that
+                //    we will have to deallocate when the communication is completed.
+                deleteSendMsg = true;
+            } else {
+                //  - The message is one-way: By design, all one-way are heap-allocated copies.
+                //    It is the comm-platform responsibility to free them, do it now since we've
+                //    made our own copy.
+                self->pd->fcts.pdFree(self->pd, message);
+                message = NULL; // to catch misuses later in this function call
+            }
+        } else {
+            // Message wasn't persistent, hence the caller is responsible for deallocation.
+            // It doesn't matter whether the communication is one-way or two-way.
+            properties |= PERSIST_MSG_PROP;
+            ASSERT(false && "not used in current implementation (hence not tested)");
+        }
+    }
+
+    // Warning: From now on, exclusively use 'messageBuffer' instead of 'message'
+
+    // Marshall everything we need in the message. We made sure we have enough space.
+    ocrPolicyMsgMarshallMsg(messageBuffer, (u8*)messageBuffer, MARSHALL_APPEND | MARSHALL_DBPTR | MARSHALL_NSADDR);
+
+    // At this point, the messageBuffer size has been updated to the full size of
+    // the message to be sent
+
     // Prepare MPI call arguments
     MPI_Datatype datatype = MPI_BYTE;
     int targetRank = locationToMpiRank(target);
@@ -188,13 +210,13 @@ u8 MPICommSendMessage(ocrCommPlatform_t * self,
     MPI_Comm comm = MPI_COMM_WORLD;
 
     // Setup request's MPI send
-    mpiCommHandle_t * handle = createMpiHandle(self, mpiId, properties, message);
+    mpiCommHandle_t * handle = createMpiHandle(self, mpiId, properties, messageBuffer, deleteSendMsg);
 
     // Setup request's response
-    if ((message->type & PD_MSG_REQ_RESPONSE) && !(properties & ASYNC_MSG_PROP)) {
+    if ((messageBuffer->type & PD_MSG_REQ_RESPONSE) && !(properties & ASYNC_MSG_PROP)) {
     #if STRATEGY_PRE_POST_RECV
         // Reuse request message as receive buffer unless indicated otherwise
-        ocrPolicyMsg_t * respMsg = message;
+        ocrPolicyMsg_t * respMsg = messageBuffer;
         int respTag = mpiId;
         // Prepare a handle for the incoming response
         mpiCommHandle_t * respHandle = createMpiHandle(self, respTag, properties, respMsg);
@@ -203,7 +225,7 @@ u8 MPICommSendMessage(ocrCommPlatform_t * self,
         MPI_Request * status = &(respHandle->status);
         //Post a receive matching the request's msgId.
         //The other end will post a send using msgId as tag
-        DPRINTF(DEBUG_LVL_VERB,"[MPI %d] posting irecv for msgId %ld\n", mpiRankToLocation(self->pd->myLocation), respTag);
+        DPRINTF(DEBUG_LVL_VERB,"[MPI %d] posting irecv for msgId %lu\n", mpiRankToLocation(self->pd->myLocation), respTag);
         int res = MPI_Irecv(respMsg, respCount, datatype, targetRank, respTag, comm, status);
         if (res != MPI_SUCCESS) {
             //DIST-TODO define error for comm-api
@@ -220,15 +242,22 @@ u8 MPICommSendMessage(ocrCommPlatform_t * self,
 
     // If this send is for a response, use message's msgId as tag to
     // match the source recv operation that had been posted on the request send.
-    // Note that msgId may be set to zero in the case of asynchronous message
-    // processing as it is the case for DB_ACQUIRE. It allows to treat the
-    // response as a one-way messages that is not tied to any particular request on
-    // the remote end.
-    int tag = (message->type & PD_MSG_RESPONSE) ? message->msgId : SEND_ANY_ID;
+    // Note that msgId is set to SEND_ANY_ID a little earlier in the case of asynchronous
+    // message like DB_ACQUIRE. It allows to handle the response as a one-way message that
+    // is not tied to any particular request at destination
+    int tag = (messageBuffer->type & PD_MSG_RESPONSE) ? messageBuffer->msgId : SEND_ANY_ID;
+
     MPI_Request * status = &(handle->status);
-    DPRINTF(DEBUG_LVL_VERB,"[MPI %d] posting isend for msgId %ld msg %p type %x to rank %d\n",
-        mpiRankToLocation(self->pd->myLocation), message->msgId, message, message->type, targetRank);
-    int res = MPI_Isend(message, bufferSize, datatype, targetRank, tag, comm, status);
+    DPRINTF(DEBUG_LVL_VVERB, "[MPI %d] posting isend for msgId=%lu msg=%p type=%x size=%lu "
+            "fullMsgSize=%lu marshalledSize=%lu to MPI rank %d\n",
+        locationToMpiRank(self->pd->myLocation), messageBuffer->msgId, messageBuffer,
+            messageBuffer->type, messageBuffer->size, fullMsgSize, marshalledSize, targetRank);
+
+    //If this assert bombs, we need to implement message chunking
+    //or use a larger MPI datatype to send the message.
+    ASSERT((fullMsgSize < INT_MAX) && "Outgoing message is too large");
+
+    int res = MPI_Isend(messageBuffer, (int) fullMsgSize, datatype, targetRank, tag, comm, status);
     if (res == MPI_SUCCESS) {
         mpiComm->outgoing->pushFront(mpiComm->outgoing, handle);
         *id = mpiId;
@@ -281,26 +310,33 @@ u8 probeIncoming(ocrCommPlatform_t *self, int src, int tag, ocrPolicyMsg_t ** ms
     int success = MPI_Iprobe(src, tag, MPI_COMM_WORLD, &available, &status);
     ASSERT(success == MPI_SUCCESS);
     if (available) {
+        ASSERT(msg != NULL);
+        ASSERT((msgSize == 0) ? ((tag == RECV_ANY_ID) && (*msg == NULL)) : 1);
         // Look at the size of incoming message
         MPI_Datatype datatype = MPI_BYTE;
         int count;
         success = MPI_Get_count(&status, datatype, &count);
         ASSERT(success == MPI_SUCCESS);
-        MPI_Comm comm = MPI_COMM_WORLD;
+        ASSERT(count != 0);
         // Reuse request's or allocate a new message if incoming size is greater.
         if (count > msgSize) {
-            *msg = allocateNewMessage(self, count);
+            *msg = allocateNewMessage(self, (u64) count);
         }
+        ASSERT(*msg != NULL);
+        MPI_Comm comm = MPI_COMM_WORLD;
         success = MPI_Recv(*msg, count, datatype, src, tag, comm, MPI_STATUS_IGNORE);
-        DPRINTF(DEBUG_LVL_VERB,"[MPI %d] iprobe+recv for msgId %ld type=%x\n", mpiRankToLocation(self->pd->myLocation), tag, (*msg)->type);
         ASSERT(success == MPI_SUCCESS);
         // Unmarshall the message. We check to make sure the size is OK
         // This should be true since MPI seems to make sure to send the whole message
-        ocrPolicyMsgGetMsgSize(*msg, &fullMsgSize, &marshalledSize);
-        ASSERT(fullMsgSize <= count);
-        (*msg)->size = fullMsgSize; // Reset it properly (it will have been set to
-                                    // fullMsgSize - marshalledSize)
-        ocrPolicyMsgUnMarshallMsg((u8*)*msg, NULL, *msg, MARSHALL_APPEND);
+        ocrPolicyMsgGetMsgSize(*msg, &fullMsgSize, &marshalledSize, MARSHALL_DBPTR | MARSHALL_NSADDR);
+        ASSERT(fullMsgSize == count);
+        ocrPolicyMsgUnMarshallMsg((u8*)*msg, NULL, *msg, MARSHALL_APPEND
+                                  | MARSHALL_NSADDR | MARSHALL_DBPTR);
+        DPRINTF(DEBUG_LVL_VVERB, "[MPI %d] iprobe+recv for tag=%d msg=%p src=%d, "
+                "dst=%d, id=%lu, type=0x%x size=%u full=%lu marsh=%lu\n",
+                locationToMpiRank(self->pd->myLocation), tag, *msg,
+                locationToMpiRank((*msg)->srcLocation), locationToMpiRank((*msg)->destLocation),
+                (*msg)->msgId, (*msg)->type, (*msg)->size, fullMsgSize, marshalledSize);
         return POLL_MORE_MESSAGE;
     }
     return POLL_NO_MESSAGE;
@@ -324,13 +360,15 @@ u8 MPICommPollMessage_RL3(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
         int ret = MPI_Test(&(mpiHandle->status), &completed, MPI_STATUS_IGNORE);
         ASSERT(ret == MPI_SUCCESS);
         if(completed) {
-            DPRINTF(DEBUG_LVL_VERB,"[MPI %d] successfully sent msgId %ld msg %p type %x\n",
-                mpiRankToLocation(self->pd->myLocation), mpiHandle->msg->msgId, mpiHandle->msg, mpiHandle->msg->type);
+            DPRINTF(DEBUG_LVL_VVERB,"[MPI %d] sent msg=%p src=%d, dst=%d, msgId=%lu, type=0x%x, size=%lu\n",
+                    locationToMpiRank(self->pd->myLocation), mpiHandle->msg,
+                    locationToMpiRank(mpiHandle->msg->srcLocation), locationToMpiRank(mpiHandle->msg->destLocation),
+                    mpiHandle->msg->msgId, mpiHandle->msg->type, mpiHandle->msg->size);
             u32 msgProperties = mpiHandle->properties;
             // By construction, either messages are persistent in API's upper levels
             // or they've been made persistent on the send through a copy.
             ASSERT(msgProperties & PERSIST_MSG_PROP);
-            // elete the message if one-way (request or response).
+            // Delete the message if one-way (request or response).
             // Otherwise message might be used to store the response later.
             if (!(msgProperties & TWOWAY_MSG_PROP) || (msgProperties & ASYNC_MSG_PROP)) {
                 pd->fcts.pdFree(pd, mpiHandle->msg);
@@ -357,10 +395,20 @@ u8 MPICommPollMessage_RL3(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
         // Probe a specific incoming message. Response message overwrites the request one
         // if it fits. Otherwise, a new message is allocated. Upper-layers are responsible
         // for deallocating the request/response buffers.
-        u8 res = probeIncoming(self, mpiHandle->src, (int) mpiHandle->msgId, &mpiHandle->msg, mpiHandle->msg->size);
+        ocrPolicyMsg_t * reqMsg = mpiHandle->msg;
+        u8 res = probeIncoming(self, mpiHandle->src, (int) mpiHandle->msgId, &reqMsg, reqMsg->size);
         // The message is properly unmarshalled at this point
         if (res == POLL_MORE_MESSAGE) {
-            *msg = mpiHandle->msg;
+            if ((reqMsg != mpiHandle->msg) && mpiHandle->deleteSendMsg) {
+                // we did allocate a new message to store the response
+                // and the request message was already an internal copy
+                // made by the comm-platform, hence the pointer is only
+                // known here and must be deallocated. The sendMessage
+                // caller still has a pointer to the original message.
+                pd->fcts.pdFree(pd, mpiHandle->msg);
+            }
+            ASSERT(reqMsg->msgId == mpiHandle->msgId);
+            *msg = reqMsg;
             pd->fcts.pdFree(pd, mpiHandle);
             incomingIt->removeCurrent(incomingIt);
             return res;
@@ -375,18 +423,18 @@ u8 MPICommPollMessage_RL3(ocrCommPlatform_t *self, ocrPolicyMsg_t **msg,
             ocrPolicyMsg_t * receivedMsg = mpiHandle->msg;
             u32 needRecvAny = (receivedMsg->type & PD_MSG_REQUEST);
             DPRINTF(DEBUG_LVL_VERB,"[MPI %d] Received a message of type %x with msgId %d \n",
-                    mpiRankToLocation(self->pd->myLocation), receivedMsg->type, (int) receivedMsg->msgId);
+                    locationToMpiRank(self->pd->myLocation), receivedMsg->type, (int) receivedMsg->msgId);
             // if request : msg may be reused for the response
             // if response: upper-layer must process and deallocate
             //DIST-TODO there's no convenient way to let upper-layers know if msg can be reused
             *msg = receivedMsg;
             // We need to unmarshall the message here
             // Check the size for sanity (I think it should be OK but not sure in this case)
-            ocrPolicyMsgGetMsgSize(*msg, &fullMsgSize, &marshalledSize);
+            ocrPolicyMsgGetMsgSize(*msg, &fullMsgSize, &marshalledSize, MARSHALL_DBPTR | MARSHALL_NSADDR);
             ASSERT(fullMsgSize <= count);
             (*msg)->size = fullMsgSize; // Reset it properly (it will have been set to
             // fullMsgSize - marshalledSize)
-            ocrPolicyMsgUnMarshallMsg((u8*)*msg, NULL, *msg, MARSHALL_APPEND);
+            ocrPolicyMsgUnMarshallMsg((u8*)*msg, NULL, *msg, MARSHALL_APPEND | MARSHALL_DBPTR | MARSHALL_NSADDR);
 
             pd->fcts.pdFree(pd, mpiHandle);
             incomingIt->removeCurrent(incomingIt);
@@ -460,7 +508,7 @@ void MPICommBegin(ocrCommPlatform_t * self, ocrPolicyDomain_t * pd, ocrCommApi_t
     int rank=0;
     MPI_Comm_size(MPI_COMM_WORLD, &nbRanks);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    DPRINTF(DEBUG_LVL_VERB,"[MPI %d] comm-platform starts\n",rank);
+    DPRINTF(DEBUG_LVL_VERB,"[MPI %d] comm-platform starts\n", rank);
     pd->myLocation = locationToMpiRank(rank);
     return;
 }
@@ -481,7 +529,8 @@ void MPICommStart(ocrCommPlatform_t * self, ocrPolicyDomain_t * pd, ocrCommApi_t
     mpiComm->maxMsgSize = sizeof(ocrPolicyMsg_t)*2;
 #endif
 #if STRATEGY_PROBE_RECV
-    mpiComm->maxMsgSize = sizeof(ocrPolicyMsg_t);
+    // Do not need that with probe
+    ASSERT(mpiComm->maxMsgSize == 0);
 #endif
     // Generate the list of known neighbors (All-to-all)
     //DIST-TODO neighbors: neighbor information should come from discovery or topology description
@@ -493,7 +542,7 @@ void MPICommStart(ocrCommPlatform_t * self, ocrPolicyDomain_t * pd, ocrCommApi_t
     int i = 0;
     while(i < (nbRanks-1)) {
         pd->neighbors[i] = mpiRankToLocation((myRank+i+1)%nbRanks);
-        DPRINTF(DEBUG_LVL_VERB,"Neighbors[%d] is %d\n", i, pd->neighbors[i]);
+        DPRINTF(DEBUG_LVL_VERB,"[MPI %d] Neighbors[%d] is %d\n", myRank, i, pd->neighbors[i]);
         i++;
     }
 
@@ -511,7 +560,7 @@ void MPICommStop(ocrCommPlatform_t * self) {
     ocrCommPlatformMPI_t * mpiComm = ((ocrCommPlatformMPI_t *) self);
     // Some other worker wants to stop the communication worker.
     //DIST-TODO stop: self stop for mpi-comm-platform i.e. called by comm-worker
-    DPRINTF(DEBUG_LVL_VERB,"[MPI %d] Calling MPI STOP %d\n",  mpiRankToLocation(self->pd->myLocation), mpiComm->rl);
+    DPRINTF(DEBUG_LVL_VERB,"[MPI %d] Calling MPI STOP %d\n", locationToMpiRank(self->pd->myLocation), mpiComm->rl);
     switch(mpiComm->rl) {
         case 3:
             mpiComm->rl_completed[3] = true;
@@ -536,11 +585,14 @@ void MPICommStop(ocrCommPlatform_t * self) {
             mpiComm->incoming->destruct(mpiComm->incoming);
             ASSERT(mpiComm->outgoing->isEmpty(mpiComm->outgoing));
             mpiComm->outgoing->destruct(mpiComm->outgoing);
+            mpiComm->incomingIt->destruct(mpiComm->incomingIt);
+            mpiComm->outgoingIt->destruct(mpiComm->outgoingIt);
+
         break;
         default:
             ASSERT(false && "Illegal RL reached in MPI-comm-platform stop");
     }
-    DPRINTF(DEBUG_LVL_VERB,"[MPI %d] Exiting Calling MPI STOP %d\n",  mpiRankToLocation(self->pd->myLocation), mpiComm->rl);
+    DPRINTF(DEBUG_LVL_VERB,"[MPI %d] Exiting Calling MPI STOP %d\n",  locationToMpiRank(self->pd->myLocation), mpiComm->rl);
 }
 
 void MPICommFinish(ocrCommPlatform_t *self) {

@@ -957,10 +957,14 @@ void initializePolicyDomainOcr(ocrPolicyDomainFactory_t * factory, ocrPolicyDoma
 /****************************************************/
 
 typedef enum {
-    MARSHALL_FULL_COPY,
-    MARSHALL_DUPLICATE,
-    MARSHALL_APPEND,
-    MARSHALL_ADDL
+    MARSHALL_FULL_COPY = 0x1,
+    MARSHALL_DUPLICATE = 0x2,
+    MARSHALL_APPEND    = 0x3,
+    MARSHALL_ADDL      = 0x4,
+    MARSHALL_TYPE      = 0xF,
+    MARSHALL_NSADDR    = 0x10,
+    MARSHALL_DBPTR     = 0x20,
+    MARSHALL_FLAGS     = 0xF0
 } ocrMarshallMode_t;
 
 /**
@@ -975,6 +979,9 @@ typedef enum {
  * @param[out] fullSize         Full size of the message (bytes)
  * @param[out] marshalledSize   Additional data that needs to be
  *                              fetched/marshalled (included in fullSize) (bytes)
+ * @param[in] mode              The "flag" part of the marshalling mode
+ *                              (MARSHALL_DBPTR and MARSHALL_NSADDR). Non flag bits
+ *                              are ignored
  *
  * This call can be used on both a ocrPolicyMsg_t or a buffer
  * containing a marshalled ocrPolicyMsg_t. This will set the 'size'
@@ -988,14 +995,27 @@ typedef enum {
  * @return 0 on success and a non-zero error code
  */
 u8 ocrPolicyMsgGetMsgSize(struct _ocrPolicyMsg_t* msg, u64 *fullSize,
-                          u64* marshalledSize);
+                          u64* marshalledSize, u32 mode);
+
+/**
+ * @brief Gets the header size of a message depending on its type.
+ *
+ * @param[in] msg               Message to analyze
+ * @param[out] headerSize       Message's header size
+ *
+ * This call does not modify the message size
+ *
+ * @return 0 on success and a non-zero error code
+ */
+u8 ocrPolicyMsgGetMsgHeaderSize(ocrPolicyMsg_t *msg, u32 *headerSize);
 
 /**
  * @brief Marshall everything needed to send the message over to a PD that
  * does not share the same address space
  *
  * This function performs one of three operations depending on the
- * mode:
+ * mode. You must specify one of:
+ *
  *   - MARSHALL_FULL_COPY: Fully copy and marshall msg into buffer. In
  *                         this case buffer and msg do not overlap. The
  *                         caller also ensures that buffer is at least
@@ -1018,6 +1038,13 @@ u8 ocrPolicyMsgGetMsgSize(struct _ocrPolicyMsg_t* msg, u64 *fullSize,
  *                         into buffer. The caller ensures that buffer is
  *                         at least big enough to contain marshalledSize
  *                         as returned by ocrPolicyMsgGetMsgSize
+ * and optionally OR it with any of the following:
+ *   - MARSHALL_NSADDR:    Marshalling to send to a location that does not share
+ *                         the same address space (across MPI ranks for example)
+ *   - MARSHALL_DBPTR:     Marshall/unmarshall the ptr* field in ACQUIRE/RELEASE
+ *                         calls. To save on message traffic, an acquire/release
+ *                         contain the actual data-block if needed (going across
+ *                         address spaces for example)
  *
  * Note that in the case of MARSHALL_APPEND and MARSHALL_ADDL, the
  * msg itself is modified to encode offsets and positions for the marshalled
@@ -1032,7 +1059,7 @@ u8 ocrPolicyMsgGetMsgSize(struct _ocrPolicyMsg_t* msg, u64 *fullSize,
  * @param[in] mode         One of MARSHALL_FULL_COPY, MARSHALL_APPEND, MARSHALL_ADDL
  * @return 0 on success and a non-zero error code
  */
-u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u8* buffer, ocrMarshallMode_t mode);
+u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u8* buffer, u32 mode);
 
 /**
  * @brief Performs the opposite operation to ocrPolicyMsgMarshallMsg
@@ -1040,7 +1067,8 @@ u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u8* buffer, ocrMarshallM
  * The inputs are the mainBuffer (containing the header of the message and
  * an optional additional buffer (obtained using the MARSHALL_ADDL mode).
  *
- * The significance of the modes here are:
+ * The mode is also a combination of any of MARSHALL_NSADDR and MARSHALL_DBPTR
+ * (same significance as for marshall) as well as one of:
  *   - MARSHALL_FULL_COPY: In this case, none of the buffers (mainBuffer,
  *                         addlBuffer, msg) overlap. The entire content
  *                         of the message and any additional structure
@@ -1073,7 +1101,7 @@ u8 ocrPolicyMsgMarshallMsg(struct _ocrPolicyMsg_t* msg, u8* buffer, ocrMarshallM
  * @return 0 on success and a non-zero error code
  */
 u8 ocrPolicyMsgUnMarshallMsg(u8* mainBuffer, u8* addlBuffer,
-                             struct _ocrPolicyMsg_t* msg, ocrMarshallMode_t mode);
+                             struct _ocrPolicyMsg_t* msg, u32 mode);
 
 
 #define __GUID_END_MARKER__

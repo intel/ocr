@@ -621,7 +621,7 @@ static u8 ceProcessResponse(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u32 pr
                 // This is a CE->CE message
                 ocrPolicyMsg_t toSend;
                 u64 fullMsgSize = 0, marshalledSize = 0;
-                ocrPolicyMsgGetMsgSize(msg, &fullMsgSize, &marshalledSize);
+                ocrPolicyMsgGetMsgSize(msg, &fullMsgSize, &marshalledSize, 0);
                 msg->size = fullMsgSize;
                 ocrPolicyMsgMarshallMsg(msg, (u8 *)&toSend, MARSHALL_DUPLICATE);
 

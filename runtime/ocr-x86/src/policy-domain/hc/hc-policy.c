@@ -536,7 +536,7 @@ static void hcReleasePd(ocrPolicyDomainHc_t *rself) {
     u32 oldState = 0;
     u32 newState = rself->state;
     do {
-        ASSERT(newState > 16); // We must at least be a user
+        ASSERT(newState > 16); // We must at least be a user in shmem
         oldState = newState;
         newState -= 16;
         newState = hal_cmpswap32(&(rself->state), oldState, newState);
@@ -667,6 +667,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         //DIST-TODO db: release is a blocking two-way message to make sure it executed at destination
         PD_MSG_FIELD(returnDetail) = self->dbFactories[0]->fcts.release(
             db, PD_MSG_FIELD(edt), PD_MSG_FIELD(properties) & DB_PROP_RT_ACQUIRE);
+        PD_MSG_FIELD(size) = 0; // prevent marshalling the DB's ptr again when responding
 #undef PD_MSG
 #undef PD_TYPE
         msg->type &= ~PD_MSG_REQUEST;

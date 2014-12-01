@@ -69,11 +69,8 @@ u8 sendMessageSimpleCommApi(ocrCommApi_t *self, ocrLocation_t target, ocrPolicyM
 
     u8 ret = self->commPlatform->fcts.sendMessage(self->commPlatform, target, message,
                                                   bufferSize, &id, properties, SIMPLE_COMM_NO_MASK);
-
     if (ret == 0) {
-        if (handle == NULL) {
-            // No handle requested
-        } else {
+        if (handle != NULL) {
             if (*handle == NULL) {
                 // Handle creation requested
                 *handle = createMsgHandler(self, message);
@@ -82,12 +79,14 @@ u8 sendMessageSimpleCommApi(ocrCommApi_t *self, ocrLocation_t target, ocrPolicyM
             (*handle)->status = HDL_SEND_OK;
             // Associate id with handle
             hashtableNonConcPut(commApiSimple->handleMap, (void *) id, *handle);
-        }
+        } // else: No handle requested
     } else {
         // Error occurred while sending, set handler status if any
         if ((handle != NULL) && (*handle != NULL)) {
             (*handle)->status = HDL_SEND_ERR;
         }
+        // Assert for now since we don't really handle errors in upper-layers
+        ASSERT(ret == 0);
     }
 
     return ret;

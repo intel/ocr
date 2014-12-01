@@ -111,7 +111,7 @@ u8 cePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target, ocrPo
             DPRINTF(DEBUG_LVL_VVERB, "Send CE REQ Type: ix%x Dest: %lu Channel: %p RemoteCounter: %lu LocalCounter: %lu\n",
                     msg->type, target, channel, channel->remoteCounter, channel->localCounter);
             u64 fullMsgSize = 0, marshalledSize = 0;
-            ocrPolicyMsgGetMsgSize(msg, &fullMsgSize, &marshalledSize);
+            ocrPolicyMsgGetMsgSize(msg, &fullMsgSize, &marshalledSize, 0);
             hal_fence();
             ocrPolicyMsg_t * channelMessage = (ocrPolicyMsg_t*)channel->message;
             if (channelMessage == NULL) {
@@ -152,7 +152,7 @@ u8 cePthreadCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target, ocrPo
                     msg->type, target, channel, channel->remoteCounter, channel->localCounter);
             hal_fence();
             u64 fullMsgSize = 0, marshalledSize = 0;
-            ocrPolicyMsgGetMsgSize(msg, &fullMsgSize, &marshalledSize);
+            ocrPolicyMsgGetMsgSize(msg, &fullMsgSize, &marshalledSize, 0);
             ocrPolicyMsgMarshallMsg(msg, (u8*)(&(channel->messageBuffer)), MARSHALL_FULL_COPY);
             channel->message = &(channel->messageBuffer);
             hal_fence();

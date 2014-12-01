@@ -243,8 +243,9 @@ void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
             //By default set src and dest location to current location.
             msg->srcLocation = vals->pd->myLocation;
             msg->destLocation = msg->srcLocation;
-            //TODO enable the following
-            // msg->size = sizeof(ocrPolicyMsg_t); //Safe and conservative
+            // Sentinel value to be updated by the caller or
+            // subsequent callee with message as a PARAMETER
+            msg->size = 0;
         }
     }
     RETURN_PROFILE();
@@ -275,3 +276,4 @@ ocrCompPlatformFactory_t *newCompPlatformFactoryPthread(ocrParamList_t *perType)
     return base;
 }
 #endif /* ENABLE_COMP_PLATFORM_PTHREAD */
+

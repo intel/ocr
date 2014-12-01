@@ -166,6 +166,8 @@ u8 ocrDbRelease(ocrGuid_t db) {
     PD_MSG_FIELD(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD(edt.guid) = task?task->guid:NULL_GUID;
     PD_MSG_FIELD(edt.metaDataPtr) = task;
+    PD_MSG_FIELD(ptr) = NULL;
+    PD_MSG_FIELD(size) = 0;
     PD_MSG_FIELD(properties) = 0;
     PD_MSG_FIELD(returnDetail) = 0;
 

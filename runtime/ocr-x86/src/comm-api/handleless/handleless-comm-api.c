@@ -82,6 +82,7 @@ u8 handlelessCommPollMessage(ocrCommApi_t *self, ocrMsgHandle_t **handle) {
     ASSERT(handle);
     ocrCommApiHandleless_t * commApiHandleless = (ocrCommApiHandleless_t*)self;
     u64 bufferSize = (u32)(sizeof(ocrPolicyMsg_t)) | (sizeof(ocrPolicyMsg_t) << 32);
+
     if (!(*handle)) {
         *handle = &(commApiHandleless->handle);
         (*handle)->status = HDL_NORMAL;

@@ -328,7 +328,7 @@ static u8 xeProcessCeRequest(ocrPolicyDomain_t *self, ocrPolicyMsg_t **msg) {
                 // sizes
                 // We use the marshalling function to "copy" this message
                 u64 fullSize = 0, marshalledSize = 0;
-                ocrPolicyMsgGetMsgSize(handle->response, &fullSize, &marshalledSize);
+                ocrPolicyMsgGetMsgSize(handle->response, &fullSize, &marshalledSize, 0);
                 // For now, it must fit in a single message
                 ASSERT(fullSize <= sizeof(ocrPolicyMsg_t));
                 ocrPolicyMsgMarshallMsg(handle->response, (u8*)*msg, MARSHALL_DUPLICATE);
