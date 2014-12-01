@@ -468,7 +468,7 @@ u8 destructTaskHc(ocrTask_t* base) {
     return 0;
 }
 
-ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
+u8 newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t * edtGuid, ocrFatGuid_t edtTemplate,
                       u32 paramc, u64* paramv, u32 depc, u32 properties,
                       ocrFatGuid_t affinity, ocrFatGuid_t * outputEventPtr,
                       ocrTask_t *curEdt, ocrFatGuid_t parentLatch,
@@ -498,7 +498,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
         PD_MSG_FIELD(properties) = 0;
         PD_MSG_FIELD(type) = OCR_EVENT_ONCE_T; // Output events of EDTs are non sticky
 
-        RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), NULL);
+        RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), 1);
         outputEvent = PD_MSG_FIELD(guid);
 
 #undef PD_MSG
@@ -517,7 +517,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     PD_MSG_FIELD(size) = sizeof(ocrTaskHc_t) + paramc*sizeof(u64) + depc*sizeof(regNode_t);
     PD_MSG_FIELD(kind) = OCR_GUID_EDT;
     PD_MSG_FIELD(properties) = 0;
-    RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), NULL);
+    RESULT_PROPAGATE2(pd->fcts.processMessage(pd, &msg, true), 1);
     ocrTaskHc_t *edt = (ocrTaskHc_t*)PD_MSG_FIELD(guid.metaDataPtr);
     ocrTask_t *base = (ocrTask_t*)edt;
     ASSERT(edt);
@@ -554,7 +554,7 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
     }
 
     // Set up HC specific stuff
-    RESULT_PROPAGATE2(initTaskHcInternal(edt, pd, curEdt, outputEvent, parentLatch, properties), NULL);
+    RESULT_PROPAGATE2(initTaskHcInternal(edt, pd, curEdt, outputEvent, parentLatch, properties), 1);
 
     // Set up outputEventPtr:
     //   - if a finish EDT, wait on its latch event
@@ -588,13 +588,16 @@ ocrTask_t * newTaskHc(ocrTaskFactory_t* factory, ocrFatGuid_t edtTemplate,
 #endif /* OCR_ENABLE_STATISTICS */
     DPRINTF(DEBUG_LVL_INFO, "Create 0x%lx depc %d outputEvent 0x%lx\n", base->guid, depc, outputEventPtr?outputEventPtr->guid:NULL_GUID);
 
+    edtGuid->guid = base->guid;
+    edtGuid->metaDataPtr = base;
+
     // Check to see if the EDT can be run
     if(base->depc == edt->slotSatisfiedCount) {
         DPRINTF(DEBUG_LVL_VVERB, "Scheduling task 0x%lx due to initial satisfactions\n",
                 base->guid);
-        RESULT_PROPAGATE2(taskAllDepvSatisfied(base), NULL);
+        RESULT_PROPAGATE2(taskAllDepvSatisfied(base), 1);
     }
-    return base;
+    return 0;
 }
 
 u8 dependenceResolvedTaskHc(ocrTask_t * self, ocrGuid_t dbGuid, void * localDbPtr, u32 slot) {
@@ -1027,7 +1030,7 @@ void destructTaskFactoryHc(ocrTaskFactory_t* base) {
 ocrTaskFactory_t * newTaskFactoryHc(ocrParamList_t* perInstance, u32 factoryId) {
     ocrTaskFactory_t* base = (ocrTaskFactory_t*)runtimeChunkAlloc(sizeof(ocrTaskFactoryHc_t), NULL);
 
-    base->instantiate = FUNC_ADDR(ocrTask_t* (*) (ocrTaskFactory_t*, ocrFatGuid_t, u32, u64*, u32, u32, ocrFatGuid_t, ocrFatGuid_t*, ocrTask_t *, ocrFatGuid_t, ocrParamList_t*), newTaskHc);
+    base->instantiate = FUNC_ADDR(u8 (*) (ocrTaskFactory_t*, ocrFatGuid_t*, ocrFatGuid_t, u32, u64*, u32, u32, ocrFatGuid_t, ocrFatGuid_t*, ocrTask_t *, ocrFatGuid_t, ocrParamList_t*), newTaskHc);
     base->destruct =  FUNC_ADDR(void (*) (ocrTaskFactory_t*), destructTaskFactoryHc);
     base->factoryId = factoryId;
 

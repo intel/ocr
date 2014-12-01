@@ -452,13 +452,11 @@ static u8 hcCreateEdt(ocrPolicyDomain_t *self, ocrFatGuid_t *guid,
         return OCR_EINVAL;
     }
 
-    ocrTask_t * base = self->taskFactories[0]->instantiate(
-                           self->taskFactories[0], edtTemplate, *paramc, paramv,
+    u8 res = self->taskFactories[0]->instantiate(
+                           self->taskFactories[0], guid, edtTemplate, *paramc, paramv,
                            *depc, properties, affinity, outputEvent, currentEdt,
                            parentLatch, NULL);
-
-    (*guid).guid = base->guid;
-    (*guid).metaDataPtr = base;
+    ASSERT(!res);
     return 0;
 }
 

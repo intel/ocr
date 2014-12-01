@@ -281,7 +281,7 @@ typedef struct _ocrTaskFactory_t {
      *  the GUIDs used to satisfy the Events enlisted in the dependence list.
      *
      */
-    ocrTask_t* (*instantiate)(struct _ocrTaskFactory_t * factory, ocrFatGuid_t edtTemplate,
+    u8  (*instantiate)(struct _ocrTaskFactory_t * factory, ocrFatGuid_t * edtGuid, ocrFatGuid_t edtTemplate,
                               u32 paramc, u64* paramv, u32 depc, u32 properties,
                               ocrFatGuid_t affinity, ocrFatGuid_t *outputEvent,
                               ocrTask_t *curEdt, ocrFatGuid_t parentLatch,
