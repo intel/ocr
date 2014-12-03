@@ -85,6 +85,8 @@ static void initializeKey() {
     RESULT_ASSERT(pthread_key_create(&selfKey, &destroyKey), ==, 0);
     // We are going to set our own key (we are the master thread)
     perThreadStorage_t *data = (perThreadStorage_t*)malloc(sizeof(perThreadStorage_t));
+    data->pd = NULL;
+    data->worker = NULL;
     RESULT_ASSERT(pthread_setspecific(selfKey, data), ==, 0);
 #ifdef OCR_RUNTIME_PROFILER
     RESULT_ASSERT(pthread_key_create(&_profilerThreadData, &_profilerDataDestroy), ==, 0);
