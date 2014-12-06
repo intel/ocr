@@ -256,7 +256,7 @@ class TestCase:
             self.run_(result, True)
         except AttributeError:
             pass
-        
+
     def run_(self, result, memcheck):
         if result is None: result = self.defaultTestResult()
         if memcheck and not hasattr(sys, 'gettotalrefcount'):

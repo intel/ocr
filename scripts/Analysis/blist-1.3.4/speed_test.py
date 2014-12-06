@@ -97,12 +97,12 @@ def get_timing1(limit, label, setup_n, template, typename, use_rep_map):
     else:
         setup_n = setup_n
     ftimeit = open('fig/%s.txt' % label, 'w')
-    print('<div class="blist_inner">Setup: <code>%s</code><br/>' % setup_n.replace('\n', '<br/>'), 
+    print('<div class="blist_inner">Setup: <code>%s</code><br/>' % setup_n.replace('\n', '<br/>'),
           file=ftimeit)
-    print('Timed: <code>%s</code></div>' % template.replace('\n', '<br/>'), 
+    print('Timed: <code>%s</code></div>' % template.replace('\n', '<br/>'),
           file=ftimeit)
     ftimeit.close()
- 
+
     for i in reversed(list(range(len(ns)))):
         n = ns[i]
         key = (limit, label, setup_n, n, template, typename)
@@ -183,7 +183,7 @@ def html(label):
 | <a href="http://pokersleuth.com/hand-converter.shtml">Hand Converter</a>
 
 </div>
-    
+
 <object data="absolute/%s.svg" width="480" height="360"
 	type="image/svg+xml"></object>
 <object data="relative/%s.svg" width="480" height="360"

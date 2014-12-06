@@ -17,11 +17,11 @@ Build requirements:
 
 ** Quick installation
 
-1) Run the install script 
+1) Run the install script
 
     ./install.sh
-    
-2) Set environment variable 
+
+2) Set environment variable
 
     export OCR_INSTALL=${PWD}/ocr-install
     export LD_LIBRARY_PATH=${OCR_INSTALL}/lib:${LD_LIBRARY_PATH}
@@ -36,7 +36,7 @@ Build requirements:
 
 The './install.sh' script is a convenience build scripts, it ALWAYS
 runs the following steps:
-    
+
     - aclocal
     - autoreconf
     - configure
@@ -49,7 +49,7 @@ generated object files and libraries. This is where you can type
 'install.sh' script.
 
 The default installation folder that contains the final library and
-header files is 'ocr-install'. To override the default installation 
+header files is 'ocr-install'. To override the default installation
 folder, set the 'INSTALL_ROOT' environment variable.
 
     export INSTALL_ROOT=/my/install/folder

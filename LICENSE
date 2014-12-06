@@ -3,7 +3,7 @@
  * @date 2013-07-17
  */
 This LICENSE file applies to all files in this directory (and any sub-directories)
-except for: 
+except for:
        - dictionary.c dictionary.h, iniparser.c, iniparser.h
        - examples/cholesky/cholesky.omp.task.c
        - examples/smithwaterman/smith_waterman_tiled_omp.c

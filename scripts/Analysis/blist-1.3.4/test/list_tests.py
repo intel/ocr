@@ -437,13 +437,13 @@ class CommonTest(seq_tests.CommonTest):
         u = self.type2test([2,1,0,-1,-2])
         u.sort()
         self.assertEqual(u, self.type2test([-2,-1,0,1,2]))
-        
+
         self.assertRaises(TypeError, u.sort, 42, 42)
-        
+
         a = self.type2test(reversed(list(range(512))))
         a.sort()
         self.assertEqual(a, self.type2test(list(range(512))))
-        
+
         def revcmp(a, b): # pragma: no cover
             if a == b:
                 return 0
@@ -453,7 +453,7 @@ class CommonTest(seq_tests.CommonTest):
                 return -1
         u.sort(key=CmpToKey(revcmp))
         self.assertEqual(u, self.type2test([2,1,0,-1,-2]))
-        
+
         # The following dumps core in unpatched Python 1.5:
         def myComparison(x,y):
            xmod, ymod = x%3, y%7
@@ -465,17 +465,17 @@ class CommonTest(seq_tests.CommonTest):
                return 1
         z = self.type2test(list(range(12)))
         z.sort(key=CmpToKey(myComparison))
-        
+
         self.assertRaises(TypeError, z.sort, 2)
-        
+
         def selfmodifyingComparison(x,y):
             z.append(1)
             return cmp(x, y)
         self.assertRaises(ValueError, z.sort, key=CmpToKey(selfmodifyingComparison))
-        
+
         if sys.version_info[0] < 3:
             self.assertRaises(TypeError, z.sort, lambda x, y: 's')
-        
+
         self.assertRaises(TypeError, z.sort, 42, 42, 42, 42)
 
     def test_slice(self):
@@ -551,7 +551,7 @@ class CommonTest(seq_tests.CommonTest):
             def next(self):
                 raise KeyboardInterrupt
             __next__ = next
-        
+
         class F(object):
             def __iter__(self):
                 return Iter()

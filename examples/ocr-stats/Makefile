@@ -1,5 +1,5 @@
 PROG=ocr-stat-test
-CFLAGS=-O0 -g -Werror 
+CFLAGS=-O0 -g -Werror
 IFLAGS=-I${OCR_INSTALL}/include
 LFLAGS=-L${OCR_INSTALL}/lib -locr
 
@@ -21,7 +21,7 @@ endif
 
 OCR_RUN_FLAGS=-ocr:cfg ${OCR_CONFIG}
 
-all-test: compile 
+all-test: compile
 
 %.o:%.c Makefile
 	$(CLANG) $(CFLAGS) $(IFLAGS) -I. -c $*.c -emit-llvm -o $*.bc

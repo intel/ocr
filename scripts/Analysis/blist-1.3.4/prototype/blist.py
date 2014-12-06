@@ -9,14 +9,14 @@ modification, are permitted provided that the following conditions are
 met:
 
    1. Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer. 
+      notice, this list of conditions and the following disclaimer.
    2. Redistributions in binary form must reproduce the above
       copyright notice, this list of conditions and the following
       disclaimer in the documentation and/or other materials provided
-      with the distribution. 
+      with the distribution.
    3. The name of the author may not be used to endorse or promote
       products derived from this software without specific prior written
-      permission. 
+      permission.
 
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -57,7 +57,7 @@ I don't propose replacing the existing Python list implementation.  I
 am neither that ambitious, and I appreciate how tightly optimized and
 refined the existing list implementation is.  I would like to see this
 type someday included in Python's collections module, so users with
-similar needs can make use of it.  
+similar needs can make use of it.
 
 The data structure I've created to solve the problem is a variation of
 a B+Tree, hence I call it the "BList".  It has good asymptotic
@@ -70,7 +70,7 @@ to still be O(N).  For example:
     >>> bigb = b * n               # O(log n)
     >>> bigb2 = bigb[1:-1]         # O(log n)
     >>> del bigb2[5000000]         # O(log n)
-    
+
 With BLists, even taking a slice (line 4) takes O(log n) time.  This
 wonderful feature is because BLists can implement copy-on-write.  More
 on that later.
@@ -101,7 +101,7 @@ Wikipedia has a diagram that may be helpful for understanding the
 basic structure of a B+Tree:
     http://en.wikipedia.org/wiki/B+_tree
 
-Of course, we don't want a dictionary.  We want a list.  
+Of course, we don't want a dictionary.  We want a list.
 
 In BLists, the "key" is implicit: it's the in-order location of the value.
 Instead of keys, each BList node maintains a count of the total number
@@ -295,7 +295,7 @@ n:        the total number of user data elements below the node.
 refcount: None for a root node,
           otherwise, the number of other nodes with references to this node
                      (i.e., parents)
-          
+
 Global Constants
 ----------------
 
@@ -314,7 +314,7 @@ Definitions
 - Users call methods of the user-node, which may call methods of its
   children, who may call their children recursively.
 - A node's user-visible elements are numbered from 0 to self.n-1.  These are
-  called "positions".  
+  called "positions".
 - A node's children are numbered 0 to len(self.children)-1.  These are
   called "indexes" and should not be confused with positions.
 
@@ -1205,7 +1205,7 @@ class BList(object):
             del left
             del right
             self.children.insert(k, subtree)
-            
+
         elif deleted_k:
             # Only the right potentially collapsed, point there.
             depth = collapse_right
@@ -1598,16 +1598,16 @@ class BList(object):
 
         Overall, this function uses O(log n) extra memory and takes O(n) time.
         """
-        
+
         other._check_invariants();
         if not cmp:
             cmp = builtin_cmp
-    
+
         recyclable = []
-    
+
         def do_cmp(a, b):
             "Utility function for performing a comparison"
-            
+
             if key:
                 a = a[key]
                 b = b[key]
@@ -1615,7 +1615,7 @@ class BList(object):
             if reverse:
                 x = -x
             return x
-    
+
         def recycle(node):
             "We've consumed a node, set it aside for re-use"
             del node.children[:]
@@ -1624,7 +1624,7 @@ class BList(object):
             recyclable.append(node)
             assert node.refcount == 1
             assert node.__get_reference_count() == 0
-    
+
         def get_node(leaf):
             "Get a node, either from the recycled list or through allocation"
             if recyclable:
@@ -1633,7 +1633,7 @@ class BList(object):
                 node = _BList()
             node.leaf = leaf
             return node
-    
+
         def get_leaf(forest):
             "Get a new leaf node to process from one of the input forests"
             node = forest.pop(-1)
@@ -1663,12 +1663,12 @@ class BList(object):
             leaf2 = get_leaf(forest2)
 
             # Index into leaf1 and leaf2, respectively
-            i = 0 
+            i = 0
             j = 0
 
             # Current output leaf node we are building
             output = get_node(leaf=True)
-                
+
             while ((forest1 or i < len(leaf1.children))
                     and (forest2 or j < len(leaf2.children))):
 
@@ -1714,7 +1714,7 @@ class BList(object):
                 forest_out.append_leaf(leaf2)
             else:
                 recycle(leaf2)
-    
+
             # Append the rest of whichever input forest still has
             # nodes.  This could be sped up by merging trees instead
             # of doing it leaf-by-leaf.
@@ -1724,7 +1724,7 @@ class BList(object):
                 forest_out.append_leaf(get_leaf(forest2))
 
             out_tree = forest_out.finish()
-    
+
         finally:
             # Fix reference counters, in case the user-compare function
             # threw an exception.
@@ -1778,7 +1778,7 @@ class BList(object):
             real_self._check_invariants_r()
             self.__become(real_self)
             self._check_invariants_r()
-                    
+
     @user_callable
     def __add__(self, other):
         if not isinstance(other, BList) and not isinstance(other, list):
@@ -1886,25 +1886,25 @@ class Forest:
 
     def append_leaf(self, leaf):
         "Append a leaf to the output forest, possible combining nodes"
-        
+
         if not leaf.children:     # Don't add empty leaf nodes
             leaf._decref()
             return
         self.forest.append(leaf)
         leaf._adjust_n()
-    
+
         # Every "limit" leaf nodes, combine the last "limit" nodes
         # This takes "limit" leaf nodes and replaces them with one node
         # that has the leaf nodes as children.
-        
+
         # Every "limit**2" leaf nodes, take the last "limit" nodes
         # (which have height 2) and replace them with one node
         # (with height 3).
-    
+
         # Every "limit**i" leaf nodes, take the last "limit" nodes
         # (which have height i) and replace them with one node
         # (with height i+1).
-    
+
         i = 1
         self.num_leafs += 1
         while self.num_leafs % limit**i == 0:
@@ -1914,27 +1914,27 @@ class Forest:
                    (len(self.forest), limit, i, self.num_leafs)
             parent.children[:] = self.forest[-limit:]
             del self.forest[-limit:]
-    
+
             # If the right-hand node has too few children,
             # borrow from a neighbor
             x = parent._BList__underflow(len(parent.children)-1)
             assert not x
-    
+
             self.forest.append(parent)
             i += 1
             parent._check_invariants_r()
 
     def finish(self):
         "Combine the forest into a final BList"
-    
+
         out_tree = None    # The final BList we are building
         out_height = 0     # It's height
         group_height = 1   # The height of the next group from the forest
         while self.forest:
             n = self.num_leafs % limit  # Numbers of same-height nodes
-            self.num_leafs /= limit  
+            self.num_leafs /= limit
             group_height += 1
-    
+
             if not n:
                 # No nodes at this height
                 continue
@@ -2063,21 +2063,21 @@ def main():
             print i, tuple(lst), t[:i+1]
             print lst.debug()
             break
-    
+
     x = lst[4:258]
     assert tuple(x) == tuple(t[4:258])
     x.append(-1)
     assert tuple(x) == tuple(t[4:258] + (-1,))
     assert tuple(lst) == t
-    
+
     lst[200] = 6
     assert tuple(x) == tuple(t[4:258] + (-1,))
     assert tuple(lst) == tuple(t[0:200] + (6,) + t[201:])
-    
+
     del lst[200]
     #print lst.debug()
     assert tuple(lst) == tuple(t[0:200] + t[201:])
-    
+
     lst2 = BList(range(limit+1))
     assert tuple(lst2) == tuple(range(limit+1))
     del lst2[1]
@@ -2111,6 +2111,6 @@ def main():
     big_list = little_list * 2**512
 
 blist = BList
-    
+
 if __name__ == '__main__':
     main()

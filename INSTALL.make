@@ -16,7 +16,7 @@ Build requirements:
 
 2) Run the command: OCR_TYPE=x86-pthread-x86 make install
 
-3) Go back to the main OCR directory and Set environment variable 
+3) Go back to the main OCR directory and Set environment variable
 
     export OCR_INSTALL=${PWD}/install/x86-pthread-x86/
     export LD_LIBRARY_PATH=${OCR_INSTALL}/lib:${LD_LIBRARY_PATH}
@@ -32,7 +32,7 @@ Build requirements:
 The build system allows the building of OCR for multiple targets.
 Each target has its own subfolder in the 'build' folder and will
 install its finished products (libraries, headers, etc.) in its
-own subfolder in the 'install' folder. 
+own subfolder in the 'install' folder.
 
 Each target usually has the following make targets (not all
 are supported on all targets):

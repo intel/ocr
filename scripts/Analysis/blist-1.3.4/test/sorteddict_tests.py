@@ -46,10 +46,10 @@ class sorteddict_test(mapping_tests.TestHashMappingProtocol):
         u = self.type2test.fromkeys([2,1,0,-1,-2])
         self.assertEqual(u, self.type2test.fromkeys([-2,-1,0,1,2]))
         self.assertEqual(list(u.keys()), [-2,-1,0,1,2])
-        
+
         a = self.type2test.fromkeys(reversed(list(range(512))))
         self.assertEqual(list(a.keys()), list(range(512)))
-        
+
         def revcmp(a, b): # pragma: no cover
             if a == b:
                 return 0
@@ -59,7 +59,7 @@ class sorteddict_test(mapping_tests.TestHashMappingProtocol):
                 return -1
         u = self.type2test.fromkeys([2,1,0,-1,-2], key=CmpToKey(revcmp))
         self.assertEqual(list(u.keys()), [2,1,0,-1,-2])
-        
+
         # The following dumps core in unpatched Python 1.5:
         def myComparison(x,y):
            xmod, ymod = x%3, y%7
@@ -77,5 +77,5 @@ class sorteddict_test(mapping_tests.TestHashMappingProtocol):
         #    return cmp(x, y)
         #z = self.type2test(CmpToKey(selfmodifyingComparison))
         #self.assertRaises(ValueError, z.update, [(i,i) for i in range(12)])
-        
+
         self.assertRaises(TypeError, self.type2test.fromkeys, 42, 42, 42, 42)

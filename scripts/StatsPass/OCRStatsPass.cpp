@@ -21,7 +21,7 @@ using namespace llvm;
 
 namespace {
 
-    
+
     const char* PROFILER_FuncNames[PROFILER_MAX_ID] = {
         "PROFILER_ocrStatsLoadCallback",
         "PROFILER_ocrStatsStoreCallback"
@@ -54,12 +54,12 @@ namespace {
     struct TransformArgFunc {
         TransformArgFunc(LLVMContext& c) : context(&c) {}
 
-        Type* operator()(typeFunc_t func) {                                            
+        Type* operator()(typeFunc_t func) {
             return func(*context);
-        }                                                                                                
+        }
 
-        LLVMContext* context; 
-    }; 
+        LLVMContext* context;
+    };
 
     GlobalVariable* InstructionCount_global = NULL;
     GlobalVariable* FPInstructionCount_global = NULL;
@@ -70,14 +70,14 @@ namespace {
             delete curTarget;
     }
 
-    
+
     bool OCRStatsPass::runOnFunction(Function &F) {
         if(F.isDeclaration()) return false;
         if(!considerFunction(&F)) return false;
-        
+
         errs()<< "--- Function: " << F.getName().str() << " ---\n";
-        
-        
+
+
         for(Function::iterator bb = F.begin(), be = F.end(); bb != be; ++bb){
 
             MDNode* blockInfo = NULL;
@@ -143,7 +143,7 @@ namespace {
                 bool breakForLoop = false;
                 bool instrCountReset = false;
                 Instruction *i = bbit;
-                
+
                 int opcode = i->getOpcode();
 
                 switch(opcode) {
@@ -195,7 +195,7 @@ namespace {
                     }
                     break;
                 }
-                
+
                 if(breakForLoop) {
                     // This means that we inserted a profiling block and therefore we need
                     // to stop looking at this block (as the iterator is no longer valid)
@@ -233,20 +233,20 @@ namespace {
         FPInstructionCount_global = cast<GlobalVariable>(t);
         FPInstructionCount_global->setThreadLocal(true);
         //assert(FPInstructionCount_global->isThreadLocal() && "_threadFPInstructionCount not thread local");
-        
+
         t = curModule->getOrInsertGlobal("_threadInstrumentOn", Type::getInt8Ty(M.getContext()));
         assert(isa<GlobalVariable>(t) && "_threadInstrumentOn of the wrong type");
         InstrumentOn_global = cast<GlobalVariable>(t);
         InstrumentOn_global->setThreadLocal(true);
         //assert(InstrumentOn_global->isThreadLocal() && "_threadInstrumentOn not thread local");
-        
+
         //create functions
-        std::vector<Type*> argTypes;                                                               
+        std::vector<Type*> argTypes;
         std::vector<typeFunc_t> argFuncs;
         TransformArgFunc myTransformer(curModule->getContext());
         for(unsigned int i = 0, e = (unsigned)PROFILER_MAX_ID; i<e; ++i) {
             argFuncs.assign(PROFILER_FuncArgs[i], PROFILER_FuncArgs[i] + PROFILER_FuncArgsSize[i]);
-            
+
             argTypes.resize(argFuncs.size());
             std::transform(argFuncs.begin(), argFuncs.end(), argTypes.begin(), myTransformer);
 
@@ -255,12 +255,12 @@ namespace {
                     Type::getVoidTy(curModule->getContext()), argTypes, false));
 
             assert(tt && isa<Function>(tt) && "Could not create function in module");
-            PROFILER_Funcs[i] = cast<Function>(tt);                
+            PROFILER_Funcs[i] = cast<Function>(tt);
         }
 
         return true;
     }
-    
+
     bool OCRStatsPass::considerFunction(const Function* func) const {
         StringRef fName(func->getName());
 
@@ -284,7 +284,7 @@ namespace {
     std::pair<BasicBlock*, BasicBlock*> OCRStatsPass::insertProfilingBlock(
         BasicBlock *orig, BasicBlock::iterator i, uint32_t skipValue, uint64_t instrCount,
         uint64_t fpInstrCount, GlobalVariable *condVariable) {
-        
+
         assert(((skipValue & ~(0xFFFFULL)) == 0) && "skipValue too big");
 	assert(((instrCount & ~(0xFFFFFULL)) == 0) && "instrCount too big");
         assert(((fpInstrCount & ~(0xFFFFFULL)) == 0) && "fpInstrCount too big");
@@ -299,16 +299,16 @@ namespace {
 	//    - replaces terminating instruction of original block (unconditional
 	//      branch leading to fall-through block) with a conditional one based on test
 	//	- returns the profiling block and FT block
-        
+
 	assert(i->getParent() == orig && "Iterator not part of original basic block");
-	
+
 	// Split block
 	BasicBlock *fallThroughBlock = orig->splitBasicBlock(i, "OCRP_FT");
 
 	// Create new instruction for comparison
 	Value *loadValue = new LoadInst(condVariable, "", orig->getTerminator());
-	ICmpInst *compareInst = new ICmpInst(orig->getTerminator(), CmpInst::ICMP_UGT, loadValue, 
-                                             ConstantInt::get(loadValue->getType(), 0)); 
+	ICmpInst *compareInst = new ICmpInst(orig->getTerminator(), CmpInst::ICMP_UGT, loadValue,
+                                             ConstantInt::get(loadValue->getType(), 0));
 
 	// Create new profiling basic block
 	BasicBlock *profilingBlock = BasicBlock::Create(curModule->getContext(),
@@ -326,7 +326,7 @@ namespace {
         tagValue |= fpInstrCount<<44;
 	Value* mdData[1] = { ConstantInt::get(Type::getInt64Ty(curModule->getContext()), tagValue) };
 	fallThroughBlock->front().setMetadata("OCRP", MDNode::get(curModule->getContext(), mdData));
-	
+
 	// Take care of the profiling block
 	tagValue = 'p';
 	mdData[0] = ConstantInt::get(Type::getInt64Ty(curModule->getContext()), tagValue);
@@ -335,7 +335,7 @@ namespace {
 	return std::make_pair(fallThroughBlock, profilingBlock);
     }
 
-    
+
     bool OCRStatsPass::insertProfilerLoad(BasicBlock *block, uint64_t instrCount, uint64_t fpInstrCount, BasicBlock::iterator i) {
         Instruction *instr = &*i;
 
@@ -354,7 +354,7 @@ namespace {
                                                      fpInstrCount, InstrumentOn_global).second;
 
         Instruction *firstInstr = &(profBlock->front());
-        
+
         std::vector<Value*> args(4, NULL);
         args[0] = new BitCastInst(loadLocation, Type::getInt8PtrTy(curModule->getContext()), "",
                                   profBlock->getTerminator());
@@ -382,7 +382,7 @@ namespace {
 
         // Make sure that this is not one of the globals or stack allocated thing
         if(isIgnoredGlobal(storeLocation) || isAlloca(storeLocation)) return false;
-        
+
         const PointerType* locationPtrType = cast<PointerType>(storeLocation->getType());
         Type* locationType = locationPtrType->getElementType();
         assert(locationPtrType->isSized() && "Pointer type is not sized!!");
@@ -393,7 +393,7 @@ namespace {
                                                      fpInstrCount, InstrumentOn_global).second;
 
         Instruction *firstInstr = &(profBlock->front());
-        
+
         std::vector<Value*> args(4, NULL);
         args[0] = new BitCastInst(storeLocation, Type::getInt8PtrTy(curModule->getContext()), "",
                                   profBlock->getTerminator());
@@ -435,7 +435,7 @@ namespace {
     char OCRStatsPass::ID = 0;
 
     static RegisterPass<OCRStatsPass> X("OCRStats", "OCR Profiling Pass");
-    
+
 } /* anonymous namespace */
 
 

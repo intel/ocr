@@ -32,17 +32,17 @@ PKG_CHECK_MODULES(XML, libxml-2.0 >= 2.4)
 #   - mpi
 #
 
-# BEGIN MPI support 
+# BEGIN MPI support
 
 # Specify which MPI installation should be used
-AC_ARG_WITH([mpi], [AS_HELP_STRING([--with-mpi=PATH], [ Specify the MPI installation to use. ])], 
+AC_ARG_WITH([mpi], [AS_HELP_STRING([--with-mpi=PATH], [ Specify the MPI installation to use. ])],
 [with_mpi=yes;
 MPI_HOME=$withval;
 MPI_LIB=mpi;
 ], [with_mpi=no])
 
 # Allows to specify the name of the mpi library to link with
-AC_ARG_WITH([mpi-lib], [AS_HELP_STRING([--with-mpi-lib=libname], [ Specify the MPI library to use. ])], 
+AC_ARG_WITH([mpi-lib], [AS_HELP_STRING([--with-mpi-lib=libname], [ Specify the MPI library to use. ])],
 [MPI_LIB=$withval;
 ], [])
 
@@ -60,64 +60,64 @@ AC_SUBST([MPI_LDFLAGS])
 
 # If any of the supported communication layer is set, turn communication support on
 AS_IF([test "x$with_mpi" != xno],
-      [ AC_DEFINE([HAVE_COMM], [1], [Have communication support]) ], 
-      [ AC_MSG_NOTICE([No communication support built for OCR]) ]) 
+      [ AC_DEFINE([HAVE_COMM], [1], [Have communication support]) ],
+      [ AC_MSG_NOTICE([No communication support built for OCR]) ])
 
 # Check if custom deque capacity is requested
 
-AC_ARG_ENABLE(deque, 
+AC_ARG_ENABLE(deque,
     AS_HELP_STRING([--enable-deque],
     [enable custom deque size, takes storage size as argument]),
-    [with_deque=$enableval], 
+    [with_deque=$enableval],
     [with_deque=no;])
-    
+
 # note: does not check deque's argument is legal
 AS_IF([test "x$with_deque" != xno],
-      [ AC_MSG_NOTICE([deques of size $with_deque requested]) 
-        AC_DEFINE_UNQUOTED([INIT_DEQUE_CAPACITY], [$with_deque], [Set worker deques size]) ], 
+      [ AC_MSG_NOTICE([deques of size $with_deque requested])
+        AC_DEFINE_UNQUOTED([INIT_DEQUE_CAPACITY], [$with_deque], [Set worker deques size]) ],
       [ AC_MSG_NOTICE([Use standard size deques])
         AC_DEFINE_UNQUOTED([INIT_DEQUE_CAPACITY], [128], [Set worker deques size])
       ])
 
 # Check if ELS support is requested
 
-AC_ARG_ENABLE(els, 
+AC_ARG_ENABLE(els,
     AS_HELP_STRING([--enable-els],
     [enable user edt local storage, takes storage size as argument]),
-    [with_els=$enableval], 
+    [with_els=$enableval],
     [with_els=no;])
-    
+
 # note: does not check els' argument is legal
 AS_IF([test "x$with_els" != xno],
-      [ AC_MSG_NOTICE([ELS support size $with_els requested]) 
-        AC_DEFINE_UNQUOTED([ELS_USER_SIZE], [$with_els], [Set User-ELS size]) ], 
+      [ AC_MSG_NOTICE([ELS support size $with_els requested])
+        AC_DEFINE_UNQUOTED([ELS_USER_SIZE], [$with_els], [Set User-ELS size]) ],
       [ AC_MSG_NOTICE([No ELS support requested])
         AC_DEFINE_UNQUOTED([ELS_USER_SIZE], [0], [Set User-ELS size])
       ])
 
 # Check if Runtime headers are requested
 
-AC_ARG_ENABLE(rtapi, 
+AC_ARG_ENABLE(rtapi,
     AS_HELP_STRING([--enable-rtapi],
     [enable runtime API header distribution]),
-    [with_rtapi=$enableval], 
+    [with_rtapi=$enableval],
     [with_rtapi=no;])
 
 AS_IF([test "x$with_rtapi" != xno],
-      [ AC_MSG_NOTICE([OCR Runtime API header requested]) ], 
+      [ AC_MSG_NOTICE([OCR Runtime API header requested]) ],
       [ AC_MSG_NOTICE([OCR Runtime API header not requested]) ])
 
 # Check if we need to distribute runtime headers
 AM_CONDITIONAL([INCLUDE_RUNTIME_ITF_HEADERS], [test x$with_els != xno -o x$with_rtapi != xno])
 
-AC_ARG_ENABLE(ocrlib, 
+AC_ARG_ENABLE(ocrlib,
     AS_HELP_STRING([--enable-ocrlib],
     [enable OCR library headers]),
-    [with_ocrlib=$enableval], 
+    [with_ocrlib=$enableval],
     [with_ocrlib=no;])
 
 AS_IF([test "x$with_ocrlib" != xno],
-      [ AC_MSG_NOTICE([OCR-lib header requested]) ], 
+      [ AC_MSG_NOTICE([OCR-lib header requested]) ],
       [ AC_MSG_NOTICE([OCR-lib header not requested]) ])
 
 # Check if we need to distribute OCR library headers
@@ -131,6 +131,6 @@ AC_CONFIG_FILES([
 Makefile
 ])
 
-# Generates and runs config.status, which in turn creates the makefiles 
+# Generates and runs config.status, which in turn creates the makefiles
 # and any other files resulting from configuration
 AC_OUTPUT

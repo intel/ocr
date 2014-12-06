@@ -22,7 +22,7 @@
 *******************************
 ** Installation instructions **
 *******************************
- 
+
 See the 'INSTALL' file
 
 
@@ -30,8 +30,8 @@ See the 'INSTALL' file
 ** Using OCR                **
 ******************************
 
-This section's instructions requires you have set the 
-OCR_INSTALL environment variable as described in the 
+This section's instructions requires you have set the
+OCR_INSTALL environment variable as described in the
 INSTALL file.
 
 
@@ -40,7 +40,7 @@ INSTALL file.
 OCR is built as a library your program must link with.
 The actual command line may differ on different OS and compilers.
 
-The following command line can be used on a typical Linux X86 
+The following command line can be used on a typical Linux X86
 distribution with gcc. It generates a binary named 'helloworld'
 that links with the OCR library.
 
@@ -53,14 +53,14 @@ OCR needs a runtime configuration file that describes how
 the runtime must be layed out for the particular machine it
 is executed on.
 
-A default configuration file and some examples are provided 
+A default configuration file and some examples are provided
 under ${OCR_INSTALL}/config
 
 The configuration file can be given to the runtime either
 through the OCR_CONFIG environment variable or through the
 command line parameter -ocr:cfg <filename>
 
-Note: command line parameters always override values defined 
+Note: command line parameters always override values defined
 in environment variables.
 
 Using environment variable options:

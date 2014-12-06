@@ -32,7 +32,7 @@ check_error()
 # Bootstrap, Configure, Make and Install
 #
 
-if [ -z "$NPROC" ]; then 
+if [ -z "$NPROC" ]; then
     NPROC=1
 fi
 

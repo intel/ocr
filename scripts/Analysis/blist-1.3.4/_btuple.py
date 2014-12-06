@@ -20,13 +20,13 @@ class btuple(collections.Sequence):
             return NotImplemented
         if isinstance(rv, blist):
             rv = btuple(rv)
-        return rv        
-        
+        return rv
+
     def __hash__(self):
         # Based on tuplehash from tupleobject.c
         if self._hash != -1:
             return self._hash
-        
+
         n = len(self)
         mult = c_int(1000003)
         x = c_int(0x345678)

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #
-# Cleanup the project 
+# Cleanup the project
 #
 
 SRCDIR=../../../src
@@ -38,4 +38,4 @@ for file in `find ${SRCDIR} -regex '.*libs$'`; do
     rm -Rf $file
 done
 
-rm -f Makefile Makefile.in 
+rm -f Makefile Makefile.in
