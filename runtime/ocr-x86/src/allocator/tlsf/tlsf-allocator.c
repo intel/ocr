@@ -596,7 +596,7 @@ static inline blkPayload_t * payloadAddressForBlock(blkHdr_t * pBlk) {    // Ret
 }
 
 static inline blkHdr_t * mapPayloadAddrToBlockAddr(blkPayload_t * payload) {  // Return address of block's header, given address of payload.
-#ifdef HAL_FSIM_CE
+#if defined(HAL_FSIM_CE)
     blkPayload_t *ptr = (blkPayload_t *)(((u64)payload) & 0xFFFFFFLL); // FIXME: Is this a sufficient check? trac #222
 #else
     blkPayload_t *ptr = payload;
@@ -1255,6 +1255,7 @@ void tlsfDestruct(ocrAllocator_t *self) {
 void tlsfBegin(ocrAllocator_t *self, ocrPolicyDomain_t * PD ) {
     CHECK_AND_SET_MODULE_STATE(TLSF-ALLOCATOR, self, BEGIN);
     u32 i;
+
     ASSERT(self->memoryCount == 1);
     self->memories[0]->fcts.begin(self->memories[0], PD);
 

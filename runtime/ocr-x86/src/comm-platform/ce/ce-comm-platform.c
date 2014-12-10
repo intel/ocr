@@ -121,7 +121,12 @@ void ceCommBegin(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrCo
     PD->myLocation = (ocrLocation_t)rmd_ld64(CE_MSR_BASE + CORE_LOCATION * sizeof(u64));
     commPlatform->location = PD->myLocation;
     hal_fence();
-    PD->parentLocation = (PD->myLocation & 0xFFFFFFFFFFFFFD00ULL) | ID_AGENT_CE; // My parent is my chip's block 0 CE.
+    // My parent is my unit's block 0 CE
+    PD->parentLocation = (PD->myLocation & ~(ID_BLOCK_MASK|ID_AGENT_MASK)) | ID_AGENT_CE; // My parent is my unit's block 0 CE
+    // If I'm a block 0 CE, my parent is unit 0 block 0 CE
+    if ((PD->myLocation & ID_BLOCK_MASK) == 0)
+        PD->parentLocation = (PD->myLocation & ~(ID_UNIT_MASK|ID_BLOCK_MASK|ID_AGENT_MASK))
+                             | ID_AGENT_CE;
     // TODO: Generalize this to cover higher levels of hierarchy too. trac #231
 
     // Remember our PD in case we need to call through it later
@@ -147,7 +152,14 @@ void ceCommStart(ocrCommPlatform_t * commPlatform, ocrPolicyDomain_t * PD, ocrCo
 }
 
 void ceCommStop(ocrCommPlatform_t * commPlatform) {
+    u32 i;
     ASSERT(commPlatform != NULL);
+    for(i=0; i< OUTSTANDING_CE_MSGS; i++) {
+        ((ocrPolicyMsg_t *)msgAddresses[i])->type = 0xdead;
+        msgAddresses[i] = 0xdead;
+    }
+    recvBuf.type = 0;
+    sendBuf.type = 0;
 }
 
 void ceCommFinish(ocrCommPlatform_t *commPlatform) {
@@ -155,10 +167,6 @@ void ceCommFinish(ocrCommPlatform_t *commPlatform) {
     u32 i;
 
     ASSERT(commPlatform != NULL);
-
-    for(i=0; i< OUTSTANDING_CE_MSGS; i++) msgAddresses[i] = 0xdead1;
-    recvBuf.type = 0xdead2;
-    sendBuf.type = 0xdead3;
 
     ocrCommPlatformCe_t * cp = (ocrCommPlatformCe_t *)commPlatform;
 
@@ -191,8 +199,10 @@ u8 ceCommSendMessageToCE(ocrCommPlatform_t *self, ocrLocation_t target,
     ASSERT(self->location != target);
 
     // If this is not a blocking message, return if busy
-    if(!(properties & BLOCKING_SEND_MSG_PROP) && sendBuf.type)
+    if(!(properties & BLOCKING_SEND_MSG_PROP) && sendBuf.type) {
+        if(sendBuf.type == 0xdead) sendBuf.type = 0;
         return 1;
+    }
 
     u64 fullMsgSize = 0, marshalledSize = 0;
     ocrPolicyMsgGetMsgSize(message, &fullMsgSize, &marshalledSize);
@@ -229,7 +239,8 @@ u8 ceCommSendMessageToCE(ocrCommPlatform_t *self, ocrLocation_t target,
         DPRINTF(DEBUG_LVL_INFO, "Cancel send msg %lx type %lx, properties %x; (%lx->%lx)\n",
                                  message->msgId, message->type, properties, self->location,
                                  target);
-        return 1;
+        if(rmbox[0] == 0xdead) return 2; // Shutdown in progress - no retry
+        return 1;                        // otherwise, retry send
     }
 
     DPRINTF(DEBUG_LVL_VVERB, "Sent msg %lx type %lx; (%lx->%lx)\n", message->msgId, message->type, self->location, target);
@@ -249,7 +260,7 @@ u8 ceCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
 
     // If target is not in the same block, use a different function
     // FIXME: do the same for chip/unit/board as well, or better yet, a new macro
-    if(BLOCK_FROM_ID(self->location) != BLOCK_FROM_ID(target)) {
+    if((self->location & ~ID_AGENT_MASK) != (target & ~ID_AGENT_MASK)) {
         return ceCommSendMessageToCE(self, target, message, bufferSize, id, properties, mask);
     } else {
 
@@ -262,7 +273,8 @@ u8 ceCommSendMessage(ocrCommPlatform_t *self, ocrLocation_t target,
         // - Check remote stage Empty/Busy/Full is Empty.
         {
             u64 tmp = rmd_ld64((u64)rq);
-            ASSERT(tmp == 0);
+            if(tmp) return 1; // Temporary workaround till bug #134 is fixed
+//            ASSERT(tmp == 0);
         }
 
 #ifndef ENABLE_BUILDER_ONLY
