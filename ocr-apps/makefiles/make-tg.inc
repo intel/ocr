@@ -38,6 +38,7 @@ OCR_INSTALL_ROOT := $(shell mkdir -p ${OCR_INSTALL_ROOT} && cd "${OCR_INSTALL_RO
 OCR_INSTALL_XE   := ${OCR_INSTALL_ROOT}/${XE_TARGET}
 OCR_INSTALL_CE   := ${OCR_INSTALL_ROOT}/${CE_TARGET}
 
+FIX_CE_CONFIG    ?= ${OCR_SRC}/scripts/Configs/ce_config_fix.py
 OCR_CE_CONFIG    ?= $(OCR_INSTALL_CE)/config/default.cfg
 OCR_XE_CONFIG    ?= $(OCR_INSTALL_XE)/config/default.cfg
 
@@ -187,8 +188,9 @@ $(WORKLOAD_BUILD)/$(TARGET).blob.arg | $(WORKLOAD_BUILD)
 	$^ $(WORKLOAD_INPUTS) $@
 
 # Build the CE blob
-$(WORKLOAD_BUILD)/$(TARGET).blob.ce: $(OCR_INSTALL_CE)/config/default.cfg \
+$(WORKLOAD_BUILD)/$(TARGET).blob.ce: $(OCR_CE_CONFIG) \
 $(WORKLOAD_BUILD)/build.rmdkrnl/rmdkrnl.dbg | builderce $(WORKLOAD_BUILD)
+	$(FIX_CE_CONFIG) --fsimcfg $(WORKLOAD_SRC)/config.cfg --ocrcfg $(OCR_CE_CONFIG)
 	TG_INSTALL=$(TG_INSTALL) WORKLOAD_BUILD=$(WORKLOAD_BUILD) STRUCT_OUT=$(WORKLOAD_BUILD)/$(TARGET).blob.ce \
 $(OCR_INSTALL_ROOT)/$(CE_BUILDER)/bin/builder.exe -ocr:cfg $(OCR_CE_CONFIG)
 
