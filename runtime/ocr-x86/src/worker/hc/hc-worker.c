@@ -67,7 +67,8 @@ static void hcWorkShift(ocrWorker_t * worker) {
             // Mark the task. Allows the PD to check the state of workers
             // and detect quiescence, without weird behavior because curTask
             // is being deallocated in parallel
-            worker->curTask = (ocrTask_t*)0x1;
+            //TODO this is going away with the fix for runlevel #80
+            worker->curTask = (ocrTask_t*) 0x1;
             // Destroy the work
 #undef PD_TYPE
 

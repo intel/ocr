@@ -455,6 +455,7 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
     suggestLocationPlacement(self, curLoc, (ocrLocationPlacer_t *) self->placer, msg);
 
     DPRINTF(DEBUG_LVL_VERB, "HC-dist processing message @ 0x%lx of type 0x%x\n", msg, msg->type);
+
     switch(msg->type & PD_MSG_TYPE_ONLY) {
     case PD_MSG_WORK_CREATE:
     {

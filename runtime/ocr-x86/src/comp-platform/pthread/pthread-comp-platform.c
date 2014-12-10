@@ -29,17 +29,22 @@ extern void bindThread(u32 mask);
  * @brief Structure stored on a per-thread basis to keep track of
  * "who we are"
  */
-
 typedef struct {
     ocrPolicyDomain_t *pd;
     ocrWorker_t *worker;
 } perThreadStorage_t;
 
-
 /**
  * The key we use to be able to find which compPlatform we are on
  */
 pthread_key_t selfKey;
+
+/**
+ * The keyInit boolean allows threads to know if they can lookup the TLS key or not.
+ * TODO: may disappear once we clearly define runlevels trac #80
+ */
+static bool keyInit = false;
+
 #ifdef OCR_RUNTIME_PROFILER
 pthread_key_t _profilerThreadData;
 #endif
@@ -81,6 +86,9 @@ static void destroyKey(void* arg) {
     runtimeChunkFree((u64)arg, NULL);
 }
 
+/**
+ * Called once by the master thread before others pthread are started.
+ */
 static void initializeKey() {
     RESULT_ASSERT(pthread_key_create(&selfKey, &destroyKey), ==, 0);
     // We are going to set our own key (we are the master thread)
@@ -97,6 +105,7 @@ static void initializeKey() {
     ASSERT(d->output);
     RESULT_ASSERT(pthread_setspecific(_profilerThreadData, d), ==, 0);
 #endif
+    keyInit = true;
 }
 
 void pthreadDestruct (ocrCompPlatform_t * base) {
@@ -185,7 +194,8 @@ u8 pthreadSetCurrentEnv(ocrCompPlatform_t *self, ocrPolicyDomain_t *pd,
 
 ocrCompPlatform_t* newCompPlatformPthread(ocrCompPlatformFactory_t *factory,
         ocrParamList_t *perInstance) {
-
+    // initializeKey is called once and it's always the master thread since
+    // it is the thread bringing up the runtime.
     pthread_once(&selfKeyInitialized,  initializeKey);
     ocrCompPlatformPthread_t * compPlatformPthread = (ocrCompPlatformPthread_t*)
             runtimeChunkAlloc(sizeof(ocrCompPlatformPthread_t), PERSISTENT_CHUNK);
@@ -217,23 +227,25 @@ void destructCompPlatformFactoryPthread(ocrCompPlatformFactory_t *factory) {
 
 void getCurrentEnv(ocrPolicyDomain_t** pd, ocrWorker_t** worker,
                    ocrTask_t **task, ocrPolicyMsg_t* msg) {
-
     START_PROFILE(cp_getCurrentEnv);
-    perThreadStorage_t *vals = pthread_getspecific(selfKey);
-    if(vals == NULL)
-        return;
-    if(pd)
-        *pd = vals->pd;
-    if(worker)
-        *worker = vals->worker;
-    if(vals->worker && task)
-        *task = vals->worker->curTask;
-    if(msg) {
-        //By default set src and dest location to current location.
-        msg->srcLocation = vals->pd->myLocation;
-        msg->destLocation = msg->srcLocation;
-        //TODO enable the following
-        // msg->size = sizeof(ocrPolicyMsg_t); //Safe and conservative
+    if (keyInit) {
+        perThreadStorage_t *vals = pthread_getspecific(selfKey);
+        if(vals == NULL)
+            return;
+        if(pd)
+            *pd = vals->pd;
+        if(worker)
+            *worker = vals->worker;
+        if(vals->worker && task && ((vals->worker->curTask != ((ocrTask_t*)0x1))))
+            //TODO the 0x1 is going away with the fix for runlevel trac #80)
+            *task = vals->worker->curTask;
+        if(msg) {
+            //By default set src and dest location to current location.
+            msg->srcLocation = vals->pd->myLocation;
+            msg->destLocation = msg->srcLocation;
+            //TODO enable the following
+            // msg->size = sizeof(ocrPolicyMsg_t); //Safe and conservative
+        }
     }
     RETURN_PROFILE();
 }
