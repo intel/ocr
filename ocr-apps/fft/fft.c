@@ -224,6 +224,12 @@ bool parseOptions(u32 argc, char **argv, u64 *N, bool *verify, u64 *iterations,
                   bool *verbose, bool *printResults, u64 *serialBlockSize) {
   char c;
   char *buffer = NULL;
+
+  if (argc != 2) {
+    PRINTF("Need one argument 'power'\n");
+    return false;
+  }
+
   *verify = false;
   *verbose = false;
   *printResults = false;
