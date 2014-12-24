@@ -117,6 +117,29 @@ CFLAGS += -DOCR_DEBUG_UTIL -DDEBUG_LVL_UTIL=DEBUG_LVL_WARN
 CFLAGS += -DOCR_DEBUG_WORKER
 CFLAGS += -DOCR_DEBUG_WORKPILE
 
+# The following four flags can be used to help diagnose malfunctions
+# in the dynamic memory allocators and/or in the code that utilizes
+# dynamic memory blocks.  Such things as writing beyond the bounds of
+# a dynamic datablock or de-referencing a pointer to a datablock that
+# has been freed may be easier to spot with these flags switched on.
+#
+# On execution environments where valgrind is available, that is a much
+# better starting point, but utilizing that plus the LEAK feature will
+# be a more sure-footed way of finding de-referencing of stale pointers.
+#
+# These flags are utilized in TLSF and in mallocProxy, and will hopefully
+# be utilized by other allocators as they are implemented, but that is not
+# promised nor a fundamental requirement.
+#
+# Enable or disable checksum utilization:
+#CFLAGS += -DENABLE_ALLOCATOR_CHECKSUM
+# Disable or set to u64 value to broadcast across payloads of new datablocks:
+#CFLAGS += -DENABLE_ALLOCATOR_INIT_NEW_DB_PAYLOAD=0xDad0fFae11111111LL
+# Disable or set to u64 value to broadcast across payloads of DBs being freed:
+#CFLAGS += -DENABLE_ALLOCATOR_TRASH_FREED_DB_PAYLOAD=0xDad0fFae22222222LL
+# Enable or disable the on-purpose "leaking" of freed datablocks:
+#CFLAGS += -DENABLE_ALLOCATOR_LEAK_FREED_DATABLOCKS
+
 #
 # Global CFLAGS to be passed into all architecture builds
 # concatenated with the architecture-specific CFLAGS at the end

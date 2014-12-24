@@ -507,41 +507,7 @@ static u8 ceMemAlloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator, u64 size,
 
 static u8 ceMemUnalloc(ocrPolicyDomain_t *self, ocrFatGuid_t* allocator,
                        void* ptr, ocrMemType_t memType) {
-#if defined(HAL_FSIM_CE)
-    u64 base = DR_CE_BASE(CHIP_FROM_ID(self->myLocation),
-                          UNIT_FROM_ID(self->myLocation),
-                          BLOCK_FROM_ID(self->myLocation));
-#define LOCAL_MASK 0xFFFFFULL  // trac #222
-    if(((u64)ptr < CE_MSR_BASE) || ((~LOCAL_MASK & (u64)ptr) == base)) {
-        allocatorFreeFunction(ptr); // CE's spad
-    } else {
-        ocrPolicyMsg_t msg;
-#define PD_MSG (&msg)
-#define PD_TYPE PD_MSG_MEM_UNALLOC
-        msg.type = PD_MSG_MEM_UNALLOC | PD_MSG_REQUEST;
-        msg.destLocation = MAKE_CORE_ID(0,
-                                        0,
-                                        ((((u64)ptr >> MAP_CHIP_SHIFT) & ((1ULL<<MAP_CHIP_LEN) - 1)) - 1),
-                                        ((((u64)ptr >> MAP_UNIT_SHIFT) & ((1ULL<<MAP_UNIT_LEN) - 1)) - 2),
-                                        ((((u64)ptr >> MAP_BLOCK_SHIFT) & ((1ULL<<MAP_BLOCK_LEN) - 1)) - 2),
-                                        ID_AGENT_CE);
-        msg.srcLocation = self->myLocation;
-        PD_MSG_FIELD(ptr) = ((void *) ptr);
-        PD_MSG_FIELD(type) = memType;
-        while(self->fcts.sendMessage(self, msg.destLocation, &msg, NULL, 0)) {
-           ocrPolicyMsg_t myMsg;
-           ocrMsgHandle_t myHandle;
-           myHandle.msg = &myMsg;
-           ocrMsgHandle_t *handle = &myHandle;
-           while(!self->fcts.pollMessage(self, &handle))
-               RESULT_ASSERT(self->fcts.processMessage(self, handle->response, true), ==, 0);
-        }
-#undef PD_MSG
-#undef PD_TYPE
-    }
-#else
     allocatorFreeFunction(ptr);
-#endif
     return 0;
 }
 
