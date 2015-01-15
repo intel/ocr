@@ -21,6 +21,7 @@
 
 // Allocator
 #define ENABLE_ALLOCATOR_TLSF
+#define ENABLE_ALLOCATOR_MALLOCPROXY
 #define ENABLE_ALLOCATOR_NULL
 
 // CommApi

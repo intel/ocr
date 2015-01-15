@@ -11,8 +11,13 @@
 #include "ocr-hal.h"
 #endif
 
+#define DEBUG_TYPE ALLOCATOR
+
 const char * allocator_types[] = {
     "tlsf",
+#ifdef ENABLE_ALLOCATOR_MALLOCPROXY
+    "mallocproxy",
+#endif
     "null",
     NULL
 };
@@ -22,6 +27,10 @@ ocrAllocatorFactory_t *newAllocatorFactory(allocatorType_t type, ocrParamList_t 
 #ifdef ENABLE_ALLOCATOR_TLSF
     case allocatorTlsf_id:
         return newAllocatorFactoryTlsf(typeArg);
+#endif
+#ifdef ENABLE_ALLOCATOR_MALLOCPROXY
+    case allocatorMallocProxy_id:
+        return newAllocatorFactoryMallocProxy(typeArg);
 #endif
 #ifdef ENABLE_ALLOCATOR_NULL
     case allocatorNull_id:
@@ -45,20 +54,27 @@ void initializeAllocatorOcr(ocrAllocatorFactory_t * factory, ocrAllocator_t * se
 }
 
 void allocatorFreeFunction(void* blockPayloadAddr) {
-    u64 * pPoolHeaderDescr = ((u64 *)(((u64) blockPayloadAddr)-sizeof(u64)));
+    u8 * pPoolHeaderDescr = ((u8 *)(((u64) blockPayloadAddr)-sizeof(u64)));
+    DPRINTF(DEBUG_LVL_INFO, "allocatorFreeFunction:  PoolHeaderDescr at 0x%lx is 0x%x\n",
+        (u64) pPoolHeaderDescr, *pPoolHeaderDescr);
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MAKE_MEM_DEFINED((u64) pPoolHeaderDescr, sizeof(u64));
+    VALGRIND_MAKE_MEM_DEFINED((u8) pPoolHeaderDescr, sizeof(u8));
 #endif
-    u64 poolHeaderDescr;
-    GET64(poolHeaderDescr, (u64) pPoolHeaderDescr);
+    u8 poolHeaderDescr;
+    GET8(poolHeaderDescr, (u64) pPoolHeaderDescr);
 #ifdef ENABLE_VALGRIND
-    VALGRIND_MAKE_MEM_NOACCESS((u64) pPoolHeaderDescr, sizeof(u64));
+    VALGRIND_MAKE_MEM_NOACCESS((u8) pPoolHeaderDescr, sizeof(u8));
 #endif
-    u64 type = poolHeaderDescr & POOL_HEADER_TYPE_MASK;
+    u8 type = poolHeaderDescr & POOL_HEADER_TYPE_MASK;
     switch(type) {
 #ifdef ENABLE_ALLOCATOR_TLSF
     case allocatorTlsf_id:
         tlsfDeallocate(blockPayloadAddr);
+        return;
+#endif
+#ifdef ENABLE_ALLOCATOR_MALLOCPROXY
+    case allocatorMallocProxy_id:
+        mallocProxyDeallocate(blockPayloadAddr);
         return;
 #endif
     case allocatorMax_id:

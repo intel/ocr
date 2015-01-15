@@ -19,6 +19,9 @@
 
 typedef enum _allocatorType_t {
     allocatorTlsf_id,
+#ifdef ENABLE_ALLOCATOR_MALLOCPROXY
+    allocatorMallocProxy_id,
+#endif
     allocatorNull_id,
     // As other types are added, add switch cases in allocater-all.c
     allocatorMax_id
@@ -39,6 +42,10 @@ typedef enum _allocatorType_t {
 extern const char * allocator_types[];
 
 #include "allocator/tlsf/tlsf-allocator.h"    // TLSF allocator
+#ifdef ENABLE_ALLOCATOR_MALLOCPROXY
+// System malloc allocator with our own wrapper, for platforms other than FSIM, for fall-back testing
+#include "allocator/mallocproxy/mallocproxy-allocator.h"
+#endif
 #include "allocator/null/null-allocator.h"
 
 ocrAllocatorFactory_t *newAllocatorFactory(allocatorType_t type, ocrParamList_t *typeArg);

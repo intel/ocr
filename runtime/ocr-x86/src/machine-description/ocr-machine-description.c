@@ -642,6 +642,12 @@ s32 populate_inst(ocrParamList_t **inst_param, void **instance, s32 *type_counts
                 }
                 break;
 #endif
+#ifdef ENABLE_ALLOCATOR_MALLOCPROXY
+                case allocatorMallocProxy_id: {
+                    ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
+                }
+                break;
+#endif
                 default:
                     ALLOC_PARAM_LIST(inst_param[j], paramListAllocatorInst_t);
                 break;
