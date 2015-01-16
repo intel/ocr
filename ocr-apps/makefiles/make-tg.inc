@@ -188,7 +188,7 @@ $(WORKLOAD_BUILD)/$(TARGET).blob.arg | $(WORKLOAD_BUILD)
 	$^ $(WORKLOAD_INPUTS) $@
 
 # Build the CE blob
-$(WORKLOAD_BUILD)/$(TARGET).blob.ce: $(OCR_CE_CONFIG) \
+$(WORKLOAD_BUILD)/$(TARGET).blob.ce: $(OCR_CE_CONFIG) $(WORKLOAD_SRC)/config.cfg \
 $(WORKLOAD_BUILD)/build.rmdkrnl/rmdkrnl.dbg | builderce $(WORKLOAD_BUILD)
 	$(FIX_CE_CONFIG) --fsimcfg $(WORKLOAD_SRC)/config.cfg --ocrcfg $(OCR_CE_CONFIG)
 	TG_INSTALL=$(TG_INSTALL) WORKLOAD_BUILD=$(WORKLOAD_BUILD) STRUCT_OUT=$(WORKLOAD_BUILD)/$(TARGET).blob.ce \
