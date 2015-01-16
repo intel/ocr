@@ -8,10 +8,8 @@ supported platforms are restricted to:
     -x86-pthread-x86
     -x86-pthread-mpi
 
-The following are required pre-execution:
-
 -In ocr/build/common.mk:
-    -Debug option needs to be set at DEBUG_LVL_INFO or higher
+    -Debug option needs to be set at DEBUG_LVL_INFO
     -DOCR_ENABLE_EDT_NAMING must be set.
     -DOCR_ENABLE_VISUALIZER must be set.
 
@@ -26,14 +24,14 @@ Script Instructions:
   your program with the default Makefile.  If you are using a custom Makefile,
   you must issue these compiler flags explicitely.
 
-
 -Application logging output must be redirected to
- to the /ocr/scripts/Visualizer directory as a text file named log.txt
+ to the /ocr/scripts/Visualizer directory
     The command would look like: make -f Makefile.x86-pthread-x86 run > ../../scripts/Visualizer/<log_ouput_file_name>
 
 -Navigate to /ocr/scripts/Visualizer, and run: python timeline.py <log_ouput_file_name>
--The output will be HTML file(s) called timeline(#).html which will
- display the visualizer.  Each HTML file produced will contain 1000
- EDTs: roughly the amount that the browser's canvas can handle smoothly.
+-The output will be HTML files called timeline[*].html
+
+-Copy html file(s) to local machine, and starting with timeline1.html, open in an internet browser.
+
 
 
