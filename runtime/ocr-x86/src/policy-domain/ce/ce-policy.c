@@ -1537,7 +1537,7 @@ void* cePdMalloc(ocrPolicyDomain_t *self, u64 size) {
 }
 
 void cePdFree(ocrPolicyDomain_t *self, void* addr) {
-#if defined(HAL_FSIM_CE)
+#if 0 // defined(HAL_FSIM_CE)
     u64 base = DR_CE_BASE(CHIP_FROM_ID(self->myLocation),
                           UNIT_FROM_ID(self->myLocation),
                           BLOCK_FROM_ID(self->myLocation));
