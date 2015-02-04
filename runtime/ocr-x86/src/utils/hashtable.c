@@ -102,6 +102,7 @@ void destructHashtable(hashtable_t * hashtable) {
         }
         i++;
     }
+    pd->fcts.pdFree(pd, hashtable->table);
     pd->fcts.pdFree(pd, hashtable);
 }
 
@@ -120,25 +121,15 @@ hashtable_t * newHashtableBucketLocked(ocrPolicyDomain_t * pd, u32 nbBuckets, ha
     rhashtable->bucketLock = bucketLock;
     return hashtable;
 }
+
 /**
  * @brief Destruct the hashtable and all its entries (do not deallocate keys and values pointers).
  */
 void destructHashtableBucketLocked(hashtable_t * hashtable) {
     ocrPolicyDomain_t * pd = hashtable->pd;
-    // go over each bucket and deallocate entries
-    u32 i = 0;
-    while(i < hashtable->nbBuckets) {
-        struct _ocr_hashtable_entry_struct * bucketHead = hashtable->table[i];
-        while (bucketHead != NULL) {
-            struct _ocr_hashtable_entry_struct * next = bucketHead->nxt;
-            pd->fcts.pdFree(pd, bucketHead);
-            bucketHead = next;
-        }
-        i++;
-    }
     hashtableBucketLocked_t * rhashtable = (hashtableBucketLocked_t *) hashtable;
     pd->fcts.pdFree(pd, rhashtable->bucketLock);
-    pd->fcts.pdFree(pd, hashtable);
+    destructHashtable(hashtable);
 }
 
 /******************************************************/

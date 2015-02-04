@@ -320,6 +320,7 @@ u8 resolveRemoteMetaData(ocrPolicyDomain_t * self, ocrFatGuid_t * fGuid, u64 met
             //         and persistent in the current PD.
             //See same comment in post 2-way unmarshalling code
             void * metaDataPtr = PD_MSG_FIELD_IO(guid.metaDataPtr);
+
             //DIST-TODO Potentially multiple concurrent registerGuid on the same template
             //Until this is changed there's a potential leak as multiple EDTs trying to clone
             //the same template all get an answer simultaneously but only one succeed and other
@@ -1249,8 +1250,8 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
                 //TODO-273: The easy patch is to make 'size' an IO, otherwise we need to make sure
                 //the request message is copied on send, so that we can keep it around and when
                 //we have the response we can still poke into the request for these info
-                proxyDb->size = PD_MSG_FIELD_I(size); //TODO-273
-                proxyDb->ptr =  self->fcts.pdMalloc(self, PD_MSG_FIELD_I(size)); //TODO-273
+                proxyDb->size = PD_MSG_FIELD_IO(size); //TODO-273
+                proxyDb->ptr =  self->fcts.pdMalloc(self, PD_MSG_FIELD_IO(size)); //TODO-273
                 // Preset the writeback flag: even single assignment needs to be written back the first time.
                 proxyDb->flags = (PD_MSG_FIELD_IO(properties) | DB_FLAG_RT_WRITE_BACK); //TODO-273
                 // double check there's no proxy registered for the same DB
@@ -1411,7 +1412,14 @@ u8 hcDistProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8 isBlock
                 // DEPRECATED comment
                 // Each current pointer is copied at the end of the message as payload
                 // and the pointers then points to that data.
-                ocrPolicyMsgMarshallMsg(handle->response, baseSize, (u8*)originalMsg, MARSHALL_DUPLICATE);
+                // Note: originalMsg's usefulSize (request) is going to be updated to response's one.
+                // Here we just need something that does a shallow copy
+                u32 bufBSize = originalMsg->bufferSize;
+                // Copy msg into the buffer for the common part
+                hal_memCopy(originalMsg, handle->response, baseSize, false);
+                originalMsg->bufferSize = bufBSize;
+                // ocrPolicyMsgUnMarshallMsg((u8*)handle->response, NULL, originalMsg, MARSHALL_ADDL);
+                // ocrPolicyMsgMarshallMsg(handle->response, baseSize, (u8*)originalMsg, MARSHALL_DUPLICATE);
                 self->fcts.pdFree(self, handle->response);
             }
 

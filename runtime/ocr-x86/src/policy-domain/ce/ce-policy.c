@@ -683,11 +683,11 @@ u8 cePolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         // For now we deal with both USER and RT dbs the same way
         ASSERT((PD_MSG_FIELD_I(dbType) == USER_DBTYPE) || (PD_MSG_FIELD_I(dbType) == RUNTIME_DBTYPE));
         DPRINTF(DEBUG_LVL_VVERB, "DB_CREATE request from 0x%lx for size %lu\n",
-                msg->srcLocation, PD_MSG_FIELD_I(size));
+                msg->srcLocation, PD_MSG_FIELD_IO(size));
 // TODO:  The prescription needs to be derived from the affinity, and needs to default to something sensible.
         u64 engineIndex = getEngineIndex(self, msg->srcLocation);
         ocrFatGuid_t edtFatGuid = {.guid = PD_MSG_FIELD_I(edt.guid), .metaDataPtr = PD_MSG_FIELD_I(edt.metaDataPtr)};
-        u64 reqSize = PD_MSG_FIELD_I(size);
+        u64 reqSize = PD_MSG_FIELD_IO(size);
 
         PD_MSG_FIELD_O(returnDetail) = ceAllocateDb(
             self, &(PD_MSG_FIELD_IO(guid)), &(PD_MSG_FIELD_O(ptr)), reqSize,

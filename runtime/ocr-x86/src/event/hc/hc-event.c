@@ -458,7 +458,7 @@ u8 registerWaiterEventHc(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot, bool i
         PD_MSG_FIELD_IO(guid) = event->waitersDb;
         PD_MSG_FIELD_I(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD_I(edt.metaDataPtr) = curTask;
-        PD_MSG_FIELD_I(size) = sizeof(regNode_t)*event->waitersMax*2;
+        PD_MSG_FIELD_IO(size) = sizeof(regNode_t)*event->waitersMax*2;
         PD_MSG_FIELD_I(affinity.guid) = NULL_GUID;
         PD_MSG_FIELD_I(affinity.metaDataPtr) = NULL;
         PD_MSG_FIELD_IO(properties) = 0;
@@ -614,7 +614,7 @@ u8 registerWaiterEventHcPersist(ocrEvent_t *base, ocrFatGuid_t waiter, u32 slot,
         PD_MSG_FIELD_IO(guid) = event->base.waitersDb;
         PD_MSG_FIELD_I(edt.guid) = curTask ? curTask->guid : NULL_GUID;
         PD_MSG_FIELD_I(edt.metaDataPtr) = curTask;
-        PD_MSG_FIELD_I(size) = sizeof(regNode_t)*event->base.waitersMax*2;
+        PD_MSG_FIELD_IO(size) = sizeof(regNode_t)*event->base.waitersMax*2;
         PD_MSG_FIELD_I(affinity.guid) = NULL_GUID;
         PD_MSG_FIELD_I(affinity.metaDataPtr) = NULL;
         PD_MSG_FIELD_IO(properties) = 0;
@@ -912,7 +912,7 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     PD_MSG_FIELD_IO(guid) = event->waitersDb;
     PD_MSG_FIELD_I(edt.guid) = curTask ? curTask->guid : NULL_GUID;
     PD_MSG_FIELD_I(edt.metaDataPtr) = curTask;
-    PD_MSG_FIELD_I(size) = sizeof(regNode_t)*INIT_WAITER_COUNT;
+    PD_MSG_FIELD_IO(size) = sizeof(regNode_t)*INIT_WAITER_COUNT;
     PD_MSG_FIELD_I(affinity.guid) = NULL_GUID;
     PD_MSG_FIELD_I(affinity.metaDataPtr) = NULL_GUID;
     PD_MSG_FIELD_IO(properties) = 0;
@@ -933,7 +933,7 @@ ocrEvent_t * newEventHc(ocrEventFactory_t * factory, ocrEventTypes_t eventType,
     // We probably need to just call something to reset a bit
     msg.type = PD_MSG_DB_CREATE | PD_MSG_REQUEST | PD_MSG_REQ_RESPONSE;
     PD_MSG_FIELD_IO(guid) = event->signalersDb;
-    PD_MSG_FIELD_I(size) = sizeof(regNode_t)*INIT_SIGNALER_COUNT;
+    PD_MSG_FIELD_IO(size) = sizeof(regNode_t)*INIT_SIGNALER_COUNT;
     RESULT_PROPAGATE(pd->fcts.processMessage(pd, &msg, true));
     event->signalersDb = PD_MSG_FIELD_IO(guid);
     temp = (regNode_t*)PD_MSG_FIELD_O(ptr);

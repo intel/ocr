@@ -255,6 +255,14 @@ void mallocProxyDeallocate(void * clientPayloadAddr)
 
 
 void mallocProxyDestruct(ocrAllocator_t *self) {
+    // Destruct underlying memory-platform if any
+    u64 i = 0;
+    if (self->memoryCount != 0) {
+        for(i=0; i < self->memoryCount; i++) {
+            self->memories[i]->fcts.destruct(self->memories[i]);
+        }
+        runtimeChunkFree((u64)self->memories, NULL);
+    }
     runtimeChunkFree((u64)self, NULL);
 }
 

@@ -55,7 +55,7 @@ u8 ocrDbCreate(ocrGuid_t *db, void** addr, u64 len, u16 flags,
     PD_MSG_FIELD_IO(guid.metaDataPtr) = NULL;
     PD_MSG_FIELD_I(edt.guid) = task?task->guid:NULL_GUID; // Can happen when non EDT creates the DB
     PD_MSG_FIELD_I(edt.metaDataPtr) = task;
-    PD_MSG_FIELD_I(size) = len;
+    PD_MSG_FIELD_IO(size) = len;
     PD_MSG_FIELD_I(affinity.guid) = affinity;
     PD_MSG_FIELD_I(affinity.metaDataPtr) = NULL;
     PD_MSG_FIELD_IO(properties) = (u32) flags;

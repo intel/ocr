@@ -587,7 +587,7 @@ u8 hcPolicyDomainProcessMessage(ocrPolicyDomain_t *self, ocrPolicyMsg_t *msg, u8
         ocrFatGuid_t tEdt = PD_MSG_FIELD_I(edt);
 #define PRESCRIPTION 0x10LL
         PD_MSG_FIELD_O(returnDetail) = hcAllocateDb(self, &(PD_MSG_FIELD_IO(guid)),
-                                  &(PD_MSG_FIELD_O(ptr)), PD_MSG_FIELD_I(size),
+                                  &(PD_MSG_FIELD_O(ptr)), PD_MSG_FIELD_IO(size),
                                   PD_MSG_FIELD_IO(properties),
                                   PD_MSG_FIELD_I(affinity),
                                   PD_MSG_FIELD_I(allocator),

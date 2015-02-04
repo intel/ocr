@@ -354,13 +354,13 @@ typedef struct _ocrPolicyMsg_t {
         struct {
             ocrFatGuid_t guid;            /**< In/Out: GUID of the created
                                            * memory segment (usually a DB) */
-            // TODO: Bug #273. See if this needs to stay In/Out or if it can move back to in
+            // TODO: Bug #273. See if these need to stay In/Out or if it can move back to in
             u32 properties;               /**< In: Properties for creation */
+            u64 size;                     /**< In: Size of the created DB */
             union {
                 struct {
                     ocrFatGuid_t edt;             /** In: EDT doing the creation */
                     ocrFatGuid_t affinity;        /**< In: Affinity group for the DB */
-                    u64 size;                     /**< In: Size of the created DB */
                     ocrDataBlockType_t dbType;    /**< In: Type of memory requested */
                     ocrInDbAllocator_t allocator; /**< In: In-DB allocator */
                 } in;
