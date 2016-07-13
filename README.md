@@ -15,8 +15,10 @@ Additional details for this release:
 * [Productivity Environments](https://xstack.exascale-tech.com/git/public?p=xstack.git;a=tree;f=hll;hb=refs/heads/apps/master): Support for productivity environments, including CNC, RStream, Habanero C, and HTA 
 * [Legacy Support](https://xstack.exascale-tech.com/git/public?p=xstack.git;a=tree;f=apps/libs/src;hb=refs/heads/apps/master): Legacy C environment support and an MPI implementation are included for easier code migration
 
-Source code for this repository has moved to https://xstack.exascale-tech.com/git/public/xstack.git
+Source code for this repository has moved to <https://xstack.exascale-tech.com/git/public/ocr.git>:
 
-```
-git clone https://xstack.exascale-tech.com/git/public/xstack.git
-```
+    git clone https://xstack.exascale-tech.com/git/public/ocr.git
+
+Application source code and examples for OCR can be found at <https://xstack.exascale-tech.com/git/public/apps.git>:
+
+    git clone https://xstack.exascale-tech.com/git/public/apps.git
